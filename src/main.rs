@@ -1,10 +1,9 @@
-use lexer::reader::{StrReader,FileReader};
+use lexer::reader::{StrReader,CodeReader};
 
 mod lexer;
 
 fn main() {
-  //let mut reader = StrReader::new("fn main{}");
-  let mut reader = FileReader::new("fn main{}");
+  let mut reader = StrReader::new("fn main{}");
 
   loop {
     match reader.read_char() {
