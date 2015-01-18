@@ -7,7 +7,7 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new( l : int, c : int ) -> Position {
+    pub fn new( l: int, c: int ) -> Position {
         assert!( l >= 1 );
         assert!( c >= 1 );
 
