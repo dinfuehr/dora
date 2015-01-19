@@ -34,7 +34,7 @@ pub struct FileReader {
 
 impl FileReader {
   pub fn new(filename: &'static str) -> FileReader {
-    let file = File::open(&Path::new("message.txt"));
+    let file = File::open(&Path::new(filename));
     let reader = BufferedReader::new(file);
 
     FileReader { filename: filename, reader: reader }
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn read_from_file() {
-        let mut reader = FileReader::new("abc.txt");
+        let mut reader = FileReader::new("tests/abc.txt");
 
         assert_eq!(Some('a'), reader.read_char());
         assert_eq!(Some('b'), reader.read_char());
