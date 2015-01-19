@@ -1,13 +1,13 @@
-use std::fmt::{Formatter,Show,Error};
+use std::fmt::{Formatter,String,Error};
 use std::result::Result;
 
 pub struct Position {
-    pub line : int,
-    pub column : int
+    pub line : i32,
+    pub column : i32
 }
 
 impl Position {
-    pub fn new( l: int, c: int ) -> Position {
+    pub fn new( l: i32, c: i32 ) -> Position {
         assert!( l >= 1 );
         assert!( c >= 1 );
 
@@ -15,9 +15,7 @@ impl Position {
     }
 }
 
-impl Copy for Position { }
-
-impl Show for Position {
+impl String for Position {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}:{}", self.line, self.column)
     }

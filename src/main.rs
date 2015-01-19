@@ -1,14 +1,14 @@
-use lexer::reader::{StrReader,CodeReader};
+use lexer::reader::StrReader;
+use lexer::Lexer;
 
 mod lexer;
+mod error;
 
 fn main() {
-  let mut reader = StrReader::new("fn main{}");
+    let reader = Lexer::new(StrReader::new("fn main {}"));
 
-  loop {
-    match reader.read_char() {
-      Some(ch) => println!("ch = {}", ch),
-      None => break
+    match reader.read_token() {
+        Some(token) => println!( "token = {}", token),
+        None => println!("no token")
     }
-  }
 }

@@ -1,11 +1,11 @@
-use std::fmt::{Formatter,Show,Error};
+use std::fmt;
 use std::result::Result;
 
 use lexer::position::Position;
 
-#[deriving(Show)]
+#[derive(Show)]
 pub enum TokenType {
-    End
+    Number, Identifier, End
 }
 
 pub struct Token {
@@ -15,14 +15,14 @@ pub struct Token {
 }
 
 impl Token {
-    fn new( tok: TokenType, line: int, col: int ) -> Token {
-        Token { ttype: tok, value: "".to_string(), position: Position::new(line, col) }
+    fn new( tok: TokenType, pos: Position ) -> Token {
+        Token { ttype: tok, value: "".to_string(), position: pos }
     }
 }
 
-impl Show for Token {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{} at {}", self.ttype, self.position)
+impl fmt::String for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{} (type {:?}) at {}", self.value, self.ttype, self.position)
     }
 }
 
