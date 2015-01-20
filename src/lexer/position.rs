@@ -6,6 +6,8 @@ pub struct Position {
     pub column : i32
 }
 
+impl Copy for Position {}
+
 impl Position {
     pub fn new( l: i32, c: i32 ) -> Position {
         assert!( l >= 1 );

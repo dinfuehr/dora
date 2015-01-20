@@ -9,9 +9,9 @@ pub enum TokenType {
 }
 
 pub struct Token {
-    ttype: TokenType,
-    value: String,
-    position: Position
+    pub ttype: TokenType,
+    pub value: String,
+    pub position: Position
 }
 
 impl Token {
