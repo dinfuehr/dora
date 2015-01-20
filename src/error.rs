@@ -1,3 +1,5 @@
+use std::fmt;
+
 use lexer::position::Position;
 
 pub struct ParseError {
@@ -6,9 +8,8 @@ pub struct ParseError {
     pub message: String
 }
 
-impl ParseError {
-    fn print(&self) {
-        println!("{} at {}: {}", self.filename, self.position, self.message);
+impl fmt::Show for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "error in {} at line {:?}: {}", self.filename, self.position, self.message)
     }
 }
-

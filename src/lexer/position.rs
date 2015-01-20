@@ -1,4 +1,4 @@
-use std::fmt::{Formatter,String,Error};
+use std::fmt::{Formatter,Show,Error};
 use std::result::Result;
 
 pub struct Position {
@@ -15,7 +15,7 @@ impl Position {
     }
 }
 
-impl String for Position {
+impl Show for Position {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}:{}", self.line, self.column)
     }
@@ -28,5 +28,5 @@ fn test_new() {
     assert_eq!(pos.line, 3);
     assert_eq!(pos.column, 1);
 
-    assert_eq!(format!("{}",pos).as_slice(), "3:1");
+    assert_eq!(format!("{:?}",pos).as_slice(), "3:1");
 }

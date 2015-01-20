@@ -1,5 +1,7 @@
 use lexer::reader::CodeReader;
-use lexer::token::Token;
+use lexer::token::{Token,TokenType};
+use lexer::position::Position;
+use error::ParseError;
 
 pub mod reader;
 pub mod token;
@@ -14,18 +16,29 @@ impl<T : CodeReader> Lexer<T> {
         Lexer::<T> { reader: reader }
     }
 
-    pub fn read_token(&self) -> Option<Token> {
-        None
+    pub fn read_token(&mut self) -> Result<Token,ParseError> {
+        match self.reader.read_char() {
+          Some(ch) => Err( ParseError {
+            filename: "abc.dora".to_string(),
+            position: Position::new(1, 1),
+            message: "not implemented".to_string()
+          } ),
+
+          None => Ok(Token::new(TokenType::End, Position::new(1, 1)))
+        }
     }
 }
 
-//#[cfg(test)]
-//mod tests {
-    //use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lexer::reader::StrReader;
 
-    //#[test]
-    //fn read_numbers() {
-        //let reader = Lexer::new(StrReader::new("1 2 345 012"));
-    //}
-//}
+    #[test]
+    fn test_read_empty_file() {
+        let mut reader = Lexer::new(StrReader::new(""));
+        assert!(reader.read_token().unwrap().is_eof());
+        assert!(reader.read_token().unwrap().is_eof());
+    }
+}
 
