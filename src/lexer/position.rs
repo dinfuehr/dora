@@ -2,14 +2,14 @@ use std::fmt::{Formatter,Show,Error};
 use std::result::Result;
 
 pub struct Position {
-    pub line : i32,
-    pub column : i32
+    pub line : u32,
+    pub column : u32
 }
 
 impl Copy for Position {}
 
 impl Position {
-    pub fn new( l: i32, c: i32 ) -> Position {
+    pub fn new( l: u32, c: u32 ) -> Position {
         assert!( l >= 1 );
         assert!( c >= 1 );
 

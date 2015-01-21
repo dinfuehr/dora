@@ -26,16 +26,6 @@
         }
     }
 
-    fn eof() -> Result<Token,ParseError> {
-
-    }
-
-    fn skip_white(&mut self) -> Result<Token,ParseError> {
-        while self.is_whitespace() {
-            self.read_char();
-        }
-    }
-
     fn skip_comment(&mut self) -> Result<Token,ParseError> {
         self.read_char();
         self.read_char();

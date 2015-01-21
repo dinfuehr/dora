@@ -2,10 +2,16 @@ use std::fmt;
 
 use lexer::position::Position;
 
+#[derive(PartialEq,Show)]
+pub enum ErrorCode {
+    UnclosedComment, UnknownChar
+}
+
 pub struct ParseError {
     pub filename: String,
     pub position: Position,
-    pub message: String
+    pub message: String,
+    pub code: ErrorCode
 }
 
 impl fmt::Show for ParseError {
