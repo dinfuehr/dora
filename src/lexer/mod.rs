@@ -295,6 +295,10 @@ mod tests {
     fn test_unfinished_multi_comment() {
         let mut reader = Lexer::from_str("/*test");
         assert_err(&mut reader, ErrorCode::UnclosedComment, 1, 1);
+
+        let mut reader = Lexer::from_str("1/*test");
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
+        assert_err(&mut reader, ErrorCode::UnclosedComment, 1, 2);
     }
 }
 
