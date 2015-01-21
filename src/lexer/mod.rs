@@ -77,12 +77,17 @@ impl<T : CodeReader> Lexer<T> {
                     _ => {}
                 }
 
+            } else if self.is_identifier_start() {
+                return self.read_identifier();
+
             } else {
+                let ch = self.top().unwrap().value;
+
                 return Err( ParseError {
                   filename: self.reader.filename().to_string(),
                   position: self.position,
                   code: ErrorCode::UnknownChar,
-                  message: "not implemented".to_string()
+                  message: format!("unknown character {} (ascii code {}", ch, ch as usize)
                 } )
             }
         }
@@ -125,6 +130,17 @@ impl<T : CodeReader> Lexer<T> {
         self.read_char();
 
         None
+    }
+
+    fn read_identifier(&mut self) -> Result<Token,ParseError> {
+        let mut tok = self.build_token(TokenType::Identifier);
+
+        while self.is_digit() || self.is_identifier_start() {
+            let ch = self.read_char().unwrap().value;
+            tok.value.push(ch);
+        }
+
+        Ok(tok)
     }
 
     fn read_number(&mut self) -> Result<Token,ParseError> {
@@ -221,6 +237,15 @@ impl<T : CodeReader> Lexer<T> {
         top.is_some() && top.unwrap().value.is_whitespace()
     }
 
+    fn is_identifier_start(&self) -> bool {
+        let top = self.top();
+        if top.is_none() { return false; }
+
+        let ch = top.unwrap().value;
+
+        ( ch >= 'a' && ch <= 'z' ) || ( ch >= 'A' && ch <= 'Z' ) || ch == '_'
+    }
+
     fn is_newline(&self) -> bool {
         let top = self.top();
 
@@ -273,22 +298,22 @@ mod tests {
 
     #[test]
     fn test_skip_single_line_comment() {
-      let mut reader = Lexer::from_str("//test\n1");
-      assert_tok(&mut reader, TokenType::Number, "1", 2, 1);
-      assert_end(&mut reader, 2, 2);
+        let mut reader = Lexer::from_str("//test\n1");
+        assert_tok(&mut reader, TokenType::Number, "1", 2, 1);
+        assert_end(&mut reader, 2, 2);
     }
 
     #[test]
     fn test_unfinished_line_comment() {
-      let mut reader = Lexer::from_str("//abc");
-      assert_end(&mut reader, 1, 6);
+        let mut reader = Lexer::from_str("//abc");
+        assert_end(&mut reader, 1, 6);
     }
 
     #[test]
     fn test_skip_multi_comment() {
-      let mut reader = Lexer::from_str("/*test*/1");
-      assert_tok(&mut reader, TokenType::Number, "1", 1, 9);
-      assert_end(&mut reader, 1, 10);
+        let mut reader = Lexer::from_str("/*test*/1");
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 9);
+        assert_end(&mut reader, 1, 10);
     }
 
     #[test]
@@ -299,6 +324,16 @@ mod tests {
         let mut reader = Lexer::from_str("1/*test");
         assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
         assert_err(&mut reader, ErrorCode::UnclosedComment, 1, 2);
+    }
+
+    #[test]
+    fn test_read_identifier() {
+        let mut reader = Lexer::from_str("abc ident test");
+        assert_tok(&mut reader, TokenType::Identifier, "abc", 1, 1);
+        assert_tok(&mut reader, TokenType::Identifier, "ident", 1, 5);
+        assert_tok(&mut reader, TokenType::Identifier, "test", 1, 11);
+        assert_end(&mut reader, 1, 15);
+
     }
 }
 
