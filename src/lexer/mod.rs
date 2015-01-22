@@ -26,7 +26,8 @@ pub struct Lexer<T : CodeReader> {
     position: Position,
 
     buffer: Vec<CharPos>,
-    eof_reached: bool
+    eof_reached: bool,
+    tabwidth: u32
 }
 
 impl Lexer<StrReader> {
@@ -42,12 +43,17 @@ impl Lexer<StrReader> {
 }
 
 impl<T : CodeReader> Lexer<T> {
-    pub fn new(reader : T) -> Lexer<T> {
+    pub fn new(reader: T) -> Lexer<T> {
+        Lexer::new_with_tabwidth(reader, 4)
+    }
+
+    pub fn new_with_tabwidth(reader: T, tabwidth: u32) -> Lexer<T> {
         let mut lexer = Lexer::<T> {
             reader: reader,
             position: Position::new(1, 1),
             buffer: Vec::with_capacity(10),
-            eof_reached: false
+            eof_reached: false,
+            tabwidth: tabwidth
         };
         lexer.fill_buffer();
 
@@ -189,11 +195,19 @@ impl<T : CodeReader> Lexer<T> {
                 let ch = ch.unwrap();
                 self.buffer.push(CharPos { value: ch, position: self.position });
 
-                if ch == '\n' {
-                    self.position.line += 1;
-                    self.position.column = 1;
-                } else {
-                    self.position.column += 1;
+                match ch {
+                    '\n' => {
+                        self.position.line += 1;
+                        self.position.column = 1;
+                    },
+
+                    '\t' => {
+                        let tabdepth = (self.position.column-1)/self.tabwidth;
+
+                        self.position.column = 1 + self.tabwidth * (tabdepth+1);
+                    }
+
+                    _ => self.position.column += 1
                 }
             } else {
                 self.eof_reached = true;
@@ -334,6 +348,47 @@ mod tests {
         assert_tok(&mut reader, TokenType::Identifier, "test", 1, 11);
         assert_end(&mut reader, 1, 15);
 
+    }
+
+    #[test]
+    fn test_code_with_spaces() {
+        let mut reader = Lexer::from_str("1 2 3");
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
+        assert_tok(&mut reader, TokenType::Number, "2", 1, 3);
+        assert_tok(&mut reader, TokenType::Number, "3", 1, 5);
+        assert_end(&mut reader, 1, 6);
+    }
+
+    #[test]
+    fn test_code_with_newlines() {
+        let mut reader = Lexer::from_str("1\n2\n3");
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
+        assert_tok(&mut reader, TokenType::Number, "2", 2, 1);
+        assert_tok(&mut reader, TokenType::Number, "3", 3, 1);
+        assert_end(&mut reader, 3, 2);
+    }
+
+    #[test]
+    fn test_code_with_tabs() {
+        let mut reader = Lexer::from_str("1\t2\t3");
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
+        assert_tok(&mut reader, TokenType::Number, "2", 1, 5);
+        assert_tok(&mut reader, TokenType::Number, "3", 1, 9);
+        assert_end(&mut reader, 1, 10);
+    }
+
+    #[test]
+    fn test_code_with_tabwidth8() {
+        let mut str_reader = StrReader::new("1\t2\n1234567\t8\n12345678\t9");
+        let mut reader = Lexer::new_with_tabwidth(str_reader, 8);
+
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
+        assert_tok(&mut reader, TokenType::Number, "2", 1, 9);
+        assert_tok(&mut reader, TokenType::Number, "1234567", 2, 1);
+        assert_tok(&mut reader, TokenType::Number, "8", 2, 9);
+        assert_tok(&mut reader, TokenType::Number, "12345678", 3, 1);
+        assert_tok(&mut reader, TokenType::Number, "9", 3, 17);
+        assert_end(&mut reader, 3, 18);
     }
 }
 
