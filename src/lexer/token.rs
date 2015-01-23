@@ -5,7 +5,7 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Show)]
 pub enum TokenType {
-    Number, Identifier, End
+    String, Number, Identifier, End
 }
 
 pub struct Token {

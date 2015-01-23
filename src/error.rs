@@ -4,7 +4,7 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Show)]
 pub enum ErrorCode {
-    UnclosedComment, UnknownChar
+    UnclosedComment, UnknownChar, UnclosedString
 }
 
 pub struct ParseError {

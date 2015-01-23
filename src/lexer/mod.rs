@@ -86,14 +86,17 @@ impl<T : CodeReader> Lexer<T> {
             } else if self.is_identifier_start() {
                 return self.read_identifier();
 
+            } else if self.is_string() {
+                return self.read_string();
+
             } else {
                 let ch = self.top().unwrap().value;
 
                 return Err( ParseError {
-                  filename: self.reader.filename().to_string(),
-                  position: self.position,
-                  code: ErrorCode::UnknownChar,
-                  message: format!("unknown character {} (ascii code {}", ch, ch as usize)
+                    filename: self.reader.filename().to_string(),
+                    position: self.position,
+                    code: ErrorCode::UnknownChar,
+                    message: format!("unknown character {} (ascii code {}", ch, ch as usize)
                 } )
             }
         }
@@ -105,8 +108,9 @@ impl<T : CodeReader> Lexer<T> {
         }
     }
 
+
     fn read_comment(&mut self) -> Option<ParseError> {
-        while self.top().is_some() && !self.is_newline() {
+        while !self.is_eof() && !self.is_newline() {
             self.read_char();
         }
 
@@ -119,11 +123,11 @@ impl<T : CodeReader> Lexer<T> {
         self.read_char();
         self.read_char();
 
-        while self.top().is_some() && !self.is_multi_comment_end() {
+        while !self.is_eof() && !self.is_multi_comment_end() {
           self.read_char();
         }
 
-        if self.top().is_none() {
+        if self.is_eof() {
           return Some(ParseError {
               filename: self.reader.filename().to_string(),
               position: pos,
@@ -141,12 +145,36 @@ impl<T : CodeReader> Lexer<T> {
     fn read_identifier(&mut self) -> Result<Token,ParseError> {
         let mut tok = self.build_token(TokenType::Identifier);
 
-        while self.is_digit() || self.is_identifier_start() {
+        while self.is_identifier() {
             let ch = self.read_char().unwrap().value;
             tok.value.push(ch);
         }
 
         Ok(tok)
+    }
+
+    fn read_string(&mut self) -> Result<Token,ParseError> {
+        let mut tok = self.build_token(TokenType::String);
+
+        self.read_char();
+
+        while !self.is_eof() && !self.is_newline() && !self.is_string() {
+            let ch = self.read_char().unwrap().value;
+            tok.value.push(ch);
+        }
+
+        if self.is_string() {
+            self.read_char();
+
+            Ok(tok)
+        } else {
+            Err(ParseError {
+              filename: self.reader.filename().to_string(),
+              position: tok.position,
+              code: ErrorCode::UnclosedString,
+              message: "unclosed string".to_string()
+          })
+        }
     }
 
     fn read_number(&mut self) -> Result<Token,ParseError> {
@@ -260,10 +288,24 @@ impl<T : CodeReader> Lexer<T> {
         ( ch >= 'a' && ch <= 'z' ) || ( ch >= 'A' && ch <= 'Z' ) || ch == '_'
     }
 
+    fn is_identifier(&self) -> bool {
+        self.is_identifier_start() || self.is_digit()
+    }
+
     fn is_newline(&self) -> bool {
         let top = self.top();
 
         top.is_some() && top.unwrap().value == '\n'
+    }
+
+    fn is_string(&self) -> bool {
+        let top = self.top();
+
+        top.is_some() && top.unwrap().value == '\"'
+    }
+
+    fn is_eof(&self) -> bool {
+        self.top().is_none()
     }
 }
 
@@ -389,6 +431,25 @@ mod tests {
         assert_tok(&mut reader, TokenType::Number, "12345678", 3, 1);
         assert_tok(&mut reader, TokenType::Number, "9", 3, 17);
         assert_end(&mut reader, 3, 18);
+    }
+
+    #[test]
+    fn test_string_with_newline() {
+        let mut reader = Lexer::from_str("\"abc\ndef\"");
+        assert_err(&mut reader, ErrorCode::UnclosedString, 1, 1);
+    }
+
+    #[test]
+    fn test_unclosed_string() {
+        let mut reader = Lexer::from_str("\"abc");
+        assert_err(&mut reader, ErrorCode::UnclosedString, 1, 1);
+    }
+
+    #[test]
+    fn test_string() {
+        let mut reader = Lexer::from_str("\"abc\"");
+        assert_tok(&mut reader, TokenType::String, "abc", 1, 1);
+        assert_end(&mut reader, 1, 6);
     }
 }
 
