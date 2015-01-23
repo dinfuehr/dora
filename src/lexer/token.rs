@@ -24,6 +24,12 @@ impl Token {
     }
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "type {:?} (with value {:?}) at {:?}", self.ttype, self.value, self.position)
+    }
+}
+
 impl fmt::Show for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "type {:?} (with value {:?}) at {:?}", self.ttype, self.value, self.position)
