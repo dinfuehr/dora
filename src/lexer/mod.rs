@@ -1,5 +1,4 @@
 use std::fmt;
-use std::collections::HashMap;
 
 use lexer::reader::{CodeReader,StrReader,FileReader};
 use lexer::token::{Token,TokenType};
@@ -15,7 +14,7 @@ struct CharPos {
     position: Position
 }
 
-impl fmt::Show for CharPos {
+impl fmt::Display for CharPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "char {} at line {:?}", self.value, self.position)
     }
@@ -29,8 +28,7 @@ pub struct Lexer<T : CodeReader> {
     eof_reached: bool,
     tabwidth: u32,
 
-    buffer: Vec<CharPos>,
-    keywords: HashMap<&'static str, TokenType>
+    buffer: Vec<CharPos>
 }
 
 impl Lexer<StrReader> {
@@ -45,22 +43,22 @@ impl Lexer<StrReader> {
     }
 }
 
-fn get_keywords() -> HashMap<&'static str,TokenType> {
-    let mut kws = HashMap::new();
+#[plugin] #[no_link]
+extern crate phf_mac;
+extern crate phf;
 
-    kws.insert("fn", TokenType::Fn);
-    kws.insert("var", TokenType::Var);
-    kws.insert("while", TokenType::While);
-    kws.insert("if", TokenType::If);
-    kws.insert("else", TokenType::Else);
-    kws.insert("loop", TokenType::Loop);
-    kws.insert("break", TokenType::Break);
-    kws.insert("continue", TokenType::Continue);
-    kws.insert("return", TokenType::Return);
-    kws.insert("int", TokenType::Int);
-
-    kws
-}
+static keywords: phf::Map<&'static str,TokenType> = phf_map! {
+    "fn" => TokenType::Fn,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
+    "if" => TokenType::If,
+    "else" => TokenType::Else,
+    "loop" => TokenType::Loop,
+    "break" => TokenType::Break,
+    "continue" => TokenType::Continue,
+    "return" => TokenType::Return,
+    "int" => TokenType::Int
+};
 
 impl<T : CodeReader> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
@@ -74,8 +72,7 @@ impl<T : CodeReader> Lexer<T> {
             tabwidth: tabwidth,
             eof_reached: false,
 
-            buffer: Vec::with_capacity(10),
-            keywords: get_keywords()
+            buffer: Vec::with_capacity(10)
         };
         lexer.fill_buffer();
 
@@ -172,7 +169,7 @@ impl<T : CodeReader> Lexer<T> {
             tok.value.push(ch);
         }
 
-        match self.keywords.get(tok.value.as_slice()) {
+        match keywords.get(tok.value.as_slice()) {
             Some(toktype) => tok.ttype = *toktype,
             _ => {}
         }

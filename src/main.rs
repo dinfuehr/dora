@@ -1,4 +1,9 @@
-use lexer::reader::StrReader;
+#![feature(plugin)]
+
+#[plugin] #[no_link]
+extern crate phf_mac;
+extern crate phf;
+
 use lexer::Lexer;
 
 mod lexer;
