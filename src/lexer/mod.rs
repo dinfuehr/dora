@@ -3,24 +3,14 @@ use std::fmt;
 use lexer::reader::{CodeReader,StrReader,FileReader};
 use lexer::token::{Token,TokenType};
 use lexer::position::Position;
+use lexer::charpos::CharPos;
 use error::{ParseError,ErrorCode};
+use phf;
 
 pub mod reader;
 pub mod token;
 pub mod position;
-
-struct CharPos {
-    value: char,
-    position: Position
-}
-
-impl fmt::Display for CharPos {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "char {} at line {:?}", self.value, self.position)
-    }
-}
-
-impl Copy for CharPos {}
+mod charpos;
 
 pub struct Lexer<T : CodeReader> {
     reader: T,
@@ -42,10 +32,6 @@ impl Lexer<StrReader> {
         Lexer::new(FileReader::new(filename))
     }
 }
-
-#[plugin] #[no_link]
-extern crate phf_mac;
-extern crate phf;
 
 static keywords: phf::Map<&'static str,TokenType> = phf_map! {
     "fn" => TokenType::Fn,
