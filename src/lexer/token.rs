@@ -3,9 +3,12 @@ use std::result::Result;
 
 use lexer::position::Position;
 
-#[derive(PartialEq,Show)]
+#[derive(PartialEq,Show,Copy)]
 pub enum TokenType {
-    String, Number, Identifier, End
+    String, Number, Identifier, End,
+
+    Fn, Var, While, If, Else,
+    Loop, Break, Continue, Return, Int
 }
 
 pub struct Token {

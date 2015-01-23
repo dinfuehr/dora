@@ -1,4 +1,6 @@
 use std::fmt;
+use std::collections::HashMap;
+
 use lexer::reader::{CodeReader,StrReader,FileReader};
 use lexer::token::{Token,TokenType};
 use lexer::position::Position;
@@ -24,10 +26,11 @@ impl Copy for CharPos {}
 pub struct Lexer<T : CodeReader> {
     reader: T,
     position: Position,
+    eof_reached: bool,
+    tabwidth: u32,
 
     buffer: Vec<CharPos>,
-    eof_reached: bool,
-    tabwidth: u32
+    keywords: HashMap<&'static str, TokenType>
 }
 
 impl Lexer<StrReader> {
@@ -42,6 +45,23 @@ impl Lexer<StrReader> {
     }
 }
 
+fn get_keywords() -> HashMap<&'static str,TokenType> {
+    let mut kws = HashMap::new();
+
+    kws.insert("fn", TokenType::Fn);
+    kws.insert("var", TokenType::Var);
+    kws.insert("while", TokenType::While);
+    kws.insert("if", TokenType::If);
+    kws.insert("else", TokenType::Else);
+    kws.insert("loop", TokenType::Loop);
+    kws.insert("break", TokenType::Break);
+    kws.insert("continue", TokenType::Continue);
+    kws.insert("return", TokenType::Return);
+    kws.insert("int", TokenType::Int);
+
+    kws
+}
+
 impl<T : CodeReader> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
         Lexer::new_with_tabwidth(reader, 4)
@@ -51,9 +71,11 @@ impl<T : CodeReader> Lexer<T> {
         let mut lexer = Lexer::<T> {
             reader: reader,
             position: Position::new(1, 1),
-            buffer: Vec::with_capacity(10),
+            tabwidth: tabwidth,
             eof_reached: false,
-            tabwidth: tabwidth
+
+            buffer: Vec::with_capacity(10),
+            keywords: get_keywords()
         };
         lexer.fill_buffer();
 
@@ -148,6 +170,11 @@ impl<T : CodeReader> Lexer<T> {
         while self.is_identifier() {
             let ch = self.read_char().unwrap().value;
             tok.value.push(ch);
+        }
+
+        match self.keywords.get(tok.value.as_slice()) {
+            Some(toktype) => tok.ttype = *toktype,
+            _ => {}
         }
 
         Ok(tok)
@@ -450,6 +477,23 @@ mod tests {
         let mut reader = Lexer::from_str("\"abc\"");
         assert_tok(&mut reader, TokenType::String, "abc", 1, 1);
         assert_end(&mut reader, 1, 6);
+    }
+
+    #[test]
+    fn test_keywords() {
+        let mut reader = Lexer::from_str("fn var while if else");
+        assert_tok(&mut reader, TokenType::Fn, "fn", 1, 1);
+        assert_tok(&mut reader, TokenType::Var, "var", 1, 4);
+        assert_tok(&mut reader, TokenType::While, "while", 1, 8);
+        assert_tok(&mut reader, TokenType::If, "if", 1, 14);
+        assert_tok(&mut reader, TokenType::Else, "else", 1, 17);
+
+        let mut reader = Lexer::from_str("loop break continue return int");
+        assert_tok(&mut reader, TokenType::Loop, "loop", 1, 1);
+        assert_tok(&mut reader, TokenType::Break, "break", 1, 6);
+        assert_tok(&mut reader, TokenType::Continue, "continue", 1, 12);
+        assert_tok(&mut reader, TokenType::Return, "return", 1, 21);
+        assert_tok(&mut reader, TokenType::Int, "int", 1, 28);
     }
 }
 
