@@ -187,6 +187,42 @@ impl<T : CodeReader> Lexer<T> {
         }
     }
 
+    fn read_operator(&mut self) -> Result<Token,ParseError> {
+        let mut tok = self.build_token(TokenType::End);
+        let ch = self.read_char().unwrap().value;
+
+        match ch {
+            '+' => tok.token_type = TokenType::Add,
+            '-' => tok.token_type = TokenType::Sub,
+
+            '*' => tok.token_type = TokenType::Mul,
+            '/' => tok.token_type = TokenType::Div,
+            '%' => tok.token_type = TokenType::Mod,
+
+            '(' => tok.token_type = TokenType::LParen,
+            ')' => tok.token_type = TokenType::RParen,
+            '[' => tok.token_type = TokenType::LBracket,
+            ']' => tok.token_type = TokenType::RBracket,
+            '{' => tok.token_type = TokenType::LBrace,
+            '}' => tok.token_type = TokenType::RBrace,
+
+            ',' => tok.token_type = TokenType::Comma,
+            ';' => tok.token_type = TokenType::Semicolon,
+            '.' => tok.token_type = TokenType::Dot,
+            '=' => tok.token_type = TokenType::Assign,
+            _ => {
+                return Err(ParseError {
+                    filename: self.reader.filename().to_string(),
+                    position: tok.position,
+                    code: ErrorCode::UnknownChar,
+                    message: format!("unknown character {} (ascii code {}", ch, ch as usize)
+                } )
+            }
+        }
+
+        Ok(tok)
+    }
+
     fn read_number(&mut self) -> Result<Token,ParseError> {
         let mut tok = self.build_token(TokenType::Number);
 
@@ -275,6 +311,14 @@ impl<T : CodeReader> Lexer<T> {
 
         top.is_some() && top.unwrap().value == '*' &&
             ntop.is_some() && ntop.unwrap().value == '/'
+    }
+
+    fn is_operator(&self) -> bool {
+        let top = self.top();
+
+        if top.is_none() { return false; }
+
+        "+-*/%&|,=!~;:.()[]{}<>".contains_char(top.unwrap().value)
     }
 
     fn is_digit(&self) -> bool {
