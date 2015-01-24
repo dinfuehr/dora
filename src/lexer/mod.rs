@@ -156,7 +156,7 @@ impl<T : CodeReader> Lexer<T> {
         }
 
         match keywords.get(tok.value.as_slice()) {
-            Some(toktype) => tok.ttype = *toktype,
+            Some(toktype) => tok.token_type = *toktype,
             _ => {}
         }
 
@@ -221,8 +221,8 @@ impl<T : CodeReader> Lexer<T> {
         }
     }
 
-    fn build_token(&self, ttype: TokenType) -> Token {
-        Token::new(ttype, self.top().unwrap().position)
+    fn build_token(&self, token_type: TokenType) -> Token {
+        Token::new(token_type, self.top().unwrap().position)
     }
 
     fn fill_buffer(&mut self) {
@@ -330,9 +330,9 @@ mod tests {
         assert_tok(reader, TokenType::End, "", l, c);
     }
 
-    fn assert_tok(reader: &mut Lexer<StrReader>, ttype: TokenType, val: &'static str, l: u32, c: u32) {
+    fn assert_tok(reader: &mut Lexer<StrReader>, token_type: TokenType, val: &'static str, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
-        assert_eq!(ttype, tok.ttype);
+        assert_eq!(token_type, tok.token_type);
         assert_eq!(val, tok.value);
         assert_eq!(l, tok.position.line);
         assert_eq!(c, tok.position.column);
