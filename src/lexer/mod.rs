@@ -1,11 +1,10 @@
-use std::fmt;
+use phf;
 
 use lexer::reader::{CodeReader,StrReader,FileReader};
 use lexer::token::{Token,TokenType};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
 use error::{ParseError,ErrorCode};
-use phf;
 
 pub mod reader;
 pub mod token;
@@ -94,6 +93,9 @@ impl<T : CodeReader> Lexer<T> {
             } else if self.is_string() {
                 return self.read_string();
 
+            } else if self.is_operator() {
+                return self.read_operator();
+
             } else {
                 let ch = self.top().unwrap().value;
 
@@ -101,7 +103,7 @@ impl<T : CodeReader> Lexer<T> {
                     filename: self.reader.filename().to_string(),
                     position: self.position,
                     code: ErrorCode::UnknownChar,
-                    message: format!("unknown character {} (ascii code {}", ch, ch as usize)
+                    message: format!("unknown character {} (ascii code {})", ch, ch as usize)
                 } )
             }
         }
@@ -191,6 +193,11 @@ impl<T : CodeReader> Lexer<T> {
         let mut tok = self.build_token(TokenType::End);
         let ch = self.read_char().unwrap().value;
 
+        let nch = self.top();
+        let nch = if nch.is_some() { nch.unwrap().value } else { 'x' };
+
+        println!("in read_operator: ch={}, nch={}", ch, nch);
+
         match ch {
             '+' => tok.token_type = TokenType::Add,
             '-' => tok.token_type = TokenType::Sub,
@@ -209,13 +216,48 @@ impl<T : CodeReader> Lexer<T> {
             ',' => tok.token_type = TokenType::Comma,
             ';' => tok.token_type = TokenType::Semicolon,
             '.' => tok.token_type = TokenType::Dot,
-            '=' => tok.token_type = TokenType::Assign,
+            '=' => {
+                match nch {
+                    '=' => {
+                        tok.token_type = TokenType::Eq;
+                        self.read_char();
+                    },
+                    _ => tok.token_type = TokenType::Assign
+                }
+            },
+            '<' => {
+                match nch {
+                    '=' => {
+                        tok.token_type = TokenType::LEq;
+                        self.read_char();
+                    },
+                    _ => tok.token_type = TokenType::LThan
+                }
+            },
+            '>' => {
+                match nch {
+                    '=' => {
+                        tok.token_type = TokenType::GEq;
+                        self.read_char();
+                    },
+                    _ => tok.token_type = TokenType::GThan
+                }
+            },
+            '!' => {
+                match nch {
+                    '=' => {
+                        tok.token_type = TokenType::NEq;
+                        self.read_char();
+                    },
+                    _ => tok.token_type = TokenType::Not
+                }
+            },
             _ => {
                 return Err(ParseError {
                     filename: self.reader.filename().to_string(),
                     position: tok.position,
                     code: ErrorCode::UnknownChar,
-                    message: format!("unknown character {} (ascii code {}", ch, ch as usize)
+                    message: format!("unknown character {} (ascii code {})", ch, ch as usize)
                 } )
             }
         }
@@ -521,6 +563,29 @@ mod tests {
         assert_tok(&mut reader, TokenType::Continue, "continue", 1, 12);
         assert_tok(&mut reader, TokenType::Return, "return", 1, 21);
         assert_tok(&mut reader, TokenType::Int, "int", 1, 28);
+    }
+
+    #[test]
+    fn test_operators() {
+        let mut reader = Lexer::from_str("===+-*/%");
+        assert_tok(&mut reader, TokenType::Eq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Assign, "", 1, 3);
+        assert_tok(&mut reader, TokenType::Add, "", 1, 4);
+        assert_tok(&mut reader, TokenType::Sub, "", 1, 5);
+        assert_tok(&mut reader, TokenType::Mul, "", 1, 6);
+        assert_tok(&mut reader, TokenType::Div, "", 1, 7);
+        assert_tok(&mut reader, TokenType::Mod, "", 1, 8);
+
+        let mut reader = Lexer::from_str("<=<>=><");
+        assert_tok(&mut reader, TokenType::LEq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::LThan, "", 1, 3);
+        assert_tok(&mut reader, TokenType::GEq, "", 1, 4);
+        assert_tok(&mut reader, TokenType::GThan, "", 1, 6);
+        assert_tok(&mut reader, TokenType::LThan, "", 1, 7);
+
+        let mut reader = Lexer::from_str("!=!");
+        assert_tok(&mut reader, TokenType::NEq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Not, "", 1, 3);
     }
 }
 

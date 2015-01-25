@@ -12,7 +12,7 @@ pub enum TokenType {
     Loop, Break, Continue, Return, Int,
 
     // Operators
-    Add, Sub, Mul, Div, Mod,
+    Add, Sub, Mul, Div, Mod, Not,
     LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Comma, Semicolon, Dot, Assign,
     Eq, NEq, LThan, LEq, GThan, GEq
