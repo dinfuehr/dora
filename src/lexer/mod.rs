@@ -26,7 +26,7 @@ impl Lexer<StrReader> {
     }
 }
 
-impl Lexer<StrReader> {
+impl Lexer<FileReader> {
     pub fn from_file(filename: &'static str) -> Lexer<FileReader> {
         Lexer::new(FileReader::new(filename))
     }
@@ -62,6 +62,10 @@ impl<T : CodeReader> Lexer<T> {
         lexer.fill_buffer();
 
         lexer
+    }
+
+    pub fn filename(&self) -> &str {
+        self.reader.filename()
     }
 
     pub fn read_token(&mut self) -> Result<Token,ParseError> {

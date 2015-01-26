@@ -4,7 +4,7 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Show)]
 pub enum ErrorCode {
-    UnclosedComment, UnknownChar, UnclosedString
+    UnclosedComment, UnknownChar, UnclosedString, NumberOverflow
 }
 
 pub struct ParseError {
@@ -12,6 +12,12 @@ pub struct ParseError {
     pub position: Position,
     pub message: String,
     pub code: ErrorCode
+}
+
+impl ParseError {
+    pub fn println(&self) {
+        println!("{}", self);
+    }
 }
 
 impl fmt::Display for ParseError {
