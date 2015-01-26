@@ -72,7 +72,7 @@ impl<T : CodeReader> Lexer<T> {
         loop {
             self.skip_white();
 
-            if self.top().is_none() {
+            if let None = self.top() {
                 return Ok(Token::new(TokenType::End, self.position));
             }
 
