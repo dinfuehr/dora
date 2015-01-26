@@ -36,13 +36,11 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    fn read_token(&mut self) -> Result<Token,ParseError> {
-        let tok = try!(self.lexer.read_token());
-
-        Ok(mem::replace(&mut self.token, tok))
+    pub fn parse(&mut self) -> Result<Expr,ParseError> {
+        self.parse_number()
     }
 
-    pub fn parse_number(&mut self) -> Result<Expr,ParseError> {
+    fn parse_number(&mut self) -> Result<Expr,ParseError> {
         // initialize parser
         try!(self.read_token());
 
@@ -58,6 +56,21 @@ impl<T: CodeReader> Parser<T> {
             } )
         }
     }
+
+    fn parse_string(&mut self) -> Result<Expr,ParseError> {
+        // initialize parser
+        try!(self.read_token());
+
+        let string = try!(self.read_token());
+
+        Ok(ExprLitStr(string.value))
+    }
+
+    fn read_token(&mut self) -> Result<Token,ParseError> {
+        let tok = try!(self.lexer.read_token());
+
+        Ok(mem::replace(&mut self.token, tok))
+    }
 }
 
 #[test]
@@ -67,9 +80,9 @@ fn test_number() {
     assert_eq!(ExprLitInt(10), parser.parse_number().unwrap());
 }
 
-//#[test]
-//fn test_string() {
-    //let mut parser = Parser::from_str("\"abc\"");
+#[test]
+fn test_string() {
+    let mut parser = Parser::from_str("\"abc\"");
 
-    //assert_eq!(ExprLitStr("abc"), parser.parse_string().unwrap());
-//}
+    assert_eq!(ExprLitStr("abc".to_string()), parser.parse_string().unwrap());
+}

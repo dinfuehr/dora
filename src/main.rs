@@ -15,7 +15,7 @@ mod ast;
 fn main() {
     let mut reader = Parser::from_str("10");
 
-    match reader.parse_number() {
+    match reader.parse() {
         Ok(prog) => println!("prog = {:?}", prog),
         Err(err) => err.println()
     }
