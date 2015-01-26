@@ -80,15 +80,13 @@ impl<T : CodeReader> Lexer<T> {
                 return self.read_number();
 
             } else if self.is_comment_start() {
-                match self.read_comment() {
-                    Some(err) => return Err(err),
-                    _ => {}
+                if let Some(err) = self.read_comment() {
+                    return Err(err)
                 }
 
             } else if self.is_multi_comment_start() {
-                match self.read_multi_comment() {
-                    Some(err) => return Err(err),
-                    _ => {}
+                if let Some(err) = self.read_multi_comment() {
+                    return Err(err)
                 }
 
             } else if self.is_identifier_start() {
@@ -161,9 +159,8 @@ impl<T : CodeReader> Lexer<T> {
             tok.value.push(ch);
         }
 
-        match keywords.get(tok.value.as_slice()) {
-            Some(toktype) => tok.token_type = *toktype,
-            _ => {}
+        if let Some(toktype) = keywords.get(tok.value.as_slice()) {
+            tok.token_type = *toktype
         }
 
         Ok(tok)
