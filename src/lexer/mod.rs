@@ -218,39 +218,35 @@ impl<T : CodeReader> Lexer<T> {
             ';' => tok.token_type = TokenType::Semicolon,
             '.' => tok.token_type = TokenType::Dot,
             '=' => {
-                match nch {
-                    '=' => {
-                        tok.token_type = TokenType::Eq;
-                        self.read_char();
-                    },
-                    _ => tok.token_type = TokenType::Assign
+                tok.token_type = if nch == '=' {
+                    self.read_char();
+                    TokenType::Eq
+                } else {
+                    TokenType::Assign
                 }
             },
             '<' => {
-                match nch {
-                    '=' => {
-                        tok.token_type = TokenType::LEq;
-                        self.read_char();
-                    },
-                    _ => tok.token_type = TokenType::LThan
+                tok.token_type = if nch == '=' {
+                    self.read_char();
+                    TokenType::LEq
+                } else {
+                    TokenType::LThan
                 }
             },
             '>' => {
-                match nch {
-                    '=' => {
-                        tok.token_type = TokenType::GEq;
-                        self.read_char();
-                    },
-                    _ => tok.token_type = TokenType::GThan
+                tok.token_type = if nch == '=' {
+                    self.read_char();
+                    TokenType::GEq
+                } else {
+                    TokenType::GThan
                 }
             },
             '!' => {
-                match nch {
-                    '=' => {
-                        tok.token_type = TokenType::NEq;
-                        self.read_char();
-                    },
-                    _ => tok.token_type = TokenType::Not
+                tok.token_type = if nch == '=' {
+                    self.read_char();
+                    TokenType::NEq
+                } else {
+                    TokenType::Not
                 }
             },
             _ => {
