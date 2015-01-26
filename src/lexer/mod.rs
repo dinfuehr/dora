@@ -1,3 +1,5 @@
+use std::collections::RingBuf;
+
 use phf;
 
 use lexer::reader::{CodeReader,StrReader,FileReader};
@@ -17,7 +19,7 @@ pub struct Lexer<T : CodeReader> {
     eof_reached: bool,
     tabwidth: u32,
 
-    buffer: Vec<CharPos>
+    buffer: RingBuf<CharPos>
 }
 
 impl Lexer<StrReader> {
@@ -57,7 +59,7 @@ impl<T : CodeReader> Lexer<T> {
             tabwidth: tabwidth,
             eof_reached: false,
 
-            buffer: Vec::with_capacity(10)
+            buffer: RingBuf::with_capacity(10)
         };
         lexer.fill_buffer();
 
@@ -281,14 +283,10 @@ impl<T : CodeReader> Lexer<T> {
     }
 
     fn read_char(&mut self) -> Option<CharPos> {
-        if self.buffer.len() > 0 {
-            let ch = self.buffer.remove(0);
-            self.fill_buffer();
+        let ch = self.buffer.pop_front();
+        self.fill_buffer();
 
-            Some(ch)
-        } else {
-            None
-        }
+        ch
     }
 
     fn top(&self) -> Option<CharPos> {
@@ -313,7 +311,7 @@ impl<T : CodeReader> Lexer<T> {
 
             if ch.is_some() {
                 let ch = ch.unwrap();
-                self.buffer.push(CharPos { value: ch, position: self.position });
+                self.buffer.push_back(CharPos { value: ch, position: self.position });
 
                 match ch {
                     '\n' => {
