@@ -1,4 +1,4 @@
-use std::fmt::{Formatter,Show,Error};
+use std::fmt::{Formatter,Display,Error};
 use std::result::Result;
 
 use lexer::position::Position;
@@ -14,7 +14,7 @@ impl Character {
     }
 }
 
-impl Show for Character {
+impl Display for Character {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{} at {}", self.value, self.position)
     }

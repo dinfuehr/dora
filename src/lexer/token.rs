@@ -36,11 +36,11 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "type {:?} (with value {:?}) at {:?}", self.token_type, self.value, self.position)
+        write!(f, "type {:?} (with value {:?})", self.token_type, self.value)
     }
 }
 
-impl fmt::Show for Token {
+impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "type {:?} (with value {:?}) at {:?}", self.token_type, self.value, self.position)
     }

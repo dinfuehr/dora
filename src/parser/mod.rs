@@ -10,6 +10,7 @@ use error::ErrorCode;
 use ast::Expr;
 use ast::Expr::ExprLitInt;
 use ast::Expr::ExprLitStr;
+use ast::Expr::ExprIdent;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -37,13 +38,27 @@ impl<T: CodeReader> Parser<T> {
     }
 
     pub fn parse(&mut self) -> Result<Expr,ParseError> {
-        self.parse_number()
-    }
-
-    fn parse_number(&mut self) -> Result<Expr,ParseError> {
         // initialize parser
         try!(self.read_token());
 
+        self.parse_factor()
+    }
+
+    fn parse_factor(&mut self) -> Result<Expr,ParseError> {
+        match self.token.token_type {
+            TokenType::Number => self.parse_number(),
+            TokenType::String => self.parse_string(),
+            TokenType::Identifier => self.parse_identifier(),
+            _ => Err(ParseError {
+                filename: self.lexer.filename().to_string(),
+                position: self.token.position,
+                code: ErrorCode::UnknownFactor,
+                message: format!("factor expected but got {}", self.token)
+            })
+        }
+    }
+
+    fn parse_number(&mut self) -> Result<Expr,ParseError> {
         let num = try!(self.read_token());
 
         match num.value.parse::<i64>() {
@@ -58,12 +73,15 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_string(&mut self) -> Result<Expr,ParseError> {
-        // initialize parser
-        try!(self.read_token());
-
         let string = try!(self.read_token());
 
         Ok(ExprLitStr(string.value))
+    }
+
+    fn parse_identifier(&mut self) -> Result<Expr,ParseError> {
+        let ident = try!(self.read_token());
+
+        Ok(ExprIdent(ident.value))
     }
 
     fn read_token(&mut self) -> Result<Token,ParseError> {
@@ -77,12 +95,12 @@ impl<T: CodeReader> Parser<T> {
 fn test_number() {
     let mut parser = Parser::from_str("10");
 
-    assert_eq!(ExprLitInt(10), parser.parse_number().unwrap());
+    assert_eq!(ExprLitInt(10), parser.parse().unwrap());
 }
 
 #[test]
 fn test_string() {
     let mut parser = Parser::from_str("\"abc\"");
 
-    assert_eq!(ExprLitStr("abc".to_string()), parser.parse_string().unwrap());
+    assert_eq!(ExprLitStr("abc".to_string()), parser.parse().unwrap());
 }

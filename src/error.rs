@@ -4,7 +4,7 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Show)]
 pub enum ErrorCode {
-    UnclosedComment, UnknownChar, UnclosedString, NumberOverflow
+    UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor
 }
 
 pub struct ParseError {
@@ -22,12 +22,12 @@ impl ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error in {} at line {:?}: {}", self.filename, self.position, self.message)
+        write!(f, "error in {} at line {}: {}", self.filename, self.position, self.message)
     }
 }
 
-impl fmt::Show for ParseError {
+impl fmt::Debug for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error in {} at line {:?}: {}", self.filename, self.position, self.message)
+        write!(f, "error in {} at line {}: {}", self.filename, self.position, self.message)
     }
 }

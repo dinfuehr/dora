@@ -1,4 +1,4 @@
-use std::fmt::{Formatter,Show,Error};
+use std::fmt::{Formatter,Debug,Display,Error};
 use std::result::Result;
 
 pub struct Position {
@@ -17,7 +17,13 @@ impl Position {
     }
 }
 
-impl Show for Position {
+impl Debug for Position {
+    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+impl Display for Position {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}:{}", self.line, self.column)
     }
