@@ -32,6 +32,10 @@ impl Token {
     pub fn is_eof(&self) -> bool {
         self.token_type == TokenType::End
     }
+
+    pub fn is(&self, token_type: TokenType) -> bool {
+        self.token_type == token_type
+    }
 }
 
 impl fmt::Display for Token {

@@ -7,10 +7,8 @@ use lexer::reader::{CodeReader,StrReader,FileReader};
 use error::ParseError;
 use error::ErrorCode;
 
+use ast::BinOp;
 use ast::Expr;
-use ast::Expr::ExprLitInt;
-use ast::Expr::ExprLitStr;
-use ast::Expr::ExprIdent;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -41,6 +39,52 @@ impl<T: CodeReader> Parser<T> {
         // initialize parser
         try!(self.read_token());
 
+        self.parse_expression()
+    }
+
+    fn parse_expression(&mut self) -> Result<Expr,ParseError> {
+        self.parse_factor()
+    }
+
+    fn parse_expression_l0(&mut self) -> Result<Expr,ParseError> {
+        let left = try!(self.parse_expression_l1());
+
+        if self.token.is(TokenType::Assign) {
+            try!(self.read_token());
+            let right = try!(self.parse_expression_l0());
+
+            Ok(Expr::ExprAssign(Box::new(left), Box::new(right)))
+        } else {
+            Ok(left)
+        }
+    }
+
+    fn parse_expression_l1(&mut self) -> Result<Expr,ParseError> {
+        let left = try!(self.parse_expression_l2());
+
+        if self.token.is(TokenType::Eq) || self.token.is(TokenType::NEq) {
+            let op = try!(self.read_token());
+            let right = try!(self.parse_expression_l2());
+
+            Ok(Expr::ExprBin(BinOp::Add, Box::new(left), Box::new(right)))
+        } else {
+            Ok(left)
+        }
+    }
+
+    fn parse_expression_l2(&mut self) -> Result<Expr,ParseError> {
+        self.parse_factor()
+    }
+
+    fn parse_expression_l3(&mut self) -> Result<Expr,ParseError> {
+        self.parse_factor()
+    }
+
+    fn parse_expression_l4(&mut self) -> Result<Expr,ParseError> {
+        self.parse_factor()
+    }
+
+    fn parse_expression_l5(&mut self) -> Result<Expr,ParseError> {
         self.parse_factor()
     }
 
@@ -62,7 +106,7 @@ impl<T: CodeReader> Parser<T> {
         let num = try!(self.read_token());
 
         match num.value.parse::<i64>() {
-            Some(num) => Ok(ExprLitInt(num)),
+            Some(num) => Ok(Expr::ExprLitInt(num)),
             None => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
@@ -75,13 +119,13 @@ impl<T: CodeReader> Parser<T> {
     fn parse_string(&mut self) -> Result<Expr,ParseError> {
         let string = try!(self.read_token());
 
-        Ok(ExprLitStr(string.value))
+        Ok(Expr::ExprLitStr(string.value))
     }
 
     fn parse_identifier(&mut self) -> Result<Expr,ParseError> {
         let ident = try!(self.read_token());
 
-        Ok(ExprIdent(ident.value))
+        Ok(Expr::ExprIdent(ident.value))
     }
 
     fn read_token(&mut self) -> Result<Token,ParseError> {
@@ -95,12 +139,12 @@ impl<T: CodeReader> Parser<T> {
 fn test_number() {
     let mut parser = Parser::from_str("10");
 
-    assert_eq!(ExprLitInt(10), parser.parse().unwrap());
+    assert_eq!(Expr::ExprLitInt(10), parser.parse().unwrap());
 }
 
 #[test]
 fn test_string() {
     let mut parser = Parser::from_str("\"abc\"");
 
-    assert_eq!(ExprLitStr("abc".to_string()), parser.parse().unwrap());
+    assert_eq!(Expr::ExprLitStr("abc".to_string()), parser.parse().unwrap());
 }
