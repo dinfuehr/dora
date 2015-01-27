@@ -1,4 +1,5 @@
 #![feature(plugin)]
+#![feature(box_syntax)]
 
 #[plugin] #[no_link]
 extern crate phf_mac;

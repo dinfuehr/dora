@@ -27,6 +27,8 @@ impl Parser<FileReader> {
     }
 }
 
+type AstErr = Result<Box<Expr>,ParseError>;
+
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
@@ -35,60 +37,60 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn parse(&mut self) -> Result<Expr,ParseError> {
+    pub fn parse(&mut self) -> AstErr {
         // initialize parser
         try!(self.read_token());
 
         self.parse_expression()
     }
 
-    fn parse_expression(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression(&mut self) -> AstErr {
         self.parse_factor()
     }
 
-    fn parse_expression_l0(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l0(&mut self) -> AstErr {
         let left = try!(self.parse_expression_l1());
 
         if self.token.is(TokenType::Assign) {
             try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
-            Ok(Expr::ExprAssign(Box::new(left), Box::new(right)))
+            Ok(box Expr::ExprAssign(left, right))
         } else {
             Ok(left)
         }
     }
 
-    fn parse_expression_l1(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l1(&mut self) -> AstErr {
         let left = try!(self.parse_expression_l2());
 
         if self.token.is(TokenType::Eq) || self.token.is(TokenType::NEq) {
             let op = try!(self.read_token());
             let right = try!(self.parse_expression_l2());
 
-            Ok(Expr::ExprBin(BinOp::Add, Box::new(left), Box::new(right)))
+            Ok(box Expr::ExprBin(BinOp::Add, left, right))
         } else {
             Ok(left)
         }
     }
 
-    fn parse_expression_l2(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l2(&mut self) -> AstErr {
         self.parse_factor()
     }
 
-    fn parse_expression_l3(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l3(&mut self) -> AstErr {
         self.parse_factor()
     }
 
-    fn parse_expression_l4(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l4(&mut self) -> AstErr {
         self.parse_factor()
     }
 
-    fn parse_expression_l5(&mut self) -> Result<Expr,ParseError> {
+    fn parse_expression_l5(&mut self) -> AstErr {
         self.parse_factor()
     }
 
-    fn parse_factor(&mut self) -> Result<Expr,ParseError> {
+    fn parse_factor(&mut self) -> AstErr {
         match self.token.token_type {
             TokenType::Number => self.parse_number(),
             TokenType::String => self.parse_string(),
@@ -102,11 +104,11 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_number(&mut self) -> Result<Expr,ParseError> {
+    fn parse_number(&mut self) -> AstErr {
         let num = try!(self.read_token());
 
         match num.value.parse::<i64>() {
-            Some(num) => Ok(Expr::ExprLitInt(num)),
+            Some(num) => Ok(box Expr::ExprLitInt(num)),
             None => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
@@ -116,16 +118,16 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_string(&mut self) -> Result<Expr,ParseError> {
+    fn parse_string(&mut self) -> AstErr {
         let string = try!(self.read_token());
 
-        Ok(Expr::ExprLitStr(string.value))
+        Ok(box Expr::ExprLitStr(string.value))
     }
 
-    fn parse_identifier(&mut self) -> Result<Expr,ParseError> {
+    fn parse_identifier(&mut self) -> AstErr {
         let ident = try!(self.read_token());
 
-        Ok(Expr::ExprIdent(ident.value))
+        Ok(box Expr::ExprIdent(ident.value))
     }
 
     fn read_token(&mut self) -> Result<Token,ParseError> {
@@ -139,12 +141,12 @@ impl<T: CodeReader> Parser<T> {
 fn test_number() {
     let mut parser = Parser::from_str("10");
 
-    assert_eq!(Expr::ExprLitInt(10), parser.parse().unwrap());
+    assert_eq!(Expr::ExprLitInt(10), *parser.parse().unwrap());
 }
 
 #[test]
 fn test_string() {
     let mut parser = Parser::from_str("\"abc\"");
 
-    assert_eq!(Expr::ExprLitStr("abc".to_string()), parser.parse().unwrap());
+    assert_eq!(Expr::ExprLitStr("abc".to_string()), *parser.parse().unwrap());
 }
