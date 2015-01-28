@@ -27,7 +27,7 @@ impl Parser<FileReader> {
     }
 }
 
-type AstErr = Result<Box<Expr>,ParseError>;
+type AstResult = Result<Box<Expr>,ParseError>;
 
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
@@ -37,18 +37,18 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn parse(&mut self) -> AstErr {
+    pub fn parse(&mut self) -> AstResult {
         // initialize parser
         try!(self.read_token());
 
         self.parse_expression()
     }
 
-    fn parse_expression(&mut self) -> AstErr {
+    fn parse_expression(&mut self) -> AstResult {
         self.parse_factor()
     }
 
-    fn parse_expression_l0(&mut self) -> AstErr {
+    fn parse_expression_l0(&mut self) -> AstResult {
         let left = try!(self.parse_expression_l1());
 
         if self.token.is(TokenType::Assign) {
@@ -61,7 +61,7 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_expression_l1(&mut self) -> AstErr {
+    fn parse_expression_l1(&mut self) -> AstResult {
         let left = try!(self.parse_expression_l2());
 
         if self.token.is(TokenType::Eq) || self.token.is(TokenType::NEq) {
@@ -74,23 +74,23 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_expression_l2(&mut self) -> AstErr {
+    fn parse_expression_l2(&mut self) -> AstResult {
         self.parse_factor()
     }
 
-    fn parse_expression_l3(&mut self) -> AstErr {
+    fn parse_expression_l3(&mut self) -> AstResult {
         self.parse_factor()
     }
 
-    fn parse_expression_l4(&mut self) -> AstErr {
+    fn parse_expression_l4(&mut self) -> AstResult {
         self.parse_factor()
     }
 
-    fn parse_expression_l5(&mut self) -> AstErr {
+    fn parse_expression_l5(&mut self) -> AstResult {
         self.parse_factor()
     }
 
-    fn parse_factor(&mut self) -> AstErr {
+    fn parse_factor(&mut self) -> AstResult {
         match self.token.token_type {
             TokenType::Number => self.parse_number(),
             TokenType::String => self.parse_string(),
@@ -104,7 +104,7 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_number(&mut self) -> AstErr {
+    fn parse_number(&mut self) -> AstResult {
         let num = try!(self.read_token());
 
         match num.value.parse::<i64>() {
@@ -118,13 +118,13 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_string(&mut self) -> AstErr {
+    fn parse_string(&mut self) -> AstResult {
         let string = try!(self.read_token());
 
         Ok(box Expr::ExprLitStr(string.value))
     }
 
-    fn parse_identifier(&mut self) -> AstErr {
+    fn parse_identifier(&mut self) -> AstResult {
         let ident = try!(self.read_token());
 
         Ok(box Expr::ExprIdent(ident.value))
