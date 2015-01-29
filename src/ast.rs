@@ -1,6 +1,6 @@
 #[derive(PartialEq,Debug)]
 pub enum UnOp {
-    Neg, Not
+    Plus, Neg, Not
 }
 
 #[derive(PartialEq,Debug)]
