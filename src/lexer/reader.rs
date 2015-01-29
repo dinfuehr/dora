@@ -1,5 +1,5 @@
 use std::str::Chars;
-use std::io::{BufferedReader, File, IoError};
+use std::old_io::{BufferedReader, File, IoError};
 
 pub trait CodeReader {
     fn read_char(&mut self) -> Option<char>;
