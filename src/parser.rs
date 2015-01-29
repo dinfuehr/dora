@@ -204,6 +204,13 @@ mod tests {
     use ast::Expr;
 
     #[test]
+    fn parse_ident() {
+        let mut parser = Parser::from_str("x");
+
+        assert_eq!(Expr::ExprIdent("x".to_string()), *parser.parse().unwrap());
+    }
+
+    #[test]
     fn parse_number() {
         let mut parser = Parser::from_str("10");
 

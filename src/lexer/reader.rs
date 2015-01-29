@@ -7,24 +7,24 @@ pub trait CodeReader {
 }
 
 pub struct StrReader {
-  program: &'static str,
-  rest: Chars<'static>
+    program: &'static str,
+    rest: Chars<'static>
 }
 
 impl StrReader {
-  pub fn new(program: &'static str) -> StrReader {
-    StrReader { program: program, rest: program.chars() }
-  }
+    pub fn new(program: &'static str) -> StrReader {
+        StrReader { program: program, rest: program.chars() }
+    }
 }
 
 impl CodeReader for StrReader {
-  fn read_char(&mut self) -> Option<char> {
-    self.rest.next()
-  }
+    fn read_char(&mut self) -> Option<char> {
+        self.rest.next()
+    }
 
-  fn filename(&self) -> &str {
-    "<code>"
-  }
+    fn filename(&self) -> &str {
+        "<code>"
+    }
 }
 
 pub struct FileReader {
@@ -33,25 +33,25 @@ pub struct FileReader {
 }
 
 impl FileReader {
-  pub fn new(filename: &'static str) -> FileReader {
-    let file = File::open(&Path::new(filename));
-    let reader = BufferedReader::new(file);
+    pub fn new(filename: &'static str) -> FileReader {
+        let file = File::open(&Path::new(filename));
+        let reader = BufferedReader::new(file);
 
-    FileReader { filename: filename, reader: reader }
-  }
+        FileReader { filename: filename, reader: reader }
+    }
 }
 
 impl CodeReader for FileReader {
-  fn read_char(&mut self) -> Option<char> {
-      match self.reader.read_char() {
-        Ok(ch) => Some(ch),
-        _ => None
-      }
-  }
+    fn read_char(&mut self) -> Option<char> {
+        match self.reader.read_char() {
+            Ok(ch) => Some(ch),
+            _ => None
+        }
+    }
 
-  fn filename(&self) -> &str {
-    self.filename
-  }
+    fn filename(&self) -> &str {
+        self.filename
+    }
 }
 
 #[cfg(test)]
