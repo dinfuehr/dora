@@ -2,7 +2,7 @@
 #![feature(box_syntax)]
 
 #[plugin] #[no_link]
-extern crate phf_mac;
+extern crate phf_macros;
 extern crate phf;
 
 use lexer::Lexer;

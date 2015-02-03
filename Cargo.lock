@@ -2,28 +2,28 @@
 name = "dora"
 version = "0.0.1"
 dependencies = [
- "phf 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_mac 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_macros 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf"
-version = "0.5.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phf_shared 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "phf_mac"
-version = "0.5.0"
+name = "phf_macros"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phf_shared 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_shared"
-version = "0.5.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 

@@ -243,8 +243,8 @@ impl<T: CodeReader> Parser<T> {
         let num = try!(self.read_token());
 
         match num.value.parse() {
-            Some(num) => Ok(box Expr::ExprLitInt(num)),
-            None => Err(ParseError {
+            Ok(num) => Ok(box Expr::ExprLitInt(num)),
+            _ => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 message: format!("number {} does not fit into range", num),
@@ -489,8 +489,7 @@ mod tests {
         let expr = box Expr::ExprLitInt(1);
         let p1 = Param { name: "a".to_string(), data_type: DataType::Int };
         let p2 = Param { name: "b".to_string(), data_type: DataType::Int };
-        let params = vec![p1, p2];
-        let func = Function { name: "f".to_string(), params: params, block: expr };
+        let func = Function { name: "f".to_string(), params: vec![p1, p2], block: expr };
 
         assert_eq!(func, parser.parse().unwrap());
     }
