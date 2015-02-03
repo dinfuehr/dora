@@ -199,8 +199,6 @@ impl<T : CodeReader> Lexer<T> {
         let nch = self.top();
         let nch = if nch.is_some() { nch.unwrap().value } else { 'x' };
 
-        println!("in read_operator: ch={}, nch={}", ch, nch);
-
         match ch {
             '+' => tok.token_type = TokenType::Add,
             '-' => tok.token_type = TokenType::Sub,

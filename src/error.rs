@@ -2,10 +2,10 @@ use std::fmt;
 
 use lexer::position::Position;
 
-#[derive(PartialEq,Show)]
+#[derive(PartialEq,Debug)]
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
-    UnexpectedToken
+    UnexpectedToken, NoTopLevelElement, ExpectedType, ExpectedIdentifier
 }
 
 pub struct ParseError {

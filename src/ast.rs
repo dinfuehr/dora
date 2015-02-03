@@ -1,3 +1,18 @@
+use data_type::DataType;
+
+#[derive(PartialEq,Debug)]
+pub struct Function {
+    pub name: String,
+    pub params: Vec<Param>,
+    pub block: Box<Expr>
+}
+
+#[derive(PartialEq,Debug)]
+pub struct Param {
+    pub name: String,
+    pub data_type: DataType
+}
+
 #[derive(PartialEq,Debug)]
 pub enum UnOp {
     Plus, Neg, Not

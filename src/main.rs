@@ -12,6 +12,7 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
+mod data_type;
 
 fn main() {
     let mut reader = Parser::from_str("10");
