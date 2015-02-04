@@ -11,6 +11,7 @@ use ast::BinOp;
 use ast::Expr;
 use ast::Function;
 use ast::Param;
+use ast::Program;
 use ast::UnOp;
 
 use data_type::DataType;
@@ -35,6 +36,7 @@ impl Parser<FileReader> {
 type ExprResult = Result<Box<Expr>,ParseError>;
 type FuncResult = Result<Function,ParseError>;
 type TypeResult = Result<DataType,ParseError>;
+type ProgResult = Result<Program,ParseError>;
 
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
@@ -44,17 +46,27 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn parse(&mut self) -> FuncResult {
+    pub fn parse(&mut self) -> ProgResult {
         // initialize parser
         try!(self.read_token());
+        let mut functions = vec![];
 
+        while !self.token.is_eof() {
+            let function = try!(self.parse_top_level_element());
+            functions.push(function);
+        }
+
+        Ok(Program { functions: functions })
+    }
+
+    fn parse_top_level_element(&mut self) -> FuncResult {
         match self.token.token_type {
             TokenType::Fn => self.parse_function(),
             _ => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
-                code: ErrorCode::NoTopLevelElement,
-                message: format!("token {} does not start a top level element", self.token)
+                code: ErrorCode::ExpectedTopLevelElement,
+                message: format!("top level element expected but got {}", self.token)
             })
         }
     }
@@ -308,6 +320,7 @@ mod tests {
     use ast::Expr;
     use ast::Function;
     use ast::Param;
+    use ast::Program;
     use ast::UnOp;
     use data_type::DataType;
 
@@ -470,7 +483,7 @@ mod tests {
         let expr = box Expr::ExprLitInt(1);
         let func = Function { name: "a".to_string(), params: vec![], block: expr };
 
-        assert_eq!(func, parser.parse().unwrap());
+        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
     }
 
     #[test]
@@ -480,7 +493,7 @@ mod tests {
         let params = vec![ Param { name: "a".to_string(), data_type: DataType::Int }];
         let func = Function { name: "f".to_string(), params: params, block: expr };
 
-        assert_eq!(func, parser.parse().unwrap());
+        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
     }
 
     #[test]
@@ -491,6 +504,17 @@ mod tests {
         let p2 = Param { name: "b".to_string(), data_type: DataType::Int };
         let func = Function { name: "f".to_string(), params: vec![p1, p2], block: expr };
 
-        assert_eq!(func, parser.parse().unwrap());
+        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
+    }
+
+    #[test]
+    fn parse_multiple_functions() {
+        let mut parser = Parser::from_str("fn f { 1 } fn g { 2 }");
+        let e1 = box Expr::ExprLitInt(1);
+        let e2 = box Expr::ExprLitInt(2);
+        let f1 = Function { name: "f".to_string(), params: vec![], block: e1 };
+        let f2 = Function { name: "g".to_string(), params: vec![], block: e2 };
+
+        assert_eq!(Program { functions: vec![f1,f2] }, parser.parse().unwrap());
     }
 }

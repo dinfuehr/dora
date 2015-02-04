@@ -1,6 +1,11 @@
 use data_type::DataType;
 
 #[derive(PartialEq,Eq,Debug)]
+pub struct Program {
+    pub functions: Vec<Function>
+}
+
+#[derive(PartialEq,Eq,Debug)]
 pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
