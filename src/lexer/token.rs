@@ -14,7 +14,7 @@ pub enum TokenType {
     // Operators
     Add, Sub, Mul, Div, Mod, Not,
     LParen, RParen, LBracket, RBracket, LBrace, RBrace,
-    Comma, Semicolon, Dot, Assign,
+    Comma, Semicolon, Dot, Assign, Colon,
     Eq, NEq, LThan, LEq, GThan, GEq
 }
 

@@ -216,6 +216,7 @@ impl<T : CodeReader> Lexer<T> {
 
             ',' => tok.token_type = TokenType::Comma,
             ';' => tok.token_type = TokenType::Semicolon,
+            ':' => tok.token_type = TokenType::Colon,
             '.' => tok.token_type = TokenType::Dot,
             '=' => {
                 tok.token_type = if nch == '=' {
