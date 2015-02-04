@@ -5,17 +5,47 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Eq,Debug,Copy)]
 pub enum TokenType {
-    String, Number, Identifier, End,
+    String,
+    Number,
+    Identifier,
+    End,
 
     // Keywords
-    Fn, Var, While, If, Else,
-    Loop, Break, Continue, Return, Int,
+    Fn,
+    Var,
+    While,
+    If,
+    Else,
+    Loop,
+    Break,
+    Continue,
+    Return,
+    Int,
 
     // Operators
-    Add, Sub, Mul, Div, Mod, Not,
-    LParen, RParen, LBracket, RBracket, LBrace, RBrace,
-    Comma, Semicolon, Dot, Assign, Colon,
-    Eq, NEq, LThan, LEq, GThan, GEq
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Not,
+    LParen,
+    RParen,
+    LBracket,
+    RBracket,
+    LBrace,
+    RBrace,
+    Comma,
+    Semicolon,
+    Dot,
+    Assign,
+    Colon,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 }
 
 #[derive(PartialEq,Eq,Debug)]

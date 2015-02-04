@@ -229,23 +229,23 @@ impl<T : CodeReader> Lexer<T> {
             '<' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
-                    TokenType::LEq
+                    TokenType::Le
                 } else {
-                    TokenType::LThan
+                    TokenType::Lt
                 }
             },
             '>' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
-                    TokenType::GEq
+                    TokenType::Ge
                 } else {
-                    TokenType::GThan
+                    TokenType::Gt
                 }
             },
             '!' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
-                    TokenType::NEq
+                    TokenType::Ne
                 } else {
                     TokenType::Not
                 }
@@ -571,14 +571,14 @@ mod tests {
         assert_tok(&mut reader, TokenType::Mod, "", 1, 8);
 
         let mut reader = Lexer::from_str("<=<>=><");
-        assert_tok(&mut reader, TokenType::LEq, "", 1, 1);
-        assert_tok(&mut reader, TokenType::LThan, "", 1, 3);
-        assert_tok(&mut reader, TokenType::GEq, "", 1, 4);
-        assert_tok(&mut reader, TokenType::GThan, "", 1, 6);
-        assert_tok(&mut reader, TokenType::LThan, "", 1, 7);
+        assert_tok(&mut reader, TokenType::Le, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Lt, "", 1, 3);
+        assert_tok(&mut reader, TokenType::Ge, "", 1, 4);
+        assert_tok(&mut reader, TokenType::Gt, "", 1, 6);
+        assert_tok(&mut reader, TokenType::Lt, "", 1, 7);
 
         let mut reader = Lexer::from_str("!=!");
-        assert_tok(&mut reader, TokenType::NEq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Ne, "", 1, 1);
         assert_tok(&mut reader, TokenType::Not, "", 1, 3);
     }
 }

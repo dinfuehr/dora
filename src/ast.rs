@@ -3,7 +3,7 @@ use lexer::position::Position;
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Program {
-    pub functions: Vec<Function>
+    pub functions: Vec<Function>,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -11,11 +11,12 @@ pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
     pub block: Box<Statement>,
-    pub position: Position
+    pub position: Position,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum Statement {
+    Var(String,DataType,Box<Expr>),
     While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
     If(Box<Expr>,Box<Statement>,Box<Statement>),
@@ -24,7 +25,6 @@ pub enum Statement {
     Break,
     Continue,
     Return(Box<Expr>),
-    Var(String,DataType,Box<Expr>)
 }
 
 impl Statement {
@@ -42,18 +42,29 @@ impl Statement {
 pub struct Param {
     pub name: String,
     pub data_type: DataType,
-    pub position: Position
+    pub position: Position,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum UnOp {
-    Plus, Neg, Not
+    Plus,
+    Neg,
+    Not,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum BinOp {
-    Add, Sub, Mul, Div, Mod,
-    Eq, NEq, LThan, LEq, GThan, GEq
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -64,5 +75,6 @@ pub enum Expr {
     LitStr(String),
     Ident(String),
     Assign(Box<Expr>,Box<Expr>),
-    Call(String,Vec<Box<Expr>>)
+    Call(String,Vec<Box<Expr>>),
 }
+

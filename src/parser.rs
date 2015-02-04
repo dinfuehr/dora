@@ -262,11 +262,11 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_l1(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l2());
 
-        while self.token.is(TokenType::Eq) || self.token.is(TokenType::NEq) {
+        while self.token.is(TokenType::Eq) || self.token.is(TokenType::Ne) {
             let op = try!(self.read_token());
             let op = match op.token_type {
                 TokenType::Eq => BinOp::Eq,
-                _ => BinOp::NEq
+                _ => BinOp::Ne
             };
 
             let right = try!(self.parse_expression_l2());
@@ -279,15 +279,15 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_l2(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l3());
 
-        while self.token.is(TokenType::LThan) || self.token.is(TokenType::LEq) ||
-                self.token.is(TokenType::GThan) || self.token.is(TokenType::GEq) {
+        while self.token.is(TokenType::Lt) || self.token.is(TokenType::Le) ||
+                self.token.is(TokenType::Gt) || self.token.is(TokenType::Ge) {
 
             let op = try!(self.read_token());
             let op = match op.token_type {
-                TokenType::LThan => BinOp::LThan,
-                TokenType::LEq => BinOp::LEq,
-                TokenType::GThan => BinOp::GThan,
-                _ => BinOp::GEq
+                TokenType::Lt => BinOp::Lt,
+                TokenType::Le => BinOp::Le,
+                TokenType::Gt => BinOp::Gt,
+                _ => BinOp::Ge
             };
 
             let right = try!(self.parse_expression_l3());
@@ -551,28 +551,28 @@ mod tests {
         let mut parser = Parser::from_str("a<b");
         let a = box Expr::Ident("a".to_string());
         let b = box Expr::Ident("b".to_string());
-        let exp = Expr::Bin(BinOp::LThan, a, b);
+        let exp = Expr::Bin(BinOp::Lt, a, b);
 
         assert_eq!(exp, *parser.parse_expression_only().unwrap());
 
         let mut parser = Parser::from_str("a<=b");
         let a = box Expr::Ident("a".to_string());
         let b = box Expr::Ident("b".to_string());
-        let exp = Expr::Bin(BinOp::LEq, a, b);
+        let exp = Expr::Bin(BinOp::Le, a, b);
 
         assert_eq!(exp, *parser.parse_expression_only().unwrap());
 
         let mut parser = Parser::from_str("a>b");
         let a = box Expr::Ident("a".to_string());
         let b = box Expr::Ident("b".to_string());
-        let exp = Expr::Bin(BinOp::GThan, a, b);
+        let exp = Expr::Bin(BinOp::Gt, a, b);
 
         assert_eq!(exp, *parser.parse_expression_only().unwrap());
 
         let mut parser = Parser::from_str("a>=b");
         let a = box Expr::Ident("a".to_string());
         let b = box Expr::Ident("b".to_string());
-        let exp = Expr::Bin(BinOp::GEq, a, b);
+        let exp = Expr::Bin(BinOp::Ge, a, b);
 
         assert_eq!(exp, *parser.parse_expression_only().unwrap());
     }
@@ -589,7 +589,7 @@ mod tests {
         let mut parser = Parser::from_str("a!=b");
         let a = box Expr::Ident("a".to_string());
         let b = box Expr::Ident("b".to_string());
-        let exp = Expr::Bin(BinOp::NEq, a, b);
+        let exp = Expr::Bin(BinOp::Ne, a, b);
 
         assert_eq!(exp, *parser.parse_expression_only().unwrap());
     }
