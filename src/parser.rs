@@ -144,7 +144,7 @@ impl<T: CodeReader> Parser<T> {
             data_type = try!(self.parse_data_type());
         }
 
-        try!(self.expect_token(TokenType::Assign));
+        try!(self.expect_token(TokenType::Eq));
         let expr = try!(self.parse_expression());
 
         Ok(box Statement::Var(ident, data_type, expr))
@@ -249,7 +249,7 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_l0(&mut self) -> ExprResult {
         let left = try!(self.parse_expression_l1());
 
-        if self.token.is(TokenType::Assign) {
+        if self.token.is(TokenType::Eq) {
             let op = try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
@@ -262,10 +262,10 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_l1(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l2());
 
-        while self.token.is(TokenType::Eq) || self.token.is(TokenType::Ne) {
+        while self.token.is(TokenType::EqEq) || self.token.is(TokenType::Ne) {
             let op = try!(self.read_token());
             let op = match op.token_type {
-                TokenType::Eq => BinOp::Eq,
+                TokenType::EqEq => BinOp::Eq,
                 _ => BinOp::Ne
             };
 

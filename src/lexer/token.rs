@@ -38,9 +38,10 @@ pub enum TokenType {
     Comma,
     Semicolon,
     Dot,
-    Assign,
     Colon,
+
     Eq,
+    EqEq,
     Ne,
     Lt,
     Le,

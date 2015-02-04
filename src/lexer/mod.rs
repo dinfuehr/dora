@@ -221,9 +221,9 @@ impl<T : CodeReader> Lexer<T> {
             '=' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
-                    TokenType::Eq
+                    TokenType::EqEq
                 } else {
-                    TokenType::Assign
+                    TokenType::Eq
                 }
             },
             '<' => {
@@ -562,8 +562,8 @@ mod tests {
     #[test]
     fn test_operators() {
         let mut reader = Lexer::from_str("===+-*/%");
-        assert_tok(&mut reader, TokenType::Eq, "", 1, 1);
-        assert_tok(&mut reader, TokenType::Assign, "", 1, 3);
+        assert_tok(&mut reader, TokenType::EqEq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Eq, "", 1, 3);
         assert_tok(&mut reader, TokenType::Add, "", 1, 4);
         assert_tok(&mut reader, TokenType::Sub, "", 1, 5);
         assert_tok(&mut reader, TokenType::Mul, "", 1, 6);
