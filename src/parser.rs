@@ -124,6 +124,12 @@ impl<T: CodeReader> Parser<T> {
             TokenType::Break => self.parse_break(),
             TokenType::Continue => self.parse_continue(),
             TokenType::Return => self.parse_return(),
+            TokenType::Else => Err(ParseError {
+                filename: self.lexer.filename().to_string(),
+                position: self.token.position,
+                code: ErrorCode::MisplacedElse,
+                message: "misplaced else".to_string()
+            }),
             _ => self.parse_expression_statement()
         }
     }
@@ -443,6 +449,7 @@ mod tests {
     use ast::UnOp;
 
     use data_type::DataType;
+    use error::ErrorCode;
     use lexer::position::Position;
     use parser::Parser;
 
@@ -607,6 +614,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_function_with_parentheses() {
+        let mut parser = Parser::from_str("fn a() { }");
+        let func = Function { name: "a".to_string(), params: vec![], block: Statement::empty_block(),
+                position: Position::new(1,1) };
+
+        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
+    }
+
+    #[test]
     fn parse_function_with_single_param() {
         let mut parser = Parser::from_str("fn f(a int) { }");
         let expr = box Expr::LitInt(1);
@@ -699,5 +715,12 @@ mod tests {
         let b = box Statement::Return(box Expr::LitInt(1));
 
         assert_eq!(b, parser.parse_statement_only().unwrap());
+    }
+
+    #[test]
+    fn parse_else() {
+        let mut parser = Parser::from_str("else");
+
+        assert_eq!(ErrorCode::MisplacedElse, parser.parse_statement_only().unwrap_err().code);
     }
 }
