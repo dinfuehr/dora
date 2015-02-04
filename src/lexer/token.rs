@@ -18,6 +18,7 @@ pub enum TokenType {
     Eq, NEq, LThan, LEq, GThan, GEq
 }
 
+#[derive(PartialEq,Eq,Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub value: String,
@@ -44,14 +45,3 @@ impl fmt::Display for Token {
     }
 }
 
-impl fmt::Debug for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "type {:?} (with value {:?}) at {:?}", self.token_type, self.value, self.position)
-    }
-}
-
-#[test]
-fn test_new() {
-    let tok = Token::new(TokenType::End, Position::new(1, 1));
-    assert_eq!(format!("{:?}", tok).as_slice(), "type End (with value \"\") at 1:1");
-}

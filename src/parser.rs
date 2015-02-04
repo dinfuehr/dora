@@ -72,7 +72,7 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_function(&mut self) -> FuncResult {
-        try!(self.expect_token(TokenType::Fn));
+        let pos = try!(self.expect_token(TokenType::Fn)).position;
         let ident = try!(self.expect_identifier());
         let mut params = vec![];
 
@@ -85,10 +85,11 @@ impl<T: CodeReader> Parser<T> {
                     try!(self.expect_token(TokenType::Comma));
                 }
 
+                let pos = self.token.position;
                 let name = try!(self.expect_identifier());
                 let data_type = try!(self.parse_type());
 
-                params.push(Param { name: name, data_type: data_type });
+                params.push(Param { name: name, data_type: data_type, position: pos });
                 first = false;
             }
 
@@ -99,7 +100,7 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(Function { name: ident, params: params, block: expr })
+        Ok(Function { name: ident, params: params, block: expr, position: pos })
     }
 
     fn parse_type(&mut self) -> TypeResult {
@@ -292,11 +293,11 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn expect_token(&mut self, token_type: TokenType) -> Result<(),ParseError> {
+    fn expect_token(&mut self, token_type: TokenType) -> Result<Token,ParseError> {
         if self.token.token_type == token_type {
-            try!(self.read_token());
+            let token = try!(self.read_token());
 
-            Ok(())
+            Ok(token)
         } else {
             Err(ParseError {
                 filename: self.lexer.filename().to_string(),
@@ -322,8 +323,9 @@ mod tests {
     use ast::Param;
     use ast::Program;
     use ast::UnOp;
-    use data_type::DataType;
 
+    use data_type::DataType;
+    use lexer::position::Position;
     use parser::Parser;
 
     #[test]
@@ -481,7 +483,8 @@ mod tests {
     fn parse_function() {
         let mut parser = Parser::from_str("fn a { 1 }");
         let expr = box Expr::ExprLitInt(1);
-        let func = Function { name: "a".to_string(), params: vec![], block: expr };
+        let func = Function { name: "a".to_string(), params: vec![], block: expr,
+                position: Position::new(1,1) };
 
         assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
     }
@@ -490,8 +493,11 @@ mod tests {
     fn parse_function_with_single_param() {
         let mut parser = Parser::from_str("fn f(a int) { 1 }");
         let expr = box Expr::ExprLitInt(1);
-        let params = vec![ Param { name: "a".to_string(), data_type: DataType::Int }];
-        let func = Function { name: "f".to_string(), params: params, block: expr };
+        let p1 = Param { name: "a".to_string(), data_type: DataType::Int,
+                position: Position::new(1,6) };
+        let params = vec![p1];
+        let func = Function { name: "f".to_string(), params: params, block: expr,
+                position: Position::new(1,1) };
 
         assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
     }
@@ -500,9 +506,10 @@ mod tests {
     fn parse_function_with_multiple_params() {
         let mut parser = Parser::from_str("fn f(a int, b int) { 1 }");
         let expr = box Expr::ExprLitInt(1);
-        let p1 = Param { name: "a".to_string(), data_type: DataType::Int };
-        let p2 = Param { name: "b".to_string(), data_type: DataType::Int };
-        let func = Function { name: "f".to_string(), params: vec![p1, p2], block: expr };
+        let p1 = Param { name: "a".to_string(), data_type: DataType::Int, position: Position::new(1,6) };
+        let p2 = Param { name: "b".to_string(), data_type: DataType::Int, position: Position::new(1,13) };
+        let func = Function { name: "f".to_string(),
+            params: vec![p1, p2], block: expr, position: Position::new(1,1) };
 
         assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
     }
@@ -512,9 +519,9 @@ mod tests {
         let mut parser = Parser::from_str("fn f { 1 } fn g { 2 }");
         let e1 = box Expr::ExprLitInt(1);
         let e2 = box Expr::ExprLitInt(2);
-        let f1 = Function { name: "f".to_string(), params: vec![], block: e1 };
-        let f2 = Function { name: "g".to_string(), params: vec![], block: e2 };
+        let f1 = Function { name: "f".to_string(), params: vec![], block: e1, position: Position::new(1,1) };
+        let f2 = Function { name: "g".to_string(), params: vec![], block: e2, position: Position::new(1,12) };
 
-        assert_eq!(Program { functions: vec![f1,f2] }, parser.parse().unwrap());
+        assert_eq!(Program { functions: vec![f1, f2] }, parser.parse().unwrap());
     }
 }

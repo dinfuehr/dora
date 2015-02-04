@@ -1,6 +1,7 @@
 use std::fmt::{Formatter,Debug,Display,Error};
 use std::result::Result;
 
+#[derive(PartialEq,Eq,Debug)]
 pub struct Position {
     pub line : u32,
     pub column : u32
@@ -17,12 +18,6 @@ impl Position {
     }
 }
 
-impl Debug for Position {
-    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}:{}", self.line, self.column)
-    }
-}
-
 impl Display for Position {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}:{}", self.line, self.column)
@@ -36,5 +31,5 @@ fn test_new() {
     assert_eq!(pos.line, 3);
     assert_eq!(pos.column, 1);
 
-    assert_eq!(format!("{:?}",pos).as_slice(), "3:1");
+    assert_eq!(format!("{}",pos).as_slice(), "3:1");
 }

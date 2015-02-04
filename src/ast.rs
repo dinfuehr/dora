@@ -1,4 +1,5 @@
 use data_type::DataType;
+use lexer::position::Position;
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Program {
@@ -9,13 +10,15 @@ pub struct Program {
 pub struct Function {
     pub name: String,
     pub params: Vec<Param>,
-    pub block: Box<Expr>
+    pub block: Box<Expr>,
+    pub position: Position
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Param {
     pub name: String,
-    pub data_type: DataType
+    pub data_type: DataType,
+    pub position: Position
 }
 
 #[derive(PartialEq,Eq,Debug)]
