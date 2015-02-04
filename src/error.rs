@@ -2,7 +2,7 @@ use std::fmt;
 
 use lexer::position::Position;
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq,Eq,Debug)]
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, NoTopLevelElement, ExpectedType, ExpectedIdentifier
