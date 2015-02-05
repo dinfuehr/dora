@@ -87,11 +87,16 @@ impl<T: CodeReader> Parser<T> {
 
         if self.token.is(TokenType::LParen) {
             try!(self.read_token());
-            let mut first = true;
+            let mut comma = true;
 
             while !self.token.is(TokenType::RParen) && !self.token.is_eof() {
-                if !first {
-                    try!(self.expect_token(TokenType::Comma));
+                if !comma {
+                    return Err(ParseError {
+                        filename: self.lexer.filename().to_string(),
+                        position: self.token.position,
+                        message: format!("Token {:?} expected, but got token {}", TokenType::Comma, self.token),
+                        code: ErrorCode::UnexpectedToken
+                    } )
                 }
 
                 let pos = self.token.position;
@@ -99,7 +104,12 @@ impl<T: CodeReader> Parser<T> {
                 let data_type = try!(self.parse_data_type());
 
                 params.push(Param { name: name, data_type: data_type, position: pos });
-                first = false;
+
+                comma = self.token.is(TokenType::Comma);
+
+                if comma {
+                  try!(self.read_token());
+                }
             }
 
             try!(self.expect_token(TokenType::RParen));
@@ -609,17 +619,11 @@ mod tests {
         let mut parser = Parser::from_str("fn a { }");
         let func = Function { name: "a".to_string(), params: vec![], block: Statement::empty_block(),
                 position: Position::new(1,1) };
+        let prog = Program { functions: vec![func] };
+        assert_eq!(prog, parser.parse().unwrap());
 
-        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
-    }
-
-    #[test]
-    fn parse_function_with_parentheses() {
         let mut parser = Parser::from_str("fn a() { }");
-        let func = Function { name: "a".to_string(), params: vec![], block: Statement::empty_block(),
-                position: Position::new(1,1) };
-
-        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
+        assert_eq!(prog, parser.parse().unwrap());
     }
 
     #[test]
@@ -631,8 +635,11 @@ mod tests {
         let params = vec![p1];
         let func = Function { name: "f".to_string(), params: params, block: Statement::empty_block(),
                 position: Position::new(1,1) };
+        let prog = Program { functions: vec![func] };
+        assert_eq!(prog, parser.parse().unwrap());
 
-        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
+        let mut parser = Parser::from_str("fn f(a int,) { }");
+        assert_eq!(prog, parser.parse().unwrap());
     }
 
     #[test]
@@ -642,8 +649,11 @@ mod tests {
         let p2 = Param { name: "b".to_string(), data_type: DataType::Int, position: Position::new(1,13) };
         let func = Function { name: "f".to_string(),
             params: vec![p1, p2], block: Statement::empty_block(), position: Position::new(1,1) };
+        let prog = Program { functions: vec![func] };
+        assert_eq!(prog, parser.parse().unwrap());
 
-        assert_eq!(Program { functions: vec![func] }, parser.parse().unwrap());
+        let mut parser = Parser::from_str("fn f(a int, b int,) { }");
+        assert_eq!(prog, parser.parse().unwrap());
     }
 
     #[test]
