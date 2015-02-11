@@ -96,7 +96,7 @@ impl<T: CodeReader> Parser<T> {
                         position: self.token.position,
                         message: format!("Token {:?} expected, but got token {}", TokenType::Comma, self.token),
                         code: ErrorCode::UnexpectedToken
-                    } )
+                    })
                 }
 
                 let pos = self.token.position;
@@ -232,11 +232,19 @@ impl<T: CodeReader> Parser<T> {
         Ok(box Statement::Expr(expr))
     }
 
+    fn parse_data_type_only(&mut self) -> DataTypeResult {
+        try!(self.read_token());
+
+        self.parse_data_type()
+    }
+
     fn parse_data_type(&mut self) -> DataTypeResult {
         let token = try!(self.read_token());
 
         match token.token_type {
             TokenType::Int => Ok(DataType::Int),
+            TokenType::Bool => Ok(DataType::Bool),
+            TokenType::Str => Ok(DataType::Str),
             _ => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
@@ -364,6 +372,8 @@ impl<T: CodeReader> Parser<T> {
             TokenType::Number => self.parse_number(),
             TokenType::String => self.parse_string(),
             TokenType::Identifier => self.parse_identifier(),
+            TokenType::True => self.parse_bool_literal(),
+            TokenType::False => self.parse_bool_literal(),
             _ => Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
@@ -391,7 +401,7 @@ impl<T: CodeReader> Parser<T> {
                 position: self.token.position,
                 message: format!("number {} does not fit into range", num),
                 code: ErrorCode::NumberOverflow
-            } )
+            })
         }
     }
 
@@ -407,6 +417,17 @@ impl<T: CodeReader> Parser<T> {
         Ok(box Expr::Ident(ident.value))
     }
 
+    fn parse_bool_literal(&mut self) -> ExprResult {
+        let lit_true = self.token.is(TokenType::True);
+        try!(self.read_token());
+
+        if lit_true {
+            Ok(box Expr::LitTrue)
+        } else {
+            Ok(box Expr::LitFalse)
+        }
+    }
+
     fn expect_identifier(&mut self) -> Result<String,ParseError> {
         if self.token.token_type == TokenType::Identifier {
             let ident = try!(self.read_token());
@@ -418,7 +439,7 @@ impl<T: CodeReader> Parser<T> {
                 position: self.token.position,
                 message: format!("identifier expected, but got token {}", self.token),
                 code: ErrorCode::ExpectedIdentifier
-            } )
+            })
         }
     }
 
@@ -437,7 +458,7 @@ impl<T: CodeReader> Parser<T> {
                 position: self.token.position,
                 message: format!("Token {:?} expected, but got token {}", token_type, self.token),
                 code: ErrorCode::UnexpectedToken
-            } )
+            })
         }
     }
 
@@ -482,6 +503,20 @@ mod tests {
         let mut parser = Parser::from_str("\"abc\"");
 
         assert_eq!(Expr::LitStr("abc".to_string()), *parser.parse_expression_only().unwrap());
+    }
+
+    #[test]
+    fn parse_true() {
+        let mut parser = Parser::from_str("true");
+
+        assert_eq!(Expr::LitTrue, *parser.parse_expression_only().unwrap());
+    }
+
+    #[test]
+    fn parse_false() {
+        let mut parser = Parser::from_str("false");
+
+        assert_eq!(Expr::LitFalse, *parser.parse_expression_only().unwrap());
     }
 
     #[test]
@@ -659,10 +694,18 @@ mod tests {
     #[test]
     fn parse_multiple_functions() {
         let mut parser = Parser::from_str("fn f { } fn g { }");
-        let b1 = Statement::empty_block();
-        let b2 = Statement::empty_block();
-        let f1 = Function { name: "f".to_string(), params: vec![], block: b1, position: Position::new(1,1) };
-        let f2 = Function { name: "g".to_string(), params: vec![], block: b2, position: Position::new(1,10) };
+        let f1 = Function {
+            name: "f".to_string(),
+            params: vec![],
+            block: Statement::empty_block(),
+            position: Position::new(1, 1)
+        };
+        let f2 = Function {
+            name: "g".to_string(),
+            params: vec![],
+            block: Statement::empty_block(),
+            position: Position::new(1, 10)
+        };
 
         assert_eq!(Program { functions: vec![f1, f2] }, parser.parse().unwrap());
     }
@@ -732,5 +775,23 @@ mod tests {
         let mut parser = Parser::from_str("else");
 
         assert_eq!(ErrorCode::MisplacedElse, parser.parse_statement_only().unwrap_err().code);
+    }
+
+    #[test]
+    fn parse_int() {
+        let mut parser = Parser::from_str("int");
+        assert_eq!(DataType::Int, parser.parse_data_type_only().unwrap());
+    }
+
+    #[test]
+    fn parse_str() {
+        let mut parser = Parser::from_str("str");
+        assert_eq!(DataType::Str, parser.parse_data_type_only().unwrap());
+    }
+
+    #[test]
+    fn parse_bool() {
+        let mut parser = Parser::from_str("bool");
+        assert_eq!(DataType::Bool, parser.parse_data_type_only().unwrap());
     }
 }

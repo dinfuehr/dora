@@ -21,6 +21,10 @@ pub enum TokenType {
     Continue,
     Return,
     Int,
+    Bool,
+    Str,
+    True,
+    False,
 
     // Operators
     Add,

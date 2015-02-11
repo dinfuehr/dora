@@ -9,9 +9,9 @@ pub struct Program {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Function {
     pub name: String,
+    pub position: Position,
     pub params: Vec<Param>,
     pub block: Box<Statement>,
-    pub position: Position,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -41,8 +41,8 @@ impl Statement {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Param {
     pub name: String,
-    pub data_type: DataType,
     pub position: Position,
+    pub data_type: DataType,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -67,12 +67,20 @@ pub enum BinOp {
     Ge,
 }
 
+pub struct ExprInfo {
+    pub position: Position,
+    pub data_type: DataType,
+    pub expr: Expr,
+}
+
 #[derive(PartialEq,Eq,Debug)]
 pub enum Expr {
     Un(UnOp,Box<Expr>),
     Bin(BinOp,Box<Expr>,Box<Expr>),
     LitInt(i64),
     LitStr(String),
+    LitTrue,
+    LitFalse,
     Ident(String),
     Assign(Box<Expr>,Box<Expr>),
     Call(String,Vec<Box<Expr>>),

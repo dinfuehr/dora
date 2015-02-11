@@ -44,7 +44,11 @@ static keywords: phf::Map<&'static str,TokenType> = phf_map! {
     "break" => TokenType::Break,
     "continue" => TokenType::Continue,
     "return" => TokenType::Return,
-    "int" => TokenType::Int
+    "int" => TokenType::Int,
+    "bool" => TokenType::Bool,
+    "str" => TokenType::Str,
+    "true" => TokenType::True,
+    "false" => TokenType::False,
 };
 
 impl<T : CodeReader> Lexer<T> {
@@ -103,7 +107,7 @@ impl<T : CodeReader> Lexer<T> {
             } else {
                 let ch = self.top().unwrap().value;
 
-                return Err( ParseError {
+                return Err(ParseError {
                     filename: self.reader.filename().to_string(),
                     position: self.position,
                     code: ErrorCode::UnknownChar,
