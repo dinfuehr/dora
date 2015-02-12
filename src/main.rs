@@ -1,8 +1,8 @@
 #![feature(plugin)]
 #![feature(box_syntax)]
 
-#[plugin] #[no_link]
-extern crate phf_macros;
+#![feature(plugin)]
+#![plugin(phf_macros)]
 extern crate phf;
 
 use lexer::Lexer;
