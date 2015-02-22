@@ -1,4 +1,4 @@
-use std::collections::RingBuf;
+use std::collections::VecDeque;
 
 use phf;
 
@@ -19,7 +19,7 @@ pub struct Lexer<T : CodeReader> {
     eof_reached: bool,
     tabwidth: u32,
 
-    buffer: RingBuf<CharPos>
+    buffer: VecDeque<CharPos>
 }
 
 impl Lexer<StrReader> {
@@ -63,7 +63,7 @@ impl<T : CodeReader> Lexer<T> {
             tabwidth: tabwidth,
             eof_reached: false,
 
-            buffer: RingBuf::with_capacity(10)
+            buffer: VecDeque::with_capacity(10)
         };
         lexer.fill_buffer();
 
