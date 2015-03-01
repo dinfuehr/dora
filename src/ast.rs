@@ -16,15 +16,15 @@ pub struct Function {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum Statement {
-    Var(String,DataType,Box<Expr>),
-    While(Box<Expr>,Box<Statement>),
+    Var(String,DataType,Box<ExprType>),
+    While(Box<ExprType>,Box<Statement>),
     Loop(Box<Statement>),
-    If(Box<Expr>,Box<Statement>,Box<Statement>),
-    Expr(Box<Expr>),
+    If(Box<ExprType>,Box<Statement>,Box<Statement>),
+    Expr(Box<ExprType>),
     Block(Vec<Box<Statement>>),
     Break,
     Continue,
-    Return(Box<Expr>),
+    Return(Box<ExprType>),
 }
 
 impl Statement {
@@ -32,7 +32,7 @@ impl Statement {
         box Statement::Block(vec![])
     }
 
-    pub fn block(expr: Expr) -> Box<Statement> {
+    pub fn block(expr: ExprType) -> Box<Statement> {
         let expr = box Statement::Expr(box expr);
         box Statement::Block(vec![expr])
     }
@@ -67,22 +67,22 @@ pub enum BinOp {
     Ge,
 }
 
-pub struct ExprInfo {
+pub struct Expr {
     pub position: Position,
     pub data_type: DataType,
-    pub expr: Expr,
+    pub expr: ExprType,
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum Expr {
-    Un(UnOp,Box<Expr>),
-    Bin(BinOp,Box<Expr>,Box<Expr>),
+pub enum ExprType {
+    Un(UnOp,Box<ExprType>),
+    Bin(BinOp,Box<ExprType>,Box<ExprType>),
     LitInt(i64),
     LitStr(String),
     LitTrue,
     LitFalse,
     Ident(String),
-    Assign(Box<Expr>,Box<Expr>),
-    Call(String,Vec<Box<Expr>>),
+    Assign(Box<ExprType>,Box<ExprType>),
+    Call(String,Vec<Box<ExprType>>),
 }
 
