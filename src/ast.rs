@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use data_type::DataType;
 use lexer::position::Position;
 
@@ -10,8 +12,31 @@ pub struct Program {
 pub struct Function {
     pub name: String,
     pub position: Position,
-    pub params: Vec<LocalVar>,
+    pub params: Vec<usize>,
+    pub vars: Vec<LocalVar>,
     pub block: Box<Statement>,
+}
+
+impl Function {
+    pub fn new(name: String, pos: Position) -> Function {
+        Function {
+            name: name,
+            position: pos,
+            params: vec![],
+            vars: vec![],
+            block: box Statement::Nop,
+        }
+    }
+
+    pub fn exists(&self, var: &str) -> bool {
+        self.vars.iter().any(|x| x.name.as_slice() == var)
+    }
+
+    pub fn add_param(&mut self, var: LocalVar) {
+        let ind = self.vars.len();
+        self.vars.push(var);
+        self.params.push(ind);
+    }
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -19,6 +44,12 @@ pub struct LocalVar {
     pub name: String,
     pub position: Position,
     pub data_type: DataType,
+}
+
+impl LocalVar {
+    pub fn new(name: String, data_type: DataType, position: Position) -> LocalVar {
+        LocalVar { name: name, data_type: data_type, position: position }
+    }
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -32,6 +63,7 @@ pub enum Statement {
     Break,
     Continue,
     Return(Box<ExprType>),
+    Nop,
 }
 
 impl Statement {

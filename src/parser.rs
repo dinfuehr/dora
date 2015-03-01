@@ -76,16 +76,16 @@ impl<T: CodeReader> Parser<T> {
     fn parse_function(&mut self) -> FunctionResult {
         let pos = try!(self.expect_token(TokenType::Fn)).position;
         let ident = try!(self.expect_identifier());
-        let params = try!(self.parse_function_params());
-        let block = try!(self.parse_block());
 
+        let mut fct = Function::new(ident, pos);
 
-        Ok(Function { name: ident, params: params, block: block, position: pos })
+        try!(self.parse_function_params(&mut fct));
+        fct.block = try!(self.parse_block());
+
+        Ok(fct)
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<LocalVar>,ParseError> {
-        let mut params = vec![];
-
+    fn parse_function_params(&mut self, fct: &mut Function) -> Result<(),ParseError> {
         if self.token.is(TokenType::LParen) {
             try!(self.read_token());
             let mut comma = true;
@@ -95,7 +95,8 @@ impl<T: CodeReader> Parser<T> {
                     return Err(ParseError {
                         filename: self.lexer.filename().to_string(),
                         position: self.token.position,
-                        message: format!("Token {:?} expected, but got token {}", TokenType::Comma, self.token),
+                        message: format!("Token {:?} expected, but got token {}",
+                            TokenType::Comma, self.token),
                         code: ErrorCode::UnexpectedToken
                     })
                 }
@@ -104,8 +105,18 @@ impl<T: CodeReader> Parser<T> {
                 let name = try!(self.expect_identifier());
                 let data_type = try!(self.parse_data_type());
 
-                params.push(LocalVar { name: name, data_type: data_type, position: pos });
+                let var = LocalVar::new(name, data_type, pos);
 
+                if fct.exists(&var.name) {
+                    return Err(ParseError {
+                        filename: self.lexer.filename().to_string(),
+                        position: self.token.position,
+                        message: format!("variable {} already exists", var.name),
+                        code: ErrorCode::VarAlreadyExists
+                    })
+                }
+
+                fct.add_param(var);
                 comma = self.token.is(TokenType::Comma);
 
                 if comma {
@@ -116,7 +127,7 @@ impl<T: CodeReader> Parser<T> {
             try!(self.expect_token(TokenType::RParen));
         }
 
-        Ok(params)
+        Ok(())
     }
 
     fn parse_statement_only(&mut self) -> StatementResult {
@@ -457,7 +468,8 @@ impl<T: CodeReader> Parser<T> {
             Err(ParseError {
                 filename: self.lexer.filename().to_string(),
                 position: self.token.position,
-                message: format!("Token {:?} expected, but got token {}", token_type, self.token),
+                message: format!("Token {:?} expected, but got token {}",
+                    token_type, self.token),
                 code: ErrorCode::UnexpectedToken
             })
         }
@@ -473,7 +485,7 @@ impl<T: CodeReader> Parser<T> {
 #[cfg(test)]
 mod tests {
     use ast::BinOp;
-    use ast::Expr;
+    use ast::ExprType;
     use ast::Function;
     use ast::LocalVar;
     use ast::Program;
@@ -485,142 +497,136 @@ mod tests {
     use lexer::position::Position;
     use parser::Parser;
 
+    fn parse_expr(code: &'static str) -> ExprType {
+        *Parser::from_str(code).parse_expression_only().unwrap()
+    }
+
+    fn parse(code: &'static str) -> Program {
+        Parser::from_str(code).parse().unwrap()
+    }
+
+    fn assert_err(code: &'static str, error_code: ErrorCode) {
+        let err = Parser::from_str(code).parse().unwrap_err();
+
+        assert_eq!(error_code, err.code);
+    }
+
+    fn assert_expr_err(code: &'static str, error_code: ErrorCode) {
+        let err = Parser::from_str(code).parse_expression_only().unwrap_err();
+
+        assert_eq!(error_code, err.code);
+    }
+
     #[test]
     fn parse_ident() {
-        let mut parser = Parser::from_str("x");
+        let expr = parse_expr("x");
 
-        assert_eq!(ExprType::Ident("x".to_string()), *parser.parse_expression_only().unwrap());
+        assert_eq!(ExprType::Ident("x".to_string()), expr);
     }
 
     #[test]
     fn parse_number() {
-        let mut parser = Parser::from_str("10");
+        let expr = parse_expr("10");
 
-        assert_eq!(ExprType::LitInt(10), *parser.parse_expression_only().unwrap());
+        assert_eq!(ExprType::LitInt(10), expr);
     }
 
     #[test]
     fn parse_string() {
-        let mut parser = Parser::from_str("\"abc\"");
+        let expr = parse_expr("\"abc\"");
 
-        assert_eq!(ExprType::LitStr("abc".to_string()), *parser.parse_expression_only().unwrap());
+        assert_eq!(ExprType::LitStr("abc".to_string()), expr);
     }
 
     #[test]
     fn parse_true() {
-        let mut parser = Parser::from_str("true");
+        let expr = parse_expr("true");
 
-        assert_eq!(ExprType::LitTrue, *parser.parse_expression_only().unwrap());
+        assert_eq!(ExprType::LitTrue, expr);
     }
 
     #[test]
     fn parse_false() {
-        let mut parser = Parser::from_str("false");
+        let expr = parse_expr("false");
 
-        assert_eq!(ExprType::LitFalse, *parser.parse_expression_only().unwrap());
+        assert_eq!(ExprType::LitFalse, expr);
     }
 
     #[test]
     fn parse_l5() {
-        let mut parser = Parser::from_str("-a");
         let exp = ExprType::Un(UnOp::Neg, box ExprType::Ident("a".to_string()));
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("-a"));
 
-        let mut parser = Parser::from_str("+a");
         let exp = ExprType::Un(UnOp::Plus, box ExprType::Ident("a".to_string()));
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("+a"));
 
-        let mut parser = Parser::from_str("- -a");
-        parser.parse_expression_only().unwrap_err();
+        assert_expr_err("- -a", ErrorCode::UnknownFactor);
+        assert_expr_err("+ +a", ErrorCode::UnknownFactor);
 
-        let mut parser = Parser::from_str("+ +a");
-        parser.parse_expression_only().unwrap_err();
-
-        let mut parser = Parser::from_str("-(-a)");
-        let exp = box ExprType::Ident("a".to_string());
-        let exp = box ExprType::Un(UnOp::Neg, exp);
+        let a = box ExprType::Ident("a".to_string());
+        let exp = box ExprType::Un(UnOp::Neg, a);
         let exp = ExprType::Un(UnOp::Neg, exp);
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("-(-a)"));
 
-        let mut parser = Parser::from_str("+(+a)");
-        let exp = box ExprType::Ident("a".to_string());
-        let exp = box ExprType::Un(UnOp::Plus, exp);
+        let a = box ExprType::Ident("a".to_string());
+        let exp = box ExprType::Un(UnOp::Plus, a);
         let exp = ExprType::Un(UnOp::Plus, exp);
-
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("+(+a)"));
     }
 
     #[test]
     fn parse_l4() {
-        let mut parser = Parser::from_str("a*b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Mul, a, b);
+        assert_eq!(exp, parse_expr("a*b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a/b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Div, a, b);
+        assert_eq!(exp, parse_expr("a/b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a%b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Mod, a, b);
-
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("a%b"));
     }
 
     #[test]
     fn parse_l3() {
-        let mut parser = Parser::from_str("a+b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Add, a, b);
+        assert_eq!(exp, parse_expr("a+b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a-b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Sub, a, b);
-
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("a-b"));
     }
 
     #[test]
     fn parse_l2() {
-        let mut parser = Parser::from_str("a<b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Lt, a, b);
+        assert_eq!(exp, parse_expr("a<b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a<=b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Le, a, b);
+        assert_eq!(exp, parse_expr("a<=b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a>b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Gt, a, b);
+        assert_eq!(exp, parse_expr("a>b"));
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
-
-        let mut parser = Parser::from_str("a>=b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
         let exp = ExprType::Bin(BinOp::Ge, a, b);
-
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, parse_expr("a>=b"));
     }
 
     #[test]
@@ -652,63 +658,59 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let mut parser = Parser::from_str("fn a { }");
-        let func = Function { name: "a".to_string(), params: vec![], block: Statement::empty_block(),
-                position: Position::new(1,1) };
-        let prog = Program { functions: vec![func] };
-        assert_eq!(prog, parser.parse().unwrap());
+        let fct = &Parser::from_str("fn a { }").parse().unwrap().functions[0];
+        assert_eq!("a", fct.name.as_slice());
+        assert_eq!(vec![], fct.params);
+        assert_eq!(vec![], fct.vars);
+        assert_eq!(Position::new(1, 1), fct.position);
 
-        let mut parser = Parser::from_str("fn a() { }");
-        assert_eq!(prog, parser.parse().unwrap());
+        let fct = &Parser::from_str(" fn b() { }").parse().unwrap().functions[0];
+        assert_eq!("b", fct.name.as_slice());
+        assert_eq!(vec![], fct.params);
+        assert_eq!(vec![], fct.vars);
+        assert_eq!(Position::new(1, 2), fct.position);
     }
 
     #[test]
     fn parse_function_with_single_param() {
-        let mut parser = Parser::from_str("fn f(a int) { }");
-        let expr = box ExprType::LitInt(1);
-        let p1 = LocalVar { name: "a".to_string(), data_type: DataType::Int,
-                position: Position::new(1,6) };
-        let params = vec![p1];
-        let func = Function { name: "f".to_string(), params: params, block: Statement::empty_block(),
-                position: Position::new(1,1) };
-        let prog = Program { functions: vec![func] };
-        assert_eq!(prog, parser.parse().unwrap());
+        let fct = &parse("fn f(a int) { }").functions[0];
+        let p1 = LocalVar::new( "a".to_string(), DataType::Int, Position::new(1,6) );
+        assert_eq!(vec![p1], fct.vars);
+        assert_eq!(vec![0], fct.params);
 
-        let mut parser = Parser::from_str("fn f(a int,) { }");
-        assert_eq!(prog, parser.parse().unwrap());
+        let fct = &parse("fn f( b int,) { }").functions[0];
+        let p1 = LocalVar::new( "b".to_string(), DataType::Int, Position::new(1,7) );
+        assert_eq!(vec![p1], fct.vars);
+        assert_eq!(vec![0], fct.params);
     }
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let mut parser = Parser::from_str("fn f(a int, b int) { }");
-        let p1 = LocalVar { name: "a".to_string(), data_type: DataType::Int, position: Position::new(1,6) };
-        let p2 = LocalVar { name: "b".to_string(), data_type: DataType::Int, position: Position::new(1,13) };
-        let func = Function { name: "f".to_string(),
-            params: vec![p1, p2], block: Statement::empty_block(), position: Position::new(1,1) };
-        let prog = Program { functions: vec![func] };
-        assert_eq!(prog, parser.parse().unwrap());
+        let fct = &parse("fn f(a int, b int) { }").functions[0];
+        let p1 = LocalVar::new( "a".to_string(), DataType::Int, Position::new(1,6) );
+        let p2 = LocalVar::new( "b".to_string(), DataType::Int, Position::new(1,13) );
+        let params = vec![p1, p2];
 
-        let mut parser = Parser::from_str("fn f(a int, b int,) { }");
-        assert_eq!(prog, parser.parse().unwrap());
+        assert_eq!(params, fct.vars);
+        assert_eq!(vec![0, 1], fct.params);
+
+        let fct = &parse("fn f(a int, b int,) { }").functions[0];
+        assert_eq!(params, fct.vars);
+        assert_eq!(vec![0, 1], fct.params);
+
+        assert_err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists);
     }
 
     #[test]
     fn parse_multiple_functions() {
-        let mut parser = Parser::from_str("fn f { } fn g { }");
-        let f1 = Function {
-            name: "f".to_string(),
-            params: vec![],
-            block: Statement::empty_block(),
-            position: Position::new(1, 1)
-        };
-        let f2 = Function {
-            name: "g".to_string(),
-            params: vec![],
-            block: Statement::empty_block(),
-            position: Position::new(1, 10)
-        };
+        let fcts = parse("fn f { } fn g { }").functions;
+        assert_eq!(2, fcts.len());
 
-        assert_eq!(Program { functions: vec![f1, f2] }, parser.parse().unwrap());
+        assert_eq!("f", fcts[0].name.as_slice());
+        assert_eq!(Position::new(1, 1), fcts[0].position);
+
+        assert_eq!("g", fcts[1].name.as_slice());
+        assert_eq!(Position::new(1, 10), fcts[1].position);
     }
 
     #[test]
