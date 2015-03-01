@@ -10,8 +10,15 @@ pub struct Program {
 pub struct Function {
     pub name: String,
     pub position: Position,
-    pub params: Vec<Param>,
+    pub params: Vec<LocalVar>,
     pub block: Box<Statement>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct LocalVar {
+    pub name: String,
+    pub position: Position,
+    pub data_type: DataType,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -39,17 +46,9 @@ impl Statement {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub struct Param {
-    pub name: String,
-    pub position: Position,
-    pub data_type: DataType,
-}
-
-#[derive(PartialEq,Eq,Debug)]
 pub enum UnOp {
     Plus,
     Neg,
-    Not,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -71,6 +70,12 @@ pub struct Expr {
     pub position: Position,
     pub data_type: DataType,
     pub expr: ExprType,
+}
+
+impl Expr {
+    fn new(position: Position, data_type: DataType, expr: ExprType) -> Expr {
+        Expr { position: position, data_type: data_type, expr: expr }
+    }
 }
 
 #[derive(PartialEq,Eq,Debug)]

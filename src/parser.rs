@@ -8,9 +8,10 @@ use error::ParseError;
 use error::ErrorCode;
 
 use ast::BinOp;
+use ast::Expr;
 use ast::ExprType;
 use ast::Function;
-use ast::Param;
+use ast::LocalVar;
 use ast::Program;
 use ast::Statement;
 use ast::UnOp;
@@ -82,7 +83,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(Function { name: ident, params: params, block: block, position: pos })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>,ParseError> {
+    fn parse_function_params(&mut self) -> Result<Vec<LocalVar>,ParseError> {
         let mut params = vec![];
 
         if self.token.is(TokenType::LParen) {
@@ -103,7 +104,7 @@ impl<T: CodeReader> Parser<T> {
                 let name = try!(self.expect_identifier());
                 let data_type = try!(self.parse_data_type());
 
-                params.push(Param { name: name, data_type: data_type, position: pos });
+                params.push(LocalVar { name: name, data_type: data_type, position: pos });
 
                 comma = self.token.is(TokenType::Comma);
 
@@ -474,7 +475,7 @@ mod tests {
     use ast::BinOp;
     use ast::Expr;
     use ast::Function;
-    use ast::Param;
+    use ast::LocalVar;
     use ast::Program;
     use ast::Statement;
     use ast::UnOp;
@@ -665,7 +666,7 @@ mod tests {
     fn parse_function_with_single_param() {
         let mut parser = Parser::from_str("fn f(a int) { }");
         let expr = box ExprType::LitInt(1);
-        let p1 = Param { name: "a".to_string(), data_type: DataType::Int,
+        let p1 = LocalVar { name: "a".to_string(), data_type: DataType::Int,
                 position: Position::new(1,6) };
         let params = vec![p1];
         let func = Function { name: "f".to_string(), params: params, block: Statement::empty_block(),
@@ -680,8 +681,8 @@ mod tests {
     #[test]
     fn parse_function_with_multiple_params() {
         let mut parser = Parser::from_str("fn f(a int, b int) { }");
-        let p1 = Param { name: "a".to_string(), data_type: DataType::Int, position: Position::new(1,6) };
-        let p2 = Param { name: "b".to_string(), data_type: DataType::Int, position: Position::new(1,13) };
+        let p1 = LocalVar { name: "a".to_string(), data_type: DataType::Int, position: Position::new(1,6) };
+        let p2 = LocalVar { name: "b".to_string(), data_type: DataType::Int, position: Position::new(1,13) };
         let func = Function { name: "f".to_string(),
             params: vec![p1, p2], block: Statement::empty_block(), position: Position::new(1,1) };
         let prog = Program { functions: vec![func] };
