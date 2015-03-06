@@ -21,7 +21,8 @@ use data_type::DataType;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
-    token: Token
+    token: Token,
+    fct: Option<Function>
 }
 
 impl Parser<StrReader> {
@@ -44,7 +45,7 @@ type StatementResult = Result<Box<Statement>,ParseError>;
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
-        let mut parser = Parser { lexer: lexer, token: token };
+        let mut parser = Parser { lexer: lexer, token: token, fct: None };
 
         parser
     }
@@ -78,9 +79,13 @@ impl<T: CodeReader> Parser<T> {
         let ident = try!(self.expect_identifier());
 
         let mut fct = Function::new(ident, pos);
-
         try!(self.parse_function_params(&mut fct));
-        fct.block = try!(self.parse_block());
+
+        self.fct = Some(fct);
+        let block = try!(self.parse_block());
+
+        let mut fct = self.fct.take().unwrap();
+        fct.block = block;
 
         Ok(fct)
     }
@@ -108,7 +113,7 @@ impl<T: CodeReader> Parser<T> {
 
                 if fct.exists(&var.name) {
                     return Err(ParseError {
-                        position: self.token.position,
+                        position: pos,
                         message: format!("variable {} already exists", var.name),
                         code: ErrorCode::VarAlreadyExists
                     })
@@ -154,19 +159,29 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_var(&mut self) -> StatementResult {
-        let pos = try!(self.expect_token(TokenType::Var)).position;
+        let tok = try!(self.expect_token(TokenType::Var));
         let ident = try!(self.expect_identifier());
-        let mut data_type = DataType::Int;
-
-        if self.token.is(TokenType::Colon) {
-            try!(self.read_token());
-            data_type = try!(self.parse_data_type());
-        }
 
         try!(self.expect_token(TokenType::Eq));
         let expr = try!(self.parse_expression());
+        try!(self.expect_semicolon());
 
-        Ok(Statement::new(pos, StatementType::Var(ident, data_type, expr)))
+        let ty = expr.data_type;
+        let fct = self.fct.as_mut().unwrap();
+
+        let var = LocalVar::new(ident, ty, tok.position);
+
+        if fct.exists(&var.name) {
+            return Err(ParseError {
+                position: tok.position,
+                code: ErrorCode::VarAlreadyExists,
+                message: format!("variable {} already exists", var.name)
+            })
+        }
+
+        let ind = fct.add_var(var);
+
+        Ok(Statement::new(tok.position, StatementType::Var(ind, ty, expr)))
     }
 
     fn parse_block(&mut self) -> StatementResult {
@@ -437,8 +452,18 @@ impl<T: CodeReader> Parser<T> {
 
     fn parse_identifier(&mut self) -> ExprResult {
         let ident = try!(self.read_token());
+        let fct = self.fct.as_mut().unwrap();
 
-        Ok(Expr::ident(ident.position, DataType::Int, ident.value))
+        if let Some(var) = fct.get(&ident.value) {
+            Ok(Expr::ident(ident.position, var.data_type, ident.value))
+        } else {
+            Err(ParseError {
+                position: ident.position,
+                message: format!("variable {} does not exist", ident.value),
+                code: ErrorCode::VarNotFound
+            })
+        }
+
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
@@ -509,38 +534,46 @@ mod tests {
         Parser::from_str(code).parse_expression_only().unwrap()
     }
 
-    fn err_expr(code: &'static str, error_code: ErrorCode) {
+    fn err_expr(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
         let err = Parser::from_str(code).parse_expression_only().unwrap_err();
 
         assert_eq!(error_code, err.code);
+        assert_eq!(line, err.position.line);
+        assert_eq!(col, err.position.column);
     }
 
     fn parse_stmt(code: &'static str) -> Box<Statement> {
         Parser::from_str(code).parse_statement_only().unwrap()
     }
 
-    fn err_stmt(code: &'static str, error_code: ErrorCode) {
+    fn err_stmt(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
         let err = Parser::from_str(code).parse_statement_only().unwrap_err();
 
         assert_eq!(error_code, err.code);
+        assert_eq!(line, err.position.line);
+        assert_eq!(col, err.position.column);
     }
 
     fn parse(code: &'static str) -> Program {
         Parser::from_str(code).parse().unwrap()
     }
 
-    fn err(code: &'static str, error_code: ErrorCode) {
+    fn err(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
         let err = Parser::from_str(code).parse().unwrap_err();
 
         assert_eq!(error_code, err.code);
+        assert_eq!(line, err.position.line);
+        assert_eq!(col, err.position.column);
     }
 
     #[test]
-    fn parse_ident() {
-        let expr = parse_expr("x");
-        let exp = Expr::ident(Position::new(1, 1), DataType::Int, "x".to_string());
+    fn parse_ident_param() {
+        let expr = parse("fn f(a int) { return a; }");
+    }
 
-        assert_eq!(exp, expr);
+    #[test]
+    fn parse_ident_var() {
+        let expr = parse("fn f { var a = 1; return a; }");
     }
 
     #[test]
@@ -585,8 +618,8 @@ mod tests {
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Plus, a));
         assert_eq!(exp, parse_expr("+2"));
 
-        err_expr("- -3", ErrorCode::UnknownFactor);
-        err_expr("+ +4", ErrorCode::UnknownFactor);
+        err_expr("- -3", ErrorCode::UnknownFactor, 1, 3);
+        err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
 
         let a = Expr::lit_int(Position::new(1, 4), 8);
         let exp = Expr::new(Position::new(1, 3), DataType::Int, ExprType::Un(UnOp::Neg, a));
@@ -669,20 +702,27 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let a = Expr::ident(Position::new(1, 1), DataType::Int, "a".to_string());
-        let b = Expr::lit_int(Position::new(1, 3), 4);
-        let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Assign(a, b));
-        assert_eq!(exp, parse_expr("a=4"));
+        let a = Expr::ident(Position::new(1, 15), DataType::Int, "a".to_string());
+        let b = Expr::lit_int(Position::new(1, 17), 4);
+        let e = Expr::new(Position::new(1, 16), DataType::Int, ExprType::Assign(a, b));
+        let s = Statement::expr(Position::new(1,15), e);
+        let exp = Statement::block(Position::new(1, 13), s);
+        assert_eq!(exp, parse("fn f(a int) { a=4; }").functions[0].block);
     }
 
     #[test]
     fn parse_assign_to_non_lvalue() {
-        err_expr("1=1", ErrorCode::ExpectedLvalue);
+        err("fn f { 1=1; }", ErrorCode::ExpectedLvalue, 1, 9);
     }
 
     #[test]
     fn parse_assign_different_types() {
-        err_expr("a=true", ErrorCode::TypeMismatch);
+        err("fn f(a int) { a=true; }", ErrorCode::TypeMismatch, 1, 16);
+    }
+
+    #[test]
+    fn parse_assign_same_name() {
+        err("fn f { var a=1; var a=2; }", ErrorCode::VarAlreadyExists, 1, 17);
     }
 
     #[test]
@@ -727,7 +767,7 @@ mod tests {
         assert_eq!(params, fct.vars);
         assert_eq!(vec![0, 1], fct.params);
 
-        err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists);
+        err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists, 1, 13);
     }
 
     #[test]
@@ -841,7 +881,7 @@ mod tests {
 
     #[test]
     fn parse_else() {
-        err_stmt("else", ErrorCode::MisplacedElse);
+        err_stmt("else", ErrorCode::MisplacedElse, 1, 1);
     }
 
     #[test]

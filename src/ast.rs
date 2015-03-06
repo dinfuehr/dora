@@ -32,10 +32,29 @@ impl Function {
         self.vars.iter().any(|x| x.name.as_slice() == var)
     }
 
-    pub fn add_param(&mut self, var: LocalVar) {
+    pub fn get(&self, name: &str) -> Option<&LocalVar> {
+        for var in &self.vars {
+            if var.name.as_slice() == name {
+                return Some(var)
+            }
+        }
+
+        None
+    }
+
+    pub fn add_param(&mut self, var: LocalVar) -> usize {
         let ind = self.vars.len();
         self.vars.push(var);
         self.params.push(ind);
+
+        ind
+    }
+
+    pub fn add_var(&mut self, var: LocalVar) -> usize {
+        let ind = self.vars.len();
+        self.vars.push(var);
+
+        ind
     }
 }
 
@@ -78,7 +97,7 @@ impl Statement {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StatementType {
-    Var(String,DataType,Box<Expr>),
+    Var(usize,DataType,Box<Expr>),
     While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
     If(Box<Expr>,Box<Statement>,Option<Box<Statement>>),

@@ -76,7 +76,7 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "type {:?} (with value {:?})", self.token_type, self.value)
+        write!(f, "{:?} (with value {:?})", self.token_type, self.value)
     }
 }
 
