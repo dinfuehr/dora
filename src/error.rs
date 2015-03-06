@@ -10,7 +10,6 @@ pub enum ErrorCode {
 }
 
 pub struct ParseError {
-    pub filename: String,
     pub position: Position,
     pub message: String,
     pub code: ErrorCode
@@ -24,12 +23,12 @@ impl ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error in {} at line {}: {}", self.filename, self.position, self.message)
+        write!(f, "error at line {}: {}", self.position, self.message)
     }
 }
 
 impl fmt::Debug for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error in {} at line {}: {}", self.filename, self.position, self.message)
+        write!(f, "error at line {}: {}", self.position, self.message)
     }
 }

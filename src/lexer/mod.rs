@@ -108,7 +108,6 @@ impl<T : CodeReader> Lexer<T> {
                 let ch = self.top().unwrap().value;
 
                 return Err(ParseError {
-                    filename: self.reader.filename().to_string(),
                     position: self.position,
                     code: ErrorCode::UnknownChar,
                     message: format!("unknown character {} (ascii code {})", ch, ch as usize)
@@ -144,7 +143,6 @@ impl<T : CodeReader> Lexer<T> {
 
         if self.is_eof() {
           return Some(ParseError {
-              filename: self.reader.filename().to_string(),
               position: pos,
               code: ErrorCode::UnclosedComment,
               message: "unclosed comment".to_string()
@@ -188,7 +186,6 @@ impl<T : CodeReader> Lexer<T> {
             Ok(tok)
         } else {
             Err(ParseError {
-              filename: self.reader.filename().to_string(),
               position: tok.position,
               code: ErrorCode::UnclosedString,
               message: "unclosed string".to_string()
@@ -256,7 +253,6 @@ impl<T : CodeReader> Lexer<T> {
             },
             _ => {
                 return Err(ParseError {
-                    filename: self.reader.filename().to_string(),
                     position: tok.position,
                     code: ErrorCode::UnknownChar,
                     message: format!("unknown character {} (ascii code {})", ch, ch as usize)

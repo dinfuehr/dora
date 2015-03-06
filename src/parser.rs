@@ -66,7 +66,6 @@ impl<T: CodeReader> Parser<T> {
         match self.token.token_type {
             TokenType::Fn => self.parse_function(),
             _ => Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 code: ErrorCode::ExpectedTopLevelElement,
                 message: format!("top level element expected but got {}", self.token)
@@ -94,7 +93,6 @@ impl<T: CodeReader> Parser<T> {
             while !self.token.is(TokenType::RParen) && !self.token.is_eof() {
                 if !comma {
                     return Err(ParseError {
-                        filename: self.lexer.filename().to_string(),
                         position: self.token.position,
                         message: format!("Token {:?} expected, but got token {}",
                             TokenType::Comma, self.token),
@@ -110,7 +108,6 @@ impl<T: CodeReader> Parser<T> {
 
                 if fct.exists(&var.name) {
                     return Err(ParseError {
-                        filename: self.lexer.filename().to_string(),
                         position: self.token.position,
                         message: format!("variable {} already exists", var.name),
                         code: ErrorCode::VarAlreadyExists
@@ -148,7 +145,6 @@ impl<T: CodeReader> Parser<T> {
             TokenType::Continue => self.parse_continue(),
             TokenType::Return => self.parse_return(),
             TokenType::Else => Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 code: ErrorCode::MisplacedElse,
                 message: "misplaced else".to_string()
@@ -260,7 +256,6 @@ impl<T: CodeReader> Parser<T> {
             TokenType::Bool => Ok(DataType::Bool),
             TokenType::Str => Ok(DataType::Str),
             _ => Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 code: ErrorCode::ExpectedType,
                 message: format!("type expected but got {}", self.token)
@@ -284,7 +279,6 @@ impl<T: CodeReader> Parser<T> {
         if self.token.is(TokenType::Eq) {
             if !left.lvalue {
                 return Err(ParseError {
-                    filename: self.lexer.filename().to_string(),
                     position: self.token.position,
                     code: ErrorCode::ExpectedLvalue,
                     message: "lvalue expected for assignment".to_string()
@@ -296,7 +290,6 @@ impl<T: CodeReader> Parser<T> {
 
             if left.data_type != right.data_type {
                 return Err(ParseError {
-                    filename: self.lexer.filename().to_string(),
                     position: tok.position,
                     code: ErrorCode::TypeMismatch,
                     message: format!("can not assign type {} to type {}",
@@ -408,7 +401,6 @@ impl<T: CodeReader> Parser<T> {
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             _ => Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 code: ErrorCode::UnknownFactor,
                 message: format!("factor expected but got {}", self.token)
@@ -430,7 +422,6 @@ impl<T: CodeReader> Parser<T> {
         match tok.value.parse() {
             Ok(num) => Ok(Expr::lit_int(tok.position, num)),
             _ => Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: tok.position,
                 message: format!("number {} does not fit into range", tok),
                 code: ErrorCode::NumberOverflow
@@ -464,7 +455,6 @@ impl<T: CodeReader> Parser<T> {
             Ok(ident.value)
         } else {
             Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 message: format!("identifier expected, but got token {}", self.token),
                 code: ErrorCode::ExpectedIdentifier
@@ -483,7 +473,6 @@ impl<T: CodeReader> Parser<T> {
             Ok(token)
         } else {
             Err(ParseError {
-                filename: self.lexer.filename().to_string(),
                 position: self.token.position,
                 message: format!("Token {:?} expected, but got token {}",
                     token_type, self.token),

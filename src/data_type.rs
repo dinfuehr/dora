@@ -6,7 +6,7 @@ pub enum DataType {
 }
 
 impl DataType {
-    fn as_str(&self) -> &'static str {
+    fn display(&self) -> &'static str {
         match *self {
             DataType::Int => "int",
             DataType::Bool => "bool",
@@ -17,6 +17,6 @@ impl DataType {
 
 impl fmt::Display for DataType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.display())
     }
 }
