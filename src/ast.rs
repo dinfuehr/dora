@@ -14,7 +14,7 @@ pub struct Function {
     pub position: Position,
     pub params: Vec<usize>,
     pub vars: Vec<LocalVar>,
-    pub block: Box<Statement>,
+    pub block: Box<StatementType>,
 }
 
 impl Function {
@@ -24,7 +24,7 @@ impl Function {
             position: pos,
             params: vec![],
             vars: vec![],
-            block: box Statement::Nop,
+            block: box StatementType::Nop,
         }
     }
 
@@ -53,27 +53,27 @@ impl LocalVar {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum Statement {
+pub enum StatementType {
     Var(String,DataType,Box<ExprType>),
-    While(Box<ExprType>,Box<Statement>),
-    Loop(Box<Statement>),
-    If(Box<ExprType>,Box<Statement>,Box<Statement>),
+    While(Box<ExprType>,Box<StatementType>),
+    Loop(Box<StatementType>),
+    If(Box<ExprType>,Box<StatementType>,Box<StatementType>),
     Expr(Box<ExprType>),
-    Block(Vec<Box<Statement>>),
+    Block(Vec<Box<StatementType>>),
     Break,
     Continue,
     Return(Box<ExprType>),
     Nop,
 }
 
-impl Statement {
-    pub fn empty_block() -> Box<Statement> {
-        box Statement::Block(vec![])
+impl StatementType {
+    pub fn empty_block() -> Box<StatementType> {
+        box StatementType::Block(vec![])
     }
 
-    pub fn block(expr: ExprType) -> Box<Statement> {
-        let expr = box Statement::Expr(box expr);
-        box Statement::Block(vec![expr])
+    pub fn block(expr: ExprType) -> Box<StatementType> {
+        let expr = box StatementType::Expr(box expr);
+        box StatementType::Block(vec![expr])
     }
 }
 

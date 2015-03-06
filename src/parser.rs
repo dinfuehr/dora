@@ -13,7 +13,7 @@ use ast::ExprType;
 use ast::Function;
 use ast::LocalVar;
 use ast::Program;
-use ast::Statement;
+use ast::StatementType;
 use ast::UnOp;
 
 use data_type::DataType;
@@ -38,7 +38,7 @@ impl Parser<FileReader> {
 type ExprResult = Result<Box<ExprType>,ParseError>;
 type FunctionResult = Result<Function,ParseError>;
 type DataTypeResult = Result<DataType,ParseError>;
-type StatementResult = Result<Box<Statement>,ParseError>;
+type StatementResult = Result<Box<StatementType>,ParseError>;
 
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
@@ -169,7 +169,7 @@ impl<T: CodeReader> Parser<T> {
         try!(self.expect_token(TokenType::Eq));
         let expr = try!(self.parse_expression());
 
-        Ok(box Statement::Var(ident, data_type, expr))
+        Ok(box StatementType::Var(ident, data_type, expr))
     }
 
     fn parse_block(&mut self) -> StatementResult {
@@ -183,21 +183,21 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(box Statement::Block(stmts))
+        Ok(box StatementType::Block(stmts))
     }
 
     fn parse_if(&mut self) -> StatementResult {
         try!(self.expect_token(TokenType::If));
         let expr = try!(self.parse_expression());
         let then_block = try!(self.parse_block());
-        let mut else_block = Statement::empty_block();
+        let mut else_block = StatementType::empty_block();
 
         if self.token.is(TokenType::Else) {
             try!(self.read_token());
             else_block = try!(self.parse_block());
         }
 
-        Ok(box Statement::If(expr, then_block, else_block))
+        Ok(box StatementType::If(expr, then_block, else_block))
     }
 
     fn parse_while(&mut self) -> StatementResult {
@@ -205,28 +205,28 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         let block = try!(self.parse_block());
 
-        Ok(box Statement::While(expr, block))
+        Ok(box StatementType::While(expr, block))
     }
 
     fn parse_loop(&mut self) -> StatementResult {
         try!(self.expect_token(TokenType::Loop));
         let block = try!(self.parse_block());
 
-        Ok(box Statement::Loop(block))
+        Ok(box StatementType::Loop(block))
     }
 
     fn parse_break(&mut self) -> StatementResult {
         try!(self.expect_token(TokenType::Break));
         try!(self.expect_semicolon());
 
-        Ok(box Statement::Break)
+        Ok(box StatementType::Break)
     }
 
     fn parse_continue(&mut self) -> StatementResult {
         try!(self.expect_token(TokenType::Continue));
         try!(self.expect_semicolon());
 
-        Ok(box Statement::Continue)
+        Ok(box StatementType::Continue)
     }
 
     fn parse_return(&mut self) -> StatementResult {
@@ -234,14 +234,14 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(box Statement::Return(expr))
+        Ok(box StatementType::Return(expr))
     }
 
     fn parse_expression_statement(&mut self) -> StatementResult {
         let expr = try!(self.parse_expression());
         self.expect_semicolon();
 
-        Ok(box Statement::Expr(expr))
+        Ok(box StatementType::Expr(expr))
     }
 
     fn parse_data_type_only(&mut self) -> DataTypeResult {
@@ -489,7 +489,7 @@ mod tests {
     use ast::Function;
     use ast::LocalVar;
     use ast::Program;
-    use ast::Statement;
+    use ast::StatementType;
     use ast::UnOp;
 
     use data_type::DataType;
@@ -716,9 +716,9 @@ mod tests {
     #[test]
     fn parse_if() {
         let mut parser = Parser::from_str("if 1 { 2; } else { 3; }");
-        let b1 = Statement::block(ExprType::LitInt(2));
-        let b2 = Statement::block(ExprType::LitInt(3));
-        let stmt = box Statement::If(box ExprType::LitInt(1), b1, b2);
+        let b1 = StatementType::block(ExprType::LitInt(2));
+        let b2 = StatementType::block(ExprType::LitInt(3));
+        let stmt = box StatementType::If(box ExprType::LitInt(1), b1, b2);
 
         assert_eq!(stmt, parser.parse_statement_only().unwrap());
     }
@@ -726,8 +726,8 @@ mod tests {
     #[test]
     fn parse_while() {
         let mut parser = Parser::from_str("while 1 { 2; }");
-        let b = Statement::block(ExprType::LitInt(2));
-        let stmt = box Statement::While(box ExprType::LitInt(1), b);
+        let b = StatementType::block(ExprType::LitInt(2));
+        let stmt = box StatementType::While(box ExprType::LitInt(1), b);
 
         assert_eq!(stmt, parser.parse_statement_only().unwrap());
     }
@@ -735,8 +735,8 @@ mod tests {
     #[test]
     fn parse_loop() {
         let mut parser = Parser::from_str("loop { 1; }");
-        let b = Statement::block(ExprType::LitInt(1));
-        let stmt = box Statement::Loop(b);
+        let b = StatementType::block(ExprType::LitInt(1));
+        let stmt = box StatementType::Loop(b);
 
         assert_eq!(stmt, parser.parse_statement_only().unwrap());
     }
@@ -744,7 +744,7 @@ mod tests {
     #[test]
     fn parse_block() {
         let mut parser = Parser::from_str("{ 1; }");
-        let b = Statement::block(ExprType::LitInt(1));
+        let b = StatementType::block(ExprType::LitInt(1));
 
         assert_eq!(b, parser.parse_statement_only().unwrap());
     }
@@ -752,7 +752,7 @@ mod tests {
     #[test]
     fn parse_break() {
         let mut parser = Parser::from_str("break;");
-        let b = box Statement::Break;
+        let b = box StatementType::Break;
 
         assert_eq!(b, parser.parse_statement_only().unwrap());
     }
@@ -760,7 +760,7 @@ mod tests {
     #[test]
     fn parse_continue() {
         let mut parser = Parser::from_str("continue;");
-        let b = box Statement::Continue;
+        let b = box StatementType::Continue;
 
         assert_eq!(b, parser.parse_statement_only().unwrap());
     }
@@ -768,7 +768,7 @@ mod tests {
     #[test]
     fn parse_return() {
         let mut parser = Parser::from_str("return 1;");
-        let b = box Statement::Return(box ExprType::LitInt(1));
+        let b = box StatementType::Return(box ExprType::LitInt(1));
 
         assert_eq!(b, parser.parse_statement_only().unwrap());
     }
