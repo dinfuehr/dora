@@ -454,8 +454,8 @@ impl<T: CodeReader> Parser<T> {
         let ident = try!(self.read_token());
         let fct = self.fct.as_mut().unwrap();
 
-        if let Some(var) = fct.get(&ident.value) {
-            Ok(Expr::ident(ident.position, var.data_type, ident.value))
+        if let Some((var,ind)) = fct.get(&ident.value) {
+            Ok(Expr::ident(ident.position, var.data_type, ind))
         } else {
             Err(ParseError {
                 position: ident.position,
@@ -702,7 +702,7 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let a = Expr::ident(Position::new(1, 15), DataType::Int, "a".to_string());
+        let a = Expr::ident(Position::new(1, 15), DataType::Int, 0);
         let b = Expr::lit_int(Position::new(1, 17), 4);
         let e = Expr::new(Position::new(1, 16), DataType::Int, ExprType::Assign(a, b));
         let s = Statement::expr(Position::new(1,15), e);
@@ -768,6 +768,34 @@ mod tests {
         assert_eq!(vec![0, 1], fct.params);
 
         err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists, 1, 13);
+    }
+
+    #[test]
+    fn parse_var_int() {
+        let o = Expr::lit_int(Position::new(1, 16), 1);
+        let v = StatementType::Var(0, DataType::Int, o);
+        let s = Statement::new(Position::new(1, 8), v);
+        let exp = Statement::block(Position::new(1, 6), s);
+
+        let fct = &parse("fn f { var a = 1; }").functions[0];
+        assert_eq!(exp, fct.block);
+
+        let v = LocalVar::new("a".to_string(), DataType::Int, Position::new(1, 8));
+        assert_eq!(vec![v], fct.vars);
+    }
+
+    #[test]
+    fn parse_var_bool() {
+        let o = Expr::lit_bool(Position::new(1, 16), true);
+        let v = StatementType::Var(0, DataType::Bool, o);
+        let s = Statement::new(Position::new(1, 8), v);
+        let exp = Statement::block(Position::new(1, 6), s);
+
+        let fct = &parse("fn f { var b = true; }").functions[0];
+        assert_eq!(exp, fct.block);
+
+        let v = LocalVar::new("b".to_string(), DataType::Bool, Position::new(1, 8));
+        assert_eq!(vec![v], fct.vars);
     }
 
     #[test]

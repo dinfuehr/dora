@@ -32,11 +32,15 @@ impl Function {
         self.vars.iter().any(|x| x.name.as_slice() == var)
     }
 
-    pub fn get(&self, name: &str) -> Option<&LocalVar> {
+    pub fn get(&self, name: &str) -> Option<(&LocalVar,usize)> {
+        let mut ind = 0usize;
+
         for var in &self.vars {
             if var.name.as_slice() == name {
-                return Some(var)
+                return Some((var,ind))
             }
+
+            ind += 1;
         }
 
         None
@@ -151,7 +155,13 @@ impl Expr {
         Expr::new(pos, DataType::Str, ExprType::LitStr(value))
     }
 
-    pub fn ident(pos: Position, data_type: DataType, value: String) -> Box<Expr> {
+    pub fn lit_bool(pos: Position, value: bool) -> Box<Expr> {
+        let ty = if value { ExprType::LitTrue } else { ExprType::LitFalse };
+
+        Expr::new(pos, DataType::Bool, ty)
+    }
+
+    pub fn ident(pos: Position, data_type: DataType, value: usize) -> Box<Expr> {
         box Expr {
             position: pos,
             data_type: DataType::Int,
@@ -169,7 +179,7 @@ pub enum ExprType {
     LitStr(String),
     LitTrue,
     LitFalse,
-    Ident(String),
+    Ident(usize),
     Assign(Box<Expr>,Box<Expr>),
     Call(String,Vec<Box<Expr>>),
 }
