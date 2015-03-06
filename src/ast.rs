@@ -63,7 +63,7 @@ impl Statement {
         box Statement { position: pos, stmt: stmt }
     }
 
-    pub fn expr(pos: Position, expr: Box<ExprType>) -> Box<Statement> {
+    pub fn expr(pos: Position, expr: Box<Expr>) -> Box<Statement> {
         Statement::new(pos, StatementType::Expr(expr))
     }
 
@@ -78,15 +78,15 @@ impl Statement {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StatementType {
-    Var(String,DataType,Box<ExprType>),
-    While(Box<ExprType>,Box<Statement>),
+    Var(String,DataType,Box<Expr>),
+    While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
-    If(Box<ExprType>,Box<Statement>,Option<Box<Statement>>),
-    Expr(Box<ExprType>),
+    If(Box<Expr>,Box<Statement>,Option<Box<Statement>>),
+    Expr(Box<Expr>),
     Block(Vec<Box<Statement>>),
     Break,
     Continue,
-    Return(Box<ExprType>),
+    Return(Box<Expr>),
     Nop,
 }
 
@@ -111,6 +111,7 @@ pub enum BinOp {
     Ge,
 }
 
+#[derive(PartialEq,Eq,Debug)]
 pub struct Expr {
     pub position: Position,
     pub data_type: DataType,
@@ -118,25 +119,33 @@ pub struct Expr {
 }
 
 impl Expr {
-    pub fn new(position: Position, data_type: DataType, expr: ExprType) -> Box<Expr> {
-        box Expr { position: position, data_type: data_type, expr: expr }
+    pub fn new(pos: Position, data_type: DataType, expr: ExprType) -> Box<Expr> {
+        box Expr { position: pos, data_type: data_type, expr: expr }
     }
 
-    pub fn lit_int(position: Position, value: i64) -> Box<ExprType> {
-        box ExprType::LitInt(value)
+    pub fn lit_int(pos: Position, value: i64) -> Box<Expr> {
+        Expr::new(pos, DataType::Int, ExprType::LitInt(value))
+    }
+
+    pub fn lit_str(pos: Position, value: String) -> Box<Expr> {
+        Expr::new(pos, DataType::Str, ExprType::LitStr(value))
+    }
+
+    pub fn ident(pos: Position, value: &'static str) -> Box<Expr> {
+        Expr::new(pos, DataType::Int, ExprType::Ident(value.to_string()))
     }
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum ExprType {
-    Un(UnOp,Box<ExprType>),
-    Bin(BinOp,Box<ExprType>,Box<ExprType>),
+    Un(UnOp,Box<Expr>),
+    Bin(BinOp,Box<Expr>,Box<Expr>),
     LitInt(i64),
     LitStr(String),
     LitTrue,
     LitFalse,
     Ident(String),
-    Assign(Box<ExprType>,Box<ExprType>),
-    Call(String,Vec<Box<ExprType>>),
+    Assign(Box<Expr>,Box<Expr>),
+    Call(String,Vec<Box<Expr>>),
 }
 
