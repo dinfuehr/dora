@@ -116,11 +116,12 @@ pub struct Expr {
     pub position: Position,
     pub data_type: DataType,
     pub expr: ExprType,
+    pub lvalue: bool,
 }
 
 impl Expr {
     pub fn new(pos: Position, data_type: DataType, expr: ExprType) -> Box<Expr> {
-        box Expr { position: pos, data_type: data_type, expr: expr }
+        box Expr { position: pos, data_type: data_type, expr: expr, lvalue: false }
     }
 
     pub fn lit_int(pos: Position, value: i64) -> Box<Expr> {
@@ -131,8 +132,13 @@ impl Expr {
         Expr::new(pos, DataType::Str, ExprType::LitStr(value))
     }
 
-    pub fn ident(pos: Position, value: &'static str) -> Box<Expr> {
-        Expr::new(pos, DataType::Int, ExprType::Ident(value.to_string()))
+    pub fn ident(pos: Position, data_type: DataType, value: String) -> Box<Expr> {
+        box Expr {
+            position: pos,
+            data_type: DataType::Int,
+            expr: ExprType::Ident(value),
+            lvalue: true,
+        }
     }
 }
 

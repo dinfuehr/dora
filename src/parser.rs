@@ -282,10 +282,19 @@ impl<T: CodeReader> Parser<T> {
         let left = try!(self.parse_expression_l1());
 
         if self.token.is(TokenType::Eq) {
-            let op = try!(self.read_token());
+            if !left.lvalue {
+                return Err(ParseError {
+                    filename: self.lexer.filename().to_string(),
+                    position: self.token.position,
+                    code: ErrorCode::ExpectedLvalue,
+                    message: "lvalue expected for assignment".to_string()
+                })
+            }
+
+            let tok = try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
-            Ok(Expr::new(op.position, left.data_type, ExprType::Assign(left, right)))
+            Ok(Expr::new(tok.position, left.data_type, ExprType::Assign(left, right)))
         } else {
             Ok(left)
         }
@@ -428,7 +437,7 @@ impl<T: CodeReader> Parser<T> {
     fn parse_identifier(&mut self) -> ExprResult {
         let ident = try!(self.read_token());
 
-        Ok(Expr::new(ident.position, DataType::Int, ExprType::Ident(ident.value)))
+        Ok(Expr::ident(ident.position, DataType::Int, ident.value))
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
@@ -530,7 +539,7 @@ mod tests {
     #[test]
     fn parse_ident() {
         let expr = parse_expr("x");
-        let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Ident("x".to_string()));
+        let exp = Expr::ident(Position::new(1, 1), DataType::Int, "x".to_string());
 
         assert_eq!(exp, expr);
     }
@@ -569,102 +578,107 @@ mod tests {
 
     #[test]
     fn parse_l5() {
-        let a = Expr::ident(Position::new(1, 2), "a");
+        let a = Expr::lit_int(Position::new(1, 2), 1);
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Neg, a));
-        assert_eq!(exp, parse_expr("-a"));
+        assert_eq!(exp, parse_expr("-1"));
 
-        let a = Expr::ident(Position::new(1, 2), "a");
+        let a = Expr::lit_int(Position::new(1, 2), 2);
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Plus, a));
-        assert_eq!(exp, parse_expr("+a"));
+        assert_eq!(exp, parse_expr("+2"));
 
-        err_expr("- -a", ErrorCode::UnknownFactor);
-        err_expr("+ +a", ErrorCode::UnknownFactor);
+        err_expr("- -3", ErrorCode::UnknownFactor);
+        err_expr("+ +4", ErrorCode::UnknownFactor);
 
-        let a = Expr::ident(Position::new(1, 4), "a");
+        let a = Expr::lit_int(Position::new(1, 4), 8);
         let exp = Expr::new(Position::new(1, 3), DataType::Int, ExprType::Un(UnOp::Neg, a));
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Neg, exp));
 
-        assert_eq!(exp, parse_expr("-(-a)"));
+        assert_eq!(exp, parse_expr("-(-8)"));
 
-        let a = Expr::ident(Position::new(1, 4), "a");
+        let a = Expr::lit_int(Position::new(1, 4), 9);
         let exp = Expr::new(Position::new(1, 3), DataType::Int, ExprType::Un(UnOp::Plus, a));
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Plus, exp));
-        assert_eq!(exp, parse_expr("+(+a)"));
+        assert_eq!(exp, parse_expr("+(+9)"));
     }
 
     #[test]
     fn parse_l4() {
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 6);
+        let b = Expr::lit_int(Position::new(1, 3), 3);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Mul, a, b));
-        assert_eq!(exp, parse_expr("a*b"));
+        assert_eq!(exp, parse_expr("6*3"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 4);
+        let b = Expr::lit_int(Position::new(1, 3), 5);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Div, a, b));
-        assert_eq!(exp, parse_expr("a/b"));
+        assert_eq!(exp, parse_expr("4/5"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 2);
+        let b = Expr::lit_int(Position::new(1, 3), 15);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Mod, a, b));
-        assert_eq!(exp, parse_expr("a%b"));
+        assert_eq!(exp, parse_expr("2%15"));
     }
 
     #[test]
     fn parse_l3() {
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 2);
+        let b = Expr::lit_int(Position::new(1, 3), 3);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Add, a, b));
-        assert_eq!(exp, parse_expr("a+b"));
+        assert_eq!(exp, parse_expr("2+3"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Sub, a, b));
-        assert_eq!(exp, parse_expr("a-b"));
+        assert_eq!(exp, parse_expr("1-2"));
     }
 
     #[test]
     fn parse_l2() {
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Lt, a, b));
-        assert_eq!(exp, parse_expr("a<b"));
+        assert_eq!(exp, parse_expr("1<2"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 4), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Le, a, b));
-        assert_eq!(exp, parse_expr("a<=b"));
+        assert_eq!(exp, parse_expr("1<=2"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Gt, a, b));
-        assert_eq!(exp, parse_expr("a>b"));
+        assert_eq!(exp, parse_expr("1>2"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 4), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Ge, a, b));
-        assert_eq!(exp, parse_expr("a>=b"));
+        assert_eq!(exp, parse_expr("1>=2"));
     }
 
     #[test]
     fn parse_l1() {
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 4), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Eq, a, b));
-        assert_eq!(exp, parse_expr("a==b"));
+        assert_eq!(exp, parse_expr("1==2"));
 
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 4), "b");
+        let a = Expr::lit_int(Position::new(1, 1), 1);
+        let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Ne, a, b));
-        assert_eq!(exp, parse_expr("a!=b"));
+        assert_eq!(exp, parse_expr("1!=2"));
     }
 
     #[test]
-    fn parse_l0() {
-        let a = Expr::ident(Position::new(1, 1), "a");
-        let b = Expr::ident(Position::new(1, 3), "b");
+    fn parse_assign() {
+        let a = Expr::ident(Position::new(1, 1), DataType::Int, "a".to_string());
+        let b = Expr::lit_int(Position::new(1, 3), 4);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Assign(a, b));
-        assert_eq!(exp, parse_expr("a=b"));
+        assert_eq!(exp, parse_expr("a=4"));
+    }
+
+    #[test]
+    fn parse_assign_to_non_lvalue() {
+        err_expr("1=1", ErrorCode::ExpectedLvalue);
     }
 
     #[test]
