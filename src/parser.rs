@@ -626,23 +626,26 @@ mod tests {
     }
 
     #[test]
-    fn parse_l5() {
+    fn parse_l5_neg() {
         let a = Expr::lit_int(Position::new(1, 2), 1);
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Neg, a));
         assert_eq!(exp, parse_expr("-1"));
 
-        let a = Expr::lit_int(Position::new(1, 2), 2);
-        let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Plus, a));
-        assert_eq!(exp, parse_expr("+2"));
-
         err_expr("- -3", ErrorCode::UnknownFactor, 1, 3);
-        err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
 
         let a = Expr::lit_int(Position::new(1, 4), 8);
         let exp = Expr::new(Position::new(1, 3), DataType::Int, ExprType::Un(UnOp::Neg, a));
         let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Neg, exp));
-
         assert_eq!(exp, parse_expr("-(-8)"));
+    }
+
+    #[test]
+    fn parse_l5_plus() {
+        let a = Expr::lit_int(Position::new(1, 2), 2);
+        let exp = Expr::new(Position::new(1, 1), DataType::Int, ExprType::Un(UnOp::Plus, a));
+        assert_eq!(exp, parse_expr("+2"));
+
+        err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
 
         let a = Expr::lit_int(Position::new(1, 4), 9);
         let exp = Expr::new(Position::new(1, 3), DataType::Int, ExprType::Un(UnOp::Plus, a));
@@ -651,17 +654,23 @@ mod tests {
     }
 
     #[test]
-    fn parse_l4() {
+    fn parse_l4_mul() {
         let a = Expr::lit_int(Position::new(1, 1), 6);
         let b = Expr::lit_int(Position::new(1, 3), 3);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Mul, a, b));
         assert_eq!(exp, parse_expr("6*3"));
+    }
 
+    #[test]
+    fn parse_l4_div() {
         let a = Expr::lit_int(Position::new(1, 1), 4);
         let b = Expr::lit_int(Position::new(1, 3), 5);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Div, a, b));
         assert_eq!(exp, parse_expr("4/5"));
+    }
 
+    #[test]
+    fn parse_l4_mod() {
         let a = Expr::lit_int(Position::new(1, 1), 2);
         let b = Expr::lit_int(Position::new(1, 3), 15);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Mod, a, b));
@@ -669,12 +678,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_l3() {
+    fn parse_l3_add() {
         let a = Expr::lit_int(Position::new(1, 1), 2);
         let b = Expr::lit_int(Position::new(1, 3), 3);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Add, a, b));
         assert_eq!(exp, parse_expr("2+3"));
+    }
 
+    #[test]
+    fn parse_l3_sub() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Int, ExprType::Bin(BinOp::Sub, a, b));
@@ -682,22 +694,31 @@ mod tests {
     }
 
     #[test]
-    fn parse_l2() {
+    fn parse_l2_lt() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Lt, a, b));
         assert_eq!(exp, parse_expr("1<2"));
+    }
 
+    #[test]
+    fn parse_l2_le() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Le, a, b));
         assert_eq!(exp, parse_expr("1<=2"));
+    }
 
+    #[test]
+    fn parse_l2_gt() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 3), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Gt, a, b));
         assert_eq!(exp, parse_expr("1>2"));
+    }
 
+    #[test]
+    fn parse_l2_ge() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Ge, a, b));
@@ -705,12 +726,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_l1() {
+    fn parse_l1_eq() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Eq, a, b));
         assert_eq!(exp, parse_expr("1==2"));
+    }
 
+    #[test]
+    fn parse_l1_ne() {
         let a = Expr::lit_int(Position::new(1, 1), 1);
         let b = Expr::lit_int(Position::new(1, 4), 2);
         let exp = Expr::new(Position::new(1, 2), DataType::Bool, ExprType::Bin(BinOp::Ne, a, b));
@@ -822,7 +846,7 @@ mod tests {
 
     #[test]
     fn parse_var_right_type() {
-        parse("fn f { var a : int = 1; }");
+        parse("fn f { var x : int = 1; }");
     }
 
     #[test]
