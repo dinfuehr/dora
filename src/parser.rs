@@ -161,6 +161,12 @@ impl<T: CodeReader> Parser<T> {
     fn parse_var(&mut self) -> StatementResult {
         let tok = try!(self.expect_token(TokenType::Var));
         let ident = try!(self.expect_identifier());
+        let mut data_type = None;
+
+        if self.token.is(TokenType::Colon) {
+            try!(self.read_token());
+            data_type = Some(try!(self.parse_data_type()));
+        }
 
         try!(self.expect_token(TokenType::Eq));
         let expr = try!(self.parse_expression());
@@ -168,6 +174,17 @@ impl<T: CodeReader> Parser<T> {
 
         let ty = expr.data_type;
         let fct = self.fct.as_mut().unwrap();
+
+        if let Some(data_type) = data_type {
+            if data_type != ty {
+                return Err(ParseError {
+                    position: tok.position,
+                    code: ErrorCode::TypeMismatch,
+                    message: format!("can not assign type {} to type {}",
+                        ty, data_type)
+                })
+            }
+        }
 
         let var = LocalVar::new(ident, ty, tok.position);
 
@@ -796,6 +813,16 @@ mod tests {
 
         let v = LocalVar::new("b".to_string(), DataType::Bool, Position::new(1, 8));
         assert_eq!(vec![v], fct.vars);
+    }
+
+    #[test]
+    fn parse_var_wrong_type() {
+        err("fn f { var a : bool = 1; }", ErrorCode::TypeMismatch, 1, 8);
+    }
+
+    #[test]
+    fn parse_var_right_type() {
+        parse("fn f { var a : int = 1; }");
     }
 
     #[test]
