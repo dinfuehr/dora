@@ -13,6 +13,7 @@ use ast::ExprType;
 use ast::Function;
 use ast::LocalVar;
 use ast::Program;
+use ast::Statement;
 use ast::StatementType;
 use ast::UnOp;
 
@@ -38,7 +39,7 @@ impl Parser<FileReader> {
 type ExprResult = Result<Box<ExprType>,ParseError>;
 type FunctionResult = Result<Function,ParseError>;
 type DataTypeResult = Result<DataType,ParseError>;
-type StatementResult = Result<Box<StatementType>,ParseError>;
+type StatementResult = Result<Box<Statement>,ParseError>;
 
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
@@ -157,7 +158,7 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_var(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::Var));
+        let pos = try!(self.expect_token(TokenType::Var)).position;
         let ident = try!(self.expect_identifier());
         let mut data_type = DataType::Int;
 
@@ -169,11 +170,11 @@ impl<T: CodeReader> Parser<T> {
         try!(self.expect_token(TokenType::Eq));
         let expr = try!(self.parse_expression());
 
-        Ok(box StatementType::Var(ident, data_type, expr))
+        Ok(Statement::new(pos, StatementType::Var(ident, data_type, expr)))
     }
 
     fn parse_block(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::LBrace));
+        let pos = try!(self.expect_token(TokenType::LBrace)).position;
         let mut stmts = vec![];
 
         while !self.token.is(TokenType::RBrace) && !self.token.is_eof() {
@@ -183,65 +184,66 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(box StatementType::Block(stmts))
+        Ok(Statement::new(pos, StatementType::Block(stmts)))
     }
 
     fn parse_if(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::If));
+        let pos = try!(self.expect_token(TokenType::If)).position;
         let expr = try!(self.parse_expression());
         let then_block = try!(self.parse_block());
-        let mut else_block = StatementType::empty_block();
+        let mut else_block = None;
 
         if self.token.is(TokenType::Else) {
             try!(self.read_token());
-            else_block = try!(self.parse_block());
+            else_block = Some(try!(self.parse_block()));
         }
 
-        Ok(box StatementType::If(expr, then_block, else_block))
+        Ok(Statement::new(pos, StatementType::If(expr, then_block, else_block)))
     }
 
     fn parse_while(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::While));
+        let pos = try!(self.expect_token(TokenType::While)).position;
         let expr = try!(self.parse_expression());
         let block = try!(self.parse_block());
 
-        Ok(box StatementType::While(expr, block))
+        Ok(Statement::new(pos, StatementType::While(expr, block)))
     }
 
     fn parse_loop(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::Loop));
+        let pos = try!(self.expect_token(TokenType::Loop)).position;
         let block = try!(self.parse_block());
 
-        Ok(box StatementType::Loop(block))
+        Ok(Statement::new(pos, StatementType::Loop(block)))
     }
 
     fn parse_break(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::Break));
+        let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
-        Ok(box StatementType::Break)
+        Ok(Statement::new(pos, StatementType::Break))
     }
 
     fn parse_continue(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::Continue));
+        let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
 
-        Ok(box StatementType::Continue)
+        Ok(Statement::new(pos, StatementType::Continue))
     }
 
     fn parse_return(&mut self) -> StatementResult {
-        try!(self.expect_token(TokenType::Return));
+        let pos = try!(self.expect_token(TokenType::Return)).position;
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(box StatementType::Return(expr))
+        Ok(Statement::new(pos, StatementType::Return(expr)))
     }
 
     fn parse_expression_statement(&mut self) -> StatementResult {
+        let pos = self.token.position;
         let expr = try!(self.parse_expression());
         self.expect_semicolon();
 
-        Ok(box StatementType::Expr(expr))
+        Ok(Statement::new(pos, StatementType::Expr(expr)))
     }
 
     fn parse_data_type_only(&mut self) -> DataTypeResult {
@@ -485,10 +487,12 @@ impl<T: CodeReader> Parser<T> {
 #[cfg(test)]
 mod tests {
     use ast::BinOp;
+    use ast::Expr;
     use ast::ExprType;
     use ast::Function;
     use ast::LocalVar;
     use ast::Program;
+    use ast::Statement;
     use ast::StatementType;
     use ast::UnOp;
 
@@ -497,22 +501,32 @@ mod tests {
     use lexer::position::Position;
     use parser::Parser;
 
-    fn parse_expr(code: &'static str) -> ExprType {
-        *Parser::from_str(code).parse_expression_only().unwrap()
+    fn parse_expr(code: &'static str) -> Box<ExprType> {
+        Parser::from_str(code).parse_expression_only().unwrap()
+    }
+
+    fn err_expr(code: &'static str, error_code: ErrorCode) {
+        let err = Parser::from_str(code).parse_expression_only().unwrap_err();
+
+        assert_eq!(error_code, err.code);
+    }
+
+    fn parse_stmt(code: &'static str) -> Box<Statement> {
+        Parser::from_str(code).parse_statement_only().unwrap()
+    }
+
+    fn err_stmt(code: &'static str, error_code: ErrorCode) {
+        let err = Parser::from_str(code).parse_statement_only().unwrap_err();
+
+        assert_eq!(error_code, err.code);
     }
 
     fn parse(code: &'static str) -> Program {
         Parser::from_str(code).parse().unwrap()
     }
 
-    fn assert_err(code: &'static str, error_code: ErrorCode) {
+    fn err(code: &'static str, error_code: ErrorCode) {
         let err = Parser::from_str(code).parse().unwrap_err();
-
-        assert_eq!(error_code, err.code);
-    }
-
-    fn assert_expr_err(code: &'static str, error_code: ErrorCode) {
-        let err = Parser::from_str(code).parse_expression_only().unwrap_err();
 
         assert_eq!(error_code, err.code);
     }
@@ -520,58 +534,63 @@ mod tests {
     #[test]
     fn parse_ident() {
         let expr = parse_expr("x");
+        let exp = box ExprType::Ident("x".to_string());
 
-        assert_eq!(ExprType::Ident("x".to_string()), expr);
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_number() {
         let expr = parse_expr("10");
+        let exp = box ExprType::LitInt(10);
 
-        assert_eq!(ExprType::LitInt(10), expr);
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_string() {
         let expr = parse_expr("\"abc\"");
+        let exp = box ExprType::LitStr("abc".to_string());
 
-        assert_eq!(ExprType::LitStr("abc".to_string()), expr);
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_true() {
         let expr = parse_expr("true");
+        let exp = box ExprType::LitTrue;
 
-        assert_eq!(ExprType::LitTrue, expr);
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_false() {
         let expr = parse_expr("false");
+        let exp = box ExprType::LitFalse;
 
-        assert_eq!(ExprType::LitFalse, expr);
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_l5() {
-        let exp = ExprType::Un(UnOp::Neg, box ExprType::Ident("a".to_string()));
+        let exp = box ExprType::Un(UnOp::Neg, box ExprType::Ident("a".to_string()));
         assert_eq!(exp, parse_expr("-a"));
 
-        let exp = ExprType::Un(UnOp::Plus, box ExprType::Ident("a".to_string()));
+        let exp = box ExprType::Un(UnOp::Plus, box ExprType::Ident("a".to_string()));
         assert_eq!(exp, parse_expr("+a"));
 
-        assert_expr_err("- -a", ErrorCode::UnknownFactor);
-        assert_expr_err("+ +a", ErrorCode::UnknownFactor);
+        err_expr("- -a", ErrorCode::UnknownFactor);
+        err_expr("+ +a", ErrorCode::UnknownFactor);
 
         let a = box ExprType::Ident("a".to_string());
         let exp = box ExprType::Un(UnOp::Neg, a);
-        let exp = ExprType::Un(UnOp::Neg, exp);
+        let exp = box ExprType::Un(UnOp::Neg, exp);
 
         assert_eq!(exp, parse_expr("-(-a)"));
 
         let a = box ExprType::Ident("a".to_string());
         let exp = box ExprType::Un(UnOp::Plus, a);
-        let exp = ExprType::Un(UnOp::Plus, exp);
+        let exp = box ExprType::Un(UnOp::Plus, exp);
         assert_eq!(exp, parse_expr("+(+a)"));
     }
 
@@ -579,17 +598,17 @@ mod tests {
     fn parse_l4() {
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Mul, a, b);
+        let exp = box ExprType::Bin(BinOp::Mul, a, b);
         assert_eq!(exp, parse_expr("a*b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Div, a, b);
+        let exp = box ExprType::Bin(BinOp::Div, a, b);
         assert_eq!(exp, parse_expr("a/b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Mod, a, b);
+        let exp = box ExprType::Bin(BinOp::Mod, a, b);
         assert_eq!(exp, parse_expr("a%b"));
     }
 
@@ -597,12 +616,12 @@ mod tests {
     fn parse_l3() {
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Add, a, b);
+        let exp = box ExprType::Bin(BinOp::Add, a, b);
         assert_eq!(exp, parse_expr("a+b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Sub, a, b);
+        let exp = box ExprType::Bin(BinOp::Sub, a, b);
         assert_eq!(exp, parse_expr("a-b"));
     }
 
@@ -610,61 +629,61 @@ mod tests {
     fn parse_l2() {
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Lt, a, b);
+        let exp = box ExprType::Bin(BinOp::Lt, a, b);
         assert_eq!(exp, parse_expr("a<b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Le, a, b);
+        let exp = box ExprType::Bin(BinOp::Le, a, b);
         assert_eq!(exp, parse_expr("a<=b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Gt, a, b);
+        let exp = box ExprType::Bin(BinOp::Gt, a, b);
         assert_eq!(exp, parse_expr("a>b"));
 
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Ge, a, b);
+        let exp = box ExprType::Bin(BinOp::Ge, a, b);
         assert_eq!(exp, parse_expr("a>=b"));
     }
 
     #[test]
     fn parse_l1() {
-        let mut parser = Parser::from_str("a==b");
+        let expr = parse_expr("a==b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Eq, a, b);
+        let exp = box ExprType::Bin(BinOp::Eq, a, b);
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, expr);
 
-        let mut parser = Parser::from_str("a!=b");
+        let expr = parse_expr("a!=b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Bin(BinOp::Ne, a, b);
+        let exp = box ExprType::Bin(BinOp::Ne, a, b);
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_l0() {
-        let mut parser = Parser::from_str("a=b");
+        let expr = parse_expr("a=b");
         let a = box ExprType::Ident("a".to_string());
         let b = box ExprType::Ident("b".to_string());
-        let exp = ExprType::Assign(a, b);
+        let exp = box ExprType::Assign(a, b);
 
-        assert_eq!(exp, *parser.parse_expression_only().unwrap());
+        assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_function() {
-        let fct = &Parser::from_str("fn a { }").parse().unwrap().functions[0];
+        let fct = &parse("fn a { }").functions[0];
         assert_eq!("a", fct.name.as_slice());
         assert_eq!(vec![], fct.params);
         assert_eq!(vec![], fct.vars);
         assert_eq!(Position::new(1, 1), fct.position);
 
-        let fct = &Parser::from_str(" fn b() { }").parse().unwrap().functions[0];
+        let fct = &parse(" fn b() { }").functions[0];
         assert_eq!("b", fct.name.as_slice());
         assert_eq!(vec![], fct.params);
         assert_eq!(vec![], fct.vars);
@@ -698,7 +717,7 @@ mod tests {
         assert_eq!(params, fct.vars);
         assert_eq!(vec![0, 1], fct.params);
 
-        assert_err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists);
+        err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists);
     }
 
     #[test]
@@ -715,69 +734,104 @@ mod tests {
 
     #[test]
     fn parse_if() {
-        let mut parser = Parser::from_str("if 1 { 2; } else { 3; }");
-        let b1 = StatementType::block(ExprType::LitInt(2));
-        let b2 = StatementType::block(ExprType::LitInt(3));
-        let stmt = box StatementType::If(box ExprType::LitInt(1), b1, b2);
+        let stmt = parse_stmt("if 1 { 2; } else { 3; }");
 
-        assert_eq!(stmt, parser.parse_statement_only().unwrap());
+        let e1 = Expr::lit_int(Position::new(1, 8), 2);
+        let s1 = Statement::expr(Position::new(1, 8), e1);
+        let b1 = Statement::block(Position::new(1, 6), s1);
+
+        let e2 = Expr::lit_int(Position::new(1, 20), 3);
+        let s2 = Statement::expr(Position::new(1, 20), e2);
+        let b2 = Statement::block(Position::new(1, 18), s2);
+
+        let cond = box ExprType::LitInt(1);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, Some(b2)));
+
+        assert_eq!(exp, stmt)
+    }
+
+    #[test]
+    fn parse_if_without_else() {
+        let stmt = parse_stmt("if 1 { 2; }");
+
+        let e1 = Expr::lit_int(Position::new(1, 8), 2);
+        let s1 = Statement::expr(Position::new(1, 8), e1);
+        let b1 = Statement::block(Position::new(1, 6), s1);
+
+        let cond = box ExprType::LitInt(1);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, None));
+
+        assert_eq!(exp, stmt)
     }
 
     #[test]
     fn parse_while() {
-        let mut parser = Parser::from_str("while 1 { 2; }");
-        let b = StatementType::block(ExprType::LitInt(2));
-        let stmt = box StatementType::While(box ExprType::LitInt(1), b);
+        let stmt = parse_stmt("while 1 { 2; }");
 
-        assert_eq!(stmt, parser.parse_statement_only().unwrap());
+        let e = Expr::lit_int(Position::new(1, 11), 2);
+        let s = Statement::expr(Position::new(1, 11), e);
+        let b = Statement::block(Position::new(1, 9), s);
+        let cond = box ExprType::LitInt(1);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::While(cond, b));
+
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_loop() {
-        let mut parser = Parser::from_str("loop { 1; }");
-        let b = StatementType::block(ExprType::LitInt(1));
-        let stmt = box StatementType::Loop(b);
+        let stmt = parse_stmt("loop { 1; }");
 
-        assert_eq!(stmt, parser.parse_statement_only().unwrap());
+        let e = Expr::lit_int(Position::new(1, 8), 1);
+        let s = Statement::expr(Position::new(1, 8), e);
+        let b = Statement::block(Position::new(1, 6), s);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::Loop(b));
+
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_block() {
-        let mut parser = Parser::from_str("{ 1; }");
-        let b = StatementType::block(ExprType::LitInt(1));
+        let stmt = parse_stmt("{ 1; }");
 
-        assert_eq!(b, parser.parse_statement_only().unwrap());
+        let e = Expr::lit_int(Position::new(1, 3), 1);
+        let s = Statement::expr(Position::new(1, 3), e);
+        let exp = Statement::block(Position::new(1, 1), s);
+
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_break() {
-        let mut parser = Parser::from_str("break;");
-        let b = box StatementType::Break;
+        let stmt = parse_stmt("break;");
+        let exp = Statement::new(Position::new(1, 1), StatementType::Break);
 
-        assert_eq!(b, parser.parse_statement_only().unwrap());
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_continue() {
-        let mut parser = Parser::from_str("continue;");
-        let b = box StatementType::Continue;
+        let stmt = parse_stmt("continue;");
+        let exp = Statement::new(Position::new(1, 1), StatementType::Continue);
 
-        assert_eq!(b, parser.parse_statement_only().unwrap());
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_return() {
-        let mut parser = Parser::from_str("return 1;");
-        let b = box StatementType::Return(box ExprType::LitInt(1));
+        let stmt = parse_stmt("return 1;");
+        let e = box ExprType::LitInt(1);
+        let exp = Statement::new(Position::new(1, 1), StatementType::Return(e));
 
-        assert_eq!(b, parser.parse_statement_only().unwrap());
+        assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_else() {
-        let mut parser = Parser::from_str("else");
-
-        assert_eq!(ErrorCode::MisplacedElse, parser.parse_statement_only().unwrap_err().code);
+        err_stmt("else", ErrorCode::MisplacedElse);
     }
 
     #[test]

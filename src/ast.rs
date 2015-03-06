@@ -14,7 +14,7 @@ pub struct Function {
     pub position: Position,
     pub params: Vec<usize>,
     pub vars: Vec<LocalVar>,
-    pub block: Box<StatementType>,
+    pub block: Box<Statement>,
 }
 
 impl Function {
@@ -24,7 +24,7 @@ impl Function {
             position: pos,
             params: vec![],
             vars: vec![],
-            block: box StatementType::Nop,
+            block: Statement::new( Position::new(1,1), StatementType::Nop),
         }
     }
 
@@ -53,28 +53,41 @@ impl LocalVar {
 }
 
 #[derive(PartialEq,Eq,Debug)]
+pub struct Statement {
+    pub position: Position,
+    pub stmt: StatementType
+}
+
+impl Statement {
+    pub fn new(pos: Position, stmt: StatementType) -> Box<Statement> {
+        box Statement { position: pos, stmt: stmt }
+    }
+
+    pub fn expr(pos: Position, expr: Box<ExprType>) -> Box<Statement> {
+        Statement::new(pos, StatementType::Expr(expr))
+    }
+
+    pub fn empty_block(pos: Position) -> Box<Statement> {
+        Statement::new(pos, StatementType::Block(vec![]))
+    }
+
+    pub fn block(pos: Position, stmt: Box<Statement>) -> Box<Statement> {
+        Statement::new(pos, StatementType::Block(vec![stmt]))
+    }
+}
+
+#[derive(PartialEq,Eq,Debug)]
 pub enum StatementType {
     Var(String,DataType,Box<ExprType>),
-    While(Box<ExprType>,Box<StatementType>),
-    Loop(Box<StatementType>),
-    If(Box<ExprType>,Box<StatementType>,Box<StatementType>),
+    While(Box<ExprType>,Box<Statement>),
+    Loop(Box<Statement>),
+    If(Box<ExprType>,Box<Statement>,Option<Box<Statement>>),
     Expr(Box<ExprType>),
-    Block(Vec<Box<StatementType>>),
+    Block(Vec<Box<Statement>>),
     Break,
     Continue,
     Return(Box<ExprType>),
     Nop,
-}
-
-impl StatementType {
-    pub fn empty_block() -> Box<StatementType> {
-        box StatementType::Block(vec![])
-    }
-
-    pub fn block(expr: ExprType) -> Box<StatementType> {
-        let expr = box StatementType::Expr(box expr);
-        box StatementType::Block(vec![expr])
-    }
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -105,8 +118,12 @@ pub struct Expr {
 }
 
 impl Expr {
-    fn new(position: Position, data_type: DataType, expr: ExprType) -> Expr {
-        Expr { position: position, data_type: data_type, expr: expr }
+    pub fn new(position: Position, data_type: DataType, expr: ExprType) -> Box<Expr> {
+        box Expr { position: position, data_type: data_type, expr: expr }
+    }
+
+    pub fn lit_int(position: Position, value: i64) -> Box<ExprType> {
+        box ExprType::LitInt(value)
     }
 }
 
