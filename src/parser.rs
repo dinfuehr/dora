@@ -105,21 +105,7 @@ impl<T: CodeReader> Parser<T> {
                     })
                 }
 
-                let pos = self.token.position;
-                let name = try!(self.expect_identifier());
-                let data_type = try!(self.parse_data_type());
-
-                let var = LocalVar::new(name, data_type, pos);
-
-                if fct.exists(&var.name) {
-                    return Err(ParseError {
-                        position: pos,
-                        message: format!("variable {} already exists", var.name),
-                        code: ErrorCode::VarAlreadyExists
-                    })
-                }
-
-                fct.add_param(var);
+                try!(self.parse_function_param(fct));
                 comma = self.token.is(TokenType::Comma);
 
                 if comma {
@@ -129,6 +115,26 @@ impl<T: CodeReader> Parser<T> {
 
             try!(self.expect_token(TokenType::RParen));
         }
+
+        Ok(())
+    }
+
+    fn parse_function_param(&mut self, fct: &mut Function) -> Result<(), ParseError> {
+        let pos = self.token.position;
+        let name = try!(self.expect_identifier());
+        let data_type = try!(self.parse_data_type());
+
+        let var = LocalVar::new(name, data_type, pos);
+
+        if fct.exists(&var.name) {
+            return Err(ParseError {
+                position: pos,
+                message: format!("variable {} already exists", var.name),
+                code: ErrorCode::VarAlreadyExists
+            })
+        }
+
+        fct.add_param(var);
 
         Ok(())
     }
