@@ -294,6 +294,16 @@ impl<T: CodeReader> Parser<T> {
             let tok = try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
+            if left.data_type != right.data_type {
+                return Err(ParseError {
+                    filename: self.lexer.filename().to_string(),
+                    position: tok.position,
+                    code: ErrorCode::TypeMismatch,
+                    message: format!("can not assign type {} to type {}",
+                        left.data_type, right.data_type)
+                })
+            }
+
             Ok(Expr::new(tok.position, left.data_type, ExprType::Assign(left, right)))
         } else {
             Ok(left)
@@ -679,6 +689,11 @@ mod tests {
     #[test]
     fn parse_assign_to_non_lvalue() {
         err_expr("1=1", ErrorCode::ExpectedLvalue);
+    }
+
+    #[test]
+    fn parse_assign_different_types() {
+        err_expr("a=true", ErrorCode::TypeMismatch);
     }
 
     #[test]
