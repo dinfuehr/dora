@@ -224,6 +224,16 @@ impl<T: CodeReader> Parser<T> {
     fn parse_if(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::If)).position;
         let expr = try!(self.parse_expression());
+
+        if expr.data_type != DataType::Bool {
+            return Err(ParseError {
+                position: expr.position,
+                code: ErrorCode::TypeMismatch,
+                message: format!("if expects bool for condition but got {}",
+                    expr.data_type)
+            })
+        }
+
         let then_block = try!(self.parse_block());
         let mut else_block = None;
 
@@ -238,6 +248,16 @@ impl<T: CodeReader> Parser<T> {
     fn parse_while(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::While)).position;
         let expr = try!(self.parse_expression());
+
+        if expr.data_type != DataType::Bool {
+            return Err(ParseError {
+                position: expr.position,
+                code: ErrorCode::TypeMismatch,
+                message: format!("while expects bool for condition but got {}",
+                    expr.data_type)
+            })
+        }
+
         let block = try!(self.parse_block());
 
         Ok(Statement::new(pos, StatementType::While(expr, block)))
@@ -869,17 +889,17 @@ mod tests {
 
     #[test]
     fn parse_if() {
-        let stmt = parse_stmt("if 1 { 2; } else { 3; }");
+        let stmt = parse_stmt("if true { 2; } else { 3; }");
 
-        let e1 = Expr::lit_int(Position::new(1, 8), 2);
-        let s1 = Statement::expr(Position::new(1, 8), e1);
-        let b1 = Statement::block(Position::new(1, 6), s1);
+        let e1 = Expr::lit_int(Position::new(1, 11), 2);
+        let s1 = Statement::expr(Position::new(1, 11), e1);
+        let b1 = Statement::block(Position::new(1, 9), s1);
 
-        let e2 = Expr::lit_int(Position::new(1, 20), 3);
-        let s2 = Statement::expr(Position::new(1, 20), e2);
-        let b2 = Statement::block(Position::new(1, 18), s2);
+        let e2 = Expr::lit_int(Position::new(1, 23), 3);
+        let s2 = Statement::expr(Position::new(1, 23), e2);
+        let b2 = Statement::block(Position::new(1, 21), s2);
 
-        let cond = Expr::lit_int(Position::new(1, 4), 1);
+        let cond = Expr::lit_bool(Position::new(1, 4), true);
 
         let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, Some(b2)));
 
@@ -887,14 +907,19 @@ mod tests {
     }
 
     #[test]
+    fn parse_if_with_non_boolean() {
+        err_stmt("if 1 {}", ErrorCode::TypeMismatch, 1, 4);
+    }
+
+    #[test]
     fn parse_if_without_else() {
-        let stmt = parse_stmt("if 1 { 2; }");
+        let stmt = parse_stmt("if true { 2; }");
 
-        let e1 = Expr::lit_int(Position::new(1, 8), 2);
-        let s1 = Statement::expr(Position::new(1, 8), e1);
-        let b1 = Statement::block(Position::new(1, 6), s1);
+        let e1 = Expr::lit_int(Position::new(1, 11), 2);
+        let s1 = Statement::expr(Position::new(1, 11), e1);
+        let b1 = Statement::block(Position::new(1, 9), s1);
 
-        let cond = Expr::lit_int(Position::new(1, 4), 1);
+        let cond = Expr::lit_bool(Position::new(1, 4), true);
 
         let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, None));
 
@@ -903,16 +928,21 @@ mod tests {
 
     #[test]
     fn parse_while() {
-        let stmt = parse_stmt("while 1 { 2; }");
+        let stmt = parse_stmt("while true { 2; }");
 
-        let e = Expr::lit_int(Position::new(1, 11), 2);
-        let s = Statement::expr(Position::new(1, 11), e);
-        let b = Statement::block(Position::new(1, 9), s);
-        let cond = Expr::lit_int(Position::new(1, 7), 1);
+        let e = Expr::lit_int(Position::new(1, 14), 2);
+        let s = Statement::expr(Position::new(1, 14), e);
+        let b = Statement::block(Position::new(1, 12), s);
+        let cond = Expr::lit_bool(Position::new(1, 7), true);
 
         let exp = Statement::new(Position::new(1, 1), StatementType::While(cond, b));
 
         assert_eq!(exp, stmt);
+    }
+
+    #[test]
+    fn parse_while_with_non_boolean() {
+        err_stmt("while 1 {}", ErrorCode::TypeMismatch, 1, 7);
     }
 
     #[test]
