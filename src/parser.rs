@@ -183,32 +183,13 @@ impl<T: CodeReader> Parser<T> {
     fn parse_var(&mut self) -> StatementResult {
         let tok = try!(self.expect_token(TokenType::Var));
         let ident = try!(self.expect_identifier());
-        let mut data_type = None;
+        let data_type = try!(self.parse_var_type());
+        let (data_type, assignment) = try!(self.parse_var_assignment(data_type));
 
-        if self.token.is(TokenType::Colon) {
-            try!(self.read_token());
-            data_type = Some(try!(self.parse_data_type()));
-        }
-
-        try!(self.expect_token(TokenType::Eq));
-        let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        let ty = expr.data_type;
+        let var = LocalVar::new(ident, data_type, tok.position);
         let fct = self.fct.as_mut().unwrap();
-
-        if let Some(data_type) = data_type {
-            if data_type != ty {
-                return Err(ParseError {
-                    position: tok.position,
-                    code: ErrorCode::TypeMismatch,
-                    message: format!("can not assign type {} to type {}",
-                        ty, data_type)
-                })
-            }
-        }
-
-        let var = LocalVar::new(ident, ty, tok.position);
 
         if fct.exists(&var.name) {
             return Err(ParseError {
@@ -219,8 +200,47 @@ impl<T: CodeReader> Parser<T> {
         }
 
         let ind = fct.add_var(var);
+        Ok(Statement::new(tok.position, StatementType::Var(ind, data_type, assignment)))
+    }
 
-        Ok(Statement::new(tok.position, StatementType::Var(ind, ty, expr)))
+    fn parse_var_type(&mut self) -> Result<Option<DataType>, ParseError> {
+        if self.token.is(TokenType::Colon) {
+            try!(self.read_token());
+
+            Ok(Some(try!(self.parse_data_type())))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn parse_var_assignment(&mut self, data_type: Option<DataType>) -> Result<(DataType,Option<Box<Expr>>), ParseError> {
+        if self.token.is(TokenType::Eq) {
+            try!(self.expect_token(TokenType::Eq));
+            let expr = try!(self.parse_expression());
+
+            if let Some(data_type) = data_type {
+                if data_type != expr.data_type {
+                    return Err(ParseError {
+                        position: expr.position,
+                        code: ErrorCode::TypeMismatch,
+                        message: format!("can not assign type {} to type {}",
+                            expr.data_type, data_type)
+                    })
+                }
+            }
+
+            Ok((expr.data_type, Some(expr)))
+        } else {
+            if data_type.is_none() {
+                return Err(ParseError {
+                    position: self.token.position,
+                    code: ErrorCode::ExpectedType,
+                    message: "need to specify type if no initial assignment is given".to_string(),
+                })
+            }
+
+            Ok((data_type.unwrap(), None))
+        }
     }
 
     fn parse_block(&mut self) -> StatementResult {
@@ -311,7 +331,7 @@ impl<T: CodeReader> Parser<T> {
                 return Err(ParseError {
                     position: expr.position,
                     code: ErrorCode::TypeMismatch,
-                    message: format!("function should return {}, but got {}",
+                    message: format!("function should return {} but got {}",
                         exp, expr.data_type)
                 })
             }
@@ -892,7 +912,7 @@ mod tests {
     #[test]
     fn parse_var_int() {
         let o = Expr::lit_int(Position::new(1, 16), 1);
-        let v = StatementType::Var(0, DataType::Int, o);
+        let v = StatementType::Var(0, DataType::Int, Some(o));
         let s = Statement::new(Position::new(1, 8), v);
         let exp = Statement::block(Position::new(1, 6), s);
 
@@ -906,7 +926,7 @@ mod tests {
     #[test]
     fn parse_var_bool() {
         let o = Expr::lit_bool(Position::new(1, 16), true);
-        let v = StatementType::Var(0, DataType::Bool, o);
+        let v = StatementType::Var(0, DataType::Bool, Some(o));
         let s = Statement::new(Position::new(1, 8), v);
         let exp = Statement::block(Position::new(1, 6), s);
 
@@ -919,12 +939,26 @@ mod tests {
 
     #[test]
     fn parse_var_wrong_type() {
-        err("fn f { var a : bool = 1; }", ErrorCode::TypeMismatch, 1, 8);
+        err("fn f { var a : bool = 1; }", ErrorCode::TypeMismatch, 1, 23);
     }
 
     #[test]
     fn parse_var_right_type() {
         parse("fn f { var x : int = 1; }");
+    }
+
+    #[test]
+    fn parse_var_without_assignment() {
+        let prog = parse("fn f { var a : int; }");
+
+        let v = StatementType::Var(0, DataType::Int, None);
+        let s = Statement::new(Position::new(1, 8), v);
+        let b = Statement::block(Position::new(1, 6), s);
+
+        let fct = &prog.functions[0];
+        assert_eq!(b, fct.block);
+
+        err("fn f { var a; }", ErrorCode::ExpectedType, 1, 13);
     }
 
     #[test]

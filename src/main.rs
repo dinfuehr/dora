@@ -16,7 +16,6 @@ mod data_type;
 fn main() {
     let mut reader = parser::Parser::from_str("10");
 
-
     match reader.parse() {
         Ok(prog) => println!("prog = {:?}", prog),
         Err(err) => println!("err = {:?}", err),

@@ -101,7 +101,7 @@ impl Statement {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StatementType {
-    Var(usize,DataType,Box<Expr>),
+    Var(usize,DataType,Option<Box<Expr>>),
     While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
     If(Box<Expr>,Box<Statement>,Option<Box<Statement>>),
