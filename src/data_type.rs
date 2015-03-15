@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(PartialEq,Eq,Debug,Copy)]
 pub enum DataType {
-    Int, Bool, Str
+    Unit, Int, Bool, Str
 }
 
 impl DataType {
@@ -11,6 +11,7 @@ impl DataType {
             DataType::Int => "int",
             DataType::Bool => "bool",
             DataType::Str => "str",
+            DataType::Unit => "()",
         }
     }
 }

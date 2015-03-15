@@ -127,6 +127,7 @@ impl<T: CodeReader> Parser<T> {
     fn parse_function_param(&mut self, fct: &mut Function) -> Result<(), ParseError> {
         let pos = self.token.position;
         let name = try!(self.expect_identifier());
+        try!(self.expect_token(TokenType::Colon));
         let data_type = try!(self.parse_data_type());
 
         let var = LocalVar::new(name, data_type, pos);
@@ -144,13 +145,14 @@ impl<T: CodeReader> Parser<T> {
         Ok(())
     }
 
-    fn parse_function_type(&mut self) -> Result<Option<DataType>, ParseError> {
-        if !self.token.is(TokenType::LBrace) {
+    fn parse_function_type(&mut self) -> Result<DataType, ParseError> {
+        if self.token.is(TokenType::Colon) {
+            try!(self.read_token());
             let ty = try!(self.parse_data_type());
 
-            Ok(Some(ty))
+            Ok(ty)
         } else {
-            Ok(None)
+            Ok(DataType::Unit)
         }
     }
 
@@ -322,17 +324,18 @@ impl<T: CodeReader> Parser<T> {
 
     fn parse_return(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Return)).position;
+        let fct_type = self.fct.as_mut().unwrap().return_type;
 
-        if let Some(exp) = self.fct.as_mut().unwrap().return_type {
+        if fct_type != DataType::Unit {
             let expr = try!(self.parse_expression());
             try!(self.expect_semicolon());
 
-            if expr.data_type != exp {
+            if expr.data_type != fct_type {
                 return Err(ParseError {
                     position: expr.position,
                     code: ErrorCode::TypeMismatch,
                     message: format!("function should return {} but got {}",
-                        exp, expr.data_type)
+                        fct_type, expr.data_type)
                 })
             }
 
@@ -664,7 +667,7 @@ mod tests {
 
     #[test]
     fn parse_ident_param() {
-        let prog = parse("fn f(a bool) bool { return a; }");
+        let prog = parse("fn f(a:bool):bool { return a; }");
 
         let e = Expr::ident(Position::new(1, 28), DataType::Bool, 0);
         let s = Statement::new(Position::new(1, 21), StatementType::Return(Some(e)));
@@ -675,7 +678,7 @@ mod tests {
 
     #[test]
     fn parse_ident_var() {
-        let prog = parse("fn f int { var a = 1; return a; }");
+        let prog = parse("fn f:int { var a = 1; return a; }");
 
         let e = Expr::ident(Position::new(1, 30), DataType::Int, 0);
         let s = Statement::new(Position::new(1, 23), StatementType::Return(Some(e)));
@@ -846,7 +849,7 @@ mod tests {
         let e = Expr::new(Position::new(1, 16), DataType::Int, ExprType::Assign(a, b));
         let s = Statement::expr(Position::new(1,15), e);
         let exp = Statement::block(Position::new(1, 13), s);
-        assert_eq!(exp, parse("fn f(a int) { a=4; }").functions[0].block);
+        assert_eq!(exp, parse("fn f(a:int) { a=4; }").functions[0].block);
     }
 
     #[test]
@@ -856,7 +859,7 @@ mod tests {
 
     #[test]
     fn parse_assign_different_types() {
-        err("fn f(a int) { a=true; }", ErrorCode::TypeMismatch, 1, 16);
+        err("fn f(a:int) { a=true; }", ErrorCode::TypeMismatch, 1, 16);
     }
 
     #[test]
@@ -881,12 +884,12 @@ mod tests {
 
     #[test]
     fn parse_function_with_single_param() {
-        let fct = &parse("fn f(a int) { }").functions[0];
+        let fct = &parse("fn f(a:int) { }").functions[0];
         let p1 = LocalVar::new( "a".to_string(), DataType::Int, Position::new(1,6) );
         assert_eq!(vec![p1], fct.vars);
         assert_eq!(vec![0], fct.params);
 
-        let fct = &parse("fn f( b int,) { }").functions[0];
+        let fct = &parse("fn f( b:int,) { }").functions[0];
         let p1 = LocalVar::new( "b".to_string(), DataType::Int, Position::new(1,7) );
         assert_eq!(vec![p1], fct.vars);
         assert_eq!(vec![0], fct.params);
@@ -894,19 +897,19 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let fct = &parse("fn f(a int, b int) { }").functions[0];
+        let fct = &parse("fn f(a:int, b:str) { }").functions[0];
         let p1 = LocalVar::new( "a".to_string(), DataType::Int, Position::new(1,6) );
-        let p2 = LocalVar::new( "b".to_string(), DataType::Int, Position::new(1,13) );
+        let p2 = LocalVar::new( "b".to_string(), DataType::Str, Position::new(1,13) );
         let params = vec![p1, p2];
 
         assert_eq!(params, fct.vars);
         assert_eq!(vec![0, 1], fct.params);
 
-        let fct = &parse("fn f(a int, b int,) { }").functions[0];
+        let fct = &parse("fn f(a:int, b:str,) { }").functions[0];
         assert_eq!(params, fct.vars);
         assert_eq!(vec![0, 1], fct.params);
 
-        err("fn f(a int, a int) { }", ErrorCode::VarAlreadyExists, 1, 13);
+        err("fn f(a:int, a:str) { }", ErrorCode::VarAlreadyExists, 1, 13);
     }
 
     #[test]
@@ -1085,7 +1088,7 @@ mod tests {
 
     #[test]
     fn parse_return_value() {
-        let prog = parse("fn f int { return 1; }");
+        let prog = parse("fn f:int { return 1; }");
         let e = Expr::lit_int(Position::new(1, 19), 1);
         let s = Statement::new(Position::new(1, 12), StatementType::Return(Some(e)));
         let b = Statement::block(Position::new(1, 10), s);
@@ -1101,7 +1104,7 @@ mod tests {
 
     #[test]
     fn parse_return_wrong_type() {
-        err("fn f int { return true; }", ErrorCode::TypeMismatch, 1, 19);
+        err("fn f:int { return true; }", ErrorCode::TypeMismatch, 1, 19);
     }
 
     #[test]

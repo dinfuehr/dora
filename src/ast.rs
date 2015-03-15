@@ -12,7 +12,7 @@ pub struct Function {
     pub position: Position,
 
     pub params: Vec<usize>,
-    pub return_type: Option<DataType>,
+    pub return_type: DataType,
 
     pub vars: Vec<LocalVar>,
     pub block: Box<Statement>,
@@ -23,7 +23,7 @@ impl Function {
         Function {
             name: name,
             position: pos,
-            return_type: None,
+            return_type: DataType::Unit,
             params: vec![],
             vars: vec![],
             block: Statement::new( Position::new(1,1), StatementType::Nop),
