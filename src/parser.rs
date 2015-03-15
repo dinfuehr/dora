@@ -142,6 +142,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(())
     }
 
+    #[cfg(test)]
     fn parse_statement_only(&mut self) -> StatementResult {
         try!(self.read_token());
 
@@ -303,6 +304,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(Statement::new(pos, StatementType::Expr(expr)))
     }
 
+    #[cfg(test)]
     fn parse_data_type_only(&mut self) -> DataTypeResult {
         try!(self.read_token());
 
@@ -324,6 +326,7 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
+    #[cfg(test)]
     fn parse_expression_only(&mut self) -> ExprResult {
         try!(self.read_token());
 

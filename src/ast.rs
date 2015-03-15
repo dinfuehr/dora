@@ -84,10 +84,12 @@ impl Statement {
         box Statement { position: pos, stmt: stmt }
     }
 
+    #[cfg(test)]
     pub fn expr(pos: Position, expr: Box<Expr>) -> Box<Statement> {
         Statement::new(pos, StatementType::Expr(expr))
     }
 
+    #[cfg(test)]
     pub fn block(pos: Position, stmt: Box<Statement>) -> Box<Statement> {
         Statement::new(pos, StatementType::Block(vec![stmt]))
     }
@@ -145,10 +147,12 @@ impl Expr {
         Expr::new(pos, DataType::Int, ExprType::LitInt(value))
     }
 
+    #[cfg(test)]
     pub fn lit_str(pos: Position, value: String) -> Box<Expr> {
         Expr::new(pos, DataType::Str, ExprType::LitStr(value))
     }
 
+    #[cfg(test)]
     pub fn lit_bool(pos: Position, value: bool) -> Box<Expr> {
         let ty = if value { ExprType::LitTrue } else { ExprType::LitFalse };
 
