@@ -14,7 +14,7 @@ mod data_type;
 
 #[cfg(not(test))]
 fn main() {
-    let reader = parser::Parser::from_str("10");
+    let mut reader = parser::Parser::from_str("10");
 
 
     match reader.parse() {

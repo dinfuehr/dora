@@ -84,6 +84,8 @@ impl<T: CodeReader> Parser<T> {
         let mut fct = Function::new(ident, pos);
         try!(self.parse_function_params(&mut fct));
 
+        fct.return_type = try!(self.parse_function_type());
+
         self.fct = Some(fct);
         let block = try!(self.parse_block());
 
@@ -140,6 +142,16 @@ impl<T: CodeReader> Parser<T> {
         fct.add_param(var);
 
         Ok(())
+    }
+
+    fn parse_function_type(&mut self) -> Result<Option<DataType>, ParseError> {
+        if !self.token.is(TokenType::LBrace) {
+            let ty = try!(self.parse_data_type());
+
+            Ok(Some(ty))
+        } else {
+            Ok(None)
+        }
     }
 
     #[cfg(test)]
@@ -290,10 +302,26 @@ impl<T: CodeReader> Parser<T> {
 
     fn parse_return(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Return)).position;
-        let expr = try!(self.parse_expression());
-        try!(self.expect_semicolon());
 
-        Ok(Statement::new(pos, StatementType::Return(expr)))
+        if let Some(exp) = self.fct.as_mut().unwrap().return_type {
+            let expr = try!(self.parse_expression());
+            try!(self.expect_semicolon());
+
+            if expr.data_type != exp {
+                return Err(ParseError {
+                    position: expr.position,
+                    code: ErrorCode::TypeMismatch,
+                    message: format!("function should return {}, but got {}",
+                        exp, expr.data_type)
+                })
+            }
+
+            Ok(Statement::new(pos, StatementType::Return(Some(expr))))
+        } else {
+            try!(self.expect_semicolon());
+
+            Ok(Statement::new(pos, StatementType::Return(None)))
+        }
     }
 
     fn parse_expression_statement(&mut self) -> StatementResult {
@@ -616,21 +644,21 @@ mod tests {
 
     #[test]
     fn parse_ident_param() {
-        let prog = parse("fn f(a bool) { return a; }");
+        let prog = parse("fn f(a bool) bool { return a; }");
 
-        let e = Expr::ident(Position::new(1, 23), DataType::Bool, 0);
-        let s = Statement::new(Position::new(1, 16), StatementType::Return(e));
-        let b = Statement::block(Position::new(1, 14), s);
+        let e = Expr::ident(Position::new(1, 28), DataType::Bool, 0);
+        let s = Statement::new(Position::new(1, 21), StatementType::Return(Some(e)));
+        let b = Statement::block(Position::new(1, 19), s);
 
         assert_eq!(b, prog.functions[0].block);
     }
 
     #[test]
     fn parse_ident_var() {
-        let prog = parse("fn f { var a = 1; return a; }");
+        let prog = parse("fn f int { var a = 1; return a; }");
 
-        let e = Expr::ident(Position::new(1, 26), DataType::Int, 0);
-        let s = Statement::new(Position::new(1, 19), StatementType::Return(e));
+        let e = Expr::ident(Position::new(1, 30), DataType::Int, 0);
+        let s = Statement::new(Position::new(1, 23), StatementType::Return(Some(e)));
 
         let fct = &prog.functions[0];
 
@@ -1022,12 +1050,34 @@ mod tests {
     }
 
     #[test]
-    fn parse_return() {
-        let stmt = parse_stmt("return 1;");
-        let e = Expr::lit_int(Position::new(1, 8), 1);
-        let exp = Statement::new(Position::new(1, 1), StatementType::Return(e));
+    fn parse_return_value() {
+        let prog = parse("fn f int { return 1; }");
+        let e = Expr::lit_int(Position::new(1, 19), 1);
+        let s = Statement::new(Position::new(1, 12), StatementType::Return(Some(e)));
+        let b = Statement::block(Position::new(1, 10), s);
 
-        assert_eq!(exp, stmt);
+        let fct = &prog.functions[0];
+        assert_eq!(b, fct.block);
+    }
+
+    #[test]
+    fn parse_return_value_for_void() {
+        err("fn f { return 1; }", ErrorCode::UnexpectedToken, 1, 15);
+    }
+
+    #[test]
+    fn parse_return_wrong_type() {
+        err("fn f int { return true; }", ErrorCode::TypeMismatch, 1, 19);
+    }
+
+    #[test]
+    fn parse_return_void() {
+        let prog = parse("fn f { return; }");
+        let s = Statement::new(Position::new(1, 8), StatementType::Return(None));
+        let b = Statement::block(Position::new(1, 6), s);
+
+        let fct = &prog.functions[0];
+        assert_eq!(b, fct.block);
     }
 
     #[test]

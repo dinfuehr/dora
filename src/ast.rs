@@ -10,7 +10,10 @@ pub struct Program {
 pub struct Function {
     pub name: String,
     pub position: Position,
+
     pub params: Vec<usize>,
+    pub return_type: Option<DataType>,
+
     pub vars: Vec<LocalVar>,
     pub block: Box<Statement>,
 }
@@ -20,6 +23,7 @@ impl Function {
         Function {
             name: name,
             position: pos,
+            return_type: None,
             params: vec![],
             vars: vec![],
             block: Statement::new( Position::new(1,1), StatementType::Nop),
@@ -105,7 +109,7 @@ pub enum StatementType {
     Block(Vec<Box<Statement>>),
     Break,
     Continue,
-    Return(Box<Expr>),
+    Return(Option<Box<Expr>>),
     Nop,
 }
 
