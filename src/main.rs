@@ -1,11 +1,10 @@
 #![feature(plugin)]
 #![feature(box_syntax)]
+#![feature(io)]
 
 #![feature(plugin)]
 #![plugin(phf_macros)]
 extern crate phf;
-
-use parser::Parser;
 
 mod lexer;
 mod error;
@@ -13,8 +12,9 @@ mod parser;
 mod ast;
 mod data_type;
 
+#[cfg(not(test))]
 fn main() {
-    let mut reader = Parser::from_str("10");
+    let mut reader = parser::Parser::from_str("10");
 
     match reader.parse() {
         Ok(prog) => println!("prog = {:?}", prog),

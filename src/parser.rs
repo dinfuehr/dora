@@ -1,4 +1,5 @@
 use std::mem;
+use std::io::Error;
 
 use lexer::Lexer;
 use lexer::token::{TokenType,Token};
@@ -32,8 +33,10 @@ impl Parser<StrReader> {
 }
 
 impl Parser<FileReader> {
-    pub fn from_file(filename: &'static str) -> Parser<FileReader> {
-        Parser::new(Lexer::from_file(filename))
+    pub fn from_file(filename: &'static str) -> Result<Parser<FileReader>,Error> {
+        let reader = try!(Lexer::from_file(filename));
+
+        Ok(Parser::new(reader))
     }
 }
 
@@ -1045,5 +1048,19 @@ mod tests {
     fn parse_bool() {
         let mut parser = Parser::from_str("bool");
         assert_eq!(DataType::Bool, parser.parse_data_type_only().unwrap());
+    }
+
+    #[test]
+    fn parse_file() {
+        let parser = Parser::from_file("tests/abc.txt");
+
+        assert!(parser.is_ok());
+    }
+
+    #[test]
+    fn parse_non_existing_file() {
+        let parser = Parser::from_file("tests/non_existing.txt");
+
+        assert!(parser.is_err());
     }
 }

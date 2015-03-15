@@ -6,7 +6,8 @@ use lexer::position::Position;
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
-    MisplacedElse, VarAlreadyExists, ExpectedLvalue, TypeMismatch, VarNotFound
+    MisplacedElse, VarAlreadyExists, ExpectedLvalue, TypeMismatch, VarNotFound,
+    IoError,
 }
 
 pub struct ParseError {

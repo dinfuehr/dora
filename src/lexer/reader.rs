@@ -1,80 +1,76 @@
 use std::str::Chars;
-use std::old_io::{BufferedReader, File, IoError};
+use std::fs::File;
+use std::io::Chars as IoChars;
+use std::io::{Read, BufReader, Error, CharsError};
 
 pub trait CodeReader {
-    fn read_char(&mut self) -> Option<char>;
-    fn filename(&self) -> &str;
+    fn next(&mut self) -> Option<Result<char, CharsError>>;
 }
 
 pub struct StrReader {
-    program: &'static str,
-    rest: Chars<'static>
+    rest: Chars<'static>,
 }
 
 impl StrReader {
     pub fn new(program: &'static str) -> StrReader {
-        StrReader { program: program, rest: program.chars() }
+        StrReader { rest: program.chars() }
     }
 }
 
 impl CodeReader for StrReader {
-    fn read_char(&mut self) -> Option<char> {
-        self.rest.next()
-    }
-
-    fn filename(&self) -> &str {
-        "<code>"
+    fn next(&mut self) -> Option<Result<char, CharsError>> {
+        match self.rest.next() {
+            Some(ch) => Some(Ok(ch)),
+            None => None,
+        }
     }
 }
 
 pub struct FileReader {
-    filename: &'static str,
-    reader: BufferedReader<Result<File,IoError>>
+    rest: IoChars<BufReader<File>>,
 }
 
 impl FileReader {
-    pub fn new(filename: &'static str) -> FileReader {
-        let file = File::open(&Path::new(filename));
-        let reader = BufferedReader::new(file);
+    pub fn new(filename: &'static str) -> Result<FileReader, Error> {
+        let file = try!(File::open(filename));
+        let reader = BufReader::new(file);
 
-        FileReader { filename: filename, reader: reader }
+        Ok(FileReader { rest: reader.chars() })
     }
 }
 
 impl CodeReader for FileReader {
-    fn read_char(&mut self) -> Option<char> {
-        match self.reader.read_char() {
-            Ok(ch) => Some(ch),
-            _ => None
-        }
-    }
-
-    fn filename(&self) -> &str {
-        self.filename
+    fn next(&mut self) -> Option<Result<char, CharsError>> {
+        self.rest.next()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use lexer::reader::{CodeReader, StrReader, FileReader};
 
     #[test]
     fn read_from_str() {
         let mut reader = StrReader::new("abc");
 
-        assert_eq!(Some('a'), reader.read_char());
-        assert_eq!(Some('b'), reader.read_char());
-        assert_eq!(Some('c'), reader.read_char());
-        assert_eq!(None, reader.read_char());
+        assert_eq!(Some(Ok('a')), reader.next());
+        assert_eq!(Some(Ok('b')), reader.next());
+        assert_eq!(Some(Ok('c')), reader.next());
+        assert_eq!(None, reader.next());
     }
 
     #[test]
     fn read_from_file() {
-        let mut reader = FileReader::new("tests/abc.txt");
+        let mut reader = FileReader::new("tests/abc.txt").unwrap();
 
-        assert_eq!(Some('a'), reader.read_char());
-        assert_eq!(Some('b'), reader.read_char());
-        assert_eq!(Some('c'), reader.read_char());
-        assert_eq!(None, reader.read_char());
+        assert_eq!(Some(Ok('a')), reader.next());
+        assert_eq!(Some(Ok('b')), reader.next());
+        assert_eq!(Some(Ok('c')), reader.next());
+        assert_eq!(None, reader.next());
+    }
+
+    #[test]
+    fn read_from_non_existing_file() {
+        assert!(FileReader::new("tests/non-existing.txt").is_err());
     }
 }

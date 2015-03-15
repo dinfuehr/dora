@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::io::Error;
 
 use phf;
 
@@ -19,7 +20,7 @@ pub struct Lexer<T : CodeReader> {
     eof_reached: bool,
     tabwidth: u32,
 
-    buffer: VecDeque<CharPos>
+    buffer: VecDeque<Result<CharPos, ParseError>>
 }
 
 impl Lexer<StrReader> {
@@ -29,8 +30,10 @@ impl Lexer<StrReader> {
 }
 
 impl Lexer<FileReader> {
-    pub fn from_file(filename: &'static str) -> Lexer<FileReader> {
-        Lexer::new(FileReader::new(filename))
+    pub fn from_file(filename: &'static str) -> Result<Lexer<FileReader>, Error> {
+        let reader = try!(FileReader::new(filename));
+
+        Ok(Lexer::new(reader))
     }
 }
 
@@ -70,7 +73,7 @@ impl<T : CodeReader> Lexer<T> {
         lexer
     }
 
-    pub fn read_token(&mut self) -> Result<Token,ParseError> {
+    pub fn read_token(&mut self) -> Result<Token, ParseError> {
         loop {
             self.skip_white();
 
@@ -151,11 +154,11 @@ impl<T : CodeReader> Lexer<T> {
         None
     }
 
-    fn read_identifier(&mut self) -> Result<Token,ParseError> {
+    fn read_identifier(&mut self) -> Result<Token, ParseError> {
         let mut tok = self.build_token(TokenType::Identifier);
 
         while self.is_identifier() {
-            let ch = self.read_char().unwrap().value;
+            let ch = try!(self.read_char().unwrap()).value;
             tok.value.push(ch);
         }
 
@@ -166,13 +169,13 @@ impl<T : CodeReader> Lexer<T> {
         Ok(tok)
     }
 
-    fn read_string(&mut self) -> Result<Token,ParseError> {
+    fn read_string(&mut self) -> Result<Token, ParseError> {
         let mut tok = self.build_token(TokenType::String);
 
         self.read_char();
 
         while !self.is_eof() && !self.is_newline() && !self.is_string() {
-            let ch = self.read_char().unwrap().value;
+            let ch = try!(self.read_char().unwrap()).value;
             tok.value.push(ch);
         }
 
@@ -189,9 +192,9 @@ impl<T : CodeReader> Lexer<T> {
         }
     }
 
-    fn read_operator(&mut self) -> Result<Token,ParseError> {
+    fn read_operator(&mut self) -> Result<Token, ParseError> {
         let mut tok = self.build_token(TokenType::End);
-        let ch = self.read_char().unwrap().value;
+        let ch = try!(self.read_char().unwrap()).value;
 
         let nch = self.top();
         let nch = if nch.is_some() { nch.unwrap().value } else { 'x' };
@@ -259,18 +262,18 @@ impl<T : CodeReader> Lexer<T> {
         Ok(tok)
     }
 
-    fn read_number(&mut self) -> Result<Token,ParseError> {
+    fn read_number(&mut self) -> Result<Token, ParseError> {
         let mut tok = self.build_token(TokenType::Number);
 
         while self.is_digit() {
-            let ch = self.read_char().unwrap().value;
+            let ch = try!(self.read_char().unwrap()).value;
             tok.value.push(ch);
         }
 
         Ok(tok)
     }
 
-    fn read_char(&mut self) -> Option<CharPos> {
+    fn read_char(&mut self) -> Option<Result<CharPos, ParseError>> {
         let ch = self.buffer.pop_front();
         self.fill_buffer();
 
@@ -283,7 +286,10 @@ impl<T : CodeReader> Lexer<T> {
 
     fn at(&self, index: usize) -> Option<CharPos> {
         if self.buffer.len() > index {
-            Some(self.buffer[index])
+            match self.buffer[index] {
+                Ok(ch) => Some(ch),
+                _ => None,
+            }
         } else {
             None
         }
@@ -295,28 +301,35 @@ impl<T : CodeReader> Lexer<T> {
 
     fn fill_buffer(&mut self) {
         while !self.eof_reached && self.buffer.len() < 10 {
-            let ch = self.reader.read_char();
+            match self.reader.next() {
+                Some(Ok(ch)) => {
+                    self.buffer.push_back(Ok(CharPos { value: ch, position: self.position }));
 
-            if ch.is_some() {
-                let ch = ch.unwrap();
-                self.buffer.push_back(CharPos { value: ch, position: self.position });
+                    match ch {
+                        '\n' => {
+                            self.position.line += 1;
+                            self.position.column = 1;
+                        },
 
-                match ch {
-                    '\n' => {
-                        self.position.line += 1;
-                        self.position.column = 1;
-                    },
+                        '\t' => {
+                            let tabdepth = (self.position.column-1)/self.tabwidth;
 
-                    '\t' => {
-                        let tabdepth = (self.position.column-1)/self.tabwidth;
+                            self.position.column = 1 + self.tabwidth * (tabdepth+1);
+                        }
 
-                        self.position.column = 1 + self.tabwidth * (tabdepth+1);
+                        _ => self.position.column += 1
                     }
+                },
 
-                    _ => self.position.column += 1
-                }
-            } else {
-                self.eof_reached = true;
+                Some(Err(_)) => {
+                    self.buffer.push_back(Err(ParseError {
+                        position: self.position,
+                        message: "error reading from file".to_string(),
+                        code: ErrorCode::IoError,
+                    }))
+                },
+
+                None => self.eof_reached = true,
             }
         }
     }
@@ -398,15 +411,16 @@ impl<T : CodeReader> Lexer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lexer::reader::StrReader;
+    use lexer::reader::{CodeReader, StrReader};
     use lexer::token::TokenType;
     use error::ErrorCode;
 
-    fn assert_end(reader: &mut Lexer<StrReader>, l: u32, c: u32) {
+    fn assert_end<T: CodeReader>(reader: &mut Lexer<T>, l: u32, c: u32) {
         assert_tok(reader, TokenType::End, "", l, c);
     }
 
-    fn assert_tok(reader: &mut Lexer<StrReader>, token_type: TokenType, val: &'static str, l: u32, c: u32) {
+    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, token_type: TokenType,
+                                 val: &'static str, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
         assert_eq!(token_type, tok.token_type);
         assert_eq!(val, tok.value);
@@ -414,7 +428,7 @@ mod tests {
         assert_eq!(c, tok.position.column);
     }
 
-    fn assert_err(reader: &mut Lexer<StrReader>, code: ErrorCode, l: u32, c: u32) {
+    fn assert_err<T: CodeReader>(reader: &mut Lexer<T>, code: ErrorCode, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
         assert_eq!(code, err.code);
         assert_eq!(l, err.position.line);
@@ -576,6 +590,18 @@ mod tests {
         let mut reader = Lexer::from_str("!=!");
         assert_tok(&mut reader, TokenType::Ne, "", 1, 1);
         assert_tok(&mut reader, TokenType::Not, "", 1, 3);
+    }
+
+    #[test]
+    fn test_read_file() {
+        let mut reader = Lexer::from_file("tests/abc.txt").unwrap();
+        assert_tok(&mut reader, TokenType::Identifier, "abc", 1, 1);
+        assert_end(&mut reader, 1, 4);
+    }
+
+    #[test]
+    fn test_read_non_existing_file() {
+        assert!(Lexer::from_file("tests/non_existing.txt").is_err());
     }
 }
 
