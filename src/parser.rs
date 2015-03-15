@@ -45,7 +45,7 @@ type StatementResult = Result<Box<Statement>,ParseError>;
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
-        let mut parser = Parser { lexer: lexer, token: token, fct: None };
+        let parser = Parser { lexer: lexer, token: token, fct: None };
 
         parser
     }
@@ -295,7 +295,7 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_statement(&mut self) -> StatementResult {
         let pos = self.token.position;
         let expr = try!(self.parse_expression());
-        self.expect_semicolon();
+        try!(self.expect_semicolon());
 
         Ok(Statement::new(pos, StatementType::Expr(expr)))
     }
@@ -561,7 +561,6 @@ mod tests {
     use ast::BinOp;
     use ast::Expr;
     use ast::ExprType;
-    use ast::Function;
     use ast::LocalVar;
     use ast::Program;
     use ast::Statement;
@@ -611,12 +610,31 @@ mod tests {
 
     #[test]
     fn parse_ident_param() {
-        let expr = parse("fn f(a int) { return a; }");
+        let prog = parse("fn f(a bool) { return a; }");
+
+        let e = Expr::ident(Position::new(1, 23), DataType::Bool, 0);
+        let s = Statement::new(Position::new(1, 16), StatementType::Return(e));
+        let b = Statement::block(Position::new(1, 14), s);
+
+        assert_eq!(b, prog.functions[0].block);
     }
 
     #[test]
     fn parse_ident_var() {
-        let expr = parse("fn f { var a = 1; return a; }");
+        let prog = parse("fn f { var a = 1; return a; }");
+
+        let e = Expr::ident(Position::new(1, 26), DataType::Int, 0);
+        let s = Statement::new(Position::new(1, 19), StatementType::Return(e));
+
+        let fct = &prog.functions[0];
+
+        match fct.block.stmt {
+            StatementType::Block(ref stmts) => {
+                assert_eq!(s, stmts[1]);
+            },
+
+            _ => unreachable!()
+        }
     }
 
     #[test]
@@ -795,13 +813,13 @@ mod tests {
     #[test]
     fn parse_function() {
         let fct = &parse("fn a { }").functions[0];
-        assert_eq!("a", fct.name.as_slice());
+        assert_eq!("a", &fct.name[..]);
         assert_eq!(vec![], fct.params);
         assert_eq!(vec![], fct.vars);
         assert_eq!(Position::new(1, 1), fct.position);
 
         let fct = &parse(" fn b() { }").functions[0];
-        assert_eq!("b", fct.name.as_slice());
+        assert_eq!("b", &fct.name[..]);
         assert_eq!(vec![], fct.params);
         assert_eq!(vec![], fct.vars);
         assert_eq!(Position::new(1, 2), fct.position);
@@ -880,11 +898,23 @@ mod tests {
         let fcts = parse("fn f { } fn g { }").functions;
         assert_eq!(2, fcts.len());
 
-        assert_eq!("f", fcts[0].name.as_slice());
+        assert_eq!("f", &fcts[0].name[..]);
         assert_eq!(Position::new(1, 1), fcts[0].position);
 
-        assert_eq!("g", fcts[1].name.as_slice());
+        assert_eq!("g", &fcts[1].name[..]);
         assert_eq!(Position::new(1, 10), fcts[1].position);
+    }
+
+    #[test]
+    fn parse_expr_stmt() {
+        let stmt = parse_stmt("1;");
+
+        let e = Expr::lit_int(Position::new(1, 1), 1);
+        let s = Statement::expr(Position::new(1, 1), e);
+
+        assert_eq!(s, stmt);
+
+        err_stmt("1", ErrorCode::UnexpectedToken, 1, 2);
     }
 
     #[test]

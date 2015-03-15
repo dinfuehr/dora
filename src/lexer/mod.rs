@@ -34,7 +34,7 @@ impl Lexer<FileReader> {
     }
 }
 
-static keywords: phf::Map<&'static str,TokenType> = phf_map! {
+static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
     "fn" => TokenType::Fn,
     "var" => TokenType::Var,
     "while" => TokenType::While,
@@ -68,10 +68,6 @@ impl<T : CodeReader> Lexer<T> {
         lexer.fill_buffer();
 
         lexer
-    }
-
-    pub fn filename(&self) -> &str {
-        self.reader.filename()
     }
 
     pub fn read_token(&mut self) -> Result<Token,ParseError> {
@@ -163,7 +159,7 @@ impl<T : CodeReader> Lexer<T> {
             tok.value.push(ch);
         }
 
-        if let Some(toktype) = keywords.get(tok.value.as_slice()) {
+        if let Some(toktype) = KEYWORDS.get(&tok.value[..]) {
             tok.token_type = *toktype
         }
 
@@ -354,7 +350,7 @@ impl<T : CodeReader> Lexer<T> {
 
         if top.is_none() { return false; }
 
-        "+-*/%&|,=!~;:.()[]{}<>".contains_char(top.unwrap().value)
+        "+-*/%&|,=!~;:.()[]{}<>".contains(top.unwrap().value)
     }
 
     fn is_digit(&self) -> bool {
@@ -511,7 +507,7 @@ mod tests {
 
     #[test]
     fn test_code_with_tabwidth8() {
-        let mut str_reader = StrReader::new("1\t2\n1234567\t8\n12345678\t9");
+        let str_reader = StrReader::new("1\t2\n1234567\t8\n12345678\t9");
         let mut reader = Lexer::new_with_tabwidth(str_reader, 8);
 
         assert_tok(&mut reader, TokenType::Number, "1", 1, 1);

@@ -15,12 +15,6 @@ pub struct ParseError {
     pub code: ErrorCode
 }
 
-impl ParseError {
-    pub fn println(&self) {
-        println!("{}", self);
-    }
-}
-
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "error at line {}: {}", self.position, self.message)

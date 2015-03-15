@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use data_type::DataType;
 use lexer::position::Position;
 
@@ -29,14 +27,14 @@ impl Function {
     }
 
     pub fn exists(&self, var: &str) -> bool {
-        self.vars.iter().any(|x| x.name.as_slice() == var)
+        self.vars.iter().any(|x| &x.name[..] == var)
     }
 
     pub fn get(&self, name: &str) -> Option<(&LocalVar,usize)> {
         let mut ind = 0usize;
 
         for var in &self.vars {
-            if var.name.as_slice() == name {
+            if &var.name[..] == name {
                 return Some((var,ind))
             }
 
@@ -88,10 +86,6 @@ impl Statement {
 
     pub fn expr(pos: Position, expr: Box<Expr>) -> Box<Statement> {
         Statement::new(pos, StatementType::Expr(expr))
-    }
-
-    pub fn empty_block(pos: Position) -> Box<Statement> {
-        Statement::new(pos, StatementType::Block(vec![]))
     }
 
     pub fn block(pos: Position, stmt: Box<Statement>) -> Box<Statement> {
@@ -164,7 +158,7 @@ impl Expr {
     pub fn ident(pos: Position, data_type: DataType, value: usize) -> Box<Expr> {
         box Expr {
             position: pos,
-            data_type: DataType::Int,
+            data_type: data_type,
             expr: ExprType::Ident(value),
             lvalue: true,
         }
@@ -181,6 +175,5 @@ pub enum ExprType {
     LitFalse,
     Ident(usize),
     Assign(Box<Expr>,Box<Expr>),
-    Call(String,Vec<Box<Expr>>),
 }
 

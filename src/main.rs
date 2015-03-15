@@ -5,7 +5,6 @@
 #![plugin(phf_macros)]
 extern crate phf;
 
-use lexer::Lexer;
 use parser::Parser;
 
 mod lexer;
@@ -19,7 +18,7 @@ fn main() {
 
     match reader.parse() {
         Ok(prog) => println!("prog = {:?}", prog),
-        Err(err) => err.println()
+        Err(err) => println!("err = {:?}", err),
     }
 
     println!("hello world!");

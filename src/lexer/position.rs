@@ -1,4 +1,4 @@
-use std::fmt::{Formatter,Debug,Display,Error};
+use std::fmt::{Formatter,Display,Error};
 use std::result::Result;
 
 #[derive(PartialEq,Eq,Debug)]
@@ -31,5 +31,5 @@ fn test_new() {
     assert_eq!(pos.line, 3);
     assert_eq!(pos.column, 1);
 
-    assert_eq!(format!("{}",pos).as_slice(), "3:1");
+    assert_eq!(&format!("{}",pos)[..], "3:1");
 }
