@@ -66,18 +66,10 @@ impl Visitor for ReturnCheck {
 
 #[cfg(test)]
 mod tests {
-    use super::ReturnCheck;
-
     use ast::Function;
-    use ast::Statement;
-    use ast::visit::Visitor;
 
     use error::ErrorCode;
     use parser::Parser;
-
-    fn parse_stmt(code: &'static str) -> Box<Statement> {
-        Parser::from_str(code).parse_statement_only().unwrap()
-    }
 
     fn parse(code: &'static str) -> Function {
         let mut prog = Parser::from_str(code).parse().unwrap();
@@ -103,7 +95,7 @@ mod tests {
 
     #[test]
     fn check_if() {
-        parse("fn f->int {if true {return 1;}} else {return 2;}");
+        parse("fn f->int {if true {return 1;} else {return 2;}}");
         err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 12);
         err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 12);
     }

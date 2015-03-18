@@ -10,6 +10,7 @@ use ast::Program;
 use ast::Statement;
 use ast::StatementType;
 use ast::UnOp;
+use ast::visit::Visitor;
 
 use data_type::DataType;
 
@@ -20,6 +21,8 @@ use lexer::Lexer;
 use lexer::token::{TokenType,Token};
 use lexer::position::Position;
 use lexer::reader::{CodeReader,StrReader,FileReader};
+
+use self::retck::ReturnCheck;
 
 mod retck;
 
@@ -63,6 +66,18 @@ impl<T: CodeReader> Parser<T> {
         while !self.token.is_eof() {
             let function = try!(self.parse_top_level_element());
             functions.push(function);
+        }
+
+        let mut checker = ReturnCheck::new();
+
+        for fct in &mut functions {
+            if !checker.visit_fct(fct) {
+                return Err(ParseError {
+                    position: fct.position,
+                    code: ErrorCode::NoReturnValue,
+                    message: format!("function {} does not return a value in all code paths", fct.name)
+                })
+            }
         }
 
         Ok(Program { functions: functions })
