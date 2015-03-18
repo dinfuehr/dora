@@ -3,7 +3,6 @@ use ast::Function;
 use ast::Statement;
 use ast::StatementType::*;
 use ast::visit::Visitor;
-use ast::visit::walk_stmt;
 
 pub struct ReturnCheck;
 
@@ -20,7 +19,7 @@ impl Visitor for ReturnCheck {
         if fct.return_type.is_unit() {
             true
         } else {
-            walk_stmt(self, &mut fct.block)
+            self.visit_stmt(&mut fct.block)
         }
     }
 
