@@ -1,6 +1,8 @@
 use data_type::DataType;
 use lexer::position::Position;
 
+mod visit;
+
 #[derive(PartialEq,Eq,Debug)]
 pub struct Program {
     pub functions: Vec<Function>,
@@ -90,7 +92,7 @@ impl Statement {
 
     #[cfg(test)]
     pub fn expr(pos: Position, expr: Box<Expr>) -> Box<Statement> {
-        Statement::new(pos, StatementType::Expr(expr))
+        Statement::new(pos, StatementType::ExprStmt(expr))
     }
 
     #[cfg(test)]
@@ -105,7 +107,7 @@ pub enum StatementType {
     While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
     If(Box<Expr>,Box<Statement>,Option<Box<Statement>>),
-    Expr(Box<Expr>),
+    ExprStmt(Box<Expr>),
     Block(Vec<Box<Statement>>),
     Break,
     Continue,

@@ -215,7 +215,9 @@ impl<T: CodeReader> Parser<T> {
         }
     }
 
-    fn parse_var_assignment(&mut self, data_type: Option<DataType>) -> Result<(DataType,Option<Box<Expr>>), ParseError> {
+    fn parse_var_assignment(&mut self, data_type: Option<DataType>) ->
+        Result<(DataType, Option<Box<Expr>>), ParseError> {
+
         if self.token.is(TokenType::Eq) {
             try!(self.expect_token(TokenType::Eq));
             let expr = try!(self.parse_expression());
@@ -352,7 +354,7 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(Statement::new(pos, StatementType::Expr(expr)))
+        Ok(Statement::new(pos, StatementType::ExprStmt(expr)))
     }
 
     #[cfg(test)]
