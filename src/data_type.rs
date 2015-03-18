@@ -6,6 +6,10 @@ pub enum DataType {
 }
 
 impl DataType {
+    pub fn is_unit(&self) -> bool {
+        *self == DataType::Unit
+    }
+
     fn display(&self) -> &'static str {
         match *self {
             DataType::Int => "int",

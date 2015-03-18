@@ -1,13 +1,6 @@
 use std::mem;
 use std::io::Error;
 
-use lexer::Lexer;
-use lexer::token::{TokenType,Token};
-use lexer::position::Position;
-use lexer::reader::{CodeReader,StrReader,FileReader};
-use error::ParseError;
-use error::ErrorCode;
-
 use ast::BinOp;
 use ast::Expr;
 use ast::ExprType;
@@ -20,7 +13,15 @@ use ast::UnOp;
 
 use data_type::DataType;
 
-mod ret;
+use error::ParseError;
+use error::ErrorCode;
+
+use lexer::Lexer;
+use lexer::token::{TokenType,Token};
+use lexer::position::Position;
+use lexer::reader::{CodeReader,StrReader,FileReader};
+
+mod retck;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,

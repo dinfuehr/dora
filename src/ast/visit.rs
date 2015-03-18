@@ -98,10 +98,3 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &mut Expr) -> V::Returns {
     Default::default()
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn var() {
-        // TODO
-    }
-}

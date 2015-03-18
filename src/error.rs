@@ -7,7 +7,7 @@ pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
     MisplacedElse, VarAlreadyExists, ExpectedLvalue, TypeMismatch, VarNotFound,
-    IoError,
+    IoError, NoReturnValue, UnreachableCode
 }
 
 pub struct ParseError {
