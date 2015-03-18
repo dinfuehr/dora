@@ -201,7 +201,15 @@ impl<T : CodeReader> Lexer<T> {
 
         match ch {
             '+' => tok.token_type = TokenType::Add,
-            '-' => tok.token_type = TokenType::Sub,
+            '-' => {
+                tok.token_type = if nch == '>' {
+                    self.read_char();
+                    TokenType::Arrow
+                } else {
+                    TokenType::Sub
+                }
+
+            }
 
             '*' => tok.token_type = TokenType::Mul,
             '/' => tok.token_type = TokenType::Div,
@@ -225,7 +233,8 @@ impl<T : CodeReader> Lexer<T> {
                 } else {
                     TokenType::Eq
                 }
-            },
+            }
+
             '<' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
@@ -233,7 +242,8 @@ impl<T : CodeReader> Lexer<T> {
                 } else {
                     TokenType::Lt
                 }
-            },
+            }
+
             '>' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
@@ -241,7 +251,8 @@ impl<T : CodeReader> Lexer<T> {
                 } else {
                     TokenType::Gt
                 }
-            },
+            }
+
             '!' => {
                 tok.token_type = if nch == '=' {
                     self.read_char();
@@ -249,7 +260,8 @@ impl<T : CodeReader> Lexer<T> {
                 } else {
                     TokenType::Not
                 }
-            },
+            }
+
             _ => {
                 return Err(ParseError {
                     position: tok.position,
@@ -590,6 +602,9 @@ mod tests {
         let mut reader = Lexer::from_str("!=!");
         assert_tok(&mut reader, TokenType::Ne, "", 1, 1);
         assert_tok(&mut reader, TokenType::Not, "", 1, 3);
+
+        let mut reader = Lexer::from_str("->");
+        assert_tok(&mut reader, TokenType::Arrow, "", 1, 1);
     }
 
     #[test]

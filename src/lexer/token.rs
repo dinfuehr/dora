@@ -43,6 +43,7 @@ pub enum TokenType {
     Semicolon,
     Dot,
     Colon,
+    Arrow,
 
     Eq,
     EqEq,

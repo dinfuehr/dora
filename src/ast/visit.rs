@@ -6,7 +6,7 @@ use ast::Function;
 use ast::Statement;
 use ast::StatementType::*;
 
-trait Visitor : Sized {
+pub trait Visitor : Sized {
     type Returns : Default;
 
     fn visit_fct(&mut self, fct: &mut Function) -> Self::Returns {
@@ -22,7 +22,7 @@ trait Visitor : Sized {
     }
 }
 
-fn walk_stmt<V: Visitor>(v: &mut V, s: &mut Statement) -> V::Returns {
+pub fn walk_stmt<V: Visitor>(v: &mut V, s: &mut Statement) -> V::Returns {
     match s.stmt {
         Var(_, _, ref mut expr) => {
             if let Some(ref mut e) = *expr {
@@ -72,7 +72,7 @@ fn walk_stmt<V: Visitor>(v: &mut V, s: &mut Statement) -> V::Returns {
     Default::default()
 }
 
-fn walk_expr<V: Visitor>(v: &mut V, e: &mut Expr) -> V::Returns {
+pub fn walk_expr<V: Visitor>(v: &mut V, e: &mut Expr) -> V::Returns {
     match e.expr {
         Un(_, ref mut op) => {
             v.visit_expr(op);

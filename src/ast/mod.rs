@@ -1,7 +1,7 @@
 use data_type::DataType;
 use lexer::position::Position;
 
-mod visit;
+pub mod visit;
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Program {

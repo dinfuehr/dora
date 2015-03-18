@@ -20,6 +20,8 @@ use ast::UnOp;
 
 use data_type::DataType;
 
+mod ret;
+
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
@@ -54,7 +56,6 @@ impl<T: CodeReader> Parser<T> {
     }
 
     pub fn parse(&mut self) -> Result<Program,ParseError> {
-        // initialize parser
         try!(self.read_token());
         let mut functions = vec![];
 
@@ -146,7 +147,7 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_function_type(&mut self) -> Result<DataType, ParseError> {
-        if self.token.is(TokenType::Colon) {
+        if self.token.is(TokenType::Arrow) {
             try!(self.read_token());
             let ty = try!(self.parse_data_type());
 
@@ -669,21 +670,21 @@ mod tests {
 
     #[test]
     fn parse_ident_param() {
-        let prog = parse("fn f(a:bool):bool { return a; }");
+        let prog = parse("fn f(a:bool)->bool { return a; }");
 
-        let e = Expr::ident(Position::new(1, 28), DataType::Bool, 0);
-        let s = Statement::new(Position::new(1, 21), StatementType::Return(Some(e)));
-        let b = Statement::block(Position::new(1, 19), s);
+        let e = Expr::ident(Position::new(1, 29), DataType::Bool, 0);
+        let s = Statement::new(Position::new(1, 22), StatementType::Return(Some(e)));
+        let b = Statement::block(Position::new(1, 20), s);
 
         assert_eq!(b, prog.functions[0].block);
     }
 
     #[test]
     fn parse_ident_var() {
-        let prog = parse("fn f:int { var a = 1; return a; }");
+        let prog = parse("fn f->int { var a = 1; return a; }");
 
-        let e = Expr::ident(Position::new(1, 30), DataType::Int, 0);
-        let s = Statement::new(Position::new(1, 23), StatementType::Return(Some(e)));
+        let e = Expr::ident(Position::new(1, 31), DataType::Int, 0);
+        let s = Statement::new(Position::new(1, 24), StatementType::Return(Some(e)));
 
         let fct = &prog.functions[0];
 
@@ -1090,10 +1091,10 @@ mod tests {
 
     #[test]
     fn parse_return_value() {
-        let prog = parse("fn f:int { return 1; }");
-        let e = Expr::lit_int(Position::new(1, 19), 1);
-        let s = Statement::new(Position::new(1, 12), StatementType::Return(Some(e)));
-        let b = Statement::block(Position::new(1, 10), s);
+        let prog = parse("fn f->int { return 1; }");
+        let e = Expr::lit_int(Position::new(1, 20), 1);
+        let s = Statement::new(Position::new(1, 13), StatementType::Return(Some(e)));
+        let b = Statement::block(Position::new(1, 11), s);
 
         let fct = &prog.functions[0];
         assert_eq!(b, fct.block);
@@ -1106,7 +1107,7 @@ mod tests {
 
     #[test]
     fn parse_return_wrong_type() {
-        err("fn f:int { return true; }", ErrorCode::TypeMismatch, 1, 19);
+        err("fn f->int { return true; }", ErrorCode::TypeMismatch, 1, 20);
     }
 
     #[test]
