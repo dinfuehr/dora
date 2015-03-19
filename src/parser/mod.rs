@@ -70,15 +70,13 @@ impl<T: CodeReader> Parser<T> {
             functions.push(function);
         }
 
-        let mut checker = ReturnCheck::new();
-
         for fct in &mut functions {
-            if !checker.visit_fct(fct) {
-                return Err(ParseError {
-                    position: fct.position,
-                    code: ErrorCode::NoReturnValue,
-                    message: format!("function {} does not return a value in all code paths", fct.name)
-                })
+            let mut checker = ReturnCheck::new();
+            checker.visit_fct(fct);
+            let mut errors = checker.errors();
+
+            if let Some(err) = errors.pop() {
+                return Err(err);
             }
         }
 

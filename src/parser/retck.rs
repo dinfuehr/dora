@@ -4,11 +4,44 @@ use ast::Statement;
 use ast::StatementType::*;
 use ast::visit::Visitor;
 
-pub struct ReturnCheck;
+use error::ErrorCode;
+use error::ParseError;
+
+pub struct ReturnCheck {
+    errors: Vec<ParseError>,
+}
 
 impl ReturnCheck {
     pub fn new() -> ReturnCheck {
-        ReturnCheck
+        ReturnCheck { errors: Vec::new() }
+    }
+
+    pub fn errors(self) -> Vec<ParseError> {
+        self.errors
+    }
+
+    fn check_block(self: &mut ReturnCheck, stmts: &mut Vec<Box<Statement>>) -> bool {
+        if stmts.len() == 0 {
+            return false;
+        }
+
+        let mut return_occured = false;
+
+        for stmt in stmts {
+            if return_occured {
+                self.errors.push(ParseError {
+                    position: stmt.position,
+                    code: ErrorCode::UnreachableCode,
+                    message: format!("statement unreachable")
+                });
+
+                return true;
+            }
+
+            return_occured = self.visit_stmt(stmt);
+        }
+
+        return_occured
     }
 }
 
@@ -16,11 +49,21 @@ impl Visitor for ReturnCheck {
     type Returns = bool;
 
     fn visit_fct(self: &mut ReturnCheck, fct: &mut Function) -> bool {
-        if fct.return_type.is_unit() {
+        let return_occured = if fct.return_type.is_unit() {
             true
         } else {
             self.visit_stmt(&mut fct.block)
+        };
+
+        if !return_occured {
+            self.errors.push(ParseError {
+                position: fct.position,
+                code: ErrorCode::NoReturnValue,
+                message: format!("function `{}` does not return a value in all code paths", fct.name)
+            })
         }
+
+        return_occured
     }
 
     fn visit_stmt(self: &mut ReturnCheck, s: &mut Statement) -> bool {
@@ -36,12 +79,7 @@ impl Visitor for ReturnCheck {
             }
 
             Block(ref mut stmts) => {
-                if stmts.len() > 0 {
-                    let last = stmts.len()-1;
-                    self.visit_stmt(&mut stmts[last])
-                } else {
-                    false
-                }
+                self.check_block(stmts)
             }
 
             While(_, ref mut block) => {
@@ -86,16 +124,16 @@ mod tests {
 
     #[test]
     fn check_block() {
-        err("fn f->int {1;}", ErrorCode::NoReturnValue, 1, 12);
-        err("fn f->int {}", ErrorCode::NoReturnValue, 1, 11);
-        err("fn f->int {return 1;1;}", ErrorCode::UnreachableCode, 1, 22);
+        err("fn f->int {1;}", ErrorCode::NoReturnValue, 1, 1);
+        err("fn f->int {}", ErrorCode::NoReturnValue, 1, 1);
+        err("fn f->int {return 1;1;}", ErrorCode::UnreachableCode, 1, 21);
         parse("fn f->int {return 1;}");
     }
 
     #[test]
     fn check_if() {
         parse("fn f->int {if true {return 1;} else {return 2;}}");
-        err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 12);
-        err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 12);
+        err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 1);
+        err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 1);
     }
 }
