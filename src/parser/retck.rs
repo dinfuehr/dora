@@ -147,5 +147,7 @@ mod tests {
         parse("fn f->int {if true {return 1;} else {return 2;}}");
         err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 12);
         err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 12);
+        err("fn f->int {if true {return 1;} else {return 2;} return 3;}",
+           ErrorCode::UnreachableCode, 1, 49);
     }
 }
