@@ -7,6 +7,8 @@ use ast::visit::Visitor;
 use error::ErrorCode;
 use error::ParseError;
 
+use lexer::position::Position;
+
 pub struct ReturnCheck {
     errors: Vec<ParseError>,
 }
@@ -45,6 +47,16 @@ impl ReturnCheck {
     }
 }
 
+fn end_position(s: &Statement) -> Position {
+    match s.stmt {
+        Block(ref stmts) if stmts.len() > 0 => {
+            stmts[stmts.len()-1].position
+        }
+
+        _ => s.position
+    }
+}
+
 impl Visitor for ReturnCheck {
     type Returns = bool;
 
@@ -57,7 +69,7 @@ impl Visitor for ReturnCheck {
 
         if !return_occured {
             self.errors.push(ParseError {
-                position: fct.position,
+                position: end_position(&fct.block),
                 code: ErrorCode::NoReturnValue,
                 message: format!("function `{}` does not return a value in all code paths", fct.name)
             })
@@ -124,8 +136,8 @@ mod tests {
 
     #[test]
     fn check_block() {
-        err("fn f->int {1;}", ErrorCode::NoReturnValue, 1, 1);
-        err("fn f->int {}", ErrorCode::NoReturnValue, 1, 1);
+        err("fn f->int {1;}", ErrorCode::NoReturnValue, 1, 12);
+        err("fn f->int {}", ErrorCode::NoReturnValue, 1, 11);
         err("fn f->int {return 1;1;}", ErrorCode::UnreachableCode, 1, 21);
         parse("fn f->int {return 1;}");
     }
@@ -133,7 +145,7 @@ mod tests {
     #[test]
     fn check_if() {
         parse("fn f->int {if true {return 1;} else {return 2;}}");
-        err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 1);
-        err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 1);
+        err("fn f->int {if true {return 1;}}", ErrorCode::NoReturnValue, 1, 12);
+        err("fn f->int {if true {return 1;} else {}}", ErrorCode::NoReturnValue, 1, 12);
     }
 }
