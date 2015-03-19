@@ -29,7 +29,9 @@ mod retck;
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
-    fct: Option<Function>
+
+    fct: Option<Function>,
+    block: bool,
 }
 
 impl Parser<StrReader> {
@@ -54,7 +56,7 @@ type StatementResult = Result<Box<Statement>,ParseError>;
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
-        let parser = Parser { lexer: lexer, token: token, fct: None };
+        let parser = Parser { lexer: lexer, token: token, fct: None, block: false };
 
         parser
     }
@@ -315,14 +317,19 @@ impl<T: CodeReader> Parser<T> {
             })
         }
 
+        self.block = true;
         let block = try!(self.parse_block());
+        self.block = false;
 
         Ok(Statement::new(pos, StatementType::While(expr, block)))
     }
 
     fn parse_loop(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
+
+        self.block = true;
         let block = try!(self.parse_block());
+        self.block = false;
 
         Ok(Statement::new(pos, StatementType::Loop(block)))
     }
@@ -331,12 +338,28 @@ impl<T: CodeReader> Parser<T> {
         let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
+        if !self.block {
+            return Err(ParseError {
+                position: pos,
+                code: ErrorCode::MisplacedBreak,
+                message: format!("break needs to be inside of while or loop")
+            })
+        }
+
         Ok(Statement::new(pos, StatementType::Break))
     }
 
     fn parse_continue(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
+
+        if !self.block {
+            return Err(ParseError {
+                position: pos,
+                code: ErrorCode::MisplacedContinue,
+                message: format!("continue needs to be inside of while or loop")
+            })
+        }
 
         Ok(Statement::new(pos, StatementType::Continue))
     }
@@ -1090,19 +1113,73 @@ mod tests {
     }
 
     #[test]
-    fn parse_break() {
-        let stmt = parse_stmt("break;");
-        let exp = Statement::new(Position::new(1, 1), StatementType::Break);
+    fn parse_break_in_while() {
+        let prog = parse("fn f { while true { break; } }");
+        let fct = &prog.functions[0];
 
-        assert_eq!(exp, stmt);
+        let l = Expr::lit_bool(Position::new(1, 14), true);
+        let s = Statement::new(Position::new(1, 21), StatementType::Break);
+        let b = Statement::block(Position::new(1, 19), s);
+        let w = Statement::new(Position::new(1, 8), StatementType::While(l, b));
+        let b = Statement::block(Position::new(1, 6), w);
+
+        assert_eq!(b, fct.block);
     }
 
     #[test]
-    fn parse_continue() {
-        let stmt = parse_stmt("continue;");
-        let exp = Statement::new(Position::new(1, 1), StatementType::Continue);
+    fn parse_break_in_loop() {
+        let prog = parse("fn f { loop { break; } }");
+        let fct = &prog.functions[0];
 
-        assert_eq!(exp, stmt);
+        let s = Statement::new(Position::new(1, 15), StatementType::Break);
+        let b = Statement::block(Position::new(1, 13), s);
+        let w = Statement::new(Position::new(1, 8), StatementType::Loop(b));
+        let b = Statement::block(Position::new(1, 6), w);
+
+        assert_eq!(b, fct.block);
+    }
+
+    #[test]
+    fn parse_break_outside_loop() {
+        err("fn f { break; }", ErrorCode::MisplacedBreak, 1, 8);
+        err("fn f { if true { break; } }", ErrorCode::MisplacedBreak, 1, 18);
+        err("fn f { while true {} break; }", ErrorCode::MisplacedBreak, 1, 22);
+        err("fn f { loop {} break; }", ErrorCode::MisplacedBreak, 1, 16);
+    }
+
+    #[test]
+    fn parse_continue_in_while() {
+        let prog = parse("fn f { while true { continue; } }");
+        let fct = &prog.functions[0];
+
+        let l = Expr::lit_bool(Position::new(1, 14), true);
+        let s = Statement::new(Position::new(1, 21), StatementType::Continue);
+        let b = Statement::block(Position::new(1, 19), s);
+        let w = Statement::new(Position::new(1, 8), StatementType::While(l, b));
+        let b = Statement::block(Position::new(1, 6), w);
+
+        assert_eq!(b, fct.block);
+    }
+
+    #[test]
+    fn parse_continue_in_loop() {
+        let prog = parse("fn f { loop { continue; } }");
+        let fct = &prog.functions[0];
+
+        let s = Statement::new(Position::new(1, 15), StatementType::Continue);
+        let b = Statement::block(Position::new(1, 13), s);
+        let w = Statement::new(Position::new(1, 8), StatementType::Loop(b));
+        let b = Statement::block(Position::new(1, 6), w);
+
+        assert_eq!(b, fct.block);
+    }
+
+    #[test]
+    fn parse_continue_outside_loop() {
+        err("fn f { continue; }", ErrorCode::MisplacedContinue, 1, 8);
+        err("fn f { if true { continue; } }", ErrorCode::MisplacedContinue, 1, 18);
+        err("fn f { while true {} continue; }", ErrorCode::MisplacedContinue, 1, 22);
+        err("fn f { loop {} continue; }", ErrorCode::MisplacedContinue, 1, 16);
     }
 
     #[test]
