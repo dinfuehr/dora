@@ -315,19 +315,30 @@ impl<T: CodeReader> Parser<T> {
             })
         }
 
-        self.block = true;
+        let old_block = self.enter_block();
         let block = try!(self.parse_block());
-        self.block = false;
+        self.leave_block(old_block);
 
         Ok(Statement::new(pos, StatementType::While(expr, block)))
+    }
+
+    fn enter_block(&mut self) -> bool {
+        let old_block = self.block;
+        self.block = true;
+
+        old_block
+    }
+
+    fn leave_block(&mut self, b: bool) {
+        self.block = b;
     }
 
     fn parse_loop(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
 
-        self.block = true;
+        let old_block = self.enter_block();
         let block = try!(self.parse_block());
-        self.block = false;
+        self.leave_block(old_block);
 
         Ok(Statement::new(pos, StatementType::Loop(block)))
     }
