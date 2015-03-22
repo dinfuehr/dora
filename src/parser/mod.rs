@@ -45,7 +45,7 @@ impl Parser<StrReader> {
 }
 
 impl Parser<FileReader> {
-    pub fn from_file(filename: String) -> Result<Parser<FileReader>,Error> {
+    pub fn from_file(filename: &str) -> Result<Parser<FileReader>,Error> {
         let reader = try!(Lexer::from_file(filename));
 
         Ok(Parser::new(reader))
@@ -1251,14 +1251,14 @@ mod tests {
 
     #[test]
     fn parse_file() {
-        let parser = Parser::from_file("tests/abc.txt".to_string());
+        let parser = Parser::from_file("tests/abc.txt");
 
         assert!(parser.is_ok());
     }
 
     #[test]
     fn parse_non_existing_file() {
-        let parser = Parser::from_file("tests/non_existing.txt".to_string());
+        let parser = Parser::from_file("tests/non_existing.txt");
 
         assert!(parser.is_err());
     }

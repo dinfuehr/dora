@@ -33,7 +33,7 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new(filename: String) -> Result<FileReader, Error> {
+    pub fn new(filename: &str) -> Result<FileReader, Error> {
         let file = try!(File::open(filename));
         let reader = BufReader::new(file);
 
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn read_from_file() {
-        let mut reader = FileReader::new("tests/abc.txt".to_string()).unwrap();
+        let mut reader = FileReader::new("tests/abc.txt").unwrap();
 
         assert_eq!(Some(Ok('a')), reader.next());
         assert_eq!(Some(Ok('b')), reader.next());
@@ -73,6 +73,6 @@ mod tests {
 
     #[test]
     fn read_from_non_existing_file() {
-        assert!(FileReader::new("tests/non-existing.txt".to_string()).is_err());
+        assert!(FileReader::new("tests/non-existing.txt").is_err());
     }
 }

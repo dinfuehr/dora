@@ -18,7 +18,7 @@ mod data_type;
 #[cfg(not(test))]
 fn main() {
     if let Some(file) = std::env::args().nth(1) {
-        match Parser::from_file(file) {
+        match Parser::from_file(&file[..]) {
             Ok(mut parser) => {
                 match parser.parse() {
                     Ok(prog) => println!("prog = {:?}", prog),
@@ -26,7 +26,7 @@ fn main() {
                 }
             }
 
-            Err(err) => println!("{}", err)
+            Err(_) => println!("could not open file {}!", file)
         }
 
     } else {
