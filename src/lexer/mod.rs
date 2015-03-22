@@ -3,11 +3,14 @@ use std::io::Error;
 
 use phf;
 
-use lexer::reader::{CodeReader,StrReader,FileReader};
+use lexer::reader::{CodeReader,FileReader};
 use lexer::token::{Token,TokenType};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
 use error::{ParseError,ErrorCode};
+
+#[cfg(test)]
+use lexer::reader::StrReader;
 
 pub mod reader;
 pub mod token;
@@ -23,6 +26,7 @@ pub struct Lexer<T : CodeReader> {
     buffer: VecDeque<Result<CharPos, ParseError>>
 }
 
+#[cfg(test)]
 impl Lexer<StrReader> {
     pub fn from_str(code: &'static str) -> Lexer<StrReader> {
         Lexer::new(StrReader::new(code))
@@ -30,7 +34,7 @@ impl Lexer<StrReader> {
 }
 
 impl Lexer<FileReader> {
-    pub fn from_file(filename: &'static str) -> Result<Lexer<FileReader>, Error> {
+    pub fn from_file(filename: String) -> Result<Lexer<FileReader>, Error> {
         let reader = try!(FileReader::new(filename));
 
         Ok(Lexer::new(reader))
@@ -609,14 +613,14 @@ mod tests {
 
     #[test]
     fn test_read_file() {
-        let mut reader = Lexer::from_file("tests/abc.txt").unwrap();
+        let mut reader = Lexer::from_file("tests/abc.txt".to_string()).unwrap();
         assert_tok(&mut reader, TokenType::Identifier, "abc", 1, 1);
         assert_end(&mut reader, 1, 4);
     }
 
     #[test]
     fn test_read_non_existing_file() {
-        assert!(Lexer::from_file("tests/non_existing.txt").is_err());
+        assert!(Lexer::from_file("tests/non_existing.txt".to_string()).is_err());
     }
 }
 

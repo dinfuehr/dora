@@ -20,7 +20,10 @@ use error::ErrorCode;
 use lexer::Lexer;
 use lexer::token::{TokenType,Token};
 use lexer::position::Position;
-use lexer::reader::{CodeReader,StrReader,FileReader};
+use lexer::reader::{CodeReader,FileReader};
+
+#[cfg(test)]
+use lexer::reader::StrReader;
 
 use self::retck::ReturnCheck;
 
@@ -34,6 +37,7 @@ pub struct Parser<T: CodeReader> {
     block: bool,
 }
 
+#[cfg(test)]
 impl Parser<StrReader> {
     pub fn from_str(code: &'static str) -> Parser<StrReader> {
         Parser::new(Lexer::from_str(code))
@@ -41,7 +45,7 @@ impl Parser<StrReader> {
 }
 
 impl Parser<FileReader> {
-    pub fn from_file(filename: &'static str) -> Result<Parser<FileReader>,Error> {
+    pub fn from_file(filename: String) -> Result<Parser<FileReader>,Error> {
         let reader = try!(Lexer::from_file(filename));
 
         Ok(Parser::new(reader))
@@ -1247,14 +1251,14 @@ mod tests {
 
     #[test]
     fn parse_file() {
-        let parser = Parser::from_file("tests/abc.txt");
+        let parser = Parser::from_file("tests/abc.txt".to_string());
 
         assert!(parser.is_ok());
     }
 
     #[test]
     fn parse_non_existing_file() {
-        let parser = Parser::from_file("tests/non_existing.txt");
+        let parser = Parser::from_file("tests/non_existing.txt".to_string());
 
         assert!(parser.is_err());
     }
