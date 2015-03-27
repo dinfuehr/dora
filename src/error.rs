@@ -8,6 +8,7 @@ pub enum ErrorCode {
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
     MisplacedElse, VarAlreadyExists, ExpectedLvalue, TypeMismatch, VarNotFound,
     IoError, NoReturnValue, UnreachableCode, MisplacedBreak, MisplacedContinue,
+    UninitializedVar,
 }
 
 pub struct ParseError {

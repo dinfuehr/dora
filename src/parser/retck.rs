@@ -1,10 +1,14 @@
+use std::collections::HashSet;
 use std::default::Default;
+use std::mem;
 
 use ast::Expr;
+use ast::ExprType::*;
 use ast::Function;
 use ast::Statement;
 use ast::StatementType::*;
 use ast::visit::Visitor;
+use ast::visit::walk_expr;
 
 use error::ErrorCode;
 use error::ParseError;
@@ -131,20 +135,37 @@ impl Default for ReturnState {
     }
 }
 
-pub struct ReturnCheck {
+pub struct ReturnCheck<'a> {
     errors: Vec<ParseError>,
+
+    initialized_vars: HashSet<usize>,
+    fct: Option<&'a Function>,
 }
 
-impl ReturnCheck {
-    pub fn new() -> ReturnCheck {
-        ReturnCheck { errors: Vec::new() }
+impl<'a> ReturnCheck<'a> {
+    pub fn new() -> ReturnCheck<'a> {
+        ReturnCheck {
+            errors: Vec::new(),
+            initialized_vars: HashSet::new(),
+            fct: None,
+        }
     }
 
     pub fn errors(self) -> Vec<ParseError> {
         self.errors
     }
 
-    fn check_block(self: &mut ReturnCheck, stmts: &mut Vec<Box<Statement>>) -> ReturnState {
+    fn reset_fct(&mut self, fct: &Function) {
+        // reset initialized vars with each function
+        self.initialized_vars.clear();
+
+        // parameters are always initialized
+        for i in &fct.params {
+            self.initialized_vars.insert(*i);
+        }
+    }
+
+    fn check_block(&mut self, stmts: &Vec<Box<Statement>>) -> ReturnState {
         let mut leave = ReturnState::new();
 
         if stmts.len() == 0 {
@@ -179,11 +200,16 @@ fn end_position(s: &Statement) -> Position {
     }
 }
 
-impl Visitor for ReturnCheck {
+impl<'a> Visitor<'a> for ReturnCheck<'a> {
     type Returns = ReturnState;
 
-    fn visit_fct(self: &mut ReturnCheck, fct: &mut Function) -> ReturnState {
-        let leave = self.visit_stmt(&mut fct.block);
+    fn visit_fct(&mut self, fct: &'a Function) -> ReturnState {
+        self.fct = Some(fct);
+
+        // reset initialized variables for each function
+        self.reset_fct(fct);
+
+        let leave = self.visit_stmt(&fct.block);
 
         if !fct.return_type.is_unit() && leave.returns != Leave::Fix {
             self.errors.push(ParseError {
@@ -196,32 +222,68 @@ impl Visitor for ReturnCheck {
         leave
     }
 
-    fn visit_stmt(self: &mut ReturnCheck, s: &mut Statement) -> ReturnState {
+    fn visit_stmt(&mut self, s: &Statement) -> ReturnState {
         match s.stmt {
-            If(_, ref mut tblock, ref mut eblock) => {
+            Var(varind, _, ref expr) => {
+                if let Some(expr) = expr.as_ref() {
+                    self.visit_expr(expr);
+                    self.initialized_vars.insert(varind);
+                }
+
+                ReturnState::new()
+            }
+
+            If(ref cond, ref tblock, ref eblock) => {
+                self.visit_expr(cond);
+
+                let before = self.initialized_vars.clone();
                 let tblock = self.visit_stmt(tblock);
-                let eblock = if eblock.is_some() {
-                    self.visit_stmt(eblock.as_mut().unwrap())
+                let after_then = mem::replace(&mut self.initialized_vars, before);
+
+                let eblock = if let Some(eblock) = eblock.as_ref() {
+                    self.visit_stmt(eblock)
                 } else {
                     ReturnState::new()
                 };
 
+                let c = self.initialized_vars.intersection(&after_then).cloned().collect();
+                mem::replace(&mut self.initialized_vars, c);
+
                 tblock.merge(eblock)
             }
 
-            Block(ref mut stmts) => {
+            Block(ref stmts) => {
                 self.check_block(stmts)
             }
 
-            While(_, ref mut block) => {
-                ReturnState::for_while(self.visit_stmt(block))
+            While(ref cond, ref block) => {
+                self.visit_expr(cond);
+
+                let before = self.initialized_vars.clone();
+                let ret = self.visit_stmt(block);
+                mem::replace(&mut self.initialized_vars, before);
+
+                ReturnState::for_while(ret)
             }
 
-            Loop(ref mut block) => {
+            Loop(ref block) => {
                 ReturnState::for_loop(self.visit_stmt(block))
             }
 
-            Return(_) => ReturnState::returns(),
+            Return(ref expr) => {
+                if let Some(expr) = expr.as_ref() {
+                    self.visit_expr(expr);
+                }
+
+                ReturnState::returns()
+            }
+
+            ExprStmt(ref expr) => {
+                self.visit_expr(expr);
+
+                ReturnState::new()
+            }
+
             Break => ReturnState::breaks(),
             Continue => ReturnState::continues(),
 
@@ -229,8 +291,39 @@ impl Visitor for ReturnCheck {
         }
     }
 
-    fn visit_expr(self: &mut ReturnCheck, _: &mut Expr) -> ReturnState {
-        ReturnState::new()
+    fn visit_expr(&mut self, e: &Expr) -> ReturnState {
+        match e.expr {
+            Assign(ref var, ref expr) => {
+                self.visit_expr(expr);
+
+                match var.expr {
+                    Ident(varind) => {
+                        self.initialized_vars.insert(varind);
+                    }
+
+                    _ => unreachable!()
+                }
+
+                Default::default()
+            }
+
+            Ident(varind) => {
+                if !self.initialized_vars.contains(&varind) {
+                    let fct = self.fct.unwrap();
+                    let var = &fct.vars[varind];
+
+                    self.errors.push(ParseError {
+                        position: e.position,
+                        code: ErrorCode::UninitializedVar,
+                        message: format!("variable `{}` might not be initialized", var.name)
+                    });
+                }
+
+                Default::default()
+            }
+
+            _ => walk_expr(self, e)
+        }
     }
 }
 
@@ -260,6 +353,23 @@ mod tests {
         assert_eq!(error_code, err.code);
         assert_eq!(line, err.position.line);
         assert_eq!(col, err.position.column);
+    }
+
+    #[test]
+    fn check_initialized() {
+        parse("fn f(a: int) { a; }");
+        parse("fn f { var a = 3; a; }");
+        parse("fn f { var a : int; a = 3; a; }");
+
+        err("fn f { var a : int; a; }", ErrorCode::UninitializedVar, 1, 21);
+        err("fn f -> int { var a : int; return a; }", ErrorCode::UninitializedVar, 1, 35);
+
+        parse("fn f { var a : int; if true { a = 1; } else { a = 2; } a; }");
+        err("fn f { var a : int; if true {} else { a = 2; } a; }", ErrorCode::UninitializedVar, 1, 48);
+        err("fn f { var a : int; if true { a = 1; } else {} a; }", ErrorCode::UninitializedVar, 1, 48);
+
+        err("fn f { var a : bool; while a {} }", ErrorCode::UninitializedVar, 1, 28);
+        err("fn f { var a : int; while true { a = 1; } a; }", ErrorCode::UninitializedVar, 1, 43);
     }
 
     #[test]

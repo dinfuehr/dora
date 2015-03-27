@@ -28,7 +28,7 @@ impl Function {
             return_type: DataType::Unit,
             params: vec![],
             vars: vec![],
-            block: Statement::new( Position::new(1,1), StatementType::Nop),
+            block: Statement::new(Position::new(1, 1), StatementType::Nop),
         }
     }
 
