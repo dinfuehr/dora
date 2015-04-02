@@ -121,7 +121,7 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
 
                 self.initialized_vars.push();
                 let tblock = self.visit_stmt(tblock);
-                let added_then = self.initialized_vars.pop();
+                let vars_then = self.initialized_vars.pop();
 
                 self.initialized_vars.push();
                 let eblock = if let Some(eblock) = eblock.as_ref() {
@@ -129,9 +129,9 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
                 } else {
                     ReturnState::new()
                 };
-                let added_else = self.initialized_vars.pop();
+                let vars_else = self.initialized_vars.pop();
 
-                let union = added_then.intersection(&added_else).cloned().collect();
+                let union = vars_then.intersection(&vars_else).cloned().collect();
                 self.initialized_vars.push_hash(union);
                 tblock.merge(eblock)
             }
