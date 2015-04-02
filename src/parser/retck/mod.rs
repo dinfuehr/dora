@@ -1,6 +1,4 @@
-use std::collections::HashSet;
 use std::default::Default;
-use std::mem;
 
 use ast::Expr;
 use ast::ExprType::*;
@@ -15,13 +13,15 @@ use error::ParseError;
 
 use lexer::position::Position;
 use self::leave::{Leave, ReturnState};
+use self::init::InitVars;
 
+mod init;
 mod leave;
 
 pub struct ReturnCheck<'a> {
     errors: Vec<ParseError>,
 
-    initialized_vars: HashSet<usize>,
+    initialized_vars: InitVars<usize>,
     fct: Option<&'a Function>,
 }
 
@@ -29,7 +29,7 @@ impl<'a> ReturnCheck<'a> {
     pub fn new() -> ReturnCheck<'a> {
         ReturnCheck {
             errors: Vec::new(),
-            initialized_vars: HashSet::new(),
+            initialized_vars: InitVars::new(),
             fct: None,
         }
     }
@@ -40,7 +40,7 @@ impl<'a> ReturnCheck<'a> {
 
     fn reset_fct(&mut self, fct: &Function) {
         // reset initialized vars with each function
-        self.initialized_vars.clear();
+        self.initialized_vars.reset();
 
         // parameters are always initialized
         for i in &fct.params {
@@ -119,19 +119,20 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
             If(ref cond, ref tblock, ref eblock) => {
                 self.visit_expr(cond);
 
-                let before = self.initialized_vars.clone();
+                self.initialized_vars.push();
                 let tblock = self.visit_stmt(tblock);
-                let after_then = mem::replace(&mut self.initialized_vars, before);
+                let added_then = self.initialized_vars.pop();
 
+                self.initialized_vars.push();
                 let eblock = if let Some(eblock) = eblock.as_ref() {
                     self.visit_stmt(eblock)
                 } else {
                     ReturnState::new()
                 };
+                let added_else = self.initialized_vars.pop();
 
-                let c = self.initialized_vars.intersection(&after_then).cloned().collect();
-                mem::replace(&mut self.initialized_vars, c);
-
+                let union = added_then.intersection(&added_else).cloned().collect();
+                self.initialized_vars.push_hash(union);
                 tblock.merge(eblock)
             }
 
@@ -142,9 +143,9 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
             While(ref cond, ref block) => {
                 self.visit_expr(cond);
 
-                let before = self.initialized_vars.clone();
+                self.initialized_vars.push();
                 let ret = self.visit_stmt(block);
-                mem::replace(&mut self.initialized_vars, before);
+                self.initialized_vars.pop();
 
                 ReturnState::for_while(ret)
             }
