@@ -71,6 +71,45 @@ impl<'a> ReturnCheck<'a> {
 
         leave
     }
+
+    fn check_while(&mut self, cond: &Expr, block: &Statement) -> ReturnState {
+        self.visit_expr(cond);
+
+        self.initialized_vars.push();
+        let ret = self.visit_stmt(block);
+        self.initialized_vars.pop();
+
+        ReturnState::for_while(ret)
+    }
+
+    fn check_if(&mut self, cond: &Expr, tblock: &Statement, eblock: &Statement) -> ReturnState {
+        self.visit_expr(cond);
+
+        self.initialized_vars.push();
+        let tblock = self.visit_stmt(tblock);
+        let vars_then = self.initialized_vars.pop();
+
+        self.initialized_vars.push();
+        let eblock = if let Some(eblock) = eblock.as_ref() {
+            self.visit_stmt(eblock)
+        } else {
+            ReturnState::new()
+        };
+        let vars_else = self.initialized_vars.pop();
+
+        let union = vars_then.intersection(&vars_else).cloned().collect();
+        self.initialized_vars.push_hash(union);
+        tblock.merge(eblock)
+    }
+
+    fn check_var(&mut self, varind: usize, expr: &Expr) -> ReturnState {
+        if let Some(expr) = expr.as_ref() {
+            self.visit_expr(expr);
+            self.initialized_vars.insert(varind);
+        }
+
+        ReturnState::new()
+    }
 }
 
 fn end_position(s: &Statement) -> Position {
@@ -107,52 +146,13 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
 
     fn visit_stmt(&mut self, s: &Statement) -> ReturnState {
         match s.stmt {
-            Var(varind, _, ref expr) => {
-                if let Some(expr) = expr.as_ref() {
-                    self.visit_expr(expr);
-                    self.initialized_vars.insert(varind);
-                }
+            Var(varind, _, ref expr) => self.check_var(varind, expr),
 
-                ReturnState::new()
-            }
+            If(ref cond, ref tblock, ref eblock) => self.check_state(cond, tblock, eblock),
+            Block(ref stmts) => self.check_block(stmts),
 
-            If(ref cond, ref tblock, ref eblock) => {
-                self.visit_expr(cond);
-
-                self.initialized_vars.push();
-                let tblock = self.visit_stmt(tblock);
-                let vars_then = self.initialized_vars.pop();
-
-                self.initialized_vars.push();
-                let eblock = if let Some(eblock) = eblock.as_ref() {
-                    self.visit_stmt(eblock)
-                } else {
-                    ReturnState::new()
-                };
-                let vars_else = self.initialized_vars.pop();
-
-                let union = vars_then.intersection(&vars_else).cloned().collect();
-                self.initialized_vars.push_hash(union);
-                tblock.merge(eblock)
-            }
-
-            Block(ref stmts) => {
-                self.check_block(stmts)
-            }
-
-            While(ref cond, ref block) => {
-                self.visit_expr(cond);
-
-                self.initialized_vars.push();
-                let ret = self.visit_stmt(block);
-                self.initialized_vars.pop();
-
-                ReturnState::for_while(ret)
-            }
-
-            Loop(ref block) => {
-                ReturnState::for_loop(self.visit_stmt(block))
-            }
+            While(ref cond, ref block) => self.check_while(cond, block),
+            Loop(ref block) => ReturnState::for_loop(self.visit_stmt(block)),
 
             Return(ref expr) => {
                 if let Some(expr) = expr.as_ref() {
