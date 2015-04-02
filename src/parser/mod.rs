@@ -926,14 +926,14 @@ mod tests {
     fn parse_function() {
         let fct = &parse("fn a { }").functions[0];
         assert_eq!("a", &fct.name[..]);
-        assert_eq!(vec![], fct.params);
-        assert_eq!(vec![], fct.vars);
+        assert_eq!(0, fct.params.len());
+        assert_eq!(0, fct.vars.len());
         assert_eq!(Position::new(1, 1), fct.position);
 
         let fct = &parse(" fn b() { }").functions[0];
         assert_eq!("b", &fct.name[..]);
-        assert_eq!(vec![], fct.params);
-        assert_eq!(vec![], fct.vars);
+        assert_eq!(0, fct.params.len());
+        assert_eq!(0, fct.vars.len());
         assert_eq!(Position::new(1, 2), fct.position);
     }
 

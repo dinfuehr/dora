@@ -55,20 +55,20 @@ mod tests {
     fn read_from_str() {
         let mut reader = StrReader::new("abc");
 
-        assert_eq!(Some(Ok('a')), reader.next());
-        assert_eq!(Some(Ok('b')), reader.next());
-        assert_eq!(Some(Ok('c')), reader.next());
-        assert_eq!(None, reader.next());
+        assert_eq!('a', reader.next().unwrap().ok().unwrap());
+        assert_eq!('b', reader.next().unwrap().ok().unwrap());
+        assert_eq!('c', reader.next().unwrap().ok().unwrap());
+        assert_eq!(true, reader.next().is_none());
     }
 
     #[test]
     fn read_from_file() {
         let mut reader = FileReader::new("tests/abc.txt").unwrap();
 
-        assert_eq!(Some(Ok('a')), reader.next());
-        assert_eq!(Some(Ok('b')), reader.next());
-        assert_eq!(Some(Ok('c')), reader.next());
-        assert_eq!(None, reader.next());
+        assert_eq!('a', reader.next().unwrap().ok().unwrap());
+        assert_eq!('b', reader.next().unwrap().ok().unwrap());
+        assert_eq!('c', reader.next().unwrap().ok().unwrap());
+        assert_eq!(true, reader.next().is_none());
     }
 
     #[test]
