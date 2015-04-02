@@ -82,7 +82,7 @@ impl<'a> ReturnCheck<'a> {
         ReturnState::for_while(ret)
     }
 
-    fn check_if(&mut self, cond: &Expr, tblock: &Statement, eblock: &Statement) -> ReturnState {
+    fn check_if(&mut self, cond: &Expr, tblock: &Statement, eblock: &Option<Box<Statement>>) -> ReturnState {
         self.visit_expr(cond);
 
         self.initialized_vars.push();
@@ -102,7 +102,7 @@ impl<'a> ReturnCheck<'a> {
         tblock.merge(eblock)
     }
 
-    fn check_var(&mut self, varind: usize, expr: &Expr) -> ReturnState {
+    fn check_var(&mut self, varind: usize, expr: &Option<Box<Expr>>) -> ReturnState {
         if let Some(expr) = expr.as_ref() {
             self.visit_expr(expr);
             self.initialized_vars.insert(varind);
@@ -148,7 +148,7 @@ impl<'a> Visitor<'a> for ReturnCheck<'a> {
         match s.stmt {
             Var(varind, _, ref expr) => self.check_var(varind, expr),
 
-            If(ref cond, ref tblock, ref eblock) => self.check_state(cond, tblock, eblock),
+            If(ref cond, ref tblock, ref eblock) => self.check_if(cond, tblock, eblock),
             Block(ref stmts) => self.check_block(stmts),
 
             While(ref cond, ref block) => self.check_while(cond, block),
