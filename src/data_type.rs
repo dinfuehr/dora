@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq,Eq,Debug,Copy)]
+#[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub enum DataType {
     Unit, Int, Bool, Str
 }

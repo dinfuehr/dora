@@ -1,6 +1,7 @@
 use std::fmt;
 use lexer::position::Position;
 
+#[derive(Copy,Clone)]
 pub struct CharPos {
     pub value: char,
     pub position: Position
@@ -12,4 +13,3 @@ impl fmt::Display for CharPos {
     }
 }
 
-impl Copy for CharPos {}

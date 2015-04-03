@@ -1,6 +1,6 @@
 use std::default::Default;
 
-#[derive(PartialEq,Eq,Copy,Debug)]
+#[derive(PartialEq,Eq,Copy,Clone,Debug)]
 pub enum Leave {
     Fix, Maybe, Not
 }

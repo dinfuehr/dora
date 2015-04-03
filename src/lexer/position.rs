@@ -1,13 +1,11 @@
 use std::fmt::{Formatter,Display,Error};
 use std::result::Result;
 
-#[derive(PartialEq,Eq,Debug)]
+#[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub struct Position {
     pub line : u32,
     pub column : u32
 }
-
-impl Copy for Position {}
 
 impl Position {
     pub fn new( l: u32, c: u32 ) -> Position {

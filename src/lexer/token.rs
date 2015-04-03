@@ -3,7 +3,7 @@ use std::result::Result;
 
 use lexer::position::Position;
 
-#[derive(PartialEq,Eq,Debug,Copy)]
+#[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub enum TokenType {
     String,
     Number,
