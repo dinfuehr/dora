@@ -13,15 +13,15 @@ use error::ParseError;
 
 use lexer::position::Position;
 use self::leave::{Leave, ReturnState};
-use self::init::InitVars;
+use self::hash_stack::HashSetStack;
 
-mod init;
+mod hash_stack;
 mod leave;
 
 pub struct ReturnCheck<'a> {
     errors: Vec<ParseError>,
 
-    initialized_vars: InitVars<usize>,
+    initialized_vars: HashSetStack<usize>,
     fct: Option<&'a Function>,
 }
 
@@ -29,7 +29,7 @@ impl<'a> ReturnCheck<'a> {
     pub fn new() -> ReturnCheck<'a> {
         ReturnCheck {
             errors: Vec::new(),
-            initialized_vars: InitVars::new(),
+            initialized_vars: HashSetStack::new(),
             fct: None,
         }
     }

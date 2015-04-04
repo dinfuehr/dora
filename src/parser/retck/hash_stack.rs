@@ -1,13 +1,13 @@
 use std::hash::Hash;
 use std::collections::HashSet;
 
-pub struct InitVars<T> where T: Hash + Eq {
+pub struct HashSetStack<T> where T: Hash + Eq {
     stack: Vec<HashSet<T>>,
 }
 
-impl<T> InitVars<T> where T: Hash + Eq {
-    pub fn new() -> InitVars<T> {
-        InitVars { stack: Vec::new() }
+impl<T> HashSetStack<T> where T: Hash + Eq {
+    pub fn new() -> HashSetStack<T> {
+        HashSetStack { stack: Vec::new() }
     }
 
     pub fn contains(&self, ind: &T) -> bool {
