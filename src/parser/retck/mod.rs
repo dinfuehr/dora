@@ -97,8 +97,11 @@ impl<'a> ReturnCheck<'a> {
         };
         let vars_else = self.initialized_vars.pop();
 
-        let union = vars_then.intersection(&vars_else).cloned().collect();
-        self.initialized_vars.push_hash(union);
+        let intersect = vars_then.intersection(&vars_else).cloned().collect();
+        let last = self.initialized_vars.pop();
+        let extend = last.union(&intersect).cloned().collect();
+
+        self.initialized_vars.push_hash(extend);
         tblock.merge(eblock)
     }
 
