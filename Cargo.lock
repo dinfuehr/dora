@@ -2,9 +2,14 @@
 name = "dora"
 version = "0.0.1"
 dependencies = [
- "phf 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_macros 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_macros 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "debug-builders"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libc"
@@ -21,33 +26,34 @@ dependencies = [
 
 [[package]]
 name = "phf"
-version = "0.6.19"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phf_shared 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "debug-builders 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_generator"
-version = "0.6.19"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phf_shared 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_macros"
-version = "0.6.19"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phf_generator 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_shared 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_generator 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_shared"
-version = "0.6.19"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
