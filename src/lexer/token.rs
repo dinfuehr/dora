@@ -30,6 +30,7 @@ pub enum TokenType {
     Type,
     Alias,
     Struct,
+    Trait,
 
     // Operators
     Add,
