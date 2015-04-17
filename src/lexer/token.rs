@@ -26,6 +26,11 @@ pub enum TokenType {
     True,
     False,
 
+    Enum,
+    Type,
+    Alias,
+    Struct,
+
     // Operators
     Add,
     Sub,

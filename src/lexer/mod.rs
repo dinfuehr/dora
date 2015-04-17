@@ -56,6 +56,10 @@ static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
     "str" => TokenType::Str,
     "true" => TokenType::True,
     "false" => TokenType::False,
+    "enum" => TokenType::Enum,
+    "type" => TokenType::Type,
+    "alias" => TokenType::Alias,
+    "struct" => TokenType::Struct,
 };
 
 impl<T : CodeReader> Lexer<T> {
@@ -583,6 +587,12 @@ mod tests {
         assert_tok(&mut reader, TokenType::Continue, "continue", 1, 12);
         assert_tok(&mut reader, TokenType::Return, "return", 1, 21);
         assert_tok(&mut reader, TokenType::Int, "int", 1, 28);
+
+        let mut reader = Lexer::from_str("type struct enum alias");
+        assert_tok(&mut reader, TokenType::Type, "type", 1, 1);
+        assert_tok(&mut reader, TokenType::Struct, "struct", 1, 6);
+        assert_tok(&mut reader, TokenType::Enum, "enum", 1, 13);
+        assert_tok(&mut reader, TokenType::Alias, "alias", 1, 18);
     }
 
     #[test]

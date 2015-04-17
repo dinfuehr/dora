@@ -4,6 +4,6 @@ version = "0.0.1"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 
 [dependencies]
-phf = "~0.7.0"
-phf_macros = "~0.7.0"
+phf = "*"
+phf_macros = "*"
 
