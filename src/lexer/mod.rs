@@ -51,9 +51,6 @@ static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
     "break" => TokenType::Break,
     "continue" => TokenType::Continue,
     "return" => TokenType::Return,
-    "int" => TokenType::Int,
-    "bool" => TokenType::Bool,
-    "str" => TokenType::Str,
     "true" => TokenType::True,
     "false" => TokenType::False,
     "enum" => TokenType::Enum,
@@ -582,12 +579,11 @@ mod tests {
         assert_tok(&mut reader, TokenType::If, "if", 1, 14);
         assert_tok(&mut reader, TokenType::Else, "else", 1, 17);
 
-        let mut reader = Lexer::from_str("loop break continue return int");
+        let mut reader = Lexer::from_str("loop break continue return");
         assert_tok(&mut reader, TokenType::Loop, "loop", 1, 1);
         assert_tok(&mut reader, TokenType::Break, "break", 1, 6);
         assert_tok(&mut reader, TokenType::Continue, "continue", 1, 12);
         assert_tok(&mut reader, TokenType::Return, "return", 1, 21);
-        assert_tok(&mut reader, TokenType::Int, "int", 1, 28);
 
         let mut reader = Lexer::from_str("type struct enum alias trait");
         assert_tok(&mut reader, TokenType::Type, "type", 1, 1);

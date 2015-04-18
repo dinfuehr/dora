@@ -20,9 +20,6 @@ pub enum TokenType {
     Break,
     Continue,
     Return,
-    Int,
-    Bool,
-    Str,
     True,
     False,
 

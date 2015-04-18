@@ -1,82 +1,104 @@
-use data_type::DataType;
 use lexer::position::Position;
 
 pub mod visit;
 
-#[derive(PartialEq,Eq,Debug)]
+#[derive(Debug)]
 pub struct Program {
-    pub functions: Vec<Function>,
+    pub elements: Vec<TopLevelElement>,
 }
 
-#[derive(PartialEq,Eq,Debug)]
-pub struct Function {
-    pub name: String,
-    pub position: Position,
-
-    pub params: Vec<usize>,
-    pub return_type: DataType,
-
-    pub vars: Vec<LocalVar>,
-    pub block: Box<Statement>,
-}
-
-impl Function {
-    pub fn new(name: String, pos: Position) -> Function {
-        Function {
-            name: name,
-            position: pos,
-            return_type: DataType::Unit,
-            params: vec![],
-            vars: vec![],
-            block: Statement::new(Position::new(1, 1), StatementType::Nop),
-        }
-    }
-
-    pub fn exists(&self, var: &str) -> bool {
-        self.vars.iter().any(|x| &x.name[..] == var)
-    }
-
-    pub fn get(&self, name: &str) -> Option<(&LocalVar,usize)> {
-        let mut ind = 0usize;
-
-        for var in &self.vars {
-            if &var.name[..] == name {
-                return Some((var,ind))
+impl Program {
+    #[cfg(test)]
+    pub fn get_function(&self, name: &str) -> Option<&Function> {
+        for e in &self.elements {
+            if let TopLevelElement::Function(ref fct) = *e {
+                if fct.name == name { return Some(fct); }
             }
-
-            ind += 1;
         }
 
         None
     }
+}
 
-    pub fn add_param(&mut self, var: LocalVar) -> usize {
-        let ind = self.vars.len();
-        self.vars.push(var);
-        self.params.push(ind);
+#[derive(Debug)]
+pub enum TopLevelElement {
+    Function(Function),
+    Enum(Enum),
+    TupleStruct(TupleStruct),
+    Struct(Struct),
+    Alias(Alias),
+}
 
-        ind
-    }
+#[derive(Debug)]
+pub struct Enum {
+    pub name: String,
+    pub type_params: TypeParams,
+    pub values: Vec<EnumValue>,
+}
 
-    pub fn add_var(&mut self, var: LocalVar) -> usize {
-        let ind = self.vars.len();
-        self.vars.push(var);
-
-        ind
-    }
+#[derive(Debug)]
+pub struct EnumValue {
+    pub name: String,
+    pub params: Vec<Type>
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub struct LocalVar {
-    pub name: String,
-    pub position: Position,
-    pub data_type: DataType,
+pub enum Type {
+    Basic(String),
+    Generic(String,Vec<Type>),
+    Slice(Box<Type>),
+    Ptr(Box<Type>),
+    Tuple(Vec<Type>),
 }
 
-impl LocalVar {
-    pub fn new(name: String, data_type: DataType, position: Position) -> LocalVar {
-        LocalVar { name: name, data_type: data_type, position: position }
-    }
+#[derive(Debug)]
+pub struct TupleStruct {
+    pub name: String,
+    pub type_params: TypeParams,
+    pub params: Vec<Type>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct TypeParams {
+    pub params: Vec<String>
+}
+
+#[derive(Debug)]
+pub struct Struct {
+    pub name: String,
+    pub params: Vec<String>,
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Debug)]
+pub struct StructField {
+    pub name: String,
+    pub data_type: Type,
+}
+
+#[derive(Debug)]
+pub struct Alias {
+    pub name: String,
+    pub data_type: Type,
+}
+
+#[derive(Debug)]
+pub struct Function {
+    pub name: String,
+    pub position: Position,
+
+    pub type_params: TypeParams,
+    pub params: Vec<Param>,
+
+    pub return_type: Type,
+    pub block: Box<Statement>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct Param {
+    pub name: String,
+    pub position: Position,
+    pub data_type: Type,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -103,7 +125,7 @@ impl Statement {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StatementType {
-    Var(usize,DataType,Option<Box<Expr>>),
+    Var(String,Option<Type>,Option<Box<Expr>>),
     While(Box<Expr>,Box<Statement>),
     Loop(Box<Statement>),
     If(Box<Expr>,Box<Statement>,Option<Box<Statement>>),
@@ -139,38 +161,34 @@ pub enum BinOp {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Expr {
     pub position: Position,
-    pub data_type: DataType,
     pub expr: ExprType,
-    pub lvalue: bool,
 }
 
 impl Expr {
-    pub fn new(pos: Position, data_type: DataType, expr: ExprType) -> Box<Expr> {
-        box Expr { position: pos, data_type: data_type, expr: expr, lvalue: false }
+    pub fn new(pos: Position, expr: ExprType) -> Box<Expr> {
+        box Expr { position: pos, expr: expr }
     }
 
     pub fn lit_int(pos: Position, value: i64) -> Box<Expr> {
-        Expr::new(pos, DataType::Int, ExprType::LitInt(value))
+        Expr::new(pos, ExprType::LitInt(value))
     }
 
     #[cfg(test)]
     pub fn lit_str(pos: Position, value: String) -> Box<Expr> {
-        Expr::new(pos, DataType::Str, ExprType::LitStr(value))
+        Expr::new(pos, ExprType::LitStr(value))
     }
 
     #[cfg(test)]
     pub fn lit_bool(pos: Position, value: bool) -> Box<Expr> {
         let ty = if value { ExprType::LitTrue } else { ExprType::LitFalse };
 
-        Expr::new(pos, DataType::Bool, ty)
+        Expr::new(pos, ty)
     }
 
-    pub fn ident(pos: Position, data_type: DataType, value: usize) -> Box<Expr> {
+    pub fn ident(pos: Position, value: String) -> Box<Expr> {
         box Expr {
             position: pos,
-            data_type: data_type,
             expr: ExprType::Ident(value),
-            lvalue: true,
         }
     }
 }
@@ -183,7 +201,7 @@ pub enum ExprType {
     LitStr(String),
     LitTrue,
     LitFalse,
-    Ident(usize),
+    Ident(String),
     Assign(Box<Expr>,Box<Expr>),
 }
 
