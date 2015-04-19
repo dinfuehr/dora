@@ -186,6 +186,21 @@ impl<T: CodeReader> Parser<T> {
                 Ok(Type::Basic(token.value))
             }
 
+            TokenType::LBracket => {
+                try!(self.read_token());
+                let subtype = try!(self.parse_type());
+                try!(self.expect_token(TokenType::RBracket));
+
+                Ok(Type::Slice(box subtype))
+            }
+
+            TokenType::LParen => {
+                try!(self.read_token());
+                let types = try!(self.parse_comma_list(TokenType::RParen, |p| p.parse_type()));
+
+                Ok(Type::Tuple(types))
+            }
+
             _ => Err(ParseError {
                 position: self.token.position,
                 code: ErrorCode::ExpectedType,
@@ -1072,7 +1087,43 @@ mod tests {
     #[test]
     fn parse_type_basic() {
         assert_eq!(Type::Basic("int".to_string()), parse_type("int"));
-        assert_eq!(Type::Basic("str".to_string()), parse_type("str"));
+        assert_eq!(Type::Basic("string".to_string()), parse_type("string"));
+    }
+
+    #[test]
+    fn parse_type_slice() {
+        let t = Type::Basic("int".to_string());
+        assert_eq!(Type::Slice(box t), parse_type("[int]"));
+
+        let t = Type::Basic("string".to_string());
+        assert_eq!(Type::Slice(box t), parse_type("[string]"));
+    }
+
+    #[test]
+    fn parse_type_ptr() {
+        let t = Type::Basic("int".to_string());
+        assert_eq!(Type::Ptr(box t), parse_type("*int"));
+
+        let t = Type::Basic("string".to_string());
+        assert_eq!(Type::Ptr(box t), parse_type("*string"));
+    }
+
+    #[test]
+    fn parse_type_unit() {
+        assert_eq!(Type::Tuple(Vec::new()), parse_type("()"));
+    }
+
+    #[test]
+    fn parse_type_tuple_with_one_element() {
+        let t = Type::Basic("string".to_string());
+        assert_eq!(Type::Tuple(vec![t]), parse_type("(string)"));
+    }
+
+    #[test]
+    fn parse_type_pair() {
+        let t1 = Type::Basic("int".to_string());
+        let t2 = Type::Basic("string".to_string());
+        assert_eq!(Type::Tuple(vec![t1, t2]), parse_type("(int,string)"));
     }
 
     #[test]
