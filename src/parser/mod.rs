@@ -218,9 +218,14 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_type_params(&mut self) -> Result<TypeParams, ParseError> {
-        // TODO
+        let params = if self.token.is(TokenType::Lt) {
+            try!(self.read_token());
+            try!(self.parse_comma_list(TokenType::Gt, |p| p.expect_identifier()))
+        } else {
+            Vec::new()
+        };
 
-        Ok(TypeParams { params: Vec::new() })
+        Ok(TypeParams { params: params })
     }
 
     fn parse_statement(&mut self) -> StatementResult {
@@ -584,6 +589,7 @@ mod tests {
     use ast::Statement;
     use ast::StatementType;
     use ast::Type;
+    use ast::TypeParams;
     use ast::UnOp;
 
     use error::ErrorCode;
@@ -887,6 +893,15 @@ mod tests {
         };
 
         assert_eq!(vec![p1, p2], f1.params);
+    }
+
+    #[test]
+    fn parse_function_generic() {
+        let prog = parse("fn f<T>() {}");
+        let fct = prog.get_function("f").unwrap();
+
+        let params = TypeParams { params: vec!["T".to_string()] };
+        assert_eq!(params, fct.type_params);
     }
 
     #[test]
