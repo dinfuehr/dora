@@ -316,28 +316,12 @@ impl<T: CodeReader> Parser<T> {
         let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
-        if !self.block {
-            return Err(ParseError {
-                position: pos,
-                code: ErrorCode::MisplacedBreak,
-                message: format!("break needs to be inside of while or loop")
-            })
-        }
-
         Ok(Statement::new(pos, StatementType::Break))
     }
 
     fn parse_continue(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
-
-        if !self.block {
-            return Err(ParseError {
-                position: pos,
-                code: ErrorCode::MisplacedContinue,
-                message: format!("continue needs to be inside of while or loop")
-            })
-        }
 
         Ok(Statement::new(pos, StatementType::Continue))
     }
@@ -603,17 +587,32 @@ mod tests {
         assert_eq!(col, err.position.column);
     }
 
-    //fn parse_stmt(code: &'static str) -> Box<Statement> {
-        //Parser::from_str(code).parse_statement_only().unwrap()
-    //}
+    fn parse_stmt(code: &'static str) -> Box<Statement> {
+        let mut parser = Parser::from_str(code);
+        parser.init();
 
-    //fn err_stmt(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
-        //let err = Parser::from_str(code).parse_statement_only().unwrap_err();
+        parser.parse_statement().unwrap()
+    }
 
-        //assert_eq!(error_code, err.code);
-        //assert_eq!(line, err.position.line);
-        //assert_eq!(col, err.position.column);
-    //}
+    fn parse_type(code: &'static str) -> Type {
+        let mut parser = Parser::from_str(code);
+        parser.init();
+
+        parser.parse_type().unwrap()
+    }
+
+    fn err_stmt(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
+        let err = {
+            let mut parser = Parser::from_str(code);
+
+            parser.init();
+            parser.parse_statement().unwrap_err()
+        };
+
+        assert_eq!(error_code, err.code);
+        assert_eq!(line, err.position.line);
+        assert_eq!(col, err.position.column);
+    }
 
     fn parse(code: &'static str) -> Program {
         Parser::from_str(code).parse().unwrap()
@@ -867,289 +866,211 @@ mod tests {
         assert_eq!(vec![p1, p2], f1.params);
     }
 
-    //#[test]
-    //fn parse_var_int() {
-        //let o = Expr::lit_int(Position::new(1, 16), 1);
-        //let v = StatementType::Var(0, Type::Basic("int"), Some(o));
-        //let s = Statement::new(Position::new(1, 8), v);
-        //let exp = Statement::block(Position::new(1, 6), s);
+    #[test]
+    fn parse_var_without_type() {
+        let o = Expr::lit_int(Position::new(1, 18), 1);
+        let v = StatementType::Var("a".to_string(), None, Some(o));
+        let s = Statement::new(Position::new(1, 10), v);
+        let exp = Statement::block(Position::new(1, 8), s);
 
-        //let fct = parse("fn f { var a = 1; }");
-        //assert_eq!(exp, fct.block);
-    //}
+        let prog = parse("fn f() { var a = 1; }");
+        let fct = prog.get_function("f").unwrap();
 
-    //#[test]
-    //fn parse_var_bool() {
-        //let o = Expr::lit_bool(Position::new(1, 16), true);
-        //let v = StatementType::Var(0, Type::Basic("bool"), Some(o));
-        //let s = Statement::new(Position::new(1, 8), v);
-        //let exp = Statement::block(Position::new(1, 6), s);
+        assert_eq!(exp, fct.block);
+    }
 
-        //parse("fn f { var b = true; }");
-    //}
+    #[test]
+    fn parse_var_with_type() {
+        let o = Expr::lit_int(Position::new(1, 24), 1);
+        let t = Type::Basic("int".to_string());
+        let v = StatementType::Var("x".to_string(), Some(t), Some(o));
+        let s = Statement::new(Position::new(1, 10), v);
+        let exp = Statement::block(Position::new(1, 8), s);
 
-    //#[test]
-    //fn parse_var_wrong_type() {
-        //err("fn f { var a : bool = 1; }", ErrorCode::TypeMismatch, 1, 23);
-    //}
+        let prog = parse("fn f() { var x : int = 1; }");
+        let fct = prog.get_function("f").unwrap();
 
-    //#[test]
-    //fn parse_var_right_type() {
-        //parse("fn f { var x : int = 1; }");
-    //}
+        assert_eq!(exp, fct.block);
+    }
 
-    //#[test]
-    //fn parse_var_without_assignment() {
-        //let prog = parse("fn f { var a : int; }");
+    #[test]
+    fn parse_var_with_type_but_without_assignment() {
+        let t = Type::Basic("int".to_string());
+        let v = StatementType::Var("x".to_string(), Some(t), None);
+        let s = Statement::new(Position::new(1, 10), v);
+        let exp = Statement::block(Position::new(1, 8), s);
 
-        //let v = StatementType::Var(0, "a".to_string());
-        //let s = Statement::new(Position::new(1, 8), v);
-        //let b = Statement::block(Position::new(1, 6), s);
+        let prog = parse("fn f() { var x : int; }");
+        let fct = prog.get_function("f").unwrap();
 
-        //err("fn f { var a; }", ErrorCode::ExpectedType, 1, 13);
-    //}
+        assert_eq!(exp, fct.block);
+    }
 
-    //#[test]
-    //fn parse_multiple_functions() {
-        //let fcts = parse("fn f { } fn g { }").functions;
-        //assert_eq!(2, fcts.len());
+    #[test]
+    fn parse_var_without_type_and_assignment() {
+        let v = StatementType::Var("x".to_string(), None, None);
+        let s = Statement::new(Position::new(1, 10), v);
+        let exp = Statement::block(Position::new(1, 8), s);
 
-        //assert_eq!("f", &fcts[0].name[..]);
-        //assert_eq!(Position::new(1, 1), fcts[0].position);
+        let prog = parse("fn f() { var x; }");
+        let fct = prog.get_function("f").unwrap();
 
-        //assert_eq!("g", &fcts[1].name[..]);
-        //assert_eq!(Position::new(1, 10), fcts[1].position);
-    //}
+        assert_eq!(exp, fct.block);
+    }
 
-    //#[test]
-    //fn parse_expr_stmt() {
-        //let stmt = parse_stmt("1;");
+    #[test]
+    fn parse_multiple_functions() {
+        let prog = parse("fn f() { } fn g() { }");
 
-        //let e = Expr::lit_int(Position::new(1, 1), 1);
-        //let s = Statement::expr(Position::new(1, 1), e);
+        let f = prog.get_function("f").unwrap();
+        assert_eq!("f", &f.name);
+        assert_eq!(Position::new(1, 1), f.position);
 
-        //assert_eq!(s, stmt);
+        let g = prog.get_function("g").unwrap();
+        assert_eq!("g", &g.name);
+        assert_eq!(Position::new(1, 12), g.position);
+    }
 
-        //err_stmt("1", ErrorCode::UnexpectedToken, 1, 2);
-    //}
+    #[test]
+    fn parse_expr_stmt() {
+        let stmt = parse_stmt("1;");
 
-    //#[test]
-    //fn parse_if() {
-        //let stmt = parse_stmt("if true { 2; } else { 3; }");
+        let e = Expr::lit_int(Position::new(1, 1), 1);
+        let s = Statement::expr(Position::new(1, 1), e);
 
-        //let e1 = Expr::lit_int(Position::new(1, 11), 2);
-        //let s1 = Statement::expr(Position::new(1, 11), e1);
-        //let b1 = Statement::block(Position::new(1, 9), s1);
+        assert_eq!(s, stmt);
 
-        //let e2 = Expr::lit_int(Position::new(1, 23), 3);
-        //let s2 = Statement::expr(Position::new(1, 23), e2);
-        //let b2 = Statement::block(Position::new(1, 21), s2);
+        err_stmt("1", ErrorCode::UnexpectedToken, 1, 2);
+    }
 
-        //let cond = Expr::lit_bool(Position::new(1, 4), true);
+    #[test]
+    fn parse_if() {
+        let stmt = parse_stmt("if true { 2; } else { 3; }");
 
-        //let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, Some(b2)));
+        let e1 = Expr::lit_int(Position::new(1, 11), 2);
+        let s1 = Statement::expr(Position::new(1, 11), e1);
+        let b1 = Statement::block(Position::new(1, 9), s1);
 
-        //assert_eq!(exp, stmt)
-    //}
+        let e2 = Expr::lit_int(Position::new(1, 23), 3);
+        let s2 = Statement::expr(Position::new(1, 23), e2);
+        let b2 = Statement::block(Position::new(1, 21), s2);
 
-    //#[test]
-    //fn parse_if_with_non_boolean() {
-        //err_stmt("if 1 {}", ErrorCode::TypeMismatch, 1, 4);
-    //}
+        let cond = Expr::lit_bool(Position::new(1, 4), true);
 
-    //#[test]
-    //fn parse_if_without_else() {
-        //let stmt = parse_stmt("if true { 2; }");
-
-        //let e1 = Expr::lit_int(Position::new(1, 11), 2);
-        //let s1 = Statement::expr(Position::new(1, 11), e1);
-        //let b1 = Statement::block(Position::new(1, 9), s1);
+        let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, Some(b2)));
 
-        //let cond = Expr::lit_bool(Position::new(1, 4), true);
+        assert_eq!(exp, stmt)
+    }
 
-        //let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, None));
-
-        //assert_eq!(exp, stmt)
-    //}
-
-    //#[test]
-    //fn parse_while() {
-        //let stmt = parse_stmt("while true { 2; }");
-
-        //let e = Expr::lit_int(Position::new(1, 14), 2);
-        //let s = Statement::expr(Position::new(1, 14), e);
-        //let b = Statement::block(Position::new(1, 12), s);
-        //let cond = Expr::lit_bool(Position::new(1, 7), true);
-
-        //let exp = Statement::new(Position::new(1, 1), StatementType::While(cond, b));
-
-        //assert_eq!(exp, stmt);
-    //}
-
-    //#[test]
-    //fn parse_while_with_non_boolean() {
-        //err_stmt("while 1 {}", ErrorCode::TypeMismatch, 1, 7);
-    //}
-
-    //#[test]
-    //fn parse_loop() {
-        //let stmt = parse_stmt("loop { 1; }");
-
-        //let e = Expr::lit_int(Position::new(1, 8), 1);
-        //let s = Statement::expr(Position::new(1, 8), e);
-        //let b = Statement::block(Position::new(1, 6), s);
-
-        //let exp = Statement::new(Position::new(1, 1), StatementType::Loop(b));
-
-        //assert_eq!(exp, stmt);
-    //}
-
-    //#[test]
-    //fn parse_block() {
-        //let stmt = parse_stmt("{ 1; }");
-
-        //let e = Expr::lit_int(Position::new(1, 3), 1);
-        //let s = Statement::expr(Position::new(1, 3), e);
-        //let exp = Statement::block(Position::new(1, 1), s);
-
-        //assert_eq!(exp, stmt);
-    //}
-
-    //#[test]
-    //fn parse_break_in_while() {
-        //let prog = parse("fn f { while true { break; } }");
-        //let fct = &prog.functions[0];
-
-        //let l = Expr::lit_bool(Position::new(1, 14), true);
-        //let s = Statement::new(Position::new(1, 21), StatementType::Break);
-        //let b = Statement::block(Position::new(1, 19), s);
-        //let w = Statement::new(Position::new(1, 8), StatementType::While(l, b));
-        //let b = Statement::block(Position::new(1, 6), w);
-
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_break_in_loop() {
-        //let prog = parse("fn f { loop { break; } }");
-        //let fct = &prog.functions[0];
-
-        //let s = Statement::new(Position::new(1, 15), StatementType::Break);
-        //let b = Statement::block(Position::new(1, 13), s);
-        //let w = Statement::new(Position::new(1, 8), StatementType::Loop(b));
-        //let b = Statement::block(Position::new(1, 6), w);
-
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_break_outside_loop() {
-        //err("fn f { break; }", ErrorCode::MisplacedBreak, 1, 8);
-        //err("fn f { if true { break; } }", ErrorCode::MisplacedBreak, 1, 18);
-        //err("fn f { while true {} break; }", ErrorCode::MisplacedBreak, 1, 22);
-        //err("fn f { loop {} break; }", ErrorCode::MisplacedBreak, 1, 16);
-    //}
-
-    //#[test]
-    //fn parse_continue_in_while() {
-        //let prog = parse("fn f { while true { continue; } }");
-        //let fct = &prog.functions[0];
-
-        //let l = Expr::lit_bool(Position::new(1, 14), true);
-        //let s = Statement::new(Position::new(1, 21), StatementType::Continue);
-        //let b = Statement::block(Position::new(1, 19), s);
-        //let w = Statement::new(Position::new(1, 8), StatementType::While(l, b));
-        //let b = Statement::block(Position::new(1, 6), w);
-
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_continue_in_loop() {
-        //let prog = parse("fn f { loop { continue; } }");
-        //let fct = &prog.functions[0];
-
-        //let s = Statement::new(Position::new(1, 15), StatementType::Continue);
-        //let b = Statement::block(Position::new(1, 13), s);
-        //let w = Statement::new(Position::new(1, 8), StatementType::Loop(b));
-        //let b = Statement::block(Position::new(1, 6), w);
-
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_continue_outside_loop() {
-        //err("fn f { continue; }", ErrorCode::MisplacedContinue, 1, 8);
-        //err("fn f { if true { continue; } }", ErrorCode::MisplacedContinue, 1, 18);
-        //err("fn f { while true {} continue; }", ErrorCode::MisplacedContinue, 1, 22);
-        //err("fn f { loop {} continue; }", ErrorCode::MisplacedContinue, 1, 16);
-    //}
-
-    //#[test]
-    //fn parse_return_value() {
-        //let prog = parse("fn f->int { return 1; }");
-        //let e = Expr::lit_int(Position::new(1, 20), 1);
-        //let s = Statement::new(Position::new(1, 13), StatementType::Return(Some(e)));
-        //let b = Statement::block(Position::new(1, 11), s);
-
-        //let fct = &prog.functions[0];
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_return_value_for_void() {
-        //err("fn f { return 1; }", ErrorCode::UnexpectedToken, 1, 15);
-    //}
-
-    //#[test]
-    //fn parse_return_wrong_type() {
-        //err("fn f->int { return true; }", ErrorCode::TypeMismatch, 1, 20);
-    //}
-
-    //#[test]
-    //fn parse_return_void() {
-        //let prog = parse("fn f { return; }");
-        //let s = Statement::new(Position::new(1, 8), StatementType::Return(None));
-        //let b = Statement::block(Position::new(1, 6), s);
-
-        //let fct = &prog.functions[0];
-        //assert_eq!(b, fct.block);
-    //}
-
-    //#[test]
-    //fn parse_else() {
-        //err_stmt("else", ErrorCode::MisplacedElse, 1, 1);
-    //}
-
-    //#[test]
-    //fn parse_int() {
-        //let mut parser = Parser::from_str("int");
-        //assert_eq!(DataType::Int, parser.parse_data_type_only().unwrap());
-    //}
-
-    //#[test]
-    //fn parse_str() {
-        //let mut parser = Parser::from_str("str");
-        //assert_eq!(DataType::Str, parser.parse_data_type_only().unwrap());
-    //}
-
-    //#[test]
-    //fn parse_bool() {
-        //let mut parser = Parser::from_str("bool");
-        //assert_eq!(DataType::Bool, parser.parse_data_type_only().unwrap());
-    //}
-
-    //#[test]
-    //fn parse_file() {
-        //let parser = Parser::from_file("tests/abc.txt");
-
-        //assert!(parser.is_ok());
-    //}
-
-    //#[test]
-    //fn parse_non_existing_file() {
-        //let parser = Parser::from_file("tests/non_existing.txt");
-
-        //assert!(parser.is_err());
-    //}
+    #[test]
+    fn parse_if_without_else() {
+        let stmt = parse_stmt("if true { 2; }");
+
+        let e1 = Expr::lit_int(Position::new(1, 11), 2);
+        let s1 = Statement::expr(Position::new(1, 11), e1);
+        let b1 = Statement::block(Position::new(1, 9), s1);
+
+        let cond = Expr::lit_bool(Position::new(1, 4), true);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::If(cond, b1, None));
+
+        assert_eq!(exp, stmt)
+    }
+
+    #[test]
+    fn parse_while() {
+        let stmt = parse_stmt("while true { 2; }");
+
+        let e = Expr::lit_int(Position::new(1, 14), 2);
+        let s = Statement::expr(Position::new(1, 14), e);
+        let b = Statement::block(Position::new(1, 12), s);
+        let cond = Expr::lit_bool(Position::new(1, 7), true);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::While(cond, b));
+
+        assert_eq!(exp, stmt);
+    }
+
+    #[test]
+    fn parse_loop() {
+        let stmt = parse_stmt("loop { 1; }");
+
+        let e = Expr::lit_int(Position::new(1, 8), 1);
+        let s = Statement::expr(Position::new(1, 8), e);
+        let b = Statement::block(Position::new(1, 6), s);
+
+        let exp = Statement::new(Position::new(1, 1), StatementType::Loop(b));
+
+        assert_eq!(exp, stmt);
+    }
+
+    #[test]
+    fn parse_block() {
+        let stmt = parse_stmt("{ 1; }");
+
+        let e = Expr::lit_int(Position::new(1, 3), 1);
+        let s = Statement::expr(Position::new(1, 3), e);
+        let exp = Statement::block(Position::new(1, 1), s);
+
+        assert_eq!(exp, stmt);
+    }
+
+    #[test]
+    fn parse_break() {
+        let stmt = parse_stmt("break;");
+        let s = Statement::new(Position::new(1, 1), StatementType::Break);
+
+        assert_eq!(s, stmt)
+    }
+
+    #[test]
+    fn parse_continue() {
+        let stmt = parse_stmt("continue;");
+        let s = Statement::new(Position::new(1, 1), StatementType::Continue);
+
+        assert_eq!(s, stmt)
+    }
+
+    #[test]
+    fn parse_return_value() {
+        let stmt = parse_stmt("return 1;");
+
+        let e = Expr::lit_int(Position::new(1, 8), 1);
+        let s = Statement::new(Position::new(1, 1), StatementType::Return(Some(e)));
+
+        assert_eq!(s, stmt);
+    }
+
+    #[test]
+    fn parse_return() {
+        let stmt = parse_stmt("return;");
+        let s = Statement::new(Position::new(1, 1), StatementType::Return(None));
+
+        assert_eq!(s, stmt);
+    }
+
+    #[test]
+    fn parse_else() {
+        err_stmt("else", ErrorCode::MisplacedElse, 1, 1);
+    }
+
+    #[test]
+    fn parse_type_basic() {
+        assert_eq!(Type::Basic("int".to_string()), parse_type("int"));
+        assert_eq!(Type::Basic("str".to_string()), parse_type("str"));
+    }
+
+    #[test]
+    fn parse_file() {
+        let parser = Parser::from_file("tests/abc.txt");
+
+        assert!(parser.is_ok());
+    }
+
+    #[test]
+    fn parse_non_existing_file() {
+        let parser = Parser::from_file("tests/non_existing.txt");
+
+        assert!(parser.is_err());
+    }
 }
