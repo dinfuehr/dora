@@ -625,7 +625,7 @@ mod tests {
 
     fn parse_expr(code: &'static str) -> Box<Expr> {
         let mut parser = Parser::from_str(code);
-        parser.init();
+        assert!(parser.init().is_ok(), true);
 
         parser.parse_expression().unwrap()
     }
@@ -634,7 +634,7 @@ mod tests {
         let err = {
             let mut parser = Parser::from_str(code);
 
-            parser.init();
+            assert!(parser.init().is_ok(), true);
             parser.parse_expression().unwrap_err()
         };
 
@@ -645,7 +645,7 @@ mod tests {
 
     fn parse_stmt(code: &'static str) -> Box<Statement> {
         let mut parser = Parser::from_str(code);
-        parser.init();
+        assert!(parser.init().is_ok(), true);
 
         parser.parse_statement().unwrap()
     }
@@ -654,7 +654,7 @@ mod tests {
         let err = {
             let mut parser = Parser::from_str(code);
 
-            parser.init();
+            assert!(parser.init().is_ok(), true);
             parser.parse_statement().unwrap_err()
         };
 
@@ -665,7 +665,7 @@ mod tests {
 
     fn parse_type(code: &'static str) -> Type {
         let mut parser = Parser::from_str(code);
-        parser.init();
+        assert!(parser.init().is_ok(), true);
 
         parser.parse_type().unwrap()
     }
@@ -882,6 +882,7 @@ mod tests {
 
         assert_eq!("b", &fct.name);
         assert_eq!(0, fct.params.len());
+        assert_eq!(0, fct.type_params.len());
         assert_eq!(Type::Tuple(Vec::new()), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.position);
     }
@@ -941,12 +942,11 @@ mod tests {
 
     #[test]
     fn parse_var_without_type() {
-        let o = lit_int(1, 9, 1);
         let v = VarStmt {
             position: Position::new(1, 1),
             name: "a".to_string(),
             data_type: None,
-            expression: Some(o)
+            expression: Some(lit_int(1, 9, 1))
         };
 
         let v = Statement::Var(v);
@@ -957,13 +957,11 @@ mod tests {
 
     #[test]
     fn parse_var_with_type() {
-        let o = lit_int(1, 15, 1);
-        let t = Type::Basic("int".to_string());
         let v = VarStmt {
             position: Position::new(1, 1),
             name: "x".to_string(),
-            data_type: Some(t),
-            expression: Some(o)
+            data_type: Some(Type::Basic("int".to_string())),
+            expression: Some(lit_int(1, 15, 1))
         };
 
         let s = Statement::Var(v);
@@ -974,11 +972,10 @@ mod tests {
 
     #[test]
     fn parse_var_with_type_but_without_assignment() {
-        let t = Type::Basic("int".to_string());
         let v = VarStmt {
             position: Position::new(1, 1),
             name: "x".to_string(),
-            data_type: Some(t),
+            data_type: Some(Type::Basic("int".to_string())),
             expression: None,
         };
 
