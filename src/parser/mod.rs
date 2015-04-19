@@ -882,7 +882,7 @@ mod tests {
 
         assert_eq!("b", &fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(0, fct.type_params.len());
+        assert_eq!(0, fct.type_params.params.len());
         assert_eq!(Type::Tuple(Vec::new()), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.position);
     }
