@@ -183,7 +183,15 @@ impl<T: CodeReader> Parser<T> {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
 
-                Ok(Type::Basic(token.value))
+                if self.token.is(TokenType::Lt) {
+                    try!(self.read_token());
+                    let params = try!(self.parse_comma_list(TokenType::Gt, |p| p.parse_type()));
+
+                    Ok(Type::Generic(token.value, params))
+                } else {
+                    Ok(Type::Basic(token.value))
+                }
+
             }
 
             TokenType::LBracket => {
@@ -1097,6 +1105,18 @@ mod tests {
 
         let t = Type::Basic("string".to_string());
         assert_eq!(Type::Slice(box t), parse_type("[string]"));
+    }
+
+    #[test]
+    fn parse_type_generic() {
+        assert_eq!(Type::Generic("Test".to_string(), Vec::new()), parse_type("Test<>"));
+
+        let t = Type::Basic("int".to_string());
+        assert_eq!(Type::Generic("Vec".to_string(), vec![t]), parse_type("Vec<int>"));
+
+        let t1 = Type::Basic("int".to_string());
+        let t2 = Type::Basic("string".to_string());
+        assert_eq!(Type::Generic("Map".to_string(), vec![t1, t2]), parse_type("Map<int,string>"));
     }
 
     #[test]
