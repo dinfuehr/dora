@@ -1016,6 +1016,21 @@ mod tests {
     }
 
     #[test]
+    fn parse_block_with_multiple_stmts() {
+        let stmt = parse_stmt("{ 1; 2; }");
+
+        let e = Expr::lit_int(Position::new(1, 3), 1);
+        let s1 = Statement::expr(Position::new(1, 3), e);
+
+        let e = Expr::lit_int(Position::new(1, 6), 2);
+        let s2 = Statement::expr(Position::new(1, 6), e);
+
+        let exp = Statement::block_with_stmts(Position::new(1, 1), vec![s1, s2]);
+
+        assert_eq!(exp, stmt);
+    }
+
+    #[test]
     fn parse_break() {
         let stmt = parse_stmt("break;");
         let s = Statement::new(Position::new(1, 1), StatementType::Break);

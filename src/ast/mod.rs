@@ -121,6 +121,11 @@ impl Statement {
     pub fn block(pos: Position, stmt: Box<Statement>) -> Box<Statement> {
         Statement::new(pos, StatementType::Block(vec![stmt]))
     }
+
+    #[cfg(test)]
+    pub fn block_with_stmts(pos: Position, stmt: Vec<Box<Statement>>) -> Box<Statement> {
+        Statement::new(pos, StatementType::Block(stmt))
+    }
 }
 
 #[derive(PartialEq,Eq,Debug)]
