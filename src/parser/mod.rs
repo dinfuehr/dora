@@ -28,9 +28,6 @@ use lexer::reader::StrReader;
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
-
-    fct: Option<Function>,
-    block: bool,
 }
 
 #[cfg(test)]
@@ -54,7 +51,7 @@ type StatementResult = Result<Box<Statement>,ParseError>;
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
-        let parser = Parser { lexer: lexer, token: token, fct: None, block: false };
+        let parser = Parser { lexer: lexer, token: token };
 
         parser
     }
@@ -114,7 +111,7 @@ impl<T: CodeReader> Parser<T> {
     fn parse_function_params(&mut self) -> Result<Vec<Param>,ParseError> {
         try!(self.expect_token(TokenType::LParen));
 
-        let mut params = try!(self.parse_comma_list(TokenType::RParen, |p| {
+        let params = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_function_param()
         }));
 
@@ -312,30 +309,14 @@ impl<T: CodeReader> Parser<T> {
         let pos = try!(self.expect_token(TokenType::While)).position;
         let expr = try!(self.parse_expression());
 
-        let old_block = self.enter_block();
         let block = try!(self.parse_block());
-        self.leave_block(old_block);
 
         Ok(Statement::new(pos, StatementType::While(expr, block)))
     }
 
-    fn enter_block(&mut self) -> bool {
-        let old_block = self.block;
-        self.block = true;
-
-        old_block
-    }
-
-    fn leave_block(&mut self, b: bool) {
-        self.block = b;
-    }
-
     fn parse_loop(&mut self) -> StatementResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
-
-        let old_block = self.enter_block();
         let block = try!(self.parse_block());
-        self.leave_block(old_block);
 
         Ok(Statement::new(pos, StatementType::Loop(block)))
     }

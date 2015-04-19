@@ -66,7 +66,6 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Statement) -> V::Returns {
 
         Break => { }
         Continue => { }
-        Nop => { }
     }
 
     Default::default()

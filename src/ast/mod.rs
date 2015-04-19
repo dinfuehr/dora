@@ -139,7 +139,6 @@ pub enum StatementType {
     Break,
     Continue,
     Return(Option<Box<Expr>>),
-    Nop,
 }
 
 #[derive(PartialEq,Eq,Debug)]
