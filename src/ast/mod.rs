@@ -51,6 +51,15 @@ pub enum Type {
     Tuple(Vec<Type>),
 }
 
+impl Type {
+    pub fn is_unit(&self) -> bool {
+        match *self {
+            Type::Tuple(ref types) if types.len() == 0 => true,
+            _ => false
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct TupleStruct {
     pub name: String,
@@ -61,6 +70,12 @@ pub struct TupleStruct {
 #[derive(PartialEq,Eq,Debug)]
 pub struct TypeParams {
     pub params: Vec<String>
+}
+
+impl TypeParams {
+    pub fn empty(&self) -> bool {
+        self.params.len() == 0
+    }
 }
 
 #[derive(Debug)]

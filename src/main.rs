@@ -13,6 +13,7 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
+mod typeck;
 
 #[cfg(not(test))]
 fn main() {

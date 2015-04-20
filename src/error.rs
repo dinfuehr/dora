@@ -8,9 +8,12 @@ pub enum ErrorCode {
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
     MisplacedElse, VarAlreadyExists, ExpectedLvalue, TypeMismatch, VarNotFound,
     IoError, NoReturnValue, UnreachableCode, MisplacedBreak, MisplacedContinue,
-    UninitializedVar, CommaExpected
+    UninitializedVar, CommaExpected,
+
+    MainDefinition
 }
 
+#[derive(Debug)]
 pub struct ParseError {
     pub position: Position,
     pub message: String,
@@ -23,8 +26,3 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl fmt::Debug for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error at line {}: {}", self.position, self.message)
-    }
-}
