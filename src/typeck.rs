@@ -46,21 +46,24 @@ impl TypeCheck {
     }
 }
 
+#[cfg(test)]
+fn ck(code: &'static str) -> Result<(), ParseError> {
+    let prog = Parser::from_str(code).parse().unwrap();
+
+    TypeCheck::new(prog).check()
+}
 
 #[test]
 fn test_main_undefined() {
-    let prog = Parser::from_str("fn foo() {}").parse().unwrap();
-    assert!(TypeCheck::new(prog).check().is_err());
+    assert!(ck("fn foo() {}").is_err());
 }
 
 #[test]
 fn test_main_definition_invalid() {
-    let prog = Parser::from_str("fn main(x:int) {}").parse().unwrap();
-    assert!(TypeCheck::new(prog).check().is_err());
+    assert!(ck("fn main(x:int) {}").is_err());
 }
 
 #[test]
 fn test_main() {
-    let prog = Parser::from_str("fn main() {}").parse().unwrap();
-    assert!(TypeCheck::new(prog).check().is_ok());
+    assert!(ck("fn main() {}").is_ok());
 }
