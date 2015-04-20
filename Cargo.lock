@@ -3,6 +3,7 @@ name = "dora"
 version = "0.0.1"
 dependencies = [
  "byteorder 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

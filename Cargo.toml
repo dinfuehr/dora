@@ -7,4 +7,5 @@ authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 phf = "*"
 phf_macros = "*"
 byteorder = "*"
+libc = "*"
 

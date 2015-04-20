@@ -6,6 +6,7 @@
 #![plugin(phf_macros)]
 extern crate phf;
 extern crate byteorder;
+extern crate libc;
 
 #[cfg(not(test))]
 use parser::Parser;
