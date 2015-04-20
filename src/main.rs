@@ -5,6 +5,7 @@
 #![feature(plugin)]
 #![plugin(phf_macros)]
 extern crate phf;
+extern crate byteorder;
 
 #[cfg(not(test))]
 use parser::Parser;
@@ -14,6 +15,7 @@ mod error;
 mod parser;
 mod ast;
 mod typeck;
+mod asm;
 
 #[cfg(not(test))]
 fn main() {

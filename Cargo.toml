@@ -6,4 +6,5 @@ authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 [dependencies]
 phf = "*"
 phf_macros = "*"
+byteorder = "*"
 
