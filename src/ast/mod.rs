@@ -1,15 +1,17 @@
+use ast::Elem::ElemFunction;
+
 use lexer::position::Position;
 
 #[derive(Debug)]
 pub struct Program {
-    pub elements: Vec<TopLevelElement>,
+    pub elements: Vec<Elem>,
 }
 
 impl Program {
     #[cfg(test)]
     pub fn get_function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
-            if let TopLevelElement::Function(ref fct) = *e {
+            if let ElemFunction(ref fct) = *e {
                 if fct.name == name { return Some(fct); }
             }
         }
@@ -19,12 +21,12 @@ impl Program {
 }
 
 #[derive(Debug)]
-pub enum TopLevelElement {
-    Function(Function),
-    Enum(Enum),
-    TupleStruct(TupleStruct),
-    Struct(Struct),
-    Alias(Alias),
+pub enum Elem {
+    ElemFunction(Function),
+    ElemEnum(Enum),
+    ElemTupleStruct(TupleStruct),
+    ElemStruct(Struct),
+    ElemAlias(Alias),
 }
 
 #[derive(Debug)]
@@ -89,7 +91,7 @@ pub struct Function {
     pub params: Vec<Param>,
 
     pub return_type: Type,
-    pub block: Box<Statement>,
+    pub block: Box<Stmt>,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -100,73 +102,28 @@ pub struct Param {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum Statement {
-    Var(VarStmt),
-    While(WhileStmt),
-    Loop(LoopStmt),
-    If(IfStmt),
-    Expr(ExprStmt),
-    Block(BlockStmt),
-    Break(BreakStmt),
-    Continue(ContinueStmt),
-    Return(ReturnStmt),
+pub struct Stmt {
+    pub pos: Position,
+    pub node: StmtType,
+}
+
+impl Stmt {
+    pub fn new(pos: Position, node: StmtType) -> Stmt {
+        Stmt { pos: pos, node: node }
+    }
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub struct VarStmt {
-    pub position: Position,
-    pub name: String,
-    pub data_type: Option<Type>,
-    pub expression: Option<Box<Expr>>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct WhileStmt {
-    pub position: Position,
-    pub condition: Box<Expr>,
-    pub block: Box<Statement>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct LoopStmt {
-    pub position: Position,
-    pub block: Box<Statement>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct IfStmt {
-    pub position: Position,
-    pub condition: Box<Expr>,
-    pub then_block: Box<Statement>,
-    pub else_block: Option<Box<Statement>>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct ExprStmt {
-    pub position: Position,
-    pub expression: Box<Expr>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct BlockStmt {
-    pub position: Position,
-    pub statements: Vec<Box<Statement>>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct BreakStmt {
-    pub position: Position,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct ContinueStmt {
-    pub position: Position,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct ReturnStmt {
-    pub position: Position,
-    pub expression: Option<Box<Expr>>,
+pub enum StmtType {
+    StmtVar(String, Option<Type>, Option<Box<Expr>>),
+    StmtWhile(Box<Expr>, Box<Stmt>),
+    StmtLoop(Box<Stmt>),
+    StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
+    StmtExpr(Box<Expr>),
+    StmtBlock(Vec<Box<Stmt>>),
+    StmtBreak,
+    StmtContinue,
+    StmtReturn(Option<Box<Expr>>),
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -204,13 +161,12 @@ impl Expr {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum ExprType {
-    Un(UnOp,Box<Expr>),
-    Bin(BinOp,Box<Expr>,Box<Expr>),
-    LitInt(i64),
-    LitStr(String),
-    LitTrue,
-    LitFalse,
-    Ident(String),
-    Assign(Box<Expr>,Box<Expr>),
+    ExprUn(UnOp,Box<Expr>),
+    ExprBin(BinOp,Box<Expr>,Box<Expr>),
+    ExprLitInt(i64),
+    ExprLitStr(String),
+    ExprLitBool(bool),
+    ExprIdent(String),
+    ExprAssign(Box<Expr>,Box<Expr>),
 }
 
