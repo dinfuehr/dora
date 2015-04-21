@@ -2,6 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use libc::consts::os::posix88::*;
 use libc::funcs::posix88::mman::mmap;
 use libc::funcs::posix88::mman::munmap;
+use libc::funcs::posix88::mman::mprotect;
 use libc::types::common::c95::c_void;
 use libc::types::os::arch::c95::size_t;
 use std::ptr;
@@ -47,7 +48,7 @@ impl JitFunction {
         let size = code.len() as u64;
 
         unsafe {
-            let fct = mmap(0 as *mut c_void, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+            let fct = mmap(0 as *mut c_void, size, PROT_READ | PROT_WRITE,
                 MAP_PRIVATE | MAP_ANON, -1, 0);
 
             if fct == MAP_FAILED {
@@ -55,6 +56,10 @@ impl JitFunction {
             }
 
             ptr::copy_nonoverlapping(code.as_ptr() as *const c_void, fct, code.len());
+
+            if mprotect(fct, size, PROT_READ | PROT_EXEC) == -1 {
+                panic!("mprotect failed");
+            }
 
             JitFunction {
                 size: size,
