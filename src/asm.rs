@@ -40,7 +40,7 @@ static CODE : [u8;8] = [ 0x48, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
 
 pub struct JitFunction {
     pub size: size_t,
-    pub call: extern fn (u64) -> u64
+    pub ptr: extern fn (u64) -> u64
 }
 
 impl JitFunction {
@@ -63,7 +63,7 @@ impl JitFunction {
 
             JitFunction {
                 size: size,
-                call: mem::transmute(fct)
+                ptr: mem::transmute(fct)
             }
         }
     }
@@ -72,7 +72,7 @@ impl JitFunction {
 impl Drop for JitFunction {
     fn drop(&mut self) {
         unsafe {
-            munmap(mem::transmute(self.call), self.size);
+            munmap(mem::transmute(self.ptr), self.size);
         }
     }
 }
@@ -81,5 +81,5 @@ impl Drop for JitFunction {
 fn test_create_function() {
     let fct = JitFunction::new(&CODE);
 
-    assert_eq!(5, (fct.call)(1));
+    assert_eq!(5, (fct.ptr)(1));
 }
