@@ -1,7 +1,9 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use libc::consts::os::posix88::*;
 use libc::funcs::posix88::mman::mmap;
+use libc::funcs::posix88::mman::munmap;
 use libc::types::common::c95::c_void;
+use libc::types::os::arch::c95::size_t;
 use std::ptr;
 use std::mem;
 
@@ -35,24 +37,44 @@ enum Reg64 {
 
 static CODE : [u8;8] = [ 0x48u8, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
 
-fn create_function() -> extern fn (u64) -> u64 {
-    unsafe {
-        let fct = mmap(0 as *mut c_void, 1024, PROT_READ | PROT_WRITE | PROT_EXEC,
-            MAP_PRIVATE | MAP_ANON, -1, 0);
+pub struct JitFunction {
+    pub size: size_t,
+    pub call: extern fn (u64) -> u64
+}
 
-        if fct == MAP_FAILED {
-            panic!("mmap failed");
+impl JitFunction {
+    pub fn new(code: &[u8]) -> JitFunction {
+        let size = code.len() as u64;
+
+        unsafe {
+            let fct = mmap(0 as *mut c_void, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+                MAP_PRIVATE | MAP_ANON, -1, 0);
+
+            if fct == MAP_FAILED {
+                panic!("mmap failed");
+            }
+
+            ptr::copy_nonoverlapping(code.as_ptr() as *const c_void, fct, code.len());
+
+            JitFunction {
+                size: size,
+                call: mem::transmute(fct)
+            }
         }
+    }
+}
 
-        ptr::copy_nonoverlapping(CODE.as_ptr() as *const c_void, fct, CODE.len());
-
-        mem::transmute(fct)
+impl Drop for JitFunction {
+    fn drop(&mut self) {
+        unsafe {
+            munmap(mem::transmute(self.call), self.size);
+        }
     }
 }
 
 #[test]
 fn test_create_function() {
-    let fct = create_function();
+    let fct = JitFunction::new(&CODE);
 
-    assert_eq!(5, fct(1));
+    assert_eq!(5, (fct.call)(1));
 }
