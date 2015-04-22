@@ -7,13 +7,13 @@ use lexer::position::Position;
 
 use parser::Parser;
 
-struct TypeCheck {
+struct SemCheck {
     program: Program,
 }
 
-impl TypeCheck {
-    pub fn new(prog: Program) -> TypeCheck {
-        TypeCheck { program: prog }
+impl SemCheck {
+    pub fn new(prog: Program) -> SemCheck {
+        SemCheck { program: prog }
     }
 
     pub fn check(&self) -> Result<(), ParseError> {
@@ -50,7 +50,7 @@ impl TypeCheck {
 fn ck(code: &'static str) -> Result<(), ParseError> {
     let prog = Parser::from_str(code).parse().unwrap();
 
-    TypeCheck::new(prog).check()
+    SemCheck::new(prog).check()
 }
 
 #[test]

@@ -15,7 +15,7 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
-mod typeck;
+mod semck;
 mod asm;
 
 #[cfg(not(test))]
