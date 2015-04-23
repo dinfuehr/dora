@@ -68,10 +68,27 @@ impl Reg {
     }
 }
 
-macro_rules! i0p {
-    ($i:ident, $w:expr) => {pub fn $i(&mut self) { self.opcode($w); }}
+// Memory-Address: Register with positive or negative offset
+struct Mem(Reg, i32);
+
+impl Mem {
+    fn fits8(&self) -> bool {
+        self.1 == (self.1 as i8) as i32
+    }
+
+    fn fits16(&self) -> bool {
+        self.1 == (self.1 as i16) as i32
+    }
 }
 
+// Machine instruction without any operands, just emits the given
+// opcode
+macro_rules! i0p {
+   ($i:ident, $w:expr) => {pub fn $i(&mut self) { self.opcode($w); }}
+}
+
+// Machine Instruction with 1 register operand, register
+// index is added to opcode
 macro_rules! q1p_rpo {
     ($i:ident, $w:expr) => {pub fn $i(&mut self, dest: Reg) {
         if dest.msb() != 0 {
@@ -79,6 +96,31 @@ macro_rules! q1p_rpo {
         }
 
         self.opcode($w + dest.lsb3());
+    }}
+}
+
+// Machine instruction with 2 register operands, operands are
+// saved in mod_rm-Byte. MSB is saved in rex-Prefix
+macro_rules! q2p_r2r {
+    ($i:ident, $w:expr) => {pub fn $i(&mut self, src: Reg, dest: Reg) {
+        self.rex_prefix(1, src.msb(), 0, dest.msb());
+        self.opcode($w);
+        self.mod_rm(0b11, src.lsb3(), dest.lsb3());
+    }}
+}
+
+macro_rules! q2p_m2r {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Mem, dest: Reg) {
+        self.rex_prefix(1, dest.msb(), 0, src.0.msb());
+        self.opcode($w);
+
+        if(src.fits8()) {
+            self.mod_rm(0b01, dest.lsb3(), src.0.lsb3());
+            self.emitb(src.1 as u8);
+        } else {
+            self.mod_rm(0b10, dest.lsb3(), src.0.lsb3());
+            self.emitd(src.1 as u32);
+        }
     }}
 }
 
@@ -97,8 +139,10 @@ impl Assembler {
     q1p_rpo!(pushq, 0x50);
     q1p_rpo!(popq, 0x58);
 
-    //q2p_r2r!(movq_r2r);
-    //q2p_m2r!(movq_m2r);
+    q2p_r2r!(addq_r2r, 0x01);
+
+    q2p_r2r!(movq_r2r, 0x89);
+    q2p_m2r!(movq_m2r, 0x8B);
     //q2p_r2m!(movq_r2m);
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
@@ -106,6 +150,10 @@ impl Assembler {
     fn emitw(&mut self, w: u16) { self.code.write_u16::<LittleEndian>(w).unwrap(); }
     fn emitd(&mut self, d: u32) { self.code.write_u32::<LittleEndian>(d).unwrap(); }
     fn emitq(&mut self, q: u64) { self.code.write_u64::<LittleEndian>(q).unwrap(); }
+
+    fn mod_rm(&mut self, mode: u8, reg: u8, rm: u8) {
+        self.emitb(mode << 6 | reg << 3 | rm );
+    }
 
     fn rex_prefix(&mut self, w: u8, r: u8, x: u8, b: u8) {
         let v = 0x40 | w << 3 | r << 2 | x << 1 | b;
