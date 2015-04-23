@@ -81,6 +81,29 @@ impl Mem {
     }
 }
 
+#[test]
+fn test_fits8() {
+    assert!(Mem(rax, 0).fits8());
+    assert!(Mem(rax, 127).fits8());
+    assert!(Mem(rax, -128).fits8());
+    assert!(!Mem(rax, 128).fits8());
+    assert!(!Mem(rax, -129).fits8());
+}
+
+#[test]
+fn test_fits16() {
+    assert!(Mem(rax, 0).fits16());
+    assert!(Mem(rax, 127).fits16());
+    assert!(Mem(rax, -128).fits16());
+    assert!(Mem(rax, 128).fits16());
+    assert!(Mem(rax, -129).fits16());
+
+    assert!(Mem(rax, 32767).fits16());
+    assert!(Mem(rax, -32768).fits16());
+    assert!(!Mem(rax, 32768).fits16());
+    assert!(!Mem(rax, -32769).fits16());
+}
+
 // Machine instruction without any operands, just emits the given
 // opcode
 macro_rules! i0p {
@@ -124,6 +147,21 @@ macro_rules! q2p_m2r {
     }}
 }
 
+macro_rules! q2p_r2m {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Reg, dest: Mem) {
+        self.rex_prefix(1, src.msb(), 0, dest.0.msb());
+        self.opcode($w);
+
+        if(dest.fits8()) {
+            self.mod_rm(0b01, src.lsb3(), dest.0.lsb3());
+            self.emitb(dest.1 as u8);
+        } else {
+            self.mod_rm(0b10, src.lsb3(), dest.0.lsb3());
+            self.emitd(dest.1 as u32);
+        }
+    }}
+}
+
 pub struct Assembler {
     code: Vec<u8>
 }
@@ -142,8 +180,8 @@ impl Assembler {
     q2p_r2r!(addq_r2r, 0x01);
 
     q2p_r2r!(movq_r2r, 0x89);
+    q2p_r2m!(movq_r2m, 0x89);
     q2p_m2r!(movq_m2r, 0x8B);
-    //q2p_r2m!(movq_r2m);
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
     fn emitb(&mut self, c: u8) { self.code.push(c); }
