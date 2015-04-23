@@ -71,37 +71,34 @@ impl Reg {
 // Memory-Address: Register with positive or negative offset
 struct Mem(Reg, i32);
 
-impl Mem {
-    fn fits8(&self) -> bool {
-        self.1 == (self.1 as i8) as i32
-    }
+fn fits8(v: i64) -> bool {
+    v == (v as i8) as i64
+}
 
-    fn fits16(&self) -> bool {
-        self.1 == (self.1 as i16) as i32
-    }
+fn fits16(v: i64) -> bool {
+    v == (v as i16) as i64
+}
+
+fn fits32(v: i64) -> bool {
+    v == (v as i32) as i64
 }
 
 #[test]
 fn test_fits8() {
-    assert!(Mem(rax, 0).fits8());
-    assert!(Mem(rax, 127).fits8());
-    assert!(Mem(rax, -128).fits8());
-    assert!(!Mem(rax, 128).fits8());
-    assert!(!Mem(rax, -129).fits8());
+    assert!(fits8(0));
+    assert!(fits8(127));
+    assert!(fits8(-128));
+    assert!(!fits8(128));
+    assert!(!fits8(-129));
 }
 
 #[test]
 fn test_fits16() {
-    assert!(Mem(rax, 0).fits16());
-    assert!(Mem(rax, 127).fits16());
-    assert!(Mem(rax, -128).fits16());
-    assert!(Mem(rax, 128).fits16());
-    assert!(Mem(rax, -129).fits16());
-
-    assert!(Mem(rax, 32767).fits16());
-    assert!(Mem(rax, -32768).fits16());
-    assert!(!Mem(rax, 32768).fits16());
-    assert!(!Mem(rax, -32769).fits16());
+    assert!(fits16(8));
+    assert!(fits16(32767));
+    assert!(fits16(-32768));
+    assert!(!fits16(32768));
+    assert!(!fits16(-32769));
 }
 
 // Machine instruction without any operands, just emits the given
@@ -112,7 +109,7 @@ macro_rules! i0p {
 
 // Machine Instruction with 1 register operand, register
 // index is added to opcode
-macro_rules! q1p_rpo {
+macro_rules! q1p_r_rpo {
     ($i:ident, $w:expr) => {pub fn $i(&mut self, dest: Reg) {
         if dest.msb() != 0 {
             self.rex_prefix(0, 0, 0, 1);
@@ -124,7 +121,7 @@ macro_rules! q1p_rpo {
 
 // Machine instruction with 2 register operands, operands are
 // saved in mod_rm-Byte. MSB is saved in rex-Prefix
-macro_rules! q2p_r2r {
+macro_rules! q2p_rtr {
     ($i:ident, $w:expr) => {pub fn $i(&mut self, src: Reg, dest: Reg) {
         self.rex_prefix(1, src.msb(), 0, dest.msb());
         self.opcode($w);
@@ -132,12 +129,12 @@ macro_rules! q2p_r2r {
     }}
 }
 
-macro_rules! q2p_m2r {
+macro_rules! q2p_mtr {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Mem, dest: Reg) {
         self.rex_prefix(1, dest.msb(), 0, src.0.msb());
         self.opcode($w);
 
-        if(src.fits8()) {
+        if(fits8(src.1 as i64)) {
             self.mod_rm(0b01, dest.lsb3(), src.0.lsb3());
             self.emitb(src.1 as u8);
         } else {
@@ -147,18 +144,56 @@ macro_rules! q2p_m2r {
     }}
 }
 
-macro_rules! q2p_r2m {
+macro_rules! q2p_rtm {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Reg, dest: Mem) {
         self.rex_prefix(1, src.msb(), 0, dest.0.msb());
         self.opcode($w);
 
-        if(dest.fits8()) {
+        if(fits8(dest.1 as i64)) {
             self.mod_rm(0b01, src.lsb3(), dest.0.lsb3());
             self.emitb(dest.1 as u8);
         } else {
             self.mod_rm(0b10, src.lsb3(), dest.0.lsb3());
             self.emitd(dest.1 as u32);
         }
+    }}
+}
+
+// machine operand with 2 operands. 64 bit immediate and destination register
+// register is added to opcode
+macro_rules! q2p_i64tr {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u64, dest: Reg) {
+        self.rex_prefix(1, 0, 0, dest.msb());
+        self.opcode($w + dest.lsb3());
+        self.emitq(src);
+    }}
+}
+
+// machine operand with 2 operands. 64 bit immediate and destination register
+macro_rules! q2p_i32tr {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u32, dest: Reg) {
+        self.rex_prefix(1, 0, 0, dest.msb());
+        self.opcode($w);
+        self.mod_rm(0b11, dest.lsb3(), 0);
+        self.emitd(src);
+    }}
+}
+
+// machine operand with 2 operands. 64 bit immediate and destination memory
+macro_rules! q2p_i32tm {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u32, dest: Mem) {
+        self.rex_prefix(1, 0, 0, dest.0.msb());
+        self.opcode($w);
+
+        if(fits8(dest.1 as i64)) {
+            self.mod_rm(0b01, src.lsb3(), dest.0.lsb3());
+            self.emitb(dest.1 as u8);
+        } else {
+            self.mod_rm(0b10, src.lsb3(), dest.0.lsb3());
+            self.emitd(dest.1 as u32);
+        }
+
+        self.emitd(src);
     }}
 }
 
@@ -174,14 +209,27 @@ impl Assembler {
     i0p!(nop, 0x90);
     i0p!(ret, 0xC3);
 
-    q1p_rpo!(pushq, 0x50);
-    q1p_rpo!(popq, 0x58);
+    q1p_r_rpo!(pushq, 0x50);
+    q1p_r_rpo!(popq, 0x58);
 
-    q2p_r2r!(addq_r2r, 0x01);
+    q2p_rtr!(addq_rtr, 0x01);
+    q2p_rtm!(addq_rtm, 0x01);
+    q2p_mtr!(addq_mtr, 0x03);
+    q2p_i64tr!(addq_i32tm, 0x81);
+    q2p_i64tr!(addq_i32tr, 0x81);
 
-    q2p_r2r!(movq_r2r, 0x89);
-    q2p_r2m!(movq_r2m, 0x89);
-    q2p_m2r!(movq_m2r, 0x8B);
+    q2p_rtr!(subq_rtr, 0x28);
+    q2p_rtm!(subq_rtm, 0x29);
+    q2p_mtr!(subq_mtr, 0x2B);
+    q2p_i64tr!(subq_i32tm, 0x81); // /5 ?
+    q2p_i64tr!(subq_i32tr, 0x81); // /5 ?
+
+    q2p_rtr!(movq_rtr, 0x89);
+    q2p_rtm!(movq_rtm, 0x89);
+    q2p_mtr!(movq_mtr, 0x8B);
+    q2p_i64tr!(movq_i64tr, 0xB8);
+    q2p_i64tr!(movq_i32tr, 0xC7);
+    q2p_i64tr!(movq_i32tm, 0xC7);
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
     fn emitb(&mut self, c: u8) { self.code.push(c); }
@@ -198,6 +246,42 @@ impl Assembler {
 
         self.code.push(v);
     }
+}
+
+#[test]
+fn test_nop() {
+    let mut asm = Assembler::new();
+    asm.nop();
+
+    assert_eq!(vec![0x90], asm.code);
+}
+
+#[test]
+fn test_ret() {
+    let mut asm = Assembler::new();
+    asm.ret();
+
+    assert_eq!(vec![0xc3], asm.code);
+}
+
+#[test]
+fn test_push() {
+    let mut asm = Assembler::new();
+    asm.pushq(rax);
+    asm.pushq(r8);
+    asm.pushq(rcx);
+
+    assert_eq!(vec![0x50, 0x41, 0x50, 0x51], asm.code);
+}
+
+#[test]
+fn test_pop() {
+    let mut asm = Assembler::new();
+    asm.popq(rax);
+    asm.popq(r8);
+    asm.popq(rcx);
+
+    assert_eq!(vec![0x58, 0x41, 0x58, 0x59], asm.code);
 }
 
 
