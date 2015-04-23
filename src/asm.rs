@@ -68,6 +68,69 @@ impl Reg {
     }
 }
 
+#[test]
+fn test_msb() {
+    assert_eq!(0, rax.msb());
+    assert_eq!(0, rcx.msb());
+    assert_eq!(0, rdx.msb());
+    assert_eq!(0, rbx.msb());
+    assert_eq!(0, rsp.msb());
+    assert_eq!(0, rbp.msb());
+    assert_eq!(0, rsi.msb());
+    assert_eq!(0, rdi.msb());
+
+    assert_eq!(1, r8.msb());
+    assert_eq!(1, r9.msb());
+    assert_eq!(1, r10.msb());
+    assert_eq!(1, r11.msb());
+    assert_eq!(1, r12.msb());
+    assert_eq!(1, r13.msb());
+    assert_eq!(1, r14.msb());
+    assert_eq!(1, r15.msb());
+}
+
+#[test]
+fn test_idx() {
+    assert_eq!(0, rax.idx());
+    assert_eq!(1, rcx.idx());
+    assert_eq!(2, rdx.idx());
+    assert_eq!(3, rbx.idx());
+    assert_eq!(4, rsp.idx());
+    assert_eq!(5, rbp.idx());
+    assert_eq!(6, rsi.idx());
+    assert_eq!(7, rdi.idx());
+
+    assert_eq!(8, r8.idx());
+    assert_eq!(9, r9.idx());
+    assert_eq!(10, r10.idx());
+    assert_eq!(11, r11.idx());
+    assert_eq!(12, r12.idx());
+    assert_eq!(13, r13.idx());
+    assert_eq!(14, r14.idx());
+    assert_eq!(15, r15.idx());
+}
+
+#[test]
+fn test_lsb3() {
+    assert_eq!(0, rax.lsb3());
+    assert_eq!(1, rcx.lsb3());
+    assert_eq!(2, rdx.lsb3());
+    assert_eq!(3, rbx.lsb3());
+    assert_eq!(4, rsp.lsb3());
+    assert_eq!(5, rbp.lsb3());
+    assert_eq!(6, rsi.lsb3());
+    assert_eq!(7, rdi.lsb3());
+
+    assert_eq!(0, r8.lsb3());
+    assert_eq!(1, r9.lsb3());
+    assert_eq!(2, r10.lsb3());
+    assert_eq!(3, r11.lsb3());
+    assert_eq!(4, r12.lsb3());
+    assert_eq!(5, r13.lsb3());
+    assert_eq!(6, r14.lsb3());
+    assert_eq!(7, r15.lsb3());
+}
+
 // Memory-Address: Register with positive or negative offset
 struct Mem(Reg, i32);
 
@@ -284,6 +347,14 @@ fn test_pop() {
     assert_eq!(vec![0x58, 0x41, 0x58, 0x59], asm.code);
 }
 
+#[test]
+fn test_mov() {
+    let mut asm = Assembler::new();
+    asm.movq_rtr(r15, rax);
+    asm.movq_rtr(rsi, r8);
+
+    assert_eq!(vec![0x4c, 0x89, 0xf8, 0x49, 0x89, 0xf0], asm.code);
+}
 
 static CODE : [u8;8] = [ 0x48, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
 
