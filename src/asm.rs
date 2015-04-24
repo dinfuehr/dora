@@ -232,7 +232,7 @@ macro_rules! q2p_i64tr {
     }}
 }
 
-// machine operand with 2 operands. 64 bit immediate and destination register
+// machine operand with 2 operands. 32 bit immediate and destination register
 macro_rules! q2p_i32tr {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u32, dest: Reg) {
         self.rex_prefix(1, 0, 0, dest.msb());
@@ -242,21 +242,33 @@ macro_rules! q2p_i32tr {
     }}
 }
 
-// machine operand with 2 operands. 64 bit immediate and destination memory
+// machine operand with 2 operands. 32 bit immediate and destination memory
 macro_rules! q2p_i32tm {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u32, dest: Mem) {
         self.rex_prefix(1, 0, 0, dest.0.msb());
         self.opcode($w);
-
-        if(fits8(dest.1 as i64)) {
-            self.mod_rm(0b01, 0, dest.0.lsb3());
-            self.emitb(dest.1 as u8);
-        } else {
-            self.mod_rm(0b10, 0, dest.0.lsb3());
-            self.emitd(dest.1 as u32);
-        }
-
+        self.mod_rm_with_disp(dest);
         self.emitd(src);
+    }}
+}
+
+// machine operand with 2 operands. 8 bit immediate and destination memory
+macro_rules! q2p_i8tm {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u8, dest: Mem) {
+        self.rex_prefix(1, 0, 0, dest.0.msb());
+        self.opcode($w);
+        self.mod_rm_with_disp(dest);
+        self.emitb(src);
+    }}
+}
+
+// machine operand with 2 operands. 32 bit immediate and destination register
+macro_rules! q2p_i8tr {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u8, dest: Reg) {
+        self.rex_prefix(1, 0, 0, dest.msb());
+        self.opcode($w);
+        self.mod_rm(0b11, 0, dest.lsb3());
+        self.emitb(src);
     }}
 }
 
@@ -280,6 +292,8 @@ impl Assembler {
     q2p_mtr!(addq_mtr, 0x03);
     q2p_i32tm!(addq_i32tm, 0x81);
     q2p_i32tr!(addq_i32tr, 0x81);
+    q2p_i8tm!(addq_i8tm, 0x83);
+    q2p_i8tr!(addq_i8tr, 0x83);
 
     q2p_rtr!(subq_rtr, 0x28);
     q2p_rtm!(subq_rtm, 0x29);
@@ -302,6 +316,16 @@ impl Assembler {
 
     fn mod_rm(&mut self, mode: u8, reg: u8, rm: u8) {
         self.emitb(mode << 6 | reg << 3 | rm );
+    }
+
+    fn mod_rm_with_disp(&mut self, dest: Mem) {
+        if(fits8(dest.1 as i64)) {
+            self.mod_rm(0b01, 0, dest.0.lsb3());
+            self.emitb(dest.1 as u8);
+        } else {
+            self.mod_rm(0b10, 0, dest.0.lsb3());
+            self.emitd(dest.1 as u32);
+        }
     }
 
     fn rex_prefix(&mut self, w: u8, r: u8, x: u8, b: u8) {
@@ -427,6 +451,16 @@ fn test_add_i32_to_reg() {
 }
 
 #[test]
+fn test_add_i8_to_reg() {
+    let mut asm = Assembler::new();
+    asm.addq_i8tr(1, r8);
+    asm.addq_i8tr(1, rsi);
+
+    assert_eq!(vec![0x49, 0x83, 0xC0, 0x01,
+        0x48, 0x83, 0xC6, 0x01], asm.code);
+}
+
+#[test]
 fn test_add_i32_to_mem() {
     let mut asm = Assembler::new();
     asm.addq_i32tm(1, Mem(rcx,1));
@@ -434,6 +468,16 @@ fn test_add_i32_to_mem() {
 
     assert_eq!(vec![0x48, 0x81, 0x41, 0x01, 1, 0, 0, 0,
         0x49, 0x81, 0x42, 0xFF, 0, 1, 0, 0], asm.code);
+}
+
+#[test]
+fn test_add_i8_to_mem() {
+    let mut asm = Assembler::new();
+    asm.addq_i8tm(1, Mem(rcx, 1));
+    asm.addq_i8tm(2, Mem(r11, -1));
+
+    assert_eq!(vec![0x48, 0x83, 0x41, 0x01, 0x01,
+        0x49, 0x83, 0x43, 0xFF, 0x02], asm.code);
 }
 
 static CODE : [u8;8] = [ 0x48, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
