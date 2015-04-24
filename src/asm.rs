@@ -237,7 +237,7 @@ macro_rules! q2p_i32tr {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u32, dest: Reg) {
         self.rex_prefix(1, 0, 0, dest.msb());
         self.opcode($w);
-        self.mod_rm(0b11, dest.lsb3(), 0);
+        self.mod_rm(0b11, 0, dest.lsb3());
         self.emitd(src);
     }}
 }
@@ -249,10 +249,10 @@ macro_rules! q2p_i32tm {
         self.opcode($w);
 
         if(fits8(dest.1 as i64)) {
-            self.mod_rm(0b01, src.lsb3(), dest.0.lsb3());
+            self.mod_rm(0b01, 0, dest.0.lsb3());
             self.emitb(dest.1 as u8);
         } else {
-            self.mod_rm(0b10, src.lsb3(), dest.0.lsb3());
+            self.mod_rm(0b10, 0, dest.0.lsb3());
             self.emitd(dest.1 as u32);
         }
 
@@ -278,8 +278,8 @@ impl Assembler {
     q2p_rtr!(addq_rtr, 0x01);
     q2p_rtm!(addq_rtm, 0x01);
     q2p_mtr!(addq_mtr, 0x03);
-    q2p_i64tr!(addq_i32tm, 0x81);
-    q2p_i64tr!(addq_i32tr, 0x81);
+    q2p_i32tm!(addq_i32tm, 0x81);
+    q2p_i32tr!(addq_i32tr, 0x81);
 
     q2p_rtr!(subq_rtr, 0x28);
     q2p_rtm!(subq_rtm, 0x29);
@@ -291,8 +291,8 @@ impl Assembler {
     q2p_rtm!(movq_rtm, 0x89);
     q2p_mtr!(movq_mtr, 0x8B);
     q2p_i64tr!(movq_i64tr, 0xB8);
-    q2p_i64tr!(movq_i32tr, 0xC7);
-    q2p_i64tr!(movq_i32tm, 0xC7);
+    q2p_i32tr!(movq_i32tr, 0xC7);
+    q2p_i32tm!(movq_i32tm, 0xC7);
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
     fn emitb(&mut self, c: u8) { self.code.push(c); }
@@ -354,6 +354,86 @@ fn test_mov() {
     asm.movq_rtr(rsi, r8);
 
     assert_eq!(vec![0x4c, 0x89, 0xf8, 0x49, 0x89, 0xf0], asm.code);
+}
+
+#[test]
+fn test_mov_i64_to_reg() {
+    let mut asm = Assembler::new();
+    asm.movq_i64tr(1, rax);
+    asm.movq_i64tr(2, r8);
+
+    assert_eq!(vec![0x48, 0xb8, 1, 0, 0, 0, 0, 0, 0, 0,
+        0x49, 0xb8, 2, 0, 0, 0, 0, 0, 0, 0], asm.code);
+}
+
+#[test]
+fn test_mov_i32_to_mem() {
+    let mut asm = Assembler::new();
+    asm.movq_i32tm(2, Mem(rbp, 1));
+    asm.movq_i32tm(3, Mem(r8, -1));
+
+    assert_eq!(vec![0x48, 0xC7, 0x45, 0x01, 2, 0, 0, 0,
+        0x49, 0xC7, 0x40, 0xFF, 3, 0, 0, 0], asm.code);
+}
+
+#[test]
+fn test_mov_i32_to_reg() {
+    let mut asm = Assembler::new();
+    asm.movq_i32tr(1, rax);
+    asm.movq_i32tr(2, r9);
+
+    assert_eq!(vec![0x48, 0xC7, 0xC0, 1, 0, 0, 0,
+        0x49, 0xC7, 0xC1, 2, 0, 0, 0], asm.code);
+}
+
+#[test]
+fn test_add_reg_to_reg() {
+    let mut asm = Assembler::new();
+    asm.addq_rtr(r10, rcx);
+    asm.addq_rtr(rbx, r10);
+
+    assert_eq!(vec![0x4c, 0x01, 0xd1,
+        0x49, 0x01, 0xda], asm.code);
+}
+
+#[test]
+fn test_add_reg_to_mem() {
+    let mut asm = Assembler::new();
+    asm.addq_rtm(r9, Mem(rbp, 1));
+    asm.addq_rtm(rcx, Mem(rax, -1));
+
+    assert_eq!(vec![0x4C, 0x01, 0x4D, 0x01,
+        0x48, 0x01, 0x48, 0xFF], asm.code);
+}
+
+#[test]
+fn test_add_mem_to_reg() {
+    let mut asm = Assembler::new();
+    asm.addq_mtr(Mem(rbp, 1), r9);
+    asm.addq_mtr(Mem(rax, -1), rcx);
+
+    assert_eq!(vec![0x4C, 0x03, 0x4D, 0x01,
+        0x48, 0x03, 0x48, 0xFF], asm.code);
+}
+
+#[test]
+fn test_add_i32_to_reg() {
+    let mut asm = Assembler::new();
+    asm.addq_i32tr(1, rcx);
+    asm.addq_i32tr(0x100, r9);
+
+    assert_eq!(vec![0x48, 0x81, 0xC1, 1, 0, 0, 0,
+        0x49, 0x81, 0xC1, 0, 1, 0, 0], asm.code);
+}
+
+#[test]
+fn test_add_i32_to_mem() {
+    let mut asm = Assembler::new();
+    asm.addq_i32tm(1, Mem(rcx,1));
+    asm.addq_i32tm(0x100, Mem(r10,-1));
+
+    assert_eq!(vec![0x48, 0x81, 0x41, 0x01, 1, 0, 0, 0,
+        0x49, 0x81, 0x42, 0xFF, 0, 1, 0, 0], asm.code);
 }
 
 static CODE : [u8;8] = [ 0x48, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
