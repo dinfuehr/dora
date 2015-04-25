@@ -313,6 +313,10 @@ impl Assembler {
         self.emitb(mode << 6 | reg << 3 | rm );
     }
 
+    fn sib(&mut self, scale: u8, index: u8, base: u8) {
+        self.emitb(mode << 6 | index << 3 | base);
+    }
+
     fn mod_rm_with_disp(&mut self, src: u8, dest: Mem) {
         if(fits8(dest.1 as i64)) {
             self.mod_rm(0b01, src, dest.0.lsb3());
