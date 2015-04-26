@@ -314,7 +314,7 @@ impl Assembler {
     }
 
     fn sib(&mut self, scale: u8, index: u8, base: u8) {
-        self.emitb(mode << 6 | index << 3 | base);
+        self.emitb(scale << 6 | index << 3 | base);
     }
 
     fn mod_rm_with_disp(&mut self, src: u8, dest: Mem) {
