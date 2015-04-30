@@ -9,7 +9,8 @@ use std::ptr;
 use std::mem;
 use asm::Reg::*;
 
-enum Reg {
+#[derive(PartialEq,Eq,Debug)]
+pub enum Reg {
     rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
     r8, r9, r10, r11, r12, r13, r14, r15,
 }
@@ -131,8 +132,113 @@ fn test_lsb3() {
     assert_eq!(7, r15.lsb3());
 }
 
-// Memory-Address: Register with positive or negative offset
-struct Mem(Reg, i32);
+#[derive(Debug)]
+pub struct Addr {
+    base: Reg,
+    index: Option<Reg>,
+    scale: u8,
+    disp: i32,
+
+    direct: bool,
+}
+
+impl Addr {
+    pub fn direct(base: Reg) -> Addr {
+        Addr { base: base, index: None, scale: 0, disp: 0, direct: true }
+    }
+
+    pub fn indirect(base: Reg) -> Addr {
+        Addr { base: base, index: None, scale: 0, disp: 0, direct: false }
+    }
+
+    pub fn with_disp(base: Reg, disp: i32) -> Addr {
+        Addr { base: base, index: None, scale: 0, disp: disp, direct: false }
+    }
+
+    pub fn with_sib(base: Reg, idx: Reg, scale: u8, disp: i32) -> Addr {
+        assert!(idx != rsp);
+        assert!(scale <= 3);
+
+        Addr { base: base, index: Some(idx), scale: scale, disp: disp, direct: false }
+    }
+
+    fn msb(&self) -> u8 {
+        self.base.msb()
+    }
+
+    fn base_special(&self) -> bool {
+        self.base == rsp || self.base == rbp || self.base == r12 || self.base == r13
+    }
+
+    fn emit(&self, asm: &mut Assembler, modrm_reg: u8) {
+        if self.direct {
+            asm.modrm(0b11, modrm_reg, self.base.lsb3());
+
+        } else if self.index.is_none() {
+            if !self.base_special() {
+                self.emit_without_sib(asm, modrm_reg);
+            } else if self.base == rsp || self.base == r13 {
+                self.emit_rsp(asm, modrm_reg);
+
+            } else {
+                self.emit_rbp(asm, modrm_reg);
+            }
+
+        } else {
+            unreachable!("index and scale not yet supported");
+        }
+    }
+
+    fn emit_rsp(&self, asm: &mut Assembler, modrm_reg: u8) {
+        let fits_into_byte = fits8(self.disp as i64);
+        let mode =
+            if fits_into_byte { 0b01 }
+            else { 0b10 };
+
+        asm.modrm(mode, modrm_reg, 0b100);
+        asm.sib(0, 0b100, self.base.lsb3());
+
+        if fits_into_byte {
+            asm.emitb(self.disp as u8);
+        } else {
+            asm.emitd(self.disp as u32);
+        }
+    }
+
+    fn emit_rbp(&self, asm: &mut Assembler, modrm_reg: u8) {
+        let fits_into_byte = fits8(self.disp as i64);
+        let mode =
+            if fits_into_byte { 0b01 }
+            else { 0b10 };
+
+        asm.modrm(mode, modrm_reg, 0b101);
+
+        if fits_into_byte {
+            asm.emitb(self.disp as u8);
+        } else {
+            asm.emitd(self.disp as u32);
+        }
+    }
+
+    fn emit_without_sib(&self, asm: &mut Assembler, modrm_reg: u8) {
+        let fits_into_byte = fits8(self.disp as i64);
+
+        let mode =
+            if self.disp == 0 { 0b00 }
+            else if fits_into_byte { 0b01 }
+            else { 0b10 };
+
+        asm.modrm(mode, modrm_reg, self.base.lsb3());
+
+        if self.disp != 0 {
+            if fits_into_byte {
+                asm.emitb(self.disp as u8);
+            } else {
+                asm.emitd(self.disp as u32);
+            }
+        }
+    }
+}
 
 fn fits8(v: i64) -> bool {
     v == (v as i8) as i64
@@ -182,41 +288,26 @@ macro_rules! q1p_r_rpo {
     }}
 }
 
-// Machine instruction with 2 register operands, operands are
-// saved in mod_rm-Byte. MSB is saved in rex-Prefix
-macro_rules! q2p_rtr {
-    ($i:ident, $w:expr) => {pub fn $i(&mut self, src: Reg, dest: Reg) {
+macro_rules! q2p_atr {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Addr, dest: Reg) {
+        self.rex_prefix(1, dest.msb(), 0, src.msb());
+        self.opcode($w);
+        src.emit(self, dest.lsb3());
+    }}
+}
+
+// machine instruction with 2 operands. register to address
+macro_rules! q2p_rta {
+    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Reg, dest: Addr) {
         self.rex_prefix(1, src.msb(), 0, dest.msb());
         self.opcode($w);
-        self.mod_rm(0b11, src.lsb3(), dest.lsb3());
+
+        dest.emit(self, src.lsb3());
     }}
 }
 
-macro_rules! q2p_mtr {
-    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Mem, dest: Reg) {
-        self.rex_prefix(1, dest.msb(), 0, src.0.msb());
-        self.opcode($w);
-        self.mod_rm_with_disp(dest.lsb3(), src);
-    }}
-}
-
-macro_rules! q2p_rtm {
-    ($i:ident, $w: expr) => {pub fn $i(&mut self, src: Reg, dest: Mem) {
-        self.rex_prefix(1, src.msb(), 0, dest.0.msb());
-        self.opcode($w);
-
-        if(fits8(dest.1 as i64)) {
-            self.mod_rm(0b01, src.lsb3(), dest.0.lsb3());
-            self.emitb(dest.1 as u8);
-        } else {
-            self.mod_rm(0b10, src.lsb3(), dest.0.lsb3());
-            self.emitd(dest.1 as u32);
-        }
-    }}
-}
-
-// machine operand with 2 operands. 64 bit immediate and destination register
-// register is added to opcode
+// machine instruction with 2 operands. u64 to register. register index is
+// added to opcode
 macro_rules! q2p_i64tr {
     ($i:ident, $w: expr) => {pub fn $i(&mut self, src: u64, dest: Reg) {
         self.rex_prefix(1, 0, 0, dest.msb());
@@ -225,42 +316,22 @@ macro_rules! q2p_i64tr {
     }}
 }
 
-// machine operand with 2 operands. 32 bit immediate and destination register
-macro_rules! q2p_i32tr {
-    ($i:ident, $w: expr, $modrm: expr) => {pub fn $i(&mut self, src: u32, dest: Reg) {
+// machine instruction with 2 operands. 32 bit immediate and destination operand
+macro_rules! q2p_i32ta {
+    ($i:ident, $w: expr, $modrm_reg: expr) => {pub fn $i(&mut self, src: u32, dest: Addr) {
         self.rex_prefix(1, 0, 0, dest.msb());
         self.opcode($w);
-        self.mod_rm(0b11, $modrm, dest.lsb3());
+        dest.emit(self, $modrm_reg);
         self.emitd(src);
     }}
 }
 
-// machine operand with 2 operands. 32 bit immediate and destination memory
-macro_rules! q2p_i32tm {
-    ($i:ident, $w: expr, $modrm: expr) => {pub fn $i(&mut self, src: u32, dest: Mem) {
-        self.rex_prefix(1, 0, 0, dest.0.msb());
-        self.opcode($w);
-        self.mod_rm_with_disp($modrm, dest);
-        self.emitd(src);
-    }}
-}
-
-// machine operand with 2 operands. 8 bit immediate and destination memory
-macro_rules! q2p_i8tm {
-    ($i:ident, $w: expr, $modrm: expr) => {pub fn $i(&mut self, src: u8, dest: Mem) {
-        self.rex_prefix(1, 0, 0, dest.0.msb());
-        self.opcode($w);
-        self.mod_rm_with_disp($modrm, dest);
-        self.emitb(src);
-    }}
-}
-
-// machine operand with 2 operands. 32 bit immediate and destination register
-macro_rules! q2p_i8tr {
-    ($i:ident, $w: expr, $modrm: expr) => {pub fn $i(&mut self, src: u8, dest: Reg) {
+// machine instruction with 2 operands. 8 bit immediate and destination operand
+macro_rules! q2p_i8ta {
+    ($i:ident, $w: expr, $modrm_reg: expr) => {pub fn $i(&mut self, src: u8, dest: Addr) {
         self.rex_prefix(1, 0, 0, dest.msb());
         self.opcode($w);
-        self.mod_rm(0b11, $modrm, dest.lsb3());
+        dest.emit(self, $modrm_reg);
         self.emitb(src);
     }}
 }
@@ -280,28 +351,20 @@ impl Assembler {
     q1p_r_rpo!(pushq, 0x50);
     q1p_r_rpo!(popq, 0x58);
 
-    q2p_rtr!(addq_rtr, 0x01);
-    q2p_rtm!(addq_rtm, 0x01);
-    q2p_mtr!(addq_mtr, 0x03);
-    q2p_i32tm!(addq_i32tm, 0x81, 0);
-    q2p_i32tr!(addq_i32tr, 0x81, 0);
-    q2p_i8tm!(addq_i8tm, 0x83, 0);
-    q2p_i8tr!(addq_i8tr, 0x83, 0);
+    q2p_rta!(addq_rta, 0x01);
+    q2p_atr!(addq_atr, 0x03);
+    q2p_i32ta!(addq_i32ta, 0x81, 0);
+    q2p_i8ta!(addq_i8ta, 0x83, 0);
 
-    q2p_rtr!(subq_rtr, 0x29);
-    q2p_rtm!(subq_rtm, 0x29);
-    q2p_mtr!(subq_mtr, 0x2B);
-    q2p_i32tm!(subq_i32tm, 0x81, 5);
-    q2p_i32tr!(subq_i32tr, 0x81, 5);
-    q2p_i8tm!(subq_i8tm, 0x83, 5);
-    q2p_i8tr!(subq_i8tr, 0x83, 5);
+    q2p_rta!(subq_rta, 0x29);
+    q2p_atr!(subq_atr, 0x2B);
+    q2p_i32ta!(subq_i32ta, 0x81, 5);
+    q2p_i8ta!(subq_i8ta, 0x83, 5);
 
-    q2p_rtr!(movq_rtr, 0x89);
-    q2p_rtm!(movq_rtm, 0x89);
-    q2p_mtr!(movq_mtr, 0x8B);
+    q2p_rta!(movq_rta, 0x89);
+    q2p_atr!(movq_atr, 0x8B);
     q2p_i64tr!(movq_i64tr, 0xB8);
-    q2p_i32tr!(movq_i32tr, 0xC7, 0);
-    q2p_i32tm!(movq_i32tm, 0xC7, 0);
+    q2p_i32ta!(movq_i32ta, 0xC7, 0);
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
     fn emitb(&mut self, c: u8) { self.code.push(c); }
@@ -309,22 +372,12 @@ impl Assembler {
     fn emitd(&mut self, d: u32) { self.code.write_u32::<LittleEndian>(d).unwrap(); }
     fn emitq(&mut self, q: u64) { self.code.write_u64::<LittleEndian>(q).unwrap(); }
 
-    fn mod_rm(&mut self, mode: u8, reg: u8, rm: u8) {
+    fn modrm(&mut self, mode: u8, reg: u8, rm: u8) {
         self.emitb(mode << 6 | reg << 3 | rm );
     }
 
     fn sib(&mut self, scale: u8, index: u8, base: u8) {
         self.emitb(scale << 6 | index << 3 | base);
-    }
-
-    fn mod_rm_with_disp(&mut self, src: u8, dest: Mem) {
-        if(fits8(dest.1 as i64)) {
-            self.mod_rm(0b01, src, dest.0.lsb3());
-            self.emitb(dest.1 as u8);
-        } else {
-            self.mod_rm(0b10, src, dest.0.lsb3());
-            self.emitd(dest.1 as u32);
-        }
     }
 
     fn rex_prefix(&mut self, w: u8, r: u8, x: u8, b: u8) {
@@ -373,8 +426,8 @@ fn test_pop() {
 #[test]
 fn test_mov() {
     let mut asm = Assembler::new();
-    asm.movq_rtr(r15, rax);
-    asm.movq_rtr(rsi, r8);
+    asm.movq_rta(r15, Addr::direct(rax));
+    asm.movq_rta(rsi, Addr::direct(r8));
 
     assert_eq!(vec![0x4c, 0x89, 0xf8, 0x49, 0x89, 0xf0], asm.code);
 }
@@ -392,8 +445,8 @@ fn test_mov_i64_to_reg() {
 #[test]
 fn test_mov_i32_to_mem() {
     let mut asm = Assembler::new();
-    asm.movq_i32tm(2, Mem(rbp, 1));
-    asm.movq_i32tm(3, Mem(r8, -1));
+    asm.movq_i32ta(2, Addr::with_disp(rbp, 1));
+    asm.movq_i32ta(3, Addr::with_disp(r8, -1));
 
     assert_eq!(vec![0x48, 0xC7, 0x45, 0x01, 2, 0, 0, 0,
         0x49, 0xC7, 0x40, 0xFF, 3, 0, 0, 0], asm.code);
@@ -402,8 +455,8 @@ fn test_mov_i32_to_mem() {
 #[test]
 fn test_mov_i32_to_reg() {
     let mut asm = Assembler::new();
-    asm.movq_i32tr(1, rax);
-    asm.movq_i32tr(2, r9);
+    asm.movq_i32ta(1, Addr::direct(rax));
+    asm.movq_i32ta(2, Addr::direct(r9));
 
     assert_eq!(vec![0x48, 0xC7, 0xC0, 1, 0, 0, 0,
         0x49, 0xC7, 0xC1, 2, 0, 0, 0], asm.code);
@@ -412,28 +465,28 @@ fn test_mov_i32_to_reg() {
 #[test]
 fn test_add_reg_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_rtr(r10, rcx);
-    asm.addq_rtr(rbx, r10);
+    asm.addq_rta(r10, Addr::direct(rcx));
+    asm.addq_rta(rbx, Addr::direct(r10));
 
     assert_eq!(vec![0x4c, 0x01, 0xd1,
         0x49, 0x01, 0xda], asm.code);
 }
 
 #[test]
-fn test_add_reg_to_mem() {
+fn test_add_reg_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_rtm(r9, Mem(rbp, 1));
-    asm.addq_rtm(rcx, Mem(rax, -1));
+    asm.addq_rta(r9, Addr::with_disp(rbp, 1));
+    asm.addq_rta(rcx, Addr::with_disp(rax, -1));
 
     assert_eq!(vec![0x4C, 0x01, 0x4D, 0x01,
         0x48, 0x01, 0x48, 0xFF], asm.code);
 }
 
 #[test]
-fn test_add_mem_to_reg() {
+fn test_add_addr_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_mtr(Mem(rbp, 1), r9);
-    asm.addq_mtr(Mem(rax, -1), rcx);
+    asm.addq_atr(Addr::with_disp(rbp, 1), r9);
+    asm.addq_atr(Addr::with_disp(rax, -1), rcx);
 
     assert_eq!(vec![0x4C, 0x03, 0x4D, 0x01,
         0x48, 0x03, 0x48, 0xFF], asm.code);
@@ -442,8 +495,8 @@ fn test_add_mem_to_reg() {
 #[test]
 fn test_add_i32_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_i32tr(1, rcx);
-    asm.addq_i32tr(0x100, r9);
+    asm.addq_i32ta(1, Addr::direct(rcx));
+    asm.addq_i32ta(0x100, Addr::direct(r9));
 
     assert_eq!(vec![0x48, 0x81, 0xC1, 1, 0, 0, 0,
         0x49, 0x81, 0xC1, 0, 1, 0, 0], asm.code);
@@ -452,48 +505,48 @@ fn test_add_i32_to_reg() {
 #[test]
 fn test_add_i8_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_i8tr(1, r8);
-    asm.addq_i8tr(1, rsi);
+    asm.addq_i8ta(1, Addr::direct(r8));
+    asm.addq_i8ta(1, Addr::direct(rsi));
 
     assert_eq!(vec![0x49, 0x83, 0xC0, 0x01,
         0x48, 0x83, 0xC6, 0x01], asm.code);
 }
 
 #[test]
-fn test_add_i32_to_mem() {
+fn test_add_i32_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_i32tm(1, Mem(rcx,1));
-    asm.addq_i32tm(0x100, Mem(r10,-1));
+    asm.addq_i32ta(1, Addr::with_disp(rcx,1));
+    asm.addq_i32ta(0x100, Addr::with_disp(r10,-1));
 
     assert_eq!(vec![0x48, 0x81, 0x41, 0x01, 1, 0, 0, 0,
         0x49, 0x81, 0x42, 0xFF, 0, 1, 0, 0], asm.code);
 }
 
 #[test]
-fn test_add_i8_to_mem() {
+fn test_add_i8_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_i8tm(1, Mem(rcx, 1));
-    asm.addq_i8tm(2, Mem(r11, -1));
+    asm.addq_i8ta(1, Addr::with_disp(rcx, 1));
+    asm.addq_i8ta(2, Addr::with_disp(r11, -1));
 
     assert_eq!(vec![0x48, 0x83, 0x41, 0x01, 0x01,
         0x49, 0x83, 0x43, 0xFF, 0x02], asm.code);
 }
 
 #[test]
-fn test_sub_i32_from_mem() {
+fn test_sub_i32_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_i32tm(1, Mem(rcx,1));
-    asm.subq_i32tm(0x100, Mem(r10,-1));
+    asm.subq_i32ta(1, Addr::with_disp(rcx,1));
+    asm.subq_i32ta(0x100, Addr::with_disp(r10,-1));
 
     assert_eq!(vec![0x48, 0x81, 0x69, 0x01, 1, 0, 0, 0,
         0x49, 0x81, 0x6A, 0xFF, 0, 1, 0, 0], asm.code);
 }
 
 #[test]
-fn test_sub_i8_from_mem() {
+fn test_sub_i8_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_i8tm(1, Mem(rcx, 1));
-    asm.subq_i8tm(2, Mem(r11, -1));
+    asm.subq_i8ta(1, Addr::with_disp(rcx, 1));
+    asm.subq_i8ta(2, Addr::with_disp(r11, -1));
 
     assert_eq!(vec![0x48, 0x83, 0x69, 0x01, 0x01,
         0x49, 0x83, 0x6B, 0xFF, 0x02], asm.code);
@@ -502,28 +555,28 @@ fn test_sub_i8_from_mem() {
 #[test]
 fn test_sub_reg_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_rtr(r10, rcx);
-    asm.subq_rtr(rbx, r10);
+    asm.subq_rta(r10, Addr::direct(rcx));
+    asm.subq_rta(rbx, Addr::direct(r10));
 
     assert_eq!(vec![0x4C, 0x29, 0xD1,
         0x49, 0x29, 0xDA], asm.code);
 }
 
 #[test]
-fn test_sub_reg_from_mem() {
+fn test_sub_reg_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_rtm(r9, Mem(rbp, 1));
-    asm.subq_rtm(rcx, Mem(rax, -1));
+    asm.subq_rta(r9, Addr::with_disp(rbp, 1));
+    asm.subq_rta(rcx, Addr::with_disp(rax, -1));
 
     assert_eq!(vec![0x4C, 0x29, 0x4D, 0x01,
         0x48, 0x29, 0x48, 0xFF], asm.code);
 }
 
 #[test]
-fn test_sub_mem_from_reg() {
+fn test_sub_addr_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_mtr(Mem(rbp, 1), r9);
-    asm.subq_mtr(Mem(rax, -1), rcx);
+    asm.subq_atr(Addr::with_disp(rbp, 1), r9);
+    asm.subq_atr(Addr::with_disp(rax, -1), rcx);
 
     assert_eq!(vec![0x4C, 0x2B, 0x4D, 0x01,
         0x48, 0x2B, 0x48, 0xFF], asm.code);
@@ -532,8 +585,8 @@ fn test_sub_mem_from_reg() {
 #[test]
 fn test_sub_i32_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_i32tr(1, rcx);
-    asm.subq_i32tr(0x100, r9);
+    asm.subq_i32ta(1, Addr::direct(rcx));
+    asm.subq_i32ta(0x100, Addr::direct(r9));
 
     assert_eq!(vec![0x48, 0x81, 0xE9, 1, 0, 0, 0,
         0x49, 0x81, 0xE9, 0, 1, 0, 0], asm.code);
@@ -542,8 +595,8 @@ fn test_sub_i32_from_reg() {
 #[test]
 fn test_sub_i8_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_i8tr(1, r8);
-    asm.subq_i8tr(1, rsi);
+    asm.subq_i8ta(1, Addr::direct(r8));
+    asm.subq_i8ta(1, Addr::direct(rsi));
 
     assert_eq!(vec![0x49, 0x83, 0xE8, 0x01,
         0x48, 0x83, 0xEE, 0x01], asm.code);
