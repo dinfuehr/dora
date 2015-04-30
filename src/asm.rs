@@ -9,7 +9,7 @@ use std::ptr;
 use std::mem;
 use asm::Reg::*;
 
-#[derive(PartialEq,Eq,Debug)]
+#[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub enum Reg {
     rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
     r8, r9, r10, r11, r12, r13, r14, r15,
@@ -185,7 +185,7 @@ impl Addr {
             }
 
         } else {
-            unreachable!("index and scale not yet supported");
+            self.emit_sib(asm, modrm_reg);
         }
     }
 
@@ -212,6 +212,22 @@ impl Addr {
             else { 0b10 };
 
         asm.modrm(mode, modrm_reg, 0b101);
+
+        if fits_into_byte {
+            asm.emitb(self.disp as u8);
+        } else {
+            asm.emitd(self.disp as u32);
+        }
+    }
+
+    fn emit_sib(&self, asm: &mut Assembler, modrm_reg: u8) {
+        let fits_into_byte = fits8(self.disp as i64);
+        let mode =
+            if fits_into_byte { 0b01 }
+            else { 0b10 };
+
+        asm.modrm(mode, modrm_reg, 0b100);
+        asm.sib(self.scale, self.index.unwrap().lsb3(), self.base.lsb3());
 
         if fits_into_byte {
             asm.emitb(self.disp as u8);
@@ -487,9 +503,11 @@ fn test_add_addr_to_reg() {
     let mut asm = Assembler::new();
     asm.addq_atr(Addr::with_disp(rbp, 1), r9);
     asm.addq_atr(Addr::with_disp(rax, -1), rcx);
+    asm.addq_atr(Addr::with_sib(rsp, rbp, 1, 3), r9);
 
     assert_eq!(vec![0x4C, 0x03, 0x4D, 0x01,
-        0x48, 0x03, 0x48, 0xFF], asm.code);
+        0x48, 0x03, 0x48, 0xFF,
+        0x4C, 0x03, 0x4C, 0x6C, 0x03], asm.code);
 }
 
 #[test]
