@@ -222,17 +222,21 @@ impl Addr {
 
     fn emit_sib(&self, asm: &mut Assembler, modrm_reg: u8) {
         let fits_into_byte = fits8(self.disp as i64);
+
         let mode =
-            if fits_into_byte { 0b01 }
+            if self.disp == 0 { 0b00 }
+            else if fits_into_byte { 0b01 }
             else { 0b10 };
 
         asm.modrm(mode, modrm_reg, 0b100);
         asm.sib(self.scale, self.index.unwrap().lsb3(), self.base.lsb3());
 
-        if fits_into_byte {
-            asm.emitb(self.disp as u8);
-        } else {
-            asm.emitd(self.disp as u32);
+        if self.disp != 0 {
+            if fits_into_byte {
+                asm.emitb(self.disp as u8);
+            } else {
+                asm.emitd(self.disp as u32);
+            }
         }
     }
 
@@ -504,10 +508,12 @@ fn test_add_addr_to_reg() {
     asm.addq_atr(Addr::with_disp(rbp, 1), r9);
     asm.addq_atr(Addr::with_disp(rax, -1), rcx);
     asm.addq_atr(Addr::with_sib(rsp, rbp, 1, 3), r9);
+    asm.addq_atr(Addr::with_sib(rsp, rbp, 2, 0), r9);
 
     assert_eq!(vec![0x4C, 0x03, 0x4D, 0x01,
         0x48, 0x03, 0x48, 0xFF,
-        0x4C, 0x03, 0x4C, 0x6C, 0x03], asm.code);
+        0x4C, 0x03, 0x4C, 0x6C, 0x03,
+        0x4C, 0x03, 0x0C, 0xAC], asm.code);
 }
 
 #[test]
@@ -620,8 +626,6 @@ fn test_sub_i8_from_reg() {
         0x48, 0x83, 0xEE, 0x01], asm.code);
 }
 
-static CODE : [u8;8] = [ 0x48, 0x89, 0xf8, 0x48, 0x83, 0xc0, 0x04, 0xc3 ];
-
 pub struct JitFunction {
     pub size: size_t,
     pub ptr: extern fn (u64) -> u64
@@ -663,7 +667,12 @@ impl Drop for JitFunction {
 
 #[test]
 fn test_create_function() {
-    let fct = JitFunction::new(&CODE);
+    let mut asm = Assembler::new();
+    asm.movq_rta(rdi, Addr::direct(rax));
+    asm.addq_i8ta(4, Addr::direct(rax));
+    asm.ret();
+
+    let fct = JitFunction::new(&asm.code);
 
     assert_eq!(5, (fct.ptr)(1));
 }
