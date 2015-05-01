@@ -17,6 +17,7 @@ mod parser;
 mod ast;
 mod semck;
 mod asm;
+mod sym;
 
 #[cfg(not(test))]
 fn main() {

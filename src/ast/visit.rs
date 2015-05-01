@@ -24,41 +24,41 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) -> Result<V::Returns, ParseErr
     match s.node {
         StmtVar(_, _, ref expr) => {
             if let Some(ref e) = *expr {
-                v.visit_expr(e);
+                try!(v.visit_expr(e));
             }
         }
 
         StmtWhile(ref cond, ref block) => {
-            v.visit_expr(cond);
-            v.visit_stmt(block);
+            try!(v.visit_expr(cond));
+            try!(v.visit_stmt(block));
         }
 
         StmtLoop(ref block) => {
-            v.visit_stmt(block);
+            try!(v.visit_stmt(block));
         }
 
         StmtIf(ref cond, ref tblock, ref eblock) => {
-            v.visit_expr(cond);
-            v.visit_stmt(tblock);
+            try!(v.visit_expr(cond));
+            try!(v.visit_stmt(tblock));
 
             if let Some(ref b) = *eblock {
-                v.visit_stmt(b);
+                try!(v.visit_stmt(b));
             }
         }
 
         StmtExpr(ref e) => {
-            v.visit_expr(e);
+            try!(v.visit_expr(e));
         }
 
         StmtBlock(ref stmts) => {
             for stmt in stmts {
-                v.visit_stmt(stmt);
+                try!(v.visit_stmt(stmt));
             }
         }
 
         StmtReturn(ref expr) => {
             if let Some(ref e) = *expr {
-                v.visit_expr(e);
+                try!(v.visit_expr(e));
             }
         }
 
@@ -72,17 +72,17 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) -> Result<V::Returns, ParseErr
 pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) -> Result<V::Returns, ParseError> {
     match e.node {
         ExprUn(_, ref op) => {
-            v.visit_expr(op);
+            try!(v.visit_expr(op));
         }
 
         ExprBin(_, ref left, ref right) => {
-            v.visit_expr(left);
-            v.visit_expr(right);
+            try!(v.visit_expr(left));
+            try!(v.visit_expr(right));
         }
 
         ExprAssign(ref left, ref right) => {
-            v.visit_expr(left);
-            v.visit_expr(right);
+            try!(v.visit_expr(left));
+            try!(v.visit_expr(right));
         }
 
         ExprLitInt(_) => {}

@@ -1,26 +1,61 @@
 use std::default::Default;
 
 use ast::Program;
+use ast::Stmt;
+use ast::StmtType::*;
 use ast::visit::Visitor;
-
 use error::ErrorCode;
 use error::ParseError;
-
 use lexer::position::Position;
-
 use parser::Parser;
+use sym::Sym;
+use sym::Sym::*;
+use sym::SymbolTable;
 
 struct SemCheck<'a> {
     program: &'a Program,
+    global: SymbolTable,
 }
 
 impl<'a> Visitor for SemCheck<'a> {
     type Returns = ();
+
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ParseError> {
+        match s.node {
+            StmtVar(ref ident, ref ty, ref expr) => {
+                if let None = self.global.get(ident) {
+                    self.global.insert(ident.clone(), SymLocalVar);
+
+                    Ok(())
+                } else {
+                    Err(ParseError {
+                        position: s.pos,
+                        message: "unsupported element".to_string(),
+                        code: ErrorCode::MainDefinition
+                    })
+                }
+            }
+
+            StmtBlock(ref stmts) => {
+                for stmt in stmts {
+                    try!(self.visit_stmt(stmt));
+                }
+
+                Ok(())
+            }
+
+            _ => Err(ParseError {
+                position: s.pos,
+                message: "unsupported element".to_string(),
+                code: ErrorCode::MainDefinition
+            })
+        }
+    }
 }
 
 impl<'a> SemCheck<'a> {
     pub fn new(prog: &Program) -> SemCheck {
-        SemCheck { program: prog }
+        SemCheck { program: prog, global: SymbolTable::new() }
     }
 
     pub fn check(&mut self) -> Result<(), ParseError> {
@@ -75,4 +110,11 @@ fn test_main_definition_invalid() {
 #[test]
 fn test_main() {
     assert!(ck("fn main() {}").is_ok());
+}
+
+#[test]
+fn test_var() {
+    assert!(ck("fn main() { var x=0; }").is_ok());
+    assert!(ck("fn main() { var x=0; var x=0; }").is_err());
+    assert!(ck("fn main() { var x=0; var y=0; }").is_ok());
 }
