@@ -9,10 +9,6 @@ use ast::StmtType::*;
 pub trait Visitor<'a> : Sized {
     type Returns : Default;
 
-    fn visit_fct(&mut self, fct: &'a Function) -> Self::Returns {
-        self.visit_stmt(&fct.block)
-    }
-
     fn visit_expr(&mut self, e: &Expr) -> Self::Returns {
         walk_expr(self, e)
     }
