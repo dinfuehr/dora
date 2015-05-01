@@ -1,4 +1,7 @@
+use std::default::Default;
+
 use ast::Program;
+use ast::visit::Visitor;
 
 use error::ErrorCode;
 use error::ParseError;
@@ -7,20 +10,24 @@ use lexer::position::Position;
 
 use parser::Parser;
 
-struct SemCheck {
-    program: Program,
+struct SemCheck<'a> {
+    program: &'a Program,
 }
 
-impl SemCheck {
-    pub fn new(prog: Program) -> SemCheck {
+impl<'a> Visitor for SemCheck<'a> {
+    type Returns = ();
+}
+
+impl<'a> SemCheck<'a> {
+    pub fn new(prog: &Program) -> SemCheck {
         SemCheck { program: prog }
     }
 
-    pub fn check(&self) -> Result<(), ParseError> {
+    pub fn check(&mut self) -> Result<(), ParseError> {
         self.check_main()
     }
 
-    fn check_main(&self) -> Result<(), ParseError> {
+    fn check_main(&mut self) -> Result<(), ParseError> {
         let fct = self.program.get_function("main");
 
         if fct.is_none() {
@@ -42,6 +49,8 @@ impl SemCheck {
             })
         }
 
+        try!(self.visit_stmt(&fct.block));
+
         Ok(())
     }
 }
@@ -50,7 +59,7 @@ impl SemCheck {
 fn ck(code: &'static str) -> Result<(), ParseError> {
     let prog = Parser::from_str(code).parse().unwrap();
 
-    SemCheck::new(prog).check()
+    SemCheck::new(&prog).check()
 }
 
 #[test]

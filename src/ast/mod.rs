@@ -1,7 +1,7 @@
 use ast::Elem::ElemFunction;
 use lexer::position::Position;
 
-mod visit;
+pub mod visit;
 
 #[derive(Debug)]
 pub struct Program {

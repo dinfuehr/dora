@@ -6,19 +6,21 @@ use ast::Function;
 use ast::Stmt;
 use ast::StmtType::*;
 
-pub trait Visitor<'a> : Sized {
+use error::ParseError;
+
+pub trait Visitor : Sized {
     type Returns : Default;
 
-    fn visit_expr(&mut self, e: &Expr) -> Self::Returns {
+    fn visit_expr(&mut self, e: &Expr) -> Result<Self::Returns, ParseError> {
         walk_expr(self, e)
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Self::Returns {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<Self::Returns, ParseError> {
         walk_stmt(self, s)
     }
 }
 
-pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Stmt) -> V::Returns {
+pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) -> Result<V::Returns, ParseError> {
     match s.node {
         StmtVar(_, _, ref expr) => {
             if let Some(ref e) = *expr {
@@ -64,10 +66,10 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &Stmt) -> V::Returns {
         StmtContinue => { }
     }
 
-    Default::default()
+    Ok(Default::default())
 }
 
-pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &Expr) -> V::Returns {
+pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) -> Result<V::Returns, ParseError> {
     match e.node {
         ExprUn(_, ref op) => {
             v.visit_expr(op);
@@ -89,6 +91,6 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &Expr) -> V::Returns {
         ExprIdent(_) => {}
     }
 
-    Default::default()
+    Ok(Default::default())
 }
 
