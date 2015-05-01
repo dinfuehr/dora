@@ -14,7 +14,7 @@ impl SymbolTable {
     }
 
     pub fn pop_level(&mut self) {
-        self.levels.pop()
+        self.levels.pop();
     }
 
     pub fn get(&self, name: &str) -> Option<&Sym> {
