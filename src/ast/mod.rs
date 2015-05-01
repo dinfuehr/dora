@@ -9,7 +9,6 @@ pub struct Program {
 }
 
 impl Program {
-    #[cfg(test)]
     pub fn get_function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = *e {
