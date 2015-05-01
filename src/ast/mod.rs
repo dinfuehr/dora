@@ -1,6 +1,7 @@
 use ast::Elem::ElemFunction;
-
 use lexer::position::Position;
+
+mod visit;
 
 #[derive(Debug)]
 pub struct Program {
@@ -165,12 +166,12 @@ pub enum BinOp {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Expr {
     pub position: Position,
-    pub expr: ExprType,
+    pub node: ExprType,
 }
 
 impl Expr {
     pub fn new(pos: Position, expr: ExprType) -> Box<Expr> {
-        box Expr { position: pos, expr: expr }
+        box Expr { position: pos, node: expr }
     }
 }
 
