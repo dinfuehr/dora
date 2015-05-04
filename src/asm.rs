@@ -9,6 +9,7 @@ use std::ptr;
 use std::mem;
 use asm::Reg::*;
 
+#[allow(non_camel_case_types)]
 #[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub enum Reg {
     rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
@@ -424,6 +425,25 @@ fn test_ret() {
 }
 
 #[test]
+#[should_panic]
+fn test_sib_with_rsp() {
+    Addr::with_sib(rsp, rsp, 1, 1);
+}
+
+#[test]
+#[should_panic]
+fn test_sib_with_illegal_scale() {
+    Addr::with_sib(rsp, rbp, 4, 1);
+}
+
+#[test]
+fn test_sib_without_rsp() {
+    Addr::with_sib(rsp, rcx, 1, 1);
+    Addr::with_sib(rsp, r9, 1, 1);
+    Addr::with_sib(rsp, rbp, 1, 1);
+}
+
+#[test]
 fn test_push() {
     let mut asm = Assembler::new();
     asm.pushq(rax);
@@ -450,6 +470,14 @@ fn test_mov() {
     asm.movq_rta(rsi, Addr::direct(r8));
 
     assert_eq!(vec![0x4c, 0x89, 0xf8, 0x49, 0x89, 0xf0], asm.code);
+}
+
+#[test]
+fn test_mov_addr_to_reg() {
+    let mut asm = Assembler::new();
+    asm.movq_atr(Addr::indirect(rax), r9);
+
+    assert_eq!(vec![0x4C, 0x8B, 0x08], asm.code);
 }
 
 #[test]
