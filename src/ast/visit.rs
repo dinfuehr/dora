@@ -2,7 +2,6 @@ use std::default::Default;
 
 use ast::Expr;
 use ast::ExprType::*;
-use ast::Function;
 use ast::Stmt;
 use ast::StmtType::*;
 

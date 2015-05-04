@@ -1,5 +1,3 @@
-use std::default::Default;
-
 use ast::Program;
 use ast::Stmt;
 use ast::StmtType::*;
@@ -8,7 +6,6 @@ use error::ErrorCode;
 use error::ParseError;
 use lexer::position::Position;
 use parser::Parser;
-use sym::Sym;
 use sym::Sym::*;
 use sym::SymbolTable;
 
@@ -22,7 +19,7 @@ impl<'a> Visitor for SemCheck<'a> {
 
     fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ParseError> {
         match s.node {
-            StmtVar(ref ident, ref ty, ref expr) => {
+            StmtVar(ref ident, _, _) => {
                 if let None = self.global.get(ident) {
                     self.global.insert(ident.clone(), SymLocalVar);
 

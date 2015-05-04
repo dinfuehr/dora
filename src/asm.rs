@@ -497,9 +497,11 @@ fn test_add_reg_to_addr() {
     let mut asm = Assembler::new();
     asm.addq_rta(r9, Addr::with_disp(rbp, 1));
     asm.addq_rta(rcx, Addr::with_disp(rax, -1));
+    asm.addq_rta(r9, Addr::indirect(rax));
 
     assert_eq!(vec![0x4C, 0x01, 0x4D, 0x01,
-        0x48, 0x01, 0x48, 0xFF], asm.code);
+        0x48, 0x01, 0x48, 0xFF,
+        0x4C, 0x01, 0x08], asm.code);
 }
 
 #[test]
