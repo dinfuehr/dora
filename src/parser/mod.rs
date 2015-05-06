@@ -832,7 +832,7 @@ mod tests {
     #[test]
     fn parse_function() {
         let prog = parse("fn b() { }");
-        let fct = prog.get_function("b").unwrap();
+        let fct = prog.function("b").unwrap();
 
         assert_eq!("b", &fct.name);
         assert_eq!(0, fct.params.len());
@@ -844,10 +844,10 @@ mod tests {
     #[test]
     fn parse_function_with_single_param() {
         let p1 = parse("fn f(a:int) { }");
-        let f1 = p1.get_function("f").unwrap();
+        let f1 = p1.function("f").unwrap();
 
         let p2 = parse("fn f(a:int,) { }");
-        let f2 = p2.get_function("f").unwrap();
+        let f2 = p2.function("f").unwrap();
 
         assert_eq!(f1.params, f2.params);
 
@@ -863,10 +863,10 @@ mod tests {
     #[test]
     fn parse_function_with_multiple_params() {
         let p1 = parse("fn f(a:int, b:str) { }");
-        let f1 = p1.get_function("f").unwrap();
+        let f1 = p1.function("f").unwrap();
 
         let p2 = parse("fn f(a:int, b:str,) { }");
-        let f2 = p2.get_function("f").unwrap();
+        let f2 = p2.function("f").unwrap();
 
         assert_eq!(f1.params, f2.params);
 
@@ -888,7 +888,7 @@ mod tests {
     #[test]
     fn parse_function_generic() {
         let prog = parse("fn f<T>() {}");
-        let fct = prog.get_function("f").unwrap();
+        let fct = prog.function("f").unwrap();
 
         let params = TypeParams { params: vec!["T".to_string()] };
         assert_eq!(params, fct.type_params);
@@ -940,11 +940,11 @@ mod tests {
     fn parse_multiple_functions() {
         let prog = parse("fn f() { } fn g() { }");
 
-        let f = prog.get_function("f").unwrap();
+        let f = prog.function("f").unwrap();
         assert_eq!("f", &f.name);
         assert_eq!(Position::new(1, 1), f.position);
 
-        let g = prog.get_function("g").unwrap();
+        let g = prog.function("g").unwrap();
         assert_eq!("g", &g.name);
         assert_eq!(Position::new(1, 12), g.position);
     }

@@ -60,7 +60,7 @@ impl<'a> SemCheck<'a> {
     }
 
     fn check_main(&mut self) -> Result<(), ParseError> {
-        let fct = self.program.get_function("main");
+        let fct = self.program.function("main");
 
         if fct.is_none() {
             return Err(ParseError {

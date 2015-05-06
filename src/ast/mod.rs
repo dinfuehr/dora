@@ -9,9 +9,19 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn get_function(&self, name: &str) -> Option<&Function> {
+    pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = *e {
+                if fct.name == name { return Some(fct); }
+            }
+        }
+
+        None
+    }
+
+    pub fn function_mut(&mut self, name: &str) -> Option<&mut Function> {
+        for e in &mut self.elements {
+            if let ElemFunction(ref mut fct) = *e {
                 if fct.name == name { return Some(fct); }
             }
         }
