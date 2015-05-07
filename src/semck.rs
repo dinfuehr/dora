@@ -1,15 +1,20 @@
 use ast::Expr;
 use ast::ExprType::*;
+use ast::Function;
 use ast::Program;
 use ast::Stmt;
 use ast::StmtType::*;
 use ast::visit::Visitor;
+
 use error::err;
 use error::unimplemented;
 use error::ErrorCode;
 use error::ParseError;
+
 use lexer::position::Position;
+
 use parser::Parser;
+
 use sym::Sym::*;
 use sym::SymbolTable;
 
@@ -77,8 +82,7 @@ impl<'a> SemCheck<'a> {
 
         let fct = fct.unwrap();
 
-        if !fct.type_params.empty() || fct.params.len() > 0 ||
-            !fct.return_type.is_int() {
+        if !valid_main_definition(fct) {
             return err(fct.position, "definition of main not correct".to_string(),
                 ErrorCode::MainDefinition)
         }
@@ -87,6 +91,10 @@ impl<'a> SemCheck<'a> {
 
         Ok(())
     }
+}
+
+fn valid_main_definition(fct: &Function) -> bool {
+    fct.type_params.empty() && fct.params.len() == 0 && fct.return_type.is_int()
 }
 
 #[cfg(test)]
