@@ -63,16 +63,18 @@ pub enum Type {
 
 impl Type {
     pub fn is_unit(&self) -> bool {
-        match *self {
-            Type::Tuple(ref types) => types.len() == 0,
-            _ => false
+        if let Type::Tuple(ref types) = *self {
+            types.len() == 0
+        } else {
+            false
         }
     }
 
     pub fn is_int(&self) -> bool {
-        match *self {
-            Type::Basic(ref name) => &name[..] == "int",
-            _ => false
+        if let Type::Basic(ref name) = *self {
+            &name[..] == "int"
+        } else {
+            false
         }
     }
 }
