@@ -357,16 +357,18 @@ macro_rules! q2p_i8ta {
     }}
 }
 
+#[derive(Copy,Clone)]
 struct Label(usize);
 
 pub struct Assembler {
     code: Vec<u8>,
-    labels: Vec<Option<usize>>
+    labels: Vec<Option<usize>>,
+    link_jmps: Vec<(usize, usize)>,
 }
 
 impl Assembler {
     pub fn new() -> Assembler {
-        Assembler { code: Vec::new(), labels: Vec::new() }
+        Assembler { code: Vec::new(), labels: Vec::new(), link_jmps: Vec::new() }
     }
 
     i0p!(nop, 0x90);
@@ -397,28 +399,34 @@ impl Assembler {
         Label(id)
     }
 
-    fn jmp(&mut self, lbl: &Label) {
-        let dest = self.dest(lbl);
-        assert!(dest.is_some(), "label has no destination");
-
-        let dest = dest.unwrap();
+    fn jmp(&mut self, lbl: Label) {
+        let Label(id) = lbl;
+        let dest = self.labels[id];
         let src = self.code.len();
 
-        self.opcode(0xE9);
-        self.emitd((dest-src) as u32);
+        if dest.is_some() {
+            let dest = dest.unwrap() as i32;
+            let src = src as i32;
+
+            let offset = (dest-src-5) as u32;
+
+            self.jmp_offset(offset);
+        } else {
+            self.reserve(5);
+            self.link_jmps.push((id, src));
+        }
     }
 
-    fn bind(&mut self, lbl: &Label) {
-        let &Label(id) = lbl;
+    fn jmp_offset(&mut self, offset: u32) {
+        self.opcode(0xE9);
+        self.emitd(offset);
+    }
+
+    fn bind(&mut self, lbl: Label) {
+        let Label(id) = lbl;
 
         assert!(self.labels[id].is_none(), "label already bound");
         self.labels[id] = Some(self.code.len());
-    }
-
-    fn dest(&mut self, lbl: &Label) -> Option<usize> {
-        let &Label(id) = lbl;
-
-        self.labels[id]
     }
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
@@ -440,6 +448,54 @@ impl Assembler {
 
         self.code.push(v);
     }
+
+    fn reserve(&mut self, size: usize) {
+        for i in 0..size {
+            self.nop();
+        }
+    }
+
+
+    fn code(mut self) -> Vec<u8> {
+        self.link();
+
+        self.code
+    }
+
+    fn link(&mut self) {
+        for &(lbl, pos) in &self.link_jmps {
+            let dest = self.labels[lbl].unwrap();
+            let offset = dest - pos - 5;
+
+            self.code[pos] = 0xE9;
+            (&mut self.code[pos+1..]).write_u32::<LittleEndian>(offset as u32).unwrap();
+        }
+    }
+}
+
+#[test]
+fn test_backward_jump() {
+    let mut asm = Assembler::new();
+    let lbl = asm.label();
+    asm.bind(lbl);
+    asm.nop();
+    asm.nop();
+    asm.jmp(lbl);
+
+    assert_eq!(vec![0x90, 0x90, 0xE9, 0xF9, 0xFF, 0xFF, 0xFF], asm.code);
+}
+
+#[test]
+fn test_forward_jump() {
+    let mut asm = Assembler::new();
+    let lbl = asm.label();
+    asm.jmp(lbl);
+    asm.nop();
+    asm.nop();
+    asm.bind(lbl);
+
+    assert_eq!(vec![0x90; 7], asm.code);
+    assert_eq!(vec![0xE9, 2, 0, 0, 0, 0x90, 0x90], asm.code());
 }
 
 #[test]
