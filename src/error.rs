@@ -6,9 +6,9 @@ use lexer::position::Position;
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
-    MisplacedElse, IoError, CommaExpected,
+    MisplacedElse, IoError, CommaExpected, ExpectedValue,
 
-    MainDefinition
+    MainDefinition, Unimplemented
 }
 
 #[derive(Debug)]
@@ -16,6 +16,18 @@ pub struct ParseError {
     pub position: Position,
     pub message: String,
     pub code: ErrorCode
+}
+
+pub fn err(pos: Position, msg: String, code: ErrorCode) -> Result<(), ParseError> {
+    Err(ParseError {
+        position: pos,
+        message: msg,
+        code: code,
+    })
+}
+
+pub fn unimplemented(pos: Position) -> Result<(), ParseError> {
+    err(pos, "not yet implemented".to_string(), ErrorCode::Unimplemented)
 }
 
 impl fmt::Display for ParseError {

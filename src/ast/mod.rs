@@ -64,7 +64,14 @@ pub enum Type {
 impl Type {
     pub fn is_unit(&self) -> bool {
         match *self {
-            Type::Tuple(ref types) if types.len() == 0 => true,
+            Type::Tuple(ref types) => types.len() == 0,
+            _ => false
+        }
+    }
+
+    pub fn is_int(&self) -> bool {
+        match *self {
+            Type::Basic(ref name) => &name[..] == "int",
             _ => false
         }
     }
@@ -174,13 +181,13 @@ pub enum BinOp {
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Expr {
-    pub position: Position,
+    pub pos: Position,
     pub node: ExprType,
 }
 
 impl Expr {
     pub fn new(pos: Position, expr: ExprType) -> Box<Expr> {
-        box Expr { position: pos, node: expr }
+        box Expr { pos: pos, node: expr }
     }
 }
 
