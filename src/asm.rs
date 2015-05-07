@@ -357,13 +357,16 @@ macro_rules! q2p_i8ta {
     }}
 }
 
+struct Label(usize);
+
 pub struct Assembler {
-    code: Vec<u8>
+    code: Vec<u8>,
+    labels: Vec<Option<usize>>
 }
 
 impl Assembler {
     pub fn new() -> Assembler {
-        Assembler { code: Vec::new() }
+        Assembler { code: Vec::new(), labels: Vec::new() }
     }
 
     i0p!(nop, 0x90);
@@ -386,6 +389,37 @@ impl Assembler {
     q2p_atr!(movq_atr, 0x8B);
     q2p_i64tr!(movq_i64tr, 0xB8);
     q2p_i32ta!(movq_i32ta, 0xC7, 0);
+
+    fn label(&mut self) -> Label {
+        let id = self.labels.len();
+        self.labels.push(None);
+
+        Label(id)
+    }
+
+    fn jmp(&mut self, lbl: &Label) {
+        let dest = self.dest(lbl);
+        assert!(dest.is_some(), "label has no destination");
+
+        let dest = dest.unwrap();
+        let src = self.code.len();
+
+        self.opcode(0xE9);
+        self.emitd((dest-src) as u32);
+    }
+
+    fn bind(&mut self, lbl: &Label) {
+        let &Label(id) = lbl;
+
+        assert!(self.labels[id].is_none(), "label already bound");
+        self.labels[id] = Some(self.code.len());
+    }
+
+    fn dest(&mut self, lbl: &Label) -> Option<usize> {
+        let &Label(id) = lbl;
+
+        self.labels[id]
+    }
 
     fn opcode(&mut self, c: u8) { self.code.push(c); }
     fn emitb(&mut self, c: u8) { self.code.push(c); }

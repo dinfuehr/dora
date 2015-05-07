@@ -117,6 +117,7 @@ fn test_main_definition_invalid() {
 #[test]
 fn test_main_no_return_value() {
     assert!(ck("fn main() {}").is_err());
+    assert!(ck("fn main() -> int { return; }").is_err());
 }
 
 #[test]
