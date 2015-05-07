@@ -499,6 +499,25 @@ fn test_forward_jump() {
 }
 
 #[test]
+#[should_panic]
+fn test_label_not_bound() {
+    let mut asm = Assembler::new();
+    let lbl = asm.label();
+    asm.jmp(lbl);
+
+    asm.code();
+}
+
+#[test]
+#[should_panic]
+fn test_label_bound_twice() {
+    let mut asm = Assembler::new();
+    let lbl = asm.label();
+    asm.bind(lbl);
+    asm.bind(lbl);
+}
+
+#[test]
 fn test_nop() {
     let mut asm = Assembler::new();
     asm.nop();
