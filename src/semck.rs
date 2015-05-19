@@ -1,3 +1,4 @@
+use ast::Elem::*;
 use ast::Expr;
 use ast::ExprType::*;
 use ast::Function;
@@ -18,15 +19,16 @@ use parser::Parser;
 use sym::Sym::*;
 use sym::SymbolTable;
 
-struct SemCheck<'a> {
-    program: &'a Program,
+type SemResult = Result<(), ParseError>;
+
+struct SemCheck {
     global: SymbolTable,
 }
 
-impl<'a> Visitor for SemCheck<'a> {
+impl Visitor for SemCheck {
     type Returns = ();
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ParseError> {
+    fn visit_stmt(&mut self, s: &Stmt) -> SemResult {
         match s.node {
             StmtReturn(ref expr) => {
                 if expr.is_none() {
@@ -51,7 +53,7 @@ impl<'a> Visitor for SemCheck<'a> {
         }
     }
 
-    fn visit_expr(&mut self, e: &Expr) -> Result<(), ParseError> {
+    fn visit_expr(&mut self, e: &Expr) -> SemResult {
         match e.node {
             ExprLitInt(val) => {
                 Ok(())
@@ -62,46 +64,70 @@ impl<'a> Visitor for SemCheck<'a> {
     }
 }
 
-impl<'a> SemCheck<'a> {
-    pub fn new(prog: &Program) -> SemCheck {
-        SemCheck { program: prog, global: SymbolTable::new() }
+impl SemCheck {
+    pub fn new() -> SemCheck {
+        SemCheck { global: SymbolTable::new() }
     }
 
-    pub fn check(&mut self) -> Result<(), ParseError> {
-        self.check_main()
+    pub fn check_program(&mut self, prog: &Program) -> SemResult {
+        // check all functions
+        try!(self.check_fcts(prog));
+
+        // check main definition
+        self.check_main_fct(prog)
     }
 
+    fn check_main_fct(&mut self, prog: &Program) -> SemResult {
+        let fct = prog.function("main");
 
-    fn check_main(&mut self) -> Result<(), ParseError> {
-        let fct = self.program.function("main");
-
-        if fct.is_none() {
-            return err(Position::new(1, 1), "main not found".to_string(),
-                ErrorCode::MainDefinition)
+        if let Some(fct) = fct {
+            return if valid_main_definition(fct) {
+                Ok(())
+            } else {
+                err(fct.position, "definition of main not correct".to_string(),
+                    ErrorCode::MainDefinition)
+            }
         }
 
-        let fct = fct.unwrap();
+        // if no function found --> error
+        err(Position::new(1, 1), "main not found".to_string(),
+            ErrorCode::MainDefinition)
+    }
 
-        if !valid_main_definition(fct) {
-            return err(fct.position, "definition of main not correct".to_string(),
-                ErrorCode::MainDefinition)
+    fn check_fcts(&mut self, prog: &Program) -> SemResult {
+        for elem in &prog.elements {
+            try!(match *elem {
+                // only allow fct's as top level element
+                ElemFunction(ref fct) => self.check_fct(fct),
+
+                _ => unimplemented(Position::new(1, 1))
+            })
         }
-
-        try!(self.visit_stmt(&fct.block));
 
         Ok(())
+    }
+
+    fn check_fct(&mut self, fct: &Function) -> SemResult {
+        self.visit_stmt(&fct.block)
     }
 }
 
 fn valid_main_definition(fct: &Function) -> bool {
-    fct.type_params.empty() && fct.params.len() == 0 && fct.return_type.is_int()
+    // no type params
+    fct.type_params.empty() &&
+
+        // no function params
+        fct.params.len() == 0 &&
+
+        // needs to return int
+        fct.return_type.is_int()
 }
 
 #[cfg(test)]
-fn ck(code: &'static str) -> Result<(), ParseError> {
+fn ck(code: &'static str) -> SemResult {
     let prog = Parser::from_str(code).parse().unwrap();
 
-    SemCheck::new(&prog).check()
+    SemCheck::new().check_program(&prog)
 }
 
 #[test]
