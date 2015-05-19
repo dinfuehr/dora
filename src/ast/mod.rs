@@ -4,11 +4,11 @@ use lexer::position::Position;
 pub mod visit;
 
 #[derive(Debug)]
-pub struct AST {
+pub struct Ast {
     pub elements: Vec<Elem>,
 }
 
-impl AST {
+impl Ast {
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = *e {

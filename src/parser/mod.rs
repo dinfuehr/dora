@@ -1,6 +1,7 @@
 use std::mem;
 use std::io::Error;
 
+use ast::Ast;
 use ast::BinOp;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr;
@@ -8,7 +9,6 @@ use ast::ExprType::{ExprAssign, ExprBin, ExprIdent,
     ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
 use ast::Function;
 use ast::Param;
-use ast::AST;
 use ast::Stmt;
 use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
@@ -58,7 +58,7 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn parse(&mut self) -> Result<AST, ParseError> {
+    pub fn parse(&mut self) -> Result<Ast, ParseError> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -67,7 +67,7 @@ impl<T: CodeReader> Parser<T> {
             elements.push(el);
         }
 
-        Ok(AST { elements: elements })
+        Ok(Ast { elements: elements })
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -569,7 +569,7 @@ mod tests {
     use ast::ExprType::{self, ExprAssign, ExprBin, ExprIdent,
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
     use ast::Param;
-    use ast::AST;
+    use ast::Ast;
     use ast::Stmt;
     use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
@@ -628,7 +628,7 @@ mod tests {
         parser.parse_type().unwrap()
     }
 
-    fn parse(code: &'static str) -> AST {
+    fn parse(code: &'static str) -> Ast {
         Parser::from_str(code).parse().unwrap()
     }
 

@@ -1,4 +1,4 @@
-use ast::AST;
+use ast::Ast;
 use ast::Elem::*;
 use ast::Expr;
 use ast::ExprType::*;
@@ -69,7 +69,7 @@ impl SemCheck {
         SemCheck { global: SymbolTable::new() }
     }
 
-    pub fn check_program(&mut self, prog: &AST) -> SemResult {
+    pub fn check_program(&mut self, prog: &Ast) -> SemResult {
         // check all functions
         try!(self.check_fcts(prog));
 
@@ -77,7 +77,7 @@ impl SemCheck {
         self.check_main_fct(prog)
     }
 
-    fn check_main_fct(&mut self, prog: &AST) -> SemResult {
+    fn check_main_fct(&mut self, prog: &Ast) -> SemResult {
         let fct = prog.function("main");
 
         if let Some(fct) = fct {
@@ -94,7 +94,7 @@ impl SemCheck {
             ErrorCode::MainDefinition)
     }
 
-    fn check_fcts(&mut self, prog: &AST) -> SemResult {
+    fn check_fcts(&mut self, prog: &Ast) -> SemResult {
         for elem in &prog.elements {
             try!(match *elem {
                 // only allow fct's as top level element
