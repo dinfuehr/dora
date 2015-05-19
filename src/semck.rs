@@ -1,5 +1,5 @@
 use ast::Ast;
-use ast::Elem::*;
+use ast::ElemType::*;
 use ast::Expr;
 use ast::ExprType::*;
 use ast::Function;
@@ -84,7 +84,7 @@ impl SemCheck {
             return if valid_main_definition(fct) {
                 Ok(())
             } else {
-                err(fct.position, "definition of main not correct".to_string(),
+                err(fct.pos, "definition of main not correct".to_string(),
                     ErrorCode::MainDefinition)
             }
         }
@@ -96,11 +96,11 @@ impl SemCheck {
 
     fn check_fcts(&mut self, prog: &Ast) -> SemResult {
         for elem in &prog.elements {
-            try!(match *elem {
+            try!(match elem.node {
                 // only allow fct's as top level element
                 ElemFunction(ref fct) => self.check_fct(fct),
 
-                _ => unimplemented(Position::new(1, 1))
+                _ => unimplemented(elem.pos)
             })
         }
 

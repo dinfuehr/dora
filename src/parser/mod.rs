@@ -3,7 +3,8 @@ use std::io::Error;
 
 use ast::Ast;
 use ast::BinOp;
-use ast::Elem::{self, ElemFunction};
+use ast::Elem;
+use ast::ElemType::{self, ElemFunction};
 use ast::Expr;
 use ast::ExprType::{ExprAssign, ExprBin, ExprIdent,
     ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
@@ -77,10 +78,12 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
+        let pos = self.token.position;
+
         match self.token.token_type {
             TokenType::Fn => {
                 let fct = try!(self.parse_function());
-                Ok(ElemFunction(fct))
+                Ok(Elem::new(fct.pos, ElemFunction(fct)))
             }
 
             _ => Err(ParseError {
@@ -102,7 +105,7 @@ impl<T: CodeReader> Parser<T> {
 
         Ok(Function {
             name: ident,
-            position: pos,
+            pos: pos,
             type_params: type_params,
             params: params,
             return_type: return_type,
@@ -838,7 +841,7 @@ mod tests {
         assert_eq!(0, fct.params.len());
         assert_eq!(0, fct.type_params.params.len());
         assert_eq!(Type::Tuple(Vec::new()), fct.return_type);
-        assert_eq!(Position::new(1, 1), fct.position);
+        assert_eq!(Position::new(1, 1), fct.pos);
     }
 
     #[test]
@@ -942,11 +945,11 @@ mod tests {
 
         let f = prog.function("f").unwrap();
         assert_eq!("f", &f.name);
-        assert_eq!(Position::new(1, 1), f.position);
+        assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.function("g").unwrap();
         assert_eq!("g", &g.name);
-        assert_eq!(Position::new(1, 12), g.position);
+        assert_eq!(Position::new(1, 12), g.pos);
     }
 
     #[test]

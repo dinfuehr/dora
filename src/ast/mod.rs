@@ -1,4 +1,4 @@
-use ast::Elem::ElemFunction;
+use ast::ElemType::ElemFunction;
 use lexer::position::Position;
 
 pub mod visit;
@@ -11,7 +11,7 @@ pub struct Ast {
 impl Ast {
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
-            if let ElemFunction(ref fct) = *e {
+            if let ElemFunction(ref fct) = e.node {
                 if fct.name == name { return Some(fct); }
             }
         }
@@ -21,7 +21,7 @@ impl Ast {
 
     pub fn function_mut(&mut self, name: &str) -> Option<&mut Function> {
         for e in &mut self.elements {
-            if let ElemFunction(ref mut fct) = *e {
+            if let ElemFunction(ref mut fct) = e.node {
                 if fct.name == name { return Some(fct); }
             }
         }
@@ -31,7 +31,19 @@ impl Ast {
 }
 
 #[derive(Debug)]
-pub enum Elem {
+pub struct Elem {
+    pub pos: Position,
+    pub node: ElemType,
+}
+
+impl Elem {
+    pub fn new(pos: Position, node: ElemType) -> Elem {
+        Elem { pos: pos, node: node }
+    }
+}
+
+#[derive(Debug)]
+pub enum ElemType {
     ElemFunction(Function),
     ElemEnum(Enum),
     ElemTupleStruct(TupleStruct),
@@ -119,7 +131,7 @@ pub struct Alias {
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
-    pub position: Position,
+    pub pos: Position,
 
     pub type_params: TypeParams,
     pub params: Vec<Param>,
