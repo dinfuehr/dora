@@ -18,6 +18,7 @@ mod ast;
 mod semck;
 mod asm;
 mod sym;
+mod base;
 
 #[cfg(not(test))]
 fn main() {
