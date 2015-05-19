@@ -8,7 +8,7 @@ use ast::ExprType::{ExprAssign, ExprBin, ExprIdent,
     ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
 use ast::Function;
 use ast::Param;
-use ast::Program;
+use ast::AST;
 use ast::Stmt;
 use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
@@ -58,7 +58,7 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn parse(&mut self) -> Result<Program, ParseError> {
+    pub fn parse(&mut self) -> Result<AST, ParseError> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -67,7 +67,7 @@ impl<T: CodeReader> Parser<T> {
             elements.push(el);
         }
 
-        Ok(Program { elements: elements })
+        Ok(AST { elements: elements })
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -569,7 +569,7 @@ mod tests {
     use ast::ExprType::{self, ExprAssign, ExprBin, ExprIdent,
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
     use ast::Param;
-    use ast::Program;
+    use ast::AST;
     use ast::Stmt;
     use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
@@ -628,7 +628,7 @@ mod tests {
         parser.parse_type().unwrap()
     }
 
-    fn parse(code: &'static str) -> Program {
+    fn parse(code: &'static str) -> AST {
         Parser::from_str(code).parse().unwrap()
     }
 
