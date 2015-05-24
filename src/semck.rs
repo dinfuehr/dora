@@ -80,18 +80,32 @@ impl SemCheck {
     fn check_main_fct(&mut self, prog: &Ast) -> SemResult {
         let fct = prog.function("main");
 
-        if let Some(fct) = fct {
-            return if valid_main_definition(fct) {
-                Ok(())
-            } else {
-                err(fct.pos, "definition of main not correct".to_string(),
-                    ErrorCode::MainDefinition)
-            }
+        if fct.is_none() {
+            return err(Position::new(1, 1), "main function not found".to_string(),
+                ErrorCode::MainDefinition)
         }
 
-        // if no function found --> error
-        err(Position::new(1, 1), "main not found".to_string(),
-            ErrorCode::MainDefinition)
+        let fct = fct.unwrap();
+
+        if !fct.type_params.empty() {
+            return err(fct.pos,
+                "main function is not allowed to have any type parameters".to_string(),
+                ErrorCode::MainDefinition)
+        }
+
+        if fct.params.len() > 0 {
+            return err(fct.pos,
+                "main function is not allowed to have any parameters".to_string(),
+                ErrorCode::MainDefinition)
+        }
+
+        if !fct.return_type.is_int() {
+            return err(fct.pos,
+                "main function needs to return `int`".to_string(),
+                ErrorCode::MainDefinition)
+        }
+
+        Ok(())
     }
 
     fn check_fcts(&mut self, prog: &Ast) -> SemResult {
@@ -110,17 +124,6 @@ impl SemCheck {
     fn check_fct(&mut self, fct: &Function) -> SemResult {
         self.visit_stmt(&fct.block)
     }
-}
-
-fn valid_main_definition(fct: &Function) -> bool {
-    // no type params
-    fct.type_params.empty() &&
-
-        // no function params
-        fct.params.len() == 0 &&
-
-        // needs to return int
-        fct.return_type.is_int()
 }
 
 #[cfg(test)]
