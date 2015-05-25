@@ -18,16 +18,6 @@ impl Ast {
 
         None
     }
-
-    pub fn function_mut(&mut self, name: &str) -> Option<&mut Function> {
-        for e in &mut self.elements {
-            if let ElemFunction(ref mut fct) = e.node {
-                if fct.name == name { return Some(fct); }
-            }
-        }
-
-        None
-    }
 }
 
 #[derive(Debug)]

@@ -21,14 +21,19 @@ use sym::SymbolTable;
 
 type SemResult = Result<(), ParseError>;
 
-struct SemCheck {
+struct SemCheck<'a> {
     global: SymbolTable,
+    ast: &'a Ast,
 }
 
-impl Visitor for SemCheck {
+impl<'a> Visitor<'a> for SemCheck<'a> {
     type Returns = ();
 
-    fn visit_stmt(&mut self, s: &Stmt) -> SemResult {
+    fn visit_fct(&mut self, fct: &'a Function) -> SemResult {
+        self.visit_stmt(&fct.block)
+    }
+
+    fn visit_stmt(&mut self, s: &'a Stmt) -> SemResult {
         match s.node {
             StmtReturn(ref expr) => {
                 if expr.is_none() {
@@ -64,17 +69,20 @@ impl Visitor for SemCheck {
     }
 }
 
-impl SemCheck {
-    pub fn new() -> SemCheck {
-        SemCheck { global: SymbolTable::new() }
+impl<'a> SemCheck<'a> {
+    pub fn new(ast: &'a Ast) -> SemCheck {
+        SemCheck {
+            global: SymbolTable::new(),
+            ast: ast,
+        }
     }
 
-    pub fn check_program(&mut self, prog: &Ast) -> SemResult {
+    pub fn check(&mut self) -> SemResult {
         // check all functions
-        try!(self.check_fcts(prog));
+        try!(self.visit_ast(self.ast));
 
         // check main definition
-        self.check_main_fct(prog)
+        self.check_main_fct(self.ast)
     }
 
     fn check_main_fct(&mut self, prog: &Ast) -> SemResult {
@@ -107,30 +115,13 @@ impl SemCheck {
 
         Ok(())
     }
-
-    fn check_fcts(&mut self, prog: &Ast) -> SemResult {
-        for elem in &prog.elements {
-            try!(match elem.node {
-                // only allow fct's as top level element
-                ElemFunction(ref fct) => self.check_fct(fct),
-
-                _ => unimplemented(elem.pos)
-            })
-        }
-
-        Ok(())
-    }
-
-    fn check_fct(&mut self, fct: &Function) -> SemResult {
-        self.visit_stmt(&fct.block)
-    }
 }
 
 #[cfg(test)]
 fn ck(code: &'static str) -> SemResult {
-    let prog = Parser::from_str(code).parse().unwrap();
+    let ast = Parser::from_str(code).parse().unwrap();
 
-    SemCheck::new().check_program(&prog)
+    SemCheck::new(&ast).check()
 }
 
 #[test]
