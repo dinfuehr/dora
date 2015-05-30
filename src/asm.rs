@@ -11,6 +11,7 @@ use asm::Reg::*;
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq,Eq,Debug,Copy,Clone)]
+#[repr(C)]
 pub enum Reg {
     rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
     r8, r9, r10, r11, r12, r13, r14, r15,
@@ -19,54 +20,19 @@ pub enum Reg {
 impl Reg {
     // most significant bit
     fn msb(&self) -> u8 {
-        match *self {
-            rax | rcx | rdx | rbx | rsp | rbp | rsi | rdi => 0,
-            r8 | r9 | r10 | r11 | r12 | r13 | r14 | r15 => 1,
-        }
+        (self.idx() & 8) >> 3
     }
 
     // least 3 significant bit
     fn lsb3(&self) -> u8 {
-        match *self {
-            rax => 0,
-            rcx => 1,
-            rdx => 2,
-            rbx => 3,
-            rsp => 4,
-            rbp => 5,
-            rsi => 6,
-            rdi => 7,
-            r8 => 0,
-            r9 => 1,
-            r10 => 2,
-            r11 => 3,
-            r12 => 4,
-            r13 => 5,
-            r14 => 6,
-            r15 => 7,
-        }
+        self.idx() & 7
     }
 
     // index of enum
     fn idx(&self) -> u8 {
-        match *self {
-            rax => 0,
-            rcx => 1,
-            rdx => 2,
-            rbx => 3,
-            rsp => 4,
-            rbp => 5,
-            rsi => 6,
-            rdi => 7,
-            r8 => 8,
-            r9 => 9,
-            r10 => 10,
-            r11 => 11,
-            r12 => 12,
-            r13 => 13,
-            r14 => 14,
-            r15 => 15,
-        }
+        let val : u32 = unsafe { mem::transmute(*self) };
+
+        val as u8
     }
 }
 
