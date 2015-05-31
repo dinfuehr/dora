@@ -9,12 +9,11 @@ use std::ptr;
 use std::mem;
 use asm::Reg::*;
 
-#[allow(non_camel_case_types)]
 #[derive(PartialEq,Eq,Debug,Copy,Clone)]
 #[repr(C)]
 pub enum Reg {
-    rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
-    r8, r9, r10, r11, r12, r13, r14, r15,
+    Rax, Rcx, Rdx, Rbx, Rsp, Rbp, Rsi, Rdi,
+    R8, R9, R10, R11, R12, R13, R14, R15,
 }
 
 impl Reg {
@@ -38,65 +37,65 @@ impl Reg {
 
 #[test]
 fn test_msb() {
-    assert_eq!(0, rax.msb());
-    assert_eq!(0, rcx.msb());
-    assert_eq!(0, rdx.msb());
-    assert_eq!(0, rbx.msb());
-    assert_eq!(0, rsp.msb());
-    assert_eq!(0, rbp.msb());
-    assert_eq!(0, rsi.msb());
-    assert_eq!(0, rdi.msb());
+    assert_eq!(0, Rax.msb());
+    assert_eq!(0, Rcx.msb());
+    assert_eq!(0, Rdx.msb());
+    assert_eq!(0, Rbx.msb());
+    assert_eq!(0, Rsp.msb());
+    assert_eq!(0, Rbp.msb());
+    assert_eq!(0, Rsi.msb());
+    assert_eq!(0, Rdi.msb());
 
-    assert_eq!(1, r8.msb());
-    assert_eq!(1, r9.msb());
-    assert_eq!(1, r10.msb());
-    assert_eq!(1, r11.msb());
-    assert_eq!(1, r12.msb());
-    assert_eq!(1, r13.msb());
-    assert_eq!(1, r14.msb());
-    assert_eq!(1, r15.msb());
+    assert_eq!(1, R8.msb());
+    assert_eq!(1, R9.msb());
+    assert_eq!(1, R10.msb());
+    assert_eq!(1, R11.msb());
+    assert_eq!(1, R12.msb());
+    assert_eq!(1, R13.msb());
+    assert_eq!(1, R14.msb());
+    assert_eq!(1, R15.msb());
 }
 
 #[test]
 fn test_idx() {
-    assert_eq!(0, rax.idx());
-    assert_eq!(1, rcx.idx());
-    assert_eq!(2, rdx.idx());
-    assert_eq!(3, rbx.idx());
-    assert_eq!(4, rsp.idx());
-    assert_eq!(5, rbp.idx());
-    assert_eq!(6, rsi.idx());
-    assert_eq!(7, rdi.idx());
+    assert_eq!(0, Rax.idx());
+    assert_eq!(1, Rcx.idx());
+    assert_eq!(2, Rdx.idx());
+    assert_eq!(3, Rbx.idx());
+    assert_eq!(4, Rsp.idx());
+    assert_eq!(5, Rbp.idx());
+    assert_eq!(6, Rsi.idx());
+    assert_eq!(7, Rdi.idx());
 
-    assert_eq!(8, r8.idx());
-    assert_eq!(9, r9.idx());
-    assert_eq!(10, r10.idx());
-    assert_eq!(11, r11.idx());
-    assert_eq!(12, r12.idx());
-    assert_eq!(13, r13.idx());
-    assert_eq!(14, r14.idx());
-    assert_eq!(15, r15.idx());
+    assert_eq!(8, R8.idx());
+    assert_eq!(9, R9.idx());
+    assert_eq!(10, R10.idx());
+    assert_eq!(11, R11.idx());
+    assert_eq!(12, R12.idx());
+    assert_eq!(13, R13.idx());
+    assert_eq!(14, R14.idx());
+    assert_eq!(15, R15.idx());
 }
 
 #[test]
 fn test_lsb3() {
-    assert_eq!(0, rax.lsb3());
-    assert_eq!(1, rcx.lsb3());
-    assert_eq!(2, rdx.lsb3());
-    assert_eq!(3, rbx.lsb3());
-    assert_eq!(4, rsp.lsb3());
-    assert_eq!(5, rbp.lsb3());
-    assert_eq!(6, rsi.lsb3());
-    assert_eq!(7, rdi.lsb3());
+    assert_eq!(0, Rax.lsb3());
+    assert_eq!(1, Rcx.lsb3());
+    assert_eq!(2, Rdx.lsb3());
+    assert_eq!(3, Rbx.lsb3());
+    assert_eq!(4, Rsp.lsb3());
+    assert_eq!(5, Rbp.lsb3());
+    assert_eq!(6, Rsi.lsb3());
+    assert_eq!(7, Rdi.lsb3());
 
-    assert_eq!(0, r8.lsb3());
-    assert_eq!(1, r9.lsb3());
-    assert_eq!(2, r10.lsb3());
-    assert_eq!(3, r11.lsb3());
-    assert_eq!(4, r12.lsb3());
-    assert_eq!(5, r13.lsb3());
-    assert_eq!(6, r14.lsb3());
-    assert_eq!(7, r15.lsb3());
+    assert_eq!(0, R8.lsb3());
+    assert_eq!(1, R9.lsb3());
+    assert_eq!(2, R10.lsb3());
+    assert_eq!(3, R11.lsb3());
+    assert_eq!(4, R12.lsb3());
+    assert_eq!(5, R13.lsb3());
+    assert_eq!(6, R14.lsb3());
+    assert_eq!(7, R15.lsb3());
 }
 
 #[derive(Debug)]
@@ -123,7 +122,7 @@ impl Addr {
     }
 
     pub fn with_sib(base: Reg, idx: Reg, scale: u8, disp: i32) -> Addr {
-        assert!(idx != rsp);
+        assert!(idx != Rsp);
         assert!(scale <= 3);
 
         Addr { base: base, index: Some(idx), scale: scale, disp: disp, direct: false }
@@ -134,7 +133,7 @@ impl Addr {
     }
 
     fn base_special(&self) -> bool {
-        self.base == rsp || self.base == rbp || self.base == r12 || self.base == r13
+        self.base == Rsp || self.base == Rbp || self.base == R12 || self.base == R13
     }
 
     fn emit(&self, asm: &mut Assembler, modrm_reg: u8) {
@@ -144,11 +143,11 @@ impl Addr {
         } else if self.index.is_none() {
             if !self.base_special() {
                 self.emit_without_sib(asm, modrm_reg);
-            } else if self.base == rsp || self.base == r13 {
-                self.emit_rsp(asm, modrm_reg);
+            } else if self.base == Rsp || self.base == R13 {
+                self.emit_Rsp(asm, modrm_reg);
 
             } else {
-                self.emit_rbp(asm, modrm_reg);
+                self.emit_Rbp(asm, modrm_reg);
             }
 
         } else {
@@ -156,7 +155,7 @@ impl Addr {
         }
     }
 
-    fn emit_rsp(&self, asm: &mut Assembler, modrm_reg: u8) {
+    fn emit_Rsp(&self, asm: &mut Assembler, modrm_reg: u8) {
         let fits_into_byte = fits8(self.disp as i64);
         let mode =
             if fits_into_byte { 0b01 }
@@ -172,7 +171,7 @@ impl Addr {
         }
     }
 
-    fn emit_rbp(&self, asm: &mut Assembler, modrm_reg: u8) {
+    fn emit_Rbp(&self, asm: &mut Assembler, modrm_reg: u8) {
         let fits_into_byte = fits8(self.disp as i64);
         let mode =
             if fits_into_byte { 0b01 }
@@ -501,29 +500,29 @@ fn test_ret() {
 
 #[test]
 #[should_panic]
-fn test_sib_with_rsp() {
-    Addr::with_sib(rsp, rsp, 1, 1);
+fn test_sib_with_Rsp() {
+    Addr::with_sib(Rsp, Rsp, 1, 1);
 }
 
 #[test]
 #[should_panic]
 fn test_sib_with_illegal_scale() {
-    Addr::with_sib(rsp, rbp, 4, 1);
+    Addr::with_sib(Rsp, Rbp, 4, 1);
 }
 
 #[test]
-fn test_sib_without_rsp() {
-    Addr::with_sib(rsp, rcx, 1, 1);
-    Addr::with_sib(rsp, r9, 1, 1);
-    Addr::with_sib(rsp, rbp, 1, 1);
+fn test_sib_without_Rsp() {
+    Addr::with_sib(Rsp, Rcx, 1, 1);
+    Addr::with_sib(Rsp, R9, 1, 1);
+    Addr::with_sib(Rsp, Rbp, 1, 1);
 }
 
 #[test]
 fn test_push() {
     let mut asm = Assembler::new();
-    asm.pushq(rax);
-    asm.pushq(r8);
-    asm.pushq(rcx);
+    asm.pushq(Rax);
+    asm.pushq(R8);
+    asm.pushq(Rcx);
 
     assert_eq!(vec![0x50, 0x41, 0x50, 0x51], asm.code);
 }
@@ -531,9 +530,9 @@ fn test_push() {
 #[test]
 fn test_pop() {
     let mut asm = Assembler::new();
-    asm.popq(rax);
-    asm.popq(r8);
-    asm.popq(rcx);
+    asm.popq(Rax);
+    asm.popq(R8);
+    asm.popq(Rcx);
 
     assert_eq!(vec![0x58, 0x41, 0x58, 0x59], asm.code);
 }
@@ -541,8 +540,8 @@ fn test_pop() {
 #[test]
 fn test_mov() {
     let mut asm = Assembler::new();
-    asm.movq_rta(r15, Addr::direct(rax));
-    asm.movq_rta(rsi, Addr::direct(r8));
+    asm.movq_rta(R15, Addr::direct(Rax));
+    asm.movq_rta(Rsi, Addr::direct(R8));
 
     assert_eq!(vec![0x4c, 0x89, 0xf8, 0x49, 0x89, 0xf0], asm.code);
 }
@@ -550,7 +549,7 @@ fn test_mov() {
 #[test]
 fn test_mov_addr_to_reg() {
     let mut asm = Assembler::new();
-    asm.movq_atr(Addr::indirect(rax), r9);
+    asm.movq_atr(Addr::indirect(Rax), R9);
 
     assert_eq!(vec![0x4C, 0x8B, 0x08], asm.code);
 }
@@ -558,8 +557,8 @@ fn test_mov_addr_to_reg() {
 #[test]
 fn test_mov_i64_to_reg() {
     let mut asm = Assembler::new();
-    asm.movq_i64tr(1, rax);
-    asm.movq_i64tr(2, r8);
+    asm.movq_i64tr(1, Rax);
+    asm.movq_i64tr(2, R8);
 
     assert_eq!(vec![0x48, 0xb8, 1, 0, 0, 0, 0, 0, 0, 0,
         0x49, 0xb8, 2, 0, 0, 0, 0, 0, 0, 0], asm.code);
@@ -568,8 +567,8 @@ fn test_mov_i64_to_reg() {
 #[test]
 fn test_mov_i32_to_mem() {
     let mut asm = Assembler::new();
-    asm.movq_i32ta(2, Addr::with_disp(rbp, 1));
-    asm.movq_i32ta(3, Addr::with_disp(r8, -1));
+    asm.movq_i32ta(2, Addr::with_disp(Rbp, 1));
+    asm.movq_i32ta(3, Addr::with_disp(R8, -1));
 
     assert_eq!(vec![0x48, 0xC7, 0x45, 0x01, 2, 0, 0, 0,
         0x49, 0xC7, 0x40, 0xFF, 3, 0, 0, 0], asm.code);
@@ -578,8 +577,8 @@ fn test_mov_i32_to_mem() {
 #[test]
 fn test_mov_i32_to_reg() {
     let mut asm = Assembler::new();
-    asm.movq_i32ta(1, Addr::direct(rax));
-    asm.movq_i32ta(2, Addr::direct(r9));
+    asm.movq_i32ta(1, Addr::direct(Rax));
+    asm.movq_i32ta(2, Addr::direct(R9));
 
     assert_eq!(vec![0x48, 0xC7, 0xC0, 1, 0, 0, 0,
         0x49, 0xC7, 0xC1, 2, 0, 0, 0], asm.code);
@@ -588,8 +587,8 @@ fn test_mov_i32_to_reg() {
 #[test]
 fn test_add_reg_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_rta(r10, Addr::direct(rcx));
-    asm.addq_rta(rbx, Addr::direct(r10));
+    asm.addq_rta(R10, Addr::direct(Rcx));
+    asm.addq_rta(Rbx, Addr::direct(R10));
 
     assert_eq!(vec![0x4c, 0x01, 0xd1,
         0x49, 0x01, 0xda], asm.code);
@@ -598,9 +597,9 @@ fn test_add_reg_to_reg() {
 #[test]
 fn test_add_reg_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_rta(r9, Addr::with_disp(rbp, 1));
-    asm.addq_rta(rcx, Addr::with_disp(rax, -1));
-    asm.addq_rta(r9, Addr::indirect(rax));
+    asm.addq_rta(R9, Addr::with_disp(Rbp, 1));
+    asm.addq_rta(Rcx, Addr::with_disp(Rax, -1));
+    asm.addq_rta(R9, Addr::indirect(Rax));
 
     assert_eq!(vec![0x4C, 0x01, 0x4D, 0x01,
         0x48, 0x01, 0x48, 0xFF,
@@ -610,10 +609,10 @@ fn test_add_reg_to_addr() {
 #[test]
 fn test_add_addr_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_atr(Addr::with_disp(rbp, 1), r9);
-    asm.addq_atr(Addr::with_disp(rax, -1), rcx);
-    asm.addq_atr(Addr::with_sib(rsp, rbp, 1, 3), r9);
-    asm.addq_atr(Addr::with_sib(rsp, rbp, 2, 0), r9);
+    asm.addq_atr(Addr::with_disp(Rbp, 1), R9);
+    asm.addq_atr(Addr::with_disp(Rax, -1), Rcx);
+    asm.addq_atr(Addr::with_sib(Rsp, Rbp, 1, 3), R9);
+    asm.addq_atr(Addr::with_sib(Rsp, Rbp, 2, 0), R9);
 
     assert_eq!(vec![0x4C, 0x03, 0x4D, 0x01,
         0x48, 0x03, 0x48, 0xFF,
@@ -624,8 +623,8 @@ fn test_add_addr_to_reg() {
 #[test]
 fn test_add_i32_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_i32ta(1, Addr::direct(rcx));
-    asm.addq_i32ta(0x100, Addr::direct(r9));
+    asm.addq_i32ta(1, Addr::direct(Rcx));
+    asm.addq_i32ta(0x100, Addr::direct(R9));
 
     assert_eq!(vec![0x48, 0x81, 0xC1, 1, 0, 0, 0,
         0x49, 0x81, 0xC1, 0, 1, 0, 0], asm.code);
@@ -634,8 +633,8 @@ fn test_add_i32_to_reg() {
 #[test]
 fn test_add_i8_to_reg() {
     let mut asm = Assembler::new();
-    asm.addq_i8ta(1, Addr::direct(r8));
-    asm.addq_i8ta(1, Addr::direct(rsi));
+    asm.addq_i8ta(1, Addr::direct(R8));
+    asm.addq_i8ta(1, Addr::direct(Rsi));
 
     assert_eq!(vec![0x49, 0x83, 0xC0, 0x01,
         0x48, 0x83, 0xC6, 0x01], asm.code);
@@ -644,8 +643,8 @@ fn test_add_i8_to_reg() {
 #[test]
 fn test_add_i32_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_i32ta(1, Addr::with_disp(rcx,1));
-    asm.addq_i32ta(0x100, Addr::with_disp(r10,-1));
+    asm.addq_i32ta(1, Addr::with_disp(Rcx,1));
+    asm.addq_i32ta(0x100, Addr::with_disp(R10,-1));
 
     assert_eq!(vec![0x48, 0x81, 0x41, 0x01, 1, 0, 0, 0,
         0x49, 0x81, 0x42, 0xFF, 0, 1, 0, 0], asm.code);
@@ -654,8 +653,8 @@ fn test_add_i32_to_addr() {
 #[test]
 fn test_add_i8_to_addr() {
     let mut asm = Assembler::new();
-    asm.addq_i8ta(1, Addr::with_disp(rcx, 1));
-    asm.addq_i8ta(2, Addr::with_disp(r11, -1));
+    asm.addq_i8ta(1, Addr::with_disp(Rcx, 1));
+    asm.addq_i8ta(2, Addr::with_disp(R11, -1));
 
     assert_eq!(vec![0x48, 0x83, 0x41, 0x01, 0x01,
         0x49, 0x83, 0x43, 0xFF, 0x02], asm.code);
@@ -664,8 +663,8 @@ fn test_add_i8_to_addr() {
 #[test]
 fn test_sub_i32_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_i32ta(1, Addr::with_disp(rcx,1));
-    asm.subq_i32ta(0x100, Addr::with_disp(r10,-1));
+    asm.subq_i32ta(1, Addr::with_disp(Rcx,1));
+    asm.subq_i32ta(0x100, Addr::with_disp(R10,-1));
 
     assert_eq!(vec![0x48, 0x81, 0x69, 0x01, 1, 0, 0, 0,
         0x49, 0x81, 0x6A, 0xFF, 0, 1, 0, 0], asm.code);
@@ -674,8 +673,8 @@ fn test_sub_i32_from_addr() {
 #[test]
 fn test_sub_i8_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_i8ta(1, Addr::with_disp(rcx, 1));
-    asm.subq_i8ta(2, Addr::with_disp(r11, -1));
+    asm.subq_i8ta(1, Addr::with_disp(Rcx, 1));
+    asm.subq_i8ta(2, Addr::with_disp(R11, -1));
 
     assert_eq!(vec![0x48, 0x83, 0x69, 0x01, 0x01,
         0x49, 0x83, 0x6B, 0xFF, 0x02], asm.code);
@@ -684,8 +683,8 @@ fn test_sub_i8_from_addr() {
 #[test]
 fn test_sub_reg_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_rta(r10, Addr::direct(rcx));
-    asm.subq_rta(rbx, Addr::direct(r10));
+    asm.subq_rta(R10, Addr::direct(Rcx));
+    asm.subq_rta(Rbx, Addr::direct(R10));
 
     assert_eq!(vec![0x4C, 0x29, 0xD1,
         0x49, 0x29, 0xDA], asm.code);
@@ -694,8 +693,8 @@ fn test_sub_reg_from_reg() {
 #[test]
 fn test_sub_reg_from_addr() {
     let mut asm = Assembler::new();
-    asm.subq_rta(r9, Addr::with_disp(rbp, 1));
-    asm.subq_rta(rcx, Addr::with_disp(rax, -1));
+    asm.subq_rta(R9, Addr::with_disp(Rbp, 1));
+    asm.subq_rta(Rcx, Addr::with_disp(Rax, -1));
 
     assert_eq!(vec![0x4C, 0x29, 0x4D, 0x01,
         0x48, 0x29, 0x48, 0xFF], asm.code);
@@ -704,8 +703,8 @@ fn test_sub_reg_from_addr() {
 #[test]
 fn test_sub_addr_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_atr(Addr::with_disp(rbp, 1), r9);
-    asm.subq_atr(Addr::with_disp(rax, -1), rcx);
+    asm.subq_atr(Addr::with_disp(Rbp, 1), R9);
+    asm.subq_atr(Addr::with_disp(Rax, -1), Rcx);
 
     assert_eq!(vec![0x4C, 0x2B, 0x4D, 0x01,
         0x48, 0x2B, 0x48, 0xFF], asm.code);
@@ -714,8 +713,8 @@ fn test_sub_addr_from_reg() {
 #[test]
 fn test_sub_i32_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_i32ta(1, Addr::direct(rcx));
-    asm.subq_i32ta(0x100, Addr::direct(r9));
+    asm.subq_i32ta(1, Addr::direct(Rcx));
+    asm.subq_i32ta(0x100, Addr::direct(R9));
 
     assert_eq!(vec![0x48, 0x81, 0xE9, 1, 0, 0, 0,
         0x49, 0x81, 0xE9, 0, 1, 0, 0], asm.code);
@@ -724,8 +723,8 @@ fn test_sub_i32_from_reg() {
 #[test]
 fn test_sub_i8_from_reg() {
     let mut asm = Assembler::new();
-    asm.subq_i8ta(1, Addr::direct(r8));
-    asm.subq_i8ta(1, Addr::direct(rsi));
+    asm.subq_i8ta(1, Addr::direct(R8));
+    asm.subq_i8ta(1, Addr::direct(Rsi));
 
     assert_eq!(vec![0x49, 0x83, 0xE8, 0x01,
         0x48, 0x83, 0xEE, 0x01], asm.code);
@@ -773,8 +772,8 @@ impl Drop for JitFunction {
 #[test]
 fn test_create_function() {
     let mut asm = Assembler::new();
-    asm.movq_rta(rdi, Addr::direct(rax));
-    asm.addq_i8ta(4, Addr::direct(rax));
+    asm.movq_rta(Rdi, Addr::direct(Rax));
+    asm.addq_i8ta(4, Addr::direct(Rax));
     asm.ret();
 
     let fct = JitFunction::new(&asm.code);
