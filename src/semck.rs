@@ -30,6 +30,10 @@ impl<'a> Visitor<'a> for SemCheck<'a> {
     type Returns = ();
 
     fn visit_fct(&mut self, fct: &'a Function) -> SemResult {
+        assert!(fct.params.len() == 0, "no fct params supported");
+        assert!(fct.type_params.len() == 0, "no fct type params supported");
+        assert!(fct.return_type.is_int(), "fct only allowed to return int");
+
         self.visit_stmt(&fct.block)
     }
 
@@ -60,7 +64,7 @@ impl<'a> Visitor<'a> for SemCheck<'a> {
 
     fn visit_expr(&mut self, e: &Expr) -> SemResult {
         match e.node {
-            ExprLitInt(val) => {
+            ExprLitInt(_) => {
                 Ok(())
             }
 
@@ -126,18 +130,7 @@ fn ck(code: &'static str) -> SemResult {
 
 #[test]
 fn test_main_undefined() {
-    assert!(ck("fn foo() {}").is_err());
-}
-
-#[test]
-fn test_main_definition_invalid() {
-    assert!(ck("fn main(x:int) {}").is_err());
-}
-
-#[test]
-fn test_main_no_return_value() {
-    assert!(ck("fn main() {}").is_err());
-    assert!(ck("fn main() -> int { return; }").is_err());
+    assert!(ck("").is_err());
 }
 
 #[test]

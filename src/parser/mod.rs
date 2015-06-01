@@ -13,7 +13,7 @@ use ast::Param;
 use ast::Stmt;
 use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-use ast::Type;
+use ast::TypeInfo;
 use ast::TypeParams;
 use ast::UnOp;
 
@@ -163,23 +163,23 @@ impl<T: CodeReader> Parser<T> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<Type, ParseError> {
+    fn parse_function_type(&mut self) -> Result<TypeInfo, ParseError> {
         if self.token.is(TokenType::Arrow) {
             try!(self.read_token());
             let ty = try!(self.parse_type());
 
             Ok(ty)
         } else {
-            Ok(Type::Tuple(Vec::new()))
+            Ok(TypeInfo::Tuple(Vec::new()))
         }
     }
 
-    fn parse_type(&mut self) -> Result<Type, ParseError> {
+    fn parse_type(&mut self) -> Result<TypeInfo, ParseError> {
         match self.token.token_type {
             TokenType::Mul => {
                 try!(self.read_token());
                 let subtype = try!(self.parse_type());
-                Ok(Type::Ptr(box subtype))
+                Ok(TypeInfo::Ptr(box subtype))
             }
 
             TokenType::Identifier => {
@@ -189,9 +189,9 @@ impl<T: CodeReader> Parser<T> {
                     try!(self.read_token());
                     let params = try!(self.parse_comma_list(TokenType::Gt, |p| p.parse_type()));
 
-                    Ok(Type::Generic(token.value, params))
+                    Ok(TypeInfo::Generic(token.value, params))
                 } else {
-                    Ok(Type::Basic(token.value))
+                    Ok(TypeInfo::Basic(token.value))
                 }
 
             }
@@ -201,14 +201,14 @@ impl<T: CodeReader> Parser<T> {
                 let subtype = try!(self.parse_type());
                 try!(self.expect_token(TokenType::RBracket));
 
-                Ok(Type::Slice(box subtype))
+                Ok(TypeInfo::Slice(box subtype))
             }
 
             TokenType::LParen => {
                 try!(self.read_token());
                 let types = try!(self.parse_comma_list(TokenType::RParen, |p| p.parse_type()));
 
-                Ok(Type::Tuple(types))
+                Ok(TypeInfo::Tuple(types))
             }
 
             _ => Err(ParseError {
@@ -260,7 +260,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(box Stmt::new(pos, StmtVar(ident, data_type, expr)))
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
+    fn parse_var_type(&mut self) -> Result<Option<TypeInfo>, ParseError> {
         if self.token.is(TokenType::Colon) {
             try!(self.read_token());
 
@@ -576,7 +576,7 @@ mod tests {
     use ast::Stmt;
     use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-    use ast::Type;
+    use ast::TypeInfo;
     use ast::TypeParams;
     use ast::UnOp;
 
@@ -624,7 +624,7 @@ mod tests {
         assert_eq!(col, err.position.column);
     }
 
-    fn parse_type(code: &'static str) -> Type {
+    fn parse_type(code: &'static str) -> TypeInfo {
         let mut parser = Parser::from_str(code);
         assert!(parser.init().is_ok(), true);
 
@@ -840,7 +840,7 @@ mod tests {
         assert_eq!("b", &fct.name);
         assert_eq!(0, fct.params.len());
         assert_eq!(0, fct.type_params.params.len());
-        assert_eq!(Type::Tuple(Vec::new()), fct.return_type);
+        assert_eq!(TypeInfo::Tuple(Vec::new()), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -857,7 +857,7 @@ mod tests {
         let param = Param {
             name: "a".to_string(),
             position: Position::new(1, 6),
-            data_type: Type::Basic("int".to_string()),
+            data_type: TypeInfo::Basic("int".to_string()),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -876,13 +876,13 @@ mod tests {
         let p1 = Param {
             name: "a".to_string(),
             position: Position::new(1, 6),
-            data_type: Type::Basic("int".to_string()),
+            data_type: TypeInfo::Basic("int".to_string()),
         };
 
         let p2 = Param {
             name: "b".to_string(),
             position: Position::new(1, 13),
-            data_type: Type::Basic("str".to_string()),
+            data_type: TypeInfo::Basic("str".to_string()),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
@@ -910,7 +910,7 @@ mod tests {
     #[test]
     fn parse_var_with_type() {
         let var = StmtVar("x".to_string(),
-            Some(Type::Basic("int".to_string())), Some(lit_int(1, 15, 1)));
+            Some(TypeInfo::Basic("int".to_string())), Some(lit_int(1, 15, 1)));
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int = 1;");
@@ -921,7 +921,7 @@ mod tests {
     #[test]
     fn parse_var_with_type_but_without_assignment() {
         let var = StmtVar("x".to_string(),
-            Some(Type::Basic("int".to_string())), None);
+            Some(TypeInfo::Basic("int".to_string())), None);
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int;");
@@ -1083,56 +1083,56 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(Type::Basic("int".to_string()), parse_type("int"));
-        assert_eq!(Type::Basic("string".to_string()), parse_type("string"));
+        assert_eq!(TypeInfo::Basic("int".to_string()), parse_type("int"));
+        assert_eq!(TypeInfo::Basic("string".to_string()), parse_type("string"));
     }
 
     #[test]
     fn parse_type_slice() {
-        let t = Type::Basic("int".to_string());
-        assert_eq!(Type::Slice(box t), parse_type("[int]"));
+        let t = TypeInfo::Basic("int".to_string());
+        assert_eq!(TypeInfo::Slice(box t), parse_type("[int]"));
 
-        let t = Type::Basic("string".to_string());
-        assert_eq!(Type::Slice(box t), parse_type("[string]"));
+        let t = TypeInfo::Basic("string".to_string());
+        assert_eq!(TypeInfo::Slice(box t), parse_type("[string]"));
     }
 
     #[test]
     fn parse_type_generic() {
-        assert_eq!(Type::Generic("Test".to_string(), Vec::new()), parse_type("Test<>"));
+        assert_eq!(TypeInfo::Generic("Test".to_string(), Vec::new()), parse_type("Test<>"));
 
-        let t = Type::Basic("int".to_string());
-        assert_eq!(Type::Generic("Vec".to_string(), vec![t]), parse_type("Vec<int>"));
+        let t = TypeInfo::Basic("int".to_string());
+        assert_eq!(TypeInfo::Generic("Vec".to_string(), vec![t]), parse_type("Vec<int>"));
 
-        let t1 = Type::Basic("int".to_string());
-        let t2 = Type::Basic("string".to_string());
-        assert_eq!(Type::Generic("Map".to_string(), vec![t1, t2]), parse_type("Map<int,string>"));
+        let t1 = TypeInfo::Basic("int".to_string());
+        let t2 = TypeInfo::Basic("string".to_string());
+        assert_eq!(TypeInfo::Generic("Map".to_string(), vec![t1, t2]), parse_type("Map<int,string>"));
     }
 
     #[test]
     fn parse_type_ptr() {
-        let t = Type::Basic("int".to_string());
-        assert_eq!(Type::Ptr(box t), parse_type("*int"));
+        let t = TypeInfo::Basic("int".to_string());
+        assert_eq!(TypeInfo::Ptr(box t), parse_type("*int"));
 
-        let t = Type::Basic("string".to_string());
-        assert_eq!(Type::Ptr(box t), parse_type("*string"));
+        let t = TypeInfo::Basic("string".to_string());
+        assert_eq!(TypeInfo::Ptr(box t), parse_type("*string"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(Type::Tuple(Vec::new()), parse_type("()"));
+        assert_eq!(TypeInfo::Tuple(Vec::new()), parse_type("()"));
     }
 
     #[test]
     fn parse_type_tuple_with_one_element() {
-        let t = Type::Basic("string".to_string());
-        assert_eq!(Type::Tuple(vec![t]), parse_type("(string)"));
+        let t = TypeInfo::Basic("string".to_string());
+        assert_eq!(TypeInfo::Tuple(vec![t]), parse_type("(string)"));
     }
 
     #[test]
     fn parse_type_pair() {
-        let t1 = Type::Basic("int".to_string());
-        let t2 = Type::Basic("string".to_string());
-        assert_eq!(Type::Tuple(vec![t1, t2]), parse_type("(int,string)"));
+        let t1 = TypeInfo::Basic("int".to_string());
+        let t2 = TypeInfo::Basic("string".to_string());
+        assert_eq!(TypeInfo::Tuple(vec![t1, t2]), parse_type("(int,string)"));
     }
 
     #[test]

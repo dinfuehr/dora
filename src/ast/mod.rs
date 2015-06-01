@@ -51,21 +51,21 @@ pub struct Enum {
 #[derive(Debug)]
 pub struct EnumValue {
     pub name: String,
-    pub params: Vec<Type>
+    pub params: Vec<TypeInfo>
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum Type {
+pub enum TypeInfo {
     Basic(String),
-    Generic(String,Vec<Type>),
-    Slice(Box<Type>),
-    Ptr(Box<Type>),
-    Tuple(Vec<Type>),
+    Generic(String,Vec<TypeInfo>),
+    Slice(Box<TypeInfo>),
+    Ptr(Box<TypeInfo>),
+    Tuple(Vec<TypeInfo>),
 }
 
-impl Type {
+impl TypeInfo {
     pub fn is_unit(&self) -> bool {
-        if let Type::Tuple(ref types) = *self {
+        if let TypeInfo::Tuple(ref types) = *self {
             types.len() == 0
         } else {
             false
@@ -73,7 +73,7 @@ impl Type {
     }
 
     pub fn is_int(&self) -> bool {
-        if let Type::Basic(ref name) = *self {
+        if let TypeInfo::Basic(ref name) = *self {
             &name[..] == "int"
         } else {
             false
@@ -85,7 +85,7 @@ impl Type {
 pub struct TupleStruct {
     pub name: String,
     pub type_params: TypeParams,
-    pub params: Vec<Type>,
+    pub params: Vec<TypeInfo>,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -94,6 +94,10 @@ pub struct TypeParams {
 }
 
 impl TypeParams {
+    pub fn len(&self) -> usize {
+        self.params.len()
+    }
+
     pub fn empty(&self) -> bool {
         self.params.len() == 0
     }
@@ -109,13 +113,13 @@ pub struct Struct {
 #[derive(Debug)]
 pub struct StructField {
     pub name: String,
-    pub data_type: Type,
+    pub data_type: TypeInfo,
 }
 
 #[derive(Debug)]
 pub struct Alias {
     pub name: String,
-    pub data_type: Type,
+    pub data_type: TypeInfo,
 }
 
 #[derive(Debug)]
@@ -126,7 +130,7 @@ pub struct Function {
     pub type_params: TypeParams,
     pub params: Vec<Param>,
 
-    pub return_type: Type,
+    pub return_type: TypeInfo,
     pub block: Box<Stmt>,
 }
 
@@ -134,7 +138,7 @@ pub struct Function {
 pub struct Param {
     pub name: String,
     pub position: Position,
-    pub data_type: Type,
+    pub data_type: TypeInfo,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -151,7 +155,7 @@ impl Stmt {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StmtType {
-    StmtVar(String, Option<Type>, Option<Box<Expr>>),
+    StmtVar(String, Option<TypeInfo>, Option<Box<Expr>>),
     StmtWhile(Box<Expr>, Box<Stmt>),
     StmtLoop(Box<Stmt>),
     StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
