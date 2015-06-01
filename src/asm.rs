@@ -1,10 +1,5 @@
 use byteorder::{LittleEndian, WriteBytesExt};
-use libc::consts::os::posix88::*;
-use libc::mmap;
-use libc::munmap;
-use libc::mprotect;
-use libc::c_void;
-use libc::size_t;
+use libc::*;
 use std::ptr;
 use std::mem;
 use asm::Reg::*;
