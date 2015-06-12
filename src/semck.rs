@@ -5,6 +5,7 @@ use ast::ExprType::*;
 use ast::Function;
 use ast::Stmt;
 use ast::StmtType::*;
+use ast::TypeInfo;
 use ast::visit::Visitor;
 
 use error::err;
@@ -18,6 +19,9 @@ use parser::Parser;
 
 use sym::Sym::*;
 use sym::SymbolTable;
+
+use ty::Ty;
+use ty::Ty::*;
 
 type SemResult = Result<(), ParseError>;
 
@@ -40,14 +44,12 @@ impl<'a> Visitor<'a> for SemCheck<'a> {
     fn visit_stmt(&mut self, s: &'a Stmt) -> SemResult {
         match s.node {
             StmtReturn(ref expr) => {
-                if expr.is_none() {
-                    return err(s.pos, "no return value given".to_string(),
-                        ErrorCode::ExpectedValue);
+                if let Some(ref expr) = *expr {
+                    self.visit_expr(&expr)
+                } else {
+                    err(s.pos, "no return value given".to_string(),
+                        ErrorCode::ExpectedValue)
                 }
-
-                try!(self.visit_expr(&expr.as_ref().unwrap()));
-
-                Ok(())
             }
 
             StmtBlock(ref stmts) => {
@@ -118,6 +120,16 @@ impl<'a> SemCheck<'a> {
         }
 
         Ok(())
+    }
+
+    fn check_type(&self, ty: &TypeInfo) -> Result<Ty, ParseError> {
+        match *ty {
+            TypeInfo::Tuple(ref params) if params.len() == 0 => Ok(TyUnit),
+            TypeInfo::Basic(ref name) if name == "int" => Ok(TyInt),
+            _ => err(Position::new(1, 1),
+                "unkown type definition".to_string(),
+                ErrorCode::ExpectedType)
+        }
     }
 }
 

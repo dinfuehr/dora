@@ -18,7 +18,7 @@ pub struct ParseError {
     pub code: ErrorCode
 }
 
-pub fn err(pos: Position, msg: String, code: ErrorCode) -> Result<(), ParseError> {
+pub fn err<T>(pos: Position, msg: String, code: ErrorCode) -> Result<T, ParseError> {
     Err(ParseError {
         position: pos,
         message: msg,
