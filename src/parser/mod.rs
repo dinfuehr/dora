@@ -14,11 +14,13 @@ use ast::Stmt;
 use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
 use ast::TypeInfo;
-use ast::TypeParams;
 use ast::UnOp;
 
 use error::ParseError;
 use error::ErrorCode;
+
+use interner::Interner;
+use interner::InternStr;
 
 use lexer::Lexer;
 use lexer::token::{TokenType,Token};
@@ -31,6 +33,7 @@ use lexer::reader::StrReader;
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
+    interner: Interner,
 }
 
 #[cfg(test)]
@@ -54,7 +57,11 @@ type StmtResult = Result<Box<Stmt>,ParseError>;
 impl<T: CodeReader> Parser<T> {
     pub fn new( lexer: Lexer<T> ) -> Parser<T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
-        let parser = Parser { lexer: lexer, token: token };
+        let parser = Parser {
+            lexer: lexer,
+            token: token,
+            interner: Interner::new()
+        };
 
         parser
     }
@@ -68,7 +75,12 @@ impl<T: CodeReader> Parser<T> {
             elements.push(el);
         }
 
-        Ok(Ast { elements: elements })
+        let interner = mem::replace(&mut self.interner, Interner::new());
+
+        Ok(Ast {
+            elements: elements,
+            interner: interner
+        })
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -98,7 +110,6 @@ impl<T: CodeReader> Parser<T> {
         let pos = try!(self.expect_token(TokenType::Fn)).position;
         let ident = try!(self.expect_identifier());
 
-        let type_params = try!(self.parse_type_params());
         let params = try!(self.parse_function_params());
         let return_type = try!(self.parse_function_type());
         let block = try!(self.parse_block());
@@ -106,7 +117,6 @@ impl<T: CodeReader> Parser<T> {
         Ok(Function {
             name: ident,
             pos: pos,
-            type_params: type_params,
             params: params,
             return_type: return_type,
             block: block,
@@ -170,45 +180,25 @@ impl<T: CodeReader> Parser<T> {
 
             Ok(ty)
         } else {
-            Ok(TypeInfo::Tuple(Vec::new()))
+            Ok(TypeInfo::Unit)
         }
     }
 
     fn parse_type(&mut self) -> Result<TypeInfo, ParseError> {
         match self.token.token_type {
-            TokenType::Mul => {
-                try!(self.read_token());
-                let subtype = try!(self.parse_type());
-                Ok(TypeInfo::Ptr(box subtype))
-            }
-
             TokenType::Identifier => {
                 let token = try!(self.read_token());
+                let interned = self.interner.intern(token.value);
 
-                if self.token.is(TokenType::Lt) {
-                    try!(self.read_token());
-                    let params = try!(self.parse_comma_list(TokenType::Gt, |p| p.parse_type()));
-
-                    Ok(TypeInfo::Generic(token.value, params))
-                } else {
-                    Ok(TypeInfo::Basic(token.value))
-                }
-
+                Ok(TypeInfo::Basic(interned))
             }
 
-            TokenType::LBracket => {
-                try!(self.read_token());
-                let subtype = try!(self.parse_type());
-                try!(self.expect_token(TokenType::RBracket));
-
-                Ok(TypeInfo::Slice(box subtype))
-            }
 
             TokenType::LParen => {
                 try!(self.read_token());
-                let types = try!(self.parse_comma_list(TokenType::RParen, |p| p.parse_type()));
+                try!(self.expect_token(TokenType::RParen));
 
-                Ok(TypeInfo::Tuple(types))
+                Ok(TypeInfo::Unit)
             }
 
             _ => Err(ParseError {
@@ -217,17 +207,6 @@ impl<T: CodeReader> Parser<T> {
                 message: "type expected".to_string()
             }),
         }
-    }
-
-    fn parse_type_params(&mut self) -> Result<TypeParams, ParseError> {
-        let params = if self.token.is(TokenType::Lt) {
-            try!(self.read_token());
-            try!(self.parse_comma_list(TokenType::Gt, |p| p.expect_identifier()))
-        } else {
-            Vec::new()
-        };
-
-        Ok(TypeParams { params: params })
     }
 
     fn parse_statement(&mut self) -> StmtResult {
@@ -525,11 +504,12 @@ impl<T: CodeReader> Parser<T> {
         Ok(Expr::new(tok.position, ty))
     }
 
-    fn expect_identifier(&mut self) -> Result<String,ParseError> {
+    fn expect_identifier(&mut self) -> Result<InternStr, ParseError> {
         if self.token.token_type == TokenType::Identifier {
             let ident = try!(self.read_token());
+            let interned = self.interner.intern(ident.value);
 
-            Ok(ident.value)
+            Ok(interned)
         } else {
             Err(ParseError {
                 position: self.token.position,
@@ -577,8 +557,9 @@ mod tests {
     use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
     use ast::TypeInfo;
-    use ast::TypeParams;
     use ast::UnOp;
+
+    use interner::InternStr;
 
     use error::ErrorCode;
     use lexer::position::Position;
@@ -651,8 +632,8 @@ mod tests {
         Stmt::new(Position::new(line, col), stmt)
     }
 
-    fn ident(line: u32, col: u32, value: &str) -> Box<Expr> {
-        e(line, col, ExprIdent(value.to_string()))
+    fn ident(line: u32, col: u32, value: InternStr) -> Box<Expr> {
+        e(line, col, ExprIdent(value))
     }
 
     fn lit_str(line: u32, col: u32, value: String) -> Box<Expr> {
@@ -670,7 +651,7 @@ mod tests {
     #[test]
     fn parse_ident() {
         let expr = parse_expr("a");
-        let exp = ident(1, 1, "a");
+        let exp = ident(1, 1, InternStr(0));
 
         assert_eq!(exp, expr);
     }
@@ -825,7 +806,7 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let a = ident(1, 1, "a");
+        let a = ident(1, 1, InternStr(0));
         let b = lit_int(1, 3, 4);
         let exp = e(1, 2, ExprAssign(a, b));
 
@@ -837,10 +818,9 @@ mod tests {
         let prog = parse("fn b() { }");
         let fct = prog.function("b").unwrap();
 
-        assert_eq!("b", &fct.name);
+        assert_eq!(InternStr(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(0, fct.type_params.params.len());
-        assert_eq!(TypeInfo::Tuple(Vec::new()), fct.return_type);
+        assert_eq!(TypeInfo::Unit, fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -855,9 +835,9 @@ mod tests {
         assert_eq!(f1.params, f2.params);
 
         let param = Param {
-            name: "a".to_string(),
+            name: InternStr(1),
             position: Position::new(1, 6),
-            data_type: TypeInfo::Basic("int".to_string()),
+            data_type: TypeInfo::Basic(InternStr(2)),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -874,32 +854,23 @@ mod tests {
         assert_eq!(f1.params, f2.params);
 
         let p1 = Param {
-            name: "a".to_string(),
+            name: InternStr(1),
             position: Position::new(1, 6),
-            data_type: TypeInfo::Basic("int".to_string()),
+            data_type: TypeInfo::Basic(InternStr(2)),
         };
 
         let p2 = Param {
-            name: "b".to_string(),
+            name: InternStr(3),
             position: Position::new(1, 13),
-            data_type: TypeInfo::Basic("str".to_string()),
+            data_type: TypeInfo::Basic(InternStr(4)),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
     }
 
     #[test]
-    fn parse_function_generic() {
-        let prog = parse("fn f<T>() {}");
-        let fct = prog.function("f").unwrap();
-
-        let params = TypeParams { params: vec!["T".to_string()] };
-        assert_eq!(params, fct.type_params);
-    }
-
-    #[test]
     fn parse_var_without_type() {
-        let var = StmtVar("a".to_string(), None, Some(lit_int(1, 9, 1)));
+        let var = StmtVar(InternStr(0), None, Some(lit_int(1, 9, 1)));
 
         let v = stmt(1, 1, var);
         let stmt = parse_stmt("var a = 1;");
@@ -909,8 +880,8 @@ mod tests {
 
     #[test]
     fn parse_var_with_type() {
-        let var = StmtVar("x".to_string(),
-            Some(TypeInfo::Basic("int".to_string())), Some(lit_int(1, 15, 1)));
+        let var = StmtVar(InternStr(0),
+            Some(TypeInfo::Basic(InternStr(1))), Some(lit_int(1, 15, 1)));
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int = 1;");
@@ -920,8 +891,8 @@ mod tests {
 
     #[test]
     fn parse_var_with_type_but_without_assignment() {
-        let var = StmtVar("x".to_string(),
-            Some(TypeInfo::Basic("int".to_string())), None);
+        let var = StmtVar(InternStr(0),
+            Some(TypeInfo::Basic(InternStr(1))), None);
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int;");
@@ -931,7 +902,7 @@ mod tests {
 
     #[test]
     fn parse_var_without_type_and_assignment() {
-        let var = StmtVar("x".to_string(), None, None);
+        let var = StmtVar(InternStr(0), None, None);
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x;");
@@ -944,11 +915,11 @@ mod tests {
         let prog = parse("fn f() { } fn g() { }");
 
         let f = prog.function("f").unwrap();
-        assert_eq!("f", &f.name);
+        assert_eq!(InternStr(0), f.name);
         assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.function("g").unwrap();
-        assert_eq!("g", &g.name);
+        assert_eq!(InternStr(1), g.name);
         assert_eq!(Position::new(1, 12), g.pos);
     }
 
@@ -1083,56 +1054,13 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(TypeInfo::Basic("int".to_string()), parse_type("int"));
-        assert_eq!(TypeInfo::Basic("string".to_string()), parse_type("string"));
-    }
-
-    #[test]
-    fn parse_type_slice() {
-        let t = TypeInfo::Basic("int".to_string());
-        assert_eq!(TypeInfo::Slice(box t), parse_type("[int]"));
-
-        let t = TypeInfo::Basic("string".to_string());
-        assert_eq!(TypeInfo::Slice(box t), parse_type("[string]"));
-    }
-
-    #[test]
-    fn parse_type_generic() {
-        assert_eq!(TypeInfo::Generic("Test".to_string(), Vec::new()), parse_type("Test<>"));
-
-        let t = TypeInfo::Basic("int".to_string());
-        assert_eq!(TypeInfo::Generic("Vec".to_string(), vec![t]), parse_type("Vec<int>"));
-
-        let t1 = TypeInfo::Basic("int".to_string());
-        let t2 = TypeInfo::Basic("string".to_string());
-        assert_eq!(TypeInfo::Generic("Map".to_string(), vec![t1, t2]), parse_type("Map<int,string>"));
-    }
-
-    #[test]
-    fn parse_type_ptr() {
-        let t = TypeInfo::Basic("int".to_string());
-        assert_eq!(TypeInfo::Ptr(box t), parse_type("*int"));
-
-        let t = TypeInfo::Basic("string".to_string());
-        assert_eq!(TypeInfo::Ptr(box t), parse_type("*string"));
+        assert_eq!(TypeInfo::Basic(InternStr(0)), parse_type("int"));
+        assert_eq!(TypeInfo::Basic(InternStr(0)), parse_type("string"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(TypeInfo::Tuple(Vec::new()), parse_type("()"));
-    }
-
-    #[test]
-    fn parse_type_tuple_with_one_element() {
-        let t = TypeInfo::Basic("string".to_string());
-        assert_eq!(TypeInfo::Tuple(vec![t]), parse_type("(string)"));
-    }
-
-    #[test]
-    fn parse_type_pair() {
-        let t1 = TypeInfo::Basic("int".to_string());
-        let t2 = TypeInfo::Basic("string".to_string());
-        assert_eq!(TypeInfo::Tuple(vec![t1, t2]), parse_type("(int,string)"));
+        assert_eq!(TypeInfo::Unit, parse_type("()"));
     }
 
     #[test]

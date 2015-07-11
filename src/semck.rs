@@ -34,10 +34,6 @@ impl<'a> Visitor<'a> for SemCheck<'a> {
     type Returns = ();
 
     fn visit_fct(&mut self, fct: &'a Function) -> SemResult {
-        assert!(fct.params.len() == 0, "no fct params supported");
-        assert!(fct.type_params.len() == 0, "no fct type params supported");
-        assert!(fct.return_type.is_int(), "fct only allowed to return int");
-
         self.visit_stmt(&fct.block)
     }
 
@@ -101,19 +97,13 @@ impl<'a> SemCheck<'a> {
 
         let fct = fct.unwrap();
 
-        if !fct.type_params.empty() {
-            return err(fct.pos,
-                "main function is not allowed to have any type parameters".to_string(),
-                ErrorCode::MainDefinition)
-        }
-
         if fct.params.len() > 0 {
             return err(fct.pos,
                 "main function is not allowed to have any parameters".to_string(),
                 ErrorCode::MainDefinition)
         }
 
-        if !fct.return_type.is_int() {
+        if !self.is_int(&fct.return_type) {
             return err(fct.pos,
                 "main function needs to return `int`".to_string(),
                 ErrorCode::MainDefinition)
@@ -124,11 +114,19 @@ impl<'a> SemCheck<'a> {
 
     fn check_type(&self, ty: &TypeInfo) -> Result<Ty, ParseError> {
         match *ty {
-            TypeInfo::Tuple(ref params) if params.len() == 0 => Ok(TyUnit),
-            TypeInfo::Basic(ref name) if name == "int" => Ok(TyInt),
+            TypeInfo::Unit => Ok(TyUnit),
+            TypeInfo::Basic(name) if self.ast.interner.str(name) == "int" => Ok(TyInt),
             _ => err(Position::new(1, 1),
                 "unkown type definition".to_string(),
                 ErrorCode::ExpectedType)
+        }
+    }
+
+    fn is_int(&self, ty: &TypeInfo) -> bool {
+        if let TypeInfo::Basic(name) = *ty {
+            self.ast.interner.str(name) == "int"
+        } else {
+            false
         }
     }
 }

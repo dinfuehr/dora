@@ -1,18 +1,20 @@
 use ast::ElemType::ElemFunction;
 use lexer::position::Position;
+use interner::Interner;
+use interner::InternStr;
 
 pub mod visit;
 
-#[derive(Debug)]
 pub struct Ast {
     pub elements: Vec<Elem>,
+    pub interner: Interner,
 }
 
 impl Ast {
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = e.node {
-                if fct.name == name { return Some(fct); }
+                if self.interner.str(fct.name) == name { return Some(fct); }
             }
         }
 
@@ -35,99 +37,20 @@ impl Elem {
 #[derive(Debug)]
 pub enum ElemType {
     ElemFunction(Function),
-    ElemEnum(Enum),
-    ElemTupleStruct(TupleStruct),
-    ElemStruct(Struct),
-    ElemAlias(Alias),
-}
-
-#[derive(Debug)]
-pub struct Enum {
-    pub name: String,
-    pub type_params: TypeParams,
-    pub values: Vec<EnumValue>,
-}
-
-#[derive(Debug)]
-pub struct EnumValue {
-    pub name: String,
-    pub params: Vec<TypeInfo>
+    ElemUnknown
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum TypeInfo {
-    Basic(String),
-    Generic(String,Vec<TypeInfo>),
-    Slice(Box<TypeInfo>),
-    Ptr(Box<TypeInfo>),
-    Tuple(Vec<TypeInfo>),
-}
-
-impl TypeInfo {
-    pub fn is_unit(&self) -> bool {
-        if let TypeInfo::Tuple(ref types) = *self {
-            types.len() == 0
-        } else {
-            false
-        }
-    }
-
-    pub fn is_int(&self) -> bool {
-        if let TypeInfo::Basic(ref name) = *self {
-            &name[..] == "int"
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct TupleStruct {
-    pub name: String,
-    pub type_params: TypeParams,
-    pub params: Vec<TypeInfo>,
-}
-
-#[derive(PartialEq,Eq,Debug)]
-pub struct TypeParams {
-    pub params: Vec<String>
-}
-
-impl TypeParams {
-    pub fn len(&self) -> usize {
-        self.params.len()
-    }
-
-    pub fn empty(&self) -> bool {
-        self.params.len() == 0
-    }
-}
-
-#[derive(Debug)]
-pub struct Struct {
-    pub name: String,
-    pub params: Vec<String>,
-    pub fields: Vec<StructField>,
-}
-
-#[derive(Debug)]
-pub struct StructField {
-    pub name: String,
-    pub data_type: TypeInfo,
-}
-
-#[derive(Debug)]
-pub struct Alias {
-    pub name: String,
-    pub data_type: TypeInfo,
+    Basic(InternStr),
+    Unit
 }
 
 #[derive(Debug)]
 pub struct Function {
-    pub name: String,
+    pub name: InternStr,
     pub pos: Position,
 
-    pub type_params: TypeParams,
     pub params: Vec<Param>,
 
     pub return_type: TypeInfo,
@@ -136,7 +59,7 @@ pub struct Function {
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Param {
-    pub name: String,
+    pub name: InternStr,
     pub position: Position,
     pub data_type: TypeInfo,
 }
@@ -155,7 +78,7 @@ impl Stmt {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StmtType {
-    StmtVar(String, Option<TypeInfo>, Option<Box<Expr>>),
+    StmtVar(InternStr, Option<TypeInfo>, Option<Box<Expr>>),
     StmtWhile(Box<Expr>, Box<Stmt>),
     StmtLoop(Box<Stmt>),
     StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
@@ -206,7 +129,7 @@ pub enum ExprType {
     ExprLitInt(i64),
     ExprLitStr(String),
     ExprLitBool(bool),
-    ExprIdent(String),
+    ExprIdent(InternStr),
     ExprAssign(Box<Expr>,Box<Expr>),
 }
 

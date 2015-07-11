@@ -20,6 +20,8 @@ mod asm;
 mod sym;
 mod base;
 mod ty;
+mod graph;
+mod interner;
 
 #[cfg(not(test))]
 fn main() {
