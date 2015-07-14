@@ -22,6 +22,7 @@ mod base;
 mod ty;
 mod graph;
 mod interner;
+mod ir;
 
 #[cfg(not(test))]
 fn main() {
