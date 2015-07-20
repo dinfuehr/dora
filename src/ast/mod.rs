@@ -1,7 +1,7 @@
 use ast::ElemType::ElemFunction;
 use lexer::position::Position;
 use interner::Interner;
-use interner::InternStr;
+use interner::Name;
 
 pub mod visit;
 
@@ -19,6 +19,10 @@ impl Ast {
         }
 
         None
+    }
+
+    pub fn str(&self, name: Name) -> &str {
+        self.interner.str(name)
     }
 }
 
@@ -42,13 +46,13 @@ pub enum ElemType {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum TypeInfo {
-    Basic(InternStr),
+    Basic(Name),
     Unit
 }
 
 #[derive(Debug)]
 pub struct Function {
-    pub name: InternStr,
+    pub name: Name,
     pub pos: Position,
 
     pub params: Vec<Param>,
@@ -59,7 +63,7 @@ pub struct Function {
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Param {
-    pub name: InternStr,
+    pub name: Name,
     pub position: Position,
     pub data_type: TypeInfo,
 }
@@ -78,7 +82,7 @@ impl Stmt {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StmtType {
-    StmtVar(InternStr, Option<TypeInfo>, Option<Box<Expr>>),
+    StmtVar(Name, Option<TypeInfo>, Option<Box<Expr>>),
     StmtWhile(Box<Expr>, Box<Stmt>),
     StmtLoop(Box<Stmt>),
     StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
@@ -129,7 +133,7 @@ pub enum ExprType {
     ExprLitInt(i64),
     ExprLitStr(String),
     ExprLitBool(bool),
-    ExprIdent(InternStr),
+    ExprIdent(Name),
     ExprAssign(Box<Expr>,Box<Expr>),
 }
 
