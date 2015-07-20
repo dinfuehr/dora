@@ -226,25 +226,114 @@ pub enum BinOp {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub struct Expr {
-    pub pos: Position,
-    pub node: ExprType,
+pub enum Expr {
+    ExprUn(ExprUnType),
+    ExprBin(ExprBinType),
+    ExprLitInt(ExprLitIntType),
+    ExprLitStr(ExprLitStrType),
+    ExprLitBool(ExprLitBoolType),
+    ExprIdent(ExprIdentType),
+    ExprAssign(ExprAssignType),
 }
 
 impl Expr {
-    pub fn new(pos: Position, expr: ExprType) -> Box<Expr> {
-        box Expr { pos: pos, node: expr }
+    pub fn create_un(pos: Position, op: UnOp, opnd: Box<Expr>) -> Expr {
+        Expr::ExprUn(ExprUnType {
+            pos: pos,
+            op: op,
+            opnd: opnd,
+        })
+    }
+
+    pub fn create_bin(pos: Position, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
+        Expr::ExprBin(ExprBinType {
+            pos: pos,
+            op: op,
+            lhs: lhs,
+            rhs: rhs,
+        })
+    }
+
+    pub fn create_lit_int(pos: Position, value: i32) -> Expr {
+        Expr::ExprLitInt(ExprLitIntType {
+            pos: pos,
+            value: value,
+        })
+    }
+
+    pub fn create_lit_str(pos: Position, value: String) -> Expr {
+        Expr::ExprLitStr(ExprLitStrType {
+            pos: pos,
+            value: value,
+        })
+    }
+
+
+    pub fn create_lit_bool(pos: Position, value: bool) -> Expr {
+        Expr::ExprLitBool(ExprLitBoolType {
+            pos: pos,
+            value: value,
+        })
+    }
+
+    pub fn create_ident(pos: Position, name: Name) -> Expr {
+        Expr::ExprIdent(ExprIdentType {
+            pos: pos,
+            name: name,
+        })
+    }
+
+    pub fn create_assign(pos: Position, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
+        Expr::ExprAssign(ExprAssignType {
+            pos: pos,
+            lhs: lhs,
+            rhs: rhs,
+        })
     }
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum ExprType {
-    ExprUn(UnOp,Box<Expr>),
-    ExprBin(BinOp,Box<Expr>,Box<Expr>),
-    ExprLitInt(i64),
-    ExprLitStr(String),
-    ExprLitBool(bool),
-    ExprIdent(Name),
-    ExprAssign(Box<Expr>,Box<Expr>),
+struct ExprUnType {
+    pos: Position,
+    op: UnOp,
+    opnd: Box<Expr>,
 }
 
+#[derive(PartialEq,Eq,Debug)]
+struct ExprBinType {
+    pos: Position,
+    op: BinOp,
+    lhs: Box<Expr>,
+    rhs: Box<Expr>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+struct ExprLitIntType {
+    pos: Position,
+    value: i32,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+struct ExprLitStrType {
+    pos: Position,
+    value: String,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+struct ExprLitBoolType {
+    pos: Position,
+    value: bool,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+struct ExprIdentType {
+    pos: Position,
+    name: Name,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+struct ExprAssignType {
+    pos: Position,
+    lhs: Box<Expr>,
+    rhs: Box<Expr>
+}

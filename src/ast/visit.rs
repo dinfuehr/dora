@@ -3,7 +3,7 @@ use std::default::Default;
 use ast::Ast;
 use ast::Elem::*;
 use ast::Expr;
-use ast::ExprType::*;
+use ast::Expr::*;
 use ast::Function;
 use ast::Stmt;
 use ast::Stmt::*;
@@ -95,19 +95,19 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) -> Result<V::Return
 }
 
 pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) -> Result<V::Returns, ParseError> {
-    match e.node {
-        ExprUn(_, ref op) => {
-            try!(v.visit_expr(op));
+    match *e {
+        ExprUn(ref value) => {
+            try!(v.visit_expr(&value.opnd));
         }
 
-        ExprBin(_, ref left, ref right) => {
-            try!(v.visit_expr(left));
-            try!(v.visit_expr(right));
+        ExprBin(ref value) => {
+            try!(v.visit_expr(&value.lhs));
+            try!(v.visit_expr(&value.rhs));
         }
 
-        ExprAssign(ref left, ref right) => {
-            try!(v.visit_expr(left));
-            try!(v.visit_expr(right));
+        ExprAssign(ref value) => {
+            try!(v.visit_expr(&value.lhs));
+            try!(v.visit_expr(&value.rhs));
         }
 
         ExprLitInt(_) => {}

@@ -5,8 +5,7 @@ use ast::Ast;
 use ast::BinOp;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr;
-use ast::ExprType::{ExprAssign, ExprBin, ExprIdent,
-    ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
+use ast::Expr::*;
 use ast::Function;
 use ast::Param;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
@@ -347,7 +346,7 @@ impl<T: CodeReader> Parser<T> {
             let tok = try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
-            Ok(Expr::new(tok.position, ExprAssign(left, right)))
+            Ok(box Expr::create_assign(tok.position, left, right))
         } else {
             Ok(left)
         }
@@ -364,7 +363,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l2());
-            left = Expr::new(tok.position, ExprBin(op, left, right));
+            left = box Expr::create_bin(tok.position, op, left, right);
         }
 
         Ok(left)
@@ -385,7 +384,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l3());
-            left = Expr::new(tok.position, ExprBin(op, left, right));
+            left = box Expr::create_bin(tok.position, op, left, right);
         }
 
         Ok(left)
@@ -402,7 +401,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l4());
-            left = Expr::new(tok.position, ExprBin(op, left, right));
+            left = box Expr::create_bin(tok.position, op, left, right);
         }
 
         Ok(left)
@@ -421,7 +420,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l5());
-            left = Expr::new(tok.position, ExprBin(op, left, right));
+            left = box Expr::create_bin(tok.position, op, left, right);
         }
 
         Ok(left)
@@ -436,7 +435,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let expr = try!(self.parse_factor());
-            Ok(Expr::new(tok.position, ExprUn(op, expr)))
+            Ok(box Expr::create_un(tok.position, op, expr))
         } else {
             self.parse_factor()
         }
@@ -470,7 +469,7 @@ impl<T: CodeReader> Parser<T> {
         let tok = try!(self.read_token());
 
         match tok.value.parse() {
-            Ok(num) => Ok(Expr::new(tok.position, ExprLitInt(num))),
+            Ok(num) => Ok(box Expr::create_lit_int(tok.position, num)),
             _ => Err(ParseError {
                 position: tok.position,
                 message: format!("number {} does not fit into range", tok),
@@ -482,21 +481,21 @@ impl<T: CodeReader> Parser<T> {
     fn parse_string(&mut self) -> ExprResult {
         let string = try!(self.read_token());
 
-        Ok(Expr::new(string.position, ExprLitStr(string.value)))
+        Ok(box Expr::create_lit_str(string.position, string.value))
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
         let pos = self.token.position;
         let ident = try!(self.expect_identifier());
 
-        Ok(Expr::new(pos, ExprIdent(ident)))
+        Ok(box Expr::create_ident(pos, ident))
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
         let tok = try!(self.read_token());
-        let ty = ExprLitBool(tok.is(TokenType::True));
+        let value = tok.is(TokenType::True);
 
-        Ok(Expr::new(tok.position, ty))
+        Ok(box Expr::create_lit_bool(tok.position, value))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, ParseError> {
@@ -543,8 +542,7 @@ impl<T: CodeReader> Parser<T> {
 #[cfg(test)]
 mod tests {
     use ast::BinOp;
-    use ast::Expr;
-    use ast::ExprType::{self, ExprAssign, ExprBin, ExprIdent,
+    use ast::Expr::{self, ExprAssign, ExprBin, ExprIdent,
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
     use ast::Param;
     use ast::Ast;
@@ -622,24 +620,20 @@ mod tests {
         box Stmt::create_expr(Position::new(line, col), expr)
     }
 
-    fn e(line: u32, col: u32, expr: ExprType) -> Box<Expr> {
-        Expr::new(Position::new(line, col), expr)
-    }
-
     fn ident(line: u32, col: u32, value: Name) -> Box<Expr> {
-        e(line, col, ExprIdent(value))
+        box Expr::create_ident(Position::new(line, col), value)
     }
 
     fn lit_str(line: u32, col: u32, value: String) -> Box<Expr> {
-        Expr::new(Position::new(line, col), ExprLitStr(value))
+        box Expr::create_lit_str(Position::new(line, col), value)
     }
 
     fn lit_bool(line: u32, col: u32, value: bool) -> Box<Expr> {
-        Expr::new(Position::new(line, col), ExprLitBool(value))
+        box Expr::create_lit_bool(Position::new(line, col), value)
     }
 
-    fn lit_int(line: u32, col: u32, value: i64) -> Box<Expr> {
-        Expr::new(Position::new(line, col), ExprLitInt(value))
+    fn lit_int(line: u32, col: u32, value: i32) -> Box<Expr> {
+        box Expr::create_lit_int(Position::new(line, col), value)
     }
 
     #[test]
@@ -669,7 +663,7 @@ mod tests {
     #[test]
     fn parse_true() {
         let expr = parse_expr("true");
-        let exp = e(1, 1, ExprLitBool(true));
+        let exp = lit_bool(1, 1, true);
 
         assert_eq!(exp, expr);
     }
@@ -677,7 +671,7 @@ mod tests {
     #[test]
     fn parse_false() {
         let expr = parse_expr("false");
-        let exp = e(1, 1, ExprLitBool(false));
+        let exp = lit_bool(1, 1, false);
 
         assert_eq!(exp, expr);
     }
@@ -685,126 +679,126 @@ mod tests {
     #[test]
     fn parse_l5_neg() {
         let a = lit_int(1, 2, 1);
-        let exp = e(1, 1, ExprUn(UnOp::Neg, a));
-        assert_eq!(exp, parse_expr("-1"));
+        let exp = Expr::create_un(pos(1, 1), UnOp::Neg, a);
+        assert_eq!(exp, *parse_expr("-1"));
 
         err_expr("- -3", ErrorCode::UnknownFactor, 1, 3);
 
         let a = lit_int(1, 4, 8);
-        let exp = e(1, 3, ExprUn(UnOp::Neg, a));
-        let exp = e(1, 1, ExprUn(UnOp::Neg, exp));
-        assert_eq!(exp, parse_expr("-(-8)"));
+        let exp = Expr::create_un(pos(1, 3), UnOp::Neg, a);
+        let exp = Expr::create_un(pos(1, 1), UnOp::Neg, box exp);
+        assert_eq!(exp, *parse_expr("-(-8)"));
     }
 
     #[test]
     fn parse_l5_plus() {
         let a = lit_int(1, 2, 2);
-        let exp = e(1, 1, ExprUn(UnOp::Plus, a));
-        assert_eq!(exp, parse_expr("+2"));
+        let exp = Expr::create_un(pos(1, 1), UnOp::Plus, a);
+        assert_eq!(exp, *parse_expr("+2"));
 
         err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
 
         let a = lit_int(1, 4, 9);
-        let exp = e(1, 3, ExprUn(UnOp::Plus, a));
-        let exp = e(1, 1, ExprUn(UnOp::Plus, exp));
-        assert_eq!(exp, parse_expr("+(+9)"));
+        let exp = Expr::create_un(pos(1, 3), UnOp::Plus, a);
+        let exp = Expr::create_un(pos(1, 1), UnOp::Plus, box exp);
+        assert_eq!(exp, *parse_expr("+(+9)"));
     }
 
     #[test]
     fn parse_l4_mul() {
         let a = lit_int(1, 1, 6);
         let b = lit_int(1, 3, 3);
-        let exp = e(1, 2, ExprBin(BinOp::Mul, a, b));
-        assert_eq!(exp, parse_expr("6*3"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Mul, a, b);
+        assert_eq!(exp, *parse_expr("6*3"));
     }
 
     #[test]
     fn parse_l4_div() {
         let a = lit_int(1, 1, 4);
         let b = lit_int(1, 3, 5);
-        let exp = e(1, 2, ExprBin(BinOp::Div, a, b));
-        assert_eq!(exp, parse_expr("4/5"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Div, a, b);
+        assert_eq!(exp, *parse_expr("4/5"));
     }
 
     #[test]
     fn parse_l4_mod() {
         let a = lit_int(1, 1, 2);
         let b = lit_int(1, 3, 15);
-        let exp = e(1, 2, ExprBin(BinOp::Mod, a, b));
-        assert_eq!(exp, parse_expr("2%15"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Mod, a, b);
+        assert_eq!(exp, *parse_expr("2%15"));
     }
 
     #[test]
     fn parse_l3_add() {
         let a = lit_int(1, 1, 2);
         let b = lit_int(1, 3, 3);
-        let exp = e(1, 2, ExprBin(BinOp::Add, a, b));
-        assert_eq!(exp, parse_expr("2+3"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Add, a, b);
+        assert_eq!(exp, *parse_expr("2+3"));
     }
 
     #[test]
     fn parse_l3_sub() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 3, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Sub, a, b));
-        assert_eq!(exp, parse_expr("1-2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Sub, a, b);
+        assert_eq!(exp, *parse_expr("1-2"));
     }
 
     #[test]
     fn parse_l2_lt() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 3, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Lt, a, b));
-        assert_eq!(exp, parse_expr("1<2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Lt, a, b);
+        assert_eq!(exp, *parse_expr("1<2"));
     }
 
     #[test]
     fn parse_l2_le() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 4, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Le, a, b));
-        assert_eq!(exp, parse_expr("1<=2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Le, a, b);
+        assert_eq!(exp, *parse_expr("1<=2"));
     }
 
     #[test]
     fn parse_l2_gt() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 3, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Gt, a, b));
-        assert_eq!(exp, parse_expr("1>2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Gt, a, b);
+        assert_eq!(exp, *parse_expr("1>2"));
     }
 
     #[test]
     fn parse_l2_ge() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 4, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Ge, a, b));
-        assert_eq!(exp, parse_expr("1>=2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Ge, a, b);
+        assert_eq!(exp, *parse_expr("1>=2"));
     }
 
     #[test]
     fn parse_l1_eq() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 4, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Eq, a, b));
-        assert_eq!(exp, parse_expr("1==2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Eq, a, b);
+        assert_eq!(exp, *parse_expr("1==2"));
     }
 
     #[test]
     fn parse_l1_ne() {
         let a = lit_int(1, 1, 1);
         let b = lit_int(1, 4, 2);
-        let exp = e(1, 2, ExprBin(BinOp::Ne, a, b));
-        assert_eq!(exp, parse_expr("1!=2"));
+        let exp = Expr::create_bin(pos(1, 2), BinOp::Ne, a, b);
+        assert_eq!(exp, *parse_expr("1!=2"));
     }
 
     #[test]
     fn parse_assign() {
         let a = ident(1, 1, Name(0));
         let b = lit_int(1, 3, 4);
-        let exp = e(1, 2, ExprAssign(a, b));
+        let exp = Expr::create_assign(pos(1, 2), a, b);
 
-        assert_eq!(exp, parse_expr("a=4"));
+        assert_eq!(exp, *parse_expr("a=4"));
     }
 
     #[test]

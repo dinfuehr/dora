@@ -17,13 +17,7 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
-mod asm;
-mod sym;
-mod base;
-mod ty;
-mod graph;
 mod interner;
-mod ir;
 
 
 #[cfg(not(test))]
