@@ -21,7 +21,7 @@ impl Ast {
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = e.node {
-                if self.interner.str(fct.name) == name { return Some(fct); }
+                if self.str(fct.name) == name { return Some(fct); }
             }
         }
 
