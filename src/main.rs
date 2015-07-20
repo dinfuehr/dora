@@ -10,6 +10,7 @@ extern crate libc;
 
 #[cfg(not(test))]
 use parser::Parser;
+use ast::Ast;
 
 mod lexer;
 mod error;
@@ -24,21 +25,28 @@ mod graph;
 mod interner;
 mod ir;
 
+
 #[cfg(not(test))]
 fn main() {
-    if let Some(file) = std::env::args().nth(1) {
-        match Parser::from_file(&file[..]) {
-            Ok(mut parser) => {
-                match parser.parse() {
-                    Ok(prog) => println!("prog = {:?}", prog),
-                    Err(err) => println!("{}", err),
-                }
-            }
+    match parse_file() {
+        Ok(ast) => println!("dump ast"),
+        Err(err) => println!("Error: {}", err)
 
-            Err(_) => println!("could not open file {}!", file)
-        }
-
-    } else {
-        println!("no file given");
     }
+}
+
+#[cfg(not(test))]
+fn parse_file() -> Result<Ast, String> {
+    let fname = try!(filename());
+    let mut parser = try!(Parser::from_file(&fname).map_err(|_| { format!("can not read file {}", fname) }));
+    let ast = try!(parser.parse().map_err(|e| e.message));
+
+    Ok(ast)
+}
+
+#[cfg(not(test))]
+fn filename() -> Result<String, String> {
+    let mut args = std::env::args();
+
+    args.nth(1).ok_or("file name expected".to_owned())
 }

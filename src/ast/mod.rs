@@ -6,11 +6,18 @@ use interner::Name;
 pub mod visit;
 
 pub struct Ast {
-    pub elements: Vec<Elem>,
-    pub interner: Interner,
+    elements: Vec<Elem>,
+    interner: Interner,
 }
 
 impl Ast {
+    pub fn new(elements: Vec<Elem>, interner: Interner) -> Ast {
+        Ast {
+            elements: elements,
+            interner: interner
+        }
+    }
+
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = e.node {
@@ -45,9 +52,9 @@ pub enum ElemType {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum TypeInfo {
-    Basic(Name),
-    Unit
+pub enum Type {
+    TypeBasic(Name),
+    TypeUnit
 }
 
 #[derive(Debug)]
@@ -57,7 +64,7 @@ pub struct Function {
 
     pub params: Vec<Param>,
 
-    pub return_type: TypeInfo,
+    pub return_type: Type,
     pub block: Box<Stmt>,
 }
 
@@ -65,7 +72,7 @@ pub struct Function {
 pub struct Param {
     pub name: Name,
     pub position: Position,
-    pub data_type: TypeInfo,
+    pub data_type: Type,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -82,7 +89,7 @@ impl Stmt {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum StmtType {
-    StmtVar(Name, Option<TypeInfo>, Option<Box<Expr>>),
+    StmtVar(Name, Option<Type>, Option<Box<Expr>>),
     StmtWhile(Box<Expr>, Box<Stmt>),
     StmtLoop(Box<Stmt>),
     StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),

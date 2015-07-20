@@ -13,7 +13,7 @@ use ast::Param;
 use ast::Stmt;
 use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-use ast::TypeInfo;
+use ast::Type::{self, TypeUnit, TypeBasic};
 use ast::UnOp;
 
 use error::ParseError;
@@ -77,10 +77,7 @@ impl<T: CodeReader> Parser<T> {
 
         let interner = mem::replace(&mut self.interner, Interner::new());
 
-        Ok(Ast {
-            elements: elements,
-            interner: interner
-        })
+        Ok(Ast::new(elements, interner))
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -173,24 +170,24 @@ impl<T: CodeReader> Parser<T> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<TypeInfo, ParseError> {
+    fn parse_function_type(&mut self) -> Result<Type, ParseError> {
         if self.token.is(TokenType::Arrow) {
             try!(self.read_token());
             let ty = try!(self.parse_type());
 
             Ok(ty)
         } else {
-            Ok(TypeInfo::Unit)
+            Ok(TypeUnit)
         }
     }
 
-    fn parse_type(&mut self) -> Result<TypeInfo, ParseError> {
+    fn parse_type(&mut self) -> Result<Type, ParseError> {
         match self.token.token_type {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
                 let interned = self.interner.intern(token.value);
 
-                Ok(TypeInfo::Basic(interned))
+                Ok(TypeBasic(interned))
             }
 
 
@@ -198,7 +195,7 @@ impl<T: CodeReader> Parser<T> {
                 try!(self.read_token());
                 try!(self.expect_token(TokenType::RParen));
 
-                Ok(TypeInfo::Unit)
+                Ok(TypeUnit)
             }
 
             _ => Err(ParseError {
@@ -239,7 +236,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(box Stmt::new(pos, StmtVar(ident, data_type, expr)))
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<TypeInfo>, ParseError> {
+    fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
         if self.token.is(TokenType::Colon) {
             try!(self.read_token());
 
@@ -556,7 +553,7 @@ mod tests {
     use ast::Stmt;
     use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-    use ast::TypeInfo;
+    use ast::Type::{self, TypeUnit, TypeBasic};
     use ast::UnOp;
 
     use interner::Name;
@@ -605,7 +602,7 @@ mod tests {
         assert_eq!(col, err.position.column);
     }
 
-    fn parse_type(code: &'static str) -> TypeInfo {
+    fn parse_type(code: &'static str) -> Type {
         let mut parser = Parser::from_str(code);
         assert!(parser.init().is_ok(), true);
 
@@ -820,7 +817,7 @@ mod tests {
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(TypeInfo::Unit, fct.return_type);
+        assert_eq!(TypeUnit, fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -837,7 +834,7 @@ mod tests {
         let param = Param {
             name: Name(1),
             position: Position::new(1, 6),
-            data_type: TypeInfo::Basic(Name(2)),
+            data_type: TypeBasic(Name(2)),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -856,13 +853,13 @@ mod tests {
         let p1 = Param {
             name: Name(1),
             position: Position::new(1, 6),
-            data_type: TypeInfo::Basic(Name(2)),
+            data_type: TypeBasic(Name(2)),
         };
 
         let p2 = Param {
             name: Name(3),
             position: Position::new(1, 13),
-            data_type: TypeInfo::Basic(Name(4)),
+            data_type: TypeBasic(Name(4)),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
@@ -881,7 +878,7 @@ mod tests {
     #[test]
     fn parse_var_with_type() {
         let var = StmtVar(Name(0),
-            Some(TypeInfo::Basic(Name(1))), Some(lit_int(1, 15, 1)));
+            Some(TypeBasic(Name(1))), Some(lit_int(1, 15, 1)));
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int = 1;");
@@ -892,7 +889,7 @@ mod tests {
     #[test]
     fn parse_var_with_type_but_without_assignment() {
         let var = StmtVar(Name(0),
-            Some(TypeInfo::Basic(Name(1))), None);
+            Some(TypeBasic(Name(1))), None);
 
         let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int;");
@@ -1054,13 +1051,13 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(TypeInfo::Basic(Name(0)), parse_type("int"));
-        assert_eq!(TypeInfo::Basic(Name(0)), parse_type("string"));
+        assert_eq!(TypeBasic(Name(0)), parse_type("int"));
+        assert_eq!(TypeBasic(Name(0)), parse_type("string"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(TypeInfo::Unit, parse_type("()"));
+        assert_eq!(TypeUnit, parse_type("()"));
     }
 
     #[test]

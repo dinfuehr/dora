@@ -5,7 +5,7 @@ use ast::ExprType::*;
 use ast::Function;
 use ast::Stmt;
 use ast::StmtType::*;
-use ast::TypeInfo;
+use ast::Type::{self, TypeBasic, TypeUnit};
 use ast::visit::Visitor;
 
 use error::err;
@@ -112,19 +112,19 @@ impl<'a> SemCheck<'a> {
         Ok(())
     }
 
-    fn check_type(&self, ty: &TypeInfo) -> Result<Ty, ParseError> {
+    fn check_type(&self, ty: &Type) -> Result<Ty, ParseError> {
         match *ty {
-            TypeInfo::Unit => Ok(TyUnit),
-            TypeInfo::Basic(name) if self.ast.interner.str(name) == "int" => Ok(TyInt),
+            TypeUnit => Ok(TyUnit),
+            TypeBasic(name) if self.ast.str(name) == "int" => Ok(TyInt),
             _ => err(Position::new(1, 1),
                 "unkown type definition".to_string(),
                 ErrorCode::ExpectedType)
         }
     }
 
-    fn is_int(&self, ty: &TypeInfo) -> bool {
-        if let TypeInfo::Basic(name) = *ty {
-            self.ast.interner.str(name) == "int"
+    fn is_int(&self, ty: &Type) -> bool {
+        if let TypeBasic(name) = *ty {
+            self.ast.str(name) == "int"
         } else {
             false
         }
