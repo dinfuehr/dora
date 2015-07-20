@@ -3,15 +3,13 @@ use std::io::Error;
 
 use ast::Ast;
 use ast::BinOp;
-use ast::Elem;
-use ast::ElemType::{self, ElemFunction};
+use ast::Elem::{self, ElemFunction};
 use ast::Expr;
 use ast::ExprType::{ExprAssign, ExprBin, ExprIdent,
     ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
 use ast::Function;
 use ast::Param;
-use ast::Stmt;
-use ast::StmtType::{StmtBlock, StmtBreak, StmtContinue, StmtExpr,
+use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
 use ast::Type::{self, TypeUnit, TypeBasic};
 use ast::UnOp;
@@ -92,7 +90,7 @@ impl<T: CodeReader> Parser<T> {
         match self.token.token_type {
             TokenType::Fn => {
                 let fct = try!(self.parse_function());
-                Ok(Elem::new(fct.pos, ElemFunction(fct)))
+                Ok(ElemFunction(fct))
             }
 
             _ => Err(ParseError {
@@ -233,7 +231,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::new(pos, StmtVar(ident, data_type, expr)))
+        Ok(box Stmt::create_var(pos, ident, data_type, expr))
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
@@ -268,12 +266,12 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(box Stmt::new(pos, StmtBlock(stmts)))
+        Ok(box Stmt::create_block(pos, stmts))
     }
 
     fn parse_if(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::If)).position;
-        let expr = try!(self.parse_expression());
+        let cond = try!(self.parse_expression());
 
         let then_block = try!(self.parse_block());
         let mut else_block = None;
@@ -283,7 +281,7 @@ impl<T: CodeReader> Parser<T> {
             else_block = Some(try!(self.parse_block()));
         }
 
-        Ok(box Stmt::new(pos, StmtIf(expr, then_block, else_block)))
+        Ok(box Stmt::create_if(pos, cond, then_block, else_block))
     }
 
     fn parse_while(&mut self) -> StmtResult {
@@ -292,28 +290,28 @@ impl<T: CodeReader> Parser<T> {
 
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::new(pos, StmtWhile(expr, block)))
+        Ok(box Stmt::create_while(pos, expr, block))
     }
 
     fn parse_loop(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::new(pos, StmtLoop(block)))
+        Ok(box Stmt::create_loop(pos, block))
     }
 
     fn parse_break(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::new(pos, StmtBreak))
+        Ok(box Stmt::create_break(pos))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::new(pos, StmtContinue))
+        Ok(box Stmt::create_continue(pos))
     }
 
     fn parse_return(&mut self) -> StmtResult {
@@ -327,7 +325,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::new(pos, StmtReturn(expr)))
+        Ok(box Stmt::create_return(pos, expr))
     }
 
     fn parse_expression_statement(&mut self) -> StmtResult {
@@ -335,7 +333,7 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::new(pos, StmtExpr(expr)))
+        Ok(box Stmt::create_expr(pos, expr))
     }
 
     fn parse_expression(&mut self) -> ExprResult {
@@ -550,8 +548,7 @@ mod tests {
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
     use ast::Param;
     use ast::Ast;
-    use ast::Stmt;
-    use ast::StmtType::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
+    use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
     use ast::Type::{self, TypeUnit, TypeBasic};
     use ast::UnOp;
@@ -613,20 +610,20 @@ mod tests {
         Parser::from_str(code).parse().unwrap()
     }
 
+    fn pos(line: u32, col: u32) -> Position {
+        Position::new(line, col)
+    }
+
     fn bstmt(line: u32, col: u32, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
-        box Stmt::new(Position::new(line, col), StmtBlock(stmts))
+        box Stmt::create_block(Position::new(line, col), stmts)
     }
 
     fn estmt(line: u32, col: u32, expr: Box<Expr>) -> Box<Stmt> {
-        box Stmt::new(Position::new(line, col), StmtExpr(expr))
+        box Stmt::create_expr(Position::new(line, col), expr)
     }
 
     fn e(line: u32, col: u32, expr: ExprType) -> Box<Expr> {
         Expr::new(Position::new(line, col), expr)
-    }
-
-    fn stmt(line: u32, col: u32, stmt: StmtType) -> Stmt {
-        Stmt::new(Position::new(line, col), stmt)
     }
 
     fn ident(line: u32, col: u32, value: Name) -> Box<Expr> {
@@ -867,44 +864,40 @@ mod tests {
 
     #[test]
     fn parse_var_without_type() {
-        let var = StmtVar(Name(0), None, Some(lit_int(1, 9, 1)));
+        let var = Stmt::create_var(pos(1, 1), Name(0), None, Some(lit_int(1, 9, 1)));
 
-        let v = stmt(1, 1, var);
         let stmt = parse_stmt("var a = 1;");
 
-        assert_eq!(v, *stmt);
+        assert_eq!(var, *stmt);
     }
 
     #[test]
     fn parse_var_with_type() {
-        let var = StmtVar(Name(0),
+        let var = Stmt::create_var(pos(1, 1), Name(0),
             Some(TypeBasic(Name(1))), Some(lit_int(1, 15, 1)));
 
-        let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int = 1;");
 
-        assert_eq!(s, *stmt);
+        assert_eq!(var, *stmt);
     }
 
     #[test]
     fn parse_var_with_type_but_without_assignment() {
-        let var = StmtVar(Name(0),
+        let var = Stmt::create_var(pos(1, 1), Name(0),
             Some(TypeBasic(Name(1))), None);
 
-        let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x : int;");
 
-        assert_eq!(s, *stmt);
+        assert_eq!(var, *stmt);
     }
 
     #[test]
     fn parse_var_without_type_and_assignment() {
-        let var = StmtVar(Name(0), None, None);
+        let var = Stmt::create_var(pos(1, 1), Name(0), None, None);
 
-        let s = stmt(1, 1, var);
         let stmt = parse_stmt("var x;");
 
-        assert_eq!(s, *stmt);
+        assert_eq!(var, *stmt);
     }
 
     #[test]
@@ -942,11 +935,10 @@ mod tests {
 
         let cond = lit_bool(1, 4, true);
 
-        let sif = StmtIf(cond, b1, Some(b2));
-        let exp = stmt(1, 1, sif);
+        let sif = Stmt::create_if(pos(1, 1), cond, b1, Some(b2));
 
         let stmt = parse_stmt("if true { 2; } else { 3; }");
-        assert_eq!(exp, *stmt)
+        assert_eq!(sif, *stmt)
     }
 
     #[test]
@@ -957,7 +949,7 @@ mod tests {
 
         let cond = lit_bool(1, 4, true);
 
-        let exp = stmt(1, 1, StmtIf(cond, b1, None));
+        let exp = Stmt::create_if(pos(1, 1), cond, b1, None);
         let stmt = parse_stmt("if true { 2; }");
         assert_eq!(exp, *stmt)
     }
@@ -969,7 +961,7 @@ mod tests {
         let b = bstmt(1, 12, vec![s]);
         let cond = lit_bool(1, 7, true);
 
-        let exp = stmt(1, 1, StmtWhile(cond, b));
+        let exp = Stmt::create_while(pos(1, 1), cond, b);
         let stmt = parse_stmt("while true { 2; }");
         assert_eq!(exp, *stmt);
     }
@@ -980,7 +972,7 @@ mod tests {
         let s = estmt(1, 8, e);
         let b = bstmt(1, 6, vec![s]);
 
-        let exp = stmt(1, 1, StmtLoop(b));
+        let exp = Stmt::create_loop(pos(1, 1), b);
         let stmt = parse_stmt("loop { 1; }");
         assert_eq!(exp, *stmt);
     }
@@ -1013,7 +1005,7 @@ mod tests {
 
     #[test]
     fn parse_break() {
-        let s = stmt(1, 1, StmtBreak);
+        let s = Stmt::create_break(pos(1, 1));
         let stmt = parse_stmt("break;");
 
         assert_eq!(s, *stmt)
@@ -1021,7 +1013,7 @@ mod tests {
 
     #[test]
     fn parse_continue() {
-        let s = stmt(1, 1, StmtContinue);
+        let s = Stmt::create_continue(pos(1, 1));
         let stmt = parse_stmt("continue;");
 
         assert_eq!(s, *stmt)
@@ -1030,7 +1022,7 @@ mod tests {
     #[test]
     fn parse_return_value() {
         let e = lit_int(1, 8, 1);
-        let s = stmt(1, 1, StmtReturn(Some(e)));
+        let s = Stmt::create_return(pos(1, 1), Some(e));
 
         let stmt = parse_stmt("return 1;");
         assert_eq!(s, *stmt);
@@ -1038,7 +1030,7 @@ mod tests {
 
     #[test]
     fn parse_return() {
-        let s = stmt(1, 1, StmtReturn(None));
+        let s = Stmt::create_return(pos(1, 1), None);
         let stmt = parse_stmt("return;");
 
         assert_eq!(s, *stmt);

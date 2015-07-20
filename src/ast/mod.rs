@@ -1,4 +1,4 @@
-use ast::ElemType::ElemFunction;
+use ast::Elem::ElemFunction;
 use lexer::position::Position;
 use interner::Interner;
 use interner::Name;
@@ -21,7 +21,7 @@ impl Ast {
 
     pub fn function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
-            if let ElemFunction(ref fct) = e.node {
+            if let ElemFunction(ref fct) = *e {
                 if self.str(fct.name) == name { return Some(fct); }
             }
         }
@@ -35,19 +35,7 @@ impl Ast {
 }
 
 #[derive(Debug)]
-pub struct Elem {
-    pub pos: Position,
-    pub node: ElemType,
-}
-
-impl Elem {
-    pub fn new(pos: Position, node: ElemType) -> Elem {
-        Elem { pos: pos, node: node }
-    }
-}
-
-#[derive(Debug)]
-pub enum ElemType {
+pub enum Elem {
     ElemFunction(Function),
     ElemUnknown
 }
@@ -77,28 +65,143 @@ pub struct Param {
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub struct Stmt {
-    pub pos: Position,
-    pub node: StmtType,
+pub enum Stmt {
+    StmtVar(StmtVarType),
+    StmtWhile(StmtWhileType),
+    StmtLoop(StmtLoopType),
+    StmtIf(StmtIfType),
+    StmtExpr(StmtExprType),
+    StmtBlock(StmtBlockType),
+    StmtBreak(StmtBreakType),
+    StmtContinue(StmtContinueType),
+    StmtReturn(StmtReturnType),
 }
 
 impl Stmt {
-    pub fn new(pos: Position, node: StmtType) -> Stmt {
-        Stmt { pos: pos, node: node }
+    pub fn create_var(pos: Position, name: Name,
+                      data_type: Option<Type>, expr: Option<Box<Expr>>) -> Stmt {
+        Stmt::StmtVar(StmtVarType {
+            pos: pos,
+            name: name,
+            data_type: data_type,
+            expr: expr,
+        })
+    }
+
+    pub fn create_while(pos: Position, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
+        Stmt::StmtWhile(StmtWhileType {
+            pos: pos,
+            cond: cond,
+            block: block,
+        })
+    }
+
+    pub fn create_loop(pos: Position, block: Box<Stmt>) -> Stmt {
+        Stmt::StmtLoop(StmtLoopType {
+            pos: pos,
+            block: block,
+        })
+    }
+
+    pub fn create_if(pos: Position, cond: Box<Expr>,
+                 then_block: Box<Stmt>, else_block: Option<Box<Stmt>>) -> Stmt {
+        Stmt::StmtIf(StmtIfType {
+            pos: pos,
+            cond: cond,
+            then_block: then_block,
+            else_block: else_block,
+        })
+    }
+
+    pub fn create_expr(pos: Position, expr: Box<Expr>) -> Stmt {
+        Stmt::StmtExpr(StmtExprType {
+            pos: pos,
+            expr: expr,
+        })
+    }
+
+    pub fn create_block(pos: Position, stmts: Vec<Box<Stmt>>) -> Stmt {
+        Stmt::StmtBlock(StmtBlockType {
+            pos: pos,
+            stmts: stmts,
+        })
+    }
+
+    pub fn create_break(pos: Position) -> Stmt {
+        Stmt::StmtBreak(StmtBreakType {
+            pos: pos,
+        })
+    }
+
+    pub fn create_continue(pos: Position) -> Stmt {
+        Stmt::StmtContinue(StmtContinueType {
+            pos: pos,
+        })
+    }
+
+    pub fn create_return(pos: Position, expr: Option<Box<Expr>>) -> Stmt {
+        Stmt::StmtReturn(StmtReturnType {
+            pos: pos,
+            expr: expr,
+        })
     }
 }
 
 #[derive(PartialEq,Eq,Debug)]
-pub enum StmtType {
-    StmtVar(Name, Option<Type>, Option<Box<Expr>>),
-    StmtWhile(Box<Expr>, Box<Stmt>),
-    StmtLoop(Box<Stmt>),
-    StmtIf(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    StmtExpr(Box<Expr>),
-    StmtBlock(Vec<Box<Stmt>>),
-    StmtBreak,
-    StmtContinue,
-    StmtReturn(Option<Box<Expr>>),
+pub struct StmtVarType {
+    pub pos: Position,
+    pub name: Name,
+    pub data_type: Option<Type>,
+    pub expr: Option<Box<Expr>>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtWhileType {
+    pub pos: Position,
+    pub cond: Box<Expr>,
+    pub block: Box<Stmt>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtLoopType {
+    pub pos: Position,
+    pub block: Box<Stmt>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtIfType {
+    pub pos: Position,
+    pub cond: Box<Expr>,
+    pub then_block: Box<Stmt>,
+    pub else_block: Option<Box<Stmt>>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtExprType {
+    pub pos: Position,
+    pub expr: Box<Expr>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtBlockType {
+    pub pos: Position,
+    pub stmts: Vec<Box<Stmt>>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtReturnType {
+    pub pos: Position,
+    pub expr: Option<Box<Expr>>,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtBreakType {
+    pub pos: Position,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct StmtContinueType {
+    pub pos: Position,
 }
 
 #[derive(PartialEq,Eq,Debug)]

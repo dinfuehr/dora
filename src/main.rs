@@ -17,7 +17,6 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
-mod semck;
 mod asm;
 mod sym;
 mod base;

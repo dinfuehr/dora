@@ -1,12 +1,12 @@
 use std::default::Default;
 
 use ast::Ast;
-use ast::ElemType::*;
+use ast::Elem::*;
 use ast::Expr;
 use ast::ExprType::*;
 use ast::Function;
 use ast::Stmt;
-use ast::StmtType::*;
+use ast::Stmt::*;
 
 use error::ParseError;
 
@@ -32,7 +32,7 @@ pub trait Visitor<'v> : Sized {
 
 pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) -> Result<V::Returns, ParseError> {
     for e in &a.elements {
-        try!(match e.node {
+        try!(match *e {
             ElemFunction(ref f) => v.visit_fct(f),
             _ => Ok(Default::default())
         });
@@ -46,49 +46,49 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) -> Result<V::Ret
 }
 
 pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) -> Result<V::Returns, ParseError> {
-    match s.node {
-        StmtVar(_, _, ref expr) => {
-            if let Some(ref e) = *expr {
+    match *s {
+        StmtVar(ref value) => {
+            if let Some(ref e) = value.expr {
                 try!(v.visit_expr(e));
             }
         }
 
-        StmtWhile(ref cond, ref block) => {
-            try!(v.visit_expr(cond));
-            try!(v.visit_stmt(block));
+        StmtWhile(ref value) => {
+            try!(v.visit_expr(&value.cond));
+            try!(v.visit_stmt(&value.block));
         }
 
-        StmtLoop(ref block) => {
-            try!(v.visit_stmt(block));
+        StmtLoop(ref value) => {
+            try!(v.visit_stmt(&value.block));
         }
 
-        StmtIf(ref cond, ref tblock, ref eblock) => {
-            try!(v.visit_expr(cond));
-            try!(v.visit_stmt(tblock));
+        StmtIf(ref value) => {
+            try!(v.visit_expr(&value.cond));
+            try!(v.visit_stmt(&value.then_block));
 
-            if let Some(ref b) = *eblock {
+            if let Some(ref b) = value.else_block {
                 try!(v.visit_stmt(b));
             }
         }
 
-        StmtExpr(ref e) => {
-            try!(v.visit_expr(e));
+        StmtExpr(ref value) => {
+            try!(v.visit_expr(&value.expr));
         }
 
-        StmtBlock(ref stmts) => {
-            for stmt in stmts {
+        StmtBlock(ref value) => {
+            for stmt in &value.stmts {
                 try!(v.visit_stmt(stmt));
             }
         }
 
-        StmtReturn(ref expr) => {
-            if let Some(ref e) = *expr {
+        StmtReturn(ref value) => {
+            if let Some(ref e) = value.expr {
                 try!(v.visit_expr(e));
             }
         }
 
-        StmtBreak => { }
-        StmtContinue => { }
+        StmtBreak(_) => { }
+        StmtContinue(_) => { }
     }
 
     Ok(Default::default())
