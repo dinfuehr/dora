@@ -4,6 +4,7 @@ use interner::Interner;
 use interner::Name;
 
 pub mod visit;
+pub mod dump;
 
 pub struct Ast {
     elements: Vec<Elem>,

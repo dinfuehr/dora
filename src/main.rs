@@ -11,6 +11,7 @@ extern crate libc;
 #[cfg(not(test))]
 use parser::Parser;
 use ast::Ast;
+use ast::dump::AstDumper;
 
 mod lexer;
 mod error;
@@ -29,7 +30,7 @@ mod ir;
 #[cfg(not(test))]
 fn main() {
     match parse_file() {
-        Ok(ast) => println!("dump ast"),
+        Ok(ast) => AstDumper::new(&ast).dump(),
         Err(err) => println!("Error: {}", err)
 
     }
