@@ -7,7 +7,7 @@ pub mod visit;
 pub mod dump;
 
 pub struct Ast {
-    elements: Vec<Elem>,
+    pub elements: Vec<Elem>,
     interner: Interner,
 }
 
@@ -60,7 +60,7 @@ pub struct Function {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Param {
     pub name: Name,
-    pub position: Position,
+    pub pos: Position,
     pub data_type: Type,
 }
 

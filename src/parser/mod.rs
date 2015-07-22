@@ -162,7 +162,7 @@ impl<T: CodeReader> Parser<T> {
 
         Ok(Param {
             name: name,
-            position: pos,
+            pos: pos,
             data_type: data_type,
         })
     }
@@ -824,7 +824,7 @@ mod tests {
 
         let param = Param {
             name: Name(1),
-            position: Position::new(1, 6),
+            pos: Position::new(1, 6),
             data_type: TypeBasic(Name(2)),
         };
 
@@ -843,13 +843,13 @@ mod tests {
 
         let p1 = Param {
             name: Name(1),
-            position: Position::new(1, 6),
+            pos: Position::new(1, 6),
             data_type: TypeBasic(Name(2)),
         };
 
         let p2 = Param {
             name: Name(3),
-            position: Position::new(1, 13),
+            pos: Position::new(1, 13),
             data_type: TypeBasic(Name(4)),
         };
 
