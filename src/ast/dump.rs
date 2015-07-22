@@ -2,9 +2,19 @@ use std::cell::Cell;
 
 use ast::Ast;
 use ast::Elem::{self, ElemFunction};
+use ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
+                ExprAssign, ExprIdent};
+use ast::ExprUnType;
+use ast::ExprBinType;
+use ast::ExprLitIntType;
+use ast::ExprLitStrType;
+use ast::ExprLitBoolType;
+use ast::ExprIdentType;
+use ast::ExprAssignType;
 use ast::Function;
-use ast::Stmt::{self, StmtBlock};
+use ast::Stmt::{self, StmtBlock, StmtReturn};
 use ast::StmtBlockType;
+use ast::StmtReturnType;
 use ast::Type::{self, TypeBasic, TypeUnit};
 use interner::Name;
 
@@ -57,7 +67,8 @@ impl<'a> AstDumper<'a> {
         dump!(self, "fct {} returns", self.str(fct.name));
         self.indent(|d| d.dump_type(&fct.return_type));
 
-        self.dump_stmt(&fct.block);
+        dump!(self, "fct {} executes", self.str(fct.name));
+        self.indent(|d| d.dump_stmt(&fct.block));
     }
 
     fn dump_type(&mut self, ty: &Type) {
@@ -70,6 +81,7 @@ impl<'a> AstDumper<'a> {
     fn dump_stmt(&mut self, stmt: &Stmt) {
         match *stmt {
             StmtBlock(ref block) => self.dump_stmt_block(block),
+            StmtReturn(ref ret) => self.dump_stmt_return(ret),
             _ => unimplemented!()
         }
     }
@@ -88,6 +100,44 @@ impl<'a> AstDumper<'a> {
         });
 
         dump!(self, "block end");
+    }
+
+    fn dump_stmt_return(&mut self, ret: &StmtReturnType) {
+        if let Some(ref expr) = ret.expr {
+            dump!(self, "return");
+            self.indent(|d| d.dump_expr(expr));
+        } else {
+            dump!(self, "return void")
+        }
+    }
+
+    fn dump_expr(&mut self, expr: &Expr) {
+        match *expr {
+            ExprUn(ref un) => self.dump_expr_un(un),
+            ExprBin(ref bin) => self.dump_expr_bin(bin),
+            ExprLitInt(ref lit) => dump!(self, "lit int {}", lit.value),
+            ExprLitStr(ref lit) => dump!(self, "lit string {:?}", lit.value),
+            ExprLitBool(ref lit) => dump!(self, "lit bool {}", lit.value),
+            ExprIdent(ref ident) => dump!(self, "ident {}", self.str(ident.name)),
+            ExprAssign(ref assign) => self.dump_expr_assign(assign),
+        }
+    }
+
+    fn dump_expr_un(&mut self, expr: &ExprUnType) {
+        dump!(self, "unary {:?}", expr.op);
+        self.indent(|d| d.dump_expr(&expr.opnd));
+    }
+
+    fn dump_expr_bin(&mut self, expr: &ExprBinType) {
+        self.indent(|d| d.dump_expr(&expr.rhs));
+        dump!(self, "binary {:?}", expr.op);
+        self.indent(|d| d.dump_expr(&expr.lhs));
+    }
+
+    fn dump_expr_assign(&mut self, expr: &ExprAssignType) {
+        self.indent(|d| d.dump_expr(&expr.rhs));
+        dump!(self, "assign (=)");
+        self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
     fn indent<F>(&mut self, fct: F) where F: Fn(&mut AstDumper) -> () {

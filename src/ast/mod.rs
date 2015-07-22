@@ -294,46 +294,46 @@ impl Expr {
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprUnType {
-    pos: Position,
-    op: UnOp,
-    opnd: Box<Expr>,
+    pub pos: Position,
+    pub op: UnOp,
+    pub opnd: Box<Expr>,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprBinType {
-    pos: Position,
-    op: BinOp,
-    lhs: Box<Expr>,
-    rhs: Box<Expr>,
+    pub pos: Position,
+    pub op: BinOp,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprLitIntType {
-    pos: Position,
-    value: i32,
+    pub pos: Position,
+    pub value: i32,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprLitStrType {
-    pos: Position,
-    value: String,
+    pub pos: Position,
+    pub value: String,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprLitBoolType {
-    pos: Position,
-    value: bool,
+    pub pos: Position,
+    pub value: bool,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprIdentType {
-    pos: Position,
-    name: Name,
+    pub pos: Position,
+    pub name: Name,
 }
 
 #[derive(PartialEq,Eq,Debug)]
 struct ExprAssignType {
-    pos: Position,
-    lhs: Box<Expr>,
-    rhs: Box<Expr>
+    pub pos: Position,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>
 }
