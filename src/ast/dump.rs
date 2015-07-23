@@ -12,8 +12,13 @@ use ast::ExprLitBoolType;
 use ast::ExprIdentType;
 use ast::ExprAssignType;
 use ast::Function;
-use ast::Stmt::{self, StmtBlock, StmtReturn};
+use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
+                StmtIf, StmtReturn};
 use ast::StmtBlockType;
+use ast::StmtBreakType;
+use ast::StmtContinueType;
+use ast::StmtExprType;
+use ast::StmtIfType;
 use ast::StmtReturnType;
 use ast::Type::{self, TypeBasic, TypeUnit};
 use interner::Name;
@@ -82,12 +87,33 @@ impl<'a> AstDumper<'a> {
         match *stmt {
             StmtBlock(ref block) => self.dump_stmt_block(block),
             StmtReturn(ref ret) => self.dump_stmt_return(ret),
+            StmtBreak(ref stmt) => self.dump_stmt_break(stmt),
+            StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
+            StmtExpr(ref expr) => self.dump_stmt_expr(expr),
+            StmtIf(ref stmt) => self.dump_stmt_if(stmt),
             _ => unimplemented!()
         }
     }
 
+    fn dump_stmt_if(&mut self, stmt: &StmtIfType) {
+        dump!(self, "if @ {}", stmt.pos);
+
+        self.indent(|d| {
+            d.indent(|d| { d.dump_expr(&stmt.cond); });
+            dump!(d, "then");
+            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+            dump!(d, "else");
+            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+        });
+    }
+
+    fn dump_stmt_expr(&mut self, stmt: &StmtExprType) {
+        dump!(self, "expr stmt @ {}", stmt.pos);
+        self.indent(|d| { d.dump_expr(&stmt.expr); });
+    }
+
     fn dump_stmt_block(&mut self, block: &StmtBlockType) {
-        dump!(self, "block ({} statements)", block.stmts.len());
+        dump!(self, "block ({} statements) @ {}", block.stmts.len(), block.pos);
 
         self.indent(|d| {
             if(block.stmts.is_empty()) {
@@ -104,11 +130,19 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt_return(&mut self, ret: &StmtReturnType) {
         if let Some(ref expr) = ret.expr {
-            dump!(self, "return");
+            dump!(self, "return @ {}", ret.pos);
             self.indent(|d| d.dump_expr(expr));
         } else {
-            dump!(self, "return void")
+            dump!(self, "return void @ {}", ret.pos);
         }
+    }
+
+    fn dump_stmt_break(&mut self, stmt: &StmtBreakType) {
+        dump!(self, "break @ {}", stmt.pos);
+    }
+
+    fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
+        dump!(self, "break @ {}", stmt.pos);
     }
 
     fn dump_expr(&mut self, expr: &Expr) {
