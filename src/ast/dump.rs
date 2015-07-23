@@ -13,13 +13,16 @@ use ast::ExprIdentType;
 use ast::ExprAssignType;
 use ast::Function;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
-                StmtIf, StmtReturn};
+                StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
 use ast::StmtBlockType;
 use ast::StmtBreakType;
 use ast::StmtContinueType;
 use ast::StmtExprType;
 use ast::StmtIfType;
+use ast::StmtLoopType;
 use ast::StmtReturnType;
+use ast::StmtVarType;
+use ast::StmtWhileType;
 use ast::Type::{self, TypeBasic, TypeUnit};
 use interner::Name;
 
@@ -91,8 +94,51 @@ impl<'a> AstDumper<'a> {
             StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
             StmtIf(ref stmt) => self.dump_stmt_if(stmt),
-            _ => unimplemented!()
+            StmtVar(ref stmt) => self.dump_stmt_var(stmt),
+            StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
+            StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
         }
+    }
+
+    fn dump_stmt_var(&mut self, stmt: &StmtVarType) {
+        dump!(self, "var {} @ {}", self.str(stmt.name), stmt.pos);
+
+        self.indent(|d| {
+            dump!(d, "expr");
+            d.indent(|d| {
+                if let Some(ref ty) = stmt.data_type {
+                    d.dump_type(ty);
+                } else {
+                    dump!(d, "no type given")
+                }
+            });
+
+            dump!(d, "type");
+            d.indent(|d| {
+                if let Some(ref expr) = stmt.expr {
+                    d.dump_expr(expr);
+                } else {
+                    dump!(d, "no expr given")
+                }
+            });
+        });
+    }
+
+    fn dump_stmt_while(&mut self, stmt: &StmtWhileType) {
+        dump!(self, "while @ {}", stmt.pos);
+
+        self.indent(|d| {
+            dump!(d, "cond");
+            d.indent(|d| { d.dump_expr(&stmt.cond); });
+
+            dump!(d, "body");
+            d.indent(|d| { d.dump_stmt(&stmt.block); });
+        });
+    }
+
+    fn dump_stmt_loop(&mut self, stmt: &StmtLoopType) {
+        dump!(self, "loop @ {}", stmt.pos);
+        self.indent(|d| { d.dump_stmt(&stmt.block); });
     }
 
     fn dump_stmt_if(&mut self, stmt: &StmtIfType) {
