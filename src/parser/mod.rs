@@ -902,7 +902,12 @@ mod tests {
 
     #[test]
     fn parse_var_without_type_and_assignment() {
-        let var = Stmt::create_var(pos(1, 1), Name(0), None, None);
+        let var = Stmt::create_var(
+            pos(1, 1),
+            Name(0),
+            None,
+            None
+        );
 
         let stmt = parse_stmt("var x;");
 
