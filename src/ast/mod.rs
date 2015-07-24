@@ -42,8 +42,19 @@ pub enum Elem {
 
 #[derive(PartialEq,Eq,Debug)]
 pub enum Type {
-    TypeBasic(Name),
-    TypeUnit
+    TypeBasic(TypeBasicType),
+    TypeUnit(TypeUnitType),
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct TypeBasicType {
+    pub pos: Position,
+    pub name: Name,
+}
+
+#[derive(PartialEq,Eq,Debug)]
+pub struct TypeUnitType {
+    pub pos: Option<Position>,
 }
 
 #[derive(Debug)]

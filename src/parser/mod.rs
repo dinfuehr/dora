@@ -11,6 +11,8 @@ use ast::Param;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
 use ast::Type::{self, TypeUnit, TypeBasic};
+use ast::TypeBasicType;
+use ast::TypeUnitType;
 use ast::UnOp;
 
 use error::ParseError;
@@ -174,7 +176,7 @@ impl<T: CodeReader> Parser<T> {
 
             Ok(ty)
         } else {
-            Ok(TypeUnit)
+            Ok(TypeUnit(TypeUnitType { pos: None }))
         }
     }
 
@@ -184,15 +186,20 @@ impl<T: CodeReader> Parser<T> {
                 let token = try!(self.read_token());
                 let interned = self.interner.intern(token.value);
 
-                Ok(TypeBasic(interned))
+                Ok(TypeBasic(TypeBasicType {
+                    pos: token.position,
+                    name: interned,
+                }))
             }
 
 
             TokenType::LParen => {
-                try!(self.read_token());
+                let token = try!(self.read_token());
                 try!(self.expect_token(TokenType::RParen));
 
-                Ok(TypeUnit)
+                Ok(TypeUnit(TypeUnitType {
+                    pos: Some(token.position)
+                }))
             }
 
             _ => Err(ParseError {
