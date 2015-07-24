@@ -815,7 +815,7 @@ mod tests {
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(TypeUnit, fct.return_type);
+        assert_eq!(Type::create_unit_implicit(), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -832,7 +832,7 @@ mod tests {
         let param = Param {
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: TypeBasic(Name(2)),
+            data_type: Type::create_basic(pos(1,8), Name(2)),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -851,13 +851,13 @@ mod tests {
         let p1 = Param {
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: TypeBasic(Name(2)),
+            data_type: Type::create_basic(pos(1, 8), Name(2)),
         };
 
         let p2 = Param {
             name: Name(3),
             pos: Position::new(1, 13),
-            data_type: TypeBasic(Name(4)),
+            data_type: Type::create_basic(pos(1, 15), Name(4)),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
@@ -874,8 +874,12 @@ mod tests {
 
     #[test]
     fn parse_var_with_type() {
-        let var = Stmt::create_var(pos(1, 1), Name(0),
-            Some(TypeBasic(Name(1))), Some(lit_int(1, 15, 1)));
+        let var = Stmt::create_var(
+            pos(1, 1),
+            Name(0),
+            Some(Type::create_basic(pos(1, 9), Name(1))),
+            Some(lit_int(1, 15, 1))
+        );
 
         let stmt = parse_stmt("var x : int = 1;");
 
@@ -884,8 +888,12 @@ mod tests {
 
     #[test]
     fn parse_var_with_type_but_without_assignment() {
-        let var = Stmt::create_var(pos(1, 1), Name(0),
-            Some(TypeBasic(Name(1))), None);
+        let var = Stmt::create_var(
+            pos(1, 1),
+            Name(0),
+            Some(Type::create_basic(pos(1, 9), Name(1))),
+            None
+        );
 
         let stmt = parse_stmt("var x : int;");
 
@@ -1044,13 +1052,13 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(TypeBasic(Name(0)), parse_type("int"));
-        assert_eq!(TypeBasic(Name(0)), parse_type("string"));
+        assert_eq!(Type::create_basic(pos(1, 1), Name(0)), parse_type("int"));
+        assert_eq!(Type::create_basic(pos(1, 1), Name(0)), parse_type("string"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(TypeUnit, parse_type("()"));
+        assert_eq!(Type::create_unit(pos(1,1)), parse_type("()"));
     }
 
     #[test]

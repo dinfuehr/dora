@@ -46,6 +46,27 @@ pub enum Type {
     TypeUnit(TypeUnitType),
 }
 
+impl Type {
+    pub fn create_basic(pos: Position, name: Name) -> Type {
+        Type::TypeBasic(TypeBasicType {
+            pos: pos,
+            name: name,
+        })
+    }
+
+    pub fn create_unit_implicit() -> Type {
+        Type::TypeUnit(TypeUnitType {
+            pos: None
+        })
+    }
+
+    pub fn create_unit(pos: Position) -> Type {
+        Type::TypeUnit(TypeUnitType {
+            pos: Some(pos)
+        })
+    }
+}
+
 #[derive(PartialEq,Eq,Debug)]
 pub struct TypeBasicType {
     pub pos: Position,
