@@ -1,3 +1,5 @@
+use std::fmt;
+
 use ast::Elem::ElemFunction;
 use lexer::position::Position;
 use interner::Interner;
@@ -36,6 +38,12 @@ impl Ast {
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct NodeId(pub u32);
+
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "#{}", self.0)
+    }
+}
 
 #[derive(Debug)]
 pub enum Elem {
