@@ -7,6 +7,7 @@ use ast::Elem::{self, ElemFunction};
 use ast::Expr;
 use ast::Expr::*;
 use ast::Function;
+use ast::NodeId;
 use ast::Param;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
@@ -33,6 +34,8 @@ pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
     interner: Interner,
+
+    next_id: NodeId,
 }
 
 #[cfg(test)]
@@ -59,10 +62,18 @@ impl<T: CodeReader> Parser<T> {
         let parser = Parser {
             lexer: lexer,
             token: token,
-            interner: Interner::new()
+            interner: Interner::new(),
+            next_id: NodeId(1),
         };
 
         parser
+    }
+
+    pub fn generate_id(&mut self) -> NodeId {
+        let ret = self.next_id;
+        self.next_id = NodeId(ret.0+1);
+
+        ret
     }
 
     pub fn parse(&mut self) -> Result<Ast, ParseError> {
@@ -111,6 +122,7 @@ impl<T: CodeReader> Parser<T> {
         let block = try!(self.parse_block());
 
         Ok(Function {
+            id: self.generate_id(),
             name: ident,
             pos: pos,
             params: params,
@@ -163,6 +175,7 @@ impl<T: CodeReader> Parser<T> {
         let data_type = try!(self.parse_type());
 
         Ok(Param {
+            id: self.generate_id(),
             name: name,
             pos: pos,
             data_type: data_type,
@@ -176,7 +189,10 @@ impl<T: CodeReader> Parser<T> {
 
             Ok(ty)
         } else {
-            Ok(TypeUnit(TypeUnitType { pos: None }))
+            Ok(TypeUnit(TypeUnitType {
+                id: self.generate_id(),
+                pos: None
+            }))
         }
     }
 
@@ -187,6 +203,7 @@ impl<T: CodeReader> Parser<T> {
                 let interned = self.interner.intern(token.value);
 
                 Ok(TypeBasic(TypeBasicType {
+                    id: self.generate_id(),
                     pos: token.position,
                     name: interned,
                 }))
@@ -198,6 +215,7 @@ impl<T: CodeReader> Parser<T> {
                 try!(self.expect_token(TokenType::RParen));
 
                 Ok(TypeUnit(TypeUnitType {
+                    id: self.generate_id(),
                     pos: Some(token.position)
                 }))
             }
@@ -237,7 +255,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_var(pos, ident, data_type, expr))
+        Ok(box Stmt::create_var(self.generate_id(), pos, ident, data_type, expr))
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
@@ -272,7 +290,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(box Stmt::create_block(pos, stmts))
+        Ok(box Stmt::create_block(self.generate_id(), pos, stmts))
     }
 
     fn parse_if(&mut self) -> StmtResult {
@@ -287,7 +305,7 @@ impl<T: CodeReader> Parser<T> {
             else_block = Some(try!(self.parse_block()));
         }
 
-        Ok(box Stmt::create_if(pos, cond, then_block, else_block))
+        Ok(box Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block))
     }
 
     fn parse_while(&mut self) -> StmtResult {
@@ -296,28 +314,28 @@ impl<T: CodeReader> Parser<T> {
 
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::create_while(pos, expr, block))
+        Ok(box Stmt::create_while(self.generate_id(), pos, expr, block))
     }
 
     fn parse_loop(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::create_loop(pos, block))
+        Ok(box Stmt::create_loop(self.generate_id(), pos, block))
     }
 
     fn parse_break(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_break(pos))
+        Ok(box Stmt::create_break(self.generate_id(), pos))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_continue(pos))
+        Ok(box Stmt::create_continue(self.generate_id(), pos))
     }
 
     fn parse_return(&mut self) -> StmtResult {
@@ -331,7 +349,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_return(pos, expr))
+        Ok(box Stmt::create_return(self.generate_id(), pos, expr))
     }
 
     fn parse_expression_statement(&mut self) -> StmtResult {
@@ -339,7 +357,7 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_expr(pos, expr))
+        Ok(box Stmt::create_expr(self.generate_id(), pos, expr))
     }
 
     fn parse_expression(&mut self) -> ExprResult {
@@ -353,7 +371,7 @@ impl<T: CodeReader> Parser<T> {
             let tok = try!(self.read_token());
             let right = try!(self.parse_expression_l0());
 
-            Ok(box Expr::create_assign(tok.position, left, right))
+            Ok(box Expr::create_assign(self.generate_id(), tok.position, left, right))
         } else {
             Ok(left)
         }
@@ -370,7 +388,8 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l2());
-            left = box Expr::create_bin(tok.position, op, left, right);
+            left = box Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right);
         }
 
         Ok(left)
@@ -391,7 +410,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l3());
-            left = box Expr::create_bin(tok.position, op, left, right);
+            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
@@ -408,7 +427,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l4());
-            left = box Expr::create_bin(tok.position, op, left, right);
+            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
@@ -427,7 +446,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l5());
-            left = box Expr::create_bin(tok.position, op, left, right);
+            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
@@ -442,7 +461,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let expr = try!(self.parse_factor());
-            Ok(box Expr::create_un(tok.position, op, expr))
+            Ok(box Expr::create_un(self.generate_id(), tok.position, op, expr))
         } else {
             self.parse_factor()
         }
@@ -476,7 +495,7 @@ impl<T: CodeReader> Parser<T> {
         let tok = try!(self.read_token());
 
         match tok.value.parse() {
-            Ok(num) => Ok(box Expr::create_lit_int(tok.position, num)),
+            Ok(num) => Ok(box Expr::create_lit_int(self.generate_id(), tok.position, num)),
             _ => Err(ParseError {
                 position: tok.position,
                 message: format!("number {} does not fit into range", tok),
@@ -488,21 +507,21 @@ impl<T: CodeReader> Parser<T> {
     fn parse_string(&mut self) -> ExprResult {
         let string = try!(self.read_token());
 
-        Ok(box Expr::create_lit_str(string.position, string.value))
+        Ok(box Expr::create_lit_str(self.generate_id(), string.position, string.value))
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
         let pos = self.token.position;
         let ident = try!(self.expect_identifier());
 
-        Ok(box Expr::create_ident(pos, ident))
+        Ok(box Expr::create_ident(self.generate_id(), pos, ident))
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
         let tok = try!(self.read_token());
         let value = tok.is(TokenType::True);
 
-        Ok(box Expr::create_lit_bool(tok.position, value))
+        Ok(box Expr::create_lit_bool(self.generate_id(), tok.position, value))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, ParseError> {
@@ -548,11 +567,12 @@ impl<T: CodeReader> Parser<T> {
 
 #[cfg(test)]
 mod tests {
+    use ast::Ast;
     use ast::BinOp;
     use ast::Expr::{self, ExprAssign, ExprBin, ExprIdent,
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
+    use ast::NodeId;
     use ast::Param;
-    use ast::Ast;
     use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
     use ast::Type::{self, TypeUnit, TypeBasic};
@@ -619,34 +639,34 @@ mod tests {
         Position::new(line, col)
     }
 
-    fn bstmt(line: u32, col: u32, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
-        box Stmt::create_block(Position::new(line, col), stmts)
+    fn bstmt(id: NodeId, line: u32, col: u32, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
+        box Stmt::create_block(id, Position::new(line, col), stmts)
     }
 
-    fn estmt(line: u32, col: u32, expr: Box<Expr>) -> Box<Stmt> {
-        box Stmt::create_expr(Position::new(line, col), expr)
+    fn estmt(id: NodeId, line: u32, col: u32, expr: Box<Expr>) -> Box<Stmt> {
+        box Stmt::create_expr(id, Position::new(line, col), expr)
     }
 
-    fn ident(line: u32, col: u32, value: Name) -> Box<Expr> {
-        box Expr::create_ident(Position::new(line, col), value)
+    fn ident(id: NodeId, line: u32, col: u32, value: Name) -> Box<Expr> {
+        box Expr::create_ident(id, Position::new(line, col), value)
     }
 
-    fn lit_str(line: u32, col: u32, value: String) -> Box<Expr> {
-        box Expr::create_lit_str(Position::new(line, col), value)
+    fn lit_str(id: NodeId, line: u32, col: u32, value: String) -> Box<Expr> {
+        box Expr::create_lit_str(id, Position::new(line, col), value)
     }
 
-    fn lit_bool(line: u32, col: u32, value: bool) -> Box<Expr> {
-        box Expr::create_lit_bool(Position::new(line, col), value)
+    fn lit_bool(id: NodeId, line: u32, col: u32, value: bool) -> Box<Expr> {
+        box Expr::create_lit_bool(id, Position::new(line, col), value)
     }
 
-    fn lit_int(line: u32, col: u32, value: i32) -> Box<Expr> {
-        box Expr::create_lit_int(Position::new(line, col), value)
+    fn lit_int(id: NodeId, line: u32, col: u32, value: i32) -> Box<Expr> {
+        box Expr::create_lit_int(id, Position::new(line, col), value)
     }
 
     #[test]
     fn parse_ident() {
         let expr = parse_expr("a");
-        let exp = ident(1, 1, Name(0));
+        let exp = ident(NodeId(1), 1, 1, Name(0));
 
         assert_eq!(exp, expr);
     }
@@ -654,7 +674,7 @@ mod tests {
     #[test]
     fn parse_number() {
         let expr = parse_expr("10");
-        let exp = lit_int(1, 1, 10);
+        let exp = lit_int(NodeId(1), 1, 1, 10);
 
         assert_eq!(exp, expr);
     }
@@ -662,7 +682,7 @@ mod tests {
     #[test]
     fn parse_string() {
         let expr = parse_expr("\"abc\"");
-        let exp = lit_str(1, 1, "abc".to_string());
+        let exp = lit_str(NodeId(1), 1, 1, "abc".to_string());
 
         assert_eq!(exp, expr);
     }
@@ -670,7 +690,7 @@ mod tests {
     #[test]
     fn parse_true() {
         let expr = parse_expr("true");
-        let exp = lit_bool(1, 1, true);
+        let exp = lit_bool(NodeId(1), 1, 1, true);
 
         assert_eq!(exp, expr);
     }
@@ -678,132 +698,132 @@ mod tests {
     #[test]
     fn parse_false() {
         let expr = parse_expr("false");
-        let exp = lit_bool(1, 1, false);
+        let exp = lit_bool(NodeId(1), 1, 1, false);
 
         assert_eq!(exp, expr);
     }
 
     #[test]
     fn parse_l5_neg() {
-        let a = lit_int(1, 2, 1);
-        let exp = Expr::create_un(pos(1, 1), UnOp::Neg, a);
+        let a = lit_int(NodeId(1), 1, 2, 1);
+        let exp = Expr::create_un(NodeId(2), pos(1, 1), UnOp::Neg, a);
         assert_eq!(exp, *parse_expr("-1"));
 
         err_expr("- -3", ErrorCode::UnknownFactor, 1, 3);
 
-        let a = lit_int(1, 4, 8);
-        let exp = Expr::create_un(pos(1, 3), UnOp::Neg, a);
-        let exp = Expr::create_un(pos(1, 1), UnOp::Neg, box exp);
+        let a = lit_int(NodeId(1), 1, 4, 8);
+        let exp = Expr::create_un(NodeId(2), pos(1, 3), UnOp::Neg, a);
+        let exp = Expr::create_un(NodeId(3), pos(1, 1), UnOp::Neg, box exp);
         assert_eq!(exp, *parse_expr("-(-8)"));
     }
 
     #[test]
     fn parse_l5_plus() {
-        let a = lit_int(1, 2, 2);
-        let exp = Expr::create_un(pos(1, 1), UnOp::Plus, a);
+        let a = lit_int(NodeId(1), 1, 2, 2);
+        let exp = Expr::create_un(NodeId(2), pos(1, 1), UnOp::Plus, a);
         assert_eq!(exp, *parse_expr("+2"));
 
         err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
 
-        let a = lit_int(1, 4, 9);
-        let exp = Expr::create_un(pos(1, 3), UnOp::Plus, a);
-        let exp = Expr::create_un(pos(1, 1), UnOp::Plus, box exp);
+        let a = lit_int(NodeId(1), 1, 4, 9);
+        let exp = Expr::create_un(NodeId(2), pos(1, 3), UnOp::Plus, a);
+        let exp = Expr::create_un(NodeId(3), pos(1, 1), UnOp::Plus, box exp);
         assert_eq!(exp, *parse_expr("+(+9)"));
     }
 
     #[test]
     fn parse_l4_mul() {
-        let a = lit_int(1, 1, 6);
-        let b = lit_int(1, 3, 3);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Mul, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 6);
+        let b = lit_int(NodeId(2), 1, 3, 3);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Mul, a, b);
         assert_eq!(exp, *parse_expr("6*3"));
     }
 
     #[test]
     fn parse_l4_div() {
-        let a = lit_int(1, 1, 4);
-        let b = lit_int(1, 3, 5);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Div, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 4);
+        let b = lit_int(NodeId(2), 1, 3, 5);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Div, a, b);
         assert_eq!(exp, *parse_expr("4/5"));
     }
 
     #[test]
     fn parse_l4_mod() {
-        let a = lit_int(1, 1, 2);
-        let b = lit_int(1, 3, 15);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Mod, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 2);
+        let b = lit_int(NodeId(2), 1, 3, 15);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Mod, a, b);
         assert_eq!(exp, *parse_expr("2%15"));
     }
 
     #[test]
     fn parse_l3_add() {
-        let a = lit_int(1, 1, 2);
-        let b = lit_int(1, 3, 3);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Add, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 2);
+        let b = lit_int(NodeId(2), 1, 3, 3);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Add, a, b);
         assert_eq!(exp, *parse_expr("2+3"));
     }
 
     #[test]
     fn parse_l3_sub() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 3, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Sub, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 3, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Sub, a, b);
         assert_eq!(exp, *parse_expr("1-2"));
     }
 
     #[test]
     fn parse_l2_lt() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 3, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Lt, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 3, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Lt, a, b);
         assert_eq!(exp, *parse_expr("1<2"));
     }
 
     #[test]
     fn parse_l2_le() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 4, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Le, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 4, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Le, a, b);
         assert_eq!(exp, *parse_expr("1<=2"));
     }
 
     #[test]
     fn parse_l2_gt() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 3, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Gt, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 3, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Gt, a, b);
         assert_eq!(exp, *parse_expr("1>2"));
     }
 
     #[test]
     fn parse_l2_ge() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 4, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Ge, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 4, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Ge, a, b);
         assert_eq!(exp, *parse_expr("1>=2"));
     }
 
     #[test]
     fn parse_l1_eq() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 4, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Eq, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 4, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Eq, a, b);
         assert_eq!(exp, *parse_expr("1==2"));
     }
 
     #[test]
     fn parse_l1_ne() {
-        let a = lit_int(1, 1, 1);
-        let b = lit_int(1, 4, 2);
-        let exp = Expr::create_bin(pos(1, 2), BinOp::Ne, a, b);
+        let a = lit_int(NodeId(1), 1, 1, 1);
+        let b = lit_int(NodeId(2), 1, 4, 2);
+        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Ne, a, b);
         assert_eq!(exp, *parse_expr("1!=2"));
     }
 
     #[test]
     fn parse_assign() {
-        let a = ident(1, 1, Name(0));
-        let b = lit_int(1, 3, 4);
-        let exp = Expr::create_assign(pos(1, 2), a, b);
+        let a = ident(NodeId(1), 1, 1, Name(0));
+        let b = lit_int(NodeId(2), 1, 3, 4);
+        let exp = Expr::create_assign(NodeId(3), pos(1, 2), a, b);
 
         assert_eq!(exp, *parse_expr("a=4"));
     }
@@ -815,7 +835,7 @@ mod tests {
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(Type::create_unit_implicit(), fct.return_type);
+        assert_eq!(Type::create_unit_implicit(NodeId(1)), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -830,9 +850,10 @@ mod tests {
         assert_eq!(f1.params, f2.params);
 
         let param = Param {
+            id: NodeId(2),
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: Type::create_basic(pos(1,8), Name(2)),
+            data_type: Type::create_basic(NodeId(1), pos(1,8), Name(2)),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -849,15 +870,17 @@ mod tests {
         assert_eq!(f1.params, f2.params);
 
         let p1 = Param {
+            id: NodeId(2),
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: Type::create_basic(pos(1, 8), Name(2)),
+            data_type: Type::create_basic(NodeId(1), pos(1, 8), Name(2)),
         };
 
         let p2 = Param {
+            id: NodeId(4),
             name: Name(3),
             pos: Position::new(1, 13),
-            data_type: Type::create_basic(pos(1, 15), Name(4)),
+            data_type: Type::create_basic(NodeId(3), pos(1, 15), Name(4)),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
@@ -865,7 +888,14 @@ mod tests {
 
     #[test]
     fn parse_var_without_type() {
-        let var = Stmt::create_var(pos(1, 1), Name(0), None, Some(lit_int(1, 9, 1)));
+        let lit = lit_int(NodeId(1), 1, 9, 1);
+        let var = Stmt::create_var(
+            NodeId(2),
+            pos(1, 1),
+            Name(0),
+            None,
+            Some(lit)
+        );
 
         let stmt = parse_stmt("var a = 1;");
 
@@ -875,10 +905,11 @@ mod tests {
     #[test]
     fn parse_var_with_type() {
         let var = Stmt::create_var(
+            NodeId(3),
             pos(1, 1),
             Name(0),
-            Some(Type::create_basic(pos(1, 9), Name(1))),
-            Some(lit_int(1, 15, 1))
+            Some(Type::create_basic(NodeId(1), pos(1, 9), Name(1))),
+            Some(lit_int(NodeId(2), 1, 15, 1))
         );
 
         let stmt = parse_stmt("var x : int = 1;");
@@ -889,9 +920,10 @@ mod tests {
     #[test]
     fn parse_var_with_type_but_without_assignment() {
         let var = Stmt::create_var(
+            NodeId(2),
             pos(1, 1),
             Name(0),
-            Some(Type::create_basic(pos(1, 9), Name(1))),
+            Some(Type::create_basic(NodeId(1), pos(1, 9), Name(1))),
             None
         );
 
@@ -903,6 +935,7 @@ mod tests {
     #[test]
     fn parse_var_without_type_and_assignment() {
         let var = Stmt::create_var(
+            NodeId(1),
             pos(1, 1),
             Name(0),
             None,
@@ -930,7 +963,8 @@ mod tests {
     #[test]
     fn parse_expr_stmt() {
         let stmt = parse_stmt("1;");
-        let expr = estmt(1, 1, lit_int(1, 1, 1));
+        let lit = lit_int(NodeId(1), 1, 1, 1);
+        let expr = estmt(NodeId(2), 1, 1, lit);
 
         assert_eq!(expr, stmt);
 
@@ -939,17 +973,17 @@ mod tests {
 
     #[test]
     fn parse_if() {
-        let e1 = lit_int(1, 11, 2);
-        let s1 = estmt(1, 11, e1);
-        let b1 = bstmt(1, 9, vec![s1]);
+        let e1 = lit_int(NodeId(2), 1, 11, 2);
+        let s1 = estmt(NodeId(3), 1, 11, e1);
+        let b1 = bstmt(NodeId(4), 1, 9, vec![s1]);
 
-        let e2 = lit_int(1, 23, 3);
-        let s2 = estmt(1, 23, e2);
-        let b2 = bstmt(1, 21, vec![s2]);
+        let e2 = lit_int(NodeId(5), 1, 23, 3);
+        let s2 = estmt(NodeId(6), 1, 23, e2);
+        let b2 = bstmt(NodeId(7), 1, 21, vec![s2]);
 
-        let cond = lit_bool(1, 4, true);
+        let cond = lit_bool(NodeId(1), 1, 4, true);
 
-        let sif = Stmt::create_if(pos(1, 1), cond, b1, Some(b2));
+        let sif = Stmt::create_if(NodeId(8), pos(1, 1), cond, b1, Some(b2));
 
         let stmt = parse_stmt("if true { 2; } else { 3; }");
         assert_eq!(sif, *stmt)
@@ -957,36 +991,36 @@ mod tests {
 
     #[test]
     fn parse_if_without_else() {
-        let e1 = lit_int(1, 11, 2);
-        let s1 = estmt(1, 11, e1);
-        let b1 = bstmt(1, 9, vec![s1]);
+        let e1 = lit_int(NodeId(2), 1, 11, 2);
+        let s1 = estmt(NodeId(3), 1, 11, e1);
+        let b1 = bstmt(NodeId(4), 1, 9, vec![s1]);
 
-        let cond = lit_bool(1, 4, true);
+        let cond = lit_bool(NodeId(1), 1, 4, true);
 
-        let exp = Stmt::create_if(pos(1, 1), cond, b1, None);
+        let exp = Stmt::create_if(NodeId(5), pos(1, 1), cond, b1, None);
         let stmt = parse_stmt("if true { 2; }");
         assert_eq!(exp, *stmt)
     }
 
     #[test]
     fn parse_while() {
-        let e = lit_int(1, 14, 2);
-        let s = estmt(1, 14, e);
-        let b = bstmt(1, 12, vec![s]);
-        let cond = lit_bool(1, 7, true);
+        let e = lit_int(NodeId(2), 1, 14, 2);
+        let s = estmt(NodeId(3), 1, 14, e);
+        let b = bstmt(NodeId(4), 1, 12, vec![s]);
+        let cond = lit_bool(NodeId(1), 1, 7, true);
 
-        let exp = Stmt::create_while(pos(1, 1), cond, b);
+        let exp = Stmt::create_while(NodeId(5), pos(1, 1), cond, b);
         let stmt = parse_stmt("while true { 2; }");
         assert_eq!(exp, *stmt);
     }
 
     #[test]
     fn parse_loop() {
-        let e = lit_int(1, 8, 1);
-        let s = estmt(1, 8, e);
-        let b = bstmt(1, 6, vec![s]);
+        let e = lit_int(NodeId(1), 1, 8, 1);
+        let s = estmt(NodeId(2), 1, 8, e);
+        let b = bstmt(NodeId(3), 1, 6, vec![s]);
 
-        let exp = Stmt::create_loop(pos(1, 1), b);
+        let exp = Stmt::create_loop(NodeId(4), pos(1, 1), b);
         let stmt = parse_stmt("loop { 1; }");
         assert_eq!(exp, *stmt);
     }
@@ -995,9 +1029,9 @@ mod tests {
     fn parse_block() {
         let stmt = parse_stmt("{ 1; }");
 
-        let e = lit_int(1, 3, 1);
-        let s = estmt(1, 3, e);
-        let exp = bstmt(1, 1, vec![s]);
+        let e = lit_int(NodeId(1), 1, 3, 1);
+        let s = estmt(NodeId(2), 1, 3, e);
+        let exp = bstmt(NodeId(3), 1, 1, vec![s]);
 
         assert_eq!(exp, stmt);
     }
@@ -1006,20 +1040,20 @@ mod tests {
     fn parse_block_with_multiple_stmts() {
         let stmt = parse_stmt("{ 1; 2; }");
 
-        let e = lit_int(1, 3, 1);
-        let s1 = estmt(1, 3, e);
+        let e = lit_int(NodeId(1), 1, 3, 1);
+        let s1 = estmt(NodeId(2), 1, 3, e);
 
-        let e = lit_int(1, 6, 2);
-        let s2 = estmt(1, 6, e);
+        let e = lit_int(NodeId(3), 1, 6, 2);
+        let s2 = estmt(NodeId(4), 1, 6, e);
 
-        let exp = bstmt(1, 1, vec![s1, s2]);
+        let exp = bstmt(NodeId(5), 1, 1, vec![s1, s2]);
 
         assert_eq!(exp, stmt);
     }
 
     #[test]
     fn parse_break() {
-        let s = Stmt::create_break(pos(1, 1));
+        let s = Stmt::create_break(NodeId(1), pos(1, 1));
         let stmt = parse_stmt("break;");
 
         assert_eq!(s, *stmt)
@@ -1027,7 +1061,7 @@ mod tests {
 
     #[test]
     fn parse_continue() {
-        let s = Stmt::create_continue(pos(1, 1));
+        let s = Stmt::create_continue(NodeId(1), pos(1, 1));
         let stmt = parse_stmt("continue;");
 
         assert_eq!(s, *stmt)
@@ -1035,8 +1069,8 @@ mod tests {
 
     #[test]
     fn parse_return_value() {
-        let e = lit_int(1, 8, 1);
-        let s = Stmt::create_return(pos(1, 1), Some(e));
+        let e = lit_int(NodeId(1), 1, 8, 1);
+        let s = Stmt::create_return(NodeId(2), pos(1, 1), Some(e));
 
         let stmt = parse_stmt("return 1;");
         assert_eq!(s, *stmt);
@@ -1044,7 +1078,7 @@ mod tests {
 
     #[test]
     fn parse_return() {
-        let s = Stmt::create_return(pos(1, 1), None);
+        let s = Stmt::create_return(NodeId(1), pos(1, 1), None);
         let stmt = parse_stmt("return;");
 
         assert_eq!(s, *stmt);
@@ -1057,13 +1091,13 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(Type::create_basic(pos(1, 1), Name(0)), parse_type("int"));
-        assert_eq!(Type::create_basic(pos(1, 1), Name(0)), parse_type("string"));
+        assert_eq!(Type::create_basic(NodeId(1), pos(1, 1), Name(0)), parse_type("int"));
+        assert_eq!(Type::create_basic(NodeId(1), pos(1, 1), Name(0)), parse_type("string"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(Type::create_unit(pos(1,1)), parse_type("()"));
+        assert_eq!(Type::create_unit(NodeId(1), pos(1,1)), parse_type("()"));
     }
 
     #[test]
