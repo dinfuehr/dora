@@ -124,7 +124,7 @@ impl<'a> AstDumper<'a> {
                 if let Some(ref ty) = stmt.data_type {
                     d.dump_type(ty);
                 } else {
-                    dump!(d, "no type given")
+                    dump!(d, "<no type given>");
                 }
             });
 
@@ -133,7 +133,7 @@ impl<'a> AstDumper<'a> {
                 if let Some(ref expr) = stmt.expr {
                     d.dump_expr(expr);
                 } else {
-                    dump!(d, "no expr given")
+                    dump!(d, "<no expr given>");
                 }
             });
         });
@@ -191,12 +191,15 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_return(&mut self, ret: &StmtReturnType) {
-        if let Some(ref expr) = ret.expr {
-            dump!(self, "return @ {} {}", ret.pos, ret.id);
-            self.indent(|d| d.dump_expr(expr));
-        } else {
-            dump!(self, "return void @ {} {}", ret.pos, ret.id);
-        }
+        dump!(self, "return @ {} {}", ret.pos, ret.id);
+
+        self.indent(|d| {
+            if let Some(ref expr) = ret.expr {
+                d.dump_expr(expr);
+            } else {
+                dump!(d, "<nothing>");
+            }
+        });
     }
 
     fn dump_stmt_break(&mut self, stmt: &StmtBreakType) {
@@ -204,7 +207,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
-        dump!(self, "break @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "continue @ {} {}", stmt.pos, stmt.id);
     }
 
     fn dump_expr(&mut self, expr: &Expr) {
