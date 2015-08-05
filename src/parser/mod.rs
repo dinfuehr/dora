@@ -666,41 +666,41 @@ mod tests {
     #[test]
     fn parse_ident() {
         let expr = parse_expr("a");
-        let exp = ident(NodeId(1), 1, 1, Name(0));
 
-        assert_eq!(exp, expr);
+        let ident = expr.to_ident().unwrap();
+        assert_eq!(Name(0), ident.name);
     }
 
     #[test]
     fn parse_number() {
         let expr = parse_expr("10");
-        let exp = lit_int(NodeId(1), 1, 1, 10);
 
-        assert_eq!(exp, expr);
+        let lit = expr.to_lit_int().unwrap();
+        assert_eq!(10, lit.value);
     }
 
     #[test]
     fn parse_string() {
         let expr = parse_expr("\"abc\"");
-        let exp = lit_str(NodeId(1), 1, 1, "abc".to_string());
 
-        assert_eq!(exp, expr);
+        let lit = expr.to_lit_str().unwrap();
+        assert_eq!("abc", &lit.value);
     }
 
     #[test]
     fn parse_true() {
         let expr = parse_expr("true");
-        let exp = lit_bool(NodeId(1), 1, 1, true);
 
-        assert_eq!(exp, expr);
+        let lit = expr.to_lit_bool().unwrap();
+        assert_eq!(true, lit.value);
     }
 
     #[test]
     fn parse_false() {
-        let expr = parse_expr("false");
-        let exp = lit_bool(NodeId(1), 1, 1, false);
+        let expr = parse_expr("true");
 
-        assert_eq!(exp, expr);
+        let lit = expr.to_lit_bool().unwrap();
+        assert_eq!(true, lit.value);
     }
 
     #[test]

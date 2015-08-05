@@ -386,6 +386,34 @@ impl Expr {
         })
     }
 
+    pub fn to_ident(&self) -> Option<&ExprIdentType> {
+        match *self {
+            Expr::ExprIdent(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
+        match *self {
+            Expr::ExprLitInt(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
+        match *self {
+            Expr::ExprLitStr(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
+        match *self {
+            Expr::ExprLitBool(ref val) => Some(val),
+            _ => None
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
