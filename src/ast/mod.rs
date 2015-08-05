@@ -386,6 +386,20 @@ impl Expr {
         })
     }
 
+    pub fn to_un(&self) -> Option<&ExprUnType> {
+        match *self {
+            Expr::ExprUn(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_un(&self) -> bool {
+        match *self {
+            Expr::ExprUn(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_ident(&self) -> Option<&ExprIdentType> {
         match *self {
             Expr::ExprIdent(ref val) => Some(val),
@@ -393,10 +407,24 @@ impl Expr {
         }
     }
 
+    pub fn is_ident(&self) -> bool {
+        match *self {
+            Expr::ExprIdent(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
             Expr::ExprLitInt(ref val) => Some(val),
             _ => None
+        }
+    }
+
+    pub fn is_lit_int(&self) -> bool {
+        match *self {
+            Expr::ExprLitInt(_) => true,
+            _ => false
         }
     }
 

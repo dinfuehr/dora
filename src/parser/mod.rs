@@ -704,17 +704,26 @@ mod tests {
     }
 
     #[test]
-    fn parse_l5_neg() {
-        let a = lit_int(NodeId(1), 1, 2, 1);
-        let exp = Expr::create_un(NodeId(2), pos(1, 1), UnOp::Neg, a);
-        assert_eq!(exp, *parse_expr("-1"));
+    fn parse_neg() {
+        let expr = parse_expr("-1");
 
-        err_expr("- -3", ErrorCode::UnknownFactor, 1, 3);
+        let un = expr.to_un().unwrap();
+        assert_eq!(UnOp::Neg, un.op);
 
-        let a = lit_int(NodeId(1), 1, 4, 8);
-        let exp = Expr::create_un(NodeId(2), pos(1, 3), UnOp::Neg, a);
-        let exp = Expr::create_un(NodeId(3), pos(1, 1), UnOp::Neg, box exp);
-        assert_eq!(exp, *parse_expr("-(-8)"));
+        assert!(un.opnd.is_lit_int());
+    }
+
+    #[test]
+    fn parse_double_neg() {
+        let expr = parse_expr("-(-3)");
+
+        let neg1 = expr.to_un().unwrap();
+        assert_eq!(UnOp::Neg, neg1.op);
+
+        let neg2 = neg1.opnd.to_un().unwrap();
+        assert_eq!(UnOp::Neg, neg2.op);
+
+        assert!(neg2.opnd.is_lit_int());
     }
 
     #[test]
