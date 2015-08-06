@@ -727,17 +727,35 @@ mod tests {
     }
 
     #[test]
-    fn parse_l5_plus() {
-        let a = lit_int(NodeId(1), 1, 2, 2);
-        let exp = Expr::create_un(NodeId(2), pos(1, 1), UnOp::Plus, a);
-        assert_eq!(exp, *parse_expr("+2"));
+    fn parse_double_neg_without_parentheses() {
+        err_expr("- -2", ErrorCode::UnknownFactor, 1, 3);
+    }
 
+    #[test]
+    fn parse_unary_plus() {
+        let expr = parse_expr("+2");
+
+        let add = expr.to_un().unwrap();
+        assert_eq!(UnOp::Plus, add.op);
+
+        assert!(add.opnd.is_lit_int());
+    }
+
+    #[test]
+    fn parse_double_unary_plus_without_parentheses() {
         err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
+    }
 
-        let a = lit_int(NodeId(1), 1, 4, 9);
-        let exp = Expr::create_un(NodeId(2), pos(1, 3), UnOp::Plus, a);
-        let exp = Expr::create_un(NodeId(3), pos(1, 1), UnOp::Plus, box exp);
-        assert_eq!(exp, *parse_expr("+(+9)"));
+    #[test]
+    fn parse_double_unary_plus() {
+        let expr = parse_expr("+(+9)");
+
+        let add1 = expr.to_un().unwrap();
+        assert_eq!(UnOp::Plus, add1.op);
+
+        let add2 = add1.opnd.to_un().unwrap();
+        assert_eq!(UnOp::Plus, add2.op);
+        assert!(add2.opnd.is_lit_int());
     }
 
     #[test]
