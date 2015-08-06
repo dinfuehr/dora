@@ -400,6 +400,20 @@ impl Expr {
         }
     }
 
+    pub fn to_bin(&self) -> Option<&ExprBinType> {
+        match *self {
+            Expr::ExprBin(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_bin(&self) -> bool {
+        match *self {
+            Expr::ExprBin(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_ident(&self) -> Option<&ExprIdentType> {
         match *self {
             Expr::ExprIdent(ref val) => Some(val),

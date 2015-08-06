@@ -759,27 +759,48 @@ mod tests {
     }
 
     #[test]
-    fn parse_l4_mul() {
-        let a = lit_int(NodeId(1), 1, 1, 6);
-        let b = lit_int(NodeId(2), 1, 3, 3);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Mul, a, b);
-        assert_eq!(exp, *parse_expr("6*3"));
+    fn parse_mul() {
+        let expr = parse_expr("6*3");
+
+        let mul = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Mul, mul.op);
+        assert_eq!(6, mul.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, mul.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l4_div() {
-        let a = lit_int(NodeId(1), 1, 1, 4);
-        let b = lit_int(NodeId(2), 1, 3, 5);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Div, a, b);
-        assert_eq!(exp, *parse_expr("4/5"));
+    fn parse_multiple_muls() {
+        let expr = parse_expr("6*3*4");
+
+        let mul1 = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Mul, mul1.op);
+
+        let mul2 = mul1.lhs.to_bin().unwrap();
+        assert_eq!(BinOp::Mul, mul2.op);
+        assert_eq!(6, mul2.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, mul2.rhs.to_lit_int().unwrap().value);
+
+        assert_eq!(4, mul1.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l4_mod() {
-        let a = lit_int(NodeId(1), 1, 1, 2);
-        let b = lit_int(NodeId(2), 1, 3, 15);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Mod, a, b);
-        assert_eq!(exp, *parse_expr("2%15"));
+    fn parse_div() {
+        let expr = parse_expr("4/5");
+
+        let div = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Div, div.op);
+        assert_eq!(4, div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(5, div.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_mod() {
+        let expr = parse_expr("2%15");
+
+        let div = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Mod, div.op);
+        assert_eq!(2, div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(15, div.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
