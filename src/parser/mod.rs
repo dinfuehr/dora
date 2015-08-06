@@ -804,67 +804,83 @@ mod tests {
     }
 
     #[test]
-    fn parse_l3_add() {
-        let a = lit_int(NodeId(1), 1, 1, 2);
-        let b = lit_int(NodeId(2), 1, 3, 3);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Add, a, b);
-        assert_eq!(exp, *parse_expr("2+3"));
+    fn parse_add() {
+        let expr = parse_expr("2+3");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Add, add.op);
+        assert_eq!(2, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l3_sub() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 3, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Sub, a, b);
-        assert_eq!(exp, *parse_expr("1-2"));
+    fn parse_sub() {
+        let expr = parse_expr("1-2");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Sub, add.op);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l2_lt() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 3, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Lt, a, b);
-        assert_eq!(exp, *parse_expr("1<2"));
+    fn parse_lt() {
+        let expr = parse_expr("1<2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Lt, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l2_le() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 4, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Le, a, b);
-        assert_eq!(exp, *parse_expr("1<=2"));
+    fn parse_le() {
+        let expr = parse_expr("1<=2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Le, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l2_gt() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 3, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Gt, a, b);
-        assert_eq!(exp, *parse_expr("1>2"));
+    fn parse_gt() {
+        let expr = parse_expr("1>2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Gt, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l2_ge() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 4, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Ge, a, b);
-        assert_eq!(exp, *parse_expr("1>=2"));
+    fn parse_ge() {
+        let expr = parse_expr("1>=2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Ge, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l1_eq() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 4, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Eq, a, b);
-        assert_eq!(exp, *parse_expr("1==2"));
+    fn parse_eq() {
+        let expr = parse_expr("1==2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Eq, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
-    fn parse_l1_ne() {
-        let a = lit_int(NodeId(1), 1, 1, 1);
-        let b = lit_int(NodeId(2), 1, 4, 2);
-        let exp = Expr::create_bin(NodeId(3), pos(1, 2), BinOp::Ne, a, b);
-        assert_eq!(exp, *parse_expr("1!=2"));
+    fn parse_ne() {
+        let expr = parse_expr("1!=2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Ne, cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
