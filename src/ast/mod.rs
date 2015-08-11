@@ -52,39 +52,51 @@ pub enum Elem {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum Type {
-    TypeBasic(TypeBasicType),
-    TypeUnit(TypeUnitType),
+pub struct Type {
+    pub id: NodeId,
+    pub pos: Option<Position>,
+    pub builtin: BuiltinType,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum BuiltinType {
+    Unit,
+    Int,
+    Str,
 }
 
 impl Type {
-    pub fn create_basic(id: NodeId, pos: Position, name: Name) -> Type {
-        Type::TypeBasic(TypeBasicType {
+    pub fn create(id: NodeId, pos: Position, builtin: BuiltinType) -> Type {
+        Type {
             id: id,
-            pos: pos,
-            name: name,
-        })
+            pos: Some(pos),
+            builtin: builtin,
+        }
     }
 
-    pub fn create_unit_implicit(id: NodeId) -> Type {
-        Type::TypeUnit(TypeUnitType {
+    pub fn create_implicit(id: NodeId, builtin: BuiltinType) -> Type {
+        Type {
             id: id,
-            pos: None
-        })
+            pos: None,
+            builtin: builtin
+        }
     }
 
-    pub fn create_unit(id: NodeId, pos: Position) -> Type {
-        Type::TypeUnit(TypeUnitType {
-            id: id,
-            pos: Some(pos)
-        })
+    pub fn is_int(&self) -> bool {
+        self.builtin == BuiltinType::Int
+    }
+
+    pub fn is_unit(&self) -> bool {
+        self.builtin == BuiltinType::Unit
+    }
+
+    pub fn is_str(&self) -> bool {
+        self.builtin == BuiltinType::Str
     }
 }
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct TypeBasicType {
-    pub id: NodeId,
-    pub pos: Position,
     pub name: Name,
 }
 
@@ -410,6 +422,20 @@ impl Expr {
     pub fn is_bin(&self) -> bool {
         match *self {
             Expr::ExprBin(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_assign(&self) -> Option<&ExprAssignType> {
+        match *self {
+            Expr::ExprAssign(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_assign(&self) -> bool {
+        match *self {
+            Expr::ExprAssign(_) => true,
             _ => false
         }
     }

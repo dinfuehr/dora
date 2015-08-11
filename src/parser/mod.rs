@@ -3,6 +3,7 @@ use std::io::Error;
 
 use ast::Ast;
 use ast::BinOp;
+use ast::BuiltinType;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr;
 use ast::Expr::*;
@@ -11,7 +12,7 @@ use ast::NodeId;
 use ast::Param;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-use ast::Type::{self, TypeUnit, TypeBasic};
+use ast::Type;
 use ast::TypeBasicType;
 use ast::TypeUnitType;
 use ast::UnOp;
@@ -189,10 +190,7 @@ impl<T: CodeReader> Parser<T> {
 
             Ok(ty)
         } else {
-            Ok(TypeUnit(TypeUnitType {
-                id: self.generate_id(),
-                pos: None
-            }))
+            Ok(Type::create_implicit(self.generate_id(), BuiltinType::Unit))
         }
     }
 
@@ -200,13 +198,22 @@ impl<T: CodeReader> Parser<T> {
         match self.token.token_type {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
-                let interned = self.interner.intern(token.value);
 
-                Ok(TypeBasic(TypeBasicType {
-                    id: self.generate_id(),
-                    pos: token.position,
-                    name: interned,
-                }))
+                let builtin = match &token.value[..] {
+                    "int" => BuiltinType::Int,
+                    "str" => BuiltinType::Str,
+                    _ => return Err(ParseError {
+                        position: token.position,
+                        code: ErrorCode::ExpectedType,
+                        message: format!("unknown type `{}`", token.value)
+                    })
+                };
+
+                Ok(Type::create(
+                    self.generate_id(),
+                    token.position,
+                    builtin,
+                ))
             }
 
 
@@ -214,10 +221,11 @@ impl<T: CodeReader> Parser<T> {
                 let token = try!(self.read_token());
                 try!(self.expect_token(TokenType::RParen));
 
-                Ok(TypeUnit(TypeUnitType {
-                    id: self.generate_id(),
-                    pos: Some(token.position)
-                }))
+                Ok(Type::create(
+                    self.generate_id(),
+                    token.position,
+                    BuiltinType::Unit
+                ))
             }
 
             _ => Err(ParseError {
@@ -569,13 +577,14 @@ impl<T: CodeReader> Parser<T> {
 mod tests {
     use ast::Ast;
     use ast::BinOp;
+    use ast::BuiltinType;
     use ast::Expr::{self, ExprAssign, ExprBin, ExprIdent,
         ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
     use ast::NodeId;
     use ast::Param;
     use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
         StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-    use ast::Type::{self, TypeUnit, TypeBasic};
+    use ast::Type;
     use ast::UnOp;
 
     use interner::Name;
@@ -885,11 +894,11 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let a = ident(NodeId(1), 1, 1, Name(0));
-        let b = lit_int(NodeId(2), 1, 3, 4);
-        let exp = Expr::create_assign(NodeId(3), pos(1, 2), a, b);
+        let expr = parse_expr("a=4");
 
-        assert_eq!(exp, *parse_expr("a=4"));
+        let assign = expr.to_assign().unwrap();
+        assert!(assign.lhs.is_ident());
+        assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -899,7 +908,7 @@ mod tests {
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(Type::create_unit_implicit(NodeId(1)), fct.return_type);
+        assert_eq!(Type::create_implicit(NodeId(1), BuiltinType::Unit), fct.return_type);
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
@@ -917,7 +926,7 @@ mod tests {
             id: NodeId(2),
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: Type::create_basic(NodeId(1), pos(1,8), Name(2)),
+            data_type: Type::create(NodeId(1), pos(1,8), BuiltinType::Int),
         };
 
         assert_eq!(vec![param], f1.params);
@@ -937,14 +946,14 @@ mod tests {
             id: NodeId(2),
             name: Name(1),
             pos: Position::new(1, 6),
-            data_type: Type::create_basic(NodeId(1), pos(1, 8), Name(2)),
+            data_type: Type::create(NodeId(1), pos(1, 8), BuiltinType::Int),
         };
 
         let p2 = Param {
             id: NodeId(4),
-            name: Name(3),
+            name: Name(2),
             pos: Position::new(1, 13),
-            data_type: Type::create_basic(NodeId(3), pos(1, 15), Name(4)),
+            data_type: Type::create(NodeId(3), pos(1, 15), BuiltinType::Str),
         };
 
         assert_eq!(vec![p1, p2], f1.params);
@@ -972,7 +981,7 @@ mod tests {
             NodeId(3),
             pos(1, 1),
             Name(0),
-            Some(Type::create_basic(NodeId(1), pos(1, 9), Name(1))),
+            Some(Type::create(NodeId(1), pos(1, 9), BuiltinType::Int)),
             Some(lit_int(NodeId(2), 1, 15, 1))
         );
 
@@ -987,7 +996,7 @@ mod tests {
             NodeId(2),
             pos(1, 1),
             Name(0),
-            Some(Type::create_basic(NodeId(1), pos(1, 9), Name(1))),
+            Some(Type::create(NodeId(1), pos(1, 9), BuiltinType::Int)),
             None
         );
 
@@ -1155,13 +1164,13 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        assert_eq!(Type::create_basic(NodeId(1), pos(1, 1), Name(0)), parse_type("int"));
-        assert_eq!(Type::create_basic(NodeId(1), pos(1, 1), Name(0)), parse_type("string"));
+        assert_eq!(Type::create(NodeId(1), pos(1, 1), BuiltinType::Int), parse_type("int"));
+        assert_eq!(Type::create(NodeId(1), pos(1, 1), BuiltinType::Str), parse_type("str"));
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(Type::create_unit(NodeId(1), pos(1,1)), parse_type("()"));
+        assert_eq!(Type::create(NodeId(1), pos(1,1), BuiltinType::Unit), parse_type("()"));
     }
 
     #[test]

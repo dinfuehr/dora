@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
 use ast::Ast;
+use ast::BuiltinType;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
                 ExprAssign, ExprIdent};
@@ -24,7 +25,7 @@ use ast::StmtLoopType;
 use ast::StmtReturnType;
 use ast::StmtVarType;
 use ast::StmtWhileType;
-use ast::Type::{self, TypeBasic, TypeUnit};
+use ast::Type;
 use interner::Name;
 
 macro_rules! dump {
@@ -88,17 +89,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_type(&mut self, ty: &Type) {
-        match *ty {
-            TypeBasic(ref basic) => dump!(self, "type {} @ {} {}",
-                                          self.str(basic.name), basic.pos, basic.id),
-            TypeUnit(ref unit) => {
-                if let Some(pos) = unit.pos {
-                    dump!(self, "type () @ {} {}", pos, unit.id);
-                } else {
-                    dump!(self, "type () <implicit> {}", unit.id);
-                }
-            }
-        }
+        dump!(self, "type `{:?}` @ {:?} {}", ty.builtin, ty.pos, ty.id);
     }
 
     fn dump_stmt(&mut self, stmt: &Stmt) {
