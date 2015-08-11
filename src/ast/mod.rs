@@ -21,7 +21,7 @@ impl Ast {
         }
     }
 
-    pub fn function(&self, name: &str) -> Option<&Function> {
+    pub fn find_function(&self, name: &str) -> Option<&Function> {
         for e in &self.elements {
             if let ElemFunction(ref fct) = *e {
                 if self.str(fct.name) == name { return Some(fct); }
@@ -230,6 +230,132 @@ impl Stmt {
             Stmt::StmtBreak(ref val) => val.id,
             Stmt::StmtContinue(ref val) => val.id,
             Stmt::StmtReturn(ref val) => val.id,
+        }
+    }
+
+    pub fn to_var(&self) -> Option<&StmtVarType> {
+        match *self {
+            Stmt::StmtVar(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_var(&self) -> bool {
+        match *self {
+            Stmt::StmtVar(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_while(&self) -> Option<&StmtWhileType> {
+        match *self {
+            Stmt::StmtWhile(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_while(&self) -> bool {
+        match *self {
+            Stmt::StmtWhile(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_loop(&self) -> Option<&StmtLoopType> {
+        match *self {
+            Stmt::StmtLoop(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_loop(&self) -> bool {
+        match *self {
+            Stmt::StmtLoop(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_if(&self) -> Option<&StmtIfType> {
+        match *self {
+            Stmt::StmtIf(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_if(&self) -> bool {
+        match *self {
+            Stmt::StmtIf(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_expr(&self) -> Option<&StmtExprType> {
+        match *self {
+            Stmt::StmtExpr(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_expr(&self) -> bool {
+        match *self {
+            Stmt::StmtExpr(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_block(&self) -> Option<&StmtBlockType> {
+        match *self {
+            Stmt::StmtBlock(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_block(&self) -> bool {
+        match *self {
+            Stmt::StmtBlock(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_return(&self) -> Option<&StmtReturnType> {
+        match *self {
+            Stmt::StmtReturn(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_return(&self) -> bool {
+        match *self {
+            Stmt::StmtReturn(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_break(&self) -> Option<&StmtBreakType> {
+        match *self {
+            Stmt::StmtBreak(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_break(&self) -> bool {
+        match *self {
+            Stmt::StmtBreak(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_continue(&self) -> Option<&StmtContinueType> {
+        match *self {
+            Stmt::StmtContinue(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_continue(&self) -> bool {
+        match *self {
+            Stmt::StmtContinue(_) => true,
+            _ => false
         }
     }
 }
@@ -479,6 +605,13 @@ impl Expr {
         match *self {
             Expr::ExprLitBool(ref val) => Some(val),
             _ => None
+        }
+    }
+
+    pub fn is_lit_bool(&self) -> bool {
+        match *self {
+            Expr::ExprLitBool(_) => true,
+            _ => false
         }
     }
 

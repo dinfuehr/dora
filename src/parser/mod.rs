@@ -904,131 +904,94 @@ mod tests {
     #[test]
     fn parse_function() {
         let prog = parse("fn b() { }");
-        let fct = prog.function("b").unwrap();
+        let fct = prog.find_function("b").unwrap();
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
-        assert_eq!(Type::create_implicit(NodeId(1), BuiltinType::Unit), fct.return_type);
+        assert!(fct.return_type.is_unit());
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
     #[test]
     fn parse_function_with_single_param() {
         let p1 = parse("fn f(a:int) { }");
-        let f1 = p1.function("f").unwrap();
+        let f1 = p1.find_function("f").unwrap();
 
         let p2 = parse("fn f(a:int,) { }");
-        let f2 = p2.function("f").unwrap();
+        let f2 = p2.find_function("f").unwrap();
 
         assert_eq!(f1.params, f2.params);
 
-        let param = Param {
-            id: NodeId(2),
-            name: Name(1),
-            pos: Position::new(1, 6),
-            data_type: Type::create(NodeId(1), pos(1,8), BuiltinType::Int),
-        };
-
-        assert_eq!(vec![param], f1.params);
+        let p = &f1.params[0];
+        assert_eq!(NodeId(2), p.id);
+        assert_eq!(Name(1), p.name);
+        assert!(p.data_type.is_int());
     }
 
     #[test]
     fn parse_function_with_multiple_params() {
         let p1 = parse("fn f(a:int, b:str) { }");
-        let f1 = p1.function("f").unwrap();
+        let f1 = p1.find_function("f").unwrap();
 
         let p2 = parse("fn f(a:int, b:str,) { }");
-        let f2 = p2.function("f").unwrap();
+        let f2 = p2.find_function("f").unwrap();
 
         assert_eq!(f1.params, f2.params);
 
-        let p1 = Param {
-            id: NodeId(2),
-            name: Name(1),
-            pos: Position::new(1, 6),
-            data_type: Type::create(NodeId(1), pos(1, 8), BuiltinType::Int),
-        };
+        let p = &f1.params[0];
+        assert_eq!(Name(1), p.name);
+        assert!(p.data_type.is_int());
 
-        let p2 = Param {
-            id: NodeId(4),
-            name: Name(2),
-            pos: Position::new(1, 13),
-            data_type: Type::create(NodeId(3), pos(1, 15), BuiltinType::Str),
-        };
-
-        assert_eq!(vec![p1, p2], f1.params);
+        let p = &f1.params[1];
+        assert_eq!(Name(2), p.name);
+        assert!(p.data_type.is_str());
     }
 
     #[test]
     fn parse_var_without_type() {
-        let lit = lit_int(NodeId(1), 1, 9, 1);
-        let var = Stmt::create_var(
-            NodeId(2),
-            pos(1, 1),
-            Name(0),
-            None,
-            Some(lit)
-        );
-
         let stmt = parse_stmt("var a = 1;");
+        let var = stmt.to_var().unwrap();
 
-        assert_eq!(var, *stmt);
+        assert!(var.data_type.is_none());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
     fn parse_var_with_type() {
-        let var = Stmt::create_var(
-            NodeId(3),
-            pos(1, 1),
-            Name(0),
-            Some(Type::create(NodeId(1), pos(1, 9), BuiltinType::Int)),
-            Some(lit_int(NodeId(2), 1, 15, 1))
-        );
-
         let stmt = parse_stmt("var x : int = 1;");
+        let var = stmt.to_var().unwrap();
 
-        assert_eq!(var, *stmt);
+        assert!(var.data_type.as_ref().unwrap().is_int());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
     fn parse_var_with_type_but_without_assignment() {
-        let var = Stmt::create_var(
-            NodeId(2),
-            pos(1, 1),
-            Name(0),
-            Some(Type::create(NodeId(1), pos(1, 9), BuiltinType::Int)),
-            None
-        );
-
         let stmt = parse_stmt("var x : int;");
+        let var = stmt.to_var().unwrap();
 
-        assert_eq!(var, *stmt);
+        assert!(var.data_type.as_ref().unwrap().is_int());
+        assert!(var.expr.is_none());
     }
 
     #[test]
     fn parse_var_without_type_and_assignment() {
-        let var = Stmt::create_var(
-            NodeId(1),
-            pos(1, 1),
-            Name(0),
-            None,
-            None
-        );
-
         let stmt = parse_stmt("var x;");
+        let var = stmt.to_var().unwrap();
 
-        assert_eq!(var, *stmt);
+        assert!(var.data_type.is_none());
+        assert!(var.expr.is_none());
     }
 
     #[test]
     fn parse_multiple_functions() {
         let prog = parse("fn f() { } fn g() { }");
 
-        let f = prog.function("f").unwrap();
+        let f = prog.find_function("f").unwrap();
         assert_eq!(Name(0), f.name);
         assert_eq!(Position::new(1, 1), f.pos);
 
-        let g = prog.function("g").unwrap();
+        let g = prog.find_function("g").unwrap();
         assert_eq!(Name(1), g.name);
         assert_eq!(Position::new(1, 12), g.pos);
     }
@@ -1036,125 +999,114 @@ mod tests {
     #[test]
     fn parse_expr_stmt() {
         let stmt = parse_stmt("1;");
-        let lit = lit_int(NodeId(1), 1, 1, 1);
-        let expr = estmt(NodeId(2), 1, 1, lit);
+        let expr = stmt.to_expr().unwrap();
 
-        assert_eq!(expr, stmt);
+        assert!(expr.expr.is_lit_int());
+    }
 
+    #[test]
+    fn parse_expr_stmt_without_semicolon() {
         err_stmt("1", ErrorCode::UnexpectedToken, 1, 2);
     }
 
     #[test]
     fn parse_if() {
-        let e1 = lit_int(NodeId(2), 1, 11, 2);
-        let s1 = estmt(NodeId(3), 1, 11, e1);
-        let b1 = bstmt(NodeId(4), 1, 9, vec![s1]);
-
-        let e2 = lit_int(NodeId(5), 1, 23, 3);
-        let s2 = estmt(NodeId(6), 1, 23, e2);
-        let b2 = bstmt(NodeId(7), 1, 21, vec![s2]);
-
-        let cond = lit_bool(NodeId(1), 1, 4, true);
-
-        let sif = Stmt::create_if(NodeId(8), pos(1, 1), cond, b1, Some(b2));
-
         let stmt = parse_stmt("if true { 2; } else { 3; }");
-        assert_eq!(sif, *stmt)
+        let ifstmt = stmt.to_if().unwrap();
+
+        assert!(ifstmt.cond.is_lit_bool());
+        assert!(ifstmt.else_block.is_some());
     }
 
     #[test]
     fn parse_if_without_else() {
-        let e1 = lit_int(NodeId(2), 1, 11, 2);
-        let s1 = estmt(NodeId(3), 1, 11, e1);
-        let b1 = bstmt(NodeId(4), 1, 9, vec![s1]);
-
-        let cond = lit_bool(NodeId(1), 1, 4, true);
-
-        let exp = Stmt::create_if(NodeId(5), pos(1, 1), cond, b1, None);
         let stmt = parse_stmt("if true { 2; }");
-        assert_eq!(exp, *stmt)
+        let ifstmt = stmt.to_if().unwrap();
+
+        assert!(ifstmt.cond.is_lit_bool());
+        assert!(ifstmt.else_block.is_none());
     }
 
     #[test]
     fn parse_while() {
-        let e = lit_int(NodeId(2), 1, 14, 2);
-        let s = estmt(NodeId(3), 1, 14, e);
-        let b = bstmt(NodeId(4), 1, 12, vec![s]);
-        let cond = lit_bool(NodeId(1), 1, 7, true);
-
-        let exp = Stmt::create_while(NodeId(5), pos(1, 1), cond, b);
         let stmt = parse_stmt("while true { 2; }");
-        assert_eq!(exp, *stmt);
+        let whilestmt = stmt.to_while().unwrap();
+
+        assert!(whilestmt.cond.is_lit_bool());
+
+        let block = whilestmt.block.to_block().unwrap();
+        assert_eq!(1, block.stmts.len());
     }
 
     #[test]
     fn parse_loop() {
-        let e = lit_int(NodeId(1), 1, 8, 1);
-        let s = estmt(NodeId(2), 1, 8, e);
-        let b = bstmt(NodeId(3), 1, 6, vec![s]);
-
-        let exp = Stmt::create_loop(NodeId(4), pos(1, 1), b);
         let stmt = parse_stmt("loop { 1; }");
-        assert_eq!(exp, *stmt);
+        let block = &stmt.to_loop().unwrap().block;
+
+        assert_eq!(1, block.to_block().unwrap().stmts.len());
     }
 
     #[test]
-    fn parse_block() {
+    fn parse_empty_block() {
+        let stmt = parse_stmt("{}");
+        let block = stmt.to_block().unwrap();
+
+        assert_eq!(0, block.stmts.len());
+    }
+
+    #[test]
+    fn parse_block_with_one_stmt() {
         let stmt = parse_stmt("{ 1; }");
+        let block = stmt.to_block().unwrap();
 
-        let e = lit_int(NodeId(1), 1, 3, 1);
-        let s = estmt(NodeId(2), 1, 3, e);
-        let exp = bstmt(NodeId(3), 1, 1, vec![s]);
+        assert_eq!(1, block.stmts.len());
 
-        assert_eq!(exp, stmt);
+        let expr = &block.stmts[0].to_expr().unwrap().expr;
+        assert_eq!(1, expr.to_lit_int().unwrap().value);
     }
 
     #[test]
     fn parse_block_with_multiple_stmts() {
         let stmt = parse_stmt("{ 1; 2; }");
+        let block = stmt.to_block().unwrap();
 
-        let e = lit_int(NodeId(1), 1, 3, 1);
-        let s1 = estmt(NodeId(2), 1, 3, e);
+        assert_eq!(2, block.stmts.len());
 
-        let e = lit_int(NodeId(3), 1, 6, 2);
-        let s2 = estmt(NodeId(4), 1, 6, e);
+        let expr = &block.stmts[0].to_expr().unwrap().expr;
+        assert_eq!(1, expr.to_lit_int().unwrap().value);
 
-        let exp = bstmt(NodeId(5), 1, 1, vec![s1, s2]);
-
-        assert_eq!(exp, stmt);
+        let expr = &block.stmts[1].to_expr().unwrap().expr;
+        assert_eq!(2, expr.to_lit_int().unwrap().value);
     }
 
     #[test]
     fn parse_break() {
-        let s = Stmt::create_break(NodeId(1), pos(1, 1));
         let stmt = parse_stmt("break;");
 
-        assert_eq!(s, *stmt)
+        assert!(stmt.is_break());
     }
 
     #[test]
     fn parse_continue() {
-        let s = Stmt::create_continue(NodeId(1), pos(1, 1));
         let stmt = parse_stmt("continue;");
 
-        assert_eq!(s, *stmt)
+        assert!(stmt.is_continue());
     }
 
     #[test]
     fn parse_return_value() {
-        let e = lit_int(NodeId(1), 1, 8, 1);
-        let s = Stmt::create_return(NodeId(2), pos(1, 1), Some(e));
-
         let stmt = parse_stmt("return 1;");
-        assert_eq!(s, *stmt);
+        let ret = stmt.to_return().unwrap();
+
+        assert_eq!(1, ret.expr.as_ref().unwrap().to_lit_int().unwrap().value);
     }
 
     #[test]
     fn parse_return() {
-        let s = Stmt::create_return(NodeId(1), pos(1, 1), None);
         let stmt = parse_stmt("return;");
+        let ret = stmt.to_return().unwrap();
 
-        assert_eq!(s, *stmt);
+        assert!(ret.expr.is_none());
     }
 
     #[test]
