@@ -13,8 +13,6 @@ use ast::Param;
 use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
     StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
 use ast::Type;
-use ast::TypeBasicType;
-use ast::TypeUnitType;
 use ast::UnOp;
 
 use error::ParseError;

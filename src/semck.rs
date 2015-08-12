@@ -4,14 +4,18 @@ use ast::Elem::ElemFunction;
 
 use parser::Parser;
 
+use sym::SymbolTable;
+
 pub struct SemCheck<'a> {
     ast: &'a Ast,
+    symbols: SymbolTable,
 }
 
 impl<'a> SemCheck<'a> {
     pub fn new(ast: &Ast) -> SemCheck {
         SemCheck {
-            ast: ast
+            ast: ast,
+            symbols: SymbolTable::new()
         }
     }
 

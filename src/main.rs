@@ -19,6 +19,7 @@ mod parser;
 mod ast;
 mod interner;
 mod semck;
+mod sym;
 
 
 #[cfg(not(test))]

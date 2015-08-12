@@ -95,17 +95,6 @@ impl Type {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct TypeBasicType {
-    pub name: Name,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-pub struct TypeUnitType {
-    pub id: NodeId,
-    pub pos: Option<Position>,
-}
-
 #[derive(Debug)]
 pub struct Function {
     pub id: NodeId,
