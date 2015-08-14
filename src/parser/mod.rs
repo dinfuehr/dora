@@ -918,12 +918,18 @@ mod tests {
         let p2 = parse("fn f(a:int,) { }");
         let f2 = p2.find_function("f").unwrap();
 
-        assert_eq!(f1.params, f2.params);
+        let p1 = &f1.params[0];
+        let p2 = &f2.params[0];
 
-        let p = &f1.params[0];
-        assert_eq!(NodeId(2), p.id);
-        assert_eq!(Name(1), p.name);
-        assert!(p.data_type.is_int());
+        assert_eq!(NodeId(2), p1.id);
+        assert_eq!(NodeId(2), p2.id);
+
+        assert_eq!(Name(1), p1.name);
+        assert_eq!(Name(1), p2.name);
+
+
+        assert!(p1.data_type.is_int());
+        assert!(p2.data_type.is_int());
     }
 
     #[test]
@@ -934,15 +940,22 @@ mod tests {
         let p2 = parse("fn f(a:int, b:str,) { }");
         let f2 = p2.find_function("f").unwrap();
 
-        assert_eq!(f1.params, f2.params);
+        let p1a = &f1.params[0];
+        let p1b = &f1.params[1];
+        let p2a = &f2.params[0];
+        let p2b = &f2.params[1];
 
-        let p = &f1.params[0];
-        assert_eq!(Name(1), p.name);
-        assert!(p.data_type.is_int());
+        assert_eq!(Name(1), p1a.name);
+        assert_eq!(Name(1), p2a.name);
 
-        let p = &f1.params[1];
-        assert_eq!(Name(2), p.name);
-        assert!(p.data_type.is_str());
+        assert_eq!(Name(2), p1b.name);
+        assert_eq!(Name(2), p2b.name);
+
+        assert!(p1a.data_type.is_int());
+        assert!(p2a.data_type.is_int());
+
+        assert!(p1b.data_type.is_str());
+        assert!(p2b.data_type.is_str());
     }
 
     #[test]
@@ -1113,14 +1126,21 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_basic() {
-        assert_eq!(Type::create(NodeId(1), pos(1, 1), BuiltinType::Int), parse_type("int"));
-        assert_eq!(Type::create(NodeId(1), pos(1, 1), BuiltinType::Str), parse_type("str"));
+    fn parse_type_int() {
+        let ty = parse_type("int");
+        assert_eq!(BuiltinType::Int, ty.builtin);
+    }
+
+    #[test]
+    fn parse_type_str() {
+        let ty = parse_type("str");
+        assert_eq!(BuiltinType::Str, ty.builtin);
     }
 
     #[test]
     fn parse_type_unit() {
-        assert_eq!(Type::create(NodeId(1), pos(1,1), BuiltinType::Unit), parse_type("()"));
+        let ty = parse_type("()");
+        assert_eq!(BuiltinType::Unit, ty.builtin);
     }
 
     #[test]

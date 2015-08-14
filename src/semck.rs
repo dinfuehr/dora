@@ -22,13 +22,16 @@ impl<'a> SemCheck<'a> {
     pub fn check(&mut self) {
         for elem in &self.ast.elements {
             match *elem {
-                ElemFunction(ref fct) => self.check_function(fct),
+                ElemFunction(ref fct) => self.add_function_header(fct),
                 _ => unreachable!()
             }
         }
     }
 
-    pub fn check_function(&mut self, fct: &Function) {
+    fn add_function_header(&mut self, fct: &Function) {
+    }
+
+    fn check_function(&mut self, fct: &Function) {
         println!("check_function");
     }
 }

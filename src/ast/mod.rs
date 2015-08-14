@@ -45,13 +45,12 @@ impl fmt::Display for NodeId {
     }
 }
 
-#[derive(Debug)]
 pub enum Elem {
     ElemFunction(Function),
     ElemUnknown
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct Type {
     pub id: NodeId,
     pub pos: Option<Position>,
@@ -95,7 +94,6 @@ impl Type {
     }
 }
 
-#[derive(Debug)]
 pub struct Function {
     pub id: NodeId,
     pub name: Name,
@@ -107,7 +105,7 @@ pub struct Function {
     pub block: Box<Stmt>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct Param {
     pub id: NodeId,
     pub name: Name,
@@ -116,7 +114,7 @@ pub struct Param {
     pub data_type: Type,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub enum Stmt {
     StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
@@ -349,7 +347,7 @@ impl Stmt {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtVarType {
     pub id: NodeId,
     pub pos: Position,
@@ -359,7 +357,7 @@ pub struct StmtVarType {
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtWhileType {
     pub id: NodeId,
     pub pos: Position,
@@ -368,14 +366,14 @@ pub struct StmtWhileType {
     pub block: Box<Stmt>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtLoopType {
     pub id: NodeId,
     pub pos: Position,
     pub block: Box<Stmt>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtIfType {
     pub id: NodeId,
     pub pos: Position,
@@ -384,34 +382,34 @@ pub struct StmtIfType {
     pub else_block: Option<Box<Stmt>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtExprType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtBlockType {
     pub id: NodeId,
     pub pos: Position,
     pub stmts: Vec<Box<Stmt>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtReturnType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtBreakType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
@@ -438,7 +436,7 @@ pub enum BinOp {
     Ge,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub enum Expr {
     ExprUn(ExprUnType),
     ExprBin(ExprBinType),
@@ -617,7 +615,7 @@ impl Expr {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprUnType {
     pub id: NodeId,
     pub pos: Position,
@@ -626,7 +624,7 @@ struct ExprUnType {
     pub opnd: Box<Expr>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprBinType {
     pub id: NodeId,
     pub pos: Position,
@@ -636,7 +634,7 @@ struct ExprBinType {
     pub rhs: Box<Expr>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
@@ -644,7 +642,7 @@ struct ExprLitIntType {
     pub value: i32,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprLitStrType {
     pub id: NodeId,
     pub pos: Position,
@@ -652,7 +650,7 @@ struct ExprLitStrType {
     pub value: String,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprLitBoolType {
     pub id: NodeId,
     pub pos: Position,
@@ -660,7 +658,7 @@ struct ExprLitBoolType {
     pub value: bool,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprIdentType {
     pub id: NodeId,
     pub pos: Position,
@@ -668,7 +666,7 @@ struct ExprIdentType {
     pub name: Name,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 struct ExprAssignType {
     pub id: NodeId,
     pub pos: Position,
