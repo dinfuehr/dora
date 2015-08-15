@@ -10,29 +10,13 @@ pub mod dump;
 
 pub struct Ast {
     pub elements: Vec<Elem>,
-    pub interner: Interner,
 }
 
 impl Ast {
-    pub fn new(elements: Vec<Elem>, interner: Interner) -> Ast {
+    pub fn new(elements: Vec<Elem>) -> Ast {
         Ast {
-            elements: elements,
-            interner: interner
+            elements: elements
         }
-    }
-
-    pub fn find_function(&self, name: &str) -> Option<&Function> {
-        for e in &self.elements {
-            if let ElemFunction(ref fct) = *e {
-                if self.str(fct.name) == name { return Some(fct); }
-            }
-        }
-
-        None
-    }
-
-    pub fn str(&self, name: Name) -> &str {
-        self.interner.str(name)
     }
 }
 
@@ -48,6 +32,15 @@ impl fmt::Display for NodeId {
 pub enum Elem {
     ElemFunction(Function),
     ElemUnknown
+}
+
+impl Elem {
+    pub fn to_function(&self) -> Option<&Function> {
+        match *self {
+            ElemFunction(ref fct) => Some(fct),
+            _ => None
+        }
+    }
 }
 
 #[derive(Debug)]

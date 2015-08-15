@@ -24,6 +24,7 @@ use ast::StmtVarType;
 use ast::StmtWhileType;
 use ast::Type;
 use interner::Name;
+use interner::Interner;
 
 macro_rules! dump {
     ($self_:ident, $($x:expr),*) => {{
@@ -37,13 +38,15 @@ macro_rules! dump {
 
 pub struct AstDumper<'a> {
     ast: &'a Ast,
+    interner: &'a Interner,
     indent: u32,
 }
 
 impl<'a> AstDumper<'a> {
-    pub fn new(ast: &Ast) -> AstDumper {
+    pub fn new<'b>(ast: &'b Ast, interner: &'b Interner) -> AstDumper<'b> {
         AstDumper {
             ast: ast,
+            interner: interner,
             indent: 0
         }
     }
@@ -253,6 +256,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn str(&self, name: Name) -> &str {
-        self.ast.str(name)
+        self.interner.str(name)
     }
 }
+

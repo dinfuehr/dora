@@ -9,9 +9,10 @@ extern crate byteorder;
 extern crate libc;
 
 #[cfg(not(test))]
-use parser::Parser;
 use ast::Ast;
 use ast::dump::AstDumper;
+use interner::Interner;
+use parser::Parser;
 use semck::SemCheck;
 
 mod lexer;
@@ -26,10 +27,10 @@ mod sym;
 #[cfg(not(test))]
 fn main() {
     match parse_file() {
-        Ok(ast) => {
-            AstDumper::new(&ast).dump();
+        Ok((ast, interner)) => {
+            AstDumper::new(&ast, &interner).dump();
 
-            if let Err(errors) = SemCheck::new(&ast).check() {
+            if let Err(errors) = SemCheck::new(&ast, &interner).check() {
                 for err in &errors {
                     println!("{}", err);
                 }
@@ -43,7 +44,7 @@ fn main() {
 }
 
 #[cfg(not(test))]
-fn parse_file() -> Result<Ast, String> {
+fn parse_file() -> Result<(Ast, Interner), String> {
     let fname = try!(filename());
     let mut parser = try!(Parser::from_file(&fname).map_err(|_| { format!("can not read file {}", fname) }));
     let ast = try!(parser.parse().map_err(|e| e.message));
@@ -57,3 +58,4 @@ fn filename() -> Result<String, String> {
 
     args.nth(1).ok_or("file name expected".to_owned())
 }
+

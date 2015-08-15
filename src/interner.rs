@@ -79,3 +79,4 @@ fn interner() {
 
     assert_eq!("keyword", interner.str(Name(2)));
 }
+

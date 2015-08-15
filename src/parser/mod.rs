@@ -66,14 +66,14 @@ impl<T: CodeReader> Parser<T> {
         parser
     }
 
-    pub fn generate_id(&mut self) -> NodeId {
+    fn generate_id(&mut self) -> NodeId {
         let ret = self.next_id;
         self.next_id = NodeId(ret.0+1);
 
         ret
     }
 
-    pub fn parse(&mut self) -> Result<Ast, ParseError> {
+    pub fn parse(&mut self) -> Result<(Ast, Interner), ParseError> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -84,7 +84,7 @@ impl<T: CodeReader> Parser<T> {
 
         let interner = mem::replace(&mut self.interner, Interner::new());
 
-        Ok(Ast::new(elements, interner))
+        Ok((Ast::new(elements), interner))
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -582,6 +582,7 @@ mod tests {
     use ast::UnOp;
 
     use interner::Name;
+    use interner::Interner;
 
     use error::ErrorCode;
     use lexer::position::Position;
@@ -634,7 +635,7 @@ mod tests {
         parser.parse_type().unwrap()
     }
 
-    fn parse(code: &'static str) -> Ast {
+    fn parse(code: &'static str) -> (Ast, Interner) {
         Parser::from_str(code).parse().unwrap()
     }
 
@@ -869,8 +870,8 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let prog = parse("fn b() { }");
-        let fct = prog.find_function("b").unwrap();
+        let (prog, _) = parse("fn b() { }");
+        let fct = prog.elements[0].to_function().unwrap();
 
         assert_eq!(Name(0), fct.name);
         assert_eq!(0, fct.params.len());
@@ -880,11 +881,11 @@ mod tests {
 
     #[test]
     fn parse_function_with_single_param() {
-        let p1 = parse("fn f(a:int) { }");
-        let f1 = p1.find_function("f").unwrap();
+        let (p1, _) = parse("fn f(a:int) { }");
+        let f1 = p1.elements[0].to_function().unwrap();
 
-        let p2 = parse("fn f(a:int,) { }");
-        let f2 = p2.find_function("f").unwrap();
+        let (p2, _) = parse("fn f(a:int,) { }");
+        let f2 = p2.elements[0].to_function().unwrap();
 
         let p1 = &f1.params[0];
         let p2 = &f2.params[0];
@@ -902,11 +903,11 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let p1 = parse("fn f(a:int, b:str) { }");
-        let f1 = p1.find_function("f").unwrap();
+        let (p1, _) = parse("fn f(a:int, b:str) { }");
+        let f1 = p1.elements[0].to_function().unwrap();
 
-        let p2 = parse("fn f(a:int, b:str,) { }");
-        let f2 = p2.find_function("f").unwrap();
+        let (p2, _) = parse("fn f(a:int, b:str,) { }");
+        let f2 = p2.elements[0].to_function().unwrap();
 
         let p1a = &f1.params[0];
         let p1b = &f1.params[1];
@@ -964,13 +965,13 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let prog = parse("fn f() { } fn g() { }");
+        let (prog, _) = parse("fn f() { } fn g() { }");
 
-        let f = prog.find_function("f").unwrap();
+        let f = prog.elements[0].to_function().unwrap();
         assert_eq!(Name(0), f.name);
         assert_eq!(Position::new(1, 1), f.pos);
 
-        let g = prog.find_function("g").unwrap();
+        let g = prog.elements[1].to_function().unwrap();
         assert_eq!(Name(1), g.name);
         assert_eq!(Position::new(1, 12), g.pos);
     }
@@ -1125,3 +1126,4 @@ mod tests {
         assert!(parser.is_err());
     }
 }
+
