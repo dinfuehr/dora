@@ -44,25 +44,36 @@ impl<'a> SemCheck<'a> {
     pub fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
         let mut globals = SymTable::new();
 
-        for elem in &self.ast.elements {
-            match *elem {
-                ElemFunction(ref fct) => {
-                    err!(self.errors, self.add_function_header(&mut globals, fct));
-                }
-
-                _ => unreachable!()
-            }
-        }
-
-        for fct in globals.functions_mut() {
-            err!(self.errors, self.check_function_body(fct));
-        }
+        err!(self.errors, self.parse_function_headers(&mut globals));
+        err!(self.errors, self.parse_function_bodies(&mut globals));
 
         if self.errors.len() == 0 {
             Ok(globals)
         } else {
             Err(self.errors)
         }
+    }
+
+    fn parse_function_headers(&mut self, globals: &mut SymTable) -> Result<(), ()> {
+        for elem in &self.ast.elements {
+            match *elem {
+                ElemFunction(ref fct) => {
+                    try!(self.add_function_header(globals, fct));
+                }
+
+                _ => unreachable!()
+            }
+        }
+
+        Ok(())
+    }
+
+    fn parse_function_bodies(&mut self, globals: &mut SymTable) -> Result<(), ()> {
+        for fct in globals.functions_mut() {
+            try!(self.check_function_body(fct));
+        }
+
+        Ok(())
     }
 
     fn add_function_header(&mut self, globals: &mut SymTable, fct: &Function) -> Result<(), ()> {
