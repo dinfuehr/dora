@@ -2,9 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::IterMut;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
 
-use ast::BuiltinType;
 use ast::NodeId;
-use ast::Type;
 
 use interner::Name;
 
@@ -64,9 +62,76 @@ pub struct SymTypeType {
 }
 
 #[derive(Debug)]
+pub enum Type {
+    TypeBasic(TypeBasicType),
+    TypeTuple(TypeTupleType),
+    TypeArray(TypeArrayType),
+    TypePtr(TypePtrType),
+}
+
+impl Type {
+    pub fn create_unit() -> Type {
+        Type::TypeTuple(TypeTupleType {
+            subtypes: Vec::new()
+        })
+    }
+
+    pub fn create_tuple(subtypes: Vec<Box<Type>>) -> Type {
+        Type::TypeTuple(TypeTupleType {
+            subtypes: subtypes
+        })
+    }
+
+    pub fn create_basic(name: Name) -> Type {
+        Type::TypeBasic(TypeBasicType {
+            name: name
+        })
+    }
+
+    pub fn create_ptr(subtype: Box<Type>) -> Type {
+        Type::TypePtr(TypePtrType {
+            subtype: subtype
+        })
+    }
+
+    pub fn create_array(subtype: Box<Type>) -> Type {
+        Type::TypeArray(TypeArrayType {
+            subtype: subtype
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeBasicType {
+    pub name: Name
+}
+
+#[derive(Debug)]
+pub struct TypeTupleType {
+    pub subtypes: Vec<Box<Type>>
+}
+
+#[derive(Debug)]
+pub struct TypeArrayType {
+    pub subtype: Box<Type>
+}
+
+#[derive(Debug)]
+pub struct TypePtrType {
+    pub subtype: Box<Type>
+}
+
+#[derive(Debug)]
+pub enum BuiltinType {
+    Int,
+    Bool,
+    Str,
+}
+
+#[derive(Debug)]
 pub struct SymFunctionType {
     pub name: Name,
-    pub return_type: BuiltinType,
+    pub return_type: Type,
     pub params: Vec<Param>,
     pub body: NodeId,
 }
@@ -74,7 +139,7 @@ pub struct SymFunctionType {
 #[derive(Debug)]
 pub struct Param {
     pub name: Name,
-    pub data_type: BuiltinType
+    pub data_type: Type
 }
 
 #[derive(Debug)]

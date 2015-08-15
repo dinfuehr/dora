@@ -3,7 +3,6 @@ use std::io::Error;
 
 use ast::Ast;
 use ast::BinOp;
-use ast::BuiltinType;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr;
 use ast::Function;
@@ -138,7 +137,7 @@ impl<T: CodeReader> Parser<T> {
         Ok(params)
     }
 
-    fn parse_comma_list<F,R>(&mut self, stop: TokenType, parse: F) -> Result<Vec<R>, ParseError>
+    fn parse_comma_list<F, R>(&mut self, stop: TokenType, parse: F) -> Result<Vec<R>, ParseError>
         where F: Fn(&mut Parser<T>) -> Result<R, ParseError> {
         let mut data = vec![];
         let mut comma = true;
@@ -179,14 +178,14 @@ impl<T: CodeReader> Parser<T> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<Type, ParseError> {
+    fn parse_function_type(&mut self) -> Result<Option<Type>, ParseError> {
         if self.token.is(TokenType::Arrow) {
             try!(self.read_token());
             let ty = try!(self.parse_type());
 
-            Ok(ty)
+            Ok(Some(ty))
         } else {
-            Ok(Type::create_implicit(self.generate_id(), BuiltinType::Unit))
+            Ok(None)
         }
     }
 
@@ -194,33 +193,27 @@ impl<T: CodeReader> Parser<T> {
         match self.token.token_type {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
+                let name = self.interner.intern(token.value);
 
-                let builtin = match &token.value[..] {
-                    "int" => BuiltinType::Int,
-                    "str" => BuiltinType::Str,
-                    _ => return Err(ParseError {
-                        position: token.position,
-                        code: ErrorCode::ExpectedType,
-                        message: format!("unknown type `{}`", token.value)
-                    })
-                };
-
-                Ok(Type::create(
+                Ok(Type::create_basic(
                     self.generate_id(),
                     token.position,
-                    builtin,
+                    name,
                 ))
             }
 
-
             TokenType::LParen => {
                 let token = try!(self.read_token());
-                try!(self.expect_token(TokenType::RParen));
+                let subtypes = try!(self.parse_comma_list(TokenType::RParen, |p| {
+                    let ty = try!(p.parse_type());
 
-                Ok(Type::create(
+                    Ok(box ty)
+                }));
+
+                Ok(Type::create_tuple(
                     self.generate_id(),
                     token.position,
-                    BuiltinType::Unit
+                    subtypes
                 ))
             }
 
@@ -573,7 +566,6 @@ impl<T: CodeReader> Parser<T> {
 mod tests {
     use ast::Ast;
     use ast::BinOp;
-    use ast::BuiltinType;
     use ast::Expr;
     use ast::NodeId;
     use ast::Param;
@@ -588,11 +580,11 @@ mod tests {
     use lexer::position::Position;
     use parser::Parser;
 
-    fn parse_expr(code: &'static str) -> Box<Expr> {
+    fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
         let mut parser = Parser::from_str(code);
         assert!(parser.init().is_ok(), true);
 
-        parser.parse_expression().unwrap()
+        (parser.parse_expression().unwrap(), parser.interner)
     }
 
     fn err_expr(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
@@ -628,11 +620,13 @@ mod tests {
         assert_eq!(col, err.position.column);
     }
 
-    fn parse_type(code: &'static str) -> Type {
+    fn parse_type(code: &'static str) -> (Type, Interner) {
         let mut parser = Parser::from_str(code);
         assert!(parser.init().is_ok(), true);
 
-        parser.parse_type().unwrap()
+        let ty = parser.parse_type().unwrap();
+
+        (ty, parser.interner)
     }
 
     fn parse(code: &'static str) -> (Ast, Interner) {
@@ -641,15 +635,15 @@ mod tests {
 
     #[test]
     fn parse_ident() {
-        let expr = parse_expr("a");
+        let (expr, interner) = parse_expr("a");
 
         let ident = expr.to_ident().unwrap();
-        assert_eq!(Name(0), ident.name);
+        assert_eq!("a", interner.str(ident.name));
     }
 
     #[test]
     fn parse_number() {
-        let expr = parse_expr("10");
+        let (expr, _) = parse_expr("10");
 
         let lit = expr.to_lit_int().unwrap();
         assert_eq!(10, lit.value);
@@ -657,7 +651,7 @@ mod tests {
 
     #[test]
     fn parse_string() {
-        let expr = parse_expr("\"abc\"");
+        let (expr, _) = parse_expr("\"abc\"");
 
         let lit = expr.to_lit_str().unwrap();
         assert_eq!("abc", &lit.value);
@@ -665,7 +659,7 @@ mod tests {
 
     #[test]
     fn parse_true() {
-        let expr = parse_expr("true");
+        let (expr, _) = parse_expr("true");
 
         let lit = expr.to_lit_bool().unwrap();
         assert_eq!(true, lit.value);
@@ -673,7 +667,7 @@ mod tests {
 
     #[test]
     fn parse_false() {
-        let expr = parse_expr("true");
+        let (expr, _) = parse_expr("true");
 
         let lit = expr.to_lit_bool().unwrap();
         assert_eq!(true, lit.value);
@@ -681,7 +675,7 @@ mod tests {
 
     #[test]
     fn parse_neg() {
-        let expr = parse_expr("-1");
+        let (expr, _) = parse_expr("-1");
 
         let un = expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, un.op);
@@ -691,7 +685,7 @@ mod tests {
 
     #[test]
     fn parse_double_neg() {
-        let expr = parse_expr("-(-3)");
+        let (expr, _) = parse_expr("-(-3)");
 
         let neg1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, neg1.op);
@@ -709,7 +703,7 @@ mod tests {
 
     #[test]
     fn parse_unary_plus() {
-        let expr = parse_expr("+2");
+        let (expr, _) = parse_expr("+2");
 
         let add = expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add.op);
@@ -724,7 +718,7 @@ mod tests {
 
     #[test]
     fn parse_double_unary_plus() {
-        let expr = parse_expr("+(+9)");
+        let (expr, _) = parse_expr("+(+9)");
 
         let add1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add1.op);
@@ -736,7 +730,7 @@ mod tests {
 
     #[test]
     fn parse_mul() {
-        let expr = parse_expr("6*3");
+        let (expr, _) = parse_expr("6*3");
 
         let mul = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul.op);
@@ -746,7 +740,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_muls() {
-        let expr = parse_expr("6*3*4");
+        let (expr, _) = parse_expr("6*3*4");
 
         let mul1 = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul1.op);
@@ -761,7 +755,7 @@ mod tests {
 
     #[test]
     fn parse_div() {
-        let expr = parse_expr("4/5");
+        let (expr, _) = parse_expr("4/5");
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Div, div.op);
@@ -771,7 +765,7 @@ mod tests {
 
     #[test]
     fn parse_mod() {
-        let expr = parse_expr("2%15");
+        let (expr, _) = parse_expr("2%15");
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mod, div.op);
@@ -781,7 +775,7 @@ mod tests {
 
     #[test]
     fn parse_add() {
-        let expr = parse_expr("2+3");
+        let (expr, _) = parse_expr("2+3");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Add, add.op);
@@ -791,7 +785,7 @@ mod tests {
 
     #[test]
     fn parse_sub() {
-        let expr = parse_expr("1-2");
+        let (expr, _) = parse_expr("1-2");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
@@ -801,7 +795,7 @@ mod tests {
 
     #[test]
     fn parse_lt() {
-        let expr = parse_expr("1<2");
+        let (expr, _) = parse_expr("1<2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Lt, cmp.op);
@@ -811,7 +805,7 @@ mod tests {
 
     #[test]
     fn parse_le() {
-        let expr = parse_expr("1<=2");
+        let (expr, _) = parse_expr("1<=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Le, cmp.op);
@@ -821,7 +815,7 @@ mod tests {
 
     #[test]
     fn parse_gt() {
-        let expr = parse_expr("1>2");
+        let (expr, _) = parse_expr("1>2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Gt, cmp.op);
@@ -831,7 +825,7 @@ mod tests {
 
     #[test]
     fn parse_ge() {
-        let expr = parse_expr("1>=2");
+        let (expr, _) = parse_expr("1>=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Ge, cmp.op);
@@ -841,7 +835,7 @@ mod tests {
 
     #[test]
     fn parse_eq() {
-        let expr = parse_expr("1==2");
+        let (expr, _) = parse_expr("1==2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Eq, cmp.op);
@@ -851,7 +845,7 @@ mod tests {
 
     #[test]
     fn parse_ne() {
-        let expr = parse_expr("1!=2");
+        let (expr, _) = parse_expr("1!=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Ne, cmp.op);
@@ -861,7 +855,7 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let expr = parse_expr("a=4");
+        let (expr, _) = parse_expr("a=4");
 
         let assign = expr.to_assign().unwrap();
         assert!(assign.lhs.is_ident());
@@ -870,21 +864,21 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let (prog, _) = parse("fn b() { }");
+        let (prog, interner) = parse("fn b() { }");
         let fct = prog.elements[0].to_function().unwrap();
 
-        assert_eq!(Name(0), fct.name);
+        assert_eq!("b", interner.str(fct.name));
         assert_eq!(0, fct.params.len());
-        assert!(fct.return_type.is_unit());
+        assert!(fct.return_type.is_none());
         assert_eq!(Position::new(1, 1), fct.pos);
     }
 
     #[test]
     fn parse_function_with_single_param() {
-        let (p1, _) = parse("fn f(a:int) { }");
+        let (p1, interner1) = parse("fn f(a:int) { }");
         let f1 = p1.elements[0].to_function().unwrap();
 
-        let (p2, _) = parse("fn f(a:int,) { }");
+        let (p2, interner2) = parse("fn f(a:int,) { }");
         let f2 = p2.elements[0].to_function().unwrap();
 
         let p1 = &f1.params[0];
@@ -893,20 +887,19 @@ mod tests {
         assert_eq!(NodeId(2), p1.id);
         assert_eq!(NodeId(2), p2.id);
 
-        assert_eq!(Name(1), p1.name);
-        assert_eq!(Name(1), p2.name);
+        assert_eq!("a", interner1.str(p1.name));
+        assert_eq!("a", interner1.str(p2.name));
 
-
-        assert!(p1.data_type.is_int());
-        assert!(p2.data_type.is_int());
+        assert_eq!("int", interner1.str(p1.data_type.to_basic().unwrap().name));
+        assert_eq!("int", interner1.str(p2.data_type.to_basic().unwrap().name));
     }
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let (p1, _) = parse("fn f(a:int, b:str) { }");
+        let (p1, interner1) = parse("fn f(a:int, b:str) { }");
         let f1 = p1.elements[0].to_function().unwrap();
 
-        let (p2, _) = parse("fn f(a:int, b:str,) { }");
+        let (p2, interner2) = parse("fn f(a:int, b:str,) { }");
         let f2 = p2.elements[0].to_function().unwrap();
 
         let p1a = &f1.params[0];
@@ -914,17 +907,17 @@ mod tests {
         let p2a = &f2.params[0];
         let p2b = &f2.params[1];
 
-        assert_eq!(Name(1), p1a.name);
-        assert_eq!(Name(1), p2a.name);
+        assert_eq!("a", interner1.str(p1a.name));
+        assert_eq!("a", interner2.str(p2a.name));
 
-        assert_eq!(Name(2), p1b.name);
-        assert_eq!(Name(2), p2b.name);
+        assert_eq!("b", interner1.str(p1b.name));
+        assert_eq!("b", interner2.str(p2b.name));
 
-        assert!(p1a.data_type.is_int());
-        assert!(p2a.data_type.is_int());
+        assert_eq!("int", interner1.str(p1a.data_type.to_basic().unwrap().name));
+        assert_eq!("int", interner2.str(p2a.data_type.to_basic().unwrap().name));
 
-        assert!(p1b.data_type.is_str());
-        assert!(p2b.data_type.is_str());
+        assert_eq!("str", interner1.str(p1b.data_type.to_basic().unwrap().name));
+        assert_eq!("str", interner2.str(p2b.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -941,7 +934,7 @@ mod tests {
         let stmt = parse_stmt("var x : int = 1;");
         let var = stmt.to_var().unwrap();
 
-        assert!(var.data_type.as_ref().unwrap().is_int());
+        assert!(var.data_type.is_some());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
@@ -950,7 +943,7 @@ mod tests {
         let stmt = parse_stmt("var x : int;");
         let var = stmt.to_var().unwrap();
 
-        assert!(var.data_type.as_ref().unwrap().is_int());
+        assert!(var.data_type.is_some());
         assert!(var.expr.is_none());
     }
 
@@ -965,14 +958,14 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let (prog, _) = parse("fn f() { } fn g() { }");
+        let (prog, interner) = parse("fn f() { } fn g() { }");
 
         let f = prog.elements[0].to_function().unwrap();
-        assert_eq!(Name(0), f.name);
+        assert_eq!("f", interner.str(f.name));
         assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.elements[1].to_function().unwrap();
-        assert_eq!(Name(1), g.name);
+        assert_eq!("g", interner.str(g.name));
         assert_eq!(Position::new(1, 12), g.pos);
     }
 
@@ -1095,21 +1088,44 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_int() {
-        let ty = parse_type("int");
-        assert_eq!(BuiltinType::Int, ty.builtin);
-    }
+    fn parse_type_basic() {
+        let (ty, interner) = parse_type("bla");
+        let basic = ty.to_basic().unwrap();
 
-    #[test]
-    fn parse_type_str() {
-        let ty = parse_type("str");
-        assert_eq!(BuiltinType::Str, ty.builtin);
+        assert_eq!("bla", interner.str(basic.name));
     }
 
     #[test]
     fn parse_type_unit() {
-        let ty = parse_type("()");
-        assert_eq!(BuiltinType::Unit, ty.builtin);
+        let (ty, _) = parse_type("()");
+        let ty = ty.to_tuple().unwrap();
+
+        assert!(ty.subtypes.is_empty());
+    }
+
+    #[test]
+    fn parse_type_unit_with_one_type() {
+        let (ty, interner) = parse_type("(c)");
+
+        let subtypes = &ty.to_tuple().unwrap().subtypes;
+        assert_eq!(1, subtypes.len());
+
+        let ty = subtypes[0].to_basic().unwrap();
+        assert_eq!("c", interner.str(ty.name));
+    }
+
+    #[test]
+    fn parse_type_unit_with_two_types() {
+        let (ty, interner) = parse_type("(a, b)");
+
+        let subtypes = &ty.to_tuple().unwrap().subtypes;
+        assert_eq!(2, subtypes.len());
+
+        let ty1 = subtypes[0].to_basic().unwrap();
+        assert_eq!("a", interner.str(ty1.name));
+
+        let ty2 = subtypes[1].to_basic().unwrap();
+        assert_eq!("b", interner.str(ty2.name));
     }
 
     #[test]

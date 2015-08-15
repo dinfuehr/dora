@@ -44,49 +44,144 @@ impl Elem {
 }
 
 #[derive(Debug)]
-pub struct Type {
-    pub id: NodeId,
-    pub pos: Option<Position>,
-    pub builtin: BuiltinType,
+pub enum Type {
+    TypeBasic(TypeBasicType),
+    TypeTuple(TypeTupleType),
+    TypePtr(TypePtrType),
+    TypeArray(TypeArrayType),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum BuiltinType {
-    Unit,
-    Int,
-    Str,
+#[derive(Debug)]
+pub struct TypeTupleType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub subtypes: Vec<Box<Type>>
+}
+
+#[derive(Debug)]
+pub struct TypeBasicType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+}
+
+#[derive(Debug)]
+pub struct TypePtrType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub subtype: Box<Type>,
+}
+
+#[derive(Debug)]
+pub struct TypeArrayType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub subtype: Box<Type>,
 }
 
 impl Type {
-    pub fn create(id: NodeId, pos: Position, builtin: BuiltinType) -> Type {
-        Type {
+    pub fn create_basic(id: NodeId, pos: Position, name: Name) -> Type {
+        Type::TypeBasic(TypeBasicType {
             id: id,
-            pos: Some(pos),
-            builtin: builtin,
+            pos: pos,
+            name: name,
+        })
+    }
+
+    pub fn create_ptr(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
+        Type::TypePtr(TypePtrType {
+            id: id,
+            pos: pos,
+            subtype: subtype
+        })
+    }
+
+    pub fn create_array(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
+        Type::TypeArray(TypeArrayType {
+            id: id,
+            pos: pos,
+            subtype: subtype
+        })
+    }
+
+    pub fn create_tuple(id: NodeId, pos: Position, subtypes: Vec<Box<Type>>) -> Type {
+        Type::TypeTuple(TypeTupleType {
+            id: id,
+            pos: pos,
+            subtypes: subtypes
+        })
+    }
+
+    pub fn to_basic(&self) -> Option<&TypeBasicType> {
+        match *self {
+            Type::TypeBasic(ref val) => Some(val),
+            _ => None
         }
     }
 
-    pub fn create_implicit(id: NodeId, builtin: BuiltinType) -> Type {
-        Type {
-            id: id,
-            pos: None,
-            builtin: builtin
+    pub fn to_ptr(&self) -> Option<&TypePtrType> {
+        match *self {
+            Type::TypePtr(ref val) => Some(val),
+            _ => None
         }
     }
 
-    pub fn is_int(&self) -> bool {
-        self.builtin == BuiltinType::Int
+    pub fn to_array(&self) -> Option<&TypeArrayType> {
+        match *self {
+            Type::TypeArray(ref val) => Some(val),
+            _ => None
+        }
     }
 
-    pub fn is_unit(&self) -> bool {
-        self.builtin == BuiltinType::Unit
+    pub fn to_tuple(&self) -> Option<&TypeTupleType> {
+        match *self {
+            Type::TypeTuple(ref val) => Some(val),
+            _ => None
+        }
     }
 
-    pub fn is_str(&self) -> bool {
-        self.builtin == BuiltinType::Str
+    pub fn to_string(&self, interner: &Interner) -> String {
+        match *self {
+            Type::TypeBasic(ref val) => {
+                String::from(interner.str(val.name))
+            }
+
+            Type::TypeTuple(ref val) => {
+                let types : Vec<String> = val.subtypes.iter().map(|t| t.to_string(interner)).collect();
+
+                format!("({})", types.connect(", "))
+            }
+
+            Type::TypePtr(ref val) => {
+                format!("*{}", val.subtype.to_string(interner))
+            }
+
+            Type::TypeArray(ref val) => {
+                format!("[{}]", val.subtype.to_string(interner))
+            }
+        }
+    }
+
+    pub fn pos(&self) -> Position {
+        match *self {
+            Type::TypeBasic(ref val) => val.pos,
+            Type::TypeTuple(ref val) => val.pos,
+            Type::TypePtr(ref val) => val.pos,
+            Type::TypeArray(ref val) => val.pos,
+        }
+    }
+
+    pub fn id(&self) -> NodeId {
+        match *self {
+            Type::TypeBasic(ref val) => val.id,
+            Type::TypeTuple(ref val) => val.id,
+            Type::TypePtr(ref val) => val.id,
+            Type::TypeArray(ref val) => val.id,
+        }
     }
 }
 
+#[derive(Debug)]
 pub struct Function {
     pub id: NodeId,
     pub name: Name,
@@ -94,7 +189,7 @@ pub struct Function {
 
     pub params: Vec<Param>,
 
-    pub return_type: Type,
+    pub return_type: Option<Type>,
     pub block: Box<Stmt>,
 }
 

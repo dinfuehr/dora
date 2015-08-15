@@ -76,7 +76,12 @@ impl<'a> AstDumper<'a> {
             });
 
             dump!(d, "returns");
-            d.indent(|d| d.dump_type(&fct.return_type));
+
+            if let Some(ref ty) = fct.return_type {
+                d.indent(|d| d.dump_type(ty));
+            } else {
+                d.indent(|d| dump!(d, "<no return type>"))
+            }
 
             dump!(d, "executes");
             d.indent(|d| d.dump_stmt(&fct.block));
@@ -89,7 +94,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_type(&mut self, ty: &Type) {
-        dump!(self, "type `{:?}` @ {:?} {}", ty.builtin, ty.pos, ty.id);
+        dump!(self, "type `{}` @ {:?} {}", ty.to_string(self.interner), ty.pos(), ty.id());
     }
 
     fn dump_stmt(&mut self, stmt: &Stmt) {

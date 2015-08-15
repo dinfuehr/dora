@@ -14,6 +14,7 @@ use sym;
 use sym::SymTable;
 use sym::Sym::SymFunction;
 use sym::SymFunctionType;
+use sym::Type;
 
 macro_rules! err {
     ( $errs: expr, $x: expr ) => {
@@ -83,12 +84,23 @@ impl<'a> SemCheck<'a> {
         Ok(())
     }
 
+    fn parse_type(&mut self, globals: &SymTable, ty: &ast::Type) -> Result<sym::Type, ()> {
+        Err(())
+    }
+
     fn add_function_header(&mut self, globals: &mut SymTable, fct: &Function) -> Result<(), ()> {
-        let params = fct.params.iter().map(|p| param_header(p));
+        let params = try!(self.parse_function_params(globals, fct));
+
+        let ty = if let Some(ref ty) = fct.return_type {
+            try!(self.parse_type(globals, ty))
+        } else {
+            Type::create_unit()
+        };
+
         let symfct = SymFunction(SymFunctionType {
             name: fct.name,
-            return_type: fct.return_type.builtin,
-            params: params.collect(),
+            return_type: ty,
+            params: params,
             body: fct.block.id()
         });
 
@@ -103,6 +115,28 @@ impl<'a> SemCheck<'a> {
         }
 
         Ok(())
+    }
+
+    fn parse_function_params(&mut self, globals: &mut SymTable, fct: &Function)
+            -> Result<Vec<sym::Param>, ()> {
+        let mut params = Vec::with_capacity(fct.params.len());
+
+        for param in &fct.params {
+            let p = try!(self.parse_param(globals, param));
+            params.push(p);
+        }
+
+        Ok(params)
+    }
+
+    fn parse_param(&mut self, globals: &SymTable, param: &ast::Param)
+            -> Result<sym::Param, ()> {
+        let ty = try!(self.parse_type(globals, &param.data_type));
+
+        Ok(sym::Param {
+            name: param.name,
+            data_type: ty
+        })
     }
 
     fn check_function_body(&mut self, fct: &SymFunctionType) -> Result<(), ()> {
@@ -132,12 +166,6 @@ fn add_predefined_functions(interner: &mut Interner, globals: &mut SymTable) {
     // TODO: add print(str), print_int(int)
 }
 
-fn param_header(param: &ast::Param) -> sym::Param {
-    sym::Param {
-        name: param.name,
-        data_type: param.data_type.builtin
-    }
-}
 
 #[test]
 fn test_empty_file() {
