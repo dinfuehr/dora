@@ -47,7 +47,7 @@ impl<'a> SemCheck<'a> {
         err!(self.errors, self.parse_function_headers(&mut globals));
         err!(self.errors, self.parse_function_bodies(&mut globals));
 
-        if self.errors.len() == 0 {
+        if self.errors.is_empty() {
             Ok(globals)
         } else {
             Err(self.errors)
