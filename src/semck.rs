@@ -99,10 +99,6 @@ impl<'a> SemCheck<'a> {
         }
     }
 
-    fn errors(self) -> Vec<ParseError> {
-        self.errors
-    }
-
     fn check_function(&mut self, fct: &Function) {
         println!("check_function");
     }
