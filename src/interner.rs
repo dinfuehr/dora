@@ -1,12 +1,38 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::ops::Deref;
+use std::rc::Rc;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Name(pub usize);
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct RcStr(Rc<String>);
+
+impl RcStr {
+    fn new(value: String) -> RcStr {
+        RcStr(Rc::new(value))
+    }
+}
+
+impl Borrow<str> for RcStr {
+    fn borrow(&self) -> &str {
+        &self.0[..]
+    }
+}
+
+impl Deref for RcStr {
+    type Target = String;
+
+    fn deref<'a>(&'a self) -> &'a String {
+        &self.0
+    }
+}
+
 pub struct Interner {
-    map: HashMap<String, Name>,
-    vec: Vec<String>
+    map: HashMap<RcStr, Name>,
+    vec: Vec<RcStr>
 }
 
 impl Interner {
@@ -17,20 +43,18 @@ impl Interner {
         }
     }
 
-    pub fn intern(&mut self, value: String) -> Name {
-        let entry = self.map.entry(value.clone());
-
-        match entry {
-            Entry::Occupied(e) => *e.get(),
-            Entry::Vacant(e) => {
-                let name = Name(self.vec.len());
-
-                self.vec.push(value);
-                e.insert(name);
-
-                name
-            }
+    pub fn intern(&mut self, name: String) -> Name {
+        if let Some(&val) = self.map.get(&name[..]) {
+            return val;
         }
+
+        let key = RcStr::new(name);
+        let value = Name(self.vec.len());
+
+        self.vec.push(key.clone());
+        self.map.insert(key, value);
+
+        value
     }
 
     pub fn str(&self, name: Name) -> &str {

@@ -29,6 +29,7 @@ impl<'a> SemCheck<'a> {
     }
 
     fn add_function_header(&mut self, fct: &Function) {
+
     }
 
     fn check_function(&mut self, fct: &Function) {
