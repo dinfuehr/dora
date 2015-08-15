@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
 
+use ast::BuiltinType;
 use ast::NodeId;
 use ast::Type;
 
@@ -80,22 +81,22 @@ pub enum Sym {
     SymDummy(u8),
 }
 
-struct SymFunctionType {
-    name: Name,
-    return_type: Type,
-    params: Vec<Param>,
-    body: NodeId,
+pub struct SymFunctionType {
+    pub name: Name,
+    pub return_type: BuiltinType,
+    pub params: Vec<Param>,
+    pub body: NodeId,
 }
 
-struct Param {
-    name: Name,
-    data_type: Type
+pub struct Param {
+    pub name: Name,
+    pub data_type: BuiltinType
 }
 
-struct SymLocalVarType {
-    name: Name,
-    data_type: Type,
-    expr: Option<NodeId>,
+pub struct SymLocalVarType {
+    pub name: Name,
+    pub data_type: Type,
+    pub expr: Option<NodeId>,
 }
 
 #[test]

@@ -6,7 +6,7 @@ use lexer::position::Position;
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
-    MisplacedElse, IoError, CommaExpected, ExpectedValue,
+    MisplacedElse, IoError, CommaExpected, ExpectedValue, IdentifierAlreadyExists,
 
     MainDefinition, Unimplemented
 }

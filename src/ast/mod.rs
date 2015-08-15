@@ -57,7 +57,7 @@ pub struct Type {
     pub builtin: BuiltinType,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum BuiltinType {
     Unit,
     Int,
