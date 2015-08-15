@@ -26,7 +26,7 @@ macro_rules! err {
 
 // Only do semantic analysis until some amount of
 // errors found
-static max_errors: usize = 5;
+static MAX_ERRORS: usize = 5;
 
 pub struct SemCheck<'a> {
     ast: &'a Ast,
@@ -103,7 +103,7 @@ impl<'a> SemCheck<'a> {
     fn error(&mut self, error: ParseError) -> Result<(), ()> {
         self.errors.push(error);
 
-        if self.errors.len() <= max_errors {
+        if self.errors.len() <= MAX_ERRORS {
             Ok(())
         } else {
             Err(())

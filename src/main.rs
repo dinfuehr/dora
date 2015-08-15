@@ -12,6 +12,7 @@ extern crate libc;
 use parser::Parser;
 use ast::Ast;
 use ast::dump::AstDumper;
+use semck::SemCheck;
 
 mod lexer;
 mod error;
@@ -25,9 +26,19 @@ mod sym;
 #[cfg(not(test))]
 fn main() {
     match parse_file() {
-        Ok(ast) => AstDumper::new(&ast).dump(),
-        Err(err) => println!("Error: {}", err)
+        Ok(ast) => {
+            AstDumper::new(&ast).dump();
 
+            if let Err(errors) = SemCheck::new(&ast).check() {
+                for err in &errors {
+                    println!("{}", err);
+                }
+
+                println!("\n{} errors found.", errors.len());
+            }
+        }
+
+        Err(err) => println!("{}", err)
     }
 }
 

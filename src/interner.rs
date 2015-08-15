@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::ops::Deref;
 use std::rc::Rc;
 

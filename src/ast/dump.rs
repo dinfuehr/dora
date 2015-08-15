@@ -1,8 +1,5 @@
-use std::cell::Cell;
-
 use ast::Ast;
-use ast::BuiltinType;
-use ast::Elem::{self, ElemFunction};
+use ast::Elem::ElemFunction;
 use ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
                 ExprAssign, ExprIdent};
 use ast::ExprUnType;
@@ -66,7 +63,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             dump!(d, "params");
             d.indent(|d| {
-                if(fct.params.is_empty()) {
+                if fct.params.is_empty() {
                     dump!(d, "no params");
                 } else {
                     for param in &fct.params {
@@ -169,7 +166,7 @@ impl<'a> AstDumper<'a> {
             block.stmts.len(), block.pos, block.id);
 
         self.indent(|d| {
-            if(block.stmts.is_empty()) {
+            if block.stmts.is_empty() {
                 dump!(d, "no statements");
             } else {
                 for stmt in &block.stmts {

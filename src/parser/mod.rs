@@ -6,12 +6,10 @@ use ast::BinOp;
 use ast::BuiltinType;
 use ast::Elem::{self, ElemFunction};
 use ast::Expr;
-use ast::Expr::*;
 use ast::Function;
 use ast::NodeId;
 use ast::Param;
-use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
-    StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
+use ast::Stmt;
 use ast::Type;
 use ast::UnOp;
 
@@ -576,12 +574,10 @@ mod tests {
     use ast::Ast;
     use ast::BinOp;
     use ast::BuiltinType;
-    use ast::Expr::{self, ExprAssign, ExprBin, ExprIdent,
-        ExprLitBool, ExprLitInt, ExprLitStr, ExprUn};
+    use ast::Expr;
     use ast::NodeId;
     use ast::Param;
-    use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
-        StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
+    use ast::Stmt;
     use ast::Type;
     use ast::UnOp;
 
@@ -640,34 +636,6 @@ mod tests {
 
     fn parse(code: &'static str) -> Ast {
         Parser::from_str(code).parse().unwrap()
-    }
-
-    fn pos(line: u32, col: u32) -> Position {
-        Position::new(line, col)
-    }
-
-    fn bstmt(id: NodeId, line: u32, col: u32, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
-        box Stmt::create_block(id, Position::new(line, col), stmts)
-    }
-
-    fn estmt(id: NodeId, line: u32, col: u32, expr: Box<Expr>) -> Box<Stmt> {
-        box Stmt::create_expr(id, Position::new(line, col), expr)
-    }
-
-    fn ident(id: NodeId, line: u32, col: u32, value: Name) -> Box<Expr> {
-        box Expr::create_ident(id, Position::new(line, col), value)
-    }
-
-    fn lit_str(id: NodeId, line: u32, col: u32, value: String) -> Box<Expr> {
-        box Expr::create_lit_str(id, Position::new(line, col), value)
-    }
-
-    fn lit_bool(id: NodeId, line: u32, col: u32, value: bool) -> Box<Expr> {
-        box Expr::create_lit_bool(id, Position::new(line, col), value)
-    }
-
-    fn lit_int(id: NodeId, line: u32, col: u32, value: i32) -> Box<Expr> {
-        box Expr::create_lit_int(id, Position::new(line, col), value)
     }
 
     #[test]

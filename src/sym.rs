@@ -29,7 +29,7 @@ impl SymTable {
     // inserts symbol into the table
     pub fn insert(& mut self, name: Name, sym: Sym) -> Result<(), &Sym> {
         match self.map.entry(name) {
-            Vacant(mut entry) => {
+            Vacant(entry) => {
                 entry.insert(sym);
 
                 Ok(())
