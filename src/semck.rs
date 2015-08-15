@@ -48,8 +48,8 @@ impl<'a> SemCheck<'a> {
     pub fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
         let mut globals = SymTable::new();
 
-        add_predefined_types(&mut globals);
-        add_predefined_functions(&mut globals);
+        add_predefined_types(self.interner, &mut globals);
+        add_predefined_functions(self.interner, &mut globals);
 
         err!(self.errors, self.parse_function_headers(&mut globals));
         err!(self.errors, self.parse_function_bodies(&mut globals));
@@ -124,11 +124,11 @@ impl<'a> SemCheck<'a> {
     }
 }
 
-fn add_predefined_types(globals: &mut SymTable) {
+fn add_predefined_types(interner: &mut Interner, globals: &mut SymTable) {
     // TODO: add bool, int and str for now
 }
 
-fn add_predefined_functions(globals: &mut SymTable) {
+fn add_predefined_functions(interner: &mut Interner, globals: &mut SymTable) {
     // TODO: add print(str), print_int(int)
 }
 
