@@ -32,12 +32,12 @@ static MAX_ERRORS: usize = 5;
 
 pub struct SemCheck<'a> {
     ast: &'a Ast,
-    interner: &'a Interner,
+    interner: &'a mut Interner,
     errors: Vec<ParseError>,
 }
 
 impl<'a> SemCheck<'a> {
-    pub fn new<'b>(ast: &'b Ast, interner: &'b Interner) -> SemCheck<'b> {
+    pub fn new<'b>(ast: &'b Ast, interner: &'b mut Interner) -> SemCheck<'b> {
         SemCheck {
             ast: ast,
             interner: interner,
@@ -93,9 +93,11 @@ impl<'a> SemCheck<'a> {
         });
 
         if let Err(_) = globals.insert(fct.name, symfct) {
+            let message = format!("identifier {} already exists", self.interner.str(fct.name));
+
             try!(self.error(ParseError {
                 code: ErrorCode::IdentifierAlreadyExists,
-                message: format!("identifier {} already exists", self.interner.str(fct.name)),
+                message: message,
                 position: fct.pos
             }));
         }
@@ -139,15 +141,15 @@ fn param_header(param: &ast::Param) -> sym::Param {
 
 #[test]
 fn test_empty_file() {
-    let (prog, interner) = Parser::from_str("").parse().unwrap();
+    let (prog, mut interner) = Parser::from_str("").parse().unwrap();
 
-    SemCheck::new(&prog, &interner).check().unwrap();
+    SemCheck::new(&prog, &mut interner).check().unwrap();
 }
 
 #[test]
 fn test_function_multiple_times() {
-    let (prog, interner) = Parser::from_str("fn main() {} fn main() {}").parse().unwrap();
-    let errors = SemCheck::new(&prog, &interner).check().unwrap_err();
+    let (prog, mut interner) = Parser::from_str("fn main() {} fn main() {}").parse().unwrap();
+    let errors = SemCheck::new(&prog, &mut interner).check().unwrap_err();
 
     assert_eq!(1, errors.len());
     assert_eq!(ErrorCode::IdentifierAlreadyExists, errors[0].code);

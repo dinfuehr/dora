@@ -27,10 +27,10 @@ mod sym;
 #[cfg(not(test))]
 fn main() {
     match parse_file() {
-        Ok((ast, interner)) => {
-            AstDumper::new(&ast, &interner).dump();
+        Ok((ast, mut interner)) => {
+            AstDumper::new(&ast, &mut interner).dump();
 
-            if let Err(errors) = SemCheck::new(&ast, &interner).check() {
+            if let Err(errors) = SemCheck::new(&ast, &mut interner).check() {
                 for err in &errors {
                     println!("{}", err);
                 }
