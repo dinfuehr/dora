@@ -9,7 +9,7 @@ use error::ParseError;
 use parser::Parser;
 
 use sym;
-use sym::SymbolTable;
+use sym::SymTable;
 use sym::Sym::SymFunction;
 use sym::SymFunctionType;
 
@@ -19,7 +19,6 @@ static max_errors: usize = 5;
 
 pub struct SemCheck<'a> {
     ast: &'a Ast,
-    symbols: SymbolTable,
     errors: Vec<ParseError>,
 }
 
@@ -27,23 +26,28 @@ impl<'a> SemCheck<'a> {
     pub fn new(ast: &Ast) -> SemCheck {
         SemCheck {
             ast: ast,
-            symbols: SymbolTable::new(),
             errors: Vec::new(),
         }
     }
 
-    pub fn check(&mut self) -> Result<(), ()> {
+    pub fn check(&mut self) -> Result<SymTable, ()> {
+        let mut globals = SymTable::new();
+
         for elem in &self.ast.elements {
             match *elem {
-                ElemFunction(ref fct) => try!(self.add_function_header(fct)),
+                ElemFunction(ref fct) => try!(self.add_function_header(&mut globals, fct)),
                 _ => unreachable!()
             }
         }
 
-        Ok(())
+        for fct in globals.functions_mut() {
+            self.check_function_body(fct);
+        }
+
+        Ok(globals)
     }
 
-    fn add_function_header(&mut self, fct: &Function) -> Result<(), ()> {
+    fn add_function_header(&mut self, globals: &mut SymTable, fct: &Function) -> Result<(), ()> {
         let params = fct.params.iter().map(|p| param_header(p));
         let symfct = SymFunction(SymFunctionType {
             name: fct.name,
@@ -52,7 +56,7 @@ impl<'a> SemCheck<'a> {
             body: fct.block.id()
         });
 
-        if let Err(_) = self.symbols.insert(fct.name, symfct) {
+        if let Err(_) = globals.insert(fct.name, symfct) {
             try!(self.error(ParseError {
                 code: ErrorCode::IdentifierAlreadyExists,
                 message: format!("identifier {} already exists", self.ast.str(fct.name)),
@@ -61,6 +65,10 @@ impl<'a> SemCheck<'a> {
         }
 
         Ok(())
+    }
+
+    fn check_function_body(&mut self, fct: &SymFunctionType) {
+
     }
 
     fn error(&mut self, error: ParseError) -> Result<(), ()> {
