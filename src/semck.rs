@@ -6,6 +6,8 @@ use ast::Elem::ElemFunction;
 use error::ErrorCode;
 use error::ParseError;
 
+use interner::Interner;
+
 use parser::Parser;
 
 use sym;
@@ -43,6 +45,9 @@ impl<'a> SemCheck<'a> {
 
     pub fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
         let mut globals = SymTable::new();
+
+        add_predefined_types(&mut globals);
+        add_predefined_functions(&mut globals);
 
         err!(self.errors, self.parse_function_headers(&mut globals));
         err!(self.errors, self.parse_function_bodies(&mut globals));
@@ -113,6 +118,14 @@ impl<'a> SemCheck<'a> {
     fn check_function(&mut self, fct: &Function) {
         println!("check_function");
     }
+}
+
+fn add_predefined_types(globals: &mut SymTable) {
+    // TODO: add bool, int and str for now
+}
+
+fn add_predefined_functions(globals: &mut SymTable) {
+    // TODO: add print(str), print_int(int)
 }
 
 fn param_header(param: &ast::Param) -> sym::Param {

@@ -10,7 +10,7 @@ pub mod dump;
 
 pub struct Ast {
     pub elements: Vec<Elem>,
-    interner: Interner,
+    pub interner: Interner,
 }
 
 impl Ast {

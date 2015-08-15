@@ -50,9 +50,17 @@ impl SymTable {
 pub enum Sym {
     SymLocalVar(SymLocalVarType),
     SymFunction(SymFunctionType),
+    SymType(SymTypeType),
 
     // only for testing purposes
     SymDummy(u8),
+}
+
+#[derive(Debug)]
+pub struct SymTypeType {
+    pub name: Name,
+    pub data_type: BuiltinType,
+    pub node: NodeId,
 }
 
 #[derive(Debug)]
