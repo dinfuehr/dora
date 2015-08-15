@@ -13,6 +13,17 @@ use sym::SymTable;
 use sym::Sym::SymFunction;
 use sym::SymFunctionType;
 
+macro_rules! err {
+    ( $errs: expr, $x: expr ) => {
+        {
+            match $x {
+                Ok(val) => val,
+                Err(_) => { return Err($errs); }
+            }
+        }
+    };
+}
+
 // Only do semantic analysis until some amount of
 // errors found
 static max_errors: usize = 5;
@@ -30,21 +41,28 @@ impl<'a> SemCheck<'a> {
         }
     }
 
-    pub fn check(&mut self) -> Result<SymTable, ()> {
+    pub fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
         let mut globals = SymTable::new();
 
         for elem in &self.ast.elements {
             match *elem {
-                ElemFunction(ref fct) => try!(self.add_function_header(&mut globals, fct)),
+                ElemFunction(ref fct) => {
+                    err!(self.errors, self.add_function_header(&mut globals, fct));
+                }
+
                 _ => unreachable!()
             }
         }
 
         for fct in globals.functions_mut() {
-            self.check_function_body(fct);
+            err!(self.errors, self.check_function_body(fct));
         }
 
-        Ok(globals)
+        if self.errors.len() == 0 {
+            Ok(globals)
+        } else {
+            Err(self.errors)
+        }
     }
 
     fn add_function_header(&mut self, globals: &mut SymTable, fct: &Function) -> Result<(), ()> {
@@ -67,8 +85,8 @@ impl<'a> SemCheck<'a> {
         Ok(())
     }
 
-    fn check_function_body(&mut self, fct: &SymFunctionType) {
-
+    fn check_function_body(&mut self, fct: &SymFunctionType) -> Result<(), ()> {
+        Ok(())
     }
 
     fn error(&mut self, error: ParseError) -> Result<(), ()> {
@@ -101,12 +119,15 @@ fn param_header(param: &ast::Param) -> sym::Param {
 fn test_empty_file() {
     let prog = Parser::from_str("").parse().unwrap();
 
-    let mut check = SemCheck::new(&prog);
-    check.check().unwrap();
+    SemCheck::new(&prog).check().unwrap();
 }
 
 #[test]
-fn test_function() {
-    let prog = Parser::from_str("fn main() { }").parse().unwrap();
+fn test_function_multiple_times() {
+    let prog = Parser::from_str("fn main() {} fn main() {}").parse().unwrap();
+    let errors = SemCheck::new(&prog).check().unwrap_err();
+
+    assert_eq!(1, errors.len());
+    assert_eq!(ErrorCode::IdentifierAlreadyExists, errors[0].code);
 }
 

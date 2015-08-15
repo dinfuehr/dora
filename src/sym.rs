@@ -8,6 +8,7 @@ use ast::Type;
 
 use interner::Name;
 
+#[derive(Debug)]
 pub struct SymTable {
     map: HashMap<Name, Sym>
 }
@@ -45,6 +46,7 @@ impl SymTable {
     }
 }
 
+#[derive(Debug)]
 pub enum Sym {
     SymLocalVar(SymLocalVarType),
     SymFunction(SymFunctionType),
@@ -53,6 +55,7 @@ pub enum Sym {
     SymDummy(u8),
 }
 
+#[derive(Debug)]
 pub struct SymFunctionType {
     pub name: Name,
     pub return_type: BuiltinType,
@@ -60,11 +63,13 @@ pub struct SymFunctionType {
     pub body: NodeId,
 }
 
+#[derive(Debug)]
 pub struct Param {
     pub name: Name,
     pub data_type: BuiltinType
 }
 
+#[derive(Debug)]
 pub struct SymLocalVarType {
     pub name: Name,
     pub data_type: Type,
