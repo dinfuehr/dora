@@ -1,16 +1,16 @@
 use std::mem;
 use std::io::Error;
 
-use ast::Ast;
-use ast::BinOp;
-use ast::Elem::{self, ElemFunction};
-use ast::Expr;
-use ast::Function;
-use ast::NodeId;
-use ast::Param;
-use ast::Stmt;
-use ast::Type;
-use ast::UnOp;
+use parser::ast::Ast;
+use parser::ast::BinOp;
+use parser::ast::Elem::{self, ElemFunction};
+use parser::ast::Expr;
+use parser::ast::Function;
+use parser::ast::NodeId;
+use parser::ast::Param;
+use parser::ast::Stmt;
+use parser::ast::Type;
+use parser::ast::UnOp;
 
 use error::ParseError;
 use error::ErrorCode;
@@ -28,6 +28,7 @@ use parser::lexer::reader::StrReader;
 
 pub mod interner;
 pub mod lexer;
+pub mod ast;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -567,14 +568,14 @@ impl<T: CodeReader> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use ast::Ast;
-    use ast::BinOp;
-    use ast::Expr;
-    use ast::NodeId;
-    use ast::Param;
-    use ast::Stmt;
-    use ast::Type;
-    use ast::UnOp;
+    use parser::ast::Ast;
+    use parser::ast::BinOp;
+    use parser::ast::Expr;
+    use parser::ast::NodeId;
+    use parser::ast::Param;
+    use parser::ast::Stmt;
+    use parser::ast::Type;
+    use parser::ast::UnOp;
 
     use parser::interner::{Interner, Name};
 

@@ -1,12 +1,12 @@
 use std::default::Default;
 
-use ast::Ast;
-use ast::Elem::*;
-use ast::Expr;
-use ast::Expr::*;
-use ast::Function;
-use ast::Stmt;
-use ast::Stmt::*;
+use parser::ast::Ast;
+use parser::ast::Elem::*;
+use parser::ast::Expr;
+use parser::ast::Expr::*;
+use parser::ast::Function;
+use parser::ast::Stmt;
+use parser::ast::Stmt::*;
 
 use error::ParseError;
 

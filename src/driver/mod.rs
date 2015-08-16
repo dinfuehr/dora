@@ -1,7 +1,7 @@
 mod cmd;
 
-use ast;
 use semck;
+use parser::ast;
 use parser::Parser;
 
 use std::process::exit;

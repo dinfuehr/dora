@@ -1,28 +1,28 @@
-use ast::Ast;
-use ast::Elem::ElemFunction;
-use ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
+use parser::ast::Ast;
+use parser::ast::Elem::ElemFunction;
+use parser::ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
                 ExprAssign, ExprIdent};
-use ast::ExprUnType;
-use ast::ExprBinType;
-use ast::ExprLitIntType;
-use ast::ExprLitStrType;
-use ast::ExprLitBoolType;
-use ast::ExprIdentType;
-use ast::ExprAssignType;
-use ast::Function;
-use ast::Param;
-use ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
+use parser::ast::ExprUnType;
+use parser::ast::ExprBinType;
+use parser::ast::ExprLitIntType;
+use parser::ast::ExprLitStrType;
+use parser::ast::ExprLitBoolType;
+use parser::ast::ExprIdentType;
+use parser::ast::ExprAssignType;
+use parser::ast::Function;
+use parser::ast::Param;
+use parser::ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
                 StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-use ast::StmtBlockType;
-use ast::StmtBreakType;
-use ast::StmtContinueType;
-use ast::StmtExprType;
-use ast::StmtIfType;
-use ast::StmtLoopType;
-use ast::StmtReturnType;
-use ast::StmtVarType;
-use ast::StmtWhileType;
-use ast::Type;
+use parser::ast::StmtBlockType;
+use parser::ast::StmtBreakType;
+use parser::ast::StmtContinueType;
+use parser::ast::StmtExprType;
+use parser::ast::StmtIfType;
+use parser::ast::StmtLoopType;
+use parser::ast::StmtReturnType;
+use parser::ast::StmtVarType;
+use parser::ast::StmtWhileType;
+use parser::ast::Type;
 use parser::interner::{Interner, Name};
 
 macro_rules! dump {

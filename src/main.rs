@@ -10,7 +10,6 @@ extern crate libc;
 
 mod error;
 mod parser;
-mod ast;
 mod semck;
 mod sym;
 mod driver;

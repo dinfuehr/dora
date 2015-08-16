@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::IterMut;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
 
-use ast::NodeId;
+use parser::ast::NodeId;
 
 use parser::interner::Name;
 

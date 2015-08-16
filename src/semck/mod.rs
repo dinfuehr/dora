@@ -1,7 +1,7 @@
-use ast;
-use ast::Ast;
-use ast::Function;
-use ast::Elem::ElemFunction;
+use parser::ast;
+use parser::ast::Ast;
+use parser::ast::Function;
+use parser::ast::Elem::ElemFunction;
 
 use error::ErrorCode;
 use error::ParseError;
