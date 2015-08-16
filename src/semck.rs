@@ -237,7 +237,8 @@ fn test_function_multiple_times() {
 
 #[test]
 fn test_builtin_types() {
-    let (prog, mut interner) = Parser::from_str("fn main(a: int, b: str) { }").parse().unwrap();
+    let (prog, mut interner) = Parser::from_str(
+        "fn main(a: int, b: str, c: bool) { }").parse().unwrap();
     SemCheck::new(&prog, &mut interner).check().unwrap();
 }
 
