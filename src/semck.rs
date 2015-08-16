@@ -28,6 +28,10 @@ macro_rules! err {
     };
 }
 
+pub fn check<'a>(ast: &'a Ast, interner: &'a mut Interner) -> Result<SymTable, Vec<ParseError>> {
+    SemCheck::new(ast, interner).check()
+}
+
 // Only do semantic analysis until some amount of
 // errors found
 static MAX_ERRORS: usize = 5;

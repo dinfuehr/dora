@@ -19,6 +19,12 @@ pub struct ParseError {
     pub code: ErrorCode
 }
 
+impl ParseError {
+    pub fn print(&self) {
+        println!("{}", self);
+    }
+}
+
 pub fn err<T>(pos: Position, msg: String, code: ErrorCode) -> Result<T, ParseError> {
     Err(ParseError {
         position: pos,

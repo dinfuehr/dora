@@ -9,12 +9,15 @@ extern crate byteorder;
 extern crate libc;
 
 #[cfg(not(test))]
+use std::process::exit;
+
 use ast::Ast;
-use ast::dump::AstDumper;
+use cmd::CmdLine;
 use interner::Interner;
 use parser::Parser;
 use semck::SemCheck;
 
+mod cmd;
 mod lexer;
 mod error;
 mod parser;
@@ -26,36 +29,42 @@ mod sym;
 
 #[cfg(not(test))]
 fn main() {
-    match parse_file() {
-        Ok((ast, mut interner)) => {
-            AstDumper::new(&ast, &mut interner).dump();
+    let cmd = match cmd::parse() {
+        Ok(cmd) => cmd,
 
-            if let Err(errors) = SemCheck::new(&ast, &mut interner).check() {
-                for err in &errors {
-                    println!("{}", err);
-                }
+        Err(_) => {
+            cmd::usage();
+            exit(1);
+        }
+    };
 
-                println!("\n{} errors found.", errors.len());
-            }
+    let mut parser = match Parser::from_file(cmd.filename()) {
+        Err(_) => {
+            println!("unable to read file `{}`", cmd.filename());
+            exit(1);
         }
 
-        Err(err) => println!("{}", err)
+        Ok(parser) => parser
+    };
+
+    let (ast, mut interner) = match parser.parse() {
+        Ok(ret) => ret,
+
+        Err(error) => {
+            error.print();
+            exit(1);
+        }
+    };
+
+    ast::dump::dump(&ast, &interner);
+
+    if let Err(errors) = semck::check(&ast, &mut interner) {
+        for err in &errors {
+            err.print();
+        }
+
+        println!("\n{} errors found", errors.len());
+        exit(1);
     }
-}
-
-#[cfg(not(test))]
-fn parse_file() -> Result<(Ast, Interner), String> {
-    let fname = try!(filename());
-    let mut parser = try!(Parser::from_file(&fname).map_err(|_| { format!("can not read file {}", fname) }));
-    let ast = try!(parser.parse().map_err(|e| e.message));
-
-    Ok(ast)
-}
-
-#[cfg(not(test))]
-fn filename() -> Result<String, String> {
-    let mut args = std::env::args();
-
-    args.nth(1).ok_or("file name expected".to_owned())
 }
 

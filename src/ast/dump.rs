@@ -36,14 +36,18 @@ macro_rules! dump {
     }};
 }
 
-pub struct AstDumper<'a> {
+pub fn dump<'a>(ast: &'a Ast, interner: &'a Interner) {
+    AstDumper::new(ast, interner).dump();
+}
+
+struct AstDumper<'a> {
     ast: &'a Ast,
     interner: &'a Interner,
     indent: u32,
 }
 
 impl<'a> AstDumper<'a> {
-    pub fn new<'b>(ast: &'b Ast, interner: &'b Interner) -> AstDumper<'b> {
+    fn new<'b>(ast: &'b Ast, interner: &'b Interner) -> AstDumper<'b> {
         AstDumper {
             ast: ast,
             interner: interner,
@@ -51,7 +55,7 @@ impl<'a> AstDumper<'a> {
         }
     }
 
-    pub fn dump(&mut self) {
+    fn dump(&mut self) {
         for el in &self.ast.elements {
             match *el {
                 ElemFunction(ref fct) => self.dump_fct(fct),
