@@ -6,7 +6,7 @@ use ast::Elem::ElemFunction;
 use error::ErrorCode;
 use error::ParseError;
 
-use interner::Interner;
+use parser::interner::Interner;
 
 use parser::Parser;
 

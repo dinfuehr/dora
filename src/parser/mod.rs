@@ -15,8 +15,8 @@ use ast::UnOp;
 use error::ParseError;
 use error::ErrorCode;
 
-use interner::Interner;
-use interner::Name;
+use parser::interner::Interner;
+use parser::interner::Name;
 
 use lexer::Lexer;
 use lexer::token::{TokenType,Token};
@@ -25,6 +25,8 @@ use lexer::reader::{CodeReader,FileReader};
 
 #[cfg(test)]
 use lexer::reader::StrReader;
+
+pub mod interner;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -573,8 +575,7 @@ mod tests {
     use ast::Type;
     use ast::UnOp;
 
-    use interner::Name;
-    use interner::Interner;
+    use parser::interner::{Interner, Name};
 
     use error::ErrorCode;
     use lexer::position::Position;

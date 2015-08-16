@@ -2,8 +2,7 @@ use std::fmt;
 
 use ast::Elem::ElemFunction;
 use lexer::position::Position;
-use interner::Interner;
-use interner::Name;
+use parser::interner::{Interner, Name};
 
 pub mod visit;
 pub mod dump;

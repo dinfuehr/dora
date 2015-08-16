@@ -23,8 +23,7 @@ use ast::StmtReturnType;
 use ast::StmtVarType;
 use ast::StmtWhileType;
 use ast::Type;
-use interner::Name;
-use interner::Interner;
+use parser::interner::{Interner, Name};
 
 macro_rules! dump {
     ($self_:ident, $($x:expr),*) => {{

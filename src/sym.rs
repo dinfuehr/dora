@@ -4,7 +4,7 @@ use std::collections::hash_map::Entry::{Vacant, Occupied};
 
 use ast::NodeId;
 
-use interner::Name;
+use parser::interner::Name;
 
 #[derive(Debug)]
 pub struct SymTable {

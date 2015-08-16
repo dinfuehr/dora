@@ -12,7 +12,7 @@ extern crate libc;
 use std::process::exit;
 
 use ast::Ast;
-use interner::Interner;
+use parser::interner::Interner;
 use parser::Parser;
 
 mod cmd;
@@ -20,7 +20,6 @@ mod lexer;
 mod error;
 mod parser;
 mod ast;
-mod interner;
 mod semck;
 mod sym;
 
