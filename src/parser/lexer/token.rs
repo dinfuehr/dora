@@ -1,7 +1,7 @@
 use std::fmt;
 use std::result::Result;
 
-use lexer::position::Position;
+use parser::lexer::position::Position;
 
 #[derive(PartialEq,Eq,Debug,Copy,Clone)]
 pub enum TokenType {

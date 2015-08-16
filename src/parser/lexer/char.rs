@@ -1,7 +1,7 @@
 use std::fmt::{Formatter,Display,Error};
 use std::result::Result;
 
-use lexer::position::Position;
+use parser::lexer::position::Position;
 
 pub struct Character {
     value : Option<char>,

@@ -8,7 +8,6 @@ extern crate phf;
 extern crate byteorder;
 extern crate libc;
 
-mod lexer;
 mod error;
 mod parser;
 mod ast;

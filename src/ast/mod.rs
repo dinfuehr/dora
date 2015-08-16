@@ -1,7 +1,7 @@
 use std::fmt;
 
 use ast::Elem::ElemFunction;
-use lexer::position::Position;
+use parser::lexer::position::Position;
 use parser::interner::{Interner, Name};
 
 pub mod visit;

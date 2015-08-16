@@ -18,15 +18,16 @@ use error::ErrorCode;
 use parser::interner::Interner;
 use parser::interner::Name;
 
-use lexer::Lexer;
-use lexer::token::{TokenType,Token};
-use lexer::position::Position;
-use lexer::reader::{CodeReader,FileReader};
+use parser::lexer::Lexer;
+use parser::lexer::token::{TokenType,Token};
+use parser::lexer::position::Position;
+use parser::lexer::reader::{CodeReader,FileReader};
 
 #[cfg(test)]
-use lexer::reader::StrReader;
+use parser::lexer::reader::StrReader;
 
 pub mod interner;
+pub mod lexer;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -578,7 +579,7 @@ mod tests {
     use parser::interner::{Interner, Name};
 
     use error::ErrorCode;
-    use lexer::position::Position;
+    use parser::lexer::position::Position;
     use parser::Parser;
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {

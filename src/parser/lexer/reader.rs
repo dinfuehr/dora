@@ -49,7 +49,7 @@ impl CodeReader for FileReader {
 
 #[cfg(test)]
 mod tests {
-    use lexer::reader::{CodeReader, StrReader, FileReader};
+    use parser::lexer::reader::{CodeReader, StrReader, FileReader};
 
     #[test]
     fn read_from_str() {

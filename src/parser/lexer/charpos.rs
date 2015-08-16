@@ -1,5 +1,5 @@
 use std::fmt;
-use lexer::position::Position;
+use parser::lexer::position::Position;
 
 #[derive(Copy,Clone)]
 pub struct CharPos {
