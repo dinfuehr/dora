@@ -17,6 +17,8 @@ use sym::Sym::{self, SymFunction};
 use sym::SymFunctionType;
 use sym::Type;
 
+mod reachable;
+
 macro_rules! err {
     ( $errs: expr, $x: expr ) => {
         {
