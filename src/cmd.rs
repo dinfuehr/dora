@@ -4,7 +4,7 @@ pub fn usage() {
     println!("usage: dora [options] file");
 }
 
-pub fn parse() -> Result<CmdLine, ()> {
+pub fn parse() -> Result<CmdLine, String> {
     let mut cmd = CmdLine::new();
 
     try!(cmd.parse());
@@ -23,19 +23,19 @@ impl CmdLine {
         }
     }
 
-    pub fn parse(&mut self) -> Result<(), ()> {
-        let args : Vec<String> = env::args().collect();
+    fn parse(&mut self) -> Result<(), String> {
+        let args : Vec<String> = env::args().skip(1).collect();
 
         for arg in &args {
             if let None = self.filename {
                 self.filename = Some(arg.clone());
             } else {
-                return Err(());
+                return Err("only one filename allowed".into());
             }
         }
 
         if let None = self.filename {
-            Err(())
+            Err("no filename given".into())
         } else {
             Ok(())
         }

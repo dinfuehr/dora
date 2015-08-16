@@ -30,8 +30,10 @@ fn main() {
     let cmd = match cmd::parse() {
         Ok(cmd) => cmd,
 
-        Err(_) => {
+        Err(msg) => {
+            println!("{}\n", msg);
             cmd::usage();
+
             exit(1);
         }
     };
