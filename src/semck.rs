@@ -11,8 +11,9 @@ use interner::Interner;
 use parser::Parser;
 
 use sym;
+use sym::BuiltinType;
 use sym::SymTable;
-use sym::Sym::SymFunction;
+use sym::Sym::{self, SymFunction};
 use sym::SymFunctionType;
 use sym::Type;
 
@@ -85,7 +86,48 @@ impl<'a> SemCheck<'a> {
     }
 
     fn parse_type(&mut self, globals: &SymTable, ty: &ast::Type) -> Result<sym::Type, ()> {
-        Err(())
+        let newtype = match *ty {
+            ast::Type::TypeBasic(ref val) => {
+                if let None = globals.find(val.name).map(|s| s.to_type()) {
+                    let message = format!("unknown type {}", self.interner.str(val.name));
+
+                    try!(self.error(ParseError {
+                        code: ErrorCode::UnknownType,
+                        message: message,
+                        position: ty.pos()
+                    }));
+
+                    return Err(());
+                }
+
+                sym::Type::create_basic(val.name)
+            }
+
+            ast::Type::TypeTuple(ref val) => {
+                let mut subtypes = Vec::with_capacity(val.subtypes.len());
+
+                for ty in &val.subtypes {
+                    let ty = box try!(self.parse_type(globals, ty));
+                    subtypes.push(ty);
+                }
+
+                sym::Type::create_tuple(subtypes)
+            }
+
+            ast::Type::TypePtr(ref val) => {
+                let subtype = box try!(self.parse_type(globals, &val.subtype));
+
+                sym::Type::create_ptr(subtype)
+            }
+
+            ast::Type::TypeArray(ref val) => {
+                let subtype = box try!(self.parse_type(globals, &val.subtype));
+
+                sym::Type::create_array(subtype)
+            }
+        };
+
+        Ok(newtype)
     }
 
     fn add_function_header(&mut self, globals: &mut SymTable, fct: &Function) -> Result<(), ()> {
@@ -159,7 +201,17 @@ impl<'a> SemCheck<'a> {
 }
 
 fn add_predefined_types(interner: &mut Interner, globals: &mut SymTable) {
-    // TODO: add bool, int and str for now
+    let name = interner.intern(String::from("int"));
+    let sym = Sym::create_type(name, BuiltinType::Int);
+    globals.insert(name, sym);
+
+    let name = interner.intern(String::from("str"));
+    let sym = Sym::create_type(name, BuiltinType::Str);
+    globals.insert(name, sym);
+
+    let name = interner.intern(String::from("bool"));
+    let sym = Sym::create_type(name, BuiltinType::Bool);
+    globals.insert(name, sym);
 }
 
 fn add_predefined_functions(interner: &mut Interner, globals: &mut SymTable) {
@@ -181,5 +233,20 @@ fn test_function_multiple_times() {
 
     assert_eq!(1, errors.len());
     assert_eq!(ErrorCode::IdentifierAlreadyExists, errors[0].code);
+}
+
+#[test]
+fn test_builtin_types() {
+    let (prog, mut interner) = Parser::from_str("fn main(a: int, b: str) { }").parse().unwrap();
+    SemCheck::new(&prog, &mut interner).check().unwrap();
+}
+
+#[test]
+fn test_unknown_type() {
+    let (prog, mut interner) = Parser::from_str("fn main(a: abc) { }").parse().unwrap();
+    let errors = SemCheck::new(&prog, &mut interner).check().unwrap_err();
+
+    assert_eq!(1, errors.len());
+    assert_eq!(ErrorCode::UnknownType, errors[0].code);
 }
 

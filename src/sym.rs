@@ -54,11 +54,40 @@ pub enum Sym {
     SymDummy(u8),
 }
 
+impl Sym {
+    pub fn create_type(name: Name, builtin: BuiltinType) -> Sym {
+        Sym::SymType(SymTypeType {
+            name: name,
+            builtin: builtin
+        })
+    }
+
+    pub fn to_local_var(&self) -> Option<&SymLocalVarType> {
+        match *self {
+            Sym::SymLocalVar(ref sym) => Some(sym),
+            _ => None
+        }
+    }
+
+    pub fn to_function(&self) -> Option<&SymFunctionType> {
+        match *self {
+            Sym::SymFunction(ref sym) => Some(sym),
+            _ => None
+        }
+    }
+
+    pub fn to_type(&self) -> Option<&SymTypeType> {
+        match *self {
+            Sym::SymType(ref sym) => Some(sym),
+            _ => None
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SymTypeType {
     pub name: Name,
-    pub data_type: BuiltinType,
-    pub node: NodeId,
+    pub builtin: BuiltinType,
 }
 
 #[derive(Debug)]
