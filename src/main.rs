@@ -12,10 +12,8 @@ extern crate libc;
 use std::process::exit;
 
 use ast::Ast;
-use cmd::CmdLine;
 use interner::Interner;
 use parser::Parser;
-use semck::SemCheck;
 
 mod cmd;
 mod lexer;

@@ -36,14 +36,14 @@ pub fn check<'a>(ast: &'a Ast, interner: &'a mut Interner) -> Result<SymTable, V
 // errors found
 static MAX_ERRORS: usize = 5;
 
-pub struct SemCheck<'a> {
+struct SemCheck<'a> {
     ast: &'a Ast,
     interner: &'a mut Interner,
     errors: Vec<ParseError>,
 }
 
 impl<'a> SemCheck<'a> {
-    pub fn new<'b>(ast: &'b Ast, interner: &'b mut Interner) -> SemCheck<'b> {
+    fn new<'b>(ast: &'b Ast, interner: &'b mut Interner) -> SemCheck<'b> {
         SemCheck {
             ast: ast,
             interner: interner,
@@ -51,7 +51,7 @@ impl<'a> SemCheck<'a> {
         }
     }
 
-    pub fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
+    fn check(mut self) -> Result<SymTable, Vec<ParseError>> {
         let mut globals = SymTable::new();
 
         add_predefined_types(self.interner, &mut globals);
