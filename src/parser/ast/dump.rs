@@ -26,12 +26,12 @@ use parser::ast::Type;
 use parser::interner::{Interner, Name};
 
 macro_rules! dump {
-    ($self_:ident, $($x:expr),*) => {{
+    ($self_:ident, $($message:tt)*) => {{
         for _ in 0..($self_.indent*2) {
             print!(" ");
         }
 
-        println!($($x,)*);
+        println!($($message)*);
     }};
 }
 
