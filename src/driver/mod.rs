@@ -4,8 +4,6 @@ use semck;
 use parser::ast;
 use parser::Parser;
 
-use std::process::exit;
-
 pub fn compile() {
     let cmd = match cmd::parse() {
         Ok(cmd) => cmd,
@@ -14,14 +12,14 @@ pub fn compile() {
             println!("{}\n", msg);
             cmd::usage();
 
-            exit(1);
+            panic!();
         }
     };
 
     let mut parser = match Parser::from_file(cmd.filename()) {
         Err(_) => {
             println!("unable to read file `{}`", cmd.filename());
-            exit(1);
+            panic!();
         }
 
         Ok(parser) => parser
@@ -32,7 +30,7 @@ pub fn compile() {
 
         Err(error) => {
             error.print();
-            exit(1);
+            panic!();
         }
     };
 
@@ -44,6 +42,6 @@ pub fn compile() {
         }
 
         println!("\n{} errors found", errors.len());
-        exit(1);
+        panic!();
     }
 }
