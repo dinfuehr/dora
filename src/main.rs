@@ -13,6 +13,7 @@ mod parser;
 mod semck;
 mod sym;
 mod driver;
+mod mir;
 
 
 #[cfg(not(test))]
