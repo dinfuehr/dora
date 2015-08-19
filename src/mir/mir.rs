@@ -1,53 +1,25 @@
 use self::Type::*;
 
-use mir::basic_block::*;
+use mir::graph::Graph;
 
-pub struct Function {
-    name: String,
-    local_vars: Vec<LocalVar>,
-    params: Vec<Type>,
-    blocks: Vec<BasicBlock>,
+pub struct MIR {
+    graph: Graph
+
+    vars: Vec<VarDecl>,
+    args: Vec<ArgDecl>,
+    temps: Vec<TempDecl>,
 }
 
-impl Function {
-    pub fn new(name: &str) -> Function {
-        Function {
-            name: name.into(),
-            local_vars: Vec::new(),
-            params: Vec::new(),
-            blocks: Vec::new()
-        }
-    }
-
-    pub fn local_var(&self, ind: LocalVarId) -> &LocalVar {
-        &self.local_vars[ind.0]
-    }
-
-    pub fn dump(&self) {
-        println!("function {}", &self.name);
-
-        for block in &self.blocks {
-            block.dump(&self);
-        }
-    }
+pub struct VarDecl {
+    ty: Type
 }
 
-#[derive(Copy, Clone)]
-pub struct LocalVarId(pub usize);
-
-pub struct LocalVar {
-    name: String,
-    ty: Type,
+pub struct ArgDecl {
+    ty: Type
 }
 
-impl LocalVar {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn ty(&self) -> &Type {
-        &self.ty
-    }
+pub struct TempDecl {
+    ty: Type
 }
 
 pub enum Type {
