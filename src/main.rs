@@ -13,7 +13,7 @@ mod parser;
 mod semck;
 mod sym;
 mod driver;
-mod mir;
+mod hir;
 
 
 #[cfg(not(test))]
@@ -21,4 +21,3 @@ fn main() {
     // start compiler
     driver::compile();
 }
-

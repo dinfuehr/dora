@@ -1,20 +1,22 @@
 use self::Type::*;
 
-use mir::graph::Graph;
+use hir::graph::Graph;
+use hir::instruction::Instr;
 
-pub struct MIR {
-    graph: Graph
+pub struct VarId(pub usize);
+pub struct TempId(pub usize);
 
+pub struct HIR {
+    graph: Graph<(), Instr>,
+
+    // arguments and local variables
     vars: Vec<VarDecl>,
-    args: Vec<ArgDecl>,
+
+    // temporary variables, only assigned once
     temps: Vec<TempDecl>,
 }
 
 pub struct VarDecl {
-    ty: Type
-}
-
-pub struct ArgDecl {
     ty: Type
 }
 

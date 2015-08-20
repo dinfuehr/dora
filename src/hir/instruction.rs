@@ -1,7 +1,7 @@
 use self::Operand::*;
 use self::Instr::*;
 
-pub struct LocalVarId(pub usize);
+use hir::hir::*;
 
 pub enum Instr {
     InstrNop,
@@ -73,17 +73,18 @@ enum Operand {
     OpndInt32(i32),
 }
 
-pub struct Var {
-    id: LocalVarId,
-    ssa: usize
+pub enum Var {
+    VarLocal(VarId, u32),
+    VarTemp(TempId),
 }
 
 impl Var {
-    pub fn new(id: LocalVarId, ssa: usize) -> Var {
-        Var {
-            id: id,
-            ssa: ssa
-        }
+    pub fn local(id: VarId, ssa: u32) -> Var {
+        Var::VarLocal(id, ssa)
+    }
+
+    pub fn temp(id: TempId) -> Var {
+        Var::VarTemp(id)
     }
 }
 
