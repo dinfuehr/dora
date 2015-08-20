@@ -4,6 +4,7 @@ use self::Instr::*;
 pub struct LocalVarId(pub usize);
 
 pub enum Instr {
+    InstrNop,
     InstrAssign(InstrAssignType),
     InstrUn(InstrUnType),
     InstrBin(InstrBinType),
