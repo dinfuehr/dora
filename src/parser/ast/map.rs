@@ -3,6 +3,10 @@ use parser::ast::*;
 
 use self::Entry::*;
 
+pub fn build<'a>(ast: &'a Ast) -> AstMap<'a> {
+    AstMap::new(ast)
+}
+
 enum Entry<'a> {
     EmptyEntry,
 
@@ -19,7 +23,7 @@ impl<'a> Default for Entry<'a> {
     }
 }
 
-struct AstMap<'a> {
+pub struct AstMap<'a> {
     ast: &'a Ast,
     map: Vec<Entry<'a>>,
 }

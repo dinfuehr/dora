@@ -1,113 +1,110 @@
-use std::default::Default;
-
-use parser::ast::Ast;
+use parser::ast::*;
 use parser::ast::Elem::*;
-use parser::ast::Expr;
 use parser::ast::Expr::*;
-use parser::ast::Function;
-use parser::ast::Stmt;
 use parser::ast::Stmt::*;
 
 use error::ParseError;
 
 pub trait Visitor<'v> : Sized {
-    type Returns : Default;
-
-    fn visit_ast(&mut self, a: &'v Ast) -> Result<Self::Returns, ParseError> {
+    fn visit_ast(&mut self, a: &'v Ast) {
         walk_ast(self, a)
     }
 
-    fn visit_fct(&mut self, a: &'v Function) -> Result<Self::Returns, ParseError> {
+    fn visit_fct(&mut self, a: &'v Function) {
         walk_stmt(self, &a.block)
     }
 
-    fn visit_stmt(&mut self, s: &'v Stmt) -> Result<Self::Returns, ParseError> {
+    fn visit_param(&mut self, p: &'v Param) {
+        walk_param(self, p);
+    }
+
+    fn visit_stmt(&mut self, s: &'v Stmt) {
         walk_stmt(self, s)
     }
 
-    fn visit_expr(&mut self, e: &'v Expr) -> Result<Self::Returns, ParseError> {
+    fn visit_expr(&mut self, e: &'v Expr) {
         walk_expr(self, e)
     }
 }
 
-pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) -> Result<V::Returns, ParseError> {
+pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
     for e in &a.elements {
-        try!(match *e {
+        match *e {
             ElemFunction(ref f) => v.visit_fct(f),
-            _ => Ok(Default::default())
-        });
+            ElemUnknown => unreachable!()
+        }
     }
-
-    Ok(Default::default())
 }
 
-pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) -> Result<V::Returns, ParseError> {
+pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
     v.visit_stmt(&f.block)
 }
 
-pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) -> Result<V::Returns, ParseError> {
+pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, f: &'v Param) {
+
+}
+
+pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
     match *s {
         StmtVar(ref value) => {
             if let Some(ref e) = value.expr {
-                try!(v.visit_expr(e));
+                v.visit_expr(e);
             }
         }
 
         StmtWhile(ref value) => {
-            try!(v.visit_expr(&value.cond));
-            try!(v.visit_stmt(&value.block));
+            v.visit_expr(&value.cond);
+            v.visit_stmt(&value.block);
         }
 
         StmtLoop(ref value) => {
-            try!(v.visit_stmt(&value.block));
+            v.visit_stmt(&value.block);
         }
 
         StmtIf(ref value) => {
-            try!(v.visit_expr(&value.cond));
-            try!(v.visit_stmt(&value.then_block));
+            v.visit_expr(&value.cond);
+            v.visit_stmt(&value.then_block);
 
             if let Some(ref b) = value.else_block {
-                try!(v.visit_stmt(b));
+                v.visit_stmt(b);
             }
         }
 
         StmtExpr(ref value) => {
-            try!(v.visit_expr(&value.expr));
+            v.visit_expr(&value.expr);
         }
 
         StmtBlock(ref value) => {
             for stmt in &value.stmts {
-                try!(v.visit_stmt(stmt));
+                v.visit_stmt(stmt);
             }
         }
 
         StmtReturn(ref value) => {
             if let Some(ref e) = value.expr {
-                try!(v.visit_expr(e));
+                v.visit_expr(e);
             }
         }
 
         StmtBreak(_) => { }
         StmtContinue(_) => { }
     }
-
-    Ok(Default::default())
 }
 
-pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) -> Result<V::Returns, ParseError> {
+pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
     match *e {
         ExprUn(ref value) => {
-            try!(v.visit_expr(&value.opnd));
+            v.visit_expr(&value.opnd);
         }
 
         ExprBin(ref value) => {
-            try!(v.visit_expr(&value.lhs));
-            try!(v.visit_expr(&value.rhs));
+            v.visit_expr(&value.lhs);
+            v.visit_expr(&value.rhs);
         }
 
         ExprAssign(ref value) => {
-            try!(v.visit_expr(&value.lhs));
-            try!(v.visit_expr(&value.rhs));
+            v.visit_expr(&value.lhs);
+            v.visit_expr(&value.rhs);
         }
 
         ExprLitInt(_) => {}
@@ -115,7 +112,4 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) -> Result<V::Return
         ExprLitBool(_) => {}
         ExprIdent(_) => {}
     }
-
-    Ok(Default::default())
 }
-
