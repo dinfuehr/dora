@@ -6,6 +6,7 @@ use parser::interner::{Interner, Name};
 
 pub mod visit;
 pub mod dump;
+pub mod map;
 
 pub struct Ast {
     pub elements: Vec<Elem>,
