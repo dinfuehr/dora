@@ -36,12 +36,5 @@ pub fn compile() {
 
     ast::dump::dump(&ast, &interner);
 
-    if let Err(errors) = semck::check(&ast, &mut interner) {
-        for err in &errors {
-            err.print();
-        }
-
-        println!("\n{} errors found", errors.len());
-        panic!();
-    }
+    ast::map::build(&ast, &interner);
 }

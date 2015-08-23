@@ -11,8 +11,8 @@ pub trait Visitor<'v> : Sized {
         walk_ast(self, a);
     }
 
-    fn visit_fct(&mut self, a: &'v Function) {
-        walk_stmt(self, &a.block);
+    fn visit_fct(&mut self, f: &'v Function) {
+        walk_fct(self, f);
     }
 
     fn visit_param(&mut self, p: &'v Param) {
@@ -42,7 +42,15 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
 }
 
 pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
-    v.visit_stmt(&f.block)
+    for p in &f.params {
+        v.visit_param(p);
+    }
+
+    if let Some(ref ty) = f.return_type {
+        v.visit_type(ty);
+    }
+
+    v.visit_stmt(&f.block);
 }
 
 pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
