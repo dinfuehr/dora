@@ -2,28 +2,33 @@ use parser::ast::*;
 use parser::ast::Elem::*;
 use parser::ast::Expr::*;
 use parser::ast::Stmt::*;
+use parser::ast::Type::*;
 
 use error::ParseError;
 
 pub trait Visitor<'v> : Sized {
     fn visit_ast(&mut self, a: &'v Ast) {
-        walk_ast(self, a)
+        walk_ast(self, a);
     }
 
     fn visit_fct(&mut self, a: &'v Function) {
-        walk_stmt(self, &a.block)
+        walk_stmt(self, &a.block);
     }
 
     fn visit_param(&mut self, p: &'v Param) {
         walk_param(self, p);
     }
 
+    fn visit_type(&mut self, t: &'v Type) {
+        walk_type(self, t);
+    }
+
     fn visit_stmt(&mut self, s: &'v Stmt) {
-        walk_stmt(self, s)
+        walk_stmt(self, s);
     }
 
     fn visit_expr(&mut self, e: &'v Expr) {
-        walk_expr(self, e)
+        walk_expr(self, e);
     }
 }
 
@@ -40,8 +45,27 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
     v.visit_stmt(&f.block)
 }
 
-pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, f: &'v Param) {
+pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
+    v.visit_type(&p.data_type);
+}
 
+pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
+    match *t {
+        TypeBasic(_) => { },
+        TypeTuple(ref tuple) => {
+            for ty in &tuple.subtypes {
+                v.visit_type(ty);
+            }
+        }
+
+        TypePtr(ref ptr) => {
+            v.visit_type(&ptr.subtype);
+        }
+
+        TypeArray(ref array) => {
+            v.visit_type(&array.subtype);
+        }
+    }
 }
 
 pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
