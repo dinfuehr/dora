@@ -36,5 +36,5 @@ pub fn compile() {
 
     ast::dump::dump(&ast, &interner);
 
-    ast::map::build(&ast, &interner);
+    let ast_map = ast::map::build(&ast, &interner);
 }

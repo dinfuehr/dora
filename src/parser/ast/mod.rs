@@ -21,7 +21,7 @@ impl Ast {
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub struct NodeId(pub u32);
+pub struct NodeId(pub usize);
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
