@@ -38,6 +38,17 @@ enum Entry<'a> {
 }
 
 impl<'a> Entry<'a> {
+    fn parent_id(&self) -> NodeId {
+        match *self {
+            EntryFct(id, _) => id,
+            EntryParam(id, _) => id,
+            EntryType(id, _) => id,
+            EntryStmt(id, _) => id,
+            EntryExpr(id, _) => id,
+            _ => unreachable!()
+        }
+    }
+
     fn is_empty(&self) -> bool {
         match *self {
             EmptyEntry => true,
