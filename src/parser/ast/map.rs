@@ -30,6 +30,50 @@ enum Entry<'a> {
     EntryExpr(NodeId, &'a Expr),
 }
 
+impl<'a> Entry<'a> {
+    fn is_empty(&self) -> bool {
+        match *self {
+            EmptyEntry => true,
+            _ => false
+        }
+    }
+
+    fn to_elem(&self) -> Option<&Elem> {
+        match *self {
+            EntryElem(_, elem) => Some(elem),
+            _ => None
+        }
+    }
+
+    fn to_type(&self) -> Option<&Type> {
+        match *self {
+            EntryType(_, ty) => Some(ty),
+            _ => None
+        }
+    }
+
+    fn to_stmt(&self) -> Option<&Stmt> {
+        match *self {
+            EntryStmt(_, stmt) => Some(stmt),
+            _ => None
+        }
+    }
+
+    fn to_expr(&self) -> Option<&Expr> {
+        match *self {
+            EntryExpr(_, expr) => Some(expr),
+            _ => None
+        }
+    }
+
+    fn to_param(&self) -> Option<&Param> {
+        match *self {
+            EntryParam(_, param) => Some(param),
+            _ => None
+        }
+    }
+}
+
 impl<'a> Default for Entry<'a> {
     fn default() -> Entry<'a> {
         EmptyEntry
