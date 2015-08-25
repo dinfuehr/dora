@@ -1,6 +1,5 @@
 mod cmd;
 
-use semck;
 use parser::ast;
 use parser::Parser;
 
@@ -25,7 +24,7 @@ pub fn compile() {
         Ok(parser) => parser
     };
 
-    let (ast, mut interner) = match parser.parse() {
+    let (ast, interner) = match parser.parse() {
         Ok(ret) => ret,
 
         Err(error) => {
