@@ -1,7 +1,11 @@
-mod cmd;
+pub mod cmd;
+pub mod ctxt;
+
+use self::ctxt::Context;
 
 use parser::ast;
 use parser::Parser;
+use semck;
 
 pub fn compile() {
     let args = cmd::parse();
@@ -32,4 +36,13 @@ pub fn compile() {
     ast::dump::dump(&ast, &interner);
 
     let ast_map = ast::map::build(&ast, &interner);
+
+    let ctxt = Context {
+        args: &args,
+        interner: &interner,
+        map: &ast_map,
+        ast: &ast,
+    };
+
+    semck::check(&ctxt);
 }
