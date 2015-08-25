@@ -4,20 +4,16 @@ use parser::ast;
 use parser::Parser;
 
 pub fn compile() {
-    let cmd = match cmd::parse() {
-        Ok(cmd) => cmd,
+    let args = cmd::parse();
 
-        Err(msg) => {
-            println!("{}\n", msg);
-            cmd::usage();
+    if args.flag_version {
+        println!("dora v0.01b");
+        return;
+    }
 
-            panic!();
-        }
-    };
-
-    let mut parser = match Parser::from_file(cmd.filename()) {
+    let mut parser = match Parser::from_file(&args.arg_file) {
         Err(_) => {
-            println!("unable to read file `{}`", cmd.filename());
+            println!("unable to read file `{}`", &args.arg_file);
             panic!();
         }
 

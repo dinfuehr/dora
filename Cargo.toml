@@ -6,6 +6,7 @@ authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 [dependencies]
 phf = "*"
 phf_macros = "*"
+rustc-serialize = "*"
+docopt = "*"
 byteorder = "*"
 libc = "*"
-

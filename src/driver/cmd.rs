@@ -1,47 +1,25 @@
-use std::env;
+use docopt::Docopt;
 
-pub fn usage() {
-    println!("usage: dora [options] file");
+pub fn parse() -> Args {
+    Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit())
 }
 
-pub fn parse() -> Result<CmdLine, String> {
-    let mut cmd = CmdLine::new();
+// Write the Docopt usage string.
+static USAGE: &'static str = "
+Usage: dora [options] <file>
+       dora (--version | --help)
 
-    try!(cmd.parse());
+Options:
+    -h, --help  Shows this text
+    --version   Shows version
+    --emit-ast  Emits AST to stdout
+";
 
-    Ok(cmd)
-}
-
-pub struct CmdLine {
-    filename: Option<String>
-}
-
-impl CmdLine {
-    pub fn new() -> CmdLine {
-        CmdLine {
-            filename: None
-        }
-    }
-
-    fn parse(&mut self) -> Result<(), String> {
-        let args : Vec<String> = env::args().skip(1).collect();
-
-        for arg in &args {
-            if let None = self.filename {
-                self.filename = Some(arg.clone());
-            } else {
-                return Err("only one filename allowed".into());
-            }
-        }
-
-        if let None = self.filename {
-            Err("no filename given".into())
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn filename(&self) -> &str {
-        self.filename.as_ref().unwrap()
-    }
+#[derive(Debug, RustcDecodable)]
+pub struct Args {
+    pub arg_file: String,
+    pub flag_emit_ast: bool,
+    pub flag_version: bool
 }

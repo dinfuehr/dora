@@ -7,6 +7,8 @@
 extern crate phf;
 extern crate byteorder;
 extern crate libc;
+extern crate rustc_serialize;
+extern crate docopt;
 
 mod error;
 mod parser;
