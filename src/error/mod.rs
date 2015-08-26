@@ -2,6 +2,9 @@ use std::fmt;
 
 use parser::lexer::position::Position;
 
+pub mod diag;
+pub mod msg;
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
@@ -42,4 +45,3 @@ impl fmt::Display for ParseError {
         write!(f, "error at line {}: {}", self.position, self.message)
     }
 }
-
