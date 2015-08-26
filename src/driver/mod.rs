@@ -2,6 +2,7 @@ pub mod cmd;
 pub mod ctxt;
 
 use self::ctxt::Context;
+use error::diag::Diagnostic;
 
 use parser::ast;
 use parser::Parser;
@@ -42,6 +43,7 @@ pub fn compile() {
         interner: &interner,
         map: &ast_map,
         ast: &ast,
+        diagnostic: Diagnostic::new()
     };
 
     semck::check(&ctxt);
