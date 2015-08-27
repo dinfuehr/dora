@@ -34,7 +34,7 @@ pub fn compile() {
 
         Err(error) => {
             error.print();
-            panic!();
+            return 1;
         }
     };
 
