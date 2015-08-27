@@ -49,10 +49,16 @@ pub fn compile() {
         interner: &interner,
         map: &ast_map,
         ast: &ast,
-        diagnostic: RefCell::new(Diagnostic::new()),
+        diag: RefCell::new(Diagnostic::new()),
         sym: RefCell::new(SymTable::new()),
         types: RefCell::new(HashMap::new())
     };
 
     semck::check(&ctxt);
+
+    if ctxt.diag.borrow().has_errors() {
+        ctxt.diag.borrow().dump();
+
+        panic!("{} error(s)", ctxt.diag.borrow().errors());
+    }
 }

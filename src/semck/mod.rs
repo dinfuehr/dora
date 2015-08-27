@@ -1,4 +1,6 @@
 use driver::ctxt::Context;
+use error::msg::Msg;
+
 use parser::ast::{Function, Type};
 use parser::ast::Type::*;
 use parser::ast::visit;
@@ -43,5 +45,21 @@ impl<'a, 'ast> Visitor<'ast> for SemCheck<'a, 'ast> {
         println!("{}", self.ctxt.interner.str(f.name));
 
         visit::walk_fct(self, f);
+    }
+
+    fn visit_type(&mut self, t: &'ast Type) {
+        match *t {
+            TypeBasic(ref basic) => {
+                if let Some(builtin) = self.ctxt.sym.borrow().get_type(basic.name) {
+                    self.ctxt.types.borrow_mut().insert(basic.id, builtin);
+                } else {
+                    let tyname = self.ctxt.interner.str(basic.name).clone_string();
+                    let msg = Msg::UnknownType(tyname);
+                    self.ctxt.diag.borrow_mut().report(basic.pos, msg);
+                }
+            }
+
+            _ => self.ctxt.diag.borrow_mut().report_unimplemented(t.pos())
+        }
     }
 }
