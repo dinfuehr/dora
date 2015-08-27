@@ -1,5 +1,6 @@
 use driver::ctxt::Context;
-use parser::ast::Function;
+use parser::ast::{Function, Type};
+use parser::ast::Type::*;
 use parser::ast::visit;
 use parser::ast::visit::Visitor;
 

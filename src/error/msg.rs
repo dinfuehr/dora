@@ -3,6 +3,7 @@ use parser::lexer::position::Position;
 pub enum Msg {
     UnclosedComment,
     UnclosedString,
+    Unimplemented,
 }
 
 pub struct MsgWithPos {

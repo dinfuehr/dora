@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::IterMut;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
 
+use self::Sym::*;
+
 use parser::ast::NodeId;
 
 use parser::interner::Name;
@@ -35,6 +37,10 @@ impl SymTable {
         }
 
         None
+    }
+
+    pub fn get_type(&self, name: Name) -> Option<BuiltinType> {
+        self.get(name).and_then(|n| n.to_type())
     }
 
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
@@ -72,7 +78,30 @@ pub enum Sym {
     SymVar(NodeId),
 }
 
-#[derive(Debug)]
+impl Sym {
+    pub fn to_type(&self) -> Option<BuiltinType> {
+        match *self {
+            SymType(builtin) => Some(builtin),
+            _ => None
+        }
+    }
+
+    pub fn to_function(&self) -> Option<NodeId> {
+        match *self {
+            SymFunction(id) => Some(id),
+            _ => None
+        }
+    }
+
+    pub fn to_var(&self) -> Option<NodeId> {
+        match *self {
+            SymVar(id) => Some(id),
+            _ => None
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum BuiltinType {
     Int,
     Bool,

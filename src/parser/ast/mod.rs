@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::*;
 
 use parser::ast::Elem::ElemFunction;
 use parser::lexer::position::Position;
@@ -22,6 +23,12 @@ impl Ast {
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct NodeId(pub usize);
+
+impl Hash for NodeId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

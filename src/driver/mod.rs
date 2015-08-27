@@ -2,6 +2,7 @@ pub mod cmd;
 pub mod ctxt;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 use self::ctxt::Context;
 use error::diag::Diagnostic;
@@ -49,7 +50,8 @@ pub fn compile() {
         map: &ast_map,
         ast: &ast,
         diagnostic: RefCell::new(Diagnostic::new()),
-        sym: RefCell::new(SymTable::new())
+        sym: RefCell::new(SymTable::new()),
+        types: RefCell::new(HashMap::new())
     };
 
     semck::check(&ctxt);
