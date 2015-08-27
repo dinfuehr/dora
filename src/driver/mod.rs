@@ -17,13 +17,13 @@ pub fn compile() {
 
     if args.flag_version {
         println!("dora v0.01b");
-        return;
+        return 0;
     }
 
     let mut parser = match Parser::from_file(&args.arg_file) {
         Err(_) => {
             println!("unable to read file `{}`", &args.arg_file);
-            panic!();
+            return 1;
         }
 
         Ok(parser) => parser
@@ -59,6 +59,9 @@ pub fn compile() {
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
 
-        panic!("{} error(s)", ctxt.diag.borrow().errors());
+        println!("{} error(s) found", ctxt.diag.borrow().errors());
+        return 1;
     }
+
+    0
 }

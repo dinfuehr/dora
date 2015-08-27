@@ -10,6 +10,8 @@ extern crate libc;
 extern crate rustc_serialize;
 extern crate docopt;
 
+use std::process::exit;
+
 mod error;
 mod parser;
 mod semck;
@@ -17,9 +19,7 @@ mod sym;
 mod driver;
 mod hir;
 
-
 #[cfg(not(test))]
 fn main() {
-    // start compiler
-    driver::compile();
+    exit(driver::compile());
 }
