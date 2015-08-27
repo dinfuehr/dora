@@ -6,35 +6,62 @@ use parser::ast::NodeId;
 
 use parser::interner::Name;
 
-#[derive(Debug)]
 pub struct SymTable {
-    map: HashMap<Name, Sym>
+    levels: Vec<SymLevel>
 }
 
 impl SymTable {
-    // creates a new table
     pub fn new() -> SymTable {
         SymTable {
+            levels: vec![SymLevel::new()]
+        }
+    }
+
+    pub fn push_level(&mut self) {
+        self.levels.push(SymLevel::new());
+    }
+
+    pub fn pop_level(&mut self) {
+        assert!(self.levels.len() > 1);
+
+        self.levels.pop();
+    }
+
+    pub fn get(&self, name: Name) -> Option<&Sym> {
+        for level in self.levels.iter().rev() {
+            if let Some(val) = level.get(name) {
+                return Some(val);
+            }
+        }
+
+        None
+    }
+
+    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
+        self.levels.last_mut().unwrap().insert(name, sym)
+    }
+}
+
+#[derive(Debug)]
+struct SymLevel {
+    map: HashMap<Name, Sym>
+}
+
+impl SymLevel {
+    // creates a new table
+    fn new() -> SymLevel {
+        SymLevel {
             map: HashMap::new()
         }
     }
 
     // finds symbol in table
-    pub fn find(&self, name: Name) -> Option<&Sym> {
+    fn get(&self, name: Name) -> Option<&Sym> {
         self.map.get(&name)
     }
 
-    // inserts symbol into the table
-    pub fn insert(& mut self, name: Name, sym: Sym) -> Result<(), &Sym> {
-        match self.map.entry(name) {
-            Vacant(entry) => {
-                entry.insert(sym);
-
-                Ok(())
-            }
-
-            Occupied(old) => Err(old.into_mut())
-        }
+    fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
+        self.map.insert(name, sym)
     }
 }
 

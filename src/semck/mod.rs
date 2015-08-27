@@ -16,13 +16,13 @@ fn add_builtin_types(ctxt: &Context) {
     let mut sym = ctxt.sym.borrow_mut();
 
     let name = ctxt.interner.intern("int".into());
-    sym.insert(name, SymType(BuiltinType::Int)).unwrap();
+    assert!(sym.insert(name, SymType(BuiltinType::Int)).is_none());
 
     let name = ctxt.interner.intern("bool".into());
-    sym.insert(name, SymType(BuiltinType::Bool)).unwrap();
+    assert!(sym.insert(name, SymType(BuiltinType::Bool)).is_none());
 
     let name = ctxt.interner.intern("str".into());
-    sym.insert(name, SymType(BuiltinType::Str)).unwrap();
+    assert!(sym.insert(name, SymType(BuiltinType::Str)).is_none());
 }
 
 struct SemCheck<'a, 'ast: 'a> {
