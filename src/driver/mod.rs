@@ -7,6 +7,7 @@ use error::diag::Diagnostic;
 use parser::ast;
 use parser::Parser;
 use semck;
+use sym::SymTable;
 
 pub fn compile() {
     let args = cmd::parse();
@@ -43,7 +44,8 @@ pub fn compile() {
         interner: &interner,
         map: &ast_map,
         ast: &ast,
-        diagnostic: Diagnostic::new()
+        diagnostic: Diagnostic::new(),
+        sym: SymTable::new()
     };
 
     semck::check(&ctxt);
