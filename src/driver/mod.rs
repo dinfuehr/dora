@@ -12,7 +12,7 @@ use parser::Parser;
 use semck;
 use sym::SymTable;
 
-pub fn compile() {
+pub fn compile() -> i32 {
     let args = cmd::parse();
 
     if args.flag_version {
