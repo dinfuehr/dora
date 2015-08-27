@@ -197,7 +197,7 @@ impl<T: CodeReader> Parser<T> {
         match self.token.token_type {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
-                let name = self.interner.intern(token.value);
+                let name = self.interner.intern(&token.value);
 
                 Ok(Type::create_basic(
                     self.generate_id(),
@@ -528,7 +528,7 @@ impl<T: CodeReader> Parser<T> {
     fn expect_identifier(&mut self) -> Result<Name, ParseError> {
         if self.token.token_type == TokenType::Identifier {
             let ident = try!(self.read_token());
-            let interned = self.interner.intern(ident.value);
+            let interned = self.interner.intern(&ident.value);
 
             Ok(interned)
         } else {
@@ -641,7 +641,7 @@ mod tests {
         let (expr, interner) = parse_expr("a");
 
         let ident = expr.to_ident().unwrap();
-        assert_eq!("a", interner.str(ident.name));
+        assert_eq!("a", *interner.str(ident.name));
     }
 
     #[test]
@@ -870,7 +870,7 @@ mod tests {
         let (prog, interner) = parse("fn b() { }");
         let fct = prog.elements[0].to_function().unwrap();
 
-        assert_eq!("b", interner.str(fct.name));
+        assert_eq!("b", *interner.str(fct.name));
         assert_eq!(0, fct.params.len());
         assert!(fct.return_type.is_none());
         assert_eq!(Position::new(1, 1), fct.pos);
@@ -890,11 +890,11 @@ mod tests {
         assert_eq!(NodeId(2), p1.id);
         assert_eq!(NodeId(2), p2.id);
 
-        assert_eq!("a", interner1.str(p1.name));
-        assert_eq!("a", interner1.str(p2.name));
+        assert_eq!("a", *interner1.str(p1.name));
+        assert_eq!("a", *interner1.str(p2.name));
 
-        assert_eq!("int", interner1.str(p1.data_type.to_basic().unwrap().name));
-        assert_eq!("int", interner1.str(p2.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner1.str(p1.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner1.str(p2.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -910,17 +910,17 @@ mod tests {
         let p2a = &f2.params[0];
         let p2b = &f2.params[1];
 
-        assert_eq!("a", interner1.str(p1a.name));
-        assert_eq!("a", interner2.str(p2a.name));
+        assert_eq!("a", *interner1.str(p1a.name));
+        assert_eq!("a", *interner2.str(p2a.name));
 
-        assert_eq!("b", interner1.str(p1b.name));
-        assert_eq!("b", interner2.str(p2b.name));
+        assert_eq!("b", *interner1.str(p1b.name));
+        assert_eq!("b", *interner2.str(p2b.name));
 
-        assert_eq!("int", interner1.str(p1a.data_type.to_basic().unwrap().name));
-        assert_eq!("int", interner2.str(p2a.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner1.str(p1a.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner2.str(p2a.data_type.to_basic().unwrap().name));
 
-        assert_eq!("str", interner1.str(p1b.data_type.to_basic().unwrap().name));
-        assert_eq!("str", interner2.str(p2b.data_type.to_basic().unwrap().name));
+        assert_eq!("str", *interner1.str(p1b.data_type.to_basic().unwrap().name));
+        assert_eq!("str", *interner2.str(p2b.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -964,11 +964,11 @@ mod tests {
         let (prog, interner) = parse("fn f() { } fn g() { }");
 
         let f = prog.elements[0].to_function().unwrap();
-        assert_eq!("f", interner.str(f.name));
+        assert_eq!("f", *interner.str(f.name));
         assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.elements[1].to_function().unwrap();
-        assert_eq!("g", interner.str(g.name));
+        assert_eq!("g", *interner.str(g.name));
         assert_eq!(Position::new(1, 12), g.pos);
     }
 
@@ -1095,7 +1095,7 @@ mod tests {
         let (ty, interner) = parse_type("bla");
         let basic = ty.to_basic().unwrap();
 
-        assert_eq!("bla", interner.str(basic.name));
+        assert_eq!("bla", *interner.str(basic.name));
     }
 
     #[test]
@@ -1114,7 +1114,7 @@ mod tests {
         assert_eq!(1, subtypes.len());
 
         let ty = subtypes[0].to_basic().unwrap();
-        assert_eq!("c", interner.str(ty.name));
+        assert_eq!("c", *interner.str(ty.name));
     }
 
     #[test]
@@ -1125,10 +1125,10 @@ mod tests {
         assert_eq!(2, subtypes.len());
 
         let ty1 = subtypes[0].to_basic().unwrap();
-        assert_eq!("a", interner.str(ty1.name));
+        assert_eq!("a", *interner.str(ty1.name));
 
         let ty2 = subtypes[1].to_basic().unwrap();
-        assert_eq!("b", interner.str(ty2.name));
+        assert_eq!("b", *interner.str(ty2.name));
     }
 
     #[test]

@@ -143,7 +143,7 @@ impl Type {
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             Type::TypeBasic(ref val) => {
-                String::from(interner.str(val.name))
+                format!("{}", *interner.str(val.name))
             }
 
             Type::TypeTuple(ref val) => {

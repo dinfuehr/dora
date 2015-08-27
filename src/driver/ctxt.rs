@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use driver::cmd::Args;
 use error::diag::Diagnostic;
 
@@ -8,9 +10,9 @@ use sym::SymTable;
 
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
-    pub interner: &'a mut Interner,
+    pub interner: &'a Interner,
     pub map: &'a Map<'ast>,
     pub ast: &'a Ast,
-    pub diagnostic: Diagnostic,
-    pub sym: SymTable
+    pub diagnostic: RefCell<Diagnostic>,
+    pub sym: RefCell<SymTable>
 }

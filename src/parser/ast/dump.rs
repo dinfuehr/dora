@@ -23,7 +23,7 @@ use parser::ast::StmtReturnType;
 use parser::ast::StmtVarType;
 use parser::ast::StmtWhileType;
 use parser::ast::Type;
-use parser::interner::{Interner, Name};
+use parser::interner::{Interner, Name, RcStr};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
@@ -263,8 +263,7 @@ impl<'a> AstDumper<'a> {
         self.indent = old;
     }
 
-    fn str(&self, name: Name) -> &str {
+    fn str(&self, name: Name) -> RcStr {
         self.interner.str(name)
     }
 }
-

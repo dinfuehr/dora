@@ -1,6 +1,8 @@
 pub mod cmd;
 pub mod ctxt;
 
+use std::cell::RefCell;
+
 use self::ctxt::Context;
 use error::diag::Diagnostic;
 
@@ -26,7 +28,7 @@ pub fn compile() {
         Ok(parser) => parser
     };
 
-    let (ast, mut interner) = match parser.parse() {
+    let (ast, interner) = match parser.parse() {
         Ok(ret) => ret,
 
         Err(error) => {
@@ -35,18 +37,20 @@ pub fn compile() {
         }
     };
 
-    ast::dump::dump(&ast, &interner);
+    if args.flag_emit_ast {
+        ast::dump::dump(&ast, &interner);
+    }
 
     let ast_map = ast::map::build(&ast, &interner);
 
     let mut ctxt = Context {
         args: &args,
-        interner: &mut interner,
+        interner: &interner,
         map: &ast_map,
         ast: &ast,
-        diagnostic: Diagnostic::new(),
-        sym: SymTable::new()
+        diagnostic: RefCell::new(Diagnostic::new()),
+        sym: RefCell::new(SymTable::new())
     };
 
-    semck::check(&mut ctxt);
+    semck::check(&ctxt);
 }
