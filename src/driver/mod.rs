@@ -26,7 +26,7 @@ pub fn compile() {
         Ok(parser) => parser
     };
 
-    let (ast, interner) = match parser.parse() {
+    let (ast, mut interner) = match parser.parse() {
         Ok(ret) => ret,
 
         Err(error) => {
@@ -39,14 +39,14 @@ pub fn compile() {
 
     let ast_map = ast::map::build(&ast, &interner);
 
-    let ctxt = Context {
+    let mut ctxt = Context {
         args: &args,
-        interner: &interner,
+        interner: &mut interner,
         map: &ast_map,
         ast: &ast,
         diagnostic: Diagnostic::new(),
         sym: SymTable::new()
     };
 
-    semck::check(&ctxt);
+    semck::check(&mut ctxt);
 }

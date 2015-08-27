@@ -8,7 +8,7 @@ use sym::SymTable;
 
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
-    pub interner: &'a Interner,
+    pub interner: &'a mut Interner,
     pub map: &'a Map<'ast>,
     pub ast: &'a Ast,
     pub diagnostic: Diagnostic,
