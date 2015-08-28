@@ -5,6 +5,8 @@ pub enum Msg {
     Unimplemented,
     UnknownType(String),
     IdentifierExists(String),
+    UnknownIdentifier(String),
+    ShadowType(String),
 }
 
 impl Msg {
@@ -13,6 +15,8 @@ impl Msg {
             Unimplemented => format!("feature not implemented yet."),
             UnknownType(ref name) => format!("no type with name `{}` known.", name),
             IdentifierExists(ref name) => format!("cannot redefine identifier `{}`.", name),
+            UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
+            ShadowType(ref name) => format!("can not shadow type `{}`", name),
         }
     }
 }

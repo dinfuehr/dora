@@ -43,6 +43,10 @@ impl SymTable {
         None
     }
 
+    pub fn get_var(&self, name: Name) -> Option<NodeId> {
+        self.get(name).and_then(|n| n.to_var())
+    }
+
     pub fn get_type(&self, name: Name) -> Option<BuiltinType> {
         self.get(name).and_then(|n| n.to_type())
     }
@@ -83,6 +87,13 @@ pub enum Sym {
 }
 
 impl Sym {
+    pub fn is_type(&self) -> bool {
+        match *self {
+            SymType(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_type(&self) -> Option<BuiltinType> {
         match *self {
             SymType(builtin) => Some(builtin),
@@ -90,10 +101,24 @@ impl Sym {
         }
     }
 
+    pub fn is_function(&self) -> bool {
+        match *self {
+            SymFunction(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_function(&self) -> Option<NodeId> {
         match *self {
             SymFunction(id) => Some(id),
             _ => None
+        }
+    }
+
+    pub fn is_var(&self) -> bool {
+        match *self {
+            SymType(_) => true,
+            _ => false
         }
     }
 
