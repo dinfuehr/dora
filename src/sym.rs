@@ -29,6 +29,10 @@ impl SymTable {
         self.levels.pop();
     }
 
+    pub fn get_last(&self, name: Name) -> Option<&Sym> {
+        self.levels.last().unwrap().get(name)
+    }
+
     pub fn get(&self, name: Name) -> Option<&Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {
