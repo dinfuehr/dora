@@ -18,5 +18,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub ast: &'a Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
-    pub types: RefCell<HashMap<NodeId, BuiltinType>>
+    pub types: RefCell<HashMap<NodeId, BuiltinType>>,
+    pub var_uses: RefCell<HashMap<NodeId, i32>>,
+    pub vars: RefCell<HashMap<NodeId, Vec<i32>>>,
 }

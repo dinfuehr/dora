@@ -51,7 +51,9 @@ pub fn compile() -> i32 {
         ast: &ast,
         diag: RefCell::new(Diagnostic::new()),
         sym: RefCell::new(SymTable::new()),
-        types: RefCell::new(HashMap::new())
+        types: RefCell::new(HashMap::new()),
+        var_uses: RefCell::new(HashMap::new()),
+        vars: RefCell::new(HashMap::new()),
     };
 
     semck::check(&ctxt);
