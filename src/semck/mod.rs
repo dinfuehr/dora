@@ -42,7 +42,16 @@ impl<'a, 'ast> SemCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for SemCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        println!("{}", self.ctxt.interner.str(f.name));
+        let found = self.ctxt.sym.borrow().get(f.name).is_some();
+
+        if found {
+            let fname = self.ctxt.interner.str(f.name).clone_string();
+            let msg = Msg::IdentifierExists(fname);
+
+            self.ctxt.diag.borrow_mut().report(f.pos, msg);
+        } else {
+            self.ctxt.sym.borrow_mut().insert(f.name, SymFunction(f.id));
+        }
 
         visit::walk_fct(self, f);
     }

@@ -63,5 +63,5 @@ pub fn compile() -> i32 {
         return 1;
     }
 
-    0
+    0 // success
 }

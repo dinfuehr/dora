@@ -3,14 +3,16 @@ use parser::lexer::position::Position;
 
 pub enum Msg {
     Unimplemented,
-    UnknownType(String)
+    UnknownType(String),
+    IdentifierExists(String),
 }
 
 impl Msg {
     pub fn message(&self) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
-            UnknownType(ref name) => format!("no type with name `{}` known.", name)
+            UnknownType(ref name) => format!("no type with name `{}` known.", name),
+            IdentifierExists(ref name) => format!("cannot redefine identifier `{}`.", name),
         }
     }
 }
