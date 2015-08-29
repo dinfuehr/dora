@@ -92,14 +92,13 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtVar(ref var) => {
-                let redefinable = self.ctxt.sym.borrow().get(var.name)
-                    .map_or(true, |sym| !sym.is_type());
+                let entry_type = self.ctxt.sym.borrow().get_entry_type(var.name);
 
-                if redefinable {
-                    self.ctxt.sym.borrow_mut().insert(var.name, SymVar(var.id));
-                } else {
+                if entry_type.is_type() {
                     let name = str(self.ctxt, var.name);
                     report(self.ctxt, var.pos, Msg::ShadowType(name));
+                } else {
+                    self.ctxt.sym.borrow_mut().insert(var.name, SymVar(var.id));
                 }
 
                 if let Some(ref expr) = var.expr {
