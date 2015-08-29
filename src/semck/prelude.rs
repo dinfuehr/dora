@@ -20,5 +20,5 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    // TODO: add puts and assert
+    // TODO: add println(str) and assert(bool)
 }

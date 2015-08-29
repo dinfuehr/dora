@@ -1,6 +1,7 @@
 use self::Msg::*;
 use parser::lexer::position::Position;
 
+#[derive(Clone)]
 pub enum Msg {
     Unimplemented,
     UnknownType(String),
@@ -23,9 +24,10 @@ impl Msg {
     }
 }
 
+#[derive(Clone)]
 pub struct MsgWithPos {
-    msg: Msg,
-    pos: Position,
+    pub msg: Msg,
+    pub pos: Position,
 }
 
 impl MsgWithPos {

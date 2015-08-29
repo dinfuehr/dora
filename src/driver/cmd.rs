@@ -1,3 +1,5 @@
+use std::default::Default;
+
 use docopt::Docopt;
 
 pub fn parse() -> Args {
@@ -22,4 +24,14 @@ pub struct Args {
     pub arg_file: String,
     pub flag_emit_ast: bool,
     pub flag_version: bool
+}
+
+impl Default for Args {
+    fn default() -> Args {
+        Args {
+            arg_file: "".into(),
+            flag_emit_ast: false,
+            flag_version: false
+        }
+    }
 }

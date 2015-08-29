@@ -22,3 +22,20 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub var_uses: RefCell<HashMap<NodeId, NodeId>>,
     pub vars: RefCell<HashMap<NodeId, Vec<i32>>>,
 }
+
+impl<'a, 'ast> Context<'a, 'ast> {
+    pub fn new(args: &'a Args, interner: &'a Interner,
+           map: &'a Map<'ast>, ast: &'a Ast) -> Context<'a, 'ast> {
+        Context {
+            args: args,
+            interner: interner,
+            map: map,
+            ast: ast,
+            diag: RefCell::new(Diagnostic::new()),
+            sym: RefCell::new(SymTable::new()),
+            types: RefCell::new(HashMap::new()),
+            var_uses: RefCell::new(HashMap::new()),
+            vars: RefCell::new(HashMap::new())
+        }
+    }
+}

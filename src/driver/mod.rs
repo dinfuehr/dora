@@ -43,25 +43,14 @@ pub fn compile() -> i32 {
     }
 
     let ast_map = ast::map::build(&ast, &interner);
-
-    let mut ctxt = Context {
-        args: &args,
-        interner: &interner,
-        map: &ast_map,
-        ast: &ast,
-        diag: RefCell::new(Diagnostic::new()),
-        sym: RefCell::new(SymTable::new()),
-        types: RefCell::new(HashMap::new()),
-        var_uses: RefCell::new(HashMap::new()),
-        vars: RefCell::new(HashMap::new()),
-    };
+    let ctxt = Context::new(&args, &interner, &ast_map, &ast);
 
     semck::check(&ctxt);
 
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
 
-        println!("{} error(s) found", ctxt.diag.borrow().errors());
+        println!("{} error(s) found", ctxt.diag.borrow().errors().len());
         return 1;
     }
 
