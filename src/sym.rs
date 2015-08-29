@@ -51,6 +51,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_type())
     }
 
+    pub fn get_function(&self, name: Name) -> Option<NodeId> {
+        self.get(name).and_then(|n| n.to_function())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }

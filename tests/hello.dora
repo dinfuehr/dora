@@ -11,5 +11,7 @@ fn main() {
 }
 
 fn main(a: int, a: str, b: int) {
-
+  b();
+  d();
+  main();
 }

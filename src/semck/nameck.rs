@@ -98,6 +98,14 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
                 }
             }
 
+            ExprCall(ref call) => {
+                if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
+                    self.ctxt.var_uses.borrow_mut().insert(call.id, id);
+                } else {
+                    self.report(call.pos, Msg::UnknownFunction(self.str(call.name)));
+                }
+            }
+
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e)
         }

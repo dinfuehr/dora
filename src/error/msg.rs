@@ -4,8 +4,9 @@ use parser::lexer::position::Position;
 pub enum Msg {
     Unimplemented,
     UnknownType(String),
-    IdentifierExists(String),
     UnknownIdentifier(String),
+    UnknownFunction(String),
+    IdentifierExists(String),
     ShadowType(String),
 }
 
@@ -14,8 +15,9 @@ impl Msg {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
             UnknownType(ref name) => format!("no type with name `{}` known.", name),
-            IdentifierExists(ref name) => format!("cannot redefine identifier `{}`.", name),
             UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
+            UnknownFunction(ref name) => format!("unknown function `{}`", name),
+            IdentifierExists(ref name) => format!("cannot redefine identifier `{}`.", name),
             ShadowType(ref name) => format!("can not shadow type `{}`", name),
         }
     }
