@@ -1,9 +1,12 @@
 use driver::ctxt::Context;
 
+mod prelude;
 mod typeck;
 mod nameck;
 
 pub fn check(ctxt: &Context) {
-    typeck::check(ctxt, ctxt.ast);
+    prelude::init(ctxt);
+
     nameck::check(ctxt, ctxt.ast);
+    typeck::check(ctxt, ctxt.ast);
 }
