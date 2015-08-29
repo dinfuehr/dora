@@ -15,6 +15,7 @@ pub fn check(ctxt: &Context) {
 mod tests {
     use driver::ctxt::Context;
     use driver::cmd::Args;
+    use error::msg::Msg;
     use parser::ast;
     use parser::lexer::position::Position;
     use parser::Parser;
@@ -41,13 +42,14 @@ mod tests {
         });
     }
 
-    pub fn err(code: &'static str, pos: Position) {
+    pub fn err(code: &'static str, pos: Position, msg: Msg) {
         check(code, |ctxt| {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();
 
             assert_eq!(1, errors.len());
             assert_eq!(pos, errors[0].pos);
+            assert_eq!(msg, errors[0].msg);
         });
     }
 

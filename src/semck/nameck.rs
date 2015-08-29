@@ -31,13 +31,19 @@ impl<'a, 'ast> GlobalDef<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let found = self.ctxt.sym.borrow().get(f.name).is_some();
+        let entry_type = self.ctxt.sym.borrow().get_entry_type(f.name);
 
-        if found {
-            let name = self.ctxt.interner.str(f.name).clone_string();
-            report(self.ctxt, f.pos, Msg::IdentifierExists(name));
-        } else {
+        if entry_type.is_empty() {
             self.ctxt.sym.borrow_mut().insert(f.name, SymFunction(f.id));
+        } else {
+            let name = self.ctxt.interner.str(f.name).clone_string();
+            let msg = if entry_type.is_type() {
+                Msg::ShadowType(name)
+            } else {
+                Msg::ShadowFunction(name)
+            };
+
+            report(self.ctxt, f.pos, msg);
         }
     }
 }
@@ -67,14 +73,19 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        let redefinable = self.ctxt.sym.borrow().get(p.name)
-            .map_or(true, |sym| sym.is_function());
+        let entry_type = self.ctxt.sym.borrow().get_entry_type(p.name);
 
-        if redefinable {
+        if entry_type.is_empty() || entry_type.is_function() {
             self.ctxt.sym.borrow_mut().insert(p.name, SymVar(p.id));
         } else {
             let name = str(self.ctxt, p.name);
-            report(self.ctxt, p.pos, Msg::IdentifierExists(name));
+            let msg = if entry_type.is_type() {
+                Msg::ShadowType(name)
+            } else {
+                Msg::ShadowParam(name)
+            };
+
+            report(self.ctxt, p.pos, msg);
         }
     }
 
@@ -137,6 +148,7 @@ fn str(ctxt: &Context, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
+    use error::msg::Msg;
     use semck::tests::*;
 
     #[test]
@@ -146,28 +158,33 @@ mod tests {
 
     #[test]
     fn redefine_function() {
-        err("fn f() {}\nfn f() {}", pos(2, 1));
+        err("fn f() {}\nfn f() {}", pos(2, 1),
+            Msg::ShadowFunction("f".into()));
     }
 
     #[test]
     fn shadow_type_with_function() {
-        err("fn int() {}", pos(1, 1));
+        err("fn int() {}", pos(1, 1),
+            Msg::ShadowType("int".into()));
     }
 
     #[test]
     fn shadow_type_with_param() {
-        err("fn test(int: str) {}", pos(1, 9));
+        err("fn test(bool: str) {}", pos(1, 9),
+            Msg::ShadowType("bool".into()));
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err("fn test() { var int = 3; }", pos(1, 13));
+        err("fn test() { var str = 3; }", pos(1, 13),
+            Msg::ShadowType("str".into()));
     }
 
     #[test]
     fn shadow_function() {
         ok("fn f() { var f = 1; }");
-        err("fn f() { var f = 1; f(); }", pos(1, 21));
+        err("fn f() { var f = 1; f(); }", pos(1, 21),
+            Msg::UnknownFunction("f".into()));
     }
 
     #[test]
@@ -177,7 +194,8 @@ mod tests {
 
     #[test]
     fn shadow_param() {
-        err("fn f(a: int, b: int, a: str) {}", pos(1, 22));
+        err("fn f(a: int, b: int, a: str) {}", pos(1, 22),
+            Msg::ShadowParam("a".into()));
     }
 
     #[test]
@@ -187,13 +205,14 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fn f() { var b = a; }", pos(1, 18));
-        err("fn f() { a; }", pos(1, 10));
+        err("fn f() { var b = a; }", pos(1, 18), Msg::UnknownIdentifier("a".into()));
+        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]
     fn undefined_function() {
-        err("fn f() { foo(); }", pos(1, 10));
+        err("fn f() { foo(); }", pos(1, 10),
+            Msg::UnknownFunction("foo".into()));
     }
 
     #[test]

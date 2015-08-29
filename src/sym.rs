@@ -43,6 +43,18 @@ impl SymTable {
         None
     }
 
+    pub fn get_entry_type(&self, name: Name) -> SymEntry {
+        if let Some(sym) = self.get(name) {
+            match *sym {
+                SymType(_) => SymEntry::Type,
+                SymFunction(_) => SymEntry::Function,
+                SymVar(_) => SymEntry::Var
+            }
+        } else {
+            SymEntry::Empty
+        }
+    }
+
     pub fn get_var(&self, name: Name) -> Option<NodeId> {
         self.get(name).and_then(|n| n.to_var())
     }
@@ -80,6 +92,41 @@ impl SymLevel {
 
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.map.insert(name, sym)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum SymEntry {
+    Empty, Type, Function, Var
+}
+
+impl SymEntry {
+    pub fn is_empty(self) -> bool {
+        match self {
+            SymEntry::Empty => true,
+            _ => false
+        }
+    }
+
+    pub fn is_type(self) -> bool {
+        match self {
+            SymEntry::Type => true,
+            _ => false
+        }
+    }
+
+    pub fn is_function(self) -> bool {
+        match self {
+            SymEntry::Function => true,
+            _ => false
+        }
+    }
+
+    pub fn is_var(self) -> bool {
+        match self {
+            SymEntry::Var => true,
+            _ => false
+        }
     }
 }
 
