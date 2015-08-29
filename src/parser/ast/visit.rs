@@ -143,6 +143,12 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             v.visit_expr(&value.rhs);
         }
 
+        ExprCall(ref call) => {
+            for e in &call.args {
+                v.visit_expr(e);
+            }
+        }
+
         ExprLitInt(_) => {}
         ExprLitStr(_) => {}
         ExprLitBool(_) => {}

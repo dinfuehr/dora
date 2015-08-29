@@ -539,6 +539,7 @@ pub enum Expr {
     ExprLitStr(ExprLitStrType),
     ExprLitBool(ExprLitBoolType),
     ExprIdent(ExprIdentType),
+    ExprCall(ExprCallType),
     ExprAssign(ExprAssignType),
 }
 
@@ -662,6 +663,20 @@ impl Expr {
         }
     }
 
+    pub fn to_call(&self) -> Option<&ExprCallType> {
+        match *self {
+            Expr::ExprCall(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_call(&self) -> bool {
+        match *self {
+            Expr::ExprCall(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
             Expr::ExprLitInt(ref val) => Some(val),
@@ -706,12 +721,13 @@ impl Expr {
             Expr::ExprLitBool(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
+            Expr::ExprCall(ref val) => val.id
         }
     }
 }
 
 #[derive(Debug)]
-struct ExprUnType {
+pub struct ExprUnType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -720,7 +736,7 @@ struct ExprUnType {
 }
 
 #[derive(Debug)]
-struct ExprBinType {
+pub struct ExprBinType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -730,7 +746,7 @@ struct ExprBinType {
 }
 
 #[derive(Debug)]
-struct ExprLitIntType {
+pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -738,7 +754,7 @@ struct ExprLitIntType {
 }
 
 #[derive(Debug)]
-struct ExprLitStrType {
+pub struct ExprLitStrType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -746,7 +762,7 @@ struct ExprLitStrType {
 }
 
 #[derive(Debug)]
-struct ExprLitBoolType {
+pub struct ExprLitBoolType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -754,7 +770,7 @@ struct ExprLitBoolType {
 }
 
 #[derive(Debug)]
-struct ExprIdentType {
+pub struct ExprIdentType {
     pub id: NodeId,
     pub pos: Position,
 
@@ -762,7 +778,16 @@ struct ExprIdentType {
 }
 
 #[derive(Debug)]
-struct ExprAssignType {
+pub struct ExprCallType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub name: Name,
+    pub args: Vec<Expr>,
+}
+
+#[derive(Debug)]
+pub struct ExprAssignType {
     pub id: NodeId,
     pub pos: Position,
 

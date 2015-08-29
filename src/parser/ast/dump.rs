@@ -1,28 +1,7 @@
-use parser::ast::Ast;
-use parser::ast::Elem::ElemFunction;
-use parser::ast::Expr::{self, ExprUn, ExprBin, ExprLitInt, ExprLitStr, ExprLitBool,
-                ExprAssign, ExprIdent};
-use parser::ast::ExprUnType;
-use parser::ast::ExprBinType;
-use parser::ast::ExprLitIntType;
-use parser::ast::ExprLitStrType;
-use parser::ast::ExprLitBoolType;
-use parser::ast::ExprIdentType;
-use parser::ast::ExprAssignType;
-use parser::ast::Function;
-use parser::ast::Param;
-use parser::ast::Stmt::{self, StmtBlock, StmtBreak, StmtContinue, StmtExpr,
-                StmtIf, StmtLoop, StmtReturn, StmtVar, StmtWhile};
-use parser::ast::StmtBlockType;
-use parser::ast::StmtBreakType;
-use parser::ast::StmtContinueType;
-use parser::ast::StmtExprType;
-use parser::ast::StmtIfType;
-use parser::ast::StmtLoopType;
-use parser::ast::StmtReturnType;
-use parser::ast::StmtVarType;
-use parser::ast::StmtWhileType;
-use parser::ast::Type;
+use parser::ast::*;
+use parser::ast::Elem::*;
+use parser::ast::Expr::*;
+use parser::ast::Stmt::*;
 use parser::interner::{Interner, Name, RcStr};
 
 macro_rules! dump {
@@ -218,6 +197,7 @@ impl<'a> AstDumper<'a> {
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
+            ExprCall(ref call) => self.dump_expr_call(call)
         }
     }
 
@@ -252,6 +232,16 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.rhs));
         dump!(self, "assign (=) @ {} {}", expr.pos, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
+    }
+
+    fn dump_expr_call(&mut self, expr: &ExprCallType) {
+        dump!(self, "call {} @ {} {}", self.str(expr.name), expr.pos, expr.id);
+
+        self.indent(|d| {
+            for arg in &expr.args {
+                d.dump_expr(arg);
+            }
+        });
     }
 
     fn indent<F>(&mut self, fct: F) where F: Fn(&mut AstDumper) -> () {
