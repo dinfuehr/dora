@@ -137,49 +137,7 @@ fn str(ctxt: &Context, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
-    use driver::ctxt::Context;
-    use driver::cmd::Args;
-    use parser::lexer::position::Position;
-    use parser::Parser;
-    use parser::ast;
-    use semck::nameck;
-    use semck::prelude;
-
-    fn check<F>(code: &'static str, f: F) where F: FnOnce(&Context) -> () {
-        let mut parser = Parser::from_str(code);
-        let (ast, interner) = parser.parse().unwrap();
-        let map = ast::map::build(&ast, &interner);
-        let args : Args = Default::default();
-
-        ast::dump::dump(&ast, &interner);
-
-        let ctxt = Context::new(&args, &interner, &map, &ast);
-
-        prelude::init(&ctxt);
-        nameck::check(&ctxt, &ast);
-
-        f(&ctxt);
-    }
-
-    fn ok(code: &'static str) {
-        check(code, |ctxt| {
-            assert!(!ctxt.diag.borrow().has_errors());
-        });
-    }
-
-    fn err(code: &'static str, pos: Position) {
-        check(code, |ctxt| {
-            let diag = ctxt.diag.borrow();
-            let errors = diag.errors();
-
-            assert_eq!(1, errors.len());
-            assert_eq!(pos, errors[0].pos);
-        });
-    }
-
-    fn pos(line: u32, col: u32) -> Position {
-        Position::new(line, col)
-    }
+    use semck::tests::*;
 
     #[test]
     fn multiple_functions() {
