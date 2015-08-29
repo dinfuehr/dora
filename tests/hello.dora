@@ -10,8 +10,11 @@ fn main() {
   return a;
 }
 
-fn main(a: int, a: str, b: int) {
+fn test(a: int, a: str, b: int) {
   b();
   d();
+  main();
+
+  var main = 3;
   main();
 }

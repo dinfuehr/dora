@@ -4,14 +4,21 @@ use sym::Sym::*;
 use sym::BuiltinType;
 
 pub fn init(ctxt: &Context) {
-    let mut sym = ctxt.sym.borrow_mut();
+    add_builtin_types(ctxt);
+    add_builtin_functions(ctxt);
+}
 
-    let name = ctxt.interner.intern("int".into());
-    assert!(sym.insert(name, SymType(BuiltinType::Int)).is_none());
+fn add_builtin_types(ctxt: &Context) {
+    builtin_type("int", BuiltinType::Int, ctxt);
+    builtin_type("bool", BuiltinType::Bool, ctxt);
+    builtin_type("str", BuiltinType::Str, ctxt);
+}
 
-    let name = ctxt.interner.intern("bool".into());
-    assert!(sym.insert(name, SymType(BuiltinType::Bool)).is_none());
+fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
+    let name = ctxt.interner.intern(name.into());
+    assert!(ctxt.sym.borrow_mut().insert(name, SymType(ty)).is_none());
+}
 
-    let name = ctxt.interner.intern("str".into());
-    assert!(sym.insert(name, SymType(BuiltinType::Str)).is_none());
+fn add_builtin_functions(ctxt: &Context) {
+    // TODO: add puts and assert
 }
