@@ -136,6 +136,7 @@ impl Sym {
 
 #[derive(Debug, Copy, Clone)]
 pub enum BuiltinType {
+    Unit,
     Int,
     Bool,
     Str,
