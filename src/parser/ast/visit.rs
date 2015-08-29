@@ -144,8 +144,8 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         }
 
         ExprCall(ref call) => {
-            for e in &call.args {
-                v.visit_expr(e);
+            for arg in &call.args {
+                v.visit_expr(arg);
             }
         }
 

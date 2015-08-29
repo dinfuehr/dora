@@ -473,7 +473,7 @@ impl<T: CodeReader> Parser<T> {
             TokenType::LParen => self.parse_parentheses(),
             TokenType::Number => self.parse_number(),
             TokenType::String => self.parse_string(),
-            TokenType::Identifier => self.parse_identifier(),
+            TokenType::Identifier => self.parse_identifier_or_call(),
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             _ => Err(ParseError {
@@ -482,6 +482,30 @@ impl<T: CodeReader> Parser<T> {
                 message: format!("factor expected but got {}", self.token)
             })
         }
+    }
+
+    fn parse_identifier_or_call(&mut self) -> ExprResult {
+        let pos = self.token.position;
+        let ident = try!(self.expect_identifier());
+
+        // is this a function call?
+        if self.token.is(TokenType::LParen) {
+            self.parse_call(pos, ident)
+
+        // if not we have a simple variable
+        } else {
+            Ok(box Expr::create_ident(self.generate_id(), pos, ident))
+        }
+    }
+
+    fn parse_call(&mut self, pos: Position, ident: Name) -> ExprResult {
+        try!(self.expect_token(TokenType::LParen));
+
+        let args = try!(self.parse_comma_list(TokenType::RParen, |p| {
+            p.parse_expression()
+        }));
+
+        Ok(box Expr::create_call(self.generate_id(), pos, ident, args))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -509,13 +533,6 @@ impl<T: CodeReader> Parser<T> {
         let string = try!(self.read_token());
 
         Ok(box Expr::create_lit_str(self.generate_id(), string.position, string.value))
-    }
-
-    fn parse_identifier(&mut self) -> ExprResult {
-        let pos = self.token.position;
-        let ident = try!(self.expect_identifier());
-
-        Ok(box Expr::create_ident(self.generate_id(), pos, ident))
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
@@ -863,6 +880,29 @@ mod tests {
         let assign = expr.to_assign().unwrap();
         assert!(assign.lhs.is_ident());
         assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_call_without_params() {
+        let (expr, interner) = parse_expr("fname()");
+
+        let call = expr.to_call().unwrap();
+        assert_eq!("fname", *interner.str(call.name));
+        assert_eq!(0, call.args.len());
+    }
+
+    #[test]
+    fn parse_call_with_params() {
+        let (expr, interner) = parse_expr("fname2(1,2,3)");
+
+        let call = expr.to_call().unwrap();
+        assert_eq!("fname2", *interner.str(call.name));
+        assert_eq!(3, call.args.len());
+
+        for i in 0..3 {
+            let lit = call.args[i as usize].to_lit_int().unwrap();
+            assert_eq!(i+1, lit.value);
+        }
     }
 
     #[test]

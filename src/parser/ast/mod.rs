@@ -597,6 +597,15 @@ impl Expr {
         })
     }
 
+    pub fn create_call(id: NodeId, pos: Position, name: Name, args: Vec<Box<Expr>>) -> Expr {
+        Expr::ExprCall(ExprCallType {
+            id: id,
+            pos: pos,
+            name: name,
+            args: args
+        })
+    }
+
     pub fn create_assign(id: NodeId, pos: Position,
                          lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
         Expr::ExprAssign(ExprAssignType {
@@ -783,7 +792,7 @@ pub struct ExprCallType {
     pub pos: Position,
 
     pub name: Name,
-    pub args: Vec<Expr>,
+    pub args: Vec<Box<Expr>>,
 }
 
 #[derive(Debug)]
