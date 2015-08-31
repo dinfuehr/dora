@@ -11,6 +11,8 @@ pub enum Msg {
     ShadowFunction(String),
     ShadowParam(String),
     ShadowType(String),
+    VarNeedsTypeInfo(String),
+    VarTypesIncompatible(String, String, String),
 }
 
 impl Msg {
@@ -24,11 +26,16 @@ impl Msg {
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             ShadowType(ref name) => format!("can not shadow type `{}`.", name),
+            VarNeedsTypeInfo(ref name) =>
+                format!("variable `{}` needs either type declaration or expression.", name),
+            VarTypesIncompatible(ref name, ref def, ref expr) =>
+                format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
+                        name, def, expr)
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MsgWithPos {
     pub msg: Msg,
     pub pos: Position,

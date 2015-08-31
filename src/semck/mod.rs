@@ -47,6 +47,8 @@ mod tests {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();
 
+            println!("errors = {:?}", errors);
+
             assert_eq!(1, errors.len());
             assert_eq!(pos, errors[0].pos);
             assert_eq!(msg, errors[0].msg);

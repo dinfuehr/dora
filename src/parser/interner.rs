@@ -27,10 +27,6 @@ impl RcStr {
     fn new(value: String) -> RcStr {
         RcStr(Rc::new(value))
     }
-
-    pub fn clone_string(&self) -> String {
-        (**self).clone()
-    }
 }
 
 impl Borrow<str> for RcStr {

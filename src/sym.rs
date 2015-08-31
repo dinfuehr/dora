@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::IterMut;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
+use std::string::ToString;
 
 use self::Sym::*;
 
@@ -181,10 +182,23 @@ impl Sym {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BuiltinType {
     Unit,
     Int,
     Bool,
     Str,
+}
+
+impl ToString for BuiltinType {
+    fn to_string(&self) -> String {
+        let name = match *self {
+            BuiltinType::Unit => "()",
+            BuiltinType::Int => "int",
+            BuiltinType::Bool => "bool",
+            BuiltinType::Str => "str"
+        };
+
+        name.into()
+    }
 }

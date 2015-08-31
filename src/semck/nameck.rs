@@ -36,7 +36,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
         if entry_type.is_empty() {
             self.ctxt.sym.borrow_mut().insert(f.name, SymFunction(f.id));
         } else {
-            let name = self.ctxt.interner.str(f.name).clone_string();
+            let name = self.ctxt.interner.str(f.name).to_string();
             let msg = if entry_type.is_type() {
                 Msg::ShadowType(name)
             } else {
@@ -142,7 +142,7 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 }
 
 fn str(ctxt: &Context, name: Name) -> String {
-    ctxt.interner.str(name).clone_string()
+    ctxt.interner.str(name).to_string()
 }
 
 #[cfg(test)]
