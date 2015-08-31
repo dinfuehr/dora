@@ -174,6 +174,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let types = self.ctxt.types.borrow();
         self.expr_type = *types.get(&var_id).unwrap();
     }
+
+    fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
+        if !e.lhs.is_ident() {
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
+            return;
+        }
+
+        self.visit_expr(&e.lhs);
+        let lhs_type = self.expr_type;
+
+        self.visit_expr(&e.rhs);
+        let rhs_type = self.expr_type;
+
+        if lhs_type != rhs_type {
+            let lhs_type = lhs_type.to_string();
+            let rhs_type = rhs_type.to_string();
+            let msg = Msg::AssignType(lhs_type, rhs_type);
+
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+
+        self.expr_type = lhs_type;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -189,6 +212,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitStr(_) => self.expr_type = BuiltinType::Str,
             ExprLitBool(_) => self.expr_type = BuiltinType::Bool,
             ExprIdent(ref expr) => self.check_expr_ident(expr),
+            ExprAssign(ref expr) => self.check_expr_assign(expr),
 
             // TODO: rest of possible expressions
             _ => {
@@ -285,5 +309,17 @@ mod tests {
     #[test]
     fn type_variable() {
         ok("fn f(a: int) { var b: int = a; }");
+    }
+
+    #[test]
+    fn type_assign() {
+        ok("fn f(a: int) { a = 1; }");
+        err("fn f(a: int) { a = true; }",
+            pos(1, 18), Msg::AssignType("int".into(), "bool".into()));
+    }
+
+    #[test]
+    fn type_assign_lvalue() {
+        err("fn f() { 1 = 3; }", pos(1, 12), Msg::LvalueExpected);
     }
 }

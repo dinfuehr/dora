@@ -16,6 +16,8 @@ pub enum Msg {
     WhileCondType(String),
     IfCondType(String),
     ReturnType(String, String),
+    LvalueExpected,
+    AssignType(String, String),
 }
 
 impl Msg {
@@ -40,6 +42,9 @@ impl Msg {
                 format!("if expects condition of type `bool` but got `{}`.", name),
             ReturnType(ref def, ref expr) =>
                 format!("return expects value of type `{}` but got `{}`.", def, expr),
+            LvalueExpected => format!("lvalue expected for assignment"),
+            AssignType(ref def, ref expr) =>
+                format!("can not assign value of type `{}` to variable of type `{}`", expr, def),
         }
     }
 }
