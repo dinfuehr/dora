@@ -18,8 +18,14 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub ast: &'a Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
+
+    // saves type of element
+    // used for functions, params and variables
     pub types: RefCell<HashMap<NodeId, BuiltinType>>,
-    pub var_uses: RefCell<HashMap<NodeId, NodeId>>,
+
+    // points to the definition of variable/function from its usage
+    pub defs: RefCell<HashMap<NodeId, NodeId>>,
+
     pub vars: RefCell<HashMap<NodeId, Vec<i32>>>,
 }
 
@@ -34,7 +40,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             types: RefCell::new(HashMap::new()),
-            var_uses: RefCell::new(HashMap::new()),
+            defs: RefCell::new(HashMap::new()),
             vars: RefCell::new(HashMap::new())
         }
     }

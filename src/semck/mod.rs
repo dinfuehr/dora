@@ -38,6 +38,10 @@ mod tests {
 
     pub fn ok(code: &'static str) {
         check(code, |ctxt| {
+            let diag = ctxt.diag.borrow();
+            let errors = diag.errors();
+
+            println!("errors = {:?}", errors);
             assert!(!ctxt.diag.borrow().has_errors());
         });
     }

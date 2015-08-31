@@ -13,6 +13,9 @@ pub enum Msg {
     ShadowType(String),
     VarNeedsTypeInfo(String),
     VarTypesIncompatible(String, String, String),
+    WhileCondType(String),
+    IfCondType(String),
+    ReturnType(String, String),
 }
 
 impl Msg {
@@ -30,7 +33,13 @@ impl Msg {
                 format!("variable `{}` needs either type declaration or expression.", name),
             VarTypesIncompatible(ref name, ref def, ref expr) =>
                 format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
-                        name, def, expr)
+                        name, def, expr),
+            WhileCondType(ref name) =>
+                format!("while expects condition of type `bool` but got `{}`.", name),
+            IfCondType(ref name) =>
+                format!("if expects condition of type `bool` but got `{}`.", name),
+            ReturnType(ref def, ref expr) =>
+                format!("return expects value of type `{}` but got `{}`.", def, expr),
         }
     }
 }

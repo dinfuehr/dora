@@ -19,23 +19,49 @@ pub fn check(ctxt: &Context, ast: &Ast) {
 }
 
 struct DefCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>
+    ctxt: &'a Context<'a, 'ast>,
+    current_id: Option<NodeId>,
 }
 
 impl<'a, 'ast> DefCheck<'a, 'ast> {
     fn new(ctxt: &'a Context<'a, 'ast>) -> DefCheck<'a, 'ast> {
         DefCheck {
-            ctxt: ctxt
+            ctxt: ctxt,
+            current_id: None
         }
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
+    fn visit_fct(&mut self, f: &'ast Function) {
+        self.current_id = Some(f.id);
+
+        visit::walk_fct(self, f);
+
+        // if no type for function found, then function returns ()
+        self.ctxt.types.borrow_mut().entry(f.id).or_insert(BuiltinType::Unit);
+    }
+
+    fn visit_param(&mut self, p: &'ast Param) {
+        self.current_id = Some(p.id);
+
+        visit::walk_param(self, p);
+    }
+
+    fn visit_stmt(&mut self, s: &'ast Stmt) {
+        if let StmtVar(ref var) = *s {
+            self.current_id = Some(var.id)
+        }
+
+        visit::walk_stmt(self, s);
+    }
+
     fn visit_type(&mut self, t: &'ast Type) {
         match *t {
             TypeBasic(ref basic) => {
                 if let Some(builtin) = self.ctxt.sym.borrow().get_type(basic.name) {
-                    self.ctxt.types.borrow_mut().insert(basic.id, builtin);
+                    let id = self.current_id.unwrap();
+                    self.ctxt.types.borrow_mut().insert(id, builtin);
                 } else {
                     let tyname = self.ctxt.interner.str(basic.name).to_string();
                     let msg = Msg::UnknownType(tyname);
@@ -50,67 +76,143 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
 
 struct TypeCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    expr_type: BuiltinType
+    expr_type: BuiltinType,
+    fct: Option<&'ast Function>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn new(ctxt: &'a Context<'a, 'ast>) -> TypeCheck<'a, 'ast> {
         TypeCheck {
             ctxt: ctxt,
-            expr_type: BuiltinType::Unit
+            expr_type: BuiltinType::Unit,
+            fct: None
         }
+    }
+
+    fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
+        let expr_type = s.expr.as_ref().map(|expr| {
+            self.visit_expr(&expr);
+
+            self.expr_type
+        });
+
+        let defined_type = if let Some(ref ty) = s.data_type {
+            self.ctxt.types.borrow().get(&s.id).map(|bt| *bt)
+        } else {
+            expr_type
+        };
+
+        if defined_type.is_none() {
+            let tyname = self.ctxt.interner.str(s.name).to_string();
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::VarNeedsTypeInfo(tyname));
+
+            return;
+        }
+
+        if expr_type.is_some() && (defined_type.unwrap() != expr_type.unwrap()) {
+            let varname = self.ctxt.interner.str(s.name).to_string();
+            let defname = defined_type.unwrap().to_string();
+            let exprname = expr_type.unwrap().to_string();
+            let msg = Msg::VarTypesIncompatible(varname, defname, exprname);
+
+            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+        }
+    }
+
+    fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
+        self.visit_expr(&s.cond);
+
+        if self.expr_type != BuiltinType::Bool {
+            let tyname = self.expr_type.to_string();
+            let msg = Msg::WhileCondType(tyname);
+
+            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+        }
+
+        self.visit_stmt(&s.block);
+    }
+
+    fn check_stmt_if(&mut self, s: &'ast StmtIfType) {
+        self.visit_expr(&s.cond);
+
+        if self.expr_type != BuiltinType::Bool {
+            let tyname = self.expr_type.to_string();
+            let msg = Msg::IfCondType(tyname);
+
+            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+        }
+
+        self.visit_stmt(&s.then_block);
+
+        if let Some(ref else_block) = s.else_block {
+            self.visit_stmt(else_block);
+        }
+    }
+
+    fn check_stmt_return(&mut self, s: &'ast StmtReturnType) {
+        let expr_type = s.expr.as_ref().map(|expr| {
+            self.visit_expr(&expr);
+
+            self.expr_type
+        }).unwrap_or(BuiltinType::Unit);
+
+        let fct = self.fct.unwrap();
+        let types = self.ctxt.types.borrow();
+
+        let fct_type = *types.get(&fct.id).unwrap();
+
+        if expr_type != fct_type {
+            let msg = Msg::ReturnType(fct_type.to_string(), expr_type.to_string());
+            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+        }
+    }
+
+    fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
+        let defs = self.ctxt.defs.borrow();
+        let var_id = *defs.get(&e.id).unwrap();
+
+        let types = self.ctxt.types.borrow();
+        self.expr_type = *types.get(&var_id).unwrap();
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
+    fn visit_fct(&mut self, f: &'ast Function) {
+        self.fct = Some(f);
+
+        visit::walk_fct(self, f);
+    }
+
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitInt(_) => self.expr_type = BuiltinType::Int,
             ExprLitStr(_) => self.expr_type = BuiltinType::Str,
             ExprLitBool(_) => self.expr_type = BuiltinType::Bool,
+            ExprIdent(ref expr) => self.check_expr_ident(expr),
 
             // TODO: rest of possible expressions
-            _ => visit::walk_expr(self, e)
+            _ => {
+                self.expr_type = BuiltinType::Unit;
+
+                visit::walk_expr(self, e)
+            }
         }
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref var) => check_var_stmt(self, self.ctxt, var),
+            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtWhile(ref stmt) => self.check_stmt_while(stmt),
+            StmtIf(ref stmt) => self.check_stmt_if(stmt),
+            StmtReturn(ref stmt) => self.check_stmt_return(stmt),
 
-            // TODO: handle rest of statements
-            _ => visit::walk_stmt(self, s)
+            // for the rest of the statements, no special handling is necessary
+            StmtBreak(ref stmt) => visit::walk_stmt(self, s),
+            StmtContinue(ref stmt) => visit::walk_stmt(self, s),
+            StmtLoop(ref stmt) => visit::walk_stmt(self, s),
+            StmtExpr(ref stmt) => visit::walk_stmt(self, s),
+            StmtBlock(ref stmt) => visit::walk_stmt(self, s),
         }
-    }
-}
-
-fn check_var_stmt<'a, 'ast>(ck: &mut TypeCheck<'a, 'ast>, ctxt: &Context, s: &'ast StmtVarType) {
-    let expr_type = s.expr.as_ref().map(|expr| {
-        ck.visit_expr(&expr);
-
-        ck.expr_type
-    });
-
-    let defined_type = if let Some(ref ty) = s.data_type {
-        ctxt.types.borrow().get(&ty.id()).map(|bt| *bt)
-    } else {
-        expr_type
-    };
-
-    if defined_type.is_none() {
-        let tyname = ctxt.interner.str(s.name).to_string();
-        ctxt.diag.borrow_mut().report(s.pos, Msg::VarNeedsTypeInfo(tyname));
-
-        return;
-    }
-
-    if expr_type.is_some() && (defined_type.unwrap() != expr_type.unwrap()) {
-        let varname = ctxt.interner.str(s.name).to_string();
-        let defname = defined_type.unwrap().to_string();
-        let exprname = expr_type.unwrap().to_string();
-        let msg = Msg::VarTypesIncompatible(varname, defname, exprname);
-
-        ctxt.diag.borrow_mut().report(s.pos, msg);
     }
 }
 
@@ -152,5 +254,36 @@ mod tests {
             pos(1, 10), Msg::VarTypesIncompatible("a".into(), "int".into(), "bool".into()));
         err("fn f() { var b : bool = 2; }",
             pos(1, 10), Msg::VarTypesIncompatible("b".into(), "bool".into(), "int".into()));
+    }
+
+    #[test]
+    fn type_while() {
+        ok("fn x() { while true { } }");
+        ok("fn x() { while false { } }");
+        err("fn x() { while 2 { } }", pos(1, 10), Msg::WhileCondType("int".into()));
+    }
+
+    #[test]
+    fn type_if() {
+        ok("fn x() { if true { } }");
+        ok("fn x() { if false { } }");
+        err("fn x() { if 4 { } }", pos(1, 10), Msg::IfCondType("int".into()));
+    }
+
+    #[test]
+    fn type_return_unit() {
+        ok("fn f() { return; }");
+        err("fn f() { return 1; }", pos(1, 10), Msg::ReturnType("()".into(), "int".into()));
+    }
+
+    #[test]
+    fn type_return() {
+        ok("fn f() -> int { return 1; }");
+        err("fn f() -> int { return; }", pos(1, 17), Msg::ReturnType("int".into(), "()".into()));
+    }
+
+    #[test]
+    fn type_variable() {
+        ok("fn f(a: int) { var b: int = a; }");
     }
 }

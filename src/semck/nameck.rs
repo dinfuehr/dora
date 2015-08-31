@@ -115,7 +115,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *e {
             ExprIdent(ref ident) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-                    self.ctxt.var_uses.borrow_mut().insert(ident.id, id);
+                    self.ctxt.defs.borrow_mut().insert(ident.id, id);
                 } else {
                     let name = str(self.ctxt, ident.name);
                     report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
@@ -124,7 +124,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.ctxt.var_uses.borrow_mut().insert(call.id, id);
+                    self.ctxt.defs.borrow_mut().insert(call.id, id);
                 } else {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));
