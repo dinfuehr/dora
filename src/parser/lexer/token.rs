@@ -48,6 +48,10 @@ pub enum TokenType {
     Colon,
     Arrow,
     Tilde,
+    BitOr,
+    BitAnd,
+    And,
+    Or,
 
     Eq,
     EqEq,

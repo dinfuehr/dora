@@ -18,7 +18,8 @@ pub enum Msg {
     ReturnType(String, String),
     LvalueExpected,
     AssignType(String, String),
-    UnOpType(String, String, String)
+    UnOpType(String, String),
+    BinOpType(String, String, String),
 }
 
 impl Msg {
@@ -46,8 +47,11 @@ impl Msg {
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref def, ref expr) =>
                 format!("can not assign value of type `{}` to variable of type `{}`", expr, def),
-            UnOpType(ref op, ref def, ref expr) =>
-                format!("unary `{}` only operates on `{}` but got `{}`.", op, def, expr),
+            UnOpType(ref op, ref expr) =>
+                format!("unary unary `{}` can not handle value of type `{} {}`.", op, op, expr),
+            BinOpType(ref op, ref lhs, ref rhs) =>
+                format!("binary operator `{}` can not handle expression of type `{} {} {}`",
+                    op, lhs, op, rhs),
         }
     }
 }

@@ -362,7 +362,37 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_expression_l0()
+        self.parse_expression_l_minus_2()
+    }
+
+    fn parse_expression_l_minus_2(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l_minus_1());
+
+        while self.token.is(TokenType::Or) {
+            let tok = try!(self.read_token());
+            let op = BinOp::Or;
+
+            let right = try!(self.parse_expression_l_minus_1());
+            left = box Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right);
+        }
+
+        Ok(left)
+    }
+
+    fn parse_expression_l_minus_1(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l0());
+
+        while self.token.is(TokenType::And) {
+            let tok = try!(self.read_token());
+            let op = BinOp::And;
+
+            let right = try!(self.parse_expression_l0());
+            left = box Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right);
+        }
+
+        Ok(left)
     }
 
     fn parse_expression_l0(&mut self) -> ExprResult {
@@ -397,7 +427,7 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression_l2(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l3());
+        let mut left = try!(self.parse_expression_l_2_to_3());
 
         while self.token.is(TokenType::Lt) || self.token.is(TokenType::Le) ||
                 self.token.is(TokenType::Gt) || self.token.is(TokenType::Ge) {
@@ -408,6 +438,23 @@ impl<T: CodeReader> Parser<T> {
                 TokenType::Le => BinOp::Le,
                 TokenType::Gt => BinOp::Gt,
                 _ => BinOp::Ge
+            };
+
+            let right = try!(self.parse_expression_l_2_to_3());
+            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
+        }
+
+        Ok(left)
+    }
+
+    fn parse_expression_l_2_to_3(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l3());
+
+        while self.token.is(TokenType::BitOr) || self.token.is(TokenType::BitAnd) {
+            let tok = try!(self.read_token());
+            let op = match tok.token_type {
+                TokenType::BitOr => BinOp::BitOr,
+                _ => BinOp::BitAnd
             };
 
             let right = try!(self.parse_expression_l3());
@@ -813,6 +860,46 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_or() {
+        let (expr, _) = parse_expr("1||2");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Or, add.op);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_and() {
+        let (expr, _) = parse_expr("1&&2");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::And, add.op);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_bit_or() {
+        let (expr, _) = parse_expr("1|2");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::BitOr, add.op);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_bit_and() {
+        let (expr, _) = parse_expr("1&2");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(BinOp::BitAnd, add.op);
         assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
     }

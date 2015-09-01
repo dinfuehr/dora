@@ -550,6 +550,30 @@ pub enum BinOp {
     BitAnd
 }
 
+impl ToString for BinOp {
+    fn to_string(&self) -> String {
+        let repr = match *self {
+            BinOp::Add => "+",
+            BinOp::Sub => "-",
+            BinOp::Mul => "*",
+            BinOp::Div => "/",
+            BinOp::Mod => "%",
+            BinOp::Eq => "==",
+            BinOp::Ne => "!=",
+            BinOp::Lt => "<",
+            BinOp::Le => "<=",
+            BinOp::Gt => ">",
+            BinOp::Ge => ">=",
+            BinOp::Or => "||",
+            BinOp::And => "&&",
+            BinOp::BitOr => "|",
+            BinOp::BitAnd => "&",
+        };
+
+        repr.into()
+    }
+}
+
 #[derive(Debug)]
 pub enum Expr {
     ExprUn(ExprUnType),

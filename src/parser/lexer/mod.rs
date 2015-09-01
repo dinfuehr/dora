@@ -228,6 +228,24 @@ impl<T : CodeReader> Lexer<T> {
             '{' => tok.token_type = TokenType::LBrace,
             '}' => tok.token_type = TokenType::RBrace,
 
+            '|' => {
+                tok.token_type = if nch == '|' {
+                    self.read_char();
+                    TokenType::Or
+                } else {
+                    TokenType::BitOr
+                }
+            }
+
+            '&' => {
+                tok.token_type = if nch == '&' {
+                    self.read_char();
+                    TokenType::And
+                } else {
+                    TokenType::BitAnd
+                }
+            }
+
             '~' => tok.token_type = TokenType::Tilde,
             ',' => tok.token_type = TokenType::Comma,
             ';' => tok.token_type = TokenType::Semicolon,

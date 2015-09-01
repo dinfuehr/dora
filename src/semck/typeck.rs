@@ -209,10 +209,32 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let opnd_type = self.expr_type;
 
         if expected_type != opnd_type {
-            let expected_type = expected_type.to_string();
             let opnd_type = opnd_type.to_string();
             let op = e.op.to_string();
-            let msg = Msg::UnOpType(op, expected_type, opnd_type);
+            let msg = Msg::UnOpType(op, opnd_type);
+
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+    }
+
+    fn check_expr_bin(&mut self, e: &'ast ExprBinType) {
+        let expected_type = if e.op == BinOp::Or || e.op == BinOp::And {
+            BuiltinType::Bool
+        } else {
+            BuiltinType::Int
+        };
+
+        self.visit_expr(&e.lhs);
+        let lhs_type = self.expr_type;
+
+        self.visit_expr(&e.rhs);
+        let rhs_type = self.expr_type;
+
+        if expected_type != lhs_type || expected_type != rhs_type {
+            let lhs_type = lhs_type.to_string();
+            let rhs_type = rhs_type.to_string();
+            let op = e.op.to_string();
+            let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
@@ -234,6 +256,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
+            ExprBin(ref expr) => self.check_expr_bin(expr),
 
             // TODO: rest of possible expressions
             _ => {
@@ -348,13 +371,28 @@ mod tests {
     fn type_un_op() {
         ok("fn f(a: int) { ~a; -a; +a; }");
         err("fn f(a: int) { !a; }", pos(1, 16),
-            Msg::UnOpType("!".into(), "bool".into(), "int".into()));
+            Msg::UnOpType("!".into(), "int".into()));
 
         err("fn f(a: bool) { ~a; }", pos(1, 17),
-            Msg::UnOpType("~".into(), "int".into(), "bool".into()));
+            Msg::UnOpType("~".into(), "bool".into()));
         err("fn f(a: bool) { -a; }", pos(1, 17),
-            Msg::UnOpType("-".into(), "int".into(), "bool".into()));
+            Msg::UnOpType("-".into(), "bool".into()));
         err("fn f(a: bool) { +a; }", pos(1, 17),
-            Msg::UnOpType("+".into(), "int".into(), "bool".into()));
+            Msg::UnOpType("+".into(), "bool".into()));
+    }
+
+    #[test]
+    fn type_bin_op() {
+        ok("fn f(a: int) { a+a; a-a; a*a; a/a; a%a; }");
+        ok("fn f(a: int) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+        ok("fn f(a: int) { a|a; a&a; }");
+        ok("fn f(a: bool) { a||a; a&&a; }");
+
+        err("fn f(a: bool) { a+a; }", pos(1, 18),
+            Msg::BinOpType("+".into(), "bool".into(), "bool".into()));
+        err("fn f(a: int) { a||a; }", pos(1, 17),
+            Msg::BinOpType("||".into(), "int".into(), "int".into()));
+        err("fn f(a: int) { a&&a; }", pos(1, 17),
+            Msg::BinOpType("&&".into(), "int".into(), "int".into()));
     }
 }
