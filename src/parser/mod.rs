@@ -362,61 +362,30 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_expression_l_minus_2()
+        self.parse_expression_l0()
     }
 
-    fn parse_expression_l_minus_2(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l_minus_1());
+    fn parse_expression_l0(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l1());
 
         while self.token.is(TokenType::Or) {
             let tok = try!(self.read_token());
             let op = BinOp::Or;
 
-            let right = try!(self.parse_expression_l_minus_1());
+            let right = try!(self.parse_expression_l1());
             left = box Expr::create_bin(self.generate_id(),
                 tok.position, op, left, right);
         }
 
         Ok(left)
-    }
-
-    fn parse_expression_l_minus_1(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l0());
-
-        while self.token.is(TokenType::And) {
-            let tok = try!(self.read_token());
-            let op = BinOp::And;
-
-            let right = try!(self.parse_expression_l0());
-            left = box Expr::create_bin(self.generate_id(),
-                tok.position, op, left, right);
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l0(&mut self) -> ExprResult {
-        let left = try!(self.parse_expression_l1());
-
-        if self.token.is(TokenType::Eq) {
-            let tok = try!(self.read_token());
-            let right = try!(self.parse_expression_l0());
-
-            Ok(box Expr::create_assign(self.generate_id(), tok.position, left, right))
-        } else {
-            Ok(left)
-        }
     }
 
     fn parse_expression_l1(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l2());
 
-        while self.token.is(TokenType::EqEq) || self.token.is(TokenType::Ne) {
+        while self.token.is(TokenType::And) {
             let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::EqEq => BinOp::Eq,
-                _ => BinOp::Ne
-            };
+            let op = BinOp::And;
 
             let right = try!(self.parse_expression_l2());
             left = box Expr::create_bin(self.generate_id(),
@@ -427,7 +396,38 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression_l2(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l_2_to_3());
+        let left = try!(self.parse_expression_l3());
+
+        if self.token.is(TokenType::Eq) {
+            let tok = try!(self.read_token());
+            let right = try!(self.parse_expression_l3());
+
+            Ok(box Expr::create_assign(self.generate_id(), tok.position, left, right))
+        } else {
+            Ok(left)
+        }
+    }
+
+    fn parse_expression_l3(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l4());
+
+        while self.token.is(TokenType::EqEq) || self.token.is(TokenType::Ne) {
+            let tok = try!(self.read_token());
+            let op = match tok.token_type {
+                TokenType::EqEq => BinOp::Eq,
+                _ => BinOp::Ne
+            };
+
+            let right = try!(self.parse_expression_l4());
+            left = box Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right);
+        }
+
+        Ok(left)
+    }
+
+    fn parse_expression_l4(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l5());
 
         while self.token.is(TokenType::Lt) || self.token.is(TokenType::Le) ||
                 self.token.is(TokenType::Gt) || self.token.is(TokenType::Ge) {
@@ -440,15 +440,15 @@ impl<T: CodeReader> Parser<T> {
                 _ => BinOp::Ge
             };
 
-            let right = try!(self.parse_expression_l_2_to_3());
+            let right = try!(self.parse_expression_l5());
             left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
     }
 
-    fn parse_expression_l_2_to_3(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l3());
+    fn parse_expression_l5(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l6());
 
         while self.token.is(TokenType::BitOr) || self.token.is(TokenType::BitAnd) {
             let tok = try!(self.read_token());
@@ -457,15 +457,15 @@ impl<T: CodeReader> Parser<T> {
                 _ => BinOp::BitAnd
             };
 
-            let right = try!(self.parse_expression_l3());
+            let right = try!(self.parse_expression_l6());
             left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
     }
 
-    fn parse_expression_l3(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l4());
+    fn parse_expression_l6(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l7());
 
         while self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) {
             let tok = try!(self.read_token());
@@ -474,15 +474,15 @@ impl<T: CodeReader> Parser<T> {
                 _ => BinOp::Sub
             };
 
-            let right = try!(self.parse_expression_l4());
+            let right = try!(self.parse_expression_l7());
             left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
     }
 
-    fn parse_expression_l4(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l5());
+    fn parse_expression_l7(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l8());
 
         while self.token.is(TokenType::Mul) || self.token.is(TokenType::Div) ||
                 self.token.is(TokenType::Mod) {
@@ -493,14 +493,14 @@ impl<T: CodeReader> Parser<T> {
                 _ => BinOp::Mod
             };
 
-            let right = try!(self.parse_expression_l5());
+            let right = try!(self.parse_expression_l8());
             left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
         }
 
         Ok(left)
     }
 
-    fn parse_expression_l5(&mut self) -> ExprResult {
+    fn parse_expression_l8(&mut self) -> ExprResult {
         if self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) ||
            self.token.is(TokenType::Not) || self.token.is(TokenType::Tilde) {
             let tok = try!(self.read_token());
