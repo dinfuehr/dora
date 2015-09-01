@@ -514,6 +514,21 @@ pub struct StmtContinueType {
 pub enum UnOp {
     Plus,
     Neg,
+    Not,
+    BitNot
+}
+
+impl ToString for UnOp {
+    fn to_string(&self) -> String {
+        let repr = match *self {
+            UnOp::Plus => "+",
+            UnOp::Neg => "-",
+            UnOp::Not => "!",
+            UnOp::BitNot => "~"
+        };
+
+        repr.into()
+    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -529,6 +544,10 @@ pub enum BinOp {
     Le,
     Gt,
     Ge,
+    Or,
+    And,
+    BitOr,
+    BitAnd
 }
 
 #[derive(Debug)]

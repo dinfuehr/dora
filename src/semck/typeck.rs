@@ -197,6 +197,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.expr_type = lhs_type;
     }
+
+    fn check_expr_un(&mut self, e: &'ast ExprUnType) {
+        let expected_type = if e.op == UnOp::Not {
+            BuiltinType::Bool
+        } else {
+            BuiltinType::Int
+        };
+
+        self.visit_expr(&e.opnd);
+        let opnd_type = self.expr_type;
+
+        if expected_type != opnd_type {
+            let expected_type = expected_type.to_string();
+            let opnd_type = opnd_type.to_string();
+            let op = e.op.to_string();
+            let msg = Msg::UnOpType(op, expected_type, opnd_type);
+
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -213,6 +233,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitBool(_) => self.expr_type = BuiltinType::Bool,
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
+            ExprUn(ref expr) => self.check_expr_un(expr),
 
             // TODO: rest of possible expressions
             _ => {
@@ -321,5 +342,19 @@ mod tests {
     #[test]
     fn type_assign_lvalue() {
         err("fn f() { 1 = 3; }", pos(1, 12), Msg::LvalueExpected);
+    }
+
+    #[test]
+    fn type_un_op() {
+        ok("fn f(a: int) { ~a; -a; +a; }");
+        err("fn f(a: int) { !a; }", pos(1, 16),
+            Msg::UnOpType("!".into(), "bool".into(), "int".into()));
+
+        err("fn f(a: bool) { ~a; }", pos(1, 17),
+            Msg::UnOpType("~".into(), "int".into(), "bool".into()));
+        err("fn f(a: bool) { -a; }", pos(1, 17),
+            Msg::UnOpType("-".into(), "int".into(), "bool".into()));
+        err("fn f(a: bool) { +a; }", pos(1, 17),
+            Msg::UnOpType("+".into(), "int".into(), "bool".into()));
     }
 }

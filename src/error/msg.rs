@@ -18,6 +18,7 @@ pub enum Msg {
     ReturnType(String, String),
     LvalueExpected,
     AssignType(String, String),
+    UnOpType(String, String, String)
 }
 
 impl Msg {
@@ -45,6 +46,8 @@ impl Msg {
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref def, ref expr) =>
                 format!("can not assign value of type `{}` to variable of type `{}`", expr, def),
+            UnOpType(ref op, ref def, ref expr) =>
+                format!("unary `{}` only operates on `{}` but got `{}`.", op, def, expr),
         }
     }
 }

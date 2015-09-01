@@ -454,11 +454,15 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression_l5(&mut self) -> ExprResult {
-        if self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) {
+        if self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) ||
+           self.token.is(TokenType::Not) || self.token.is(TokenType::Tilde) {
             let tok = try!(self.read_token());
             let op = match tok.token_type {
                 TokenType::Add => UnOp::Plus,
-                _ => UnOp::Neg
+                TokenType::Sub => UnOp::Neg,
+                TokenType::Not => UnOp::Not,
+                TokenType::Tilde => UnOp::BitNot,
+                _ => unreachable!()
             };
 
             let expr = try!(self.parse_factor());

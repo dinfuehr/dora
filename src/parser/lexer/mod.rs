@@ -228,6 +228,7 @@ impl<T : CodeReader> Lexer<T> {
             '{' => tok.token_type = TokenType::LBrace,
             '}' => tok.token_type = TokenType::RBrace,
 
+            '~' => tok.token_type = TokenType::Tilde,
             ',' => tok.token_type = TokenType::Comma,
             ';' => tok.token_type = TokenType::Semicolon,
             ':' => tok.token_type = TokenType::Colon,
@@ -631,4 +632,3 @@ mod tests {
         assert!(Lexer::from_file("tests/non_existing.txt").is_err());
     }
 }
-

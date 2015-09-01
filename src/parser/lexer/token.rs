@@ -47,6 +47,7 @@ pub enum TokenType {
     Dot,
     Colon,
     Arrow,
+    Tilde,
 
     Eq,
     EqEq,
@@ -83,4 +84,3 @@ impl fmt::Display for Token {
         write!(f, "{:?} (with value {:?})", self.token_type, self.value)
     }
 }
-
