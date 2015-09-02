@@ -21,7 +21,7 @@ pub enum Msg {
     LvalueExpected,
     AssignType(String, String),
     UnOpType(String, String),
-    BinOpType(String, String, String),
+    BinOpType(String, BuiltinType, BuiltinType),
 }
 
 impl Msg {
@@ -55,7 +55,7 @@ impl Msg {
                 format!("unary unary `{}` can not handle value of type `{} {}`.", op, op, expr),
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
-                    op, lhs, op, rhs),
+                    op, &lhs.to_string(), op, &rhs.to_string()),
         }
     }
 }

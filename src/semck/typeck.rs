@@ -231,8 +231,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let rhs_type = self.expr_type;
 
         if expected_type != lhs_type || expected_type != rhs_type {
-            let lhs_type = lhs_type.to_string();
-            let rhs_type = rhs_type.to_string();
             let op = e.op.to_string();
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
@@ -415,13 +413,13 @@ mod tests {
         ok("fn f(a: bool) { a||a; a&&a; }");
 
         err("fn f(a: bool) { a+a; }", pos(1, 18),
-            Msg::BinOpType("+".into(), "bool".into(), "bool".into()));
+            Msg::BinOpType("+".into(), BuiltinType::Bool, BuiltinType::Bool));
         err("fn f(a: bool) { a^a; }", pos(1, 18),
-            Msg::BinOpType("^".into(), "bool".into(), "bool".into()));
+            Msg::BinOpType("^".into(), BuiltinType::Bool, BuiltinType::Bool));
         err("fn f(a: int) { a||a; }", pos(1, 17),
-            Msg::BinOpType("||".into(), "int".into(), "int".into()));
+            Msg::BinOpType("||".into(), BuiltinType::Int, BuiltinType::Int));
         err("fn f(a: int) { a&&a; }", pos(1, 17),
-            Msg::BinOpType("&&".into(), "int".into(), "int".into()));
+            Msg::BinOpType("&&".into(), BuiltinType::Int, BuiltinType::Int));
     }
 
     #[test]
