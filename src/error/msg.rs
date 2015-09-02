@@ -13,13 +13,12 @@ pub enum Msg {
     ShadowParam(String),
     ShadowType(String),
     VarNeedsTypeInfo(String),
-    VarTypesIncompatible(String, BuiltinType, BuiltinType),
     ParamTypesIncompatible(String, Vec<BuiltinType>, Vec<BuiltinType>),
     WhileCondType(String),
     IfCondType(String),
     ReturnType(String, String),
     LvalueExpected,
-    AssignType(String, String),
+    AssignType(String, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
 }
@@ -37,9 +36,6 @@ impl Msg {
             ShadowType(ref name) => format!("can not shadow type `{}`.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
-            VarTypesIncompatible(ref name, ref def, ref expr) =>
-                format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
-                        name, &def.to_string(), &expr.to_string()),
             ParamTypesIncompatible(ref name, ref def, ref expr) =>
                 format!("function types incompatible"),
             WhileCondType(ref name) =>
@@ -49,8 +45,9 @@ impl Msg {
             ReturnType(ref def, ref expr) =>
                 format!("return expects value of type `{}` but got `{}`.", def, expr),
             LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(ref def, ref expr) =>
-                format!("can not assign value of type `{}` to variable of type `{}`", expr, def),
+            AssignType(ref name, ref def, ref expr) =>
+                format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
+                        name, &def.to_string(), &expr.to_string()),
             UnOpType(ref op, ref expr) =>
                 format!("unary unary `{}` can not handle value of type `{} {}`.", op, op,
                     &expr.to_string()),

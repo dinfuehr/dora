@@ -113,7 +113,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let varname = self.ctxt.interner.str(s.name).to_string();
             let defined_type = defined_type.unwrap();
             let expr_type = expr_type.unwrap();
-            let msg = Msg::VarTypesIncompatible(varname, defined_type, expr_type);
+            let msg = Msg::AssignType(varname, defined_type, expr_type);
 
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
@@ -188,9 +188,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let rhs_type = self.expr_type;
 
         if lhs_type != rhs_type {
-            let lhs_type = lhs_type.to_string();
-            let rhs_type = rhs_type.to_string();
-            let msg = Msg::AssignType(lhs_type, rhs_type);
+            let ident = e.lhs.to_ident().unwrap();
+            let ident = self.ctxt.interner.str(ident.name).to_string();
+            let msg = Msg::AssignType(ident, lhs_type, rhs_type);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
@@ -340,10 +340,10 @@ mod tests {
         ok("fn f() { var a : str = \"f\"; }");
 
         err("fn f() { var a : int = true; }",
-            pos(1, 10), Msg::VarTypesIncompatible(
+            pos(1, 10), Msg::AssignType(
                 "a".into(), BuiltinType::Int, BuiltinType::Bool));
         err("fn f() { var b : bool = 2; }",
-            pos(1, 10), Msg::VarTypesIncompatible(
+            pos(1, 10), Msg::AssignType(
                 "b".into(), BuiltinType::Bool, BuiltinType::Int));
     }
 
@@ -370,7 +370,8 @@ mod tests {
     #[test]
     fn type_return() {
         ok("fn f() -> int { return 1; }");
-        err("fn f() -> int { return; }", pos(1, 17), Msg::ReturnType("int".into(), "()".into()));
+        err("fn f() -> int { return; }", pos(1, 17),
+            Msg::ReturnType("int".into(), "()".into()));
     }
 
     #[test]
@@ -381,8 +382,8 @@ mod tests {
     #[test]
     fn type_assign() {
         ok("fn f(a: int) { a = 1; }");
-        err("fn f(a: int) { a = true; }",
-            pos(1, 18), Msg::AssignType("int".into(), "bool".into()));
+        err("fn f(a: int) { a = true; }", pos(1, 18),
+            Msg::AssignType("a".into(), BuiltinType::Int, BuiltinType::Bool));
     }
 
     #[test]
@@ -426,7 +427,7 @@ mod tests {
         ok("fn foo() -> int { return 1; }\nfn f() { var i: int = foo(); }");
         err("fn foo() -> int { return 1; }\nfn f() { var i: bool = foo(); }",
             pos(2, 10),
-            Msg::VarTypesIncompatible("i".into(),
+            Msg::AssignType("i".into(),
                 BuiltinType::Bool, BuiltinType::Int));
     }
 
