@@ -239,6 +239,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
     }
+
+    fn check_expr_call(&mut self, e: &'ast ExprCallType) {
+        let defs = self.ctxt.defs.borrow();
+        let var_id = *defs.get(&e.id).unwrap();
+
+        let types = self.ctxt.types.borrow();
+        self.expr_type = *types.get(&var_id).unwrap();
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -257,13 +265,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
-
-            // TODO: rest of possible expressions
-            _ => {
-                self.expr_type = BuiltinType::Unit;
-
-                visit::walk_expr(self, e)
-            }
+            ExprCall(ref expr) => self.check_expr_call(expr),
         }
     }
 
@@ -396,5 +398,12 @@ mod tests {
             Msg::BinOpType("||".into(), "int".into(), "int".into()));
         err("fn f(a: int) { a&&a; }", pos(1, 17),
             Msg::BinOpType("&&".into(), "int".into(), "int".into()));
+    }
+
+    #[test]
+    fn type_function_return_type() {
+        ok("fn foo() -> int { return 1; }\nfn f() { var i: int = foo(); }");
+        err("fn foo() -> int { return 1; }\nfn f() { var i: bool = foo(); }",
+            pos(2, 10), Msg::VarTypesIncompatible("i".into(), "bool".into(), "int".into()));
     }
 }
