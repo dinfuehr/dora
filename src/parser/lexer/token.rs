@@ -50,6 +50,7 @@ pub enum TokenType {
     Tilde,
     BitOr,
     BitAnd,
+    Caret,
     And,
     Or,
 

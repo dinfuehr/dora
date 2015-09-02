@@ -385,11 +385,13 @@ mod tests {
     fn type_bin_op() {
         ok("fn f(a: int) { a+a; a-a; a*a; a/a; a%a; }");
         ok("fn f(a: int) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
-        ok("fn f(a: int) { a|a; a&a; }");
+        ok("fn f(a: int) { a|a; a&a; a^a; }");
         ok("fn f(a: bool) { a||a; a&&a; }");
 
         err("fn f(a: bool) { a+a; }", pos(1, 18),
             Msg::BinOpType("+".into(), "bool".into(), "bool".into()));
+        err("fn f(a: bool) { a^a; }", pos(1, 18),
+            Msg::BinOpType("^".into(), "bool".into(), "bool".into()));
         err("fn f(a: int) { a||a; }", pos(1, 17),
             Msg::BinOpType("||".into(), "int".into(), "int".into()));
         err("fn f(a: int) { a&&a; }", pos(1, 17),

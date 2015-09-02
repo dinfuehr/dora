@@ -450,11 +450,14 @@ impl<T: CodeReader> Parser<T> {
     fn parse_expression_l5(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l6());
 
-        while self.token.is(TokenType::BitOr) || self.token.is(TokenType::BitAnd) {
+        while self.token.is(TokenType::BitOr) || self.token.is(TokenType::BitAnd) ||
+              self.token.is(TokenType::Caret) {
             let tok = try!(self.read_token());
             let op = match tok.token_type {
                 TokenType::BitOr => BinOp::BitOr,
-                _ => BinOp::BitAnd
+                TokenType::BitAnd => BinOp::BitAnd,
+                TokenType::Caret => BinOp::BitXor,
+                _ => unreachable!()
             };
 
             let right = try!(self.parse_expression_l6());
@@ -888,20 +891,30 @@ mod tests {
     fn parse_bit_or() {
         let (expr, _) = parse_expr("1|2");
 
-        let add = expr.to_bin().unwrap();
-        assert_eq!(BinOp::BitOr, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        let or = expr.to_bin().unwrap();
+        assert_eq!(BinOp::BitOr, or.op);
+        assert_eq!(1, or.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, or.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
     fn parse_bit_and() {
         let (expr, _) = parse_expr("1&2");
 
-        let add = expr.to_bin().unwrap();
-        assert_eq!(BinOp::BitAnd, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        let and = expr.to_bin().unwrap();
+        assert_eq!(BinOp::BitAnd, and.op);
+        assert_eq!(1, and.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, and.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_bit_xor() {
+        let (expr, _) = parse_expr("1^2");
+
+        let xor = expr.to_bin().unwrap();
+        assert_eq!(BinOp::BitXor, xor.op);
+        assert_eq!(1, xor.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, xor.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]

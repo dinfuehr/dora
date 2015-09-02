@@ -246,6 +246,7 @@ impl<T : CodeReader> Lexer<T> {
                 }
             }
 
+            '^' => tok.token_type = TokenType::Caret,
             '~' => tok.token_type = TokenType::Tilde,
             ',' => tok.token_type = TokenType::Comma,
             ';' => tok.token_type = TokenType::Semicolon,
@@ -400,7 +401,7 @@ impl<T : CodeReader> Lexer<T> {
 
         if top.is_none() { return false; }
 
-        "+-*/%&|,=!~;:.()[]{}<>".contains(top.unwrap().value)
+        "^+-*/%&|,=!~;:.()[]{}<>".contains(top.unwrap().value)
     }
 
     fn is_digit(&self) -> bool {

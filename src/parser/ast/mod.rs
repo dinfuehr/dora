@@ -547,7 +547,8 @@ pub enum BinOp {
     Or,
     And,
     BitOr,
-    BitAnd
+    BitAnd,
+    BitXor,
 }
 
 impl ToString for BinOp {
@@ -568,6 +569,7 @@ impl ToString for BinOp {
             BinOp::And => "&&",
             BinOp::BitOr => "|",
             BinOp::BitAnd => "&",
+            BinOp::BitXor => "^"
         };
 
         repr.into()
