@@ -38,7 +38,7 @@ enum Entry<'a> {
 }
 
 impl<'a> Entry<'a> {
-    fn parent_id(&self) -> NodeId {
+    pub fn parent_id(&self) -> NodeId {
         match *self {
             EntryFct(id, _) => id,
             EntryParam(id, _) => id,
@@ -49,42 +49,42 @@ impl<'a> Entry<'a> {
         }
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         match *self {
             EmptyEntry => true,
             _ => false
         }
     }
 
-    fn to_fct(&self) -> Option<&Function> {
+    pub fn to_fct(&self) -> Option<&Function> {
         match *self {
             EntryFct(_, fct) => Some(fct),
             _ => None
         }
     }
 
-    fn to_type(&self) -> Option<&Type> {
+    pub fn to_type(&self) -> Option<&Type> {
         match *self {
             EntryType(_, ty) => Some(ty),
             _ => None
         }
     }
 
-    fn to_stmt(&self) -> Option<&Stmt> {
+    pub fn to_stmt(&self) -> Option<&Stmt> {
         match *self {
             EntryStmt(_, stmt) => Some(stmt),
             _ => None
         }
     }
 
-    fn to_expr(&self) -> Option<&Expr> {
+    pub fn to_expr(&self) -> Option<&Expr> {
         match *self {
             EntryExpr(_, expr) => Some(expr),
             _ => None
         }
     }
 
-    fn to_param(&self) -> Option<&Param> {
+    pub fn to_param(&self) -> Option<&Param> {
         match *self {
             EntryParam(_, param) => Some(param),
             _ => None
@@ -104,11 +104,11 @@ pub struct Map<'ast> {
 }
 
 impl<'ast> Map<'ast> {
-    fn entry(&self, id: NodeId) -> &Entry<'ast> {
+    pub fn entry(&self, id: NodeId) -> &Entry<'ast> {
         &self.entries[id.0]
     }
 
-    fn insert(&mut self, id: NodeId, entry: Entry<'ast>) {
+    pub fn insert(&mut self, id: NodeId, entry: Entry<'ast>) {
         let len = self.entries.len();
         let idx = id.0;
 

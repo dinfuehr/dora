@@ -1,5 +1,6 @@
 use self::Msg::*;
 use parser::lexer::position::Position;
+use sym::BuiltinType;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {
@@ -12,7 +13,8 @@ pub enum Msg {
     ShadowParam(String),
     ShadowType(String),
     VarNeedsTypeInfo(String),
-    VarTypesIncompatible(String, String, String),
+    VarTypesIncompatible(String, BuiltinType, BuiltinType),
+    ParamTypesIncompatible(String, Vec<BuiltinType>, Vec<BuiltinType>),
     WhileCondType(String),
     IfCondType(String),
     ReturnType(String, String),
@@ -37,7 +39,9 @@ impl Msg {
                 format!("variable `{}` needs either type declaration or expression.", name),
             VarTypesIncompatible(ref name, ref def, ref expr) =>
                 format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
-                        name, def, expr),
+                        name, &def.to_string(), &expr.to_string()),
+            ParamTypesIncompatible(ref name, ref def, ref expr) =>
+                format!("function types incompatible"),
             WhileCondType(ref name) =>
                 format!("while expects condition of type `bool` but got `{}`.", name),
             IfCondType(ref name) =>

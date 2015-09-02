@@ -111,9 +111,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if expr_type.is_some() && (defined_type.unwrap() != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();
-            let defname = defined_type.unwrap().to_string();
-            let exprname = expr_type.unwrap().to_string();
-            let msg = Msg::VarTypesIncompatible(varname, defname, exprname);
+            let defined_type = defined_type.unwrap();
+            let expr_type = expr_type.unwrap();
+            let msg = Msg::VarTypesIncompatible(varname, defined_type, expr_type);
 
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
@@ -242,10 +242,31 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
         let defs = self.ctxt.defs.borrow();
-        let var_id = *defs.get(&e.id).unwrap();
+        let fct_id = *defs.get(&e.id).unwrap();
 
         let types = self.ctxt.types.borrow();
-        self.expr_type = *types.get(&var_id).unwrap();
+        self.expr_type = *types.get(&fct_id).unwrap();
+
+        let fct = self.ctxt.map.entry(fct_id).to_fct().unwrap();
+        let mut fct_types = Vec::with_capacity(fct.params.len());
+
+        for param in &fct.params {
+            let ty = *types.get(&param.id).unwrap();
+            fct_types.push(ty);
+        }
+
+        let mut call_types = Vec::with_capacity(e.args.len());
+
+        for arg in &e.args {
+            self.visit_expr(arg);
+            call_types.push(self.expr_type);
+        }
+
+        if fct_types != call_types {
+            let fct_name = self.ctxt.interner.str(fct.name).to_string();
+            let msg = Msg::ParamTypesIncompatible(fct_name, fct_types, call_types);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
     }
 }
 
@@ -290,6 +311,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 mod tests {
     use error::msg::Msg;
     use semck::tests::*;
+    use sym::BuiltinType;
 
     #[test]
     fn type_def_for_return_type() {
@@ -321,9 +343,11 @@ mod tests {
         ok("fn f() { var a : str = \"f\"; }");
 
         err("fn f() { var a : int = true; }",
-            pos(1, 10), Msg::VarTypesIncompatible("a".into(), "int".into(), "bool".into()));
+            pos(1, 10), Msg::VarTypesIncompatible(
+                "a".into(), BuiltinType::Int, BuiltinType::Bool));
         err("fn f() { var b : bool = 2; }",
-            pos(1, 10), Msg::VarTypesIncompatible("b".into(), "bool".into(), "int".into()));
+            pos(1, 10), Msg::VarTypesIncompatible(
+                "b".into(), BuiltinType::Bool, BuiltinType::Int));
     }
 
     #[test]
@@ -404,6 +428,28 @@ mod tests {
     fn type_function_return_type() {
         ok("fn foo() -> int { return 1; }\nfn f() { var i: int = foo(); }");
         err("fn foo() -> int { return 1; }\nfn f() { var i: bool = foo(); }",
-            pos(2, 10), Msg::VarTypesIncompatible("i".into(), "bool".into(), "int".into()));
+            pos(2, 10),
+            Msg::VarTypesIncompatible("i".into(),
+                BuiltinType::Bool, BuiltinType::Int));
+    }
+
+    #[test]
+    fn type_function_params() {
+        ok("fn foo() {}\nfn f() { foo(); }");
+        ok("fn foo(a: int) {}\nfn f() { foo(1); }");
+        ok("fn foo(a: int, b: bool) {}\nfn f() { foo(1, true); }");
+
+        err("fn foo() {}\nfn f() { foo(1); }", pos(2, 10),
+            Msg::ParamTypesIncompatible("foo".into(),
+                vec![],
+                vec![BuiltinType::Int]));
+        err("fn foo(a: int) {}\nfn f() { foo(true); }", pos(2, 10),
+            Msg::ParamTypesIncompatible("foo".into(),
+                vec![BuiltinType::Int],
+                vec![BuiltinType::Bool]));
+        err("fn foo(a: int, b: bool) {}\nfn f() { foo(1, 2); }", pos(2, 10),
+            Msg::ParamTypesIncompatible("foo".into(),
+                vec![BuiltinType::Int, BuiltinType::Bool],
+                vec![BuiltinType::Int, BuiltinType::Int]));
     }
 }
