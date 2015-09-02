@@ -209,7 +209,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let opnd_type = self.expr_type;
 
         if expected_type != opnd_type {
-            let opnd_type = opnd_type.to_string();
             let op = e.op.to_string();
             let msg = Msg::UnOpType(op, opnd_type);
 
@@ -395,14 +394,14 @@ mod tests {
     fn type_un_op() {
         ok("fn f(a: int) { ~a; -a; +a; }");
         err("fn f(a: int) { !a; }", pos(1, 16),
-            Msg::UnOpType("!".into(), "int".into()));
+            Msg::UnOpType("!".into(), BuiltinType::Int));
 
         err("fn f(a: bool) { ~a; }", pos(1, 17),
-            Msg::UnOpType("~".into(), "bool".into()));
+            Msg::UnOpType("~".into(), BuiltinType::Bool));
         err("fn f(a: bool) { -a; }", pos(1, 17),
-            Msg::UnOpType("-".into(), "bool".into()));
+            Msg::UnOpType("-".into(), BuiltinType::Bool));
         err("fn f(a: bool) { +a; }", pos(1, 17),
-            Msg::UnOpType("+".into(), "bool".into()));
+            Msg::UnOpType("+".into(), BuiltinType::Bool));
     }
 
     #[test]

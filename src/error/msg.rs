@@ -20,7 +20,7 @@ pub enum Msg {
     ReturnType(String, String),
     LvalueExpected,
     AssignType(String, String),
-    UnOpType(String, String),
+    UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
 }
 
@@ -52,7 +52,8 @@ impl Msg {
             AssignType(ref def, ref expr) =>
                 format!("can not assign value of type `{}` to variable of type `{}`", expr, def),
             UnOpType(ref op, ref expr) =>
-                format!("unary unary `{}` can not handle value of type `{} {}`.", op, op, expr),
+                format!("unary unary `{}` can not handle value of type `{} {}`.", op, op,
+                    &expr.to_string()),
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
                     op, &lhs.to_string(), op, &rhs.to_string()),
