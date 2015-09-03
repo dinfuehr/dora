@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn type_def_for_return_type() {
-        ok("fn a() -> int {}");
+        ok("fn a() -> int { return 1; }");
         err("fn a() -> unknown {}", pos(1, 11), Msg::UnknownType("unknown".into()));
     }
 

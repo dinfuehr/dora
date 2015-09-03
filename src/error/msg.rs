@@ -22,6 +22,7 @@ pub enum Msg {
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
     OutsideLoop,
+    NoReturnValue,
 }
 
 impl Msg {
@@ -56,7 +57,9 @@ impl Msg {
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
                     op, &lhs.to_string(), op, &rhs.to_string()),
             OutsideLoop =>
-                "statement only allowed inside loops".into()
+                "statement only allowed inside loops".into(),
+            NoReturnValue =>
+                "function does not return a value in all code paths".into()
         }
     }
 }
