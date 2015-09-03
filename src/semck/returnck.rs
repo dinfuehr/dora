@@ -65,11 +65,10 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
     let mut pos = s.pos;
 
     for stmt in &s.stmts {
-        if let Ok(_) = returns_value(stmt) {
-            return Ok(());
+        match returns_value(stmt) {
+            Ok(_) => return Ok(()),
+            Err(err_pos) => pos = err_pos
         }
-
-        pos = stmt.pos();
     }
 
     Err(pos)
@@ -85,13 +84,14 @@ mod tests {
         ok("fn f() {}");
         ok("fn f() { if true { return; } }");
         ok("fn f() { while true { return; } }");
+        ok("fn f() { loop { return; } }");
     }
 
     #[test]
     fn returns_int() {
         err("fn f() -> int { }", pos(1, 15), Msg::NoReturnValue);
         err("fn f() -> int { if true { return 1; } }", pos(1, 17), Msg::NoReturnValue);
-        err("fn f() -> int { if true { } else { return 1; } }", pos(1, 17), Msg::NoReturnValue);
+        err("fn f() -> int { if true { } else { return 1; } }", pos(1, 25), Msg::NoReturnValue);
         err("fn f() -> int { while true { return 1; } }", pos(1, 17), Msg::NoReturnValue);
         ok("fn f() -> int { loop { return 1; } }");
         ok("fn f() -> int { if true { return 1; } else { return 2; } }");
