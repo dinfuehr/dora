@@ -21,6 +21,7 @@ pub enum Msg {
     AssignType(String, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
+    OutsideLoop,
 }
 
 impl Msg {
@@ -54,6 +55,8 @@ impl Msg {
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
                     op, &lhs.to_string(), op, &rhs.to_string()),
+            OutsideLoop =>
+                "statement only allowed inside loops".into()
         }
     }
 }

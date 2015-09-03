@@ -303,15 +303,29 @@ impl Stmt {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Stmt::StmtVar(ref val) => val.id,
-            Stmt::StmtWhile(ref val) => val.id,
-            Stmt::StmtLoop(ref val) => val.id,
-            Stmt::StmtIf(ref val) => val.id,
-            Stmt::StmtExpr(ref val) => val.id,
-            Stmt::StmtBlock(ref val) => val.id,
-            Stmt::StmtBreak(ref val) => val.id,
-            Stmt::StmtContinue(ref val) => val.id,
-            Stmt::StmtReturn(ref val) => val.id,
+            Stmt::StmtVar(ref stmt) => stmt.id,
+            Stmt::StmtWhile(ref stmt) => stmt.id,
+            Stmt::StmtLoop(ref stmt) => stmt.id,
+            Stmt::StmtIf(ref stmt) => stmt.id,
+            Stmt::StmtExpr(ref stmt) => stmt.id,
+            Stmt::StmtBlock(ref stmt) => stmt.id,
+            Stmt::StmtBreak(ref stmt) => stmt.id,
+            Stmt::StmtContinue(ref stmt) => stmt.id,
+            Stmt::StmtReturn(ref stmt) => stmt.id,
+        }
+    }
+
+    pub fn pos(&self) -> Position {
+        match *self {
+            Stmt::StmtVar(ref stmt) => stmt.pos,
+            Stmt::StmtWhile(ref stmt) => stmt.pos,
+            Stmt::StmtLoop(ref stmt) => stmt.pos,
+            Stmt::StmtIf(ref stmt) => stmt.pos,
+            Stmt::StmtExpr(ref stmt) => stmt.pos,
+            Stmt::StmtBlock(ref stmt) => stmt.pos,
+            Stmt::StmtBreak(ref stmt) => stmt.pos,
+            Stmt::StmtContinue(ref stmt) => stmt.pos,
+            Stmt::StmtReturn(ref stmt) => stmt.pos,
         }
     }
 
