@@ -17,7 +17,7 @@ mod parser;
 mod semck;
 mod sym;
 mod driver;
-mod hir;
+mod codegen;
 
 #[cfg(not(test))]
 fn main() {

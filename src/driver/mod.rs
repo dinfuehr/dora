@@ -4,13 +4,16 @@ pub mod ctxt;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use self::ctxt::Context;
+use codegen::codegen::CodeGen;
+use driver::ctxt::Context;
 use error::diag::Diagnostic;
+use error::msg::Msg;
 
-use parser::ast;
+use parser::ast::{self, Function};
 use parser::Parser;
+use parser::lexer::position::Position;
 use semck;
-use sym::SymTable;
+use sym::*;
 
 pub fn compile() -> i32 {
     let args = cmd::parse();
@@ -47,6 +50,8 @@ pub fn compile() -> i32 {
 
     semck::check(&ctxt);
 
+    let main = find_main(&ctxt);
+
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
 
@@ -54,5 +59,32 @@ pub fn compile() -> i32 {
         return 1;
     }
 
+    let main = main.unwrap();
+
+    let mut cg = CodeGen::new(&ctxt, main);
+    cg.generate();
+
     0 // success
+}
+
+fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where 'a: 'ast {
+    let name = ctxt.interner.intern("main");
+    let fctid = match ctxt.sym.borrow().get_function(name) {
+        Some(id) => id,
+        None => {
+            ctxt.diag.borrow_mut().report(Position::new(1, 1), Msg::MainNotFound);
+            return None;
+        }
+    };
+
+    let fct = ctxt.map.entry(fctid).to_fct().unwrap();
+    let return_type = *ctxt.types.borrow().get(&fctid).unwrap();
+
+    if (return_type != BuiltinType::Unit && return_type != BuiltinType::Int) ||
+        fct.params.len() > 0 {
+        ctxt.diag.borrow_mut().report(fct.pos, Msg::WrongMainDefinition);
+        return None;
+    }
+
+    Some(fct)
 }

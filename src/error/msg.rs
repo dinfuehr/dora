@@ -23,6 +23,8 @@ pub enum Msg {
     BinOpType(String, BuiltinType, BuiltinType),
     OutsideLoop,
     NoReturnValue,
+    MainNotFound,
+    WrongMainDefinition
 }
 
 impl Msg {
@@ -56,10 +58,10 @@ impl Msg {
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
                     op, &lhs.to_string(), op, &rhs.to_string()),
-            OutsideLoop =>
-                "statement only allowed inside loops".into(),
-            NoReturnValue =>
-                "function does not return a value in all code paths".into()
+            OutsideLoop => "statement only allowed inside loops".into(),
+            NoReturnValue => "function does not return a value in all code paths".into(),
+            MainNotFound => "no main function found in the program".into(),
+            WrongMainDefinition => "main function has wrong definition".into(),
         }
     }
 }
