@@ -60,12 +60,12 @@ impl Buffer {
     }
 
     pub fn finish(mut self) -> Vec<u8> {
-        self.calculate_jumps();
+        self.fix_forward_jumps();
 
         self.buf.data()
     }
 
-    fn calculate_jumps(&mut self) {
+    fn fix_forward_jumps(&mut self) {
         for jmp in &self.jumps {
             let target = self.labels[jmp.to.0].expect("label not defined");
             let diff = (target - jmp.at - 4) as i32;
@@ -90,6 +90,7 @@ impl Buffer {
         let value = self.labels[lbl.0];
 
         match value {
+            // backward jumps already know their target
             Some(idx) => {
                 let current = self.buf.pos() + 4;
                 let target = idx;
@@ -98,6 +99,7 @@ impl Buffer {
                 self.emit_u32(diff as u32);
             }
 
+            // forward jumps do not know their target yet
             None => {
                 let pos = self.buf.pos();
                 self.emit_u32(0);
