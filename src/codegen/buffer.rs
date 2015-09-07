@@ -11,6 +11,10 @@ impl Buffer {
         }
     }
 
+    pub fn data(self) -> Vec<u8> {
+        self.data
+    }
+
     pub fn emit_u8(&mut self, value: u8) {
         self.data.write_u8(value).unwrap();
     }
