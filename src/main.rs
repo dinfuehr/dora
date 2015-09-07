@@ -18,6 +18,7 @@ mod semck;
 mod sym;
 mod driver;
 mod codegen;
+mod mem;
 
 #[cfg(not(test))]
 fn main() {

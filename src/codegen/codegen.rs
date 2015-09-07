@@ -30,10 +30,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
         }
     }
 
-    pub fn generate(&mut self) {
+    pub fn generate(mut self) -> Buffer {
         self.emit_prolog();
         self.visit_fct(self.fct);
         self.emit_epilog();
+
+        self.buf
     }
 
     fn emit_prolog(&mut self) {
@@ -180,5 +182,52 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             ExprLitBool(ref expr) => self.emit_expr_lit_bool(expr),
             _ => unreachable!()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use parser::ast;
+    use parser::Parser;
+    use driver::ctxt::Context;
+    use driver::cmd::Args;
+    use mem::CodeMemory;
+    use semck;
+    use std::mem;
+
+    use super::*;
+
+    fn run<T>(code: &'static str) -> T {
+        let (ast, interner) = Parser::from_str(code).parse().unwrap();
+        let args : Args = Default::default();
+        let ast_map = ast::map::build(&ast, &interner);
+
+        let ctxt = Context::new(&args, &interner, &ast_map, &ast);
+        semck::check(&ctxt);
+
+        assert!(!ctxt.diag.borrow().has_errors());
+
+        // generate code for first function
+        let fct = ast.elements[0].to_function().unwrap();
+
+        let buffer = CodeGen::new(&ctxt, fct).generate().finish();
+        let mem = CodeMemory::new(&buffer);
+
+        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
+
+        compiled_fct()
+    }
+
+    #[test]
+    fn test_lit_int() {
+        assert_eq!(1i32, run("fn f() -> int { return 1; }"));
+        assert_eq!(2i32, run("fn f() -> int { return 2; }"));
+        assert_eq!(3i32, run("fn f() -> int { return 3; }"));
+    }
+
+    #[test]
+    fn test_lit_bool() {
+        assert_eq!(true, run("fn f() -> bool { return true; }"));
+        assert_eq!(false, run("fn f() -> bool { return false; }"));
     }
 }
