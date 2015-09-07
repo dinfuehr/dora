@@ -1,5 +1,6 @@
-use codegen::buffer::Buffer;
+use codegen::buffer::*;
 use codegen::x64::reg::*;
+use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
 
 use driver::ctxt::Context;
@@ -12,6 +13,9 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
     buf: Buffer,
+
+    lbl_break: Option<Label>,
+    lbl_continue: Option<Label>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast> {
@@ -19,7 +23,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
         CodeGen {
             ctxt: ctxt,
             fct: fct,
-            buf: Buffer::new()
+            buf: Buffer::new(),
+
+            lbl_break: None,
+            lbl_continue: None
         }
     }
 
@@ -45,6 +52,103 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
         }
     }
 
+    fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
+        let lbl_start = self.buf.create_label();
+        let lbl_end = self.buf.create_label();
+
+        self.buf.define_label(lbl_start);
+
+        // execute condition, when condition is false jump to
+        // end of while
+        self.visit_expr(&s.cond);
+        emit_testl_reg_reg(&mut self.buf, RAX, RAX);
+        emit_jz(&mut self.buf, lbl_end);
+
+        let old_lbl_break = self.lbl_break;
+        let old_lbl_continue = self.lbl_continue;
+        self.lbl_break = Some(lbl_end);
+        self.lbl_continue = Some(lbl_start);
+
+        // execute while body, then jump back to condition
+        self.visit_stmt(&s.block);
+        emit_jmp(&mut self.buf, lbl_start);
+
+        self.lbl_break = old_lbl_break;
+        self.lbl_continue = old_lbl_continue;
+
+        self.buf.define_label(lbl_end);
+    }
+
+    fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
+        let lbl_start = self.buf.create_label();
+        let lbl_end = self.buf.create_label();
+        self.buf.define_label(lbl_start);
+
+        let old_lbl_break = self.lbl_break;
+        let old_lbl_continue = self.lbl_continue;
+        self.lbl_break = Some(lbl_end);
+        self.lbl_continue = Some(lbl_start);
+
+        self.visit_stmt(&s.block);
+
+        self.lbl_break = old_lbl_break;
+        self.lbl_continue = old_lbl_continue;
+
+        self.buf.define_label(lbl_end);
+
+        emit_jmp(&mut self.buf, lbl_start);
+    }
+
+    fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
+        let lbl_end = self.buf.create_label();
+        let lbl_else = if s.else_block.is_some() {
+            self.buf.create_label()
+        } else {
+            lbl_end
+        };
+
+        self.visit_expr(&s.cond);
+        emit_testl_reg_reg(&mut self.buf, RAX, RAX);
+        emit_jz(&mut self.buf, lbl_else);
+
+        self.visit_stmt(&s.then_block);
+
+        if let Some(ref else_block) = s.else_block {
+            emit_jmp(&mut self.buf, lbl_end);
+            self.buf.define_label(lbl_else);
+
+            self.visit_stmt(else_block);
+        }
+
+        self.buf.define_label(lbl_end);
+    }
+
+    fn emit_stmt_break(&mut self, s: &'ast StmtBreakType)  {
+        emit_jmp(&mut self.buf, self.lbl_break.unwrap());
+    }
+
+    fn emit_stmt_continue(&mut self, s: &'ast StmtContinueType) {
+        emit_jmp(&mut self.buf, self.lbl_continue.unwrap());
+    }
+
+    fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
+        self.visit_expr(&s.expr);
+    }
+
+    fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
+        for stmt in &s.stmts {
+            self.visit_stmt(stmt);
+        }
+    }
+
+    fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
+        if let Some(ref expr) = s.expr {
+            self.visit_expr(expr);
+
+            // TODO: save result into var
+        }
+    }
+
     fn emit_expr_lit_int(&mut self, lit: &'ast ExprLitIntType) {
         emit_movl_imm_reg(&mut self.buf, lit.value as u32, Reg::RAX);
     }
@@ -58,8 +162,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
 impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
+            StmtExpr(ref stmt) => self.emit_stmt_expr(stmt),
+            StmtIf(ref stmt) => self.emit_stmt_if(stmt),
+            StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
+            StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
-            _ => unreachable!()
+            StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
+            StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
+            StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
+            StmtVar(ref stmt) => self.emit_stmt_var(stmt),
         }
     }
 

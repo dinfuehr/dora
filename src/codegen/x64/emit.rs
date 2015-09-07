@@ -1,14 +1,14 @@
-use codegen::buffer::Buffer;
+use codegen::buffer::*;
 use super::reg::Reg;
 use super::reg::Reg::*;
 
-pub fn emit_movl_imm_reg(buf: &mut Buffer, val: u32, reg: Reg) {
+pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
     }
 
     emit_op(buf, (0xB8 as u8) + reg.and7());
-    emit_u32(buf, val);
+    emit_u32(buf, imm);
 }
 
 pub fn emit_subq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
@@ -94,6 +94,25 @@ fn emit_sib(buf: &mut Buffer, scale: u8, index: u8, base: u8) {
 
 pub fn fits_i8(imm: i32) -> bool {
     imm == (imm as i8) as i32
+}
+
+pub fn emit_jz(buf: &mut Buffer, lbl: Label) {
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0x84);
+    buf.emit_label(lbl);
+}
+
+pub fn emit_jmp(buf: &mut Buffer, lbl: Label) {
+    emit_op(buf, 0xe9);
+    buf.emit_label(lbl);
+}
+
+pub fn emit_testl_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
+    assert!(op1.msb() == 0);
+    assert!(op2.msb() == 0);
+
+    emit_op(buf, 0x85);
+    emit_modrm(buf, 0b00, op1.and7(), op2.and7());
 }
 
 #[cfg(test)]
