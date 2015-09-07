@@ -111,7 +111,7 @@ mod tests {
             $name(&mut buf);
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.data());
+            assert_eq!(expected, buf.finish());
         }};
 
         (
@@ -125,7 +125,7 @@ mod tests {
             $name(&mut buf, $($param,)*);
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.data());
+            assert_eq!(expected, buf.finish());
         }};
     }
 
