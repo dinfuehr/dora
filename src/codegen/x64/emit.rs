@@ -11,6 +11,56 @@ pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
     emit_u32(buf, imm);
 }
 
+pub fn emit_movl_membase_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
+    if (src != RIP && src.msb() != 0) || dest.msb() != 0 {
+        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x8b);
+    emit_membase(buf, src, disp, dest);
+}
+
+pub fn emit_movl_reg_membase(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
+    if (dest != RIP && dest.msb() != 0) || src.msb() != 0 {
+        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x89);
+    emit_membase(buf, dest, disp, src);
+}
+
+fn emit_membase(buf: &mut Buffer, base: Reg, disp: i32, dest: Reg) {
+    if base == RSP || base == R12 {
+        if disp == 0 {
+            emit_modrm(buf, 0, dest.and7(), RSP.and7());
+            emit_sib(buf, 0, RSP.and7(), RSP.and7());
+        } else if fits_i8(disp) {
+            emit_modrm(buf, 1, dest.and7(), RSP.and7());
+            emit_sib(buf, 0, RSP.and7(), RSP.and7());
+            emit_u8(buf, disp as u8);
+        } else {
+            emit_modrm(buf, 2, dest.and7(), RSP.and7());
+            emit_sib(buf, 0, RSP.and7(), RSP.and7());
+            emit_u32(buf, disp as u32);
+        }
+
+    } else if disp == 0 && base != RBP && base != R13 && base != RIP {
+        emit_modrm(buf, 0, dest.and7(), base.and7());
+
+    } else if base == RIP {
+        emit_modrm(buf, 0, dest.and7(), RBP.and7());
+        emit_u32(buf, disp as u32);
+
+    } else if fits_i8(disp) {
+        emit_modrm(buf, 1, dest.and7(), base.and7());
+        emit_u8(buf, disp as u8);
+
+    } else {
+        emit_modrm(buf, 2, dest.and7(), base.and7());
+        emit_u32(buf, disp as u32);
+    }
+}
+
 pub fn emit_subq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
     emit_rex(buf, 1, 0, 0, reg.msb());
 
@@ -54,6 +104,10 @@ pub fn emit_retq(buf: &mut Buffer) {
     emit_op(buf, 0xC3);
 }
 
+pub fn emit_nop(buf: &mut Buffer) {
+    emit_op(buf, 0x90);
+}
+
 pub fn emit_u32(buf: &mut Buffer, val: u32) {
     buf.emit_u32(val)
 }
@@ -75,20 +129,19 @@ fn emit_rex(buf: &mut Buffer, w: u8, r: u8, x: u8, b: u8) {
     buf.emit_u8(0x4 << 4 | w << 3 | r << 2 | x << 1 | b);
 }
 
-fn emit_modrm(buf: &mut Buffer, mod_: u8, reg: u8, rm: u8) {
-    assert!(mod_ < 4);
+fn emit_modrm(buf: &mut Buffer, mode: u8, reg: u8, rm: u8) {
+    assert!(mode < 4);
     assert!(reg < 8);
     assert!(rm < 8);
 
-    buf.emit_u8(mod_ << 6 | reg << 3 | rm);
+    buf.emit_u8(mode << 6 | reg << 3 | rm);
 }
 
 fn emit_sib(buf: &mut Buffer, scale: u8, index: u8, base: u8) {
     assert!(scale < 4);
-    assert!(index < 4);
+    assert!(index < 8);
     assert!(base < 8);
 
-    assert!(index != RSP.int() && index != R12.int());
     buf.emit_u8(scale << 6 | index << 3 | base);
 }
 
@@ -112,7 +165,7 @@ pub fn emit_testl_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
     assert!(op2.msb() == 0);
 
     emit_op(buf, 0x85);
-    emit_modrm(buf, 0b00, op1.and7(), op2.and7());
+    emit_modrm(buf, 0b11, op1.and7(), op2.and7());
 }
 
 #[cfg(test)]
@@ -200,5 +253,48 @@ mod tests {
         assert_emit!(0x48, 0x2d, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RAX));
         assert_emit!(0x48, 0x81, 0xe9, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RCX));
         assert_emit!(0x49, 0x81, 0xef, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, R15));
+    }
+
+    #[test]
+    fn test_emit_testl_reg_reg() {
+        assert_emit!(0x85, 0xc0; emit_testl_reg_reg(RAX, RAX));
+        assert_emit!(0x85, 0xc6; emit_testl_reg_reg(RAX, RSI));
+    }
+
+    #[test]
+    fn test_emit_jz() {
+        let mut buf = Buffer::new();
+        let lbl = buf.create_label();
+        emit_jz(&mut buf, lbl);
+        emit_nop(&mut buf);
+        buf.define_label(lbl);
+        assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.finish());
+    }
+
+    #[test]
+    fn test_emit_jmp() {
+        let mut buf = Buffer::new();
+        let lbl = buf.create_label();
+        emit_jmp(&mut buf, lbl);
+        emit_nop(&mut buf);
+        buf.define_label(lbl);
+        assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.finish());
+    }
+
+    #[test]
+    fn test_emit_movl_membase_reg() {
+        assert_emit!(0x8b, 0x44, 0x24, 1; emit_movl_membase_reg(RSP, 1, RAX));
+        assert_emit!(0x8b, 0x04, 0x24; emit_movl_membase_reg(RSP, 0, RAX));
+
+        assert_emit!(0x44, 0x8b, 0x45, 0; emit_movl_membase_reg(RBP, 0, R8));
+
+        assert_emit!(0x8b, 0x05, 0, 0, 0, 0; emit_movl_membase_reg(RIP, 0, RAX));
+        assert_emit!(0x8b, 0x0d, 0, 0, 0, 0; emit_movl_membase_reg(RIP, 0, RCX));
+    }
+
+    #[test]
+    fn test_emit_movl_reg_membase() {
+        assert_emit!(0x89, 0x0d, 0, 0, 0, 0; emit_movl_reg_membase(RCX, RIP, 0));
+        assert_emit!(0x89, 0x48, 3; emit_movl_reg_membase(RCX, RAX, 3));
     }
 }

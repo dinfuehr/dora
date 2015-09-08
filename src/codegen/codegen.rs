@@ -148,6 +148,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
             self.visit_expr(expr);
 
             // TODO: save result into var
+            self.ctxt.vars.borrow().get(&s.id).unwrap().offset;
         }
     }
 
@@ -229,10 +230,5 @@ mod tests {
     fn test_lit_bool() {
         assert_eq!(true, run("fn f() -> bool { return true; }"));
         assert_eq!(false, run("fn f() -> bool { return false; }"));
-    }
-
-    #[test]
-    fn test_ident() {
-        assert_eq!(10i32, run("fn f() -> int { var a = 10; return a; }"));
     }
 }

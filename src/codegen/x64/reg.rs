@@ -1,19 +1,29 @@
+use self::Reg::*;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Reg {
     RAX, RCX, RDX, RBX, RSP, RBP, RSI, RDI,
-    R8, R9, R10, R11, R12, R13, R14, R15
+    R8, R9, R10, R11, R12, R13, R14, R15,
+
+    RIP
 }
 
 impl Reg {
     pub fn int(self) -> u8 {
+        assert!(self != RIP);
+
         self as u8
     }
 
     pub fn msb(self) -> u8 {
+        assert!(self != RIP);
+
         (self.int() >> 3) & 0x01
     }
 
     pub fn and7(self) -> u8 {
+        assert!(self != RIP);
+
         self.int() & 0x07
     }
 }
