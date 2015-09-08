@@ -1,4 +1,4 @@
-use driver::ctxt::Context;
+use parser::ast::ctxt::Context;
 
 use sym::Sym::*;
 use sym::BuiltinType;

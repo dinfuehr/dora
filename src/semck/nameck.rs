@@ -1,4 +1,4 @@
-use driver::ctxt::Context;
+use parser::ast::ctxt::Context;
 use error::msg::Msg;
 
 use parser::ast::*;

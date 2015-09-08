@@ -1,11 +1,10 @@
 pub mod cmd;
-pub mod ctxt;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 use codegen::codegen::CodeGen;
-use driver::ctxt::Context;
+use parser::ast::ctxt::Context;
 use error::diag::Diagnostic;
 use error::msg::Msg;
 

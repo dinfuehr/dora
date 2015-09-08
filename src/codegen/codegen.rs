@@ -3,7 +3,7 @@ use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
 
-use driver::ctxt::Context;
+use parser::ast::ctxt::Context;
 use parser::ast::*;
 use parser::ast::Expr::*;
 use parser::ast::Stmt::*;
@@ -189,7 +189,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 mod tests {
     use parser::ast;
     use parser::Parser;
-    use driver::ctxt::Context;
+    use parser::ast::ctxt::Context;
     use driver::cmd::Args;
     use mem::CodeMemory;
     use semck;
@@ -229,5 +229,10 @@ mod tests {
     fn test_lit_bool() {
         assert_eq!(true, run("fn f() -> bool { return true; }"));
         assert_eq!(false, run("fn f() -> bool { return false; }"));
+    }
+
+    #[test]
+    fn test_ident() {
+        assert_eq!(10i32, run("fn f() -> int { var a = 10; return a; }"));
     }
 }

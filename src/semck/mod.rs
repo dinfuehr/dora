@@ -1,4 +1,4 @@
-use driver::ctxt::Context;
+use parser::ast::ctxt::Context;
 
 mod prelude;
 mod typeck;
@@ -17,7 +17,7 @@ pub fn check(ctxt: &Context) {
 
 #[cfg(test)]
 mod tests {
-    use driver::ctxt::Context;
+    use parser::ast::ctxt::Context;
     use driver::cmd::Args;
     use error::msg::Msg;
     use parser::ast;

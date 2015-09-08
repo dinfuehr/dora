@@ -26,7 +26,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     // points to the definition of variable/function from its usage
     pub defs: RefCell<HashMap<NodeId, NodeId>>,
 
-    pub vars: RefCell<HashMap<NodeId, Vec<i32>>>,
+    pub vars: RefCell<HashMap<NodeId, Variable>>,
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -44,4 +44,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
             vars: RefCell::new(HashMap::new())
         }
     }
+}
+
+pub struct Variable {
+    pub offset: i32,
+    pub data_type: BuiltinType,
 }
