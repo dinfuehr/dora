@@ -118,7 +118,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         });
 
-        let defined_type = if let Some(ref ty) = s.data_type {
+        let defined_type = if let Some(_) = s.data_type {
             let ty = self.ctxt.var(s.id, |var| var.data_type);
             if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
@@ -134,6 +134,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
         };
+
+        // update type of variable, necessary when variable is only initialized with
+        // an expression
+        self.ctxt.var(s.id, |var| { var.data_type = defined_type });
 
         if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();
@@ -381,6 +385,7 @@ mod tests {
 
     #[test]
     fn type_return() {
+        ok("fn f() -> int { var a = 1; return a; }");
         ok("fn f() -> int { return 1; }");
         err("fn f() -> int { return; }", pos(1, 17),
             Msg::ReturnType("int".into(), "()".into()));

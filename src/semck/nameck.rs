@@ -61,6 +61,31 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             ctxt: ctxt
         }
     }
+
+    fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
+        let varinfo = VarInfo {
+            name: var.name,
+            data_type: BuiltinType::Unit,
+            node_id: var.id,
+        };
+
+        // variables are not allowed to replace types, other variables
+        // and functions can be replaced
+        if let Err(sym) = self.ctxt.add_var(varinfo, |sym| !sym.is_type()) {
+            let name = str(self.ctxt, var.name);
+            report(self.ctxt, var.pos, Msg::ShadowType(name));
+        }
+
+        if let Some(ref expr) = var.expr {
+            self.visit_expr(expr);
+        }
+    }
+
+    fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
+        self.ctxt.sym.borrow_mut().push_level();
+        for stmt in &block.stmts { self.visit_stmt(stmt); }
+        self.ctxt.sym.borrow_mut().pop_level();
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
@@ -96,24 +121,8 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref var) => {
-                let varinfo = VarInfo {
-                    name: var.name,
-                    data_type: BuiltinType::Unit,
-                    node_id: var.id,
-                };
-
-                // variables are not allowed to replace types, other variables
-                // and functions can be replaced
-                if let Err(sym) = self.ctxt.add_var(varinfo, |sym| !sym.is_type()) {
-                    let name = str(self.ctxt, var.name);
-                    report(self.ctxt, var.pos, Msg::ShadowType(name));
-                }
-
-                if let Some(ref expr) = var.expr {
-                    self.visit_expr(expr);
-                }
-            }
+            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtBlock(ref stmt) => self.check_stmt_block(stmt),
 
             // no need to handle rest of statements
             _ => visit::walk_stmt(self, s)
@@ -234,5 +243,13 @@ mod tests {
 
         // non-forward definition of functions
         ok("fn a() { b(); }\nfn b() {}");
+    }
+
+    #[test]
+    fn variable_outside_of_scope() {
+        err("fn f() -> int { if true { var a = 1; } return a; }", pos(1, 47),
+            Msg::UnknownIdentifier("a".into()));
+
+        ok("fn f() -> int { var a = 1; if true { var a = 2; } return a; }");
     }
 }
