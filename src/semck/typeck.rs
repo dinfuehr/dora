@@ -60,7 +60,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         self.ctxt.types.borrow_mut().insert(p.id, self.current_type);
 
         self.ctxt.function(self.current_fct.unwrap(), |fct| {
-            fct.params_types.push(self.current_type)
+            fct.params_types.push(self.current_type);
         });
     }
 
@@ -68,7 +68,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let StmtVar(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
-                self.ctxt.types.borrow_mut().insert(var.id, self.current_type);
+                self.ctxt.var(var.id, |var| { var.data_type = self.current_type; });
             }
 
             if let Some(ref expr) = var.expr {
@@ -194,11 +194,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let defs = self.ctxt.defs.borrow();
-        let var_id = *defs.get(&e.id).unwrap();
-
-        let types = self.ctxt.types.borrow();
-        self.expr_type = *types.get(&var_id).unwrap();
+        self.expr_type = self.ctxt.var(e.id, |var| var.data_type);
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {

@@ -24,16 +24,19 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub types: RefCell<HashMap<NodeId, BuiltinType>>,
 
     // points to the definition of variable from its usage
-    pub defs: RefCell<HashMap<NodeId, NodeId>>,
-
-    // maps Function-NodeId to FctInfoId
-    pub nodeid_to_fctinfoid: RefCell<HashMap<NodeId, FctInfoId>>,
+    pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
     // maps function call to FctInfoId
     pub calls: RefCell<HashMap<NodeId, FctInfoId>>,
 
+    // maps variable to VarInfoId
+    pub vars: RefCell<HashMap<NodeId, VarInfoId>>,
+
     // stores all function definitions
     pub fct_infos: RefCell<Vec<FctInfo<'ast>>>,
+
+    // stores all var definitions
+    pub var_infos: RefCell<Vec<VarInfo>>,
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -49,8 +52,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
             types: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
             calls: RefCell::new(HashMap::new()),
-            nodeid_to_fctinfoid: RefCell::new(HashMap::new()),
+            vars: RefCell::new(HashMap::new()),
             fct_infos: RefCell::new(Vec::new()),
+            var_infos: RefCell::new(Vec::new()),
         }
     }
 
@@ -59,23 +63,51 @@ impl<'a, 'ast> Context<'a, 'ast> {
         let fctid = FctInfoId(self.fct_infos.borrow().len());
 
         if let Some(ast) = fct_info.ast {
-            assert!(self.nodeid_to_fctinfoid.borrow_mut().insert(ast.id, fctid).is_none());
+            assert!(self.calls.borrow_mut().insert(ast.id, fctid).is_none());
         }
 
         self.fct_infos.borrow_mut().push(fct_info);
 
+        // TODO: replace insert with entry
         match self.sym.borrow_mut().insert(name, SymFunction(fctid)) {
             Some(sym) => Err(sym),
             None => Ok(fctid),
         }
     }
 
+    pub fn add_var<F>(&self, var_info: VarInfo, replacable: F) ->
+            Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
+        let name = var_info.name;
+        let varid = VarInfoId(self.var_infos.borrow().len());
+
+        // TODO: replace insert with entry
+        let result = match self.sym.borrow_mut().insert(name, SymVar(varid)) {
+            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
+            None => Ok(varid),
+        };
+
+        if result.is_ok() {
+            assert!(self.defs.borrow_mut().insert(var_info.node_id, varid).is_none());
+            self.var_infos.borrow_mut().push(var_info);
+        }
+
+        result
+    }
+
     pub fn function<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
-        let map = self.nodeid_to_fctinfoid.borrow();
+        let map = self.calls.borrow();
         let fctid = *map.get(&id).unwrap();
 
-        let mut fcts = self.fct_infos.borrow_mut();
-        f(&mut fcts[fctid.0])
+        let mut fct_infos = self.fct_infos.borrow_mut();
+        f(&mut fct_infos[fctid.0])
+    }
+
+    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo) -> R {
+        let map = self.vars.borrow();
+        let varid = *map.get(&id).unwrap();
+
+        let mut var_infos = self.var_infos.borrow_mut();
+        f(&mut var_infos[varid.0])
     }
 }
 
@@ -94,8 +126,8 @@ pub struct FctInfo<'ast> {
 pub struct VarInfoId(pub usize);
 
 #[derive(Debug)]
-pub struct VarInfo<'ast> {
+pub struct VarInfo {
     pub name: Name,
     pub data_type: BuiltinType,
-    pub ast: &'ast StmtVarType,
+    pub node_id: NodeId,
 }

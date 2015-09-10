@@ -74,15 +74,17 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
+        let var = VarInfo {
+            name: p.name,
+            data_type: BuiltinType::Unit,
+            node_id: p.id,
+        };
+
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        let entry_type = self.ctxt.sym.borrow().get_entry_type(p.name);
-
-        if entry_type.is_empty() || entry_type.is_function() {
-            self.ctxt.sym.borrow_mut().insert(p.name, SymVar(p.id));
-        } else {
+        if let Err(sym) = self.ctxt.add_var(var, |sym| sym.is_function()) {
             let name = str(self.ctxt, p.name);
-            let msg = if entry_type.is_type() {
+            let msg = if sym.is_type() {
                 Msg::ShadowType(name)
             } else {
                 Msg::ShadowParam(name)
@@ -95,13 +97,17 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
             StmtVar(ref var) => {
-                let entry_type = self.ctxt.sym.borrow().get_entry_type(var.name);
+                let varinfo = VarInfo {
+                    name: var.name,
+                    data_type: BuiltinType::Unit,
+                    node_id: var.id,
+                };
 
-                if entry_type.is_type() {
+                // variables are not allowed to replace types, other variables
+                // and functions can be replaced
+                if let Err(sym) = self.ctxt.add_var(varinfo, |sym| !sym.is_type()) {
                     let name = str(self.ctxt, var.name);
                     report(self.ctxt, var.pos, Msg::ShadowType(name));
-                } else {
-                    self.ctxt.sym.borrow_mut().insert(var.name, SymVar(var.id));
                 }
 
                 if let Some(ref expr) = var.expr {
