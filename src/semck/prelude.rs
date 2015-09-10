@@ -20,15 +20,32 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    // TODO: add println(str) and assert(bool)
-    let name = ctxt.interner.intern("assert");
+    builtin_function("assert", BuiltinType::Bool, BuiltinType::Unit, ctxt);
+    builtin_function("print", BuiltinType::Str, BuiltinType::Unit, ctxt);
+    builtin_function("println", BuiltinType::Str, BuiltinType::Unit, ctxt);
+}
+
+fn builtin_function(name: &str, arg: BuiltinType, ret: BuiltinType, ctxt: &Context) {
+    let name = ctxt.interner.intern(name);
 
     let fct_info = FctInfo {
         name: name,
-        params_types: vec![BuiltinType::Bool],
-        return_type: BuiltinType::Unit,
+        params_types: vec![arg],
+        return_type: ret,
         ast: None,
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());
+}
+
+#[cfg(test)]
+mod tests {
+    use semck::tests::*;
+
+    #[test]
+    fn builtin_functions() {
+        ok("fn f() { assert(true); }");
+        ok("fn f() { print(\"test\"); }");
+        ok("fn f() { println(\"test\"); }");
+    }
 }
