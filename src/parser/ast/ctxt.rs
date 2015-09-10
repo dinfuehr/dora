@@ -59,10 +59,15 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         self.fct_infos.borrow_mut().push(fct_info);
 
-        // TODO: replace insert with entry
-        match self.sym.borrow_mut().insert(name, SymFunction(fctid)) {
+        let mut sym = self.sym.borrow_mut();
+
+        match sym.get(name) {
             Some(sym) => Err(sym),
-            None => Ok(fctid),
+            None => {
+                assert!(sym.insert(name, SymFunction(fctid)).is_none());
+
+                Ok(fctid)
+            }
         }
     }
 
