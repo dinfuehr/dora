@@ -148,7 +148,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
             self.visit_expr(expr);
 
             // TODO: save result into var
-            self.ctxt.vars.borrow().get(&s.id).unwrap().offset;
+            // self.ctxt.vars.borrow().get(&s.id).unwrap().offset;
         }
     }
 

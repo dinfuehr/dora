@@ -6,7 +6,7 @@ mod nameck;
 mod flowck;
 mod returnck;
 
-pub fn check(ctxt: &Context) {
+pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     prelude::init(ctxt);
 
     nameck::check(ctxt, ctxt.ast);

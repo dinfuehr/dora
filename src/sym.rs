@@ -6,7 +6,7 @@ use std::string::ToString;
 use self::Sym::*;
 
 use parser::ast::NodeId;
-
+use parser::ast::ctxt::*;
 use parser::interner::Name;
 
 pub struct SymTable {
@@ -64,7 +64,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_type())
     }
 
-    pub fn get_function(&self, name: Name) -> Option<NodeId> {
+    pub fn get_function(&self, name: Name) -> Option<FctInfoId> {
         self.get(name).and_then(|n| n.to_function())
     }
 
@@ -134,7 +134,7 @@ impl SymEntry {
 #[derive(Debug)]
 pub enum Sym {
     SymType(BuiltinType),
-    SymFunction(NodeId),
+    SymFunction(FctInfoId),
     SymVar(NodeId),
 }
 
@@ -160,7 +160,7 @@ impl Sym {
         }
     }
 
-    pub fn to_function(&self) -> Option<NodeId> {
+    pub fn to_function(&self) -> Option<FctInfoId> {
         match *self {
             SymFunction(id) => Some(id),
             _ => None

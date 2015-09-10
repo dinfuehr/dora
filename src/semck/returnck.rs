@@ -8,7 +8,7 @@ use parser::lexer::position::Position;
 
 use sym::*;
 
-pub fn check(ctxt: &Context, ast: &Ast) {
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     ReturnCheck::new(ctxt).visit_ast(ast);
 }
 
@@ -26,8 +26,7 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let types = self.ctxt.types.borrow();
-        let return_type = *types.get(&f.id).unwrap();
+        let return_type = self.ctxt.function(f.id, |fct| fct.return_type);
 
         if return_type != BuiltinType::Unit {
             if let Err(pos) = returns_value(&f.block) {

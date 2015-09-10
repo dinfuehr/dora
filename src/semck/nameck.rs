@@ -1,4 +1,4 @@
-use parser::ast::ctxt::Context;
+use parser::ast::ctxt::*;
 use error::msg::Msg;
 
 use parser::ast::*;
@@ -12,7 +12,7 @@ use parser::lexer::position::Position;
 use sym::Sym::*;
 use sym::BuiltinType;
 
-pub fn check(ctxt: &Context, ast: &Ast) {
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     GlobalDef::new(ctxt).visit_ast(ast);
     NameCheck::new(ctxt).visit_ast(ast);
 }
@@ -31,13 +31,16 @@ impl<'a, 'ast> GlobalDef<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let entry_type = self.ctxt.sym.borrow().get_entry_type(f.name);
+        let fct = FctInfo {
+            name: f.name,
+            params_types: Vec::new(),
+            return_type: BuiltinType::Unit,
+            ast: Some(f),
+        };
 
-        if entry_type.is_empty() {
-            self.ctxt.sym.borrow_mut().insert(f.name, SymFunction(f.id));
-        } else {
+        if let Err(sym) = self.ctxt.add_function(fct) {
             let name = self.ctxt.interner.str(f.name).to_string();
-            let msg = if entry_type.is_type() {
+            let msg = if sym.is_type() {
                 Msg::ShadowType(name)
             } else {
                 Msg::ShadowFunction(name)
@@ -124,7 +127,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.ctxt.defs.borrow_mut().insert(call.id, id);
+                    self.ctxt.calls.borrow_mut().insert(call.id, id);
                 } else {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));

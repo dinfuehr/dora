@@ -5,7 +5,7 @@ use parser::ast::*;
 use parser::ast::Stmt::*;
 use parser::ast::visit::*;
 
-pub fn check(ctxt: &Context, ast: &Ast) {
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     FlowCheck::new(ctxt).visit_ast(ast);
 }
 

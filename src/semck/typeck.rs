@@ -10,7 +10,7 @@ use parser::ast::visit::Visitor;
 use sym::*;
 use sym::Sym::*;
 
-pub fn check(ctxt: &Context, ast: &Ast) {
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     DefCheck::new(ctxt).visit_ast(ast);
 
     if ctxt.diag.borrow().has_errors() { return; }
@@ -20,48 +20,72 @@ pub fn check(ctxt: &Context, ast: &Ast) {
 
 struct DefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
+    current_fct: Option<NodeId>,
     current_id: Option<NodeId>,
+    current_type: BuiltinType,
 }
 
 impl<'a, 'ast> DefCheck<'a, 'ast> {
     fn new(ctxt: &'a Context<'a, 'ast>) -> DefCheck<'a, 'ast> {
         DefCheck {
             ctxt: ctxt,
-            current_id: None
+            current_fct: None,
+            current_id: None,
+            current_type: BuiltinType::Unit,
         }
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        self.current_id = Some(f.id);
+        self.current_fct = Some(f.id);
 
-        visit::walk_fct(self, f);
+        for p in &f.params {
+            self.visit_param(p);
+        }
 
-        // if no type for function found, then function returns ()
-        self.ctxt.types.borrow_mut().entry(f.id).or_insert(BuiltinType::Unit);
+        if let Some(ref ty) = f.return_type {
+            self.visit_type(ty);
+
+            self.ctxt.function(self.current_fct.unwrap(), |fct| {
+                fct.return_type = self.current_type;
+            });
+        }
+
+        self.visit_stmt(&f.block);
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
-        self.current_id = Some(p.id);
+        self.visit_type(&p.data_type);
+        self.ctxt.types.borrow_mut().insert(p.id, self.current_type);
 
-        visit::walk_param(self, p);
+        self.ctxt.function(self.current_fct.unwrap(), |fct| {
+            fct.params_types.push(self.current_type)
+        });
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            self.current_id = Some(var.id)
-        }
+            if let Some(ref data_type) = var.data_type {
+                self.visit_type(data_type);
+                self.ctxt.types.borrow_mut().insert(var.id, self.current_type);
+            }
 
-        visit::walk_stmt(self, s);
+            if let Some(ref expr) = var.expr {
+                visit::walk_expr(self, expr);
+            }
+
+        } else {
+            visit::walk_stmt(self, s);
+        }
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
         match *t {
             TypeBasic(ref basic) => {
                 if let Some(builtin) = self.ctxt.sym.borrow().get_type(basic.name) {
-                    let id = self.current_id.unwrap();
-                    self.ctxt.types.borrow_mut().insert(id, builtin);
+
+                    self.current_type = builtin;
                 } else {
                     let tyname = self.ctxt.interner.str(basic.name).to_string();
                     let msg = Msg::UnknownType(tyname);
@@ -102,16 +126,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             expr_type
         };
 
-        if defined_type.is_none() {
-            let tyname = self.ctxt.interner.str(s.name).to_string();
-            self.ctxt.diag.borrow_mut().report(s.pos, Msg::VarNeedsTypeInfo(tyname));
+        let defined_type = match defined_type {
+            Some(ty) => ty,
+            None => {
+                let tyname = self.ctxt.interner.str(s.name).to_string();
+                self.ctxt.diag.borrow_mut().report(s.pos, Msg::VarNeedsTypeInfo(tyname));
 
-            return;
-        }
+                return;
+            }
+        };
 
-        if expr_type.is_some() && (defined_type.unwrap() != expr_type.unwrap()) {
+        self.ctxt.types.borrow_mut().insert(s.id, defined_type);
+
+        if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();
-            let defined_type = defined_type.unwrap();
             let expr_type = expr_type.unwrap();
             let msg = Msg::AssignType(varname, defined_type, expr_type);
 
@@ -157,9 +185,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }).unwrap_or(BuiltinType::Unit);
 
         let fct = self.fct.unwrap();
-        let types = self.ctxt.types.borrow();
-
-        let fct_type = *types.get(&fct.id).unwrap();
+        let fct_type = self.ctxt.function(fct.id, |fct| fct.return_type);
 
         if expr_type != fct_type {
             let msg = Msg::ReturnType(fct_type.to_string(), expr_type.to_string());
@@ -238,19 +264,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        let defs = self.ctxt.defs.borrow();
-        let fct_id = *defs.get(&e.id).unwrap();
+        let calls = self.ctxt.calls.borrow();
+        let fct_id = *calls.get(&e.id).unwrap();
 
-        let types = self.ctxt.types.borrow();
-        self.expr_type = *types.get(&fct_id).unwrap();
-
-        let fct = self.ctxt.map.entry(fct_id).to_fct().unwrap();
-        let mut fct_types = Vec::with_capacity(fct.params.len());
-
-        for param in &fct.params {
-            let ty = *types.get(&param.id).unwrap();
-            fct_types.push(ty);
-        }
+        let fct_infos = self.ctxt.fct_infos.borrow();
+        let fct = &fct_infos[fct_id.0];
+        self.expr_type = fct.return_type;
 
         let mut call_types = Vec::with_capacity(e.args.len());
 
@@ -259,9 +278,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             call_types.push(self.expr_type);
         }
 
-        if fct_types != call_types {
+        if fct.params_types != call_types {
             let fct_name = self.ctxt.interner.str(fct.name).to_string();
-            let msg = Msg::ParamTypesIncompatible(fct_name, fct_types, call_types);
+            let msg = Msg::ParamTypesIncompatible(fct_name, fct.params_types.clone(), call_types);
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
     }
