@@ -71,13 +71,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
 
-        let result = {
-            let sym = self.sym.borrow();
-
-            match sym.get(name) {
-                Some(sym) => if replacable(sym) { Ok(varid) } else { Err(sym.clone()) },
-                None => Ok(varid)
-            }
+        let result = match self.sym.borrow().get(name) {
+            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
+            None => Ok(varid)
         };
 
         if result.is_ok() {

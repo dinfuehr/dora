@@ -31,10 +31,10 @@ impl SymTable {
         self.levels.pop();
     }
 
-    pub fn get(&self, name: Name) -> Option<&Sym> {
+    pub fn get(&self, name: Name) -> Option<Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {
-                return Some(val);
+                return Some(val.clone());
             }
         }
 
