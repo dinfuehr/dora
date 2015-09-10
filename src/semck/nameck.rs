@@ -247,9 +247,9 @@ mod tests {
 
     #[test]
     fn variable_outside_of_scope() {
-        err("fn f() -> int { if true { var a = 1; } return a; }", pos(1, 47),
+        err("fn f() -> int { { var a = 1; } return a; }", pos(1, 39),
             Msg::UnknownIdentifier("a".into()));
 
-        ok("fn f() -> int { var a = 1; if true { var a = 2; } return a; }");
+        ok("fn f() -> int { var a = 1; { var a = 2; } return a; }");
     }
 }
