@@ -9,6 +9,7 @@ use parser::ast::NodeId;
 use parser::ast::ctxt::*;
 use parser::interner::Name;
 
+#[derive(Debug)]
 pub struct SymTable {
     levels: Vec<SymLevel>
 }
@@ -30,10 +31,6 @@ impl SymTable {
         self.levels.pop();
     }
 
-    pub fn get_last(&self, name: Name) -> Option<&Sym> {
-        self.levels.last().unwrap().get(name)
-    }
-
     pub fn get(&self, name: Name) -> Option<&Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {
@@ -42,18 +39,6 @@ impl SymTable {
         }
 
         None
-    }
-
-    pub fn get_entry_type(&self, name: Name) -> SymEntry {
-        if let Some(sym) = self.get(name) {
-            match *sym {
-                SymType(_) => SymEntry::Type,
-                SymFunction(_) => SymEntry::Function,
-                SymVar(_) => SymEntry::Var
-            }
-        } else {
-            SymEntry::Empty
-        }
     }
 
     pub fn get_var(&self, name: Name) -> Option<VarInfoId> {
@@ -131,7 +116,7 @@ impl SymEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Sym {
     SymType(BuiltinType),
     SymFunction(FctInfoId),

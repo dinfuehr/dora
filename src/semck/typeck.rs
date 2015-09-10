@@ -57,7 +57,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
 
     fn visit_param(&mut self, p: &'ast Param) {
         self.visit_type(&p.data_type);
-        self.ctxt.types.borrow_mut().insert(p.id, self.current_type);
+        self.ctxt.var(p.id, |var| { var.data_type = self.current_type; });
 
         self.ctxt.function(self.current_fct.unwrap(), |fct| {
             fct.params_types.push(self.current_type);
@@ -84,7 +84,6 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         match *t {
             TypeBasic(ref basic) => {
                 if let Some(builtin) = self.ctxt.sym.borrow().get_type(basic.name) {
-
                     self.current_type = builtin;
                 } else {
                     let tyname = self.ctxt.interner.str(basic.name).to_string();
@@ -116,12 +115,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let expr_type = s.expr.as_ref().map(|expr| {
             self.visit_expr(&expr);
-
             self.expr_type
         });
 
         let defined_type = if let Some(ref ty) = s.data_type {
-            self.ctxt.types.borrow().get(&s.id).map(|bt| *bt)
+            let ty = self.ctxt.var(s.id, |var| var.data_type);
+            if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
             expr_type
         };
@@ -135,8 +134,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
         };
-
-        self.ctxt.types.borrow_mut().insert(s.id, defined_type);
 
         if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();

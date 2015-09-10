@@ -6,11 +6,21 @@ mod nameck;
 mod flowck;
 mod returnck;
 
+macro_rules! return_on_error {
+    ($ctxt: ident) => {{
+        if $ctxt.diag.borrow().has_errors() { return; }
+    }};
+}
+
 pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     prelude::init(ctxt);
 
     nameck::check(ctxt, ctxt.ast);
+    return_on_error!(ctxt);
+
     typeck::check(ctxt, ctxt.ast);
+    return_on_error!(ctxt);
+
     flowck::check(ctxt, ctxt.ast);
     returnck::check(ctxt, ctxt.ast);
 }

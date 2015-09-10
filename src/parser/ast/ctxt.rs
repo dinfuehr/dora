@@ -19,18 +19,11 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
 
-    // saves type of element
-    // used for functions, params and variables
-    pub types: RefCell<HashMap<NodeId, BuiltinType>>,
-
     // points to the definition of variable from its usage
     pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
     // maps function call to FctInfoId
     pub calls: RefCell<HashMap<NodeId, FctInfoId>>,
-
-    // maps variable to VarInfoId
-    pub vars: RefCell<HashMap<NodeId, VarInfoId>>,
 
     // stores all function definitions
     pub fct_infos: RefCell<Vec<FctInfo<'ast>>>,
@@ -49,10 +42,8 @@ impl<'a, 'ast> Context<'a, 'ast> {
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
-            types: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
             calls: RefCell::new(HashMap::new()),
-            vars: RefCell::new(HashMap::new()),
             fct_infos: RefCell::new(Vec::new()),
             var_infos: RefCell::new(Vec::new()),
         }
@@ -80,13 +71,17 @@ impl<'a, 'ast> Context<'a, 'ast> {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
 
-        // TODO: replace insert with entry
-        let result = match self.sym.borrow_mut().insert(name, SymVar(varid)) {
-            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
-            None => Ok(varid),
+        let result = {
+            let sym = self.sym.borrow();
+
+            match sym.get(name) {
+                Some(sym) => if replacable(sym) { Ok(varid) } else { Err(sym.clone()) },
+                None => Ok(varid)
+            }
         };
 
         if result.is_ok() {
+            self.sym.borrow_mut().insert(name, SymVar(varid));
             assert!(self.defs.borrow_mut().insert(var_info.node_id, varid).is_none());
             self.var_infos.borrow_mut().push(var_info);
         }
@@ -103,8 +98,8 @@ impl<'a, 'ast> Context<'a, 'ast> {
     }
 
     pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo) -> R {
-        let map = self.vars.borrow();
-        let varid = *map.get(&id).unwrap();
+        let defs = self.defs.borrow();
+        let varid = *defs.get(&id).unwrap();
 
         let mut var_infos = self.var_infos.borrow_mut();
         f(&mut var_infos[varid.0])
