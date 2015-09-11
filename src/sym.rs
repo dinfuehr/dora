@@ -175,6 +175,17 @@ pub enum BuiltinType {
     Str,
 }
 
+impl BuiltinType {
+    fn size(&self) -> u32 {
+        match *self {
+            BuiltinType::Unit => 0,
+            BuiltinType::Bool => 1,
+            BuiltinType::Int => 4,
+            BuiltinType::Str => 8,
+        }
+    }
+}
+
 impl ToString for BuiltinType {
     fn to_string(&self) -> String {
         let name = match *self {
@@ -185,5 +196,18 @@ impl ToString for BuiltinType {
         };
 
         name.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn type_size() {
+        assert_eq!(0, BuiltinType::Unit.size());
+        assert_eq!(1, BuiltinType::Bool.size());
+        assert_eq!(4, BuiltinType::Int.size());
+        assert_eq!(8, BuiltinType::Str.size());
     }
 }
