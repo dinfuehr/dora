@@ -4,40 +4,37 @@ use parser::ast::*;
 use parser::ast::Expr::*;
 use parser::ast::visit::*;
 
-pub fn generate<'a>(ctxt: &Context<'a, 'a>) {
-    CodeGenInfo::new(ctxt).visit_ast(ctxt.ast);
+pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct: &'ast Function) {
+    CodeGenInfo::new(ctxt, fct).generate();
 }
 
 struct CodeGenInfo<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    current_fct: Option<NodeId>,
+    fct: &'ast Function,
 }
 
 impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> CodeGenInfo<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> CodeGenInfo<'a, 'ast> {
         CodeGenInfo {
             ctxt: ctxt,
-            current_fct: None,
+            fct: fct,
         }
     }
-}
 
-impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
-        self.current_fct = Some(f.id);
-
-        self.ctxt.function(f.id, |fct| {
+    fn generate(&mut self) {
+        self.ctxt.function(self.fct.id, |fct| {
             fct.stacksize = 0;
             fct.contains_fct_invocation = false;
         });
 
-        visit::walk_stmt(self, &f.block);
+        self.visit_stmt(&self.fct.block);
     }
+}
 
+impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         if let ExprCall(_) = *e {
-            println!("update me");
-            self.ctxt.function(self.current_fct.unwrap(), |fct| {
+            self.ctxt.function(self.fct.id, |fct| {
                 fct.contains_fct_invocation = true;
             });
         }
@@ -57,7 +54,8 @@ mod tests {
     use parser::Parser;
     use semck;
 
-    pub fn parse<F>(code: &'static str, f: F) where F: FnOnce(&Context) -> () {
+    pub fn parse<F>(code: &'static str, f: F)
+            where F: for<'a, 'ast> FnOnce(&Context<'a, 'ast>) -> () {
         let mut parser = Parser::from_str(code);
         let (ast, interner) = parser.parse().unwrap();
         let map = ast::map::build(&ast, &interner);
@@ -70,19 +68,18 @@ mod tests {
         semck::check(&ctxt);
         assert!(!ctxt.diag.borrow().has_errors());
 
-        generate(&ctxt);
-
         f(&ctxt);
     }
 
     #[test]
     fn test_invocation_flag() {
         parse("fn f() { g(); } fn g() { }", |ctxt| {
-            let fct1 = ctxt.ast.elements[0].to_function().unwrap();
-            let fct2 = ctxt.ast.elements[1].to_function().unwrap();
+            generate(ctxt, ctxt.ast.elements[0].to_function().unwrap());
+            // assert_eq!(true, ctxt.function(fct1.id, |fct| fct.contains_fct_invocation));
 
-            assert_eq!(true, ctxt.function(fct1.id, |fct| fct.contains_fct_invocation));
-            assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
+            // let fct2 = ctxt.ast.elements[1].to_function().unwrap();
+            // generate(ctxt, fct2);
+            // assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
         });
     }
 }
