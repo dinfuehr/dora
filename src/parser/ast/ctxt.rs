@@ -117,6 +117,7 @@ pub struct FctInfo<'ast> {
     pub return_type: BuiltinType,
     pub ast: Option<&'ast Function>,
     pub stacksize: u32,
+    pub contains_fct_invocation: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

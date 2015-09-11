@@ -37,6 +37,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             return_type: BuiltinType::Unit,
             ast: Some(f),
             stacksize: 0,
+            contains_fct_invocation: false,
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {

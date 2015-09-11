@@ -34,6 +34,7 @@ fn builtin_function(name: &str, arg: BuiltinType, ret: BuiltinType, ctxt: &Conte
         return_type: ret,
         ast: None,
         stacksize: 0,
+        contains_fct_invocation: false,
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());
