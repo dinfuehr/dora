@@ -4,7 +4,7 @@ use parser::ast::*;
 use parser::ast::Expr::*;
 use parser::ast::visit::*;
 
-pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct: &'ast Function) {
+pub fn generate<'a, 'ast>(ctxt: &'ast Context<'a, 'ast>, fct: &'ast Function) {
     CodeGenInfo::new(ctxt, fct).generate();
 }
 
@@ -55,7 +55,7 @@ mod tests {
     use semck;
 
     pub fn parse<F>(code: &'static str, f: F)
-            where F: for<'a, 'ast> FnOnce(&Context<'a, 'ast>) -> () {
+            where F: for<'a, 'ast> FnOnce(&'ast Context<'a, 'ast>) -> () {
         let mut parser = Parser::from_str(code);
         let (ast, interner) = parser.parse().unwrap();
         let map = ast::map::build(&ast, &interner);
@@ -74,12 +74,13 @@ mod tests {
     #[test]
     fn test_invocation_flag() {
         parse("fn f() { g(); } fn g() { }", |ctxt| {
-            generate(ctxt, ctxt.ast.elements[0].to_function().unwrap());
-            // assert_eq!(true, ctxt.function(fct1.id, |fct| fct.contains_fct_invocation));
+            let fct1 = ctxt.ast.elements[0].to_function().unwrap();
+            generate(ctxt, fct1);
+            assert_eq!(true, ctxt.function(fct1.id, |fct| fct.contains_fct_invocation));
 
-            // let fct2 = ctxt.ast.elements[1].to_function().unwrap();
-            // generate(ctxt, fct2);
-            // assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
+            let fct2 = ctxt.ast.elements[1].to_function().unwrap();
+            generate(ctxt, fct2);
+            assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
         });
     }
 }
