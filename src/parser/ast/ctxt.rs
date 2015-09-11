@@ -116,6 +116,7 @@ pub struct FctInfo<'ast> {
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ast: Option<&'ast Function>,
+    pub stacksize: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -126,4 +127,5 @@ pub struct VarInfo {
     pub name: Name,
     pub data_type: BuiltinType,
     pub node_id: NodeId,
+    pub offset: u32,
 }

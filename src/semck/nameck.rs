@@ -36,6 +36,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             ast: Some(f),
+            stacksize: 0,
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {
@@ -67,6 +68,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             name: var.name,
             data_type: BuiltinType::Unit,
             node_id: var.id,
+            offset: 0
         };
 
         // variables are not allowed to replace types, other variables
@@ -103,6 +105,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             name: p.name,
             data_type: BuiltinType::Unit,
             node_id: p.id,
+            offset: 0,
         };
 
         // params are only allowed to replace functions,

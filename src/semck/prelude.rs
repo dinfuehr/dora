@@ -33,6 +33,7 @@ fn builtin_function(name: &str, arg: BuiltinType, ret: BuiltinType, ctxt: &Conte
         params_types: vec![arg],
         return_type: ret,
         ast: None,
+        stacksize: 0,
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());
