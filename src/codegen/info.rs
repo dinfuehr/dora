@@ -1,6 +1,8 @@
+use mem;
 use parser::ast::ctxt::Context;
 
 use parser::ast::*;
+use parser::ast::Stmt::*;
 use parser::ast::Expr::*;
 use parser::ast::visit::*;
 
@@ -11,6 +13,9 @@ pub fn generate<'a, 'ast>(ctxt: &'ast Context<'a, 'ast>, fct: &'ast Function) {
 struct CodeGenInfo<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
+
+    stacksize: u32,
+    contains_fct_invocation: bool,
 }
 
 impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
@@ -18,25 +23,36 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
         CodeGenInfo {
             ctxt: ctxt,
             fct: fct,
+
+            stacksize: 0,
+            contains_fct_invocation: false,
         }
     }
 
     fn generate(&mut self) {
-        self.ctxt.function(self.fct.id, |fct| {
-            fct.stacksize = 0;
-            fct.contains_fct_invocation = false;
-        });
-
         self.visit_stmt(&self.fct.block);
+
+        self.ctxt.function(self.fct.id, |fct| {
+            fct.stacksize = self.stacksize;
+            fct.contains_fct_invocation = self.contains_fct_invocation;
+        });
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
+    fn visit_stmt(&mut self, s: &'ast Stmt) {
+        if let StmtVar(ref var) = *s {
+            let ty = self.ctxt.var(var.id, |v| v.data_type);
+            self.stacksize = mem::align(self.stacksize + ty.size(), ty.size());
+            self.ctxt.var(var.id, |v| { v.offset = self.stacksize; });
+        }
+
+        visit::walk_stmt(self, s);
+    }
+
     fn visit_expr(&mut self, e: &'ast Expr) {
         if let ExprCall(_) = *e {
-            self.ctxt.function(self.fct.id, |fct| {
-                fct.contains_fct_invocation = true;
-            });
+            self.contains_fct_invocation = true;
         }
 
         visit::walk_expr(self, e);
@@ -81,6 +97,15 @@ mod tests {
             let fct2 = ctxt.ast.elements[1].to_function().unwrap();
             generate(ctxt, fct2);
             assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
+        });
+    }
+
+    #[test]
+    fn test_var_offset() {
+        parse("fn f() { var a = true; var b = false; var c = 2; }", |ctxt| {
+            let fct = ctxt.ast.elements[0].to_function().unwrap();
+            generate(ctxt, fct);
+            assert_eq!(8, ctxt.function(fct.id, |fct| fct.stacksize));
         });
     }
 }
