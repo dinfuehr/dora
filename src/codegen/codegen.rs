@@ -1,7 +1,9 @@
 use codegen::buffer::*;
+use codegen::info;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
+
 
 use parser::ast::ctxt::Context;
 use parser::ast::*;
@@ -18,7 +20,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     lbl_continue: Option<Label>,
 }
 
-impl<'a, 'ast> CodeGen<'a, 'ast> {
+impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn new(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> CodeGen<'a, 'ast> {
         CodeGen {
             ctxt: ctxt,
@@ -66,17 +68,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
         emit_testl_reg_reg(&mut self.buf, RAX, RAX);
         emit_jz(&mut self.buf, lbl_end);
 
-        let old_lbl_break = self.lbl_break;
-        let old_lbl_continue = self.lbl_continue;
-        self.lbl_break = Some(lbl_end);
-        self.lbl_continue = Some(lbl_start);
-
-        // execute while body, then jump back to condition
-        self.visit_stmt(&s.block);
-        emit_jmp(&mut self.buf, lbl_start);
-
-        self.lbl_break = old_lbl_break;
-        self.lbl_continue = old_lbl_continue;
+        self.save_label_state(lbl_end, lbl_start, |this| {
+            // execute while body, then jump back to condition
+            this.visit_stmt(&s.block);
+            emit_jmp(&mut this.buf, lbl_start);
+        });
 
         self.buf.define_label(lbl_end);
     }
@@ -86,19 +82,27 @@ impl<'a, 'ast> CodeGen<'a, 'ast> {
         let lbl_end = self.buf.create_label();
         self.buf.define_label(lbl_start);
 
-        let old_lbl_break = self.lbl_break;
-        let old_lbl_continue = self.lbl_continue;
-        self.lbl_break = Some(lbl_end);
-        self.lbl_continue = Some(lbl_start);
-
-        self.visit_stmt(&s.block);
-
-        self.lbl_break = old_lbl_break;
-        self.lbl_continue = old_lbl_continue;
+        self.save_label_state(lbl_end, lbl_start, |this| {
+            this.visit_stmt(&s.block);
+        });
 
         self.buf.define_label(lbl_end);
 
         emit_jmp(&mut self.buf, lbl_start);
+    }
+
+    fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
+            where F: FnOnce(&mut CodeGen<'a, 'ast>) {
+        let old_lbl_break = self.lbl_break;
+        let old_lbl_continue = self.lbl_continue;
+
+        self.lbl_break = Some(lbl_break);
+        self.lbl_continue = Some(lbl_continue);
+
+        f(self);
+
+        self.lbl_break = old_lbl_break;
+        self.lbl_continue = old_lbl_continue;
     }
 
     fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
