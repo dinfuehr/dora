@@ -107,11 +107,11 @@ mod tests {
             generate(ctxt, fct);
             assert_eq!(16, ctxt.function(fct.id, |fct| fct.stacksize));
 
-            let vars = ctxt.function(fct.id, |fct| fct.vars.clone());
-
-            for (varid, offset) in vars.iter().zip(&[-1, -2, -8, -16]) {
-                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
-            }
+            ctxt.function(fct.id, |fct| {
+                for (varid, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                }
+            });
         });
     }
 }
