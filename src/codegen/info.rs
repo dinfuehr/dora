@@ -44,7 +44,7 @@ impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
         if let StmtVar(ref var) = *s {
             let ty = self.ctxt.var(var.id, |v| v.data_type);
             self.stacksize = mem::align(self.stacksize + ty.size(), ty.size());
-            self.ctxt.var(var.id, |v| { v.offset = self.stacksize; });
+            self.ctxt.var(var.id, |v| { v.offset = -(self.stacksize as i32); });
         }
 
         visit::walk_stmt(self, s);
@@ -106,6 +106,12 @@ mod tests {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
             generate(ctxt, fct);
             assert_eq!(8, ctxt.function(fct.id, |fct| fct.stacksize));
+
+            let vars = ctxt.function(fct.id, |fct| fct.vars.clone());
+
+            for (varid, offset) in vars.iter().zip(&[-1, -2, -8]) {
+                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+            }
         });
     }
 }

@@ -36,6 +36,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             ast: Some(f),
+            vars: Vec::new(),
             stacksize: 0,
             contains_fct_invocation: false,
         };
@@ -54,13 +55,15 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
 }
 
 struct NameCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>
+    ctxt: &'a Context<'a, 'ast>,
+    fct: Option<NodeId>,
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn new(ctxt: &'a Context<'a, 'ast>) -> NameCheck<'a, 'ast> {
         NameCheck {
-            ctxt: ctxt
+            ctxt: ctxt,
+            fct: None,
         }
     }
 
@@ -74,7 +77,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(sym) = self.ctxt.add_var(varinfo, |sym| !sym.is_type()) {
+        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), varinfo, |sym| !sym.is_type()) {
             let name = str(self.ctxt, var.name);
             report(self.ctxt, var.pos, Msg::ShadowType(name));
         }
@@ -93,6 +96,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
+        self.fct = Some(f.id);
         self.ctxt.sym.borrow_mut().push_level();
 
         for p in &f.params { self.visit_param(p); }
@@ -111,7 +115,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        if let Err(sym) = self.ctxt.add_var(var, |sym| sym.is_function()) {
+        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), var, |sym| sym.is_function()) {
             let name = str(self.ctxt, p.name);
             let msg = if sym.is_type() {
                 Msg::ShadowType(name)

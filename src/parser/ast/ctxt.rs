@@ -71,10 +71,11 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_var<F>(&self, var_info: VarInfo, replacable: F) ->
+    pub fn add_var<F>(&self, fct: NodeId, var_info: VarInfo, replacable: F) ->
             Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
+        self.function(fct, |fct| { fct.vars.push(varid); });
 
         let result = match self.sym.borrow().get(name) {
             Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
@@ -116,6 +117,7 @@ pub struct FctInfo<'ast> {
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ast: Option<&'ast Function>,
+    pub vars: Vec<VarInfoId>,
     pub stacksize: u32,
     pub contains_fct_invocation: bool,
 }
@@ -128,5 +130,5 @@ pub struct VarInfo {
     pub name: Name,
     pub data_type: BuiltinType,
     pub node_id: NodeId,
-    pub offset: u32,
+    pub offset: i32,
 }

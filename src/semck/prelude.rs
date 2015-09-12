@@ -33,6 +33,7 @@ fn builtin_function(name: &str, arg: BuiltinType, ret: BuiltinType, ctxt: &Conte
         params_types: vec![arg],
         return_type: ret,
         ast: None,
+        vars: Vec::new(),
         stacksize: 0,
         contains_fct_invocation: false,
     };
