@@ -204,9 +204,9 @@ pub struct Function {
 #[derive(Debug)]
 pub struct Param {
     pub id: NodeId,
+    pub idx: u32,
     pub name: Name,
     pub pos: Position,
-
     pub data_type: Type,
 }
 

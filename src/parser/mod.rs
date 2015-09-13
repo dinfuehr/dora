@@ -34,6 +34,7 @@ pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
     interner: Interner,
+    param_idx: u32,
 
     next_id: NodeId,
 }
@@ -63,6 +64,7 @@ impl<T: CodeReader> Parser<T> {
             lexer: lexer,
             token: token,
             interner: Interner::new(),
+            param_idx: 0,
             next_id: NodeId(1),
         };
 
@@ -133,8 +135,11 @@ impl<T: CodeReader> Parser<T> {
 
     fn parse_function_params(&mut self) -> Result<Vec<Param>,ParseError> {
         try!(self.expect_token(TokenType::LParen));
+        self.param_idx = 0;
 
         let params = try!(self.parse_comma_list(TokenType::RParen, |p| {
+            p.param_idx += 1;
+
             p.parse_function_param()
         }));
 
@@ -176,6 +181,7 @@ impl<T: CodeReader> Parser<T> {
 
         Ok(Param {
             id: self.generate_id(),
+            idx: self.param_idx - 1,
             name: name,
             pos: pos,
             data_type: data_type,
