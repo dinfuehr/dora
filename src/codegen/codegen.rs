@@ -17,6 +17,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     fct: &'ast Function,
     buf: Buffer,
 
+    stacksize: u32,
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 }
@@ -28,6 +29,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             fct: fct,
             buf: Buffer::new(),
 
+            stacksize: ctxt.function(fct.id, |fct| fct.stacksize),
             lbl_break: None,
             lbl_continue: None
         }
@@ -46,9 +48,17 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_prolog(&mut self) {
         emit_pushq_reg(&mut self.buf, Reg::RBP);
         emit_movq_reg_reg(&mut self.buf, Reg::RSP, Reg::RBP);
+
+        if self.stacksize > 0 {
+            emit_subq_imm_reg(&mut self.buf, self.stacksize as i32, RSP);
+        }
     }
 
     fn emit_epilog(&mut self) {
+        if self.stacksize > 0 {
+            emit_addq_imm_reg(&mut self.buf, self.stacksize as i32, RSP);
+        }
+
         emit_popq_reg(&mut self.buf, Reg::RBP);
         emit_retq(&mut self.buf);
     }

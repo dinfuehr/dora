@@ -62,18 +62,26 @@ fn emit_membase(buf: &mut Buffer, base: Reg, disp: i32, dest: Reg) {
 }
 
 pub fn emit_subq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
+    emit_alu_imm_reg(buf, imm, reg, 0x2d, 0b101);
+}
+
+pub fn emit_addq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
+    emit_alu_imm_reg(buf, imm, reg, 0x05, 0);
+}
+
+fn emit_alu_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
     emit_rex(buf, 1, 0, 0, reg.msb());
 
     if fits_i8(imm) {
         emit_op(buf, 0x83);
-        emit_modrm(buf, 0b11, 0b101, reg.and7());
+        emit_modrm(buf, 0b11, modrm_reg, reg.and7());
         emit_u8(buf, imm as u8);
     } else if reg == RAX {
-        emit_op(buf, 0x2d);
+        emit_op(buf, rax_opcode);
         emit_u32(buf, imm as u32);
     } else {
         emit_op(buf, 0x81);
-        emit_modrm(buf, 0b11, 0b101, reg.and7());
+        emit_modrm(buf, 0b11, modrm_reg, reg.and7());
         emit_u32(buf, imm as u32);
     }
 }
@@ -253,6 +261,15 @@ mod tests {
         assert_emit!(0x48, 0x2d, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RAX));
         assert_emit!(0x48, 0x81, 0xe9, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, RCX));
         assert_emit!(0x49, 0x81, 0xef, 0x11, 0x22, 0, 0; emit_subq_imm_reg(0x2211, R15));
+    }
+
+    #[test]
+    fn test_emit_addq_imm_reg() {
+        assert_emit!(0x48, 0x83, 0xc0, 0x11; emit_addq_imm_reg(0x11, RAX));
+        assert_emit!(0x49, 0x83, 0xc7, 0x11; emit_addq_imm_reg(0x11, R15));
+        assert_emit!(0x48, 0x05, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, RAX));
+        assert_emit!(0x48, 0x81, 0xc1, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, RCX));
+        assert_emit!(0x49, 0x81, 0xc7, 0x11, 0x22, 0, 0; emit_addq_imm_reg(0x2211, R15));
     }
 
     #[test]
