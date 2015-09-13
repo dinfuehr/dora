@@ -37,6 +37,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.emit_prolog();
         self.visit_fct(self.fct);
         self.emit_epilog();
+
+        self.buf
     }
 
     fn emit_prolog(&mut self) {
