@@ -127,8 +127,9 @@ pub struct MapVisitor<'a, 'ast> where 'ast: 'a {
     map: &'a mut Map<'ast>
 }
 
-impl<'a, 'b> MapVisitor<'a, 'b>{
-    fn use_parent<F>(&mut self, new_id: NodeId, fct: F) where F: FnOnce(&mut MapVisitor<'a, 'b>) -> () {
+impl<'a, 'ast> MapVisitor<'a, 'ast>{
+    fn use_parent<F>(&mut self, new_id: NodeId, fct: F)
+            where F: FnOnce(&mut MapVisitor<'a, 'ast>) -> () {
         let old = self.parent_id;
         self.parent_id = new_id;
 

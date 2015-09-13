@@ -34,6 +34,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     pub fn generate(mut self) -> Buffer {
+        info::generate(self.ctxt, self.fct);
+
         self.emit_prolog();
         self.visit_fct(self.fct);
         self.emit_epilog();

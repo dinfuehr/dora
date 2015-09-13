@@ -6,7 +6,7 @@ use parser::ast::Stmt::*;
 use parser::ast::Expr::*;
 use parser::ast::visit::*;
 
-pub fn generate<'a, 'ast>(ctxt: &'ast Context<'a, 'ast>, fct: &'ast Function) {
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) {
     CodeGenInfo::new(ctxt, fct).generate();
 }
 

@@ -15,7 +15,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
     pub interner: &'a Interner,
     pub map: &'a Map<'ast>,
-    pub ast: &'a Ast,
+    pub ast: &'ast Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
 
@@ -34,7 +34,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
 
 impl<'a, 'ast> Context<'a, 'ast> {
     pub fn new(args: &'a Args, interner: &'a Interner,
-           map: &'a Map<'ast>, ast: &'a Ast) -> Context<'a, 'ast> {
+           map: &'a Map<'ast>, ast: &'ast Ast) -> Context<'a, 'ast> {
         Context {
             args: args,
             interner: interner,
