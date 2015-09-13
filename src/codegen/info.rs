@@ -40,8 +40,8 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
 
     fn increase_stack(&mut self, id: NodeId) {
         self.ctxt.var(id, |v| {
-            let ty = v.data_type;
-            self.stacksize = mem::align(self.stacksize + ty.size(), ty.size());
+            let ty_size = v.data_type.size();
+            self.stacksize = mem::align(self.stacksize + ty_size, ty_size);
             v.offset = -(self.stacksize as i32);
         });
     }
