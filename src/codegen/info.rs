@@ -30,21 +30,31 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
     }
 
     fn generate(&mut self) {
-        self.visit_stmt(&self.fct.block);
+        self.visit_fct(self.fct);
 
         self.ctxt.function(self.fct.id, |fct| {
             fct.stacksize = self.stacksize;
             fct.contains_fct_invocation = self.contains_fct_invocation;
         });
     }
+
+    fn increase_stack(&mut self, id: NodeId) {
+        self.ctxt.var(id, |v| {
+            let ty = v.data_type;
+            self.stacksize = mem::align(self.stacksize + ty.size(), ty.size());
+            v.offset = -(self.stacksize as i32);
+        });
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
+    fn visit_param(&mut self, p: &'ast Param) {
+        self.increase_stack(p.id);
+    }
+
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            let ty = self.ctxt.var(var.id, |v| v.data_type);
-            self.stacksize = mem::align(self.stacksize + ty.size(), ty.size());
-            self.ctxt.var(var.id, |v| { v.offset = -(self.stacksize as i32); });
+            self.increase_stack(var.id);
         }
 
         visit::walk_stmt(self, s);
@@ -97,6 +107,21 @@ mod tests {
             let fct2 = ctxt.ast.elements[1].to_function().unwrap();
             generate(ctxt, fct2);
             assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
+        });
+    }
+
+    #[test]
+    fn test_param_offset() {
+        parse("fn f(a: bool, b: int) { var c = 1; }", |ctxt| {
+            let fct = ctxt.ast.elements[0].to_function().unwrap();
+            generate(ctxt, fct);
+            assert_eq!(12, ctxt.function(fct.id, |fct| fct.stacksize));
+
+            ctxt.function(fct.id, |fct| {
+                for (varid, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
+                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                }
+            });
         });
     }
 
