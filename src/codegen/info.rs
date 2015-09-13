@@ -1,3 +1,4 @@
+use codegen::x64::reg::*;
 use mem;
 use parser::ast::ctxt::Context;
 
@@ -15,6 +16,7 @@ struct CodeGenInfo<'a, 'ast: 'a> {
     fct: &'ast Function,
 
     stacksize: u32,
+    param_offset: i32,
     contains_fct_invocation: bool,
 }
 
@@ -25,6 +27,12 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
             fct: fct,
 
             stacksize: 0,
+
+            // first param offset to rbp is +16,
+            // rbp+0 -> saved rbp
+            // rbp+8 -> return address
+            param_offset: 16,
+
             contains_fct_invocation: false,
         }
     }
@@ -49,7 +57,19 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        self.increase_stack(p.id);
+        // on x64 only the first 6 parameters are stored in registers
+        if (p.idx as usize) < PARAM_REGS.len() {
+            self.increase_stack(p.id);
+
+        // the rest of the parameters need to be stored in the callers stack
+        } else {
+            self.ctxt.var(p.id, |v| {
+                v.offset = self.param_offset;
+
+                // all params on stack need size of 8
+                self.param_offset += 8;
+            });
+        }
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
