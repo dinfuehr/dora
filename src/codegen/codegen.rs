@@ -4,12 +4,13 @@ use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
 
-
-use parser::ast::ctxt::Context;
+use parser::ast::ctxt::*;
 use parser::ast::*;
 use parser::ast::Expr::*;
 use parser::ast::Stmt::*;
 use parser::ast::visit::*;
+
+use sym::BuiltinType;
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
@@ -36,8 +37,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.emit_prolog();
         self.visit_fct(self.fct);
         self.emit_epilog();
-
-        self.buf
     }
 
     fn emit_prolog(&mut self) {
@@ -151,8 +150,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if let Some(ref expr) = s.expr {
             self.visit_expr(expr);
 
-            // TODO: save result into var
-            // self.ctxt.vars.borrow().get(&s.id).unwrap().offset;
+            let defs = self.ctxt.defs.borrow();
+            let varid = *defs.get(&s.id).unwrap();
+
+            self.emit_var_store(varid);
         }
     }
 
@@ -163,6 +164,29 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_expr_lit_bool(&mut self, lit: &'ast ExprLitBoolType) {
         let value : u32 = if lit.value { 1 } else { 0 };
         emit_movl_imm_reg(&mut self.buf, value, Reg::RAX);
+    }
+
+    fn emit_expr_ident(&mut self, e: &'ast ExprIdentType) {
+        let defs = self.ctxt.defs.borrow();
+        let varid = *defs.get(&e.id).unwrap();
+
+        self.emit_var_load(varid);
+    }
+
+    fn emit_var_store(&mut self, var: VarInfoId) {
+        let var_infos = self.ctxt.var_infos.borrow();
+        let var = &var_infos[var.0];
+
+        assert_eq!(BuiltinType::Int, var.data_type);
+        emit_movl_reg_memq(&mut self.buf, RAX, RBP, var.offset);
+    }
+
+    fn emit_var_load(&mut self, var: VarInfoId) {
+        let var_infos = self.ctxt.var_infos.borrow();
+        let var = &var_infos[var.0];
+
+        assert_eq!(BuiltinType::Int, var.data_type);
+        emit_movl_memq_reg(&mut self.buf, RBP, var.offset, RAX);
     }
 }
 
@@ -185,6 +209,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
         match *e {
             ExprLitInt(ref expr) => self.emit_expr_lit_int(expr),
             ExprLitBool(ref expr) => self.emit_expr_lit_bool(expr),
+            ExprIdent(ref expr) => self.emit_expr_ident(expr),
             _ => unreachable!()
         }
     }
@@ -234,5 +259,10 @@ mod tests {
     fn test_lit_bool() {
         assert_eq!(true, run("fn f() -> bool { return true; }"));
         assert_eq!(false, run("fn f() -> bool { return false; }"));
+    }
+
+    #[test]
+    fn test_ident_load_and_store() {
+        assert_eq!(4711, run("fn f() -> int { var a = 4711; return a; }"));
     }
 }
