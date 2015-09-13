@@ -39,10 +39,23 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         info::generate(self.ctxt, self.fct);
 
         self.emit_prolog();
+        self.store_params();
         self.visit_fct(self.fct);
         self.emit_epilog();
 
         self.buf
+    }
+
+    fn store_params(&mut self) {
+        let params_len = self.fct.params.len();
+        if params_len == 0 { return; }
+
+        let defs = self.ctxt.defs.borrow();
+
+        for (reg, p) in PARAM_REGS.iter().zip(&self.fct.params) {
+            let varid = *defs.get(&p.id).unwrap();
+            self.emit_var_store(*reg, varid);
+        }
     }
 
     fn emit_prolog(&mut self) {
@@ -167,7 +180,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            self.emit_var_store(varid);
+            self.emit_var_store(RAX, varid);
         }
     }
 
@@ -184,23 +197,23 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let defs = self.ctxt.defs.borrow();
         let varid = *defs.get(&e.id).unwrap();
 
-        self.emit_var_load(varid);
+        self.emit_var_load(varid, RAX);
     }
 
-    fn emit_var_store(&mut self, var: VarInfoId) {
+    fn emit_var_store(&mut self, src: Reg, var: VarInfoId) {
         let var_infos = self.ctxt.var_infos.borrow();
         let var = &var_infos[var.0];
 
         assert_eq!(BuiltinType::Int, var.data_type);
-        emit_movl_reg_memq(&mut self.buf, RAX, RBP, var.offset);
+        emit_movl_reg_memq(&mut self.buf, src, RBP, var.offset);
     }
 
-    fn emit_var_load(&mut self, var: VarInfoId) {
+    fn emit_var_load(&mut self, var: VarInfoId, dest: Reg) {
         let var_infos = self.ctxt.var_infos.borrow();
         let var = &var_infos[var.0];
 
         assert_eq!(BuiltinType::Int, var.data_type);
-        emit_movl_memq_reg(&mut self.buf, RBP, var.offset, RAX);
+        emit_movl_memq_reg(&mut self.buf, RBP, var.offset, dest);
     }
 }
 

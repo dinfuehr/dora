@@ -1,5 +1,7 @@
 use self::Reg::*;
 
+pub static PARAM_REGS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Reg {
     RAX, RCX, RDX, RBX, RSP, RBP, RSI, RDI,
