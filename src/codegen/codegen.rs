@@ -286,6 +286,7 @@ mod tests {
         assert_eq!(1i32, run("fn f() -> int { if true { return 1; } else { return 2; } }"));
         assert_eq!(1i32, run("fn f() -> int { if true { return 1; } return 2; }"));
         assert_eq!(2i32, run("fn f() -> int { if false { return 1; } else { return 2; } }"));
+        assert_eq!(2i32, run("fn f() -> int { if false { return 1; } return 2; }"));
     }
 
     #[test]
