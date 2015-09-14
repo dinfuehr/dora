@@ -3,6 +3,7 @@ name = "dora"
 version = "0.0.1"
 dependencies = [
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capstone 0.0.0 (git+https://github.com/ebfe/rust-capstone.git)",
  "docopt 0.6.72 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -28,9 +29,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitflags"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "byteorder"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "capstone"
+version = "0.0.0"
+source = "git+https://github.com/ebfe/rust-capstone.git#487e59517cd8eae3ae64ab87929fe15cee52bd95"
+dependencies = [
+ "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "debug-builders"
