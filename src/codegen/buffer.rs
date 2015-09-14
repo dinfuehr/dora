@@ -1,8 +1,9 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Label(usize);
 
+#[derive(Debug)]
 struct ByteBuffer {
     data: Vec<u8>,
 }
@@ -44,6 +45,7 @@ impl ByteBuffer {
     }
 }
 
+#[derive(Debug)]
 pub struct Buffer {
     buf: ByteBuffer,
     labels: Vec<Option<usize>>,
@@ -75,7 +77,7 @@ impl Buffer {
     }
 
     pub fn create_label(&mut self) -> Label {
-        let idx = self.buf.pos();
+        let idx = self.labels.len();
         self.labels.push(None);
 
         Label(idx)
@@ -120,6 +122,7 @@ impl Buffer {
     }
 }
 
+#[derive(Debug)]
 struct ForwardJump {
     at: usize,
     to: Label
@@ -128,6 +131,14 @@ struct ForwardJump {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_label() {
+        let mut buf = Buffer::new();
+
+        assert_eq!(Label(0), buf.create_label());
+        assert_eq!(Label(1), buf.create_label());
+    }
 
     #[test]
     fn test_backward_with_gap() {

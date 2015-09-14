@@ -80,6 +80,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if let Some(ref expr) = s.expr {
             self.visit_expr(expr);
         }
+
+        self.emit_epilog();
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -133,7 +135,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
         let lbl_end = self.buf.create_label();
-        let lbl_else = if s.else_block.is_some() {
+        let lbl_else = if let Some(_) = s.else_block {
             self.buf.create_label()
         } else {
             lbl_end
@@ -277,6 +279,13 @@ mod tests {
     fn test_lit_bool() {
         assert_eq!(true, run("fn f() -> bool { return true; }"));
         assert_eq!(false, run("fn f() -> bool { return false; }"));
+    }
+
+    #[test]
+    fn test_if() {
+        assert_eq!(1i32, run("fn f() -> int { if true { return 1; } else { return 2; } }"));
+        assert_eq!(1i32, run("fn f() -> int { if true { return 1; } return 2; }"));
+        assert_eq!(2i32, run("fn f() -> int { if false { return 1; } else { return 2; } }"));
     }
 
     #[test]
