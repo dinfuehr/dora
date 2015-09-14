@@ -254,18 +254,34 @@ mod tests {
 
     use super::*;
 
-    fn run<T>(code: &'static str) -> T {
+    fn compile(code: &'static str) -> CodeMemory {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
 
             let buffer = CodeGen::new(&ctxt, fct).generate().finish();
-            let mem = CodeMemory::new(&buffer);
 
-            let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
-
-            compiled_fct()
+            CodeMemory::new(&buffer)
         })
+    }
+
+    fn run<T>(code: &'static str) -> T {
+        let mem = compile(code);
+        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
+
+        compiled_fct()
+    }
+
+    fn fct1<T>(code: &'static str) -> extern "C" fn(T) -> T {
+        let mem = compile(code);
+
+        unsafe { mem::transmute(mem.ptr()) }
+    }
+
+    fn fct2<T>(code: &'static str) -> extern "C" fn(T, T) -> T {
+        let mem = compile(code);
+
+        unsafe { mem::transmute(mem.ptr()) }
     }
 
     #[test]
@@ -274,6 +290,12 @@ mod tests {
         assert_eq!(2i32, run("fn f() -> int { return 2; }"));
         assert_eq!(3i32, run("fn f() -> int { return 3; }"));
     }
+
+    // #[test]
+    // fn test_param() {
+    //     let f = fct1("fn f(a: int) -> int { return a; }");
+    //     assert_eq!(1i32, f(1));
+    // }
 
     #[test]
     fn test_lit_bool() {
