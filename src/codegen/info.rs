@@ -146,6 +146,26 @@ mod tests {
     }
 
     #[test]
+    fn test_params_over_6_offset() {
+        parse("fn f(a: int, b: int, c: int, d: int,
+                    e: int, f: int, g: int, h: int) {
+                   var i : int = 1;
+               }", |ctxt| {
+            let fct = ctxt.ast.elements[0].to_function().unwrap();
+            generate(ctxt, fct);
+            assert_eq!(28, ctxt.function(fct.id, |fct| fct.stacksize));
+
+            ctxt.function(fct.id, |fct| {
+                let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
+
+                for (varid, offset) in fct.vars.iter().zip(&offsets) {
+                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                }
+            });
+        });
+    }
+
+    #[test]
     fn test_var_offset() {
         parse("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |ctxt| {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
