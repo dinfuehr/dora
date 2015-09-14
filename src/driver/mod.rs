@@ -92,7 +92,7 @@ fn dump_asm(buf: &[u8], name: &str) {
 
     println!("fn {}", name);
     for instr in instrs {
-        println!("  0x{:x}: {} {}", instr.addr, instr.mnemonic, instr.op_str);
+        println!("  {:#06x}: {} {}", instr.addr, instr.mnemonic, instr.op_str);
     }
 }
 
