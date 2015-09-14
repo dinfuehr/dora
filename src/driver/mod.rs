@@ -1,9 +1,11 @@
 pub mod cmd;
 
+use std::mem;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 use codegen::codegen::CodeGen;
+use mem::CodeMemory;
 use parser::ast::ctxt::Context;
 use error::diag::Diagnostic;
 use error::msg::Msg;
@@ -61,9 +63,37 @@ pub fn compile() -> i32 {
     let main = main.unwrap();
 
     let mut cg = CodeGen::new(&ctxt, main);
-    cg.generate();
+    let buffer = cg.generate().finish();
 
-    0 // success
+    if args.flag_emit_asm {
+        dump_asm(&buffer, &ctxt.interner.str(main.name));
+    }
+
+    let code = CodeMemory::new(&buffer);
+
+    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(code.ptr()) };
+    let res = fct();
+
+    // main-fct without return value exits with status 0
+    if main.return_type.is_none() {
+        0
+
+    // use return value of main for exit status
+    } else {
+        res
+    }
+}
+
+fn dump_asm(buf: &[u8], name: &str) {
+    use capstone::*;
+
+    let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
+    let instrs = engine.disasm(buf, 0, buf.len()).expect("could not disassemble code");
+
+    println!("fn {}", name);
+    for instr in instrs {
+        println!("  0x{:x}: {} {}", instr.addr, instr.mnemonic, instr.op_str);
+    }
 }
 
 fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where 'a: 'ast {

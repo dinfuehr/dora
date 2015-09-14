@@ -1,6 +1,7 @@
 #![feature(plugin)]
 #![feature(box_syntax)]
 #![feature(io)]
+#![feature(result_expect)]
 
 #![feature(plugin)]
 #![plugin(phf_macros)]
