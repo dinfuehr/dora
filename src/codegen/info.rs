@@ -93,90 +93,65 @@ impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
 mod tests {
     use super::*;
 
-    use parser::ast::ctxt::Context;
-    use driver::cmd::Args;
-    use error::msg::Msg;
-    use parser::ast;
-    use parser::Parser;
-    use semck;
+    use parser::ast::ctxt::*;
+    use test;
 
-    pub fn parse<F>(code: &'static str, f: F)
-            where F: for<'a, 'ast> FnOnce(&'ast Context<'a, 'ast>) -> () {
-        let mut parser = Parser::from_str(code);
-        let (ast, interner) = parser.parse().unwrap();
-        let map = ast::map::build(&ast, &interner);
-        let args : Args = Default::default();
+    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctInfo) {
+        test::parse(code, |ctxt| {
+            let fct = ctxt.ast.elements[0].to_function().unwrap();
+            generate(ctxt, fct);
 
-        ast::dump::dump(&ast, &interner);
-
-        let ctxt = Context::new(&args, &interner, &map, &ast);
-
-        semck::check(&ctxt);
-        assert!(!ctxt.diag.borrow().has_errors());
-
-        f(&ctxt);
+            ctxt.function(fct.id, |fct| {
+                f(ctxt, fct);
+            });
+        });
     }
 
     #[test]
     fn test_invocation_flag() {
-        parse("fn f() { g(); } fn g() { }", |ctxt| {
-            let fct1 = ctxt.ast.elements[0].to_function().unwrap();
-            generate(ctxt, fct1);
-            assert_eq!(true, ctxt.function(fct1.id, |fct| fct.contains_fct_invocation));
+        info("fn f() { g(); } fn g() { }", |ctxt, fct| {
+            assert!(fct.contains_fct_invocation);
+        });
 
-            let fct2 = ctxt.ast.elements[1].to_function().unwrap();
-            generate(ctxt, fct2);
-            assert_eq!(false, ctxt.function(fct2.id, |fct| fct.contains_fct_invocation));
+        info("fn f() { }", |ctxt, fct| {
+            assert!(!fct.contains_fct_invocation);
         });
     }
 
     #[test]
     fn test_param_offset() {
-        parse("fn f(a: bool, b: int) { var c = 1; }", |ctxt| {
-            let fct = ctxt.ast.elements[0].to_function().unwrap();
-            generate(ctxt, fct);
-            assert_eq!(12, ctxt.function(fct.id, |fct| fct.stacksize));
+        info("fn f(a: bool, b: int) { var c = 1; }", |ctxt, fct| {
+            assert_eq!(12, fct.stacksize);
 
-            ctxt.function(fct.id, |fct| {
-                for (varid, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
-                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
-                }
-            });
+            for (varid, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
+                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+            }
         });
     }
 
     #[test]
     fn test_params_over_6_offset() {
-        parse("fn f(a: int, b: int, c: int, d: int,
-                    e: int, f: int, g: int, h: int) {
-                   var i : int = 1;
-               }", |ctxt| {
-            let fct = ctxt.ast.elements[0].to_function().unwrap();
-            generate(ctxt, fct);
-            assert_eq!(28, ctxt.function(fct.id, |fct| fct.stacksize));
+        info("fn f(a: int, b: int, c: int, d: int,
+                   e: int, f: int, g: int, h: int) {
+                  var i : int = 1;
+              }", |ctxt, fct| {
+            assert_eq!(28, fct.stacksize);
+            let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-            ctxt.function(fct.id, |fct| {
-                let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
-
-                for (varid, offset) in fct.vars.iter().zip(&offsets) {
-                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
-                }
-            });
+            for (varid, offset) in fct.vars.iter().zip(&offsets) {
+                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+            }
         });
     }
 
     #[test]
     fn test_var_offset() {
-        parse("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |ctxt| {
-            let fct = ctxt.ast.elements[0].to_function().unwrap();
-            generate(ctxt, fct);
-            assert_eq!(16, ctxt.function(fct.id, |fct| fct.stacksize));
+        info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |ctxt, fct| {
+            assert_eq!(16, fct.stacksize);
 
-            ctxt.function(fct.id, |fct| {
-                for (varid, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                    assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
-                }
-            });
+            for (varid, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+            }
         });
     }
 }

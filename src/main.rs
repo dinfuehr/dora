@@ -20,6 +20,9 @@ mod driver;
 mod codegen;
 mod mem;
 
+#[cfg(test)]
+mod test;
+
 #[cfg(not(test))]
 fn main() {
     exit(driver::compile());

@@ -27,31 +27,12 @@ pub fn check<'a>(ctxt: &Context<'a, 'a>) {
 
 #[cfg(test)]
 mod tests {
-    use parser::ast::ctxt::Context;
-    use driver::cmd::Args;
     use error::msg::Msg;
-    use parser::ast;
     use parser::lexer::position::Position;
-    use parser::Parser;
-    use semck;
-
-    pub fn check<F>(code: &'static str, f: F) where F: FnOnce(&Context) -> () {
-        let mut parser = Parser::from_str(code);
-        let (ast, interner) = parser.parse().unwrap();
-        let map = ast::map::build(&ast, &interner);
-        let args : Args = Default::default();
-
-        ast::dump::dump(&ast, &interner);
-
-        let ctxt = Context::new(&args, &interner, &map, &ast);
-
-        semck::check(&ctxt);
-
-        f(&ctxt);
-    }
+    use test;
 
     pub fn ok(code: &'static str) {
-        check(code, |ctxt| {
+        test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();
 
@@ -61,7 +42,7 @@ mod tests {
     }
 
     pub fn err(code: &'static str, pos: Position, msg: Msg) {
-        check(code, |ctxt| {
+        test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();
 
