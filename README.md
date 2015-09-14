@@ -7,7 +7,7 @@ cargo build
 cargo test # runs tests
 ```
 
-You also need to install dependencies (this this just [capstone](https://github.com/aquynh/capstone) for now):
+You also need to install dependencies (which this just [capstone](https://github.com/aquynh/capstone) for now):
 
 ```
 $ git clone https://github.com/aquynh/capstone
