@@ -4,14 +4,15 @@ use parser::ast;
 use parser::Parser;
 use semck;
 
-pub fn parse<F>(code: &'static str, f: F) where F: FnOnce(&Context) -> () {
+pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
     parse_with_errors(code, |ctxt| {
         assert!(!ctxt.diag.borrow().has_errors());
-        f(ctxt);
-    });
+
+        f(ctxt)
+    })
 }
 
-pub fn parse_with_errors<F>(code: &'static str, f: F) where F: FnOnce(&Context) -> () {
+pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
     let mut parser = Parser::from_str(code);
     let (ast, interner) = parser.parse().unwrap();
     let map = ast::map::build(&ast, &interner);
@@ -23,5 +24,5 @@ pub fn parse_with_errors<F>(code: &'static str, f: F) where F: FnOnce(&Context) 
 
     semck::check(&ctxt);
 
-    f(&ctxt);
+    f(&ctxt)
 }

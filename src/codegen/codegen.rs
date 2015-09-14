@@ -244,35 +244,26 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use parser::ast;
-    use parser::Parser;
-    use parser::ast::ctxt::Context;
-    use driver::cmd::Args;
+    use std::mem;
+
     use mem::CodeMemory;
     use semck;
-    use std::mem;
+    use test;
 
     use super::*;
 
     fn run<T>(code: &'static str) -> T {
-        let (ast, interner) = Parser::from_str(code).parse().unwrap();
-        let args : Args = Default::default();
-        let ast_map = ast::map::build(&ast, &interner);
+        test::parse(code, |ctxt| {
+            // generate code for first function
+            let fct = ctxt.ast.elements[0].to_function().unwrap();
 
-        let ctxt = Context::new(&args, &interner, &ast_map, &ast);
-        semck::check(&ctxt);
+            let buffer = CodeGen::new(&ctxt, fct).generate().finish();
+            let mem = CodeMemory::new(&buffer);
 
-        assert!(!ctxt.diag.borrow().has_errors());
+            let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
 
-        // generate code for first function
-        let fct = ast.elements[0].to_function().unwrap();
-
-        let buffer = CodeGen::new(&ctxt, fct).generate().finish();
-        let mem = CodeMemory::new(&buffer);
-
-        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
-
-        compiled_fct()
+            compiled_fct()
+        })
     }
 
     #[test]
