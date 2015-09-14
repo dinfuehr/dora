@@ -88,11 +88,12 @@ fn dump_asm(buf: &[u8], name: &str) {
     use capstone::*;
 
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
+    engine.set_option(Opt::Syntax, 2); // switch to AT&T syntax
     let instrs = engine.disasm(buf, 0, buf.len()).expect("could not disassemble code");
 
     println!("fn {}", name);
     for instr in instrs {
-        println!("  {:#06x}: {} {}", instr.addr, instr.mnemonic, instr.op_str);
+        println!("  {:#06x}: {}\t\t{}", instr.addr, instr.mnemonic, instr.op_str);
     }
 }
 
