@@ -11,12 +11,26 @@ pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
     emit_u32(buf, imm);
 }
 
+pub fn emit_movb_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
+    emit_common_mov_memq_reg(buf, 0, 0x8a, src, disp, dest);
+}
+
 pub fn emit_movl_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
-    if (src != RIP && src.msb() != 0) || dest.msb() != 0 {
-        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+    emit_common_mov_memq_reg(buf, 0, 0x8b, src, disp, dest);
+}
+
+pub fn emit_movq_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
+    emit_common_mov_memq_reg(buf, 1, 0x8b, src, disp, dest);
+}
+
+fn emit_common_mov_memq_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, disp: i32, dest: Reg) {
+    let src_msb = if src == RIP { 0 } else { src.msb() };
+
+    if src_msb != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, src.msb());
     }
 
-    emit_op(buf, 0x8b);
+    emit_op(buf, opcode);
     emit_membase(buf, src, disp, dest);
 }
 
@@ -323,6 +337,16 @@ mod tests {
 
         assert_emit!(0x8b, 0x05, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RAX));
         assert_emit!(0x8b, 0x0d, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RCX));
+    }
+
+    #[test]
+    fn test_emit_movq_memq_reg() {
+        assert_emit!(0x48, 0x8b, 0x44, 0x24, 1; emit_movq_memq_reg(RSP, 1, RAX));
+    }
+
+    #[test]
+    fn test_emit_movb_memq_reg() {
+        assert_emit!(0x8a, 0x44, 0x24, 1; emit_movb_memq_reg(RSP, 1, RAX));
     }
 
     #[test]
