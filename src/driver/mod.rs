@@ -84,7 +84,7 @@ pub fn compile() -> i32 {
     }
 }
 
-fn dump_asm(buf: &[u8], name: &str) {
+pub fn dump_asm(buf: &[u8], name: &str) {
     use capstone::*;
 
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");

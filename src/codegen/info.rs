@@ -1,3 +1,4 @@
+use codegen::info;
 use codegen::x64::reg::*;
 use mem;
 use parser::ast::ctxt::Context;

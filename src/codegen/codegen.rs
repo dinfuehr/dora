@@ -248,6 +248,8 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 mod tests {
     use std::mem;
 
+    use codegen;
+    use driver;
     use mem::CodeMemory;
     use semck;
     use test;
@@ -258,8 +260,9 @@ mod tests {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
+            let buffer = codegen::generate(ctxt, fct);
 
-            let buffer = CodeGen::new(&ctxt, fct).generate().finish();
+            driver::dump_asm(&buffer, &ctxt.interner.str(fct.name));
 
             CodeMemory::new(&buffer)
         })
@@ -291,11 +294,12 @@ mod tests {
         assert_eq!(3i32, run("fn f() -> int { return 3; }"));
     }
 
-    // #[test]
-    // fn test_param() {
-    //     let f = fct1("fn f(a: int) -> int { return a; }");
-    //     assert_eq!(1i32, f(1));
-    // }
+    #[test]
+    fn test_param() {
+        let f = fct1("fn f(a: int) -> int { return a; }");
+        assert_eq!(0i32, f(0));
+        assert_eq!(1, f(1));
+    }
 
     #[test]
     fn test_lit_bool() {
