@@ -2,3 +2,7 @@ language: rust
 
 rust:
   - nightly
+
+install:
+  - git clone https://github.com/aquynh/capstone
+  - (cd capstone && git checkout 3.0.3 && sudo make install)
