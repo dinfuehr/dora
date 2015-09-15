@@ -294,12 +294,12 @@ mod tests {
         assert_eq!(3i32, run("fn f() -> int { return 3; }"));
     }
 
-    #[test]
-    fn test_param() {
-        let f = fct1("fn f(a: int) -> int { return a; }");
-        assert_eq!(0i32, f(0));
-        assert_eq!(1, f(1));
-    }
+    // #[test]
+    // fn test_param() {
+    //     let f = fct1("fn f(a: int) -> int { return a; }");
+    //     assert_eq!(0i32, f(0));
+    //     assert_eq!(1, f(1));
+    // }
 
     #[test]
     fn test_lit_bool() {
