@@ -20,12 +20,26 @@ pub fn emit_movl_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
     emit_membase(buf, src, disp, dest);
 }
 
+pub fn emit_movq_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
+    emit_common_mov_reg_memq(buf, 0x89, 1, src, dest, disp);
+}
+
 pub fn emit_movl_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
-    if (dest != RIP && dest.msb() != 0) || src.msb() != 0 {
-        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+    emit_common_mov_reg_memq(buf, 0x89, 0, src, dest, disp);
+}
+
+pub fn emit_movb_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
+    emit_common_mov_reg_memq(buf, 0x88, 0, src, dest, disp);
+}
+
+pub fn emit_common_mov_reg_memq(buf: &mut Buffer, opcode: u8, x64: u8, src: Reg, dest: Reg, disp: i32) {
+    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
+
+    if dest_msb != 0 || src.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest_msb, 0, src.msb());
     }
 
-    emit_op(buf, 0x89);
+    emit_op(buf, opcode);
     emit_membase(buf, dest, disp, src);
 }
 
@@ -169,8 +183,9 @@ pub fn emit_jmp(buf: &mut Buffer, lbl: Label) {
 }
 
 pub fn emit_testl_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
-    assert!(op1.msb() == 0);
-    assert!(op2.msb() == 0);
+    if op1.msb() != 0 || op2.msb() != 0 {
+        emit_rex(buf, 0, op1.msb(), 0, op2.msb());
+    }
 
     emit_op(buf, 0x85);
     emit_modrm(buf, 0b11, op1.and7(), op2.and7());
@@ -276,6 +291,7 @@ mod tests {
     fn test_emit_testl_reg_reg() {
         assert_emit!(0x85, 0xc0; emit_testl_reg_reg(RAX, RAX));
         assert_emit!(0x85, 0xc6; emit_testl_reg_reg(RAX, RSI));
+        assert_emit!(0x41, 0x85, 0xc7; emit_testl_reg_reg(RAX, R15));
     }
 
     #[test]
@@ -313,5 +329,17 @@ mod tests {
     fn test_emit_movl_reg_memq() {
         assert_emit!(0x89, 0x0d, 0, 0, 0, 0; emit_movl_reg_memq(RCX, RIP, 0));
         assert_emit!(0x89, 0x48, 3; emit_movl_reg_memq(RCX, RAX, 3));
+    }
+
+    #[test]
+    fn test_emit_movq_reg_memq() {
+        assert_emit!(0x48, 0x89, 0x0d, 0, 0, 0, 0; emit_movq_reg_memq(RCX, RIP, 0));
+        assert_emit!(0x48, 0x89, 0x48, 3; emit_movq_reg_memq(RCX, RAX, 3));
+    }
+
+    #[test]
+    fn test_emit_movb_reg_memq() {
+        assert_emit!(0x88, 0x0d, 0, 0, 0, 0; emit_movb_reg_memq(RCX, RIP, 0));
+        assert_emit!(0x88, 0x48, 3; emit_movb_reg_memq(RCX, RAX, 3));
     }
 }
