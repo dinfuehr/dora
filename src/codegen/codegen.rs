@@ -275,16 +275,11 @@ mod tests {
         compiled_fct()
     }
 
-    fn fct1<T>(code: &'static str) -> extern "C" fn(T) -> T {
-        let mem = compile(code);
+    fn fct1<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T) -> T) {
+        let m = compile(code);
+        let ptr = m.ptr();
 
-        unsafe { mem::transmute(mem.ptr()) }
-    }
-
-    fn fct2<T>(code: &'static str) -> extern "C" fn(T, T) -> T {
-        let mem = compile(code);
-
-        unsafe { mem::transmute(mem.ptr()) }
+        (m, unsafe { mem::transmute(ptr) })
     }
 
     #[test]
@@ -294,12 +289,14 @@ mod tests {
         assert_eq!(3i32, run("fn f() -> int { return 3; }"));
     }
 
-    // #[test]
-    // fn test_param() {
-    //     let f = fct1("fn f(a: int) -> int { return a; }");
-    //     assert_eq!(0i32, f(0));
-    //     assert_eq!(1, f(1));
-    // }
+    #[test]
+    fn test_param() {
+        let (mem, f) = fct1("fn f(a: int) -> int { return a; }");
+
+        assert_eq!(0i32, f(0));
+        assert_eq!(1, f(1));
+        assert_eq!(2, f(2));
+    }
 
     #[test]
     fn test_lit_bool() {
