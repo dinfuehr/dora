@@ -121,12 +121,20 @@ pub fn emit_movq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
 }
 
 pub fn emit_negl_reg(buf: &mut Buffer, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, 1);
+    emit_common_alu_reg(buf, 0xf7, 0b11, 0, reg);
+}
+
+pub fn emit_notl_reg(buf: &mut Buffer, reg: Reg) {
+    emit_common_alu_reg(buf, 0xf7, 0b10, 0, reg);
+}
+
+fn emit_common_alu_reg(buf: &mut Buffer, opcode: u8, modrm_reg: u8, x64: u8, reg: Reg) {
+    if reg.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, reg.msb());
     }
 
-    emit_op(buf, 0xf7);
-    emit_modrm(buf, 0b11, 0b11, reg.and7());
+    emit_op(buf, opcode);
+    emit_modrm(buf, 0b11, modrm_reg, reg.and7());
 }
 
 pub fn emit_pushq_reg(buf: &mut Buffer, reg: Reg) {
@@ -380,5 +388,11 @@ mod tests {
     fn test_negl_reg() {
         assert_emit!(0xf7, 0xd8; emit_negl_reg(RAX));
         assert_emit!(0x41, 0xf7, 0xdf; emit_negl_reg(R15));
+    }
+
+    #[test]
+    fn test_notl_reg() {
+        assert_emit!(0xf7, 0xd0; emit_notl_reg(RAX));
+        assert_emit!(0x41, 0xf7, 0xd7; emit_notl_reg(R15));
     }
 }
