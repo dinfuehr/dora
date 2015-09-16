@@ -12,18 +12,18 @@ pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
 }
 
 pub fn emit_movb_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
-    emit_common_mov_memq_reg(buf, 0, 0x8a, src, disp, dest);
+    emit_mov_memq_reg(buf, 0, 0x8a, src, disp, dest);
 }
 
 pub fn emit_movl_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
-    emit_common_mov_memq_reg(buf, 0, 0x8b, src, disp, dest);
+    emit_mov_memq_reg(buf, 0, 0x8b, src, disp, dest);
 }
 
 pub fn emit_movq_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
-    emit_common_mov_memq_reg(buf, 1, 0x8b, src, disp, dest);
+    emit_mov_memq_reg(buf, 1, 0x8b, src, disp, dest);
 }
 
-fn emit_common_mov_memq_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, disp: i32, dest: Reg) {
+fn emit_mov_memq_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, disp: i32, dest: Reg) {
     let src_msb = if src == RIP { 0 } else { src.msb() };
 
     if src_msb != 0 || dest.msb() != 0 || x64 != 0 {
@@ -35,18 +35,18 @@ fn emit_common_mov_memq_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, dis
 }
 
 pub fn emit_movq_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
-    emit_common_mov_reg_memq(buf, 0x89, 1, src, dest, disp);
+    emit_mov_reg_memq(buf, 0x89, 1, src, dest, disp);
 }
 
 pub fn emit_movl_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
-    emit_common_mov_reg_memq(buf, 0x89, 0, src, dest, disp);
+    emit_mov_reg_memq(buf, 0x89, 0, src, dest, disp);
 }
 
 pub fn emit_movb_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
-    emit_common_mov_reg_memq(buf, 0x88, 0, src, dest, disp);
+    emit_mov_reg_memq(buf, 0x88, 0, src, dest, disp);
 }
 
-pub fn emit_common_mov_reg_memq(buf: &mut Buffer, opcode: u8, x64: u8, src: Reg, dest: Reg, disp: i32) {
+pub fn emit_mov_reg_memq(buf: &mut Buffer, opcode: u8, x64: u8, src: Reg, dest: Reg, disp: i32) {
     let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
     if dest_msb != 0 || src.msb() != 0 || x64 != 0 {
@@ -121,14 +121,14 @@ pub fn emit_movq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
 }
 
 pub fn emit_negl_reg(buf: &mut Buffer, reg: Reg) {
-    emit_common_alu_reg(buf, 0xf7, 0b11, 0, reg);
+    emit_alul_reg(buf, 0xf7, 0b11, 0, reg);
 }
 
 pub fn emit_notl_reg(buf: &mut Buffer, reg: Reg) {
-    emit_common_alu_reg(buf, 0xf7, 0b10, 0, reg);
+    emit_alul_reg(buf, 0xf7, 0b10, 0, reg);
 }
 
-fn emit_common_alu_reg(buf: &mut Buffer, opcode: u8, modrm_reg: u8, x64: u8, reg: Reg) {
+fn emit_alul_reg(buf: &mut Buffer, opcode: u8, modrm_reg: u8, x64: u8, reg: Reg) {
     if reg.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, 0, 0, reg.msb());
     }
