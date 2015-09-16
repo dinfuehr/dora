@@ -90,14 +90,14 @@ fn emit_membase(buf: &mut Buffer, base: Reg, disp: i32, dest: Reg) {
 }
 
 pub fn emit_subq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
-    emit_alu_imm_reg(buf, imm, reg, 0x2d, 0b101);
+    emit_aluq_imm_reg(buf, imm, reg, 0x2d, 0b101);
 }
 
 pub fn emit_addq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
-    emit_alu_imm_reg(buf, imm, reg, 0x05, 0);
+    emit_aluq_imm_reg(buf, imm, reg, 0x05, 0);
 }
 
-fn emit_alu_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
+fn emit_aluq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
     emit_rex(buf, 1, 0, 0, reg.msb());
 
     if fits_i8(imm) {
@@ -135,6 +135,30 @@ fn emit_common_alu_reg(buf: &mut Buffer, opcode: u8, modrm_reg: u8, x64: u8, reg
 
     emit_op(buf, opcode);
     emit_modrm(buf, 0b11, modrm_reg, reg.and7());
+}
+
+pub fn emit_xorb_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    emit_alub_imm_reg(buf, 0x80, 0x34, 0b110, imm, dest);
+}
+
+pub fn emit_andb_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    emit_alub_imm_reg(buf, 0x80, 0x24, 0b100, imm, dest);
+}
+
+fn emit_alub_imm_reg(buf: &mut Buffer, opcode: u8, rax_opcode: u8,
+                     modrm_reg: u8, imm: u8, dest: Reg) {
+    if dest == RAX {
+        emit_op(buf, rax_opcode);
+        emit_u8(buf, imm);
+    } else {
+        if dest.msb() != 0 {
+            emit_rex(buf, 0, 0, 0, dest.msb());
+        }
+
+        emit_op(buf, opcode);
+        emit_modrm(buf, 0b11, modrm_reg, dest.and7());
+        emit_u8(buf, imm);
+    }
 }
 
 pub fn emit_pushq_reg(buf: &mut Buffer, reg: Reg) {
@@ -394,5 +418,21 @@ mod tests {
     fn test_notl_reg() {
         assert_emit!(0xf7, 0xd0; emit_notl_reg(RAX));
         assert_emit!(0x41, 0xf7, 0xd7; emit_notl_reg(R15));
+    }
+
+    #[test]
+    fn test_xorb_imm_reg() {
+        assert_emit!(0x34, 1; emit_xorb_imm_reg(1, RAX));
+        assert_emit!(0x80, 0xf1, 2; emit_xorb_imm_reg(2, RCX));
+        assert_emit!(0x41, 0x80, 0xf0, 3; emit_xorb_imm_reg(3, R8));
+        assert_emit!(0x41, 0x80, 0xf7, 4; emit_xorb_imm_reg(4, R15));
+    }
+
+    #[test]
+    fn test_andb_imm_reg() {
+        assert_emit!(0x24, 1; emit_andb_imm_reg(1, RAX));
+        assert_emit!(0x80, 0xe1, 2; emit_andb_imm_reg(2, RCX));
+        assert_emit!(0x41, 0x80, 0xe0, 3; emit_andb_imm_reg(3, R8));
+        assert_emit!(0x41, 0x80, 0xe7, 4; emit_andb_imm_reg(4, R15));
     }
 }

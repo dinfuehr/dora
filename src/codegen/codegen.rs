@@ -209,7 +209,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             UnOp::Plus => {},
             UnOp::Neg => emit_negl_reg(&mut self.buf, RAX),
             UnOp::BitNot => emit_notl_reg(&mut self.buf, RAX),
-            _ => unreachable!(),
+            UnOp::Not => {
+                emit_xorb_imm_reg(&mut self.buf, 1, RAX);
+                emit_andb_imm_reg(&mut self.buf, 1, RAX);
+            },
         }
     }
 
