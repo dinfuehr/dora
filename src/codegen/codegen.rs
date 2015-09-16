@@ -207,6 +207,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         match e.op {
             UnOp::Plus => {},
+            UnOp::Neg => emit_negl_reg(&mut self.buf, RAX),
+            UnOp::BitNot => emit_notl_reg(&mut self.buf, RAX),
             _ => unreachable!(),
         }
     }
@@ -314,6 +316,24 @@ mod tests {
         assert_eq!(-1i32, f(-1));
         assert_eq!(0, f(0));
         assert_eq!(1, f(1));
+    }
+
+    #[test]
+    fn test_expr_un_neg() {
+        let (mem, f) = fct1("fn f(a: int) -> int { return -a; }");
+
+        assert_eq!(1i32, f(-1));
+        assert_eq!(0, f(0));
+        assert_eq!(-1, f(1));
+    }
+
+    #[test]
+    fn test_expr_un_bit_not() {
+        let (mem, f) = fct1("fn f(a: int) -> int { return ~a; }");
+
+        assert_eq!(0i32, f(-1));
+        assert_eq!(-1, f(0));
+        assert_eq!(-2, f(1));
     }
 
     #[test]
