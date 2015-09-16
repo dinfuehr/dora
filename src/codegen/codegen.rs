@@ -202,6 +202,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.emit_var_load(varid, RAX);
     }
 
+    fn emit_expr_un(&mut self, e: &'ast ExprUnType) {
+        self.visit_expr(&e.opnd);
+
+        match e.op {
+            UnOp::Plus => {},
+            _ => unreachable!(),
+        }
+    }
+
     fn emit_var_store(&mut self, src: Reg, var: VarInfoId) {
         let var_infos = self.ctxt.var_infos.borrow();
         let var = &var_infos[var.0];
@@ -247,6 +256,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             ExprLitInt(ref expr) => self.emit_expr_lit_int(expr),
             ExprLitBool(ref expr) => self.emit_expr_lit_bool(expr),
             ExprIdent(ref expr) => self.emit_expr_ident(expr),
+            ExprUn(ref expr) => self.emit_expr_un(expr),
             _ => unreachable!()
         }
     }
@@ -295,6 +305,15 @@ mod tests {
         assert_eq!(1i32, run("fn f() -> int { return 1; }"));
         assert_eq!(2i32, run("fn f() -> int { return 2; }"));
         assert_eq!(3i32, run("fn f() -> int { return 3; }"));
+    }
+
+    #[test]
+    fn test_expr_un_plus() {
+        let (mem, f) = fct1("fn f(a: int) -> int { return +a; }");
+
+        assert_eq!(-1i32, f(-1));
+        assert_eq!(0, f(0));
+        assert_eq!(1, f(1));
     }
 
     #[test]
