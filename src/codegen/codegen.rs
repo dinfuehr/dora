@@ -206,16 +206,24 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let var_infos = self.ctxt.var_infos.borrow();
         let var = &var_infos[var.0];
 
-        assert_eq!(BuiltinType::Int, var.data_type);
-        emit_movl_reg_memq(&mut self.buf, src, RBP, var.offset);
+        match var.data_type {
+            BuiltinType::Bool => emit_movb_reg_memq(&mut self.buf, src, RBP, var.offset),
+            BuiltinType::Int => emit_movl_reg_memq(&mut self.buf, src, RBP, var.offset),
+            BuiltinType::Str => emit_movq_reg_memq(&mut self.buf, src, RBP, var.offset),
+            BuiltinType::Unit => {},
+        }
     }
 
     fn emit_var_load(&mut self, var: VarInfoId, dest: Reg) {
         let var_infos = self.ctxt.var_infos.borrow();
         let var = &var_infos[var.0];
 
-        assert_eq!(BuiltinType::Int, var.data_type);
-        emit_movl_memq_reg(&mut self.buf, RBP, var.offset, dest);
+        match var.data_type {
+            BuiltinType::Bool => emit_movb_memq_reg(&mut self.buf, RBP, var.offset, dest),
+            BuiltinType::Int => emit_movl_memq_reg(&mut self.buf, RBP, var.offset, dest),
+            BuiltinType::Str => emit_movq_memq_reg(&mut self.buf, RBP, var.offset, dest),
+            BuiltinType::Unit => {},
+        }
     }
 }
 
@@ -315,5 +323,7 @@ mod tests {
     #[test]
     fn test_ident_load_and_store() {
         assert_eq!(4711, run("fn f() -> int { var a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool { var a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool { var a = false; return a; }"));
     }
 }
