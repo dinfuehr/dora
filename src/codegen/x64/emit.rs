@@ -120,6 +120,15 @@ pub fn emit_movq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
+pub fn emit_negl_reg(buf: &mut Buffer, reg: Reg) {
+    if reg.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, 1);
+    }
+
+    emit_op(buf, 0xf7);
+    emit_modrm(buf, 0b11, 0b11, reg.and7());
+}
+
 pub fn emit_pushq_reg(buf: &mut Buffer, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
@@ -365,5 +374,11 @@ mod tests {
     fn test_emit_movb_reg_memq() {
         assert_emit!(0x88, 0x0d, 0, 0, 0, 0; emit_movb_reg_memq(RCX, RIP, 0));
         assert_emit!(0x88, 0x48, 3; emit_movb_reg_memq(RCX, RAX, 3));
+    }
+
+    #[test]
+    fn test_negl_reg() {
+        assert_emit!(0xf7, 0xd8; emit_negl_reg(RAX));
+        assert_emit!(0x41, 0xf7, 0xdf; emit_negl_reg(R15));
     }
 }
