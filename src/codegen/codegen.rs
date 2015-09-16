@@ -340,12 +340,28 @@ mod tests {
     }
 
     #[test]
+    fn test_expr_un_not() {
+        let (mem, f) = fct1("fn f(a: bool) -> bool { return !a; }");
+
+        assert_eq!(true, f(false));
+        assert_eq!(false, f(true));
+    }
+
+    #[test]
     fn test_param() {
         let (mem, f) = fct1("fn f(a: int) -> int { return a; }");
 
         assert_eq!(0i32, f(0));
         assert_eq!(1, f(1));
         assert_eq!(2, f(2));
+    }
+
+    #[test]
+    fn test_param_bool() {
+        let (mem, f) = fct1("fn f(a: bool) -> bool { return a; }");
+
+        assert_eq!(true, f(true));
+        assert_eq!(false, f(false));
     }
 
     #[test]

@@ -94,6 +94,14 @@ pub fn dump_asm(buf: &[u8], name: &str) {
     println!("fn {}", name);
     for instr in instrs {
         println!("  {:#06x}: {}\t\t{}", instr.addr, instr.mnemonic, instr.op_str);
+
+        print!("\t  ");
+
+        for byte in &instr.bytes {
+            print!("{:02x} ", byte);
+        }
+
+        println!("");
     }
 }
 
