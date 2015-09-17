@@ -1,27 +1,17 @@
 use std::mem;
 use std::io::Error;
 
-use parser::ast::Ast;
-use parser::ast::BinOp;
-use parser::ast::Elem::{self, ElemFunction};
-use parser::ast::Expr;
-use parser::ast::Function;
-use parser::ast::NodeId;
-use parser::ast::Param;
-use parser::ast::Stmt;
-use parser::ast::Type;
-use parser::ast::UnOp;
+use parser::ast::*;
+use parser::ast::Elem::*;
 
-use error::ParseError;
-use error::ErrorCode;
+use error::*;
 
-use parser::interner::Interner;
-use parser::interner::Name;
+use parser::interner::*;
 
-use parser::lexer::Lexer;
-use parser::lexer::token::{TokenType,Token};
+use parser::lexer::*;
+use parser::lexer::token::*;
 use parser::lexer::position::Position;
-use parser::lexer::reader::{CodeReader,FileReader};
+use parser::lexer::reader::{CodeReader, FileReader};
 
 #[cfg(test)]
 use parser::lexer::reader::StrReader;
@@ -420,13 +410,13 @@ impl<T: CodeReader> Parser<T> {
         while self.token.is(TokenType::EqEq) || self.token.is(TokenType::Ne) {
             let tok = try!(self.read_token());
             let op = match tok.token_type {
-                TokenType::EqEq => BinOp::Eq,
-                _ => BinOp::Ne
+                TokenType::EqEq => CmpOp::Eq,
+                _ => CmpOp::Ne
             };
 
             let right = try!(self.parse_expression_l4());
             left = box Expr::create_bin(self.generate_id(),
-                tok.position, op, left, right);
+                tok.position, BinOp::Cmp(op), left, right);
         }
 
         Ok(left)
@@ -440,14 +430,15 @@ impl<T: CodeReader> Parser<T> {
 
             let tok = try!(self.read_token());
             let op = match tok.token_type {
-                TokenType::Lt => BinOp::Lt,
-                TokenType::Le => BinOp::Le,
-                TokenType::Gt => BinOp::Gt,
-                _ => BinOp::Ge
+                TokenType::Lt => CmpOp::Lt,
+                TokenType::Le => CmpOp::Le,
+                TokenType::Gt => CmpOp::Gt,
+                _ => CmpOp::Ge
             };
 
             let right = try!(self.parse_expression_l5());
-            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
+            left = box Expr::create_bin(self.generate_id(), tok.position,
+                BinOp::Cmp(op), left, right);
         }
 
         Ok(left)
@@ -645,16 +636,8 @@ impl<T: CodeReader> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use parser::ast::Ast;
-    use parser::ast::BinOp;
-    use parser::ast::Expr;
-    use parser::ast::NodeId;
-    use parser::ast::Param;
-    use parser::ast::Stmt;
-    use parser::ast::Type;
-    use parser::ast::UnOp;
-
-    use parser::interner::{Interner, Name};
+    use parser::ast::*;
+    use parser::interner::*;
 
     use error::ErrorCode;
     use parser::lexer::position::Position;
@@ -928,7 +911,7 @@ mod tests {
         let (expr, _) = parse_expr("1<2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Lt, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
@@ -938,7 +921,7 @@ mod tests {
         let (expr, _) = parse_expr("1<=2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Le, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
@@ -948,7 +931,7 @@ mod tests {
         let (expr, _) = parse_expr("1>2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Gt, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
@@ -958,7 +941,7 @@ mod tests {
         let (expr, _) = parse_expr("1>=2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Ge, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
@@ -968,7 +951,7 @@ mod tests {
         let (expr, _) = parse_expr("1==2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Eq, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
@@ -978,7 +961,7 @@ mod tests {
         let (expr, _) = parse_expr("1!=2");
 
         let cmp = expr.to_bin().unwrap();
-        assert_eq!(BinOp::Ne, cmp.op);
+        assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }

@@ -546,6 +546,29 @@ impl ToString for UnOp {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum CmpOp {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
+impl CmpOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            CmpOp::Eq => "==",
+            CmpOp::Ne => "!=",
+            CmpOp::Lt => "<",
+            CmpOp::Le => "<=",
+            CmpOp::Gt => ">",
+            CmpOp::Ge => ">=",
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum BinOp {
     Add,
@@ -553,12 +576,7 @@ pub enum BinOp {
     Mul,
     Div,
     Mod,
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
+    Cmp(CmpOp),
     Or,
     And,
     BitOr,
@@ -566,28 +584,21 @@ pub enum BinOp {
     BitXor,
 }
 
-impl ToString for BinOp {
-    fn to_string(&self) -> String {
-        let repr = match *self {
+impl BinOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
             BinOp::Add => "+",
             BinOp::Sub => "-",
             BinOp::Mul => "*",
             BinOp::Div => "/",
             BinOp::Mod => "%",
-            BinOp::Eq => "==",
-            BinOp::Ne => "!=",
-            BinOp::Lt => "<",
-            BinOp::Le => "<=",
-            BinOp::Gt => ">",
-            BinOp::Ge => ">=",
+            BinOp::Cmp(op) => op.as_str(),
             BinOp::Or => "||",
             BinOp::And => "&&",
             BinOp::BitOr => "|",
             BinOp::BitAnd => "&",
             BinOp::BitXor => "^"
-        };
-
-        repr.into()
+        }
     }
 }
 

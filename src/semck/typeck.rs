@@ -253,7 +253,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let rhs_type = self.expr_type;
 
         if expected_type != lhs_type || expected_type != rhs_type {
-            let op = e.op.to_string();
+            let op = e.op.as_str().into();
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
