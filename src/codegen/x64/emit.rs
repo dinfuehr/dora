@@ -254,6 +254,24 @@ pub fn emit_testl_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
     emit_modrm(buf, 0b11, op1.and7(), op2.and7());
 }
 
+pub fn emit_addl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, 0, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x01);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
+pub fn emit_subl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, 0, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, 0x29);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use codegen::buffer::Buffer;
@@ -443,5 +461,17 @@ mod tests {
         assert_emit!(0x80, 0xe1, 2; emit_andb_imm_reg(2, RCX));
         assert_emit!(0x41, 0x80, 0xe0, 3; emit_andb_imm_reg(3, R8));
         assert_emit!(0x41, 0x80, 0xe7, 4; emit_andb_imm_reg(4, R15));
+    }
+
+    #[test]
+    fn test_addl_reg_reg() {
+        assert_emit!(0x01, 0xd8; emit_addl_reg_reg(RBX, RAX));
+        assert_emit!(0x44, 0x01, 0xf9; emit_addl_reg_reg(R15, RCX));
+    }
+
+    #[test]
+    fn test_subl_reg_reg() {
+        assert_emit!(0x29, 0xd8; emit_subl_reg_reg(RBX, RAX));
+        assert_emit!(0x44, 0x29, 0xf9; emit_subl_reg_reg(R15, RCX));
     }
 }
