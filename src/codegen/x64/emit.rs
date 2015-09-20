@@ -277,9 +277,18 @@ pub fn emit_imull_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
         emit_rex(buf, 0, dest.msb(), 0, src.msb());
     }
 
-    emit_op(buf, 0x0F);
-    emit_op(buf, 0xaF);
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xaf);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
+pub fn emit_idivl_reg_reg(buf: &mut Buffer, reg: Reg) {
+    if reg.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, reg.msb());
+    }
+
+    emit_op(buf, 0xf7);
+    emit_modrm(buf, 0b11, 0b111, reg.and7());
 }
 
 #[cfg(test)]
@@ -486,8 +495,14 @@ mod tests {
     }
 
     #[test]
-    fn test_mull_reg_reg() {
+    fn test_imull_reg_reg() {
         assert_emit!(0x0f, 0xaf, 0xc3; emit_imull_reg_reg(RBX, RAX));
         assert_emit!(0x41, 0x0f, 0xaf, 0xcf; emit_imull_reg_reg(R15, RCX));
+    }
+
+    #[test]
+    fn test_idivl_reg_reg() {
+        assert_emit!(0xf7, 0xf8; emit_idivl_reg_reg(RAX));
+        assert_emit!(0x41, 0xf7, 0xff; emit_idivl_reg_reg(R15));
     }
 }
