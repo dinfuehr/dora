@@ -291,6 +291,10 @@ pub fn emit_idivl_reg_reg(buf: &mut Buffer, reg: Reg) {
     emit_modrm(buf, 0b11, 0b111, reg.and7());
 }
 
+pub fn emit_cltd(buf: &mut Buffer) {
+    emit_op(buf, 0x99);
+}
+
 #[cfg(test)]
 mod tests {
     use codegen::buffer::Buffer;
@@ -504,5 +508,10 @@ mod tests {
     fn test_idivl_reg_reg() {
         assert_emit!(0xf7, 0xf8; emit_idivl_reg_reg(RAX));
         assert_emit!(0x41, 0xf7, 0xff; emit_idivl_reg_reg(R15));
+    }
+
+    #[test]
+    fn test_cltd() {
+        assert_emit!(0x99; emit_cltd);
     }
 }
