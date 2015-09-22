@@ -52,7 +52,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         let defs = self.ctxt.defs.borrow();
 
-        for (reg, p) in PARAM_REGS.iter().zip(&self.fct.params) {
+        for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
             let varid = *defs.get(&p.id).unwrap();
             self.emit_var_store(*reg, varid);
         }

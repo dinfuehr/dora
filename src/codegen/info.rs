@@ -59,7 +59,7 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         // on x64 only the first 6 parameters are stored in registers
-        if (p.idx as usize) < PARAM_REGS.len() {
+        if (p.idx as usize) < REG_PARAMS.len() {
             self.increase_stack(p.id);
 
         // the rest of the parameters need to be stored in the callers stack
