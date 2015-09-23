@@ -93,7 +93,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // execute condition, when condition is false jump to
         // end of while
         self.visit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, RAX, RAX);
+        emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
         emit_jz(&mut self.buf, lbl_end);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -142,7 +142,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         };
 
         self.visit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, RAX, RAX);
+        emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
         emit_jz(&mut self.buf, lbl_else);
 
         self.visit_stmt(&s.then_block);
@@ -182,24 +182,24 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            self.emit_var_store(RAX, varid);
+            self.emit_var_store(REG_RESULT, varid);
         }
     }
 
     fn emit_expr_lit_int(&mut self, lit: &'ast ExprLitIntType) {
-        emit_movl_imm_reg(&mut self.buf, lit.value as u32, Reg::RAX);
+        emit_movl_imm_reg(&mut self.buf, lit.value as u32, REG_RESULT);
     }
 
     fn emit_expr_lit_bool(&mut self, lit: &'ast ExprLitBoolType) {
         let value : u32 = if lit.value { 1 } else { 0 };
-        emit_movl_imm_reg(&mut self.buf, value, Reg::RAX);
+        emit_movl_imm_reg(&mut self.buf, value, REG_RESULT);
     }
 
     fn emit_expr_ident(&mut self, e: &'ast ExprIdentType) {
         let defs = self.ctxt.defs.borrow();
         let varid = *defs.get(&e.id).unwrap();
 
-        self.emit_var_load(varid, RAX);
+        self.emit_var_load(varid, REG_RESULT);
     }
 
     fn emit_expr_un(&mut self, e: &'ast ExprUnType) {
@@ -207,11 +207,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         match e.op {
             UnOp::Plus => {},
-            UnOp::Neg => emit_negl_reg(&mut self.buf, RAX),
-            UnOp::BitNot => emit_notl_reg(&mut self.buf, RAX),
+            UnOp::Neg => emit_negl_reg(&mut self.buf, REG_RESULT),
+            UnOp::BitNot => emit_notl_reg(&mut self.buf, REG_RESULT),
             UnOp::Not => {
-                emit_xorb_imm_reg(&mut self.buf, 1, RAX);
-                emit_andb_imm_reg(&mut self.buf, 1, RAX);
+                emit_xorb_imm_reg(&mut self.buf, 1, REG_RESULT);
+                emit_andb_imm_reg(&mut self.buf, 1, REG_RESULT);
             },
         }
     }
