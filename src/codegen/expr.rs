@@ -35,7 +35,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    pub fn generate(&mut self, e: &'ast Expr) {
+    pub fn generate(&mut self, e: &'ast Expr) -> Reg {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr),
@@ -43,6 +43,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprIdent(ref expr) => self.emit_ident(expr),
             _ => unreachable!(),
         }
+
+        REG_RESULT
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType) {

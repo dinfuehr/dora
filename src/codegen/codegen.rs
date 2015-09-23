@@ -94,8 +94,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         // execute condition, when condition is false jump to
         // end of while
-        self.emit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
+        let reg = self.emit_expr(&s.cond);
+        emit_testl_reg_reg(&mut self.buf, reg, reg);
         emit_jz(&mut self.buf, lbl_end);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -143,8 +143,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             lbl_end
         };
 
-        self.emit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
+        let reg = self.emit_expr(&s.cond);
+        emit_testl_reg_reg(&mut self.buf, reg, reg);
         emit_jz(&mut self.buf, lbl_else);
 
         self.visit_stmt(&s.then_block);
@@ -179,19 +179,19 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         if let Some(ref expr) = s.expr {
-            self.emit_expr(expr);
+            let reg = self.emit_expr(expr);
 
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            emit::var_store(&mut self.buf, self.ctxt, REG_RESULT, varid);
+            emit::var_store(&mut self.buf, self.ctxt, reg, varid);
         }
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr) {
+    fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let mut expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf);
 
-        expr_gen.generate(e);
+        expr_gen.generate(e)
     }
 }
 
