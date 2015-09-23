@@ -1,4 +1,6 @@
 use codegen::buffer::*;
+use codegen::emit;
+use codegen::expr::*;
 use codegen::info;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
@@ -54,7 +56,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
             let varid = *defs.get(&p.id).unwrap();
-            self.emit_var_store(*reg, varid);
+            emit::var_store(&mut self.buf, self.ctxt, *reg, varid);
         }
     }
 
@@ -78,7 +80,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
         if let Some(ref expr) = s.expr {
-            self.visit_expr(expr);
+            self.emit_expr(expr);
         }
 
         self.emit_epilog();
@@ -92,7 +94,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         // execute condition, when condition is false jump to
         // end of while
-        self.visit_expr(&s.cond);
+        self.emit_expr(&s.cond);
         emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
         emit_jz(&mut self.buf, lbl_end);
 
@@ -141,7 +143,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             lbl_end
         };
 
-        self.visit_expr(&s.cond);
+        self.emit_expr(&s.cond);
         emit_testl_reg_reg(&mut self.buf, REG_RESULT, REG_RESULT);
         emit_jz(&mut self.buf, lbl_else);
 
@@ -166,7 +168,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
-        self.visit_expr(&s.expr);
+        self.emit_expr(&s.expr);
     }
 
     fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
@@ -177,67 +179,19 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         if let Some(ref expr) = s.expr {
-            self.visit_expr(expr);
+            self.emit_expr(expr);
 
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            self.emit_var_store(REG_RESULT, varid);
+            emit::var_store(&mut self.buf, self.ctxt, REG_RESULT, varid);
         }
     }
 
-    fn emit_expr_lit_int(&mut self, lit: &'ast ExprLitIntType) {
-        emit_movl_imm_reg(&mut self.buf, lit.value as u32, REG_RESULT);
-    }
+    fn emit_expr(&mut self, e: &'ast Expr) {
+        let mut expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf);
 
-    fn emit_expr_lit_bool(&mut self, lit: &'ast ExprLitBoolType) {
-        let value : u32 = if lit.value { 1 } else { 0 };
-        emit_movl_imm_reg(&mut self.buf, value, REG_RESULT);
-    }
-
-    fn emit_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let defs = self.ctxt.defs.borrow();
-        let varid = *defs.get(&e.id).unwrap();
-
-        self.emit_var_load(varid, REG_RESULT);
-    }
-
-    fn emit_expr_un(&mut self, e: &'ast ExprUnType) {
-        self.visit_expr(&e.opnd);
-
-        match e.op {
-            UnOp::Plus => {},
-            UnOp::Neg => emit_negl_reg(&mut self.buf, REG_RESULT),
-            UnOp::BitNot => emit_notl_reg(&mut self.buf, REG_RESULT),
-            UnOp::Not => {
-                emit_xorb_imm_reg(&mut self.buf, 1, REG_RESULT);
-                emit_andb_imm_reg(&mut self.buf, 1, REG_RESULT);
-            },
-        }
-    }
-
-    fn emit_var_store(&mut self, src: Reg, var: VarInfoId) {
-        let var_infos = self.ctxt.var_infos.borrow();
-        let var = &var_infos[var.0];
-
-        match var.data_type {
-            BuiltinType::Bool => emit_movb_reg_memq(&mut self.buf, src, RBP, var.offset),
-            BuiltinType::Int => emit_movl_reg_memq(&mut self.buf, src, RBP, var.offset),
-            BuiltinType::Str => emit_movq_reg_memq(&mut self.buf, src, RBP, var.offset),
-            BuiltinType::Unit => {},
-        }
-    }
-
-    fn emit_var_load(&mut self, var: VarInfoId, dest: Reg) {
-        let var_infos = self.ctxt.var_infos.borrow();
-        let var = &var_infos[var.0];
-
-        match var.data_type {
-            BuiltinType::Bool => emit_movb_memq_reg(&mut self.buf, RBP, var.offset, dest),
-            BuiltinType::Int => emit_movl_memq_reg(&mut self.buf, RBP, var.offset, dest),
-            BuiltinType::Str => emit_movq_memq_reg(&mut self.buf, RBP, var.offset, dest),
-            BuiltinType::Unit => {},
-        }
+        expr_gen.generate(e);
     }
 }
 
@@ -257,13 +211,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
     }
 
     fn visit_expr(&mut self, e: &'ast Expr) {
-        match *e {
-            ExprLitInt(ref expr) => self.emit_expr_lit_int(expr),
-            ExprLitBool(ref expr) => self.emit_expr_lit_bool(expr),
-            ExprIdent(ref expr) => self.emit_expr_ident(expr),
-            ExprUn(ref expr) => self.emit_expr_un(expr),
-            _ => unreachable!()
-        }
+        unreachable!("should not be invoked");
     }
 }
 
