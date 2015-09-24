@@ -35,9 +35,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    pub fn generate(&mut self, e: &'ast Expr) -> Reg {
-        let dest = REG_RESULT;
+    pub fn generate(mut self, e: &'ast Expr) -> Reg {
+        self.emit_expr(e, REG_RESULT)
+    }
 
+    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) -> Reg {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
@@ -66,7 +68,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
-        self.generate(&e.opnd);
+        self.emit_expr(&e.opnd, dest);
 
         match e.op {
             UnOp::Plus => {},
