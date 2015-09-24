@@ -46,6 +46,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
+            ExprBin(ref expr) => self.emit_bin(expr, dest),
             _ => unreachable!(),
         }
 
@@ -89,5 +90,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let varid = *defs.get(&e.lhs.id()).unwrap();
 
         emit::var_store(&mut self.buf, self.ctxt, dest, varid);
+    }
+
+    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        assert!(e.rhs.is_leaf());
+
+        match e.op {
+            BinOp::Add => self.emit_bin_add(e, dest),
+            _ => unreachable!(),
+        }
+    }
+
+    fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.rhs, REG_TMP1);
+
+        emit_addl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+
+        if dest != REG_RESULT {
+            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
+        }
     }
 }
