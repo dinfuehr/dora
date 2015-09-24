@@ -123,7 +123,18 @@ fn emit_aluq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg, rax_opcode: u8, modrm
 }
 
 pub fn emit_movq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    emit_rex(buf, 1, src.msb(), 0, dest.msb());
+    emit_mov_reg_reg(buf, 1, src, dest);
+}
+
+pub fn emit_movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_mov_reg_reg(buf, 0, src, dest);
+}
+
+fn emit_mov_reg_reg(buf: &mut Buffer, x64: u8, src: Reg, dest: Reg) {
+    if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
     emit_op(buf, 0x89);
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
@@ -365,6 +376,13 @@ mod tests {
     fn test_emit_movq_reg_reg() {
         assert_emit!(0x4c, 0x89, 0xf8; emit_movq_reg_reg(R15, RAX));
         assert_emit!(0x49, 0x89, 0xc7; emit_movq_reg_reg(RAX, R15));
+    }
+
+    #[test]
+    fn test_emit_movl_reg_reg() {
+        assert_emit!(0x44, 0x89, 0xf8; emit_movl_reg_reg(R15, RAX));
+        assert_emit!(0x41, 0x89, 0xc7; emit_movl_reg_reg(RAX, R15));
+        assert_emit!(0x89, 0xc8; emit_movl_reg_reg(RCX, RAX));
     }
 
     #[test]
