@@ -332,4 +332,11 @@ mod tests {
         assert_eq!(true, run("fn f() -> bool { var a = true; return a; }"));
         assert_eq!(false, run("fn f() -> bool { var a = false; return a; }"));
     }
+
+    #[test]
+    fn test_assign() {
+        assert_eq!(4711, run("fn f() -> int { var a: int; a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool { var a: bool; a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool { var a: bool; a = false; return a; }"));
+    }
 }

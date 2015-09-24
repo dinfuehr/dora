@@ -45,6 +45,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
+            ExprAssign(ref expr) => self.emit_assign(expr, dest),
             _ => unreachable!(),
         }
 
@@ -79,5 +80,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit_andb_imm_reg(self.buf, 1, dest);
             },
         }
+    }
+
+    fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
+        self.emit_expr(&e.rhs, dest);
+
+        let defs = self.ctxt.defs.borrow();
+        let varid = *defs.get(&e.lhs.id()).unwrap();
+
+        emit::var_store(&mut self.buf, self.ctxt, dest, varid);
     }
 }
