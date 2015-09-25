@@ -349,4 +349,19 @@ mod tests {
     fn test_sub() {
         assert_eq!(-1, run("fn f() -> int { var a = 1; var b = 2; return a - b; }"));
     }
+
+    #[test]
+    fn test_or() {
+        assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a | b; }"));
+    }
+
+    #[test]
+    fn test_and() {
+        assert_eq!(1, run("fn f() -> int { var a = 1; var b = 3; return a & b; }"));
+    }
+
+    #[test]
+    fn test_xor() {
+        assert_eq!(1, run("fn f() -> int { var a = 3; var b = 2; return a ^ b; }"));
+    }
 }

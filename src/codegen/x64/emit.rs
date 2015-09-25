@@ -2,6 +2,27 @@ use codegen::buffer::*;
 use super::reg::Reg;
 use super::reg::Reg::*;
 
+pub fn emit_orl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, 0, 0x09, src, dest);
+}
+
+pub fn emit_andl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, 0, 0x21, src, dest);
+}
+
+pub fn emit_xorl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, 0, 0x31, src, dest);
+}
+
+fn emit_alu_reg_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, dest: Reg) {
+    if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
+    }
+
+    emit_op(buf, opcode);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
 pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
@@ -531,5 +552,26 @@ mod tests {
     #[test]
     fn test_cltd() {
         assert_emit!(0x99; emit_cltd);
+    }
+
+    #[test]
+    fn test_orl_reg_reg() {
+        assert_emit!(0x44, 0x09, 0xf8; emit_orl_reg_reg(R15, RAX));
+        assert_emit!(0x09, 0xc8; emit_orl_reg_reg(RCX, RAX));
+        assert_emit!(0x41, 0x09, 0xc7; emit_orl_reg_reg(RAX, R15));
+    }
+
+    #[test]
+    fn test_andl_reg_reg() {
+        assert_emit!(0x44, 0x21, 0xf8; emit_andl_reg_reg(R15, RAX));
+        assert_emit!(0x21, 0xc8; emit_andl_reg_reg(RCX, RAX));
+        assert_emit!(0x41, 0x21, 0xc7; emit_andl_reg_reg(RAX, R15));
+    }
+
+    #[test]
+    fn test_xorl_reg_reg() {
+        assert_emit!(0x44, 0x31, 0xf8; emit_xorl_reg_reg(R15, RAX));
+        assert_emit!(0x31, 0xc8; emit_xorl_reg_reg(RCX, RAX));
+        assert_emit!(0x41, 0x31, 0xc7; emit_xorl_reg_reg(RAX, R15));
     }
 }
