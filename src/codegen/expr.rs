@@ -97,6 +97,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         match e.op {
             BinOp::Add => self.emit_bin_add(e, dest),
+            BinOp::Sub => self.emit_bin_sub(e, dest),
             _ => unreachable!(),
         }
     }
@@ -106,6 +107,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&e.rhs, REG_TMP1);
 
         emit_addl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+
+        if dest != REG_RESULT {
+            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
+        }
+    }
+
+    fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.rhs, REG_TMP1);
+
+        emit_subl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 
         if dest != REG_RESULT {
             emit_movl_reg_reg(self.buf, REG_RESULT, dest);

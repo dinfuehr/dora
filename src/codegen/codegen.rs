@@ -344,4 +344,9 @@ mod tests {
     fn test_add() {
         assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a + b; }"));
     }
+
+    #[test]
+    fn test_sub() {
+        assert_eq!(-1, run("fn f() -> int { var a = 1; var b = 2; return a - b; }"));
+    }
 }
