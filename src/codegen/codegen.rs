@@ -364,4 +364,9 @@ mod tests {
     fn test_xor() {
         assert_eq!(1, run("fn f() -> int { var a = 3; var b = 2; return a ^ b; }"));
     }
+
+    #[test]
+    fn test_mul() {
+        assert_eq!(6, run("fn f() -> int { var a = 3; var b = 2; return a * b; }"));
+    }
 }
