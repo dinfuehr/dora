@@ -379,4 +379,14 @@ mod tests {
             assert_eq!(a/b, f(a));
         }
     }
+
+    #[test]
+    fn test_mod() {
+        let (mem, f) = fct1("fn f(a: int) -> int { var b = 3; return a % b; }");
+        let b = 3;
+
+        for a in 0..8 {
+            assert_eq!(a%b, f(a));
+        }
+    }
 }

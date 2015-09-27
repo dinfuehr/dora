@@ -100,6 +100,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::Sub => self.emit_bin_sub(e, dest),
             BinOp::Mul => self.emit_bin_mul(e, dest),
             BinOp::Div => self.emit_bin_div(e, dest),
+            BinOp::Mod => self.emit_bin_mod(e, dest),
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
             BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
@@ -108,7 +109,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_div(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.lhs, RAX);
         self.emit_expr(&e.rhs, REG_TMP1);
 
         emit_cltd(self.buf);
@@ -116,6 +117,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         if dest != REG_RESULT {
             emit_movl_reg_reg(self.buf, REG_RESULT, dest);
+        }
+    }
+
+    fn emit_bin_mod(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_expr(&e.lhs, RAX);
+        self.emit_expr(&e.rhs, REG_TMP1);
+
+        emit_cltd(self.buf);
+        emit_idivl_reg_reg(self.buf, REG_TMP1);
+
+        if dest != RDX {
+            emit_movl_reg_reg(self.buf, RDX, dest);
         }
     }
 
