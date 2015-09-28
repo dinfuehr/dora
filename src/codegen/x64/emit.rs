@@ -351,6 +351,16 @@ pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
     emit_modrm(buf, 0b11, 0, reg.and7());
 }
 
+pub fn emit_movb_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 ||
+        (src != RAX && src != RBX && src != RCX && src != RDX) {
+        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x88);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use codegen::buffer::Buffer;
@@ -615,11 +625,14 @@ mod tests {
         assert_emit!(0x0f, 0x9f, 0xc2; emit_setb_reg(CmpOp::Gt, RDX));
         assert_emit!(0x40, 0x0f, 0x9e, 0xc6; emit_setb_reg(CmpOp::Le, RSI));
         assert_emit!(0x40, 0x0f, 0x9c, 0xc7; emit_setb_reg(CmpOp::Lt, RDI));
-        // 0:  0f 94 c0                sete   al
-        // 3:  41 0f 95 c7             setne  r15b
-        // 7:  0f 9d c1                setge  cl
-        // a:  0f 9f c2                setg   dl
-        // d:  40 0f 9e c6             setle  sil
-        // 11: 40 0f 9c c7             setl   dil
+    }
+
+    #[test]
+    fn test_movb_reg_reg() {
+        assert_emit!(0x88, 0xd8; emit_movb_reg_reg(RBX, RAX));
+        assert_emit!(0x88, 0xd1; emit_movb_reg_reg(RDX, RCX));
+        assert_emit!(0x45, 0x88, 0xd1; emit_movb_reg_reg(R10, R9));
+        assert_emit!(0x40, 0x88, 0xfe; emit_movb_reg_reg(RDI, RSI));
+        assert_emit!(0x45, 0x88, 0xf7; emit_movb_reg_reg(R14, R15));
     }
 }
