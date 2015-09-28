@@ -1,4 +1,5 @@
 use codegen::buffer::*;
+use parser::ast::CmpOp;
 use super::reg::Reg;
 use super::reg::Reg::*;
 
@@ -331,10 +332,30 @@ pub fn emit_cltd(buf: &mut Buffer) {
     emit_op(buf, 0x99);
 }
 
+pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
+    if reg.msb() != 0 || (reg != RAX && reg != RBX && reg != RCX && reg != RDX) {
+        emit_rex(buf, 0, 0, 0, reg.msb());
+    }
+
+    let op = match op {
+        CmpOp::Lt => 0x9c,
+        CmpOp::Le => 0x9e,
+        CmpOp::Gt => 0x9f,
+        CmpOp::Ge => 0x9d,
+        CmpOp::Eq => 0x94,
+        CmpOp::Ne => 0x95,
+    };
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, op);
+    emit_modrm(buf, 0b11, 0, reg.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use codegen::buffer::Buffer;
     use codegen::x64::reg::Reg::*;
+    use parser::ast::CmpOp;
     use super::*;
 
     macro_rules! assert_emit {
@@ -584,5 +605,21 @@ mod tests {
         assert_emit!(0x44, 0x39, 0xf8; emit_cmpl_reg_reg(R15, RAX));
         assert_emit!(0x41, 0x39, 0xdf; emit_cmpl_reg_reg(RBX, R15));
         assert_emit!(0x39, 0xd8; emit_cmpl_reg_reg(RBX, RAX));
+    }
+
+    #[test]
+    fn test_setb_reg() {
+        assert_emit!(0x0f, 0x94, 0xc0; emit_setb_reg(CmpOp::Eq, RAX));
+        assert_emit!(0x41, 0x0f, 0x95, 0xc7; emit_setb_reg(CmpOp::Ne, R15));
+        assert_emit!(0x0f, 0x9d, 0xc1; emit_setb_reg(CmpOp::Ge, RCX));
+        assert_emit!(0x0f, 0x9f, 0xc2; emit_setb_reg(CmpOp::Gt, RDX));
+        assert_emit!(0x40, 0x0f, 0x9e, 0xc6; emit_setb_reg(CmpOp::Le, RSI));
+        assert_emit!(0x40, 0x0f, 0x9c, 0xc7; emit_setb_reg(CmpOp::Lt, RDI));
+        // 0:  0f 94 c0                sete   al
+        // 3:  41 0f 95 c7             setne  r15b
+        // 7:  0f 9d c1                setge  cl
+        // a:  0f 9f c2                setg   dl
+        // d:  40 0f 9e c6             setle  sil
+        // 11: 40 0f 9c c7             setl   dil
     }
 }
