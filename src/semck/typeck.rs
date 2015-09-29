@@ -258,6 +258,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
+
+        self.expr_type = match e.op {
+            BinOp::Or => BuiltinType::Bool,
+            BinOp::And => BuiltinType::Bool,
+            BinOp::Cmp(_) => BuiltinType::Bool,
+            _ => BuiltinType::Int,
+        };
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {

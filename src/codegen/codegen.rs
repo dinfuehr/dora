@@ -389,4 +389,76 @@ mod tests {
             assert_eq!(a%b, f(a));
         }
     }
+
+    #[test]
+    fn test_cmp_lt() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a < 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(1, f(-4));
+        assert_eq!(1, f(-3));
+        assert_eq!(1, f(-1));
+        assert_eq!(1, f(1));
+        assert_eq!(0, f(3));
+        assert_eq!(0, f(4));
+    }
+
+    #[test]
+    fn test_cmp_le() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a <= 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(1, f(-4));
+        assert_eq!(1, f(-3));
+        assert_eq!(1, f(-1));
+        assert_eq!(1, f(1));
+        assert_eq!(1, f(3));
+        assert_eq!(0, f(4));
+    }
+
+    #[test]
+    fn test_cmp_gt() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a > 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(0, f(-4));
+        assert_eq!(0, f(-3));
+        assert_eq!(0, f(-1));
+        assert_eq!(0, f(1));
+        assert_eq!(0, f(3));
+        assert_eq!(1, f(4));
+    }
+
+    #[test]
+    fn test_cmp_ge() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a >= 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(0, f(-4));
+        assert_eq!(0, f(-3));
+        assert_eq!(0, f(-1));
+        assert_eq!(0, f(1));
+        assert_eq!(1, f(3));
+        assert_eq!(1, f(4));
+    }
+
+    #[test]
+    fn test_cmp_eq() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a == 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(0, f(-4));
+        assert_eq!(0, f(-3));
+        assert_eq!(0, f(-1));
+        assert_eq!(0, f(1));
+        assert_eq!(1, f(3));
+        assert_eq!(0, f(4));
+    }
+
+    #[test]
+    fn test_cmp_ne() {
+        let (mem, f) = fct1("fn f(a: int) -> int { if a != 3 { return 1; } else { return 0; } }");
+
+        assert_eq!(1, f(-4));
+        assert_eq!(1, f(-3));
+        assert_eq!(1, f(-1));
+        assert_eq!(1, f(1));
+        assert_eq!(0, f(3));
+        assert_eq!(1, f(4));
+    }
 }

@@ -101,10 +101,24 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::Mul => self.emit_bin_mul(e, dest),
             BinOp::Div => self.emit_bin_div(e, dest),
             BinOp::Mod => self.emit_bin_mod(e, dest),
+            BinOp::Cmp(op) => self.emit_bin_cmp(e, dest, op),
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
             BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
             _ => unreachable!(),
+        }
+    }
+
+    fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
+        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.rhs, REG_TMP1);
+
+        emit_cmpl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+        emit_setb_reg(self.buf, op, REG_RESULT);
+        emit_movzbl_reg_reg(self.buf, REG_RESULT, REG_RESULT);
+
+        if dest != REG_RESULT {
+            emit_movb_reg_reg(self.buf, REG_RESULT, dest);
         }
     }
 
