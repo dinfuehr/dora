@@ -102,6 +102,7 @@ impl Buffer {
             }
 
             // forward jumps do not know their target yet
+            // we need to do this later...
             None => {
                 let pos = self.buf.pos();
                 self.emit_u32(0);

@@ -253,6 +253,13 @@ mod tests {
         (m, unsafe { mem::transmute(ptr) })
     }
 
+    fn fct2<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T, T) -> T) {
+        let m = compile(code);
+        let ptr = m.ptr();
+
+        (m, unsafe { mem::transmute(ptr) })
+    }
+
     #[test]
     fn test_lit_int() {
         assert_eq!(1i32, run("fn f() -> int { return 1; }"));
@@ -351,17 +358,17 @@ mod tests {
     }
 
     #[test]
-    fn test_or() {
+    fn test_bit_or() {
         assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a | b; }"));
     }
 
     #[test]
-    fn test_and() {
+    fn test_bit_and() {
         assert_eq!(1, run("fn f() -> int { var a = 1; var b = 3; return a & b; }"));
     }
 
     #[test]
-    fn test_xor() {
+    fn test_bit_xor() {
         assert_eq!(1, run("fn f() -> int { var a = 3; var b = 2; return a ^ b; }"));
     }
 
@@ -460,5 +467,15 @@ mod tests {
         assert_eq!(1, f(1));
         assert_eq!(0, f(3));
         assert_eq!(1, f(4));
+    }
+
+    #[test]
+    fn test_or() {
+        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool { return a || b; }");
+
+        assert_eq!(true, f(true, true));
+        assert_eq!(true, f(true, false));
+        assert_eq!(true, f(false, true));
+        assert_eq!(false, f(false, false));
     }
 }

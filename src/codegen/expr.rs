@@ -105,8 +105,32 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
             BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
+            BinOp::Or => self.emit_bin_or(e, dest),
             _ => unreachable!(),
         }
+    }
+
+    fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        let lbl_true = self.buf.create_label();
+        let lbl_false = self.buf.create_label();
+        let lbl_end = self.buf.create_label();
+
+        self.emit_expr(&e.lhs, REG_RESULT);
+        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
+        emit_jnz(self.buf, lbl_true);
+
+        self.emit_expr(&e.rhs, REG_RESULT);
+        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
+        emit_jz(self.buf, lbl_false);
+
+        self.buf.define_label(lbl_true);
+        emit_movl_imm_reg(self.buf, 1, REG_RESULT);
+        emit_jmp(self.buf, lbl_end);
+
+        self.buf.define_label(lbl_false);
+        emit_movl_imm_reg(self.buf, 0, REG_RESULT);
+
+        self.buf.define_label(lbl_end);
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
