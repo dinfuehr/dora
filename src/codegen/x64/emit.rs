@@ -273,6 +273,12 @@ pub fn emit_jz(buf: &mut Buffer, lbl: Label) {
     buf.emit_label(lbl);
 }
 
+pub fn emit_jnz(buf: &mut Buffer, lbl: Label) {
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0x85);
+    buf.emit_label(lbl);
+}
+
 pub fn emit_jmp(buf: &mut Buffer, lbl: Label) {
     emit_op(buf, 0xe9);
     buf.emit_label(lbl);
@@ -508,6 +514,16 @@ mod tests {
         emit_nop(&mut buf);
         buf.define_label(lbl);
         assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.finish());
+    }
+
+    #[test]
+    fn test_emit_jnz() {
+        let mut buf = Buffer::new();
+        let lbl = buf.create_label();
+        emit_jnz(&mut buf, lbl);
+        emit_nop(&mut buf);
+        buf.define_label(lbl);
+        assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.finish());
     }
 
     #[test]
