@@ -847,6 +847,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_add_left_associativity() {
+        let (expr, interner) = parse_expr("1+2+3");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
+
+        println!("rhs = {:?}", &add.rhs);
+
+        let lhs = add.lhs.to_bin().unwrap();
+        assert_eq!(1, lhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, lhs.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
     fn parse_sub() {
         let (expr, _) = parse_expr("1-2");
 
