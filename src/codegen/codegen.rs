@@ -478,4 +478,14 @@ mod tests {
         assert_eq!(true, f(false, true));
         assert_eq!(false, f(false, false));
     }
+
+    #[test]
+    fn test_and() {
+        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool { return a && b; }");
+
+        assert_eq!(true, f(true, true));
+        assert_eq!(false, f(true, false));
+        assert_eq!(false, f(false, true));
+        assert_eq!(false, f(false, false));
+    }
 }
