@@ -1,6 +1,5 @@
 use libc::*;
 use std::ptr;
-use std::mem;
 
 pub struct CodeMemory {
     // size of memory area
@@ -34,12 +33,6 @@ impl CodeMemory {
 
     pub fn ptr(&self) -> *const u8 {
         self.ptr
-    }
-
-    pub fn func(&self) -> extern "C" fn() -> i32 {
-        unsafe {
-            mem::transmute(self.ptr)
-        }
     }
 }
 

@@ -8,8 +8,6 @@ use parser::ast::ctxt::*;
 use parser::ast::*;
 use parser::ast::Expr::*;
 
-use sym::BuiltinType;
-
 pub enum ExprLoc {
     LocConst(i32),
     LocReg(Reg),
@@ -47,6 +45,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
+            ExprCall(ref expr) => self.emit_call(expr, dest),
             _ => unreachable!(),
         }
 
@@ -257,5 +256,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if dest != REG_RESULT {
             emit_movl_reg_reg(self.buf, REG_RESULT, dest);
         }
+    }
+
+    fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        unreachable!("call");
     }
 }

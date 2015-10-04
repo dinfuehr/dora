@@ -225,8 +225,6 @@ mod tests {
     use semck;
     use test;
 
-    use super::*;
-
     fn compile(code: &'static str) -> CodeMemory {
         test::parse(code, |ctxt| {
             // generate code for first function

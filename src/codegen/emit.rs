@@ -1,5 +1,4 @@
 use codegen::buffer::*;
-use codegen::codegen::*;
 use codegen::x64::emit::*;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;

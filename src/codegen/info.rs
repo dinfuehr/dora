@@ -1,4 +1,3 @@
-use codegen::info;
 use codegen::x64::reg::*;
 use mem;
 use parser::ast::ctxt::Context;
@@ -110,11 +109,11 @@ mod tests {
 
     #[test]
     fn test_invocation_flag() {
-        info("fn f() { g(); } fn g() { }", |ctxt, fct| {
+        info("fn f() { g(); } fn g() { }", |_, fct| {
             assert!(fct.contains_fct_invocation);
         });
 
-        info("fn f() { }", |ctxt, fct| {
+        info("fn f() { }", |_, fct| {
             assert!(!fct.contains_fct_invocation);
         });
     }
