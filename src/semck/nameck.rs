@@ -1,3 +1,5 @@
+use std::ptr;
+
 use parser::ast::ctxt::*;
 use error::msg::Msg;
 
@@ -39,6 +41,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             vars: Vec::new(),
             stacksize: 0,
             contains_fct_invocation: false,
+            compiled_fct: ptr::null(),
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {

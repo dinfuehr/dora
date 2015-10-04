@@ -1,3 +1,5 @@
+use libc::c_void;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -120,6 +122,7 @@ pub struct FctInfo<'ast> {
     pub vars: Vec<VarInfoId>,
     pub stacksize: u32,
     pub contains_fct_invocation: bool,
+    pub compiled_fct: *const c_void,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

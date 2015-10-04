@@ -274,7 +274,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let fct_infos = self.ctxt.fct_infos.borrow();
         let fct = &fct_infos[fid.0];
 
-        let disp = self.dseg.add_addr(stdlib::assert as *const c_void);
+        assert!(!fct.compiled_fct.is_null());
+
+        let disp = self.dseg.add_addr(fct.compiled_fct);
 
         emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT);
         emit_callq_reg(self.buf, REG_RESULT);

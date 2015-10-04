@@ -1,3 +1,5 @@
+use std::ptr;
+
 use parser::ast::ctxt::*;
 
 use sym::Sym::*;
@@ -36,6 +38,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         vars: Vec::new(),
         stacksize: 0,
         contains_fct_invocation: false,
+        compiled_fct: ptr::null(),
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());
