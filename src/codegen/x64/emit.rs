@@ -395,6 +395,15 @@ pub fn emit_cmpb_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
     emit_u8(buf, imm);
 }
 
+pub fn emit_callq_reg(buf: &mut Buffer, dest: Reg) {
+    if dest.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xff);
+    emit_modrm(buf, 0b11, 0b10, dest.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use codegen::buffer::Buffer;
@@ -694,5 +703,11 @@ mod tests {
         assert_emit!(0x80, 0xf9, 0; emit_cmpb_imm_reg(0, RCX));
         assert_emit!(0x41, 0x80, 0xff, 0; emit_cmpb_imm_reg(0, R15));
         assert_emit!(0x40, 0x80, 0xfe, 0; emit_cmpb_imm_reg(0, RSI));
+    }
+
+    #[test]
+    fn test_callq_reg() {
+        assert_emit!(0xff, 0xd0; emit_callq_reg(RAX));
+        assert_emit!(0x41, 0xff, 0xd7; emit_callq_reg(R15));
     }
 }
