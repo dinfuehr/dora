@@ -4,6 +4,8 @@ use codegen::x64::emit::*;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 
+use dseg::DSeg;
+
 use parser::ast::ctxt::*;
 use parser::ast::*;
 use parser::ast::Expr::*;
@@ -18,18 +20,21 @@ pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
     buf: &'a mut Buffer,
+    dseg: &'a mut DSeg,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
         ctxt: &'a Context<'a, 'ast>,
         fct: &'ast Function,
-        buf: &'a mut Buffer
+        buf: &'a mut Buffer,
+        dseg: &'a mut DSeg,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
             buf: buf,
+            dseg: dseg,
         }
     }
 

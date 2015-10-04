@@ -20,17 +20,17 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    builtin_function("assert", BuiltinType::Bool, BuiltinType::Unit, ctxt);
-    builtin_function("print", BuiltinType::Str, BuiltinType::Unit, ctxt);
-    builtin_function("println", BuiltinType::Str, BuiltinType::Unit, ctxt);
+    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt);
+    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt);
+    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt);
 }
 
-fn builtin_function(name: &str, arg: BuiltinType, ret: BuiltinType, ctxt: &Context) {
+fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context) {
     let name = ctxt.interner.intern(name);
 
     let fct_info = FctInfo {
         name: name,
-        params_types: vec![arg],
+        params_types: args,
         return_type: ret,
         ast: None,
         vars: Vec::new(),

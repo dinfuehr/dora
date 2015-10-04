@@ -21,6 +21,7 @@ mod sym;
 mod driver;
 mod codegen;
 mod mem;
+mod dseg;
 
 #[cfg(test)]
 mod test;

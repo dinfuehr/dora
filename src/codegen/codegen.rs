@@ -5,6 +5,7 @@ use codegen::info;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
+use dseg::DSeg;
 
 use parser::ast::ctxt::*;
 use parser::ast::*;
@@ -18,6 +19,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
     buf: Buffer,
+    dseg: DSeg,
 
     stacksize: u32,
     lbl_break: Option<Label>,
@@ -30,6 +32,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             ctxt: ctxt,
             fct: fct,
             buf: Buffer::new(),
+            dseg: DSeg::new(),
 
             stacksize: ctxt.function(fct.id, |fct| fct.stacksize),
             lbl_break: None,
@@ -189,7 +192,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let mut expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf);
+        let mut expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf, &mut self.dseg);
 
         expr_gen.generate(e)
     }
