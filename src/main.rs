@@ -22,6 +22,7 @@ mod driver;
 mod codegen;
 mod mem;
 mod dseg;
+mod stdlib;
 
 #[cfg(test)]
 mod test;

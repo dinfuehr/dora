@@ -1,4 +1,7 @@
+use libc::c_void;
 use std::mem::size_of;
+
+use stdlib;
 use mem;
 
 pub struct DSeg {
@@ -8,7 +11,7 @@ pub struct DSeg {
 
 struct Entry {
     disp: i32,
-    value: usize,
+    value: *const c_void,
 }
 
 impl DSeg {
@@ -19,8 +22,8 @@ impl DSeg {
         }
     }
 
-    pub fn add_addr(&mut self, ptr: usize) -> i32 {
-        let ptr_width = size_of::<usize>() as u32;
+    pub fn add_addr(&mut self, ptr: *const c_void) -> i32 {
+        let ptr_width = size_of::<*const c_void>() as u32;
         self.size = mem::align(self.size + ptr_width, ptr_width);
 
         let disp = -(self.size as i32);

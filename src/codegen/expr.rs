@@ -1,3 +1,5 @@
+use libc::c_void;
+
 use codegen::buffer::*;
 use codegen::emit;
 use codegen::x64::emit::*;
@@ -9,6 +11,8 @@ use dseg::DSeg;
 use parser::ast::ctxt::*;
 use parser::ast::*;
 use parser::ast::Expr::*;
+
+use stdlib;
 
 pub enum ExprLoc {
     LocConst(i32),
@@ -269,6 +273,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let fct_infos = self.ctxt.fct_infos.borrow();
         let fct = &fct_infos[fid.0];
+
+        let disp = self.dseg.add_addr(stdlib::assert as *const c_void);
+
+        emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT);
+        emit_callq_reg(self.buf, REG_RESULT);
 
         unreachable!("call");
     }
