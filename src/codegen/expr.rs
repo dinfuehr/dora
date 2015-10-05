@@ -276,11 +276,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         assert!(!fct.compiled_fct.is_null());
 
+        for (ind, arg) in e.args.iter().enumerate().rev() {
+            if REG_PARAMS.len() > ind {
+                let dest = REG_PARAMS[ind];
+                self.emit_expr(arg, dest);
+            } else {
+                self.emit_expr(arg, REG_RESULT);
+                emit_pushq_reg(self.buf, REG_RESULT);
+            }
+        }
+
         let disp = self.dseg.add_addr(fct.compiled_fct);
+        let pos = self.buf.pos() as i32;
 
-        emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT);
+        // next instruction has 7 bytes
+        let disp = disp - pos - 7;
+
+        emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
         emit_callq_reg(self.buf, REG_RESULT);
-
-        unreachable!("call");
     }
 }

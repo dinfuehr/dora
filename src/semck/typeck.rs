@@ -456,6 +456,11 @@ mod tests {
     }
 
     #[test]
+    fn type_ident_in_function_params() {
+        ok("fn f(a: int) {}\nfn g() { var a = 1; f(a); }");
+    }
+
+    #[test]
     fn type_function_params() {
         ok("fn foo() {}\nfn f() { foo(); }");
         ok("fn foo(a: int) {}\nfn f() { foo(1); }");

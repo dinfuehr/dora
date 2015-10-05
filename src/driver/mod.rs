@@ -63,15 +63,15 @@ pub fn compile() -> i32 {
     let main = main.unwrap();
 
     let mut cg = CodeGen::new(&ctxt, main);
-    let buffer = cg.generate().finish();
+    let (dseg, buffer) = cg.generate();
 
     if args.flag_emit_asm {
         dump_asm(&buffer, &ctxt.interner.str(main.name));
     }
 
-    let code = CodeMemory::new(&buffer);
+    let code = CodeMemory::new(&dseg, &buffer);
 
-    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(code.ptr()) };
+    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(code.fct()) };
     let res = fct();
 
     // main-fct without return value exits with status 0

@@ -61,6 +61,10 @@ impl Buffer {
         }
     }
 
+    pub fn pos(&mut self) -> usize {
+        self.buf.pos()
+    }
+
     pub fn finish(mut self) -> Vec<u8> {
         self.fix_forward_jumps();
 

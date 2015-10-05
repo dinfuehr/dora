@@ -49,7 +49,7 @@ fn emit_mov_memq_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, disp: i32,
     let src_msb = if src == RIP { 0 } else { src.msb() };
 
     if src_msb != 0 || dest.msb() != 0 || x64 != 0 {
-        emit_rex(buf, x64, dest.msb(), 0, src.msb());
+        emit_rex(buf, x64, dest.msb(), 0, src_msb);
     }
 
     emit_op(buf, opcode);
@@ -559,6 +559,10 @@ mod tests {
     #[test]
     fn test_emit_movq_memq_reg() {
         assert_emit!(0x48, 0x8b, 0x44, 0x24, 1; emit_movq_memq_reg(RSP, 1, RAX));
+
+        assert_emit!(0x48, 0x8b, 0x05, 0xff, 0xff, 0xff, 0xff; emit_movq_memq_reg(RIP, -1, RAX));
+        assert_emit!(0x48, 0x8b, 0x05, 0, 0, 0, 0; emit_movq_memq_reg(RIP, 0, RAX));
+        assert_emit!(0x48, 0x8b, 0x05, 1, 0, 0, 0; emit_movq_memq_reg(RIP, 1, RAX));
     }
 
     #[test]

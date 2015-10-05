@@ -40,7 +40,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    pub fn generate(mut self) -> Buffer {
+    pub fn generate(mut self) -> (DSeg, Vec<u8>) {
         info::generate(self.ctxt, self.fct);
 
         self.emit_prolog();
@@ -48,7 +48,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.visit_fct(self.fct);
         self.emit_epilog();
 
-        self.buf
+        (self.dseg, self.buf.finish())
     }
 
     fn store_params(&mut self) {
@@ -232,33 +232,33 @@ mod tests {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
-            let buffer = codegen::generate(ctxt, fct);
+            let (dseg, buffer) = codegen::generate(ctxt, fct);
 
             driver::dump_asm(&buffer, &ctxt.interner.str(fct.name));
 
-            CodeMemory::new(&buffer)
+            CodeMemory::new(&dseg, &buffer)
         })
     }
 
     fn run<T>(code: &'static str) -> T {
         let mem = compile(code);
-        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.ptr()) };
+        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.fct()) };
 
         compiled_fct()
     }
 
     fn fct1<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T) -> T) {
         let m = compile(code);
-        let ptr = m.ptr();
+        let fct = m.fct();
 
-        (m, unsafe { mem::transmute(ptr) })
+        (m, unsafe { mem::transmute(fct) })
     }
 
     fn fct2<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T, T) -> T) {
         let m = compile(code);
-        let ptr = m.ptr();
+        let fct = m.fct();
 
-        (m, unsafe { mem::transmute(ptr) })
+        (m, unsafe { mem::transmute(fct) })
     }
 
     #[test]
@@ -489,4 +489,9 @@ mod tests {
         assert_eq!(false, f(false, true));
         assert_eq!(false, f(false, false));
     }
+
+    // #[test]
+    // fn test_assert() {
+    //     assert_eq!(true, run("fn f() -> bool { var a = true; assert(a); return a; }"));
+    // }
 }

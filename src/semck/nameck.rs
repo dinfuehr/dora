@@ -158,6 +158,11 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));
                 }
+
+                // also parse function arguments
+                for arg in &call.args {
+                    self.visit_expr(arg);
+                }
             }
 
             // no need to handle rest of expressions

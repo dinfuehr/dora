@@ -1,4 +1,7 @@
+use libc::c_void;
 use std::ptr;
+
+use stdlib;
 
 use parser::ast::ctxt::*;
 
@@ -22,12 +25,13 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt);
-    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt);
-    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt);
+    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt, stdlib::assert as *const c_void);
+    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, ptr::null());
+    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, ptr::null());
 }
 
-fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context) {
+fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context,
+        fct: *const c_void) {
     let name = ctxt.interner.intern(name);
 
     let fct_info = FctInfo {
@@ -38,7 +42,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         vars: Vec::new(),
         stacksize: 0,
         contains_fct_invocation: false,
-        compiled_fct: ptr::null(),
+        compiled_fct: fct,
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());
