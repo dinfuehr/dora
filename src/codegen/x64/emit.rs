@@ -567,7 +567,13 @@ mod tests {
 
     #[test]
     fn test_emit_movb_memq_reg() {
+        assert_emit!(0x8a, 0x45, 1; emit_movb_memq_reg(RBP, 1, RAX));
         assert_emit!(0x8a, 0x44, 0x24, 1; emit_movb_memq_reg(RSP, 1, RAX));
+        assert_emit!(0x8a, 0x44, 0x24, 0xff; emit_movb_memq_reg(RSP, -1, RAX));
+        assert_emit!(0x8a, 0x5d, 1; emit_movb_memq_reg(RBP, 1, RBX));
+        assert_emit!(0x8a, 0x4d, 1; emit_movb_memq_reg(RBP, 1, RCX));
+        assert_emit!(0x8a, 0x55, 1; emit_movb_memq_reg(RBP, 1, RDX));
+        assert_emit!(0x44, 0x8a, 0x7d, 1; emit_movb_memq_reg(RBP, 1, R15));
     }
 
     #[test]
