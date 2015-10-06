@@ -490,8 +490,9 @@ mod tests {
         assert_eq!(false, f(false, false));
     }
 
-    // #[test]
-    // fn test_assert() {
-    //     assert_eq!(true, run("fn f() -> bool { var a = true; assert(a); return a; }"));
-    // }
+    #[test]
+    fn test_assert() {
+        assert_eq!(true, run("fn f() -> bool { var a = true; assert(a); return a; }"));
+        // assert_eq!(false, run("fn f() -> bool { var a = false; assert(!a); return a; }"));
+    }
 }
