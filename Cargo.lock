@@ -4,10 +4,10 @@ version = "0.0.1"
 dependencies = [
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "capstone 0.0.0 (git+https://github.com/ebfe/rust-capstone.git)",
- "docopt 0.6.72 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.73 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_macros 0.7.4 (git+https://github.com/sfackler/rust-phf.git)",
+ "phf 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_macros 0.7.5 (git+https://github.com/sfackler/rust-phf.git)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -16,7 +16,7 @@ name = "advapi32-sys"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "winapi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -54,7 +54,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "docopt"
-version = "0.6.72"
+version = "0.6.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -77,39 +77,39 @@ dependencies = [
 
 [[package]]
 name = "phf"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug-builders 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_shared 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_generator"
-version = "0.7.4"
-source = "git+https://github.com/sfackler/rust-phf.git#fc1f6b00c5aeb00b1d1e5d418b5979c7cb8b8afd"
+version = "0.7.5"
+source = "git+https://github.com/sfackler/rust-phf.git#70f2ed93d2e64b822bf2a23fde0ee848e8785bd1"
 dependencies = [
- "phf_shared 0.7.4 (git+https://github.com/sfackler/rust-phf.git)",
+ "phf_shared 0.7.5 (git+https://github.com/sfackler/rust-phf.git)",
  "rand 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_macros"
-version = "0.7.4"
-source = "git+https://github.com/sfackler/rust-phf.git#fc1f6b00c5aeb00b1d1e5d418b5979c7cb8b8afd"
+version = "0.7.5"
+source = "git+https://github.com/sfackler/rust-phf.git#70f2ed93d2e64b822bf2a23fde0ee848e8785bd1"
 dependencies = [
- "phf_generator 0.7.4 (git+https://github.com/sfackler/rust-phf.git)",
- "phf_shared 0.7.4 (git+https://github.com/sfackler/rust-phf.git)",
+ "phf_generator 0.7.5 (git+https://github.com/sfackler/rust-phf.git)",
+ "phf_shared 0.7.5 (git+https://github.com/sfackler/rust-phf.git)",
 ]
 
 [[package]]
 name = "phf_shared"
-version = "0.7.4"
-source = "git+https://github.com/sfackler/rust-phf.git#fc1f6b00c5aeb00b1d1e5d418b5979c7cb8b8afd"
+version = "0.7.5"
+source = "git+https://github.com/sfackler/rust-phf.git#70f2ed93d2e64b822bf2a23fde0ee848e8785bd1"
 
 [[package]]
 name = "phf_shared"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -119,7 +119,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "advapi32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -149,7 +149,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "winapi"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
