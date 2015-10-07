@@ -14,6 +14,10 @@ pub enum Reg {
 }
 
 impl Reg {
+    pub fn is_basic_reg(self) -> bool {
+        self == RAX || self == RBX || self == RCX || self == RDX
+    }
+
     pub fn int(self) -> u8 {
         assert!(self != RIP);
 

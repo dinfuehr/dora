@@ -195,7 +195,7 @@ fn emit_alub_imm_reg(buf: &mut Buffer, opcode: u8, rax_opcode: u8,
         emit_op(buf, rax_opcode);
         emit_u8(buf, imm);
     } else {
-        if dest.msb() != 0 {
+        if dest.msb() != 0 || !dest.is_basic_reg() {
             emit_rex(buf, 0, 0, 0, dest.msb());
         }
 
@@ -342,7 +342,7 @@ pub fn emit_cltd(buf: &mut Buffer) {
 }
 
 pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
-    if reg.msb() != 0 || (reg != RAX && reg != RBX && reg != RCX && reg != RDX) {
+    if reg.msb() != 0 || !reg.is_basic_reg() {
         emit_rex(buf, 0, 0, 0, reg.msb());
     }
 
@@ -361,8 +361,7 @@ pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
 }
 
 pub fn emit_movb_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 ||
-        (src != RAX && src != RBX && src != RCX && src != RDX) {
+    if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
         emit_rex(buf, 0, dest.msb(), 0, src.msb());
     }
 
@@ -371,8 +370,7 @@ pub fn emit_movb_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
 }
 
 pub fn emit_movzbl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 ||
-        (src != RAX && src != RBX && src != RCX && src != RDX) {
+    if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
         emit_rex(buf, 0, dest.msb(), 0, src.msb());
     }
 
@@ -389,7 +387,7 @@ pub fn emit_cmpb_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
         return;
     }
 
-    if dest.msb() != 0 || (dest != RAX && dest != RBX && dest != RCX && dest != RDX) {
+    if dest.msb() != 0 || !dest.is_basic_reg() {
         emit_rex(buf, 0, 0, 0, dest.msb());
     }
 
@@ -621,7 +619,12 @@ mod tests {
     #[test]
     fn test_xorb_imm_reg() {
         assert_emit!(0x34, 1; emit_xorb_imm_reg(1, RAX));
-        assert_emit!(0x80, 0xf1, 2; emit_xorb_imm_reg(2, RCX));
+        assert_emit!(0x80, 0xf3, 1; emit_xorb_imm_reg(1, RBX));
+        assert_emit!(0x80, 0xf1, 1; emit_xorb_imm_reg(1, RCX));
+        assert_emit!(0x80, 0xf2, 1; emit_xorb_imm_reg(1, RDX));
+        assert_emit!(0x40, 0x80, 0xf6, 1; emit_xorb_imm_reg(1, RSI));
+        assert_emit!(0x40, 0x80, 0xf7, 1; emit_xorb_imm_reg(1, RDI));
+
         assert_emit!(0x41, 0x80, 0xf0, 3; emit_xorb_imm_reg(3, R8));
         assert_emit!(0x41, 0x80, 0xf7, 4; emit_xorb_imm_reg(4, R15));
     }
