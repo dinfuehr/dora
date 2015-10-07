@@ -14,6 +14,8 @@ pub enum Reg {
 }
 
 impl Reg {
+    // these four register need sometimes special treatment: e.g. because of bl vs bh
+    // for byte operations
     pub fn is_basic_reg(self) -> bool {
         self == RAX || self == RBX || self == RCX || self == RDX
     }
