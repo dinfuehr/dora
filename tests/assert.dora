@@ -1,0 +1,7 @@
+fn main() {
+  var a = true;
+  assert(a);
+
+  var b = false;
+  assert(!b);
+}
