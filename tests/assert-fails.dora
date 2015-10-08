@@ -1,0 +1,6 @@
+// error: 1
+
+fn main() {
+  var a = false;
+  assert(a);
+}
