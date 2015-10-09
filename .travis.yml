@@ -3,10 +3,14 @@ language: rust
 rust:
   - nightly
 
+addons:
+  apt:
+    packages:
+    - ruby
+
 install:
   - git clone https://github.com/aquynh/capstone
   - (cd capstone && git checkout 3.0.3 && sudo make install)
-  - sudo apt-get install ruby
 
 script:
   - cargo test
