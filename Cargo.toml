@@ -5,14 +5,11 @@ authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 
 [dependencies]
 phf = "*"
+phf_macros = "*"
 rustc-serialize = "*"
 docopt = "*"
 byteorder = "*"
 libc = "*"
-
-[dependencies.phf_macros]
-git = "https://github.com/sfackler/rust-phf.git"
-path = "phf_macros"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
