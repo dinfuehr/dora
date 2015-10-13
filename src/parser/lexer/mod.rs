@@ -639,16 +639,4 @@ mod tests {
         let mut reader = Lexer::from_str("->");
         assert_tok(&mut reader, TokenType::Arrow, "", 1, 1);
     }
-
-    #[test]
-    fn test_read_file() {
-        let mut reader = Lexer::from_file("tests/abc.txt").unwrap();
-        assert_tok(&mut reader, TokenType::Identifier, "abc", 1, 1);
-        assert_end(&mut reader, 1, 4);
-    }
-
-    #[test]
-    fn test_read_non_existing_file() {
-        assert!(Lexer::from_file("tests/non_existing.txt").is_err());
-    }
 }

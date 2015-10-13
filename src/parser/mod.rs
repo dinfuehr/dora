@@ -1277,18 +1277,4 @@ mod tests {
         let ty2 = subtypes[1].to_basic().unwrap();
         assert_eq!("b", *interner.str(ty2.name));
     }
-
-    #[test]
-    fn parse_file() {
-        let parser = Parser::from_file("tests/abc.txt");
-
-        assert!(parser.is_ok());
-    }
-
-    #[test]
-    fn parse_non_existing_file() {
-        let parser = Parser::from_file("tests/non_existing.txt");
-
-        assert!(parser.is_err());
-    }
 }

@@ -60,19 +60,4 @@ mod tests {
         assert_eq!('c', reader.next().unwrap().ok().unwrap());
         assert_eq!(true, reader.next().is_none());
     }
-
-    #[test]
-    fn read_from_file() {
-        let mut reader = FileReader::new("tests/abc.txt").unwrap();
-
-        assert_eq!('a', reader.next().unwrap().ok().unwrap());
-        assert_eq!('b', reader.next().unwrap().ok().unwrap());
-        assert_eq!('c', reader.next().unwrap().ok().unwrap());
-        assert_eq!(true, reader.next().is_none());
-    }
-
-    #[test]
-    fn read_from_non_existing_file() {
-        assert!(FileReader::new("tests/non-existing.txt").is_err());
-    }
 }
