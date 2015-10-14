@@ -15,9 +15,7 @@ pub struct CodeMemory {
 }
 
 impl CodeMemory {
-    pub fn new(dseg: &DSeg, buffer: &[u8]) -> CodeMemory {
-        assert!(buffer.len() > 0);
-        let size = dseg.size() + (buffer.len() as u32);
+    pub fn with_size(size: u32) -> CodeMemory {
         let size = align(size, 4096);
 
         unsafe {
@@ -28,17 +26,32 @@ impl CodeMemory {
                 panic!("mmap failed");
             }
 
-            dseg.finish(ptr as *mut c_void);
-
-            let fct = ptr.offset(dseg.size() as isize);
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct as *mut u8, buffer.len());
-
             CodeMemory {
                 size: size,
                 ptr: ptr,
-                fct: fct,
+                fct: ptr,
             }
         }
+    }
+
+    pub fn new(dseg: &DSeg, buffer: &[u8]) -> CodeMemory {
+        assert!(buffer.len() > 0);
+        let size = dseg.size() + (buffer.len() as u32);
+        let size = align(size, 4096);
+
+        let mut code = CodeMemory::with_size(size);
+        let ptr = code.fct();
+
+        dseg.finish(ptr as *mut c_void);
+
+        unsafe {
+            let fct = ptr.offset(dseg.size() as isize);
+            ptr::copy_nonoverlapping(buffer.as_ptr(), fct as *mut u8, buffer.len());
+
+            code.fct = fct;
+        }
+
+        code
     }
 
     pub fn fct(&self) -> *const c_void {
