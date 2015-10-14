@@ -223,12 +223,12 @@ mod tests {
     use std::mem;
 
     use codegen;
+    use codegen::fct::JitFct;
     use driver;
-    use mem::CodeMemory;
     use semck;
     use test;
 
-    fn compile(code: &'static str) -> CodeMemory {
+    fn compile(code: &'static str) -> JitFct {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
@@ -236,7 +236,7 @@ mod tests {
 
             driver::dump_asm(&buffer, &ctxt.interner.str(fct.name));
 
-            CodeMemory::new(&dseg, &buffer)
+            JitFct::new(&dseg, &buffer)
         })
     }
 
@@ -247,14 +247,14 @@ mod tests {
         compiled_fct()
     }
 
-    fn fct1<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T) -> T) {
+    fn fct1<T>(code: &'static str) -> (JitFct, extern "C" fn(T) -> T) {
         let m = compile(code);
         let fct = m.fct();
 
         (m, unsafe { mem::transmute(fct) })
     }
 
-    fn fct2<T>(code: &'static str) -> (CodeMemory, extern "C" fn(T, T) -> T) {
+    fn fct2<T>(code: &'static str) -> (JitFct, extern "C" fn(T, T) -> T) {
         let m = compile(code);
         let fct = m.fct();
 

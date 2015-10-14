@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use codegen::codegen::CodeGen;
-use mem::CodeMemory;
+use codegen::fct::JitFct;
 use parser::ast::ctxt::Context;
 use error::diag::Diagnostic;
 use error::msg::Msg;
@@ -69,7 +69,7 @@ pub fn compile() -> i32 {
         dump_asm(&buffer, &ctxt.interner.str(main.name));
     }
 
-    let code = CodeMemory::new(&dseg, &buffer);
+    let code = JitFct::new(&dseg, &buffer);
 
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(code.fct()) };
     let res = fct();

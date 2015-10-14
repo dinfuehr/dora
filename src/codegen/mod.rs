@@ -7,6 +7,7 @@ use dseg::DSeg;
 
 pub mod buffer;
 pub mod codegen;
+pub mod fct;
 mod x64;
 mod expr;
 mod info;
