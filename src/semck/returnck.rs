@@ -26,12 +26,22 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let return_type = self.ctxt.function(f.id, |fct| fct.return_type);
+        let returns = returns_value(&f.block);
 
-        if return_type != BuiltinType::Unit {
-            if let Err(pos) = returns_value(&f.block) {
+        if let Err(pos) = returns {
+            let return_type = self.ctxt.function(f.id, |fct| fct.return_type);
+
+            // only report error for functions that do not just return ()
+            if return_type != BuiltinType::Unit {
                 self.ctxt.diag.borrow_mut().report(pos, Msg::NoReturnValue);
             }
+
+        } else {
+            // otherwise the function is always finished with a return statement
+            // save this information for the function, this information is useful
+            // for code generation
+
+            self.ctxt.function(f.id, |fct| fct.always_returns = true);
         }
     }
 }
@@ -77,6 +87,19 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
 mod tests {
     use error::msg::Msg;
     use semck::tests::*;
+    use test::parse;
+
+    fn test_always_returns(code: &'static str, value: bool) {
+        parse(code, |ctxt| {
+            let name = ctxt.interner.intern("f");
+            let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
+
+            let fct_infos = ctxt.fct_infos.borrow();
+            let fct = &fct_infos[fct_id.0];
+
+            assert_eq!(value, fct.always_returns);
+        });
+    }
 
     #[test]
     fn returns_unit() {
@@ -84,6 +107,13 @@ mod tests {
         ok("fn f() { if true { return; } }");
         ok("fn f() { while true { return; } }");
         ok("fn f() { loop { return; } }");
+    }
+
+    #[test]
+    fn always_returns() {
+        test_always_returns("fn f() {}", false);
+        test_always_returns("fn f() { return; }", true);
+        test_always_returns("fn f() -> int { return 1; }", true);
     }
 
     #[test]

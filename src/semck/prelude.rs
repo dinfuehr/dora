@@ -41,6 +41,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         ast: None,
         vars: Vec::new(),
         stacksize: 0,
+        always_returns: false,
         contains_fct_invocation: false,
         compiled_fct: fct,
     };

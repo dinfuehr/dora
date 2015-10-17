@@ -116,12 +116,23 @@ pub struct FctInfoId(pub usize);
 #[derive(Debug)]
 pub struct FctInfo<'ast> {
     pub name: Name,
+
     pub params_types: Vec<BuiltinType>,
+
     pub return_type: BuiltinType,
+
     pub ast: Option<&'ast Function>,
+
     pub vars: Vec<VarInfoId>,
+
     pub stacksize: u32,
+
+    // true if function is always exited via return statement
+    // false if function execution could reach the closing } of this function
+    pub always_returns: bool,
+
     pub contains_fct_invocation: bool,
+
     pub compiled_fct: *const c_void,
 }
 
@@ -131,7 +142,10 @@ pub struct VarInfoId(pub usize);
 #[derive(Debug)]
 pub struct VarInfo {
     pub name: Name,
+
     pub data_type: BuiltinType,
+
     pub node_id: NodeId,
+
     pub offset: i32,
 }

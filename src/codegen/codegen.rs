@@ -46,7 +46,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.emit_prolog();
         self.store_params();
         self.visit_fct(self.fct);
-        self.emit_epilog();
+
+        let always_returns = self.ctxt.function(self.fct.id, |fct| fct.always_returns);
+
+        if !always_returns {
+            self.emit_epilog();
+        }
 
         (self.dseg, self.buf.finish())
     }
