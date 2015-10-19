@@ -4,8 +4,6 @@ use parser::ast::Expr::*;
 use parser::ast::Stmt::*;
 use parser::ast::Type::*;
 
-use error::ParseError;
-
 pub trait Visitor<'v> : Sized {
     fn visit_ast(&mut self, a: &'v Ast) {
         walk_ast(self, a);

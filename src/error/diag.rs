@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use error::msg::Msg;
 use error::msg::MsgWithPos;
 

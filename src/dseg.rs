@@ -1,7 +1,6 @@
 use libc::c_void;
 use std::mem::size_of;
 
-use stdlib;
 use mem;
 
 pub struct DSeg {

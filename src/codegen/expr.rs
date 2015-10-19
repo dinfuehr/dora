@@ -1,5 +1,3 @@
-use libc::c_void;
-
 use codegen::buffer::*;
 use codegen::emit;
 use codegen::x64::emit::*;
@@ -13,12 +11,6 @@ use parser::ast::*;
 use parser::ast::Expr::*;
 
 use stdlib;
-
-pub enum ExprLoc {
-    LocConst(i32),
-    LocReg(Reg),
-    LocStack(i32),
-}
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
@@ -132,11 +124,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit_jz(self.buf, lbl_false);
 
         self.buf.define_label(lbl_true);
-        emit_movl_imm_reg(self.buf, 1, REG_RESULT);
+        emit_movl_imm_reg(self.buf, 1, dest);
         emit_jmp(self.buf, lbl_end);
 
         self.buf.define_label(lbl_false);
-        emit_movl_imm_reg(self.buf, 0, REG_RESULT);
+        emit_movl_imm_reg(self.buf, 0, dest);
 
         self.buf.define_label(lbl_end);
     }
@@ -155,11 +147,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit_jz(self.buf, lbl_false);
 
         self.buf.define_label(lbl_true);
-        emit_movl_imm_reg(self.buf, 1, REG_RESULT);
+        emit_movl_imm_reg(self.buf, 1, dest);
         emit_jmp(self.buf, lbl_end);
 
         self.buf.define_label(lbl_false);
-        emit_movl_imm_reg(self.buf, 0, REG_RESULT);
+        emit_movl_imm_reg(self.buf, 0, dest);
 
         self.buf.define_label(lbl_end);
     }
@@ -294,5 +286,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
         emit_callq_reg(self.buf, REG_RESULT);
+
+        // TODO: move REG_RESULT into dest
     }
 }

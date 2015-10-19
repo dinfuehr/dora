@@ -9,11 +9,8 @@ use dseg::DSeg;
 
 use parser::ast::ctxt::*;
 use parser::ast::*;
-use parser::ast::Expr::*;
 use parser::ast::Stmt::*;
 use parser::ast::visit::*;
-
-use sym::BuiltinType;
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
@@ -167,11 +164,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.buf.define_label(lbl_end);
     }
 
-    fn emit_stmt_break(&mut self, s: &'ast StmtBreakType)  {
+    fn emit_stmt_break(&mut self, _: &'ast StmtBreakType)  {
         emit_jmp(&mut self.buf, self.lbl_break.unwrap());
     }
 
-    fn emit_stmt_continue(&mut self, s: &'ast StmtContinueType) {
+    fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
         emit_jmp(&mut self.buf, self.lbl_continue.unwrap());
     }
 
@@ -197,7 +194,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let mut expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf, &mut self.dseg);
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf, &mut self.dseg);
 
         expr_gen.generate(e)
     }
@@ -218,7 +215,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
         }
     }
 
-    fn visit_expr(&mut self, e: &'ast Expr) {
+    fn visit_expr(&mut self, _: &'ast Expr) {
         unreachable!("should not be invoked");
     }
 }

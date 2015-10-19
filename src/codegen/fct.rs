@@ -2,7 +2,6 @@ use libc::*;
 use std::ptr;
 
 use dseg::DSeg;
-use mem;
 use mem::code::CodeMemory;
 
 pub struct JitFct {

@@ -9,10 +9,7 @@ pub mod msg;
 pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
-    MisplacedElse, IoError, CommaExpected, ExpectedValue, IdentifierAlreadyExists,
-    UnknownType,
-
-    MainDefinition, Unimplemented
+    MisplacedElse, IoError, CommaExpected, ExpectedValue, Unimplemented
 }
 
 #[derive(Debug)]

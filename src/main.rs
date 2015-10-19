@@ -1,7 +1,6 @@
 #![feature(plugin)]
 #![feature(box_syntax)]
 #![feature(io)]
-#![feature(result_expect)]
 
 #![feature(plugin)]
 #![plugin(phf_macros)]
@@ -11,8 +10,6 @@ extern crate libc;
 extern crate rustc_serialize;
 extern crate docopt;
 extern crate capstone;
-
-use std::process::exit;
 
 mod error;
 mod parser;
