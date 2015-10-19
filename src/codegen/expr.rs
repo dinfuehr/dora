@@ -10,8 +10,6 @@ use parser::ast::ctxt::*;
 use parser::ast::*;
 use parser::ast::Expr::*;
 
-use stdlib;
-
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,

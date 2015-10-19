@@ -27,7 +27,7 @@ impl<'a, 'ast> FlowCheck<'a, 'ast> {
 
         self.in_loop = true;
         visit::walk_stmt(self, block);
-        self.in_loop = false;
+        self.in_loop = old_in_loop;
     }
 
     fn handle_flow(&mut self, s: &'ast Stmt) {

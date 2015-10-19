@@ -227,7 +227,6 @@ mod tests {
     use codegen;
     use codegen::fct::JitFct;
     use driver;
-    use semck;
     use test;
 
     fn compile(code: &'static str) -> JitFct {

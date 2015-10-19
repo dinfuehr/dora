@@ -1,11 +1,8 @@
 use std::collections::HashMap;
-use std::collections::hash_map::IterMut;
-use std::collections::hash_map::Entry::{Vacant, Occupied};
 use std::string::ToString;
 
 use self::Sym::*;
 
-use parser::ast::NodeId;
 use parser::ast::ctxt::*;
 use parser::interner::Name;
 

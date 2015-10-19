@@ -1,13 +1,10 @@
 pub mod cmd;
 
 use std::mem;
-use std::cell::RefCell;
-use std::collections::HashMap;
 
 use codegen::codegen::CodeGen;
 use codegen::fct::JitFct;
 use parser::ast::ctxt::Context;
-use error::diag::Diagnostic;
 use error::msg::Msg;
 
 use parser::ast::{self, Function};
@@ -62,7 +59,7 @@ pub fn compile() -> i32 {
 
     let main = main.unwrap();
 
-    let mut cg = CodeGen::new(&ctxt, main);
+    let cg = CodeGen::new(&ctxt, main);
     let (dseg, buffer) = cg.generate();
 
     if args.flag_emit_asm {
