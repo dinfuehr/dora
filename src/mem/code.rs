@@ -1,10 +1,11 @@
 use libc::*;
 
 use mem;
+use os;
 
 pub struct CodeMemory {
     // size of memory area
-    size: u32,
+    size: u64,
 
     // addr of full memory area
     ptr: *mut c_void,
@@ -12,20 +13,12 @@ pub struct CodeMemory {
 
 impl CodeMemory {
     pub fn new(size: u32) -> CodeMemory {
-        let size = mem::align(size, 4096);
+        let size = mem::align(size, os::page_size()) as u64;
+        let ptr = os::mmap(size);
 
-        unsafe {
-            let ptr = mmap(0 as *mut c_void, size as u64, PROT_READ | PROT_WRITE | PROT_EXEC,
-                MAP_PRIVATE | MAP_ANON, -1, 0) as *mut c_void;
-
-            if ptr == MAP_FAILED {
-                panic!("mmap failed");
-            }
-
-            CodeMemory {
-                size: size,
-                ptr: ptr,
-            }
+        CodeMemory {
+            size: size,
+            ptr: ptr,
         }
     }
 
@@ -36,8 +29,6 @@ impl CodeMemory {
 
 impl Drop for CodeMemory {
     fn drop(&mut self) {
-        unsafe {
-            munmap(self.ptr, self.size as u64);
-        }
+        os::munmap(self.ptr, self.size);
     }
 }

@@ -20,6 +20,7 @@ mod codegen;
 mod mem;
 mod dseg;
 mod stdlib;
+mod os;
 
 #[cfg(test)]
 mod test;
