@@ -13,7 +13,7 @@ pub struct JitFct {
 
 impl JitFct {
     pub fn new(dseg: &DSeg, buffer: &[u8]) -> JitFct {
-        let size = dseg.size() + (buffer.len() as u32);
+        let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
         let ptr = code.ptr();

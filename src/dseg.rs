@@ -21,7 +21,7 @@ impl DSeg {
         }
     }
 
-    pub fn size(&self) -> u32() {
+    pub fn size(&self) -> u32 {
         self.size
     }
 

@@ -8,7 +8,7 @@ pub fn page_size() -> u32 {
     val as u32
 }
 
-pub fn mmap(size: u64) -> *mut libc::c_void {
+pub fn mmap(size: usize) -> *mut libc::c_void {
     let ptr = unsafe {
         libc::mmap(0 as *mut libc::c_void, size,
             libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
@@ -22,9 +22,9 @@ pub fn mmap(size: u64) -> *mut libc::c_void {
     ptr
 }
 
-pub fn munmap(ptr: *mut libc::c_void, size: u64) {
+pub fn munmap(ptr: *mut libc::c_void, size: usize) {
     let res = unsafe {
-        libc::munmap(ptr, size as u64)
+        libc::munmap(ptr, size)
     };
 
     if res != 0 {

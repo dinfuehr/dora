@@ -5,15 +5,15 @@ use os;
 
 pub struct CodeMemory {
     // size of memory area
-    size: u64,
+    size: usize,
 
     // addr of full memory area
     ptr: *mut c_void,
 }
 
 impl CodeMemory {
-    pub fn new(size: u32) -> CodeMemory {
-        let size = mem::align(size, os::page_size()) as u64;
+    pub fn new(size: usize) -> CodeMemory {
+        let size = mem::align_usize(size, os::page_size() as usize);
         let ptr = os::mmap(size);
 
         CodeMemory {
