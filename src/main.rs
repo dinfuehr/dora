@@ -21,6 +21,7 @@ mod mem;
 mod dseg;
 mod stdlib;
 mod os;
+mod ir;
 
 #[cfg(test)]
 mod test;
