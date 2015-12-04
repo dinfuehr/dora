@@ -7,7 +7,7 @@ use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
 use dseg::DSeg;
 
-use ast::ctxt::*;
+use ctxt::*;
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;

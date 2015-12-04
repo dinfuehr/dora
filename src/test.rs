@@ -1,4 +1,4 @@
-use ast::ctxt::Context;
+use ctxt::Context;
 use driver::cmd::Args;
 use ast;
 use parser::Parser;

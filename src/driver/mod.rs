@@ -4,7 +4,7 @@ use std::mem;
 
 use codegen::codegen::CodeGen;
 use codegen::fct::JitFct;
-use ast::ctxt::Context;
+use ctxt::Context;
 use error::msg::Msg;
 
 use ast::{self, Function};

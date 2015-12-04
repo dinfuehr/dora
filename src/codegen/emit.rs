@@ -3,7 +3,7 @@ use codegen::x64::emit::*;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 
-use ast::ctxt::*;
+use ctxt::*;
 
 use sym::BuiltinType;
 

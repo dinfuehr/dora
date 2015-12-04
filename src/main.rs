@@ -12,19 +12,20 @@ extern crate docopt;
 extern crate capstone;
 
 mod ast;
-mod error;
-mod parser;
-mod semck;
-mod sym;
-mod driver;
 mod codegen;
-mod mem;
+mod ctxt;
+mod driver;
 mod dseg;
-mod stdlib;
-mod os;
+mod error;
+mod interner;
 mod ir;
 mod lexer;
-mod interner;
+mod mem;
+mod os;
+mod parser;
+mod semck;
+mod stdlib;
+mod sym;
 
 #[cfg(test)]
 mod test;

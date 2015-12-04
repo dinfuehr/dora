@@ -3,7 +3,7 @@ use std::ptr;
 
 use stdlib;
 
-use ast::ctxt::*;
+use ctxt::*;
 
 use sym::Sym::*;
 use sym::BuiltinType;

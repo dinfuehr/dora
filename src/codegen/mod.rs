@@ -1,6 +1,6 @@
 use codegen::buffer::*;
 use codegen::codegen::*;
-use ast::ctxt::*;
+use ctxt::*;
 use ast::*;
 
 use dseg::DSeg;

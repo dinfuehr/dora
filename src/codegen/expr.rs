@@ -6,7 +6,7 @@ use codegen::x64::reg::Reg::*;
 
 use dseg::DSeg;
 
-use ast::ctxt::*;
+use ctxt::*;
 use ast::*;
 use ast::Expr::*;
 

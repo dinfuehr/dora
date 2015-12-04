@@ -3,7 +3,7 @@ use std::string::ToString;
 
 use self::Sym::*;
 
-use ast::ctxt::*;
+use ctxt::*;
 use interner::Name;
 
 #[derive(Debug)]

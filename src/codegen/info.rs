@@ -1,6 +1,6 @@
 use codegen::x64::reg::*;
 use mem;
-use ast::ctxt::Context;
+use ctxt::Context;
 
 use ast::*;
 use ast::Stmt::*;
@@ -93,7 +93,7 @@ impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
 mod tests {
     use super::*;
 
-    use ast::ctxt::*;
+    use ctxt::*;
     use test;
 
     fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctInfo) {

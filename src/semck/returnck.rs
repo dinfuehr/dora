@@ -1,4 +1,4 @@
-use ast::ctxt::Context;
+use ctxt::Context;
 use error::msg::Msg;
 
 use ast::*;

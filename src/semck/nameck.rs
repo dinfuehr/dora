@@ -1,6 +1,6 @@
 use std::ptr;
 
-use ast::ctxt::*;
+use ctxt::*;
 use error::msg::Msg;
 
 use ast::*;
