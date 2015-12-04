@@ -1,4 +1,6 @@
-struct Fct {
+mod builder;
+
+pub struct Fct {
     blocks: Vec<Block>,
     start_block: BlockId,
     end_blocks: Vec<BlockId>,
@@ -6,22 +8,23 @@ struct Fct {
     params: Vec<Var>,
 }
 
-struct VarId(usize);
+pub struct VarId(usize);
 
-struct Var {
+pub struct Var {
+    id: VarId,
     name: String,
 }
 
-struct BlockId(usize);
+pub struct BlockId(usize);
 
-struct Block {
+pub struct Block {
     id: BlockId,
     instructions: Vec<Instr>,
     successors: Vec<BlockId>,
     predecessors: Vec<BlockId>,
 }
 
-enum Instr {
+pub enum Instr {
     InstrRet(Option<Opnd>),
     InstrTest(Opnd),
     InstrBin(Opnd, Opnd, Opnd),
@@ -31,7 +34,7 @@ enum Instr {
     InstrCall(String, Opnd, Vec<Opnd>),
 }
 
-enum Opnd {
+pub enum Opnd {
     OpndReg(u32),
     OpndVar(VarId, u32),
 }
