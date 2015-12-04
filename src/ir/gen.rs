@@ -9,7 +9,7 @@ use ir::*;
 use ir::Instr::*;
 use ir::Opnd::*;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
+pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     Builder::new(ctxt).visit_ast(ast);
 }
 

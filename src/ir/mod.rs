@@ -1,4 +1,4 @@
-pub mod builder;
+pub mod gen;
 
 use ast::{BinOp, UnOp};
 
