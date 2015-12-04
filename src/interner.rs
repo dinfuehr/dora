@@ -79,7 +79,7 @@ impl Interner {
 
 #[test]
 fn interner() {
-    let mut interner = Interner::new();
+    let interner = Interner::new();
 
     assert_eq!(Name(0), interner.intern("hello"));
     assert_eq!(Name(0), interner.intern("hello"));
