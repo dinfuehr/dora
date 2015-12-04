@@ -10,10 +10,10 @@ use ir::Instr::*;
 use ir::Opnd::*;
 
 pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    Builder::new(ctxt).visit_ast(ast);
+    Generator::new(ctxt).visit_ast(ast);
 }
 
-struct Builder<'a, 'ast: 'a> {
+struct Generator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     vreg: u32,
     result: Opnd,
@@ -21,9 +21,9 @@ struct Builder<'a, 'ast: 'a> {
     fct: Fct,
 }
 
-impl<'a, 'ast> Builder<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> Builder<'a, 'ast> {
-        Builder {
+impl<'a, 'ast> Generator<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>) -> Generator<'a, 'ast> {
+        Generator {
             ctxt: ctxt,
             vreg: 0,
             result: OpndInt(0),
@@ -155,7 +155,7 @@ impl<'a, 'ast> Builder<'a, 'ast> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for Builder<'a, 'ast> {
+impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.vreg = 0;
         self.block_id = self.fct.add_block();
