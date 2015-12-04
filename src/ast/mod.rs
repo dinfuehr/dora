@@ -524,7 +524,7 @@ pub struct StmtContinueType {
     pub pos: Position,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum UnOp {
     Plus,
     Neg,
@@ -568,7 +568,7 @@ impl CmpOp {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BinOp {
     Add,
     Sub,

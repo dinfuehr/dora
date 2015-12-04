@@ -3,11 +3,11 @@ use std::io::Error;
 
 use phf;
 
-use lexer::reader::{CodeReader,FileReader};
-use lexer::token::{Token,TokenType};
+use lexer::reader::{CodeReader, FileReader};
+use lexer::token::{Token, TokenType};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
-use error::{ParseError,ErrorCode};
+use error::{ParseError, ErrorCode};
 
 #[cfg(test)]
 use lexer::reader::StrReader;
