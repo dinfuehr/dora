@@ -3,7 +3,7 @@ use std::hash::*;
 
 use ast::Elem::ElemFunction;
 use lexer::position::Position;
-use parser::interner::{Interner, Name};
+use interner::{Interner, Name};
 
 pub mod visit;
 pub mod dump;

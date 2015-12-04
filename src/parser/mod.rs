@@ -6,7 +6,7 @@ use ast::Elem::*;
 
 use error::*;
 
-use parser::interner::*;
+use interner::*;
 
 use lexer::*;
 use lexer::token::*;
@@ -15,8 +15,6 @@ use lexer::reader::{CodeReader, FileReader};
 
 #[cfg(test)]
 use lexer::reader::StrReader;
-
-pub mod interner;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -635,7 +633,7 @@ impl<T: CodeReader> Parser<T> {
 #[cfg(test)]
 mod tests {
     use ast::*;
-    use parser::interner::*;
+    use interner::*;
 
     use error::ErrorCode;
     use lexer::position::Position;

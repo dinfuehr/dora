@@ -3,7 +3,7 @@ use std::iter::repeat;
 
 use ast::*;
 use ast::visit::Visitor;
-use parser::interner::Interner;
+use interner::Interner;
 
 use self::Entry::*;
 

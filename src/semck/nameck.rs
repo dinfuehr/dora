@@ -8,7 +8,7 @@ use ast::Expr::*;
 use ast::Stmt::*;
 use ast::Type::*;
 use ast::visit::*;
-use parser::interner::Name;
+use interner::Name;
 use lexer::position::Position;
 
 use sym::Sym::*;

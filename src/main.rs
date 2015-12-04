@@ -24,6 +24,7 @@ mod stdlib;
 mod os;
 mod ir;
 mod lexer;
+mod interner;
 
 #[cfg(test)]
 mod test;

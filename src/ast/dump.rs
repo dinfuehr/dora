@@ -2,7 +2,7 @@ use ast::*;
 use ast::Elem::*;
 use ast::Expr::*;
 use ast::Stmt::*;
-use parser::interner::{Interner, Name, RcStr};
+use interner::{Interner, Name, RcStr};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{

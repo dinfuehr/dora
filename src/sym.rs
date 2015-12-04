@@ -4,7 +4,7 @@ use std::string::ToString;
 use self::Sym::*;
 
 use ast::ctxt::*;
-use parser::interner::Name;
+use interner::Name;
 
 #[derive(Debug)]
 pub struct SymTable {

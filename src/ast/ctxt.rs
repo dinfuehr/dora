@@ -8,7 +8,7 @@ use error::diag::Diagnostic;
 
 use ast::*;
 use ast::map::Map;
-use parser::interner::*;
+use interner::*;
 
 use sym::*;
 use sym::Sym::*;
