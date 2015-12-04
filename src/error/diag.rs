@@ -1,7 +1,7 @@
 use error::msg::Msg;
 use error::msg::MsgWithPos;
 
-use parser::lexer::position::Position;
+use lexer::position::Position;
 
 pub struct Diagnostic {
     errors: Vec<MsgWithPos>,

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use parser::lexer::position::Position;
+use lexer::position::Position;
 
 pub mod diag;
 pub mod msg;

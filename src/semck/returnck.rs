@@ -4,7 +4,7 @@ use error::msg::Msg;
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 
 use sym::*;
 

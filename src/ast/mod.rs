@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::*;
 
 use ast::Elem::ElemFunction;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 use parser::interner::{Interner, Name};
 
 pub mod visit;

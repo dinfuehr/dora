@@ -8,16 +8,15 @@ use error::*;
 
 use parser::interner::*;
 
-use parser::lexer::*;
-use parser::lexer::token::*;
-use parser::lexer::position::Position;
-use parser::lexer::reader::{CodeReader, FileReader};
+use lexer::*;
+use lexer::token::*;
+use lexer::position::Position;
+use lexer::reader::{CodeReader, FileReader};
 
 #[cfg(test)]
-use parser::lexer::reader::StrReader;
+use lexer::reader::StrReader;
 
 pub mod interner;
-pub mod lexer;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -639,7 +638,7 @@ mod tests {
     use parser::interner::*;
 
     use error::ErrorCode;
-    use parser::lexer::position::Position;
+    use lexer::position::Position;
     use parser::Parser;
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {

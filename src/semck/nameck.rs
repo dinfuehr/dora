@@ -9,7 +9,7 @@ use ast::Stmt::*;
 use ast::Type::*;
 use ast::visit::*;
 use parser::interner::Name;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 
 use sym::Sym::*;
 use sym::BuiltinType;

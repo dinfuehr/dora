@@ -3,14 +3,14 @@ use std::io::Error;
 
 use phf;
 
-use parser::lexer::reader::{CodeReader,FileReader};
-use parser::lexer::token::{Token,TokenType};
-use parser::lexer::position::Position;
-use parser::lexer::charpos::CharPos;
+use lexer::reader::{CodeReader,FileReader};
+use lexer::token::{Token,TokenType};
+use lexer::position::Position;
+use lexer::charpos::CharPos;
 use error::{ParseError,ErrorCode};
 
 #[cfg(test)]
-use parser::lexer::reader::StrReader;
+use lexer::reader::StrReader;
 
 pub mod reader;
 pub mod token;
@@ -449,8 +449,8 @@ impl<T : CodeReader> Lexer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parser::lexer::reader::{CodeReader, StrReader};
-    use parser::lexer::token::TokenType;
+    use lexer::reader::{CodeReader, StrReader};
+    use lexer::token::TokenType;
     use error::ErrorCode;
 
     fn assert_end<T: CodeReader>(reader: &mut Lexer<T>, l: u32, c: u32) {

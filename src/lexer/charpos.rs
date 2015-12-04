@@ -1,5 +1,5 @@
 use std::fmt;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 
 #[derive(Copy,Clone)]
 pub struct CharPos {
@@ -12,4 +12,3 @@ impl fmt::Display for CharPos {
         write!(f, "char {} at line {:?}", self.value, self.position)
     }
 }
-

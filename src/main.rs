@@ -23,6 +23,7 @@ mod dseg;
 mod stdlib;
 mod os;
 mod ir;
+mod lexer;
 
 #[cfg(test)]
 mod test;

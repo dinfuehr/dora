@@ -1,5 +1,5 @@
 use self::Msg::*;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 use sym::BuiltinType;
 
 #[derive(Clone, PartialEq, Eq, Debug)]

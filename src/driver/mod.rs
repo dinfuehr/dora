@@ -9,7 +9,7 @@ use error::msg::Msg;
 
 use ast::{self, Function};
 use parser::Parser;
-use parser::lexer::position::Position;
+use lexer::position::Position;
 use semck;
 use sym::*;
 

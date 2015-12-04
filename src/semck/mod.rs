@@ -28,7 +28,7 @@ pub fn check<'a>(ctxt: &Context<'a, 'a>) {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
-    use parser::lexer::position::Position;
+    use lexer::position::Position;
     use test;
 
     pub fn ok(code: &'static str) {
