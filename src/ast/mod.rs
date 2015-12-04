@@ -1,7 +1,7 @@
 use std::fmt;
 use std::hash::*;
 
-use parser::ast::Elem::ElemFunction;
+use ast::Elem::ElemFunction;
 use parser::lexer::position::Position;
 use parser::interner::{Interner, Name};
 

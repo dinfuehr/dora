@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use driver::cmd::Args;
 use error::diag::Diagnostic;
 
-use parser::ast::*;
-use parser::ast::map::Map;
+use ast::*;
+use ast::map::Map;
 use parser::interner::*;
 
 use sym::*;

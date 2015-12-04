@@ -1,8 +1,8 @@
 use std::mem;
 use std::io::Error;
 
-use parser::ast::*;
-use parser::ast::Elem::*;
+use ast::*;
+use ast::Elem::*;
 
 use error::*;
 
@@ -18,7 +18,6 @@ use parser::lexer::reader::StrReader;
 
 pub mod interner;
 pub mod lexer;
-pub mod ast;
 
 pub struct Parser<T: CodeReader> {
     lexer: Lexer<T>,
@@ -636,7 +635,7 @@ impl<T: CodeReader> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use parser::ast::*;
+    use ast::*;
     use parser::interner::*;
 
     use error::ErrorCode;

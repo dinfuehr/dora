@@ -1,4 +1,4 @@
-mod builder;
+pub mod builder;
 
 pub struct Fct {
     blocks: Vec<Block>,

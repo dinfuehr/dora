@@ -1,11 +1,11 @@
 use codegen::x64::reg::*;
 use mem;
-use parser::ast::ctxt::Context;
+use ast::ctxt::Context;
 
-use parser::ast::*;
-use parser::ast::Stmt::*;
-use parser::ast::Expr::*;
-use parser::ast::visit::*;
+use ast::*;
+use ast::Stmt::*;
+use ast::Expr::*;
+use ast::visit::*;
 
 pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) {
     CodeGenInfo::new(ctxt, fct).generate();
@@ -93,7 +93,7 @@ impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
 mod tests {
     use super::*;
 
-    use parser::ast::ctxt::*;
+    use ast::ctxt::*;
     use test;
 
     fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctInfo) {

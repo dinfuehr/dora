@@ -11,6 +11,7 @@ extern crate rustc_serialize;
 extern crate docopt;
 extern crate capstone;
 
+mod ast;
 mod error;
 mod parser;
 mod semck;

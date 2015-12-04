@@ -1,8 +1,8 @@
 use std::default::Default;
 use std::iter::repeat;
 
-use parser::ast::*;
-use parser::ast::visit::Visitor;
+use ast::*;
+use ast::visit::Visitor;
 use parser::interner::Interner;
 
 use self::Entry::*;

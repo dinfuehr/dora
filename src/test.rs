@@ -1,6 +1,6 @@
-use parser::ast::ctxt::Context;
+use ast::ctxt::Context;
 use driver::cmd::Args;
-use parser::ast;
+use ast;
 use parser::Parser;
 use semck;
 

@@ -1,7 +1,7 @@
 use codegen::buffer::*;
 use codegen::codegen::*;
-use parser::ast::ctxt::*;
-use parser::ast::*;
+use ast::ctxt::*;
+use ast::*;
 
 use dseg::DSeg;
 

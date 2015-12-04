@@ -1,11 +1,11 @@
-use parser::ast::ctxt::Context;
+use ast::ctxt::Context;
 use error::msg::Msg;
 
-use parser::ast::*;
-use parser::ast::Expr::*;
-use parser::ast::Stmt::*;
-use parser::ast::Type::*;
-use parser::ast::visit::Visitor;
+use ast::*;
+use ast::Expr::*;
+use ast::Stmt::*;
+use ast::Type::*;
+use ast::visit::Visitor;
 
 use sym::*;
 use sym::Sym::*;

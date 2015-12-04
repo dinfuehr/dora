@@ -1,4 +1,4 @@
-use parser::ast::ctxt::Context;
+use ast::ctxt::Context;
 
 mod prelude;
 mod typeck;

@@ -3,7 +3,7 @@ use std::string::ToString;
 
 use self::Sym::*;
 
-use parser::ast::ctxt::*;
+use ast::ctxt::*;
 use parser::interner::Name;
 
 #[derive(Debug)]

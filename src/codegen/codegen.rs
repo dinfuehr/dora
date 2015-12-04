@@ -7,10 +7,10 @@ use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
 use dseg::DSeg;
 
-use parser::ast::ctxt::*;
-use parser::ast::*;
-use parser::ast::Stmt::*;
-use parser::ast::visit::*;
+use ast::ctxt::*;
+use ast::*;
+use ast::Stmt::*;
+use ast::visit::*;
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,

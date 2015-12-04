@@ -4,10 +4,10 @@ use std::mem;
 
 use codegen::codegen::CodeGen;
 use codegen::fct::JitFct;
-use parser::ast::ctxt::Context;
+use ast::ctxt::Context;
 use error::msg::Msg;
 
-use parser::ast::{self, Function};
+use ast::{self, Function};
 use parser::Parser;
 use parser::lexer::position::Position;
 use semck;

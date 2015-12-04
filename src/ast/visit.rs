@@ -1,8 +1,8 @@
-use parser::ast::*;
-use parser::ast::Elem::*;
-use parser::ast::Expr::*;
-use parser::ast::Stmt::*;
-use parser::ast::Type::*;
+use ast::*;
+use ast::Elem::*;
+use ast::Expr::*;
+use ast::Stmt::*;
+use ast::Type::*;
 
 pub trait Visitor<'v> : Sized {
     fn visit_ast(&mut self, a: &'v Ast) {

@@ -1,7 +1,7 @@
-use parser::ast::*;
-use parser::ast::Elem::*;
-use parser::ast::Expr::*;
-use parser::ast::Stmt::*;
+use ast::*;
+use ast::Elem::*;
+use ast::Expr::*;
+use ast::Stmt::*;
 use parser::interner::{Interner, Name, RcStr};
 
 macro_rules! dump {

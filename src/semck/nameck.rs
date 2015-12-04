@@ -1,13 +1,13 @@
 use std::ptr;
 
-use parser::ast::ctxt::*;
+use ast::ctxt::*;
 use error::msg::Msg;
 
-use parser::ast::*;
-use parser::ast::Expr::*;
-use parser::ast::Stmt::*;
-use parser::ast::Type::*;
-use parser::ast::visit::*;
+use ast::*;
+use ast::Expr::*;
+use ast::Stmt::*;
+use ast::Type::*;
+use ast::visit::*;
 use parser::interner::Name;
 use parser::lexer::position::Position;
 
