@@ -1,6 +1,11 @@
 pub mod gen;
+pub mod dump;
 
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 use ast::{BinOp, UnOp};
+use interner::Name;
+use sym::BuiltinType;
 
 pub struct Fct {
     blocks: Vec<Block>,
@@ -8,6 +13,13 @@ pub struct Fct {
     end_ids: Vec<BlockId>,
     vars: Vec<Var>,
     params: Vec<Var>,
+}
+
+
+impl Debug for Fct {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "fct")
+    }
 }
 
 impl Fct {
@@ -35,18 +47,44 @@ impl Fct {
 
         id
     }
+
+    pub fn add_var(&mut self, name: Name, data_type: BuiltinType, ssa_index: u32) -> VarId {
+        let id = VarId(self.vars.len());
+        self.vars.push(Var {
+            id: id,
+            name: name,
+            data_type: data_type,
+            ssa_index: ssa_index
+        });
+
+        id
+    }
 }
 
 #[derive(Copy, Clone)]
 pub struct VarId(usize);
 
+impl ToString for VarId {
+    fn to_string(&self) -> String {
+        format!("{}", self.0)
+    }
+}
+
 pub struct Var {
     id: VarId,
-    name: String,
+    name: Name,
+    data_type: BuiltinType,
+    ssa_index: u32,
 }
 
 #[derive(Copy, Clone)]
 pub struct BlockId(usize);
+
+impl ToString for BlockId {
+    fn to_string(&self) -> String {
+        format!("{}", self.0)
+    }
+}
 
 pub struct Block {
     id: BlockId,

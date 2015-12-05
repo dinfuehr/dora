@@ -532,16 +532,14 @@ pub enum UnOp {
     BitNot
 }
 
-impl ToString for UnOp {
-    fn to_string(&self) -> String {
-        let repr = match *self {
+impl UnOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
             UnOp::Plus => "+",
             UnOp::Neg => "-",
             UnOp::Not => "!",
             UnOp::BitNot => "~"
-        };
-
-        repr.into()
+        }
     }
 }
 

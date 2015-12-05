@@ -1,10 +1,17 @@
-use ctxt::Context;
+use std::mem;
 
-use ast::*;
+use ast::{Ast, Expr, Stmt, Param};
+use ast::{ExprAssignType, ExprIdentType, ExprBinType, ExprUnType};
+use ast::{ExprLitStrType, ExprLitIntType, ExprLitBoolType};
+use ast::{StmtVarType, StmtExprType, StmtIfType};
+use ast::{StmtLoopType, StmtWhileType, StmtBlockType, Function};
 use ast::Expr::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
+use ctxt::Context;
+
+use ir;
 use ir::*;
 use ir::Instr::*;
 use ir::Opnd::*;
@@ -29,6 +36,16 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             result: OpndInt(0),
             block_id: BlockId(0),
             fct: Fct::new(),
+        }
+    }
+
+    fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
+        self.ctxt.var(stmt.id, |var| {
+            self.fct.add_var(stmt.name, var.data_type, 0);
+        });
+
+        if let Some(ref expr) = stmt.expr {
+            self.visit_expr(expr);
         }
     }
 
@@ -134,6 +151,14 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.add_instr(instr);
     }
 
+    fn add_expr_ident(&mut self, expr: &'ast ExprIdentType) {
+
+    }
+
+    fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
+
+    }
+
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
         self.add_instr(InstrAssign(dest, src));
     }
@@ -159,6 +184,12 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.vreg = 0;
         self.block_id = self.fct.add_block();
+        self.visit_stmt(&f.block);
+
+        let ir = mem::replace(&mut self.fct, Fct::new());
+        ir::dump::dump(self.ctxt, &ir);
+
+        self.ctxt.function(f.id, |fct| fct.ir = Some(ir));
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
@@ -171,6 +202,7 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
             StmtLoop(ref stmt) => self.add_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.add_stmt_while(stmt),
             StmtBlock(ref stmt) => self.add_stmt_block(stmt),
+            StmtVar(ref stmt) => self.add_stmt_var(stmt),
             _ => panic!("unsupported statement")
         }
     }
@@ -180,11 +212,44 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
             ExprLitInt(ref expr) => self.add_expr_lit_int(expr),
             ExprLitBool(ref expr) => self.add_expr_lit_bool(expr),
             ExprLitStr(ref expr) => self.add_expr_lit_str(expr),
-            // ExprIdent(ref expr) => self.add_expr_ident(expr),
+            ExprIdent(ref expr) => self.add_expr_ident(expr),
             ExprUn(ref expr) => self.add_expr_un(expr),
             ExprBin(ref expr) => self.add_expr_bin(expr),
-            // ExprAssign(ref expr) => self.add_expr_assign(expr),
+            ExprAssign(ref expr) => self.add_expr_assign(expr),
             _ => panic!("unsupported expression")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ctxt::*;
+    use ir;
+    use ir::Fct;
+    use test::parse;
+
+    fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T where F: FnOnce(&Context, &FctInfo) -> T {
+        parse(code, |ctxt| {
+            ir::gen::generate(ctxt, ctxt.ast);
+
+            let name = ctxt.interner.intern(fname);
+            let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
+
+            let fct_infos = ctxt.fct_infos.borrow();
+            let fct = &fct_infos[fct_id.0];
+
+            f(ctxt, fct)
+        })
+    }
+
+    #[test]
+    fn assign() {
+        check_fct("fn f() { var x = 1; x = x + 2; x = x + 3; }", "f", |ctxt, fct| {
+            // FIXME: does not compile
+            // let ir_fct = fct.ir.as_ref();
+            // let ir_fct = ir_fct.unwrap();
+            //
+            // ir::dump::dump(ctxt, ir_fct);
+        });
     }
 }

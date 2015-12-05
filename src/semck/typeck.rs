@@ -232,7 +232,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let opnd_type = self.expr_type;
 
         if expected_type != opnd_type {
-            let op = e.op.to_string();
+            let op = e.op.as_str().to_string();
             let msg = Msg::UnOpType(op, opnd_type);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);

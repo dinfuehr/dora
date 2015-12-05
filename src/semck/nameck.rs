@@ -38,6 +38,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             ast: Some(f),
+            ir: None,
             vars: Vec::new(),
             stacksize: 0,
             always_returns: false,

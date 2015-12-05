@@ -10,6 +10,8 @@ use ast::*;
 use ast::map::Map;
 use interner::*;
 
+use ir::Fct;
+
 use sym::*;
 use sym::Sym::*;
 
@@ -122,6 +124,8 @@ pub struct FctInfo<'ast> {
     pub return_type: BuiltinType,
 
     pub ast: Option<&'ast Function>,
+
+    pub ir: Option<Fct>,
 
     pub vars: Vec<VarInfoId>,
 
