@@ -43,13 +43,18 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
-        self.ctxt.var(stmt.id, |ctxt_var, ctxt_var_id| {
+        let var_id = self.ctxt.var(stmt.id, |ctxt_var, ctxt_var_id| {
             let ir_var_id = self.fct.add_var(stmt.name, ctxt_var.data_type, 0);
             self.var_map.insert(ctxt_var_id, ir_var_id);
+
+            ir_var_id
         });
 
         if let Some(ref expr) = stmt.expr {
             self.visit_expr(expr);
+
+            let src = self.result;
+            self.add_instr_assign_var(var_id, src);
         }
     }
 
@@ -141,6 +146,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let dest = self.next_vreg();
         let instr = InstrUn(dest, expr.op, src);
         self.add_instr(instr);
+        self.result = dest;
     }
 
     fn add_expr_bin(&mut self, expr: &'ast ExprBinType) {
@@ -153,21 +159,38 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let dest = self.next_vreg();
         let instr = InstrBin(dest, lhs, expr.op, rhs);
         self.add_instr(instr);
+        self.result = dest;
     }
 
     fn add_expr_ident(&mut self, expr: &'ast ExprIdentType) {
-        // self.
+        let var_id = self.ctxt.var(expr.id, |_, ctxt_var_id| {
+            *self.var_map.get(&ctxt_var_id).unwrap()
+        });
+
+        let ssa_index = self.fct.vars[var_id.0].ssa_index;
+        self.result = OpndVar(var_id, ssa_index);
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
-        self.visit_expr(&expr.lhs);
-        let dest = self.result;
+        let var_id = self.ctxt.var(expr.lhs.id(), |_, ctxt_var_id| {
+            *self.var_map.get(&ctxt_var_id).unwrap()
+        });
 
         self.visit_expr(&expr.rhs);
         let src = self.result;
 
-        let instr = InstrAssign(dest, src);
-        self.add_instr(instr);
+        self.add_instr_assign_var(var_id, src);
+    }
+
+    fn add_instr_assign_var(&mut self, dest: VarId, src: Opnd) {
+        let ssa_index = {
+            let var = &mut self.fct.vars[dest.0];
+            var.ssa_index += 1;
+
+            var.ssa_index
+        };
+
+        self.add_instr_assign(OpndVar(dest, ssa_index), src);
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {

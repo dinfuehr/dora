@@ -21,7 +21,12 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
     }
 
     fn dump(&self) {
-        println!("fct ({} block(s))", self.fct.blocks.len());
+        println!("fct ({} block(s), {} var(s))", self.fct.blocks.len(), self.fct.vars.len());
+
+        for var in &self.fct.vars {
+            let name = self.ctxt.interner.str(var.name);
+            println!("\t{}:{} id={}", name, var.data_type.to_string(), var.id.to_string());
+        }
 
         for block in &self.fct.blocks {
             self.dump_block(block);
@@ -56,13 +61,13 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
     fn opnd(&self, opnd: Opnd) -> String {
         match opnd {
             OpndReg(ind) => format!("%reg{}", ind),
-            OpndInt(val) => format!("${}", val),
+            OpndInt(val) => format!("{}", val),
             OpndBool(val) => format!("{}", val),
             OpndVar(id, ssa) => {
                 let var = &self.fct.vars[id.0];
                 let name = self.ctxt.interner.str(var.name);
 
-                format!("%{}:{}", name, ssa)
+                format!("%{}.{}", name, ssa)
             }
         }
     }
