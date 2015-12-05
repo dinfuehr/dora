@@ -103,12 +103,12 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&mut fct_infos[fctid.0])
     }
 
-    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo) -> R {
+    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {
         let defs = self.defs.borrow();
         let varid = *defs.get(&id).unwrap();
 
         let mut var_infos = self.var_infos.borrow_mut();
-        f(&mut var_infos[varid.0])
+        f(&mut var_infos[varid.0], varid)
     }
 }
 
@@ -140,7 +140,7 @@ pub struct FctInfo<'ast> {
     pub compiled_fct: *const c_void,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct VarInfoId(pub usize);
 
 #[derive(Debug)]

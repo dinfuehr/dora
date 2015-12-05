@@ -47,7 +47,7 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
     }
 
     fn increase_stack(&mut self, id: NodeId) {
-        self.ctxt.var(id, |v| {
+        self.ctxt.var(id, |v, _| {
             let ty_size = v.data_type.size();
             self.stacksize = mem::align(self.stacksize + ty_size, ty_size);
             v.offset = -(self.stacksize as i32);
@@ -63,7 +63,7 @@ impl<'a, 'ast> Visitor<'ast> for CodeGenInfo<'a, 'ast> {
 
         // the rest of the parameters need to be stored in the callers stack
         } else {
-            self.ctxt.var(p.id, |v| {
+            self.ctxt.var(p.id, |v, _| {
                 v.offset = self.param_offset;
 
                 // all params on stack need size of 8

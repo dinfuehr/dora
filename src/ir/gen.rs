@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::mem;
 
 use ast::{Ast, Expr, Stmt, Param};
@@ -9,7 +10,7 @@ use ast::Expr::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use ctxt::Context;
+use ctxt::*;
 
 use ir;
 use ir::*;
@@ -26,6 +27,7 @@ struct Generator<'a, 'ast: 'a> {
     result: Opnd,
     block_id: BlockId,
     fct: Fct,
+    var_map: HashMap<VarInfoId, VarId>
 }
 
 impl<'a, 'ast> Generator<'a, 'ast> {
@@ -36,12 +38,14 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             result: OpndInt(0),
             block_id: BlockId(0),
             fct: Fct::new(),
+            var_map: HashMap::new(),
         }
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
-        self.ctxt.var(stmt.id, |var| {
-            self.fct.add_var(stmt.name, var.data_type, 0);
+        self.ctxt.var(stmt.id, |ctxt_var, ctxt_var_id| {
+            let ir_var_id = self.fct.add_var(stmt.name, ctxt_var.data_type, 0);
+            self.var_map.insert(ctxt_var_id, ir_var_id);
         });
 
         if let Some(ref expr) = stmt.expr {
@@ -152,11 +156,18 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_expr_ident(&mut self, expr: &'ast ExprIdentType) {
-
+        // self.
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
+        self.visit_expr(&expr.lhs);
+        let dest = self.result;
 
+        self.visit_expr(&expr.rhs);
+        let src = self.result;
+
+        let instr = InstrAssign(dest, src);
+        self.add_instr(instr);
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
@@ -183,6 +194,8 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.vreg = 0;
+        self.var_map.clear();
+
         self.block_id = self.fct.add_block();
         self.visit_stmt(&f.block);
 
@@ -246,10 +259,10 @@ mod tests {
     fn assign() {
         check_fct("fn f() { var x = 1; x = x + 2; x = x + 3; }", "f", |ctxt, fct| {
             // FIXME: does not compile
-            // let ir_fct = fct.ir.as_ref();
-            // let ir_fct = ir_fct.unwrap();
-            //
-            // ir::dump::dump(ctxt, ir_fct);
+            let ir_fct = fct.ir.as_ref();
+            let ir_fct = ir_fct.unwrap();
+
+            ir::dump::dump(ctxt, ir_fct);
         });
     }
 }
