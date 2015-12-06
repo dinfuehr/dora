@@ -40,7 +40,7 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
     fn generate(&mut self) {
         self.visit_fct(self.fct);
 
-        self.ctxt.fct_info(self.fct.id, |fct| {
+        self.ctxt.fct_info_mut(self.fct.id, |fct| {
             fct.stacksize = self.stacksize;
             fct.contains_fct_invocation = self.contains_fct_invocation;
         });

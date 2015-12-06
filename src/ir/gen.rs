@@ -55,7 +55,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let ir = mem::replace(&mut self.ir, Fct::new());
         ir::dump::dump(self.ctxt, &ir);
 
-        self.ctxt.fct_info(self.ast_fct.id, |fct| fct.ir = Some(ir));
+        self.ctxt.fct_info_mut(self.ast_fct.id, |fct| fct.ir = Some(ir));
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
@@ -299,19 +299,10 @@ mod tests {
             let name = ctxt.interner.intern(fname);
             let fct_info_id = ctxt.sym.borrow().get_function(name).unwrap();
 
-            let fct = {
-                let fct_infos = ctxt.fct_infos.borrow();
-                let fct_info = &fct_infos[fct_info_id.0];
-
-                fct_info.ast.unwrap()
-            };
-
+            let fct = ctxt.fct_info_for_id(fct_info_id, |fct_info| fct_info.ast.unwrap());
             ir::gen::generate(ctxt, fct);
 
-            let fct_infos = ctxt.fct_infos.borrow();
-            let fct_info = &fct_infos[fct_info_id.0];
-
-            f(ctxt, fct_info)
+            ctxt.fct_info_for_id(fct_info_id, |fct_info| f(ctxt, fct_info))
         })
     }
 

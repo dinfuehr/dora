@@ -79,7 +79,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
-        self.fct_info(fct, |fct| { fct.vars.push(varid); });
+        self.fct_info_mut(fct, |fct| { fct.vars.push(varid); });
 
         let result = match self.sym.borrow().get(name) {
             Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
@@ -95,12 +95,26 @@ impl<'a, 'ast> Context<'a, 'ast> {
         result
     }
 
-    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+    pub fn fct_info_for_id<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+        let mut fct_infos = self.fct_infos.borrow_mut();
+
+        f(&mut fct_infos[id.0])
+    }
+
+    pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
         let map = self.calls.borrow();
         let fctid = *map.get(&id).unwrap();
 
         let mut fct_infos = self.fct_infos.borrow_mut();
         f(&mut fct_infos[fctid.0])
+    }
+
+    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
+        let map = self.calls.borrow();
+        let fctid = *map.get(&id).unwrap();
+
+        let mut fct_infos = self.fct_infos.borrow_mut();
+        f(&fct_infos[fctid.0])
     }
 
     pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {

@@ -41,7 +41,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             // save this information for the function, this information is useful
             // for code generation
 
-            self.ctxt.fct_info(f.id, |fct| fct.always_returns = true);
+            self.ctxt.fct_info_mut(f.id, |fct| fct.always_returns = true);
         }
     }
 }

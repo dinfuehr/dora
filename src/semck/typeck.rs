@@ -47,7 +47,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let Some(ref ty) = f.return_type {
             self.visit_type(ty);
 
-            self.ctxt.fct_info(self.current_fct.unwrap(), |fct| {
+            self.ctxt.fct_info_mut(self.current_fct.unwrap(), |fct| {
                 fct.return_type = self.current_type;
             });
         }
@@ -59,7 +59,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         self.visit_type(&p.data_type);
         self.ctxt.var(p.id, |var, _| { var.data_type = self.current_type; });
 
-        self.ctxt.fct_info(self.current_fct.unwrap(), |fct| {
+        self.ctxt.fct_info_mut(self.current_fct.unwrap(), |fct| {
             fct.params_types.push(self.current_type);
         });
     }
