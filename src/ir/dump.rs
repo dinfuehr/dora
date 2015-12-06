@@ -25,7 +25,7 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
 
         for var in &self.fct.vars {
             let name = self.ctxt.interner.str(var.name);
-            println!("\t{}:{} id={}", name, var.data_type.to_string(), var.id.to_string());
+            println!("\t%{}:{} id={}", name, var.data_type.to_string(), var.id.to_string());
         }
 
         for block in &self.fct.blocks {
@@ -54,6 +54,19 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
                 self.opnd(dest), op.as_str(), self.opnd(src)),
             InstrBin(dest, lhs, op, rhs) => println!("{} = {} {} {}", self.opnd(dest),
                 self.opnd(lhs), op.as_str(), self.opnd(rhs)),
+            InstrPhi(var, dest, ref args) => {
+                print!("{} = phi(", self.opnd(OpndVar(var, dest)));
+                let mut first = true;
+
+                for arg in args {
+                    if !first { print!(", "); }
+                    print!("{}", self.opnd(OpndVar(var, *arg)));
+                    first = false;
+                }
+
+                println!(")");
+            },
+            InstrStr(var, ref value) => println!("{} = str {:?}", self.opnd(var), value),
             _ => panic!("unknown instruction")
         }
     }
