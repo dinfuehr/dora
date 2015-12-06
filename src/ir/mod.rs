@@ -61,7 +61,7 @@ impl Fct {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct VarId(usize);
 
 impl ToString for VarId {
@@ -77,7 +77,7 @@ pub struct Var {
     ssa_index: u32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct BlockId(usize);
 
 impl ToString for BlockId {
@@ -116,6 +116,7 @@ impl Block {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub enum Instr {
     InstrRet(Option<Opnd>),
     InstrTest(Opnd),
@@ -128,7 +129,7 @@ pub enum Instr {
     InstrGoto(BlockId),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Opnd {
     OpndReg(u32),
     OpndVar(VarId, u32),

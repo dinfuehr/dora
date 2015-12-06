@@ -259,9 +259,12 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use ast::BinOp;
     use ctxt::*;
     use ir;
-    use ir::Fct;
+    use ir::*;
+    use ir::Instr::*;
+    use ir::Opnd::*;
     use test::parse;
 
     fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T where F: FnOnce(&Context, &FctInfo) -> T {
@@ -281,11 +284,24 @@ mod tests {
     #[test]
     fn assign() {
         check_fct("fn f() { var x = 1; x = x + 2; x = x + 3; }", "f", |ctxt, fct| {
-            // FIXME: does not compile
-            let ir_fct = fct.ir.as_ref();
-            let ir_fct = ir_fct.unwrap();
+            let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.blocks.len());
 
-            ir::dump::dump(ctxt, ir_fct);
+            let instrs = &ir_fct.blocks[0].instructions;
+            assert_eq!(5, instrs.len());
+            assert_eq!(InstrAssign(OpndVar(VarId(0), 1), OpndInt(1)), instrs[0]);
+
+            let lhs = OpndVar(VarId(0), 1);
+            let rhs = OpndInt(2);
+            assert_eq!(InstrBin(OpndReg(0), lhs, BinOp::Add, rhs), instrs[1]);
+
+            assert_eq!(InstrAssign(OpndVar(VarId(0), 2), OpndReg(0)), instrs[2]);
+
+            let lhs = OpndVar(VarId(0), 2);
+            let rhs = OpndInt(3);
+            assert_eq!(InstrBin(OpndReg(1), lhs, BinOp::Add, rhs), instrs[3]);
+
+            assert_eq!(InstrAssign(OpndVar(VarId(0), 3), OpndReg(1)), instrs[4]);
         });
     }
 }
