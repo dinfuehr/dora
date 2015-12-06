@@ -55,7 +55,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let ir = mem::replace(&mut self.ir, Fct::new());
         ir::dump::dump(self.ctxt, &ir);
 
-        self.ctxt.function(self.ast_fct.id, |fct| fct.ir = Some(ir));
+        self.ctxt.fct_info(self.ast_fct.id, |fct| fct.ir = Some(ir));
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
@@ -212,7 +212,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     fn ensure_return(&mut self) {
         if let Some(&InstrRet(_)) = self.block().last_instr() {
             // already ends with ret: do nothing
-        } else if self.ctxt.function(self.ast_fct.id, |fct| fct.return_type) == BuiltinType::Unit {
+        } else if self.ctxt.fct_info(self.ast_fct.id, |fct| fct.return_type) == BuiltinType::Unit {
             self.add_instr(InstrRet(None));
         }
     }

@@ -79,7 +79,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
-        self.function(fct, |fct| { fct.vars.push(varid); });
+        self.fct_info(fct, |fct| { fct.vars.push(varid); });
 
         let result = match self.sym.borrow().get(name) {
             Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
@@ -95,7 +95,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         result
     }
 
-    pub fn function<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
         let map = self.calls.borrow();
         let fctid = *map.get(&id).unwrap();
 

@@ -29,7 +29,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
         let returns = returns_value(&f.block);
 
         if let Err(pos) = returns {
-            let return_type = self.ctxt.function(f.id, |fct| fct.return_type);
+            let return_type = self.ctxt.fct_info(f.id, |fct| fct.return_type);
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
@@ -41,7 +41,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             // save this information for the function, this information is useful
             // for code generation
 
-            self.ctxt.function(f.id, |fct| fct.always_returns = true);
+            self.ctxt.fct_info(f.id, |fct| fct.always_returns = true);
         }
     }
 }

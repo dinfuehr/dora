@@ -31,7 +31,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             buf: Buffer::new(),
             dseg: DSeg::new(),
 
-            stacksize: ctxt.function(fct.id, |fct| fct.stacksize),
+            stacksize: ctxt.fct_info(fct.id, |fct| fct.stacksize),
             lbl_break: None,
             lbl_continue: None
         }
@@ -44,7 +44,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.store_params();
         self.visit_fct(self.fct);
 
-        let always_returns = self.ctxt.function(self.fct.id, |fct| fct.always_returns);
+        let always_returns = self.ctxt.fct_info(self.fct.id, |fct| fct.always_returns);
 
         if !always_returns {
             self.emit_epilog();
