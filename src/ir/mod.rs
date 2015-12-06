@@ -107,6 +107,10 @@ impl Block {
         self.instructions.push(instr);
     }
 
+    fn last_instr(&self) -> Option<&Instr> {
+        self.instructions.last()
+    }
+
     fn add_predecessor(&mut self, id: BlockId) {
         self.predecessors.push(id);
     }
