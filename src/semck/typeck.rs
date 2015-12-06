@@ -57,7 +57,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
 
     fn visit_param(&mut self, p: &'ast Param) {
         self.visit_type(&p.data_type);
-        self.ctxt.var(p.id, |var, _| { var.data_type = self.current_type; });
+        self.ctxt.var_mut(p.id, |var, _| { var.data_type = self.current_type; });
 
         self.ctxt.fct_info_mut(self.current_fct.unwrap(), |fct| {
             fct.params_types.push(self.current_type);
@@ -68,7 +68,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let StmtVar(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
-                self.ctxt.var(var.id, |var, _| { var.data_type = self.current_type; });
+                self.ctxt.var_mut(var.id, |var, _| { var.data_type = self.current_type; });
             }
 
             if let Some(ref expr) = var.expr {
@@ -137,7 +137,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.ctxt.var(s.id, |var, _| { var.data_type = defined_type });
+        self.ctxt.var_mut(s.id, |var, _| { var.data_type = defined_type });
 
         if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();

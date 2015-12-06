@@ -116,12 +116,20 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&fct_infos[fctid.0])
     }
 
-    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {
+    pub fn var_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {
         let defs = self.defs.borrow();
         let varid = *defs.get(&id).unwrap();
 
         let mut var_infos = self.var_infos.borrow_mut();
         f(&mut var_infos[varid.0], varid)
+    }
+
+    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&VarInfo, VarInfoId) -> R {
+        let defs = self.defs.borrow();
+        let varid = *defs.get(&id).unwrap();
+
+        let var_infos = self.var_infos.borrow();
+        f(&var_infos[varid.0], varid)
     }
 }
 
