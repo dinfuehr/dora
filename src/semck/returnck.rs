@@ -94,10 +94,7 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
 
-            let fct_infos = ctxt.fct_infos.borrow();
-            let fct = &fct_infos[fct_id.0];
-
-            assert_eq!(value, fct.always_returns);
+            assert_eq!(value, ctxt.fct_info_for_id(fct_id, |fct_info| fct_info.always_returns));
         });
     }
 

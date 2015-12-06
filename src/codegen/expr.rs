@@ -261,30 +261,29 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let calls = self.ctxt.calls.borrow();
         let fid = *calls.get(&e.id).unwrap();
 
-        let fct_infos = self.ctxt.fct_infos.borrow();
-        let fct = &fct_infos[fid.0];
+        self.ctxt.fct_info_for_id(fid, |fct_info| {
+            assert!(!fct_info.compiled_fct.is_null());
 
-        assert!(!fct.compiled_fct.is_null());
-
-        for (ind, arg) in e.args.iter().enumerate().rev() {
-            if REG_PARAMS.len() > ind {
-                let dest = REG_PARAMS[ind];
-                self.emit_expr(arg, dest);
-            } else {
-                self.emit_expr(arg, REG_RESULT);
-                emit_pushq_reg(self.buf, REG_RESULT);
+            for (ind, arg) in e.args.iter().enumerate().rev() {
+                if REG_PARAMS.len() > ind {
+                    let dest = REG_PARAMS[ind];
+                    self.emit_expr(arg, dest);
+                } else {
+                    self.emit_expr(arg, REG_RESULT);
+                    emit_pushq_reg(self.buf, REG_RESULT);
+                }
             }
-        }
 
-        let disp = self.dseg.add_addr(fct.compiled_fct);
-        let pos = self.buf.pos() as i32;
+            let disp = self.dseg.add_addr(fct_info.compiled_fct);
+            let pos = self.buf.pos() as i32;
 
-        // next instruction has 7 bytes
-        let disp = disp - pos - 7;
+            // next instruction has 7 bytes
+            let disp = disp - pos - 7;
 
-        emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
-        emit_callq_reg(self.buf, REG_RESULT);
+            emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
+            emit_callq_reg(self.buf, REG_RESULT);
 
-        // TODO: move REG_RESULT into dest
+            // TODO: move REG_RESULT into dest
+        })
     }
 }

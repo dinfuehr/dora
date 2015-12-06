@@ -271,22 +271,24 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let calls = self.ctxt.calls.borrow();
         let fct_id = *calls.get(&e.id).unwrap();
 
-        let fct_infos = self.ctxt.fct_infos.borrow();
-        let fct = &fct_infos[fct_id.0];
-        self.expr_type = fct.return_type;
+        self.ctxt.fct_info_for_id(fct_id, |fct_info| {
+            let fct_infos = self.ctxt.fct_infos.borrow();
+            let fct = &fct_infos[fct_id.0];
+            self.expr_type = fct.return_type;
 
-        let mut call_types = Vec::with_capacity(e.args.len());
+            let mut call_types = Vec::with_capacity(e.args.len());
 
-        for arg in &e.args {
-            self.visit_expr(arg);
-            call_types.push(self.expr_type);
-        }
+            for arg in &e.args {
+                self.visit_expr(arg);
+                call_types.push(self.expr_type);
+            }
 
-        if fct.params_types != call_types {
-            let fct_name = self.ctxt.interner.str(fct.name).to_string();
-            let msg = Msg::ParamTypesIncompatible(fct_name, fct.params_types.clone(), call_types);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
+            if fct.params_types != call_types {
+                let fct_name = self.ctxt.interner.str(fct.name).to_string();
+                let msg = Msg::ParamTypesIncompatible(fct_name, fct.params_types.clone(), call_types);
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            }
+        })
     }
 }
 

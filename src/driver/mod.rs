@@ -112,15 +112,15 @@ fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where
         }
     };
 
-    let fct_infos = ctxt.fct_infos.borrow();
-    let fct = fct_infos.get(fctid.0).unwrap();
-    let return_type = fct.return_type;
+    ctxt.fct_info_for_id(fctid, |fct_info| {
+        let ret = fct_info.return_type;
 
-    if (return_type != BuiltinType::Unit && return_type != BuiltinType::Int) ||
-        fct.params_types.len() > 0 {
-        ctxt.diag.borrow_mut().report(fct.ast.unwrap().pos, Msg::WrongMainDefinition);
-        return None;
-    }
+        if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
+            fct_info.params_types.len() > 0 {
+            ctxt.diag.borrow_mut().report(fct_info.ast.unwrap().pos, Msg::WrongMainDefinition);
+            return None;
+        }
 
-    Some(fct.ast.unwrap())
+        Some(fct_info.ast.unwrap())
+    })
 }

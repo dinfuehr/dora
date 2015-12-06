@@ -95,25 +95,24 @@ impl<'a, 'ast> Context<'a, 'ast> {
         result
     }
 
-    pub fn fct_info_for_id<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
-        let mut fct_infos = self.fct_infos.borrow_mut();
-
-        f(&mut fct_infos[id.0])
+    pub fn fct_info_for_id<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
+        let fct_infos = self.fct_infos.borrow();
+        f(&fct_infos[id.0])
     }
 
     pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
         let map = self.calls.borrow();
-        let fctid = *map.get(&id).unwrap();
+        let fct_info_id = *map.get(&id).unwrap();
 
         let mut fct_infos = self.fct_infos.borrow_mut();
-        f(&mut fct_infos[fctid.0])
+        f(&mut fct_infos[fct_info_id.0])
     }
 
     pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
         let map = self.calls.borrow();
         let fctid = *map.get(&id).unwrap();
 
-        let mut fct_infos = self.fct_infos.borrow_mut();
+        let mut fct_infos = self.fct_infos.borrow();
         f(&fct_infos[fctid.0])
     }
 
