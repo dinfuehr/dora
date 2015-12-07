@@ -90,22 +90,18 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.visit_expr(&stmt.cond);
         let result = self.result;
-        self.add_instr(InstrTest(result));
-        self.block_mut().add_successor(then_id);
-        self.block_mut().add_successor(else_id);
+        self.add_instr(InstrTest(result, then_id, else_id));
 
         self.block_id = then_id;
         self.visit_stmt(&stmt.then_block);
         self.add_instr(InstrGoto(after_id));
         self.block_mut().add_predecessor(before_id);
-        self.block_mut().add_successor(after_id);
 
         if let Some(ref else_block) = stmt.else_block {
             self.block_id = else_id;
             self.visit_stmt(else_block);
             self.add_instr(InstrGoto(after_id));
             self.block_mut().add_predecessor(before_id);
-            self.block_mut().add_successor(after_id);
         }
 
         self.block_id = after_id;
@@ -117,14 +113,11 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let after_id = self.ir.add_block();
 
         self.add_instr(InstrGoto(loop_id));
-        self.block_mut().add_successor(loop_id);
 
         self.block_id = loop_id;
         self.visit_stmt(&stmt.block);
         self.add_instr(InstrGoto(loop_id));
         self.block_mut().add_predecessor(before_id);
-        self.block_mut().add_successor(loop_id);
-        self.block_mut().add_successor(after_id);
 
         self.block_id = after_id;
     }

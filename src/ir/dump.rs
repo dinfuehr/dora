@@ -47,8 +47,10 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
         match *instr {
             InstrRet(Some(opnd)) => println!("ret {}", self.opnd(opnd)),
             InstrRet(None) => println!("ret"),
-            InstrGoto(block) => println!("goto {}", block.to_string()),
-            InstrTest(opnd) => println!("test {}", self.opnd(opnd)),
+            InstrGoto(block) => println!("goto -> block {}", block.to_string()),
+            InstrTest(opnd, then_block, else_block) =>
+                println!("test {} -> block {} -> block {}", self.opnd(opnd),
+                    then_block.to_string(), else_block.to_string()),
             InstrAssign(dest, src) => println!("{} = {}", self.opnd(dest), self.opnd(src)),
             InstrUn(dest, op, src) => println!("{} = {} {}",
                 self.opnd(dest), op.as_str(), self.opnd(src)),

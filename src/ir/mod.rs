@@ -89,7 +89,6 @@ impl ToString for BlockId {
 pub struct Block {
     id: BlockId,
     instructions: Vec<Instr>,
-    successors: Vec<BlockId>,
     predecessors: Vec<BlockId>,
 }
 
@@ -98,7 +97,6 @@ impl Block {
         Block {
             id: id,
             instructions: Vec::new(),
-            successors: Vec::new(),
             predecessors: Vec::new()
         }
     }
@@ -114,16 +112,12 @@ impl Block {
     fn add_predecessor(&mut self, id: BlockId) {
         self.predecessors.push(id);
     }
-
-    fn add_successor(&mut self, id: BlockId) {
-        self.successors.push(id);
-    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Instr {
     InstrRet(Option<Opnd>),
-    InstrTest(Opnd),
+    InstrTest(Opnd, BlockId, BlockId),
     InstrBin(Opnd, Opnd, BinOp, Opnd),
     InstrUn(Opnd, UnOp, Opnd),
     InstrAssign(Opnd, Opnd),
