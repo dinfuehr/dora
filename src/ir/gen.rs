@@ -380,4 +380,16 @@ mod tests {
             assert_eq!(Instr::ret_with(param), instrs[0]);
         });
     }
+
+    #[test]
+    fn expr() {
+        check_fct("fn f() { 1; 2; 3; }", "f", |ctxt, fct| {
+            let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.blocks.len());
+
+            let instrs = &ir_fct.blocks[0].instructions;
+            assert_eq!(1, instrs.len());
+            assert_eq!(Instr::ret(), instrs[0]);
+        });
+    }
 }
