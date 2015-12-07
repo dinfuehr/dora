@@ -47,6 +47,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn generate(&mut self) {
+        for p in &self.ast_fct.params {
+            self.visit_param(p);
+        }
+
         self.block_id = self.ir.add_block();
         self.visit_stmt(&self.ast_fct.block);
 
@@ -248,6 +252,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
+        self.ctxt.var(p.id, |ctxt_var, ctxt_var_id| {
+            let ir_var_id = self.ir.add_var(p.name, ctxt_var.data_type, 0);
+            self.var_map.insert(ctxt_var_id, ir_var_id);
+        });
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -358,6 +366,18 @@ mod tests {
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
             assert_eq!(InstrRet(None), instrs[0]);
+        });
+    }
+
+    #[test]
+    fn param() {
+        check_fct("fn f(a: int) -> int { return a; }", "f", |ctxt, fct| {
+            let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.blocks.len());
+
+            let instrs = &ir_fct.blocks[0].instructions;
+            let param = OpndVar(VarId(0), 0);
+            assert_eq!(InstrRet(Some(param)), instrs[0]);
         });
     }
 }
