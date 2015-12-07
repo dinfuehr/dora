@@ -94,17 +94,17 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.visit_expr(&stmt.cond);
         let result = self.result;
-        self.add_instr(InstrTest(result, then_id, else_id));
+        self.add_instr(Instr::test(result, then_id, else_id));
 
         self.block_id = then_id;
         self.visit_stmt(&stmt.then_block);
-        self.add_instr(InstrGoto(after_id));
+        self.add_instr(Instr::goto(after_id));
         self.block_mut().add_predecessor(before_id);
 
         if let Some(ref else_block) = stmt.else_block {
             self.block_id = else_id;
             self.visit_stmt(else_block);
-            self.add_instr(InstrGoto(after_id));
+            self.add_instr(Instr::goto(after_id));
             self.block_mut().add_predecessor(before_id);
         }
 
@@ -120,7 +120,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.block_id = loop_id;
         self.visit_stmt(&stmt.block);
-        self.add_instr(InstrGoto(loop_id));
+        self.add_instr(Instr::goto(loop_id));
         self.block_mut().add_predecessor(before_id);
 
         self.block_id = after_id;
@@ -141,9 +141,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             self.visit_expr(expr);
 
             let result = self.result;
-            self.add_instr(InstrRet(Some(result)));
+            self.add_instr(Instr::ret_with(result));
         } else {
-            self.add_instr(InstrRet(None));
+            self.add_instr(Instr::ret());
         }
     }
 
@@ -157,7 +157,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
     fn add_expr_lit_str(&mut self, lit: &'ast ExprLitStrType) {
         let dest = self.next_vreg();
-        let instr = InstrStr(dest, lit.value.clone());
+        let instr = Instr::str(dest, lit.value.clone());
         self.add_instr(instr);
 
         self.result = dest;
@@ -168,7 +168,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let src = self.result;
 
         let dest = self.next_vreg();
-        let instr = InstrUn(dest, expr.op, src);
+        let instr = Instr::un(dest, expr.op, src);
         self.add_instr(instr);
         self.result = dest;
     }
@@ -181,7 +181,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let rhs = self.result;
 
         let dest = self.next_vreg();
-        let instr = InstrBin(dest, lhs, expr.op, rhs);
+        let instr = Instr::bin(dest, lhs, expr.op, rhs);
         self.add_instr(instr);
         self.result = dest;
     }
@@ -210,7 +210,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         if let Some(&InstrRet(_)) = self.block().last_instr() {
             // already ends with ret: do nothing
         } else if self.ctxt.fct_info(self.ast_fct.id, |fct| fct.return_type) == BuiltinType::Unit {
-            self.add_instr(InstrRet(None));
+            self.add_instr(Instr::ret());
         }
     }
 
@@ -226,7 +226,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
-        self.add_instr(InstrAssign(dest, src));
+        self.add_instr(Instr::assign(dest, src));
     }
 
     fn add_instr(&mut self, instr: Instr) {
@@ -315,21 +315,21 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(6, instrs.len());
-            assert_eq!(InstrAssign(OpndVar(VarId(0), 1), OpndInt(1)), instrs[0]);
+            assert_eq!(Instr::assign(OpndVar(VarId(0), 1), OpndInt(1)), instrs[0]);
 
             let lhs = OpndVar(VarId(0), 1);
             let rhs = OpndInt(2);
-            assert_eq!(InstrBin(OpndReg(0), lhs, BinOp::Add, rhs), instrs[1]);
+            assert_eq!(Instr::bin(OpndReg(0), lhs, BinOp::Add, rhs), instrs[1]);
 
-            assert_eq!(InstrAssign(OpndVar(VarId(0), 2), OpndReg(0)), instrs[2]);
+            assert_eq!(Instr::assign(OpndVar(VarId(0), 2), OpndReg(0)), instrs[2]);
 
             let lhs = OpndVar(VarId(0), 2);
             let rhs = OpndInt(3);
-            assert_eq!(InstrBin(OpndReg(1), lhs, BinOp::Add, rhs), instrs[3]);
+            assert_eq!(Instr::bin(OpndReg(1), lhs, BinOp::Add, rhs), instrs[3]);
 
-            assert_eq!(InstrAssign(OpndVar(VarId(0), 3), OpndReg(1)), instrs[4]);
+            assert_eq!(Instr::assign(OpndVar(VarId(0), 3), OpndReg(1)), instrs[4]);
 
-            assert_eq!(InstrRet(None), instrs[5]);
+            assert_eq!(Instr::ret(), instrs[5]);
         });
     }
 
@@ -341,7 +341,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
-            assert_eq!(InstrRet(Some(OpndInt(1))), instrs[0]);
+            assert_eq!(Instr::ret_with(OpndInt(1)), instrs[0]);
         });
     }
 
@@ -353,7 +353,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
-            assert_eq!(InstrRet(None), instrs[0]);
+            assert_eq!(Instr::ret(), instrs[0]);
         });
     }
 
@@ -365,7 +365,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
-            assert_eq!(InstrRet(None), instrs[0]);
+            assert_eq!(Instr::ret(), instrs[0]);
         });
     }
 
@@ -377,7 +377,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             let param = OpndVar(VarId(0), 0);
-            assert_eq!(InstrRet(Some(param)), instrs[0]);
+            assert_eq!(Instr::ret_with(param), instrs[0]);
         });
     }
 }

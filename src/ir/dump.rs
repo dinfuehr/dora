@@ -48,27 +48,31 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
             InstrRet(Some(opnd)) => println!("ret {}", self.opnd(opnd)),
             InstrRet(None) => println!("ret"),
             InstrGoto(block) => println!("goto -> block {}", block.to_string()),
-            InstrTest(opnd, then_block, else_block) =>
-                println!("test {} -> block {} -> block {}", self.opnd(opnd),
-                    then_block.to_string(), else_block.to_string()),
-            InstrAssign(dest, src) => println!("{} = {}", self.opnd(dest), self.opnd(src)),
-            InstrUn(dest, op, src) => println!("{} = {} {}",
-                self.opnd(dest), op.as_str(), self.opnd(src)),
-            InstrBin(dest, lhs, op, rhs) => println!("{} = {} {} {}", self.opnd(dest),
-                self.opnd(lhs), op.as_str(), self.opnd(rhs)),
-            InstrPhi(var, dest, ref args) => {
-                print!("{} = phi(", self.opnd(OpndVar(var, dest)));
+            InstrTest(ref instr) =>
+                println!("test {} -> block {} -> block {}", self.opnd(instr.opnd),
+                    instr.true_block.to_string(), instr.false_block.to_string()),
+            InstrAssign(ref instr) => println!("{} = {}",
+                self.opnd(instr.dest), self.opnd(instr.src)),
+            InstrUn(ref instr) => println!("{} = {} {}",
+                self.opnd(instr.dest), instr.op.as_str(), self.opnd(instr.src)),
+            InstrBin(ref instr) => println!("{} = {} {} {}", self.opnd(instr.dest),
+                self.opnd(instr.lhs), instr.op.as_str(), self.opnd(instr.rhs)),
+            InstrPhi(ref instr) => {
+                let dest = OpndVar(instr.var_id, instr.dest);
+                print!("{} = phi(", self.opnd(dest));
                 let mut first = true;
 
-                for arg in args {
+                for opnd in &instr.opnds {
                     if !first { print!(", "); }
-                    print!("{}", self.opnd(OpndVar(var, *arg)));
+                    let opnd = OpndVar(instr.var_id, *opnd);
+                    print!("{}", self.opnd(opnd));
                     first = false;
                 }
 
                 println!(")");
             },
-            InstrStr(var, ref value) => println!("{} = str {:?}", self.opnd(var), value),
+            InstrStr(ref instr) => println!("{} = str {:?}",
+                self.opnd(instr.dest), instr.value),
             _ => panic!("unknown instruction")
         }
     }
