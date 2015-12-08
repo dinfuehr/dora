@@ -287,7 +287,7 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use ast::BinOp;
+    use ast::{BinOp, UnOp};
     use ctxt::*;
     use ir;
     use ir::*;
@@ -390,6 +390,39 @@ mod tests {
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
             assert_eq!(Instr::ret(), instrs[0]);
+        });
+    }
+
+    #[test]
+    fn bin() {
+        check_fct("fn f(a: int, b: int) -> int { return a+b; }", "f", |ctxt, fct| {
+            let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.blocks.len());
+
+            let instrs = &ir_fct.blocks[0].instructions;
+            assert_eq!(2, instrs.len());
+
+            let a = OpndVar(VarId(0), 0);
+            let b = OpndVar(VarId(1), 0);
+            let temp = OpndReg(0);
+            assert_eq!(Instr::bin(temp, a, BinOp::Add, b), instrs[0]);
+            assert_eq!(Instr::ret_with(temp), instrs[1]);
+        });
+    }
+
+    #[test]
+    fn un() {
+        check_fct("fn f(a: int) -> int { return -a; }", "f", |ctxt, fct| {
+            let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.blocks.len());
+
+            let instrs = &ir_fct.blocks[0].instructions;
+            assert_eq!(2, instrs.len());
+
+            let a = OpndVar(VarId(0), 0);
+            let temp = OpndReg(0);
+            assert_eq!(Instr::un(temp, UnOp::Neg, a), instrs[0]);
+            assert_eq!(Instr::ret_with(temp), instrs[1]);
         });
     }
 }
