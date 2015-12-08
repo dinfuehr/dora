@@ -28,6 +28,7 @@ struct Generator<'a, 'ast: 'a> {
     vreg: u32,
     result: Opnd,
     block_id: BlockId,
+    join_id: BlockId,
     ast_fct: &'ast Function,
     ir: Fct,
     var_map: HashMap<VarInfoId, VarId>
@@ -40,6 +41,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             vreg: 0,
             result: OpndInt(0),
             block_id: BlockId(0),
+            join_id: BlockId(0),
             ast_fct: fct,
             ir: Fct::new(),
             var_map: HashMap::new(),
@@ -231,6 +233,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
     fn add_instr(&mut self, instr: Instr) {
         self.block_mut().add_instr(instr);
+    }
+
+    fn join_mut(&mut self) -> &mut Block {
+        self.ir.block_mut(self.join_id)
     }
 
     fn block_mut(&mut self) -> &mut Block {
