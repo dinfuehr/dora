@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::iter::once;
+use std::iter::repeat;
 use std::mem;
 
 use ast::{Ast, Expr, Stmt, Param};
@@ -27,8 +29,8 @@ struct Generator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     vreg: u32,
     result: Opnd,
-    block_id: BlockId,
-    join_id: BlockId,
+    cur_block: BlockId,
+    cur_join: Option<(BlockId, u32)>,
     ast_fct: &'ast Function,
     ir: Fct,
     var_map: HashMap<VarInfoId, VarId>
@@ -40,8 +42,8 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             ctxt: ctxt,
             vreg: 0,
             result: OpndInt(0),
-            block_id: BlockId(0),
-            join_id: BlockId(0),
+            cur_block: BlockId(0),
+            cur_join: None,
             ast_fct: fct,
             ir: Fct::new(),
             var_map: HashMap::new(),
@@ -53,7 +55,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             self.visit_param(p);
         }
 
-        self.block_id = self.ir.add_block();
+        self.cur_block = self.ir.add_block();
         self.visit_stmt(&self.ast_fct.block);
 
         self.ensure_return();
@@ -66,7 +68,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
         let var_id = self.ctxt.var(stmt.id, |ctxt_var, ctxt_var_id| {
-            let ir_var_id = self.ir.add_var(stmt.name, ctxt_var.data_type, 0);
+            let ir_var_id = self.ir.add_var(stmt.name, ctxt_var.data_type);
             self.var_map.insert(ctxt_var_id, ir_var_id);
 
             ir_var_id
@@ -85,47 +87,86 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_stmt_if(&mut self, stmt: &'ast StmtIfType) {
-        let before_id = self.block_id;
+        let cond_id = self.cur_block;
         let then_id = self.ir.add_block();
-        let after_id = self.ir.add_block();
-        let else_id = if stmt.else_block.is_some() {
-            self.ir.add_block()
-        } else {
-            after_id
-        };
+        let else_id = stmt.else_block.as_ref().map(|_| self.ir.add_block());
+        let join_id = self.ir.add_block();
 
+        // emit condition
+        self.cur_block = cond_id;
         self.visit_expr(&stmt.cond);
+
+        let false_block = else_id.unwrap_or(join_id);
         let result = self.result;
-        self.add_instr(Instr::test(result, then_id, else_id));
+        self.add_instr(Instr::test(result, then_id, false_block));
 
-        self.block_id = then_id;
-        self.visit_stmt(&stmt.then_block);
-        self.add_instr(Instr::goto(after_id));
-        self.block_mut().add_predecessor(before_id);
+        // emit then block
+        self.use_join_node(join_id, 1, |gen| {
+            gen.cur_block = then_id;
+            gen.visit_stmt(&stmt.then_block);
+            gen.add_instr(Instr::goto(join_id));
+            gen.block_mut().add_predecessor(cond_id);
+        });
 
+        // emit else block
         if let Some(ref else_block) = stmt.else_block {
-            self.block_id = else_id;
-            self.visit_stmt(else_block);
-            self.add_instr(Instr::goto(after_id));
-            self.block_mut().add_predecessor(before_id);
+            self.use_join_node(join_id, 2, |gen| {
+                gen.reset_vars_from_phi_backup();
+                gen.ensure_phi_opnds_len();
+
+                gen.cur_block = else_id.unwrap();
+                gen.visit_stmt(else_block);
+                gen.add_instr(Instr::goto(join_id));
+                gen.block_mut().add_predecessor(cond_id);
+            });
         }
 
-        self.block_id = after_id;
+        // set join block as current block
+        self.cur_block = join_id;
+        self.reset_vars_from_phi_dest();
+    }
+
+    fn reset_vars_from_phi_backup(&mut self) {
+        let resets : Vec<_> = self.join().phi_iter().
+            map(|phi| (phi.var_id, phi.backup)).collect();
+
+        for reset in resets {
+            self.ir.var_mut(reset.0).cur_ssa = reset.1;
+        }
+    }
+
+    fn reset_vars_from_phi_dest(&mut self) {
+        let resets : Vec<_> = self.block().phi_iter().
+            map(|phi| (phi.var_id, phi.dest)).collect();
+
+        for reset in resets {
+            self.ir.var_mut(reset.0).cur_ssa = reset.1;
+        }
+    }
+
+    fn ensure_phi_opnds_len(&mut self) {
+        let join_idx = self.cur_join.unwrap().1 as usize;
+
+        for phi in self.join_mut().phi_iter_mut() {
+            while phi.opnds.len() < join_idx {
+                phi.opnds.push(phi.backup);
+            }
+        }
     }
 
     fn add_stmt_loop(&mut self, stmt: &'ast StmtLoopType) {
-        let before_id = self.block_id;
+        let before_id = self.cur_block;
         let loop_id = self.ir.add_block();
         let after_id = self.ir.add_block();
 
         self.add_instr(InstrGoto(loop_id));
 
-        self.block_id = loop_id;
+        self.cur_block = loop_id;
         self.visit_stmt(&stmt.block);
         self.add_instr(Instr::goto(loop_id));
         self.block_mut().add_predecessor(before_id);
 
-        self.block_id = after_id;
+        self.cur_block = after_id;
     }
 
     fn add_stmt_while(&mut self, stmt: &'ast StmtWhileType) {
@@ -193,8 +234,8 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             *self.var_map.get(&ctxt_var_id).unwrap()
         });
 
-        let ssa_index = self.ir.vars[var_id.0].ssa_index;
-        self.result = OpndVar(var_id, ssa_index);
+        let cur_ssa = self.ir.var(var_id).cur_ssa;
+        self.result = OpndVar(var_id, cur_ssa);
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
@@ -211,20 +252,49 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     fn ensure_return(&mut self) {
         if let Some(&InstrRet(_)) = self.block().last_instr() {
             // already ends with ret: do nothing
-        } else if self.ctxt.fct_info(self.ast_fct.id, |fct| fct.return_type) == BuiltinType::Unit {
+        } else if self.ctxt.fct_info(self.ast_fct.id,
+                |fct| fct.return_type) == BuiltinType::Unit {
             self.add_instr(Instr::ret());
         }
     }
 
     fn add_instr_assign_var(&mut self, dest: VarId, src: Opnd) {
-        let ssa_index = {
-            let var = &mut self.ir.vars[dest.0];
-            var.ssa_index += 1;
+        let dest_ssa = self.ir.increase_var(dest);
+        self.ir.var_mut(dest).cur_ssa = dest_ssa;
 
-            var.ssa_index
-        };
+        self.add_instr_assign(OpndVar(dest, dest_ssa), src);
 
-        self.add_instr_assign(OpndVar(dest, ssa_index), src);
+        // if current join node exists
+        if let Some((join_id, join_idx)) = self.cur_join {
+            let old_ssa = dest_ssa - 1;
+            let join_idx = join_idx as usize;
+
+            // find existing phi instruction in join node
+            if let Some(phi) = self.join_mut().find_phi_mut(dest) {
+                while phi.opnds.len() < join_idx {
+                    phi.opnds.push(old_ssa);
+                }
+
+                phi.opnds[join_idx - 1] = dest_ssa;
+                return;
+            }
+
+            // otherwise add phi instruction into join node
+            let join_ssa = self.ir.increase_var(dest);
+
+            let opnds: Vec<u32> =
+                repeat(old_ssa).take(join_idx - 1).
+                chain(once(dest_ssa)).collect();
+
+            let phi = InstrPhiType {
+                var_id: dest,
+                dest: join_ssa,
+                opnds: opnds,
+                backup: old_ssa,
+            };
+
+            self.join_mut().add_phi(phi);
+        }
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
@@ -235,16 +305,31 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.block_mut().add_instr(instr);
     }
 
+    fn use_join_node<F>(&mut self, id: BlockId, ind: u32, f: F)
+        where F: FnOnce(&mut Generator<'a, 'ast>)
+    {
+        let old = self.cur_join;
+        self.cur_join = Some((id, ind));
+
+        f(self);
+
+        self.cur_join = old;
+    }
+
     fn join_mut(&mut self) -> &mut Block {
-        self.ir.block_mut(self.join_id)
+        self.ir.block_mut(self.cur_join.unwrap().0)
+    }
+
+    fn join(&self) -> &Block {
+        self.ir.block(self.cur_join.unwrap().0)
     }
 
     fn block_mut(&mut self) -> &mut Block {
-        self.ir.block_mut(self.block_id)
+        self.ir.block_mut(self.cur_block)
     }
 
     fn block(&self) -> &Block {
-        self.ir.block(self.block_id)
+        self.ir.block(self.cur_block)
     }
 
     fn next_vreg(&mut self) -> Opnd {
@@ -259,7 +344,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         self.ctxt.var(p.id, |ctxt_var, ctxt_var_id| {
-            let ir_var_id = self.ir.add_var(p.name, ctxt_var.data_type, 0);
+            let ir_var_id = self.ir.add_var(p.name, ctxt_var.data_type);
             self.var_map.insert(ctxt_var_id, ir_var_id);
         });
     }
@@ -403,6 +488,7 @@ mod tests {
     fn bin() {
         check_fct("fn f(a: int, b: int) -> int { return a+b; }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(2, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
 
             let instrs = &ir_fct.blocks[0].instructions;
@@ -420,6 +506,7 @@ mod tests {
     fn un() {
         check_fct("fn f(a: int) -> int { return -a; }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
+            assert_eq!(1, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
 
             let instrs = &ir_fct.blocks[0].instructions;
@@ -430,5 +517,22 @@ mod tests {
             assert_eq!(Instr::un(temp, UnOp::Neg, a), instrs[0]);
             assert_eq!(Instr::ret_with(temp), instrs[1]);
         });
+    }
+
+    #[test]
+    fn if_then() {
+        check_fct("fn f(a: int, b: int, c: int) -> int {
+            if (a = b) == 7 {
+                a = 1;
+                b = a + 1;
+            } else {
+                a = a + 1 + b;
+                c = 2;
+            }
+            return a + b + c;
+        }", "f", |ctxt, fct| {
+            // let ir_fct = fct.ir.as_ref().unwrap();
+            // let instrs = &ir_fct.blocks[0].instructions;
+        })
     }
 }
