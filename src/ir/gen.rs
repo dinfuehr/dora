@@ -378,7 +378,7 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use ast::{BinOp, UnOp};
+    use ast::{BinOp, CmpOp, UnOp};
     use ctxt::*;
     use ir;
     use ir::*;
@@ -531,8 +531,47 @@ mod tests {
             }
             return a + b + c;
         }", "f", |ctxt, fct| {
-            // let ir_fct = fct.ir.as_ref().unwrap();
-            // let instrs = &ir_fct.blocks[0].instructions;
+            let ir_fct = fct.ir.as_ref().unwrap();
+
+            assert_block(ir_fct, 0, vec![
+                Instr::assign(OpndVar(VarId(0), 1), OpndVar(VarId(1), 0)),
+                Instr::bin(OpndReg(0), OpndVar(VarId(1), 0), BinOp::Cmp(CmpOp::Eq), OpndInt(7)),
+                Instr::test(OpndReg(0), BlockId(1), BlockId(2))
+            ]);
+
+            assert_block(ir_fct, 1, vec![
+                Instr::assign(OpndVar(VarId(0), 2), OpndInt(1)),
+                Instr::bin(OpndReg(1), OpndVar(VarId(0), 2), BinOp::Add, OpndInt(1)),
+                Instr::assign(OpndVar(VarId(1), 1), OpndReg(1)),
+                Instr::goto(BlockId(3))
+            ]);
+
+            assert_block(ir_fct, 2, vec![
+                Instr::bin(OpndReg(2), OpndVar(VarId(0),1), BinOp::Add, OpndInt(1)),
+                Instr::bin(OpndReg(3), OpndReg(2), BinOp::Add, OpndVar(VarId(1), 0)),
+                Instr::assign(OpndVar(VarId(0), 4), OpndReg(3)),
+                Instr::assign(OpndVar(VarId(2), 1), OpndInt(2)),
+                Instr::goto(BlockId(3))
+            ]);
+
+            assert_block(ir_fct, 3, vec![
+                Instr::phi(VarId(0), 3, vec![2, 4], 1),
+                Instr::phi(VarId(1), 2, vec![1, 0], 0),
+                Instr::phi(VarId(2), 2, vec![0, 1], 0),
+                Instr::bin(OpndReg(4), OpndVar(VarId(0), 3), BinOp::Add, OpndVar(VarId(1), 2)),
+                Instr::bin(OpndReg(5), OpndReg(4), BinOp::Add, OpndVar(VarId(2), 2)),
+                Instr::ret_with(OpndReg(5))
+            ]);
         })
+    }
+
+    fn assert_block(fct: &Fct, block_id: usize, expected: Vec<Instr>) {
+        let instrs = &fct.blocks[block_id].instructions;
+
+        assert_eq!(instrs.len(), expected.len());
+
+        for (instr, ind) in instrs.iter().zip(0..) {
+            assert_eq!(*instr, expected[ind]);
+        }
     }
 }

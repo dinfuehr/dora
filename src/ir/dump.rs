@@ -69,7 +69,7 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
                     first = false;
                 }
 
-                println!(")");
+                println!(") (backup {})", instr.backup);
             },
             InstrStr(ref instr) => println!("{} = str {:?}",
                 self.opnd(instr.dest), instr.value),
