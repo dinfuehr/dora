@@ -30,10 +30,17 @@ struct Generator<'a, 'ast: 'a> {
     vreg: u32,
     result: Opnd,
     cur_block: BlockId,
+    cur_join_action: JoinAction,
     cur_join: Option<(BlockId, u32)>,
     ast_fct: &'ast Function,
     ir: Fct,
     var_map: HashMap<VarInfoId, VarId>
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum JoinAction {
+    If,
+    While
 }
 
 impl<'a, 'ast> Generator<'a, 'ast> {
@@ -43,6 +50,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             vreg: 0,
             result: OpndInt(0),
             cur_block: BlockId(0),
+            cur_join_action: JoinAction::If,
             cur_join: None,
             ast_fct: fct,
             ir: Fct::new(),
@@ -101,7 +109,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.add_instr(Instr::test(result, then_id, false_block));
 
         // emit then block
-        self.use_join_node(join_id, 1, |gen| {
+        self.use_join_node(join_id, 1, JoinAction::If, |gen| {
             gen.cur_block = then_id;
             gen.visit_stmt(&stmt.then_block);
             gen.add_instr(Instr::goto(join_id));
@@ -110,7 +118,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         // emit else block
         if let Some(ref else_block) = stmt.else_block {
-            self.use_join_node(join_id, 2, |gen| {
+            self.use_join_node(join_id, 2, JoinAction::While, |gen| {
                 gen.reset_vars_from_phi_backup();
                 gen.ensure_phi_opnds_len();
 
@@ -268,38 +276,57 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.ir.var_mut(dest).cur_ssa = dest_ssa;
 
         self.add_instr_assign(OpndVar(dest, dest_ssa), src);
+        self.phi_for_assign(dest, dest_ssa);
+    }
 
+    fn phi_for_assign(&mut self, dest: VarId, dest_ssa: u32) {
         // if current join node exists
         if let Some((join_id, join_idx)) = self.cur_join {
-            let old_ssa = dest_ssa - 1;
-            let join_idx = join_idx as usize;
+            match self.cur_join_action {
+                JoinAction::If =>
+                    self.phi_for_assign_in_if(dest, dest_ssa, join_id, join_idx as usize),
+                JoinAction::While =>
+                    self.phi_for_assign_in_while(dest, dest_ssa, join_id, join_idx as usize),
+            }
+        }
+    }
 
-            // find existing phi instruction in join node
-            if let Some(phi) = self.join_mut().find_phi_mut(dest) {
-                while phi.opnds.len() < join_idx {
-                    phi.opnds.push(old_ssa);
-                }
+    fn phi_for_assign_in_if(&mut self, dest: VarId, dest_ssa: u32,
+        join_id: BlockId, join_idx: usize)
+    {
+        let old_ssa = dest_ssa - 1;
 
-                phi.opnds[join_idx - 1] = dest_ssa;
-                return;
+        // find existing phi instruction in join node
+        if let Some(phi) = self.join_mut().find_phi_mut(dest) {
+            while phi.opnds.len() < join_idx {
+                phi.opnds.push(old_ssa);
             }
 
-            // otherwise add phi instruction into join node
-            let join_ssa = self.ir.increase_var(dest);
-
-            let opnds: Vec<u32> =
-                repeat(old_ssa).take(join_idx - 1).
-                chain(once(dest_ssa)).collect();
-
-            let phi = InstrPhiType {
-                var_id: dest,
-                dest: join_ssa,
-                opnds: opnds,
-                backup: old_ssa,
-            };
-
-            self.join_mut().add_phi(phi);
+            phi.opnds[join_idx - 1] = dest_ssa;
+            return;
         }
+
+        // otherwise add phi instruction into join node
+        let join_ssa = self.ir.increase_var(dest);
+
+        let opnds: Vec<u32> =
+            repeat(old_ssa).take(join_idx - 1).
+            chain(once(dest_ssa)).collect();
+
+        let phi = InstrPhiType {
+            var_id: dest,
+            dest: join_ssa,
+            opnds: opnds,
+            backup: old_ssa,
+        };
+
+        self.join_mut().add_phi(phi);
+    }
+
+    fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32,
+        join_id: BlockId, join_idx: usize)
+    {
+
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
@@ -310,15 +337,17 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.block_mut().add_instr(instr);
     }
 
-    fn use_join_node<F>(&mut self, id: BlockId, ind: u32, f: F)
+    fn use_join_node<F>(&mut self, id: BlockId, ind: u32, action: JoinAction, f: F)
         where F: FnOnce(&mut Generator<'a, 'ast>)
     {
         let old = self.cur_join;
+        let old_action = self.cur_join_action;
         self.cur_join = Some((id, ind));
 
         f(self);
 
         self.cur_join = old;
+        self.cur_join_action = old_action;
     }
 
     fn join_mut(&mut self) -> &mut Block {
@@ -580,7 +609,29 @@ mod tests {
             }
             return a + b;
         }", "f", |ctxt, fct| {
-            println!("hello");
+            let ir_fct = fct.ir.as_ref().unwrap();
+
+            assert_block(ir_fct, 0, vec![
+                Instr::assign(OpndVar(VarId(1), 1), OpndInt(1)),
+                Instr::goto(BlockId(1))
+            ]);
+
+            // assert_block(ir_fct, 1, vec![
+            //     Instr::phi(VarId(1), 2, vec![0, 1], 0),
+            //     Instr::phi(VarId(0), 3, vec![1, 2], 0),
+            //     Instr::goto(BlockId(1))
+            // ]);
+
+            // assert_block(ir_fct, 2, vec![
+            //     Instr::bin(OpndVar(VarId(1), 1), OpndVar(VarId(0), 3), BinOp:Add, OpndInt(1)),
+            //     Instr::bin(OpndVar(VarId(0), 2), OpndVar(VarId(0), 3), BinOp:Mul, OpndInt(2)),
+            //     Instr::goto(BlockId(1))
+            // ]);
+
+            // assert_block(ir_fct, 3, vec![
+            //     Instr::assign(OpndReg(3), OpndVar(VarId(0), 3), OpndVar(VarId(1), 2)),
+            //     Instr::ret_with(OpndReg(3))
+            // ]);
         });
     }
 
