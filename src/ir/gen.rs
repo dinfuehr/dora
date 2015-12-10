@@ -155,22 +155,27 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_stmt_loop(&mut self, stmt: &'ast StmtLoopType) {
-        let before_id = self.cur_block;
-        let loop_id = self.ir.add_block();
-        let after_id = self.ir.add_block();
-
-        self.add_instr(InstrGoto(loop_id));
-
-        self.cur_block = loop_id;
-        self.visit_stmt(&stmt.block);
-        self.add_instr(Instr::goto(loop_id));
-        self.block_mut().add_predecessor(before_id);
-
-        self.cur_block = after_id;
+        // TODO
     }
 
     fn add_stmt_while(&mut self, stmt: &'ast StmtWhileType) {
+        let before_id = self.cur_block;
+        let cond_id = self.ir.add_block();
+        let body_id = self.ir.add_block();
+        let after_id = self.ir.add_block();
 
+        self.add_instr(Instr::goto(cond_id));
+
+        self.cur_block = cond_id;
+        self.visit_expr(&stmt.cond);
+        let result = self.result;
+        self.add_instr(Instr::test(result, body_id, after_id));
+
+        self.cur_block = body_id;
+        self.visit_stmt(&stmt.block);
+        self.add_instr(Instr::goto(cond_id));
+
+        self.cur_block = after_id;
     }
 
     fn add_stmt_block(&mut self, stmt: &'ast StmtBlockType) {
@@ -563,6 +568,20 @@ mod tests {
                 Instr::ret_with(OpndReg(5))
             ]);
         })
+    }
+
+    #[test]
+    fn while_loop() {
+        check_fct("fn f(a: int, b: int) -> int {
+            b = 1;
+            while a < 10 {
+                b = a + 1;
+                a = a * 2;
+            }
+            return a + b;
+        }", "f", |ctxt, fct| {
+            println!("hello");
+        });
     }
 
     fn assert_block(fct: &Fct, block_id: usize, expected: Vec<Instr>) {
