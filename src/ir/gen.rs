@@ -31,7 +31,7 @@ struct Generator<'a, 'ast: 'a> {
     result: Opnd,
     cur_block: BlockId,
     cur_join_action: JoinAction,
-    cur_join: Option<(BlockId, u32)>,
+    cur_join: Option<BlockId>,
     ast_fct: &'ast Function,
     ir: Fct,
     var_map: HashMap<VarInfoId, VarId>
@@ -39,7 +39,7 @@ struct Generator<'a, 'ast: 'a> {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum JoinAction {
-    If,
+    If(usize),
     While
 }
 
@@ -50,7 +50,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             vreg: 0,
             result: OpndInt(0),
             cur_block: BlockId(0),
-            cur_join_action: JoinAction::If,
+            cur_join_action: JoinAction::If(0),
             cur_join: None,
             ast_fct: fct,
             ir: Fct::new(),
@@ -109,7 +109,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.add_instr(Instr::test(result, then_id, false_block));
 
         // emit then block
-        self.use_join_node(join_id, 1, JoinAction::If, |gen| {
+        self.use_join_node(join_id, JoinAction::If(1), |gen| {
             gen.cur_block = then_id;
             gen.visit_stmt(&stmt.then_block);
             gen.add_instr(Instr::goto(join_id));
@@ -118,9 +118,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         // emit else block
         if let Some(ref else_block) = stmt.else_block {
-            self.use_join_node(join_id, 2, JoinAction::While, |gen| {
+            self.use_join_node(join_id, JoinAction::If(2), |gen| {
                 gen.reset_vars_from_phi_backup();
-                gen.ensure_phi_opnds_len();
+                gen.ensure_phi_opnds_for_else();
 
                 gen.cur_block = else_id.unwrap();
                 gen.visit_stmt(else_block);
@@ -152,11 +152,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         }
     }
 
-    fn ensure_phi_opnds_len(&mut self) {
-        let join_idx = self.cur_join.unwrap().1 as usize;
-
+    fn ensure_phi_opnds_for_else(&mut self) {
         for phi in self.join_mut().phi_iter_mut() {
-            while phi.opnds.len() < join_idx {
+            while phi.opnds.len() < 2 {
                 phi.opnds.push(phi.backup);
             }
         }
@@ -174,14 +172,16 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.add_instr(Instr::goto(cond_id));
 
-        self.cur_block = cond_id;
-        self.visit_expr(&stmt.cond);
-        let result = self.result;
-        self.add_instr(Instr::test(result, body_id, after_id));
+        self.use_join_node(cond_id, JoinAction::While, |gen| {
+            gen.cur_block = cond_id;
+            gen.visit_expr(&stmt.cond);
+            let result = gen.result;
+            gen.add_instr(Instr::test(result, body_id, after_id));
 
-        self.cur_block = body_id;
-        self.visit_stmt(&stmt.block);
-        self.add_instr(Instr::goto(cond_id));
+            gen.cur_block = body_id;
+            gen.visit_stmt(&stmt.block);
+            gen.add_instr(Instr::goto(cond_id));
+        });
 
         self.cur_block = after_id;
     }
@@ -281,12 +281,12 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
     fn phi_for_assign(&mut self, dest: VarId, dest_ssa: u32) {
         // if current join node exists
-        if let Some((join_id, join_idx)) = self.cur_join {
+        if let Some(join_id) = self.cur_join {
             match self.cur_join_action {
-                JoinAction::If =>
-                    self.phi_for_assign_in_if(dest, dest_ssa, join_id, join_idx as usize),
+                JoinAction::If(join_idx) =>
+                    self.phi_for_assign_in_if(dest, dest_ssa, join_id, join_idx),
                 JoinAction::While =>
-                    self.phi_for_assign_in_while(dest, dest_ssa, join_id, join_idx as usize),
+                    self.phi_for_assign_in_while(dest, dest_ssa, join_id),
             }
         }
     }
@@ -324,9 +324,25 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32,
-        join_id: BlockId, join_idx: usize)
+        join_id: BlockId)
     {
+        let old_ssa = dest_ssa - 1;
 
+        if let Some(phi) = self.join_mut().find_phi_mut(dest) {
+            phi.opnds[1] = dest_ssa;
+            return;
+        }
+
+        let join_ssa = self.ir.increase_var(dest);
+
+        let phi = InstrPhiType {
+            var_id: dest,
+            dest: join_ssa,
+            opnds: vec![old_ssa, dest_ssa],
+            backup: 0
+        };
+
+        self.join_mut().add_phi(phi);
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
@@ -337,25 +353,26 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.block_mut().add_instr(instr);
     }
 
-    fn use_join_node<F>(&mut self, id: BlockId, ind: u32, action: JoinAction, f: F)
+    fn use_join_node<F>(&mut self, id: BlockId, action: JoinAction, f: F)
         where F: FnOnce(&mut Generator<'a, 'ast>)
     {
-        let old = self.cur_join;
-        let old_action = self.cur_join_action;
-        self.cur_join = Some((id, ind));
+        let old_join = self.cur_join;
+        let old_join_action = self.cur_join_action;
+        self.cur_join = Some(id);
+        self.cur_join_action = action;
 
         f(self);
 
-        self.cur_join = old;
-        self.cur_join_action = old_action;
+        self.cur_join = old_join;
+        self.cur_join_action = old_join_action;
     }
 
     fn join_mut(&mut self) -> &mut Block {
-        self.ir.block_mut(self.cur_join.unwrap().0)
+        self.ir.block_mut(self.cur_join.unwrap())
     }
 
     fn join(&self) -> &Block {
-        self.ir.block(self.cur_join.unwrap().0)
+        self.ir.block(self.cur_join.unwrap())
     }
 
     fn block_mut(&mut self) -> &mut Block {
@@ -434,7 +451,11 @@ mod tests {
 
     #[test]
     fn assign() {
-        check_fct("fn f() { var x = 1; x = x + 2; x = x + 3; }", "f", |ctxt, fct| {
+        check_fct("fn f() {
+            var x = 1;
+            x = x + 2;
+            x = x + 3;
+        }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
@@ -460,7 +481,9 @@ mod tests {
 
     #[test]
     fn return_value() {
-        check_fct("fn f() -> int { return 1; }", "f", |ctxt, fct| {
+        check_fct("fn f() -> int {
+            return 1;
+        }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
@@ -496,7 +519,9 @@ mod tests {
 
     #[test]
     fn param() {
-        check_fct("fn f(a: int) -> int { return a; }", "f", |ctxt, fct| {
+        check_fct("fn f(a: int) -> int {
+            return a;
+        }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
@@ -520,7 +545,9 @@ mod tests {
 
     #[test]
     fn bin() {
-        check_fct("fn f(a: int, b: int) -> int { return a+b; }", "f", |ctxt, fct| {
+        check_fct("fn f(a: int, b: int) -> int {
+            return a+b;
+        }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(2, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
@@ -538,7 +565,9 @@ mod tests {
 
     #[test]
     fn un() {
-        check_fct("fn f(a: int) -> int { return -a; }", "f", |ctxt, fct| {
+        check_fct("fn f(a: int) -> int {
+            return -a;
+        }", "f", |ctxt, fct| {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
