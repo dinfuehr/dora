@@ -197,7 +197,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             self.visit_expr(expr);
 
             let result = self.result;
-            self.add_instr(Instr::ret_with(result));
+            self.add_instr(Instr::ret_value(result));
         } else {
             self.add_instr(Instr::ret());
         }
@@ -493,7 +493,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             assert_eq!(1, instrs.len());
-            assert_eq!(Instr::ret_with(OpndInt(1)), instrs[0]);
+            assert_eq!(Instr::ret_value(OpndInt(1)), instrs[0]);
         });
     }
 
@@ -531,7 +531,7 @@ mod tests {
 
             let instrs = &ir_fct.blocks[0].instructions;
             let param = OpndVar(VarId(0), 0);
-            assert_eq!(Instr::ret_with(param), instrs[0]);
+            assert_eq!(Instr::ret_value(param), instrs[0]);
         });
     }
 
@@ -563,7 +563,7 @@ mod tests {
             let b = OpndVar(VarId(1), 0);
             let temp = OpndReg(0);
             assert_eq!(Instr::bin(temp, a, BinOp::Add, b), instrs[0]);
-            assert_eq!(Instr::ret_with(temp), instrs[1]);
+            assert_eq!(Instr::ret_value(temp), instrs[1]);
         });
     }
 
@@ -582,7 +582,7 @@ mod tests {
             let a = OpndVar(VarId(0), 0);
             let temp = OpndReg(0);
             assert_eq!(Instr::un(temp, UnOp::Neg, a), instrs[0]);
-            assert_eq!(Instr::ret_with(temp), instrs[1]);
+            assert_eq!(Instr::ret_value(temp), instrs[1]);
         });
     }
 
@@ -627,7 +627,7 @@ mod tests {
                 Instr::phi(VarId(2), 2, vec![0, 1], 0),
                 Instr::bin(OpndReg(4), OpndVar(VarId(0), 3), BinOp::Add, OpndVar(VarId(1), 2)),
                 Instr::bin(OpndReg(5), OpndReg(4), BinOp::Add, OpndVar(VarId(2), 2)),
-                Instr::ret_with(OpndReg(5))
+                Instr::ret_value(OpndReg(5))
             ]);
         })
     }
@@ -663,7 +663,7 @@ mod tests {
 
             // assert_block(ir_fct, 3, vec![
             //     Instr::assign(OpndReg(3), OpndVar(VarId(0), 3), OpndVar(VarId(1), 2)),
-            //     Instr::ret_with(OpndReg(3))
+            //     Instr::ret_value(OpndReg(3))
             // ]);
         });
     }

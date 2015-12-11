@@ -236,7 +236,7 @@ impl Instr {
         Instr::InstrRet(None)
     }
 
-    fn ret_with(opnd: Opnd) -> Instr {
+    fn ret_value(opnd: Opnd) -> Instr {
         Instr::InstrRet(Some(opnd))
     }
 
