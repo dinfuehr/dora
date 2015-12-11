@@ -280,22 +280,24 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn phi_for_assign(&mut self, dest: VarId, dest_ssa: u32) {
+        let old_ssa = dest_ssa - 1;
+
         // if current join node exists
         if let Some(join_id) = self.cur_join {
             match self.cur_join_action {
                 JoinAction::If(join_idx) =>
-                    self.phi_for_assign_in_if(dest, dest_ssa, join_id, join_idx),
-                JoinAction::While =>
-                    self.phi_for_assign_in_while(dest, dest_ssa, join_id),
+                    self.phi_for_assign_in_if(dest, dest_ssa, old_ssa, join_id, join_idx),
+                JoinAction::While => {
+                    self.phi_for_assign_in_while(dest, dest_ssa, old_ssa, join_id);
+                    self.replace_var_usages(dest, old_ssa, dest_ssa);
+                }
             }
         }
     }
 
-    fn phi_for_assign_in_if(&mut self, dest: VarId, dest_ssa: u32,
+    fn phi_for_assign_in_if(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
         join_id: BlockId, join_idx: usize)
     {
-        let old_ssa = dest_ssa - 1;
-
         // find existing phi instruction in join node
         if let Some(phi) = self.join_mut().find_phi_mut(dest) {
             while phi.opnds.len() < join_idx {
@@ -323,11 +325,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.join_mut().add_phi(phi);
     }
 
-    fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32,
+    fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
         join_id: BlockId)
     {
-        let old_ssa = dest_ssa - 1;
-
         if let Some(phi) = self.join_mut().find_phi_mut(dest) {
             phi.opnds[1] = dest_ssa;
             return;
@@ -343,6 +343,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         };
 
         self.join_mut().add_phi(phi);
+    }
+
+    fn replace_var_usages(&mut self, var: VarId, old_ssa: u32, new_ssa: u32) {
+        // TODO
     }
 
     fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
