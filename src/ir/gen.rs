@@ -635,7 +635,7 @@ mod tests {
     #[test]
     fn while_loop() {
         check_fct("fn f(a: int, b: int) -> int {
-            b = 1;
+            a = 1;
             while a < 10 {
                 b = a + 1;
                 a = a * 2;
@@ -645,24 +645,29 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
 
             assert_block(ir_fct, 0, vec![
-                Instr::assign(OpndVar(VarId(1), 1), OpndInt(1)),
+                Instr::assign(OpndVar(VarId(0), 1), OpndInt(1)),
                 Instr::goto(BlockId(1))
             ]);
 
             // assert_block(ir_fct, 1, vec![
             //     Instr::phi(VarId(1), 2, vec![0, 1], 0),
             //     Instr::phi(VarId(0), 3, vec![1, 2], 0),
-            //     Instr::goto(BlockId(1))
+            //     Instr::bin(OpndReg(0), OpndVar(VarId(0), 1), BinOp::Cmp(CmpOp::Lt), OpndInt(10)),
+            //     Instr::test(OpndReg(0), BlockId(2), BlockId(3))
             // ]);
-
+            //
             // assert_block(ir_fct, 2, vec![
-            //     Instr::bin(OpndVar(VarId(1), 1), OpndVar(VarId(0), 3), BinOp:Add, OpndInt(1)),
-            //     Instr::bin(OpndVar(VarId(0), 2), OpndVar(VarId(0), 3), BinOp:Mul, OpndInt(2)),
+            //     Instr::bin(OpndReg(1), OpndVar(VarId(0), 3), BinOp::Add, OpndInt(1)),
+            //     Instr::assign(OpndVar(VarId(1), 1), OpndReg(1)),
+            //
+            //     Instr::bin(OpndReg(2), OpndVar(VarId(0), 3), BinOp::Mul, OpndInt(2)),
+            //     Instr::assign(OpndVar(VarId(0), 2), OpndReg(2)),
+            //
             //     Instr::goto(BlockId(1))
             // ]);
-
+            //
             // assert_block(ir_fct, 3, vec![
-            //     Instr::assign(OpndReg(3), OpndVar(VarId(0), 3), OpndVar(VarId(1), 2)),
+            //     Instr::bin(OpndReg(3), OpndVar(VarId(0), 3), BinOp::Add, OpndVar(VarId(1), 2)),
             //     Instr::ret_value(OpndReg(3))
             // ]);
         });
