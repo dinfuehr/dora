@@ -449,7 +449,9 @@ mod tests {
     use ir::Opnd::*;
     use test::parse;
 
-    fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T where F: FnOnce(&Context, &FctInfo) -> T {
+    fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T
+        where F: FnOnce(&Context, &FctInfo) -> T
+    {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern(fname);
             let fct_info_id = ctxt.sym.borrow().get_function(name).unwrap();
