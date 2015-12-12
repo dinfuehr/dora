@@ -463,23 +463,16 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(6, instrs.len());
-            assert_eq!(Instr::assign(OpndVar(VarId(0), 1), OpndInt(1)), instrs[0]);
+            let x = VarId(0);
 
-            let lhs = OpndVar(VarId(0), 1);
-            let rhs = OpndInt(2);
-            assert_eq!(Instr::bin(OpndReg(0), lhs, BinOp::Add, rhs), instrs[1]);
-
-            assert_eq!(Instr::assign(OpndVar(VarId(0), 2), OpndReg(0)), instrs[2]);
-
-            let lhs = OpndVar(VarId(0), 2);
-            let rhs = OpndInt(3);
-            assert_eq!(Instr::bin(OpndReg(1), lhs, BinOp::Add, rhs), instrs[3]);
-
-            assert_eq!(Instr::assign(OpndVar(VarId(0), 3), OpndReg(1)), instrs[4]);
-
-            assert_eq!(Instr::ret(), instrs[5]);
+            assert_block(ir_fct, 0, vec![
+                Instr::assign(OpndVar(x, 1), OpndInt(1)),
+                Instr::bin(OpndReg(0), OpndVar(x, 1), BinOp::Add, OpndInt(2)),
+                Instr::assign(OpndVar(x, 2), OpndReg(0)),
+                Instr::bin(OpndReg(1), OpndVar(x, 2), BinOp::Add, OpndInt(3)),
+                Instr::assign(OpndVar(x, 3), OpndReg(1)),
+                Instr::ret()
+            ]);
         });
     }
 
@@ -491,9 +484,9 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(1, instrs.len());
-            assert_eq!(Instr::ret_value(OpndInt(1)), instrs[0]);
+            assert_block(ir_fct, 0, vec![
+                Instr::ret_value(OpndInt(1))
+            ]);
         });
     }
 
@@ -503,9 +496,7 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(1, instrs.len());
-            assert_eq!(Instr::ret(), instrs[0]);
+            assert_block(ir_fct, 0, vec![Instr::ret()]);
         });
     }
 
@@ -515,9 +506,7 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(1, instrs.len());
-            assert_eq!(Instr::ret(), instrs[0]);
+            assert_block(ir_fct, 0, vec![Instr::ret()]);
         });
     }
 
@@ -529,9 +518,8 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
             let param = OpndVar(VarId(0), 0);
-            assert_eq!(Instr::ret_value(param), instrs[0]);
+            assert_block(ir_fct, 0, vec![Instr::ret_value(param)]);
         });
     }
 
@@ -541,9 +529,7 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(1, instrs.len());
-            assert_eq!(Instr::ret(), instrs[0]);
+            assert_block(ir_fct, 0, vec![Instr::ret()]);
         });
     }
 
@@ -556,14 +542,14 @@ mod tests {
             assert_eq!(2, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(2, instrs.len());
-
             let a = OpndVar(VarId(0), 0);
             let b = OpndVar(VarId(1), 0);
             let temp = OpndReg(0);
-            assert_eq!(Instr::bin(temp, a, BinOp::Add, b), instrs[0]);
-            assert_eq!(Instr::ret_value(temp), instrs[1]);
+
+            assert_block(ir_fct, 0, vec![
+                Instr::bin(temp, a, BinOp::Add, b),
+                Instr::ret_value(temp)
+            ]);
         });
     }
 
@@ -576,13 +562,10 @@ mod tests {
             assert_eq!(1, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
 
-            let instrs = &ir_fct.blocks[0].instructions;
-            assert_eq!(2, instrs.len());
-
-            let a = OpndVar(VarId(0), 0);
-            let temp = OpndReg(0);
-            assert_eq!(Instr::un(temp, UnOp::Neg, a), instrs[0]);
-            assert_eq!(Instr::ret_value(temp), instrs[1]);
+            assert_block(ir_fct, 0, vec![
+                Instr::un(OpndReg(0), UnOp::Neg, OpndVar(VarId(0), 0)),
+                Instr::ret_value(OpndReg(0))
+            ]);
         });
     }
 
