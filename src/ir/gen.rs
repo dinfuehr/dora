@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::once;
 use std::iter::repeat;
 use std::mem;
+use std::rc::Rc;
 
 use ast::{Ast, Expr, Stmt, Param};
 use ast::{ExprAssignType, ExprIdentType, ExprBinType, ExprUnType};
@@ -113,7 +115,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             gen.cur_block = then_id;
             gen.visit_stmt(&stmt.then_block);
             gen.add_instr(Instr::goto(join_id));
-            gen.block_mut().add_predecessor(cond_id);
+
+            let blk = gen.block();
+            blk.borrow_mut().add_predecessor(cond_id);
         });
 
         // emit else block
@@ -125,7 +129,9 @@ impl<'a, 'ast> Generator<'a, 'ast> {
                 gen.cur_block = else_id.unwrap();
                 gen.visit_stmt(else_block);
                 gen.add_instr(Instr::goto(join_id));
-                gen.block_mut().add_predecessor(cond_id);
+
+                let blk = gen.block();
+                blk.borrow_mut().add_predecessor(cond_id);
             });
         }
 
@@ -135,25 +141,25 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn reset_vars_from_phi_backup(&mut self) {
-        let resets : Vec<_> = self.join().phi_iter().
-            map(|phi| (phi.var_id, phi.backup)).collect();
+        let blk = self.join();
 
-        for reset in resets {
-            self.ir.var_mut(reset.0).cur_ssa = reset.1;
+        for phi in blk.borrow().phi_iter() {
+            self.ir.var_mut(phi.var_id).cur_ssa = phi.backup;
         }
     }
 
     fn reset_vars_from_phi_dest(&mut self) {
-        let resets : Vec<_> = self.block().phi_iter().
-            map(|phi| (phi.var_id, phi.dest)).collect();
+        let blk = self.block();
 
-        for reset in resets {
-            self.ir.var_mut(reset.0).cur_ssa = reset.1;
+        for phi in blk.borrow().phi_iter() {
+            self.ir.var_mut(phi.var_id).cur_ssa = phi.dest;
         }
     }
 
     fn ensure_phi_opnds_for_else(&mut self) {
-        for phi in self.join_mut().phi_iter_mut() {
+        let blk = self.join();
+
+        for phi in blk.borrow_mut().phi_iter_mut() {
             while phi.opnds.len() < 2 {
                 phi.opnds.push(phi.backup);
             }
@@ -263,9 +269,14 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn ensure_return(&mut self) {
-        if let Some(&InstrRet(_)) = self.block().last_instr() {
+        let blk = self.block();
+
+        if let Some(&InstrRet(_)) = blk.borrow().last_instr() {
             // already ends with ret: do nothing
-        } else if self.ctxt.fct_info(self.ast_fct.id,
+            return;
+        }
+
+        if self.ctxt.fct_info(self.ast_fct.id,
                 |fct| fct.return_type) == BuiltinType::Unit {
             self.add_instr(Instr::ret());
         }
@@ -298,8 +309,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     fn phi_for_assign_in_if(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
         join_id: BlockId, join_idx: usize)
     {
+        let blk = self.join();
+
         // find existing phi instruction in join node
-        if let Some(phi) = self.join_mut().find_phi_mut(dest) {
+        if let Some(phi) = blk.borrow_mut().find_phi_mut(dest) {
             while phi.opnds.len() < join_idx {
                 phi.opnds.push(old_ssa);
             }
@@ -322,13 +335,15 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             backup: old_ssa,
         };
 
-        self.join_mut().add_phi(phi);
+        blk.borrow_mut().add_phi(phi);
     }
 
     fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
         join_id: BlockId)
     {
-        if let Some(phi) = self.join_mut().find_phi_mut(dest) {
+        let blk = self.join();
+
+        if let Some(phi) = blk.borrow_mut().find_phi_mut(dest) {
             phi.opnds[1] = dest_ssa;
             return;
         }
@@ -342,19 +357,20 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             backup: 0
         };
 
-        self.join_mut().add_phi(phi);
+        blk.borrow_mut().add_phi(phi);
     }
 
     fn replace_var_usages(&mut self, var: VarId, old_ssa: u32, new_ssa: u32) {
         // TODO
     }
 
-    fn add_instr_assign(&mut self, dest: Opnd, src: Opnd) {
+    fn add_instr_assign(&self, dest: Opnd, src: Opnd) {
         self.add_instr(Instr::assign(dest, src));
     }
 
-    fn add_instr(&mut self, instr: Instr) {
-        self.block_mut().add_instr(instr);
+    fn add_instr(&self, instr: Instr) {
+        let blk = self.block();
+        blk.borrow_mut().add_instr(instr);
     }
 
     fn use_join_node<F>(&mut self, id: BlockId, action: JoinAction, f: F)
@@ -371,19 +387,11 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.cur_join_action = old_join_action;
     }
 
-    fn join_mut(&mut self) -> &mut Block {
-        self.ir.block_mut(self.cur_join.unwrap())
-    }
-
-    fn join(&self) -> &Block {
+    fn join(&self) -> Rc<RefCell<Block>> {
         self.ir.block(self.cur_join.unwrap())
     }
 
-    fn block_mut(&mut self) -> &mut Block {
-        self.ir.block_mut(self.cur_block)
-    }
-
-    fn block(&self) -> &Block {
+    fn block(&self) -> Rc<RefCell<Block>> {
         self.ir.block(self.cur_block)
     }
 
@@ -657,7 +665,8 @@ mod tests {
     }
 
     fn assert_block(fct: &Fct, block_id: usize, expected: Vec<Instr>) {
-        let instrs = &fct.blocks[block_id].instructions;
+        let blk = fct.blocks[block_id].borrow();
+        let instrs = &blk.instructions;
 
         assert_eq!(instrs.len(), expected.len());
 

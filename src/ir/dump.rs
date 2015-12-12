@@ -29,7 +29,8 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
         }
 
         for block in &self.fct.blocks {
-            self.dump_block(block);
+            let block = block.clone();
+            self.dump_block(&block.borrow());
         }
     }
 

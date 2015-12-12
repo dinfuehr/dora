@@ -1,6 +1,8 @@
 pub mod gen;
 pub mod dump;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::slice::{Iter, IterMut};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -9,7 +11,7 @@ use interner::Name;
 use sym::BuiltinType;
 
 pub struct Fct {
-    blocks: Vec<Block>,
+    blocks: Vec<Rc<RefCell<Block>>>,
     start_id: BlockId,
     end_ids: Vec<BlockId>,
     vars: Vec<Var>,
@@ -34,12 +36,8 @@ impl Fct {
         }
     }
 
-    pub fn block_mut(&mut self, id: BlockId) -> &mut Block {
-        &mut self.blocks[id.0]
-    }
-
-    pub fn block(&self, id: BlockId) -> &Block {
-        &self.blocks[id.0]
+    pub fn block(&self, id: BlockId) -> Rc<RefCell<Block>> {
+        self.blocks[id.0].clone()
     }
 
     pub fn increase_var(&mut self, id: VarId) -> u32 {
@@ -59,7 +57,7 @@ impl Fct {
 
     pub fn add_block(&mut self) -> BlockId {
         let id = BlockId(self.blocks.len());
-        self.blocks.push(Block::new(id));
+        self.blocks.push(Rc::new(RefCell::new(Block::new(id))));
 
         id
     }
