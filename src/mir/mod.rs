@@ -15,7 +15,6 @@ pub struct Fct {
     start_id: BlockId,
     end_ids: Vec<BlockId>,
     vars: Vec<Var>,
-    params: Vec<Var>,
 }
 
 
@@ -32,7 +31,6 @@ impl Fct {
             start_id: BlockId(0),
             end_ids: Vec::new(),
             vars: Vec::new(),
-            params: Vec::new(),
         }
     }
 
