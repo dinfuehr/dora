@@ -35,7 +35,7 @@ struct Generator<'a, 'ast: 'a> {
     cur_join_action: JoinAction,
     cur_join: Option<BlockId>,
     ast_fct: &'ast Function,
-    ir: Fct,
+    ir: Mir,
     var_map: HashMap<VarInfoId, VarId>
 }
 
@@ -55,7 +55,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             cur_join_action: JoinAction::If(0),
             cur_join: None,
             ast_fct: fct,
-            ir: Fct::new(),
+            ir: Mir::new(),
             var_map: HashMap::new(),
         }
     }
@@ -70,7 +70,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.ensure_return();
 
-        let ir = mem::replace(&mut self.ir, Fct::new());
+        let ir = mem::replace(&mut self.ir, Mir::new());
         mir::dump::dump(self.ctxt, &ir);
 
         self.ctxt.fct_info_mut(self.ast_fct.id, |fct| fct.ir = Some(ir));
@@ -666,7 +666,7 @@ mod tests {
         });
     }
 
-    fn assert_block(fct: &Fct, block_id: usize, expected: Vec<Instr>) {
+    fn assert_block(fct: &Mir, block_id: usize, expected: Vec<Instr>) {
         let blk = fct.blocks[block_id].borrow();
         let instrs = &blk.instructions;
 

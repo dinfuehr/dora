@@ -10,7 +10,7 @@ use ast::*;
 use ast::map::Map;
 use interner::*;
 
-use mir::Fct;
+use mir::Mir;
 
 use sym::*;
 use sym::Sym::*;
@@ -146,7 +146,7 @@ pub struct FctInfo<'ast> {
 
     pub ast: Option<&'ast Function>,
 
-    pub ir: Option<Fct>,
+    pub ir: Option<Mir>,
 
     pub vars: Vec<VarInfoId>,
 

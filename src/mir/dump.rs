@@ -3,17 +3,17 @@ use mir::*;
 use mir::Instr::*;
 use mir::Opnd::*;
 
-pub fn dump<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'a Fct) {
+pub fn dump<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'a Mir) {
     Dumper::new(ctxt, fct).dump();
 }
 
 struct Dumper<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a Fct,
+    fct: &'a Mir,
 }
 
 impl<'a, 'ast> Dumper<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a Fct) -> Dumper<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a Mir) -> Dumper<'a, 'ast> {
         Dumper {
             ctxt: ctxt,
             fct: fct

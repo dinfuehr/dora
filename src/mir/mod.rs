@@ -10,23 +10,22 @@ use ast::{BinOp, UnOp};
 use interner::Name;
 use sym::BuiltinType;
 
-pub struct Fct {
+pub struct Mir {
     blocks: Vec<Rc<RefCell<Block>>>,
     start_id: BlockId,
     end_ids: Vec<BlockId>,
     vars: Vec<Var>,
 }
 
-
-impl Debug for Fct {
+impl Debug for Mir {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "fct")
+        write!(f, "mir.fct")
     }
 }
 
-impl Fct {
-    pub fn new() -> Fct {
-        Fct {
+impl Mir {
+    pub fn new() -> Mir {
+        Mir {
             blocks: Vec::new(),
             start_id: BlockId(0),
             end_ids: Vec::new(),
@@ -379,7 +378,7 @@ mod tests {
 
     #[test]
     fn increase_var() {
-        let mut fct = Fct::new();
+        let mut fct = Mir::new();
         let var_id = fct.add_var(Name(0), BuiltinType::Int);
 
         assert_eq!(1, fct.increase_var(var_id));
