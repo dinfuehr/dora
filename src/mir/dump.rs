@@ -3,32 +3,32 @@ use mir::*;
 use mir::Instr::*;
 use mir::Opnd::*;
 
-pub fn dump<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'a Mir) {
-    Dumper::new(ctxt, fct).dump();
+pub fn dump<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, mir: &'a Mir) {
+    Dumper::new(ctxt, mir).dump();
 }
 
 struct Dumper<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a Mir,
+    mir: &'a Mir,
 }
 
 impl<'a, 'ast> Dumper<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a Mir) -> Dumper<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, mir: &'a Mir) -> Dumper<'a, 'ast> {
         Dumper {
             ctxt: ctxt,
-            fct: fct
+            mir: mir
         }
     }
 
     fn dump(&self) {
-        println!("fct ({} block(s), {} var(s))", self.fct.blocks.len(), self.fct.vars.len());
+        println!("fct ({} block(s), {} var(s))", self.mir.blocks.len(), self.mir.vars.len());
 
-        for var in &self.fct.vars {
+        for var in &self.mir.vars {
             let name = self.ctxt.interner.str(var.name);
             println!("\t%{}:{} id={}", name, var.data_type.to_string(), var.id.to_string());
         }
 
-        for block in &self.fct.blocks {
+        for block in &self.mir.blocks {
             let block = block.clone();
             self.dump_block(&block.borrow());
         }
@@ -84,7 +84,7 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
             OpndInt(val) => format!("{}", val),
             OpndBool(val) => format!("{}", val),
             OpndVar(id, ssa) => {
-                let var = &self.fct.vars[id.0];
+                let var = &self.mir.vars[id.0];
                 let name = self.ctxt.interner.str(var.name);
 
                 format!("%{}.{}", name, ssa)
