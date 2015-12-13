@@ -359,8 +359,8 @@ pub enum Opnd {
 #[cfg(test)]
 mod tests {
     use interner::Name;
-    use ir::*;
-    use ir::Instr::*;
+    use mir::*;
+    use mir::Instr::*;
     use sym::BuiltinType;
 
     #[test]

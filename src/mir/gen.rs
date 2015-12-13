@@ -16,10 +16,10 @@ use ast::visit::*;
 
 use ctxt::*;
 
-use ir;
-use ir::*;
-use ir::Instr::*;
-use ir::Opnd::*;
+use mir;
+use mir::*;
+use mir::Instr::*;
+use mir::Opnd::*;
 
 use sym::BuiltinType;
 
@@ -71,7 +71,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.ensure_return();
 
         let ir = mem::replace(&mut self.ir, Fct::new());
-        ir::dump::dump(self.ctxt, &ir);
+        mir::dump::dump(self.ctxt, &ir);
 
         self.ctxt.fct_info_mut(self.ast_fct.id, |fct| fct.ir = Some(ir));
     }
@@ -443,10 +443,10 @@ impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
 mod tests {
     use ast::{BinOp, CmpOp, UnOp};
     use ctxt::*;
-    use ir;
-    use ir::*;
-    use ir::Instr::*;
-    use ir::Opnd::*;
+    use mir;
+    use mir::*;
+    use mir::Instr::*;
+    use mir::Opnd::*;
     use test::parse;
 
     fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T
@@ -457,7 +457,7 @@ mod tests {
             let fct_info_id = ctxt.sym.borrow().get_function(name).unwrap();
 
             let fct = ctxt.fct_info_for_id(fct_info_id, |fct_info| fct_info.ast.unwrap());
-            ir::gen::generate(ctxt, fct);
+            mir::gen::generate(ctxt, fct);
 
             ctxt.fct_info_for_id(fct_info_id, |fct_info| f(ctxt, fct_info))
         })

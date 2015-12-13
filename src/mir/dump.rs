@@ -1,7 +1,7 @@
 use ctxt::Context;
-use ir::*;
-use ir::Instr::*;
-use ir::Opnd::*;
+use mir::*;
+use mir::Instr::*;
+use mir::Opnd::*;
 
 pub fn dump<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'a Fct) {
     Dumper::new(ctxt, fct).dump();

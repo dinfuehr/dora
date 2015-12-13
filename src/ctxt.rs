@@ -10,7 +10,7 @@ use ast::*;
 use ast::map::Map;
 use interner::*;
 
-use ir::Fct;
+use mir::Fct;
 
 use sym::*;
 use sym::Sym::*;

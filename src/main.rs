@@ -18,7 +18,7 @@ mod driver;
 mod dseg;
 mod error;
 mod interner;
-mod ir;
+mod mir;
 mod lexer;
 mod mem;
 mod os;
