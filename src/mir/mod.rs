@@ -13,6 +13,7 @@ use sym::BuiltinType;
 pub struct Mir {
     blocks: Vec<Rc<RefCell<Block>>>,
     vars: Vec<VarDecl>,
+    temps: Vec<TempDecl>,
 }
 
 impl Debug for Mir {
@@ -26,6 +27,7 @@ impl Mir {
         Mir {
             blocks: Vec::new(),
             vars: Vec::new(),
+            temps: Vec::new()
         }
     }
 
@@ -55,11 +57,11 @@ impl Mir {
         id
     }
 
-    pub fn add_var(&mut self, name: Name, data_type: BuiltinType) -> VarId {
+    pub fn add_var(&mut self, name: Name, ty: BuiltinType) -> VarId {
         let id = VarId(self.vars.len());
         self.vars.push(VarDecl {
             name: name,
-            data_type: data_type,
+            ty: ty,
             cur_ssa: 0,
             next_ssa: 0
         });
@@ -79,9 +81,13 @@ impl ToString for VarId {
 
 pub struct VarDecl {
     name: Name,
-    data_type: BuiltinType,
+    ty: BuiltinType,
     cur_ssa: u32,
     next_ssa: u32,
+}
+
+pub struct TempDecl {
+    ty: BuiltinType
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
