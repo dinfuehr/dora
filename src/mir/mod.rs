@@ -90,6 +90,22 @@ pub struct TempDecl {
     ty: BuiltinType
 }
 
+pub enum Lvalue {
+    Var(u32),
+    Temp(u32)
+}
+
+pub enum Rvalue {
+    Use(Operand),
+    Un(UnOp, Operand),
+    Bin(BinOp, Operand, Operand),
+}
+
+pub enum Operand {
+    Consume(Lvalue),
+    Const(u32)
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct BlockId(usize);
 
@@ -210,6 +226,19 @@ impl<'a> Iterator for PhiIterMut<'a> {
         } else {
             None
         }
+    }
+}
+
+pub enum Terminator {
+    Ret,
+
+    If {
+        cond: Operand,
+        targets: (BlockId, BlockId)
+    },
+
+    Goto {
+        target: BlockId
     }
 }
 
