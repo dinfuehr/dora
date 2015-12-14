@@ -25,7 +25,7 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
 
         for var in &self.mir.vars {
             let name = self.ctxt.interner.str(var.name);
-            println!("\t%{}:{} id={}", name, var.data_type.to_string(), var.id.to_string());
+            println!("\t%{}:{}", name, var.data_type.to_string());
         }
 
         for block in &self.mir.blocks {
