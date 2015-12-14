@@ -103,7 +103,13 @@ pub enum Rvalue {
 
 pub enum Operand {
     Consume(Lvalue),
-    Const(u32)
+    Const(Const)
+}
+
+pub enum Const {
+    Str(String),
+    Bool(bool),
+    Int(u32)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
