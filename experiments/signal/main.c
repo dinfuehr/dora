@@ -30,7 +30,8 @@ int main() {
   void *ptr = mmap(NULL, pagesize, PROT_READ | PROT_WRITE | PROT_EXEC,
     MAP_ANON | MAP_PRIVATE, -1, 0);
 
-  memcpy(ptr, "\xb8\x01\x00\x00\x00\xc3", 6);
+  unsigned char code[] = { 0xb8, 1, 0, 0, 0, 0xc3 };
+  memcpy(ptr, code, sizeof(code));
   int (*fct)() = ptr;
 
   int res = fct();
