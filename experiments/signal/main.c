@@ -21,6 +21,8 @@ int main() {
 
   raise(SIGINT);
 
+  printf("after raising and handling SIGINT\n");
+
   // long pagesize;
   //
   // if ((pagesize = sysconf(_SC_PAGESIZE)) == -1) {
