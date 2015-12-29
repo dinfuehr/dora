@@ -19,27 +19,29 @@ int main() {
     perror("sigaction failed");
   }
 
-  long pagesize;
+  raise(SIGINT);
 
-  if ((pagesize = sysconf(_SC_PAGESIZE)) == -1) {
-    perror("sysconf(_SC_PAGESIZE) failed");
-  }
-
-  printf("pagesize = %ld\n", pagesize);
-
-  void *ptr = mmap(NULL, pagesize, PROT_READ | PROT_WRITE | PROT_EXEC,
-    MAP_ANON | MAP_PRIVATE, -1, 0);
-
-  unsigned char code[] = { 0xb8, 1, 0, 0, 0, 0xc3 };
-  memcpy(ptr, code, sizeof(code));
-  int (*fct)() = ptr;
-
-  int res = fct();
-  printf("res = %d\n", res);
-
-  if (munmap(ptr, pagesize) == -1) {
-    perror("munmap failed");
-  }
+  // long pagesize;
+  //
+  // if ((pagesize = sysconf(_SC_PAGESIZE)) == -1) {
+  //   perror("sysconf(_SC_PAGESIZE) failed");
+  // }
+  //
+  // printf("pagesize = %ld\n", pagesize);
+  //
+  // void *ptr = mmap(NULL, pagesize, PROT_READ | PROT_WRITE | PROT_EXEC,
+  //   MAP_ANON | MAP_PRIVATE, -1, 0);
+  //
+  // unsigned char code[] = { 0xb8, 1, 0, 0, 0, 0xc3 };
+  // memcpy(ptr, code, sizeof(code));
+  // int (*fct)() = ptr;
+  //
+  // int res = fct();
+  // printf("res = %d\n", res);
+  //
+  // if (munmap(ptr, pagesize) == -1) {
+  //   perror("munmap failed");
+  // }
 
   return 0;
 }
