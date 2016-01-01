@@ -38,7 +38,7 @@ void free_code(void *ptr) {
 void handler(int signo, siginfo_t *info, void *context) {
   printf("signal %d!\n", signo);
 
-  unsigned char code[] = { 0xb8, 1, 0, 0, 0, 0xc3 };
+  unsigned char code[] = { 0xb8, 4, 0, 0, 0, 0xc3 };
   ftype fct = alloc_code(code, sizeof(code));
 
   ucontext_t *ucontext = context;
@@ -56,9 +56,12 @@ int main() {
     perror("sigaction failed");
   }
 
-  // int res = fct();
-  // printf("res = %d\n", res);
-  //
-  // free_code(fct);
+  unsigned char code[] = { 0x4C, 0x8B, 0x14, 0x25, 9, 0, 0, 0 };
+  ftype fct = alloc_code(code, sizeof(code));
+
+  int res = fct();
+  printf("res = %d\n", res);
+
+  free_code(fct);
   return 0;
 }
