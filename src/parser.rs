@@ -849,11 +849,21 @@ mod tests {
         let add = expr.to_bin().unwrap();
         assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
 
-        println!("rhs = {:?}", &add.rhs);
-
         let lhs = add.lhs.to_bin().unwrap();
         assert_eq!(1, lhs.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, lhs.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_add_right_associativity_via_parens() {
+        let (expr, interner) = parse_expr("1+(2+3)");
+
+        let add = expr.to_bin().unwrap();
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+
+        let rhs = add.rhs.to_bin().unwrap();
+        assert_eq!(2, rhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, rhs.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
