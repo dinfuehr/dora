@@ -46,11 +46,21 @@ void handler(int signo, siginfo_t *info, void *context) {
 
   dump("program counter", xpc, 8);
 
+  // push rbp
   // mov eax, 4
-  unsigned char fct1_code[] = { 0xb8, 4, 0, 0, 0, 0xc3 };
-  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
+  // pop rbp
+  // ret
+  unsigned char fct2_code[] = {
+    0x55,
+    0xB8, 4, 0, 0, 0,
+    0x5D,
+    0xC3
+  };
 
-  mcontext->gregs[REG_RIP] = (greg_t) fct1;
+  ftype fct2 = alloc_code(fct2_code, sizeof(fct2_code));
+  dump("fct2", fct2, sizeof(fct2_code));
+
+  mcontext->gregs[REG_RIP] = (greg_t) fct2;
 }
 
 int main(int argc, char *argv[]) {
@@ -64,7 +74,8 @@ int main(int argc, char *argv[]) {
     perror("sigaction failed");
   }
 
-  // int fct2 { .... }
+  // int fct2 { return 4; }
+  // int fct2_stub { <FAIL> };
   // int fct1() { return fct2(); }
 
   // compiler stub: mov r10, [9]
@@ -73,20 +84,24 @@ int main(int argc, char *argv[]) {
 
   dump("fct2_stub", fct2, sizeof(fct2_stub));
 
-  // int3
+  // (int3)
+  // push rbp
   // movabs rax, 0x1122334455667788
   // call [rax]
+  // pop rbp
   // ret
   uint8_t fct1_code[] = {
     0xCC,
+    0x55,
     0x48, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0,
     0xFF, 0x10,
+    0x5D,
     0xC3
   };
   uint8_t *fct1_start = fct1_code;
   size_t fct1_code_length = sizeof(fct1_code);
 
-  intptr_t *fct1_addr = (intptr_t *) (fct1_code + 3);
+  intptr_t *fct1_addr = (intptr_t *) (fct1_code + 4);
 
   if (argc <= 1 || strcmp(argv[1], "--with-int3") != 0) {
     fct1_start++;
