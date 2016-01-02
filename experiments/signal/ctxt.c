@@ -47,13 +47,13 @@ void handler(int signo, siginfo_t *info, void *context) {
   dump("program counter", xpc, 8);
 
   // mov eax, 4
-  unsigned char code[] = { 0xb8, 4, 0, 0, 0, 0xc3 };
-  ftype fct = alloc_code(code, sizeof(code));
+  unsigned char fct1_code[] = { 0xb8, 4, 0, 0, 0, 0xc3 };
+  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
 
-  mcontext->gregs[REG_RIP] = (greg_t) fct;
+  mcontext->gregs[REG_RIP] = (greg_t) fct1;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   struct sigaction sa;
 
   sa.sa_sigaction = handler;
@@ -77,18 +77,26 @@ int main() {
   // movabs rax, 0x1122334455667788
   // call [rax]
   // ret
-  unsigned char fct1_code[] = {
+  uint8_t fct1_code[] = {
     0xCC,
     0x48, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0,
     0xFF, 0x10,
     0xC3
   };
+  uint8_t *fct1_start = fct1_code;
+  size_t fct1_code_length = sizeof(fct1_code);
 
-  intptr_t *addr_ptr = (intptr_t *) ((char *) fct1_code + 3);
-  *(addr_ptr) = (intptr_t) fct2;
+  intptr_t *fct1_addr = (intptr_t *) (fct1_code + 3);
 
-  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
-  dump("fct1", fct1, sizeof(fct1_code));
+  if (argc <= 1 || strcmp(argv[1], "--with-int3") != 0) {
+    fct1_start++;
+    fct1_code_length--;
+  }
+
+  *(fct1_addr) = (intptr_t) fct2;
+
+  ftype fct1 = alloc_code(fct1_start, fct1_code_length);
+  dump("fct1", fct1, fct1_code_length);
 
   printf("invoke fct1:\n");
   int res1 = fct1();
