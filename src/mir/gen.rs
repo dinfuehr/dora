@@ -672,7 +672,7 @@ mod tests {
 
         assert_eq!(instrs.len(), expected.len());
 
-        for (instr, ind) in instrs.iter().zip(0..) {
+        for (ind, instr) in instrs.iter().enumerate() {
             assert_eq!(*instr, expected[ind]);
         }
     }
