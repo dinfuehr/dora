@@ -1,4 +1,7 @@
-build: patch raise
+build: ctxt patch raise
+
+ctxt: ctxt.c
+	gcc ctxt.c -o ctxt
 
 raise: raise.c
 	gcc raise.c -o raise
