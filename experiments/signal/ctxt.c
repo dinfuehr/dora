@@ -24,37 +24,33 @@ ftype alloc_code(const char *code, size_t len) {
   return ptr;
 }
 
+void dump(const char *name, void *ptr, size_t len) {
+  uint8_t *byte_ptr = (uint8_t *) ptr;
+  printf("%s @ %p (%d bytes) = ", name, byte_ptr, len);
+
+  for(size_t i=0; i<len; i++) {
+    printf("%02x ", byte_ptr[i]);
+  }
+
+  printf("\n");
+}
+
 void handler(int signo, siginfo_t *info, void *context) {
   ucontext_t *ucontext = context;
   mcontext_t *mcontext = &ucontext->uc_mcontext;
 
   printf("signal %d!\n", signo);
+
   uint8_t *xpc = (uint8_t*) mcontext->gregs[REG_RIP];
+  printf("program counter = %p\n", xpc);
 
-  printf("exception program counter = %p: ", xpc);
-
-  for(int i=0; i<8; i++) {
-    printf("%x, ", xpc[i]);
-  }
-
-  printf("\n");
+  dump("program counter", xpc, 8);
 
   // mov eax, 4
   unsigned char code[] = { 0xb8, 4, 0, 0, 0, 0xc3 };
   ftype fct = alloc_code(code, sizeof(code));
 
   mcontext->gregs[REG_RIP] = (greg_t) fct;
-}
-
-void dump(const char *name, void *ptr, size_t len) {
-  uint8_t *byte_ptr = (uint8_t *) ptr;
-  printf("%s @ %p (%d bytes) = ", name, byte_ptr, len);
-
-  for(size_t i=0; i<len; i++) {
-    printf("%x, ", byte_ptr[i]);
-  }
-
-  printf("\n");
 }
 
 int main() {
@@ -77,16 +73,18 @@ int main() {
 
   dump("fct2_stub", fct2, sizeof(fct2_stub));
 
+  // int3
   // movabs rax, 0x1122334455667788
   // call [rax]
   // ret
   unsigned char fct1_code[] = {
-    0x48, 0xB8, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11,
+    0xCC,
+    0x48, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0,
     0xFF, 0x10,
     0xC3
   };
 
-  intptr_t *addr_ptr = (intptr_t *) ((char *) fct1_code + 2);
+  intptr_t *addr_ptr = (intptr_t *) ((char *) fct1_code + 3);
   *(addr_ptr) = (intptr_t) fct2;
 
   ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
