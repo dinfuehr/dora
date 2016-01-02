@@ -1,16 +1,20 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <ucontext.h>
 
+#define REG_RBP 10
+#define REG_RSP 15
 #define REG_RIP 16
 
 typedef int (*ftype)();
+bool debug = false;
 
-ftype alloc_code(const char *code, size_t len) {
+ftype alloc_code(const char *code, size_t len, bool debug_me) {
   long pagesize;
 
   if ((pagesize = sysconf(_SC_PAGESIZE)) == -1) {
@@ -20,7 +24,13 @@ ftype alloc_code(const char *code, size_t len) {
   void *ptr = mmap(NULL, pagesize, PROT_READ | PROT_WRITE | PROT_EXEC,
     MAP_ANON | MAP_PRIVATE, -1, 0);
 
-  memcpy(ptr, code, len);
+  if (debug && debug_me) {
+    *((uint8_t *) ptr) = 0xCC;
+    memcpy(ptr + 1, code, len);
+  } else {
+    memcpy(ptr, code, len);
+  }
+
   return ptr;
 }
 
@@ -45,6 +55,9 @@ void handler(int signo, siginfo_t *info, void *context) {
   printf("program counter = %p\n", xpc);
   dump("program counter", xpc, 8);
 
+  intptr_t *ra = ((intptr_t *) mcontext->gregs[REG_RSP]);
+  printf("return adress = %p\n", *ra);
+
   // push rbp
   // mov eax, 4
   // pop rbp
@@ -56,13 +69,17 @@ void handler(int signo, siginfo_t *info, void *context) {
     0xC3
   };
 
-  ftype fct2 = alloc_code(fct2_code, sizeof(fct2_code));
+  ftype fct2 = alloc_code(fct2_code, sizeof(fct2_code), false);
   dump("fct2", fct2, sizeof(fct2_code));
 
   mcontext->gregs[REG_RIP] = (greg_t) fct2;
 }
 
 int main(int argc, char *argv[]) {
+  if (argc > 1 && strcmp(argv[1], "--debug") == 0) {
+    debug = true;
+  }
+
   struct sigaction sa;
 
   sa.sa_sigaction = handler;
@@ -79,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   // compiler stub: mov r10, [9]
   unsigned char fct2_stub[] = { 0x4C, 0x8B, 0x14, 0x25, 9, 0, 0, 0 };
-  ftype fct2 = alloc_code(fct2_stub, sizeof(fct2_stub));
+  ftype fct2 = alloc_code(fct2_stub, sizeof(fct2_stub), true);
 
   dump("fct2_stub", fct2, sizeof(fct2_stub));
 
@@ -100,7 +117,7 @@ int main(int argc, char *argv[]) {
   intptr_t *fct1_addr = (intptr_t *) (fct1_code + 3);
   *(fct1_addr) = (intptr_t) fct2;
 
-  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
+  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code), false);
   dump("fct1", fct1, sizeof(fct1_code));
 
   printf("invoke fct1:\n");
