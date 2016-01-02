@@ -10,4 +10,4 @@ patch: patch.c
 	gcc -g patch.c -o patch
 
 clean:
-	rm -rf patch raise *.o
+	rm -rf ctxt patch raise *.o
