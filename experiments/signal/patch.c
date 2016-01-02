@@ -43,7 +43,6 @@ void handler(int signo, siginfo_t *info, void *context) {
 
   uint8_t *xpc = (uint8_t*) mcontext->gregs[REG_RIP];
   printf("program counter = %p\n", xpc);
-
   dump("program counter", xpc, 8);
 
   // push rbp
@@ -87,31 +86,22 @@ int main(int argc, char *argv[]) {
   // (int3)
   // push rbp
   // movabs rax, 0x1122334455667788
-  // call [rax]
+  // call rax
   // pop rbp
   // ret
   uint8_t fct1_code[] = {
-    0xCC,
     0x55,
     0x48, 0xB8, 0, 0, 0, 0, 0, 0, 0, 0,
-    0xFF, 0x10,
+    0xFF, 0xD0,
     0x5D,
     0xC3
   };
-  uint8_t *fct1_start = fct1_code;
-  size_t fct1_code_length = sizeof(fct1_code);
 
-  intptr_t *fct1_addr = (intptr_t *) (fct1_code + 4);
-
-  if (argc <= 1 || strcmp(argv[1], "--with-int3") != 0) {
-    fct1_start++;
-    fct1_code_length--;
-  }
-
+  intptr_t *fct1_addr = (intptr_t *) (fct1_code + 3);
   *(fct1_addr) = (intptr_t) fct2;
 
-  ftype fct1 = alloc_code(fct1_start, fct1_code_length);
-  dump("fct1", fct1, fct1_code_length);
+  ftype fct1 = alloc_code(fct1_code, sizeof(fct1_code));
+  dump("fct1", fct1, sizeof(fct1_code));
 
   printf("invoke fct1:\n");
   int res1 = fct1();
