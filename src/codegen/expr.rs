@@ -194,14 +194,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        self.emit_expr(&e.rhs, REG_TMP1);
-
-        emit_imull_reg_reg(self.buf, REG_TMP1, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
+        self.emit_binop(e, dest, |eg, src, dest| {
+            emit_imull_reg_reg(eg.buf, src, dest);
+        });
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -213,6 +208,24 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, src, dest| {
             emit_subl_reg_reg(eg.buf, src, dest);
+        });
+    }
+
+    fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, src, dest| {
+            emit_orl_reg_reg(eg.buf, src, dest);
+        });
+    }
+
+    fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, src, dest| {
+            emit_andl_reg_reg(eg.buf, src, dest);
+        });
+    }
+
+    fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, src, dest| {
+            emit_xorl_reg_reg(eg.buf, src, dest);
         });
     }
 
@@ -235,39 +248,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         emit_action(self, REG_TMP1, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
-    }
-
-    fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        self.emit_expr(&e.rhs, REG_TMP1);
-
-        emit_orl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
-    }
-
-    fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        self.emit_expr(&e.rhs, REG_TMP1);
-
-        emit_andl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
-    }
-
-    fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        self.emit_expr(&e.rhs, REG_TMP1);
-
-        emit_xorl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 
         if dest != REG_RESULT {
             emit_movl_reg_reg(self.buf, REG_RESULT, dest);
