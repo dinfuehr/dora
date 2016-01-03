@@ -365,6 +365,11 @@ mod tests {
     }
 
     #[test]
+    fn test_sub_with_complex_rhs() {
+        assert_eq!(-2, run("fn f() -> int { return 1-(2-(3-4)); }"));
+    }
+
+    #[test]
     fn test_bit_or() {
         assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a | b; }"));
     }
