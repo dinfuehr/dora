@@ -15,6 +15,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct: &'ast Function,
     buf: &'a mut Buffer,
     dseg: &'a mut DSeg,
+    tempsize: u32,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
@@ -22,13 +23,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         ctxt: &'a Context<'a, 'ast>,
         fct: &'ast Function,
         buf: &'a mut Buffer,
-        dseg: &'a mut DSeg,
+        dseg: &'a mut DSeg
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
             buf: buf,
             dseg: dseg,
+            tempsize: 0,
         }
     }
 
@@ -91,7 +93,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        assert!(e.rhs.is_leaf());
+        // assert!(e.rhs.is_leaf());
 
         match e.op {
             BinOp::Add => self.emit_bin_add(e, dest),
@@ -204,7 +206,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_expr(&e.lhs, REG_RESULT);
+
+        let mut tempoffset : i32 = 0;
+
+        if !e.rhs.is_leaf() {
+            self.tempsize += 4;
+            tempoffset = -(self.tempsize as i32);
+
+            emit_movl_reg_memq(self.buf, REG_RESULT, RBP, tempoffset);
+        }
+
         self.emit_expr(&e.rhs, REG_TMP1);
+
+        if !e.rhs.is_leaf() {
+            emit_movl_memq_reg(self.buf, RBP, tempoffset, REG_RESULT);
+        }
 
         emit_addl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 

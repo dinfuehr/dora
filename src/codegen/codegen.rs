@@ -355,6 +355,11 @@ mod tests {
     }
 
     #[test]
+    fn test_add_with_complex_rhs() {
+        assert_eq!(10, run("fn f() -> int { return 1+(2+(3+4)); }"));
+    }
+
+    #[test]
     fn test_sub() {
         assert_eq!(-1, run("fn f() -> int { var a = 1; var b = 2; return a - b; }"));
     }
