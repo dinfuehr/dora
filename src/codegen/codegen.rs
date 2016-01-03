@@ -366,6 +366,8 @@ mod tests {
 
     #[test]
     fn test_sub_with_complex_rhs() {
+        assert_eq!(-1, run("fn f() -> int { return 3-4; }"));
+        assert_eq!(3, run("fn f() -> int { return 2-(3-4); }"));
         assert_eq!(-2, run("fn f() -> int { return 1-(2-(3-4)); }"));
     }
 

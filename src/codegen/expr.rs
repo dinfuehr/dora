@@ -157,101 +157,103 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        self.emit_expr(&e.rhs, REG_TMP1);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+            emit_cmpl_reg_reg(eg.buf, rhs, lhs);
+            emit_setb_reg(eg.buf, op, dest);
+            emit_movzbl_reg_reg(eg.buf, dest, dest);
 
-        emit_cmpl_reg_reg(self.buf, REG_TMP1, REG_RESULT);
-        emit_setb_reg(self.buf, op, REG_RESULT);
-        emit_movzbl_reg_reg(self.buf, REG_RESULT, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movb_reg_reg(self.buf, REG_RESULT, dest);
-        }
+            dest
+        });
     }
 
     fn emit_bin_div(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, RAX);
-        self.emit_expr(&e.rhs, REG_TMP1);
+        self.emit_binop(e, dest, Some(RAX), |eg, lhs, rhs, _| {
+            emit_cltd(eg.buf);
+            emit_idivl_reg_reg(eg.buf, rhs);
 
-        emit_cltd(self.buf);
-        emit_idivl_reg_reg(self.buf, REG_TMP1);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
+            RAX
+        });
     }
 
     fn emit_bin_mod(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_expr(&e.lhs, RAX);
-        self.emit_expr(&e.rhs, REG_TMP1);
+        self.emit_binop(e, dest, Some(RAX), |eg, lhs, rhs, _| {
+            emit_cltd(eg.buf);
+            emit_idivl_reg_reg(eg.buf, rhs);
 
-        emit_cltd(self.buf);
-        emit_idivl_reg_reg(self.buf, REG_TMP1);
-
-        if dest != RDX {
-            emit_movl_reg_reg(self.buf, RDX, dest);
-        }
+            RDX
+        });
     }
 
     fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_imull_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_imull_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_addl_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_addl_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_subl_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_subl_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
     fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_orl_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_orl_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
     fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_andl_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_andl_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
     fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, src, dest| {
-            emit_xorl_reg_reg(eg.buf, src, dest);
+        self.emit_binop(e, dest, None, |eg, lhs, rhs, _| {
+            emit_xorl_reg_reg(eg.buf, rhs, lhs);
+
+            lhs
         });
     }
 
-    fn emit_binop<F>(&mut self, e: &'ast ExprBinType, dest: Reg, emit_action: F)
-            where F: FnOnce(&mut ExprGen, Reg, Reg) {
-        self.emit_expr(&e.lhs, REG_RESULT);
-        let mut tempoffset : i32 = 0;
+    fn emit_binop<F>(&mut self, e: &'ast ExprBinType,
+            dest_reg: Reg, lhs_reg: Option<Reg>, emit_action: F)
+            where F: FnOnce(&mut ExprGen, Reg, Reg, Reg) -> Reg {
+        let lhs_reg = lhs_reg.unwrap_or(REG_RESULT);
+        let rhs_reg = REG_TMP1;
 
-        if !e.rhs.is_leaf() {
+        let leaf = is_leaf(&e.rhs);
+        let mut temp_offset : i32 = 0;
+
+        if !leaf {
             self.tempsize += 4;
-            tempoffset = -(self.tempsize as i32);
-
-            emit_movl_reg_memq(self.buf, REG_RESULT, RBP, tempoffset);
+            temp_offset = -(self.tempsize as i32);
         }
 
-        self.emit_expr(&e.rhs, REG_TMP1);
+        self.emit_expr(&e.lhs, lhs_reg);
+        if !leaf { emit_movl_reg_memq(self.buf, lhs_reg, RBP, temp_offset); }
 
-        if !e.rhs.is_leaf() {
-            emit_movl_memq_reg(self.buf, RBP, tempoffset, REG_RESULT);
-        }
+        self.emit_expr(&e.rhs, rhs_reg);
+        if !leaf { emit_movl_memq_reg(self.buf, RBP, temp_offset, lhs_reg); }
 
-        emit_action(self, REG_TMP1, REG_RESULT);
-
-        if dest != REG_RESULT {
-            emit_movl_reg_reg(self.buf, REG_RESULT, dest);
-        }
+        let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
+        if reg != dest_reg { emit_movl_reg_reg(self.buf, reg, dest_reg); }
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -282,5 +284,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             // TODO: move REG_RESULT into dest
         })
+    }
+}
+
+/// Returns `true` if the given expression `expr` is either literal or
+/// variable usage.
+pub fn is_leaf(expr: &Expr) -> bool {
+    match *expr {
+        ExprUn(_) => false,
+        ExprBin(ref val) => false,
+        ExprLitInt(ref val) => true,
+        ExprLitStr(ref val) => true,
+        ExprLitBool(ref val) => true,
+        ExprIdent(ref val) => true,
+        ExprAssign(ref val) => false,
+        ExprCall(ref val) => false,
     }
 }

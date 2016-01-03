@@ -801,19 +801,6 @@ impl Expr {
             Expr::ExprCall(ref val) => val.id
         }
     }
-
-    pub fn is_leaf(&self) -> bool {
-        match *self {
-            Expr::ExprUn(_) => false,
-            Expr::ExprBin(ref val) => false,
-            Expr::ExprLitInt(ref val) => true,
-            Expr::ExprLitStr(ref val) => true,
-            Expr::ExprLitBool(ref val) => true,
-            Expr::ExprIdent(ref val) => true,
-            Expr::ExprAssign(ref val) => false,
-            Expr::ExprCall(ref val) => false,
-        }
-    }
 }
 
 #[derive(Debug)]
