@@ -1,16 +1,18 @@
+use ast::*;
+use ast::Stmt::*;
+use ast::visit::*;
+
 use codegen::buffer::*;
 use codegen::emit;
 use codegen::expr::*;
 use codegen::info;
+use codegen::info::Info;
 use codegen::x64::reg::*;
 use codegen::x64::reg::Reg::*;
 use codegen::x64::emit::*;
-use dseg::DSeg;
-
 use ctxt::*;
-use ast::*;
-use ast::Stmt::*;
-use ast::visit::*;
+
+use dseg::DSeg;
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
@@ -18,7 +20,8 @@ pub struct CodeGen<'a, 'ast: 'a> {
     buf: Buffer,
     dseg: DSeg,
 
-    localsize: u32,
+    info: Info,
+
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 }
@@ -31,14 +34,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             buf: Buffer::new(),
             dseg: DSeg::new(),
 
-            localsize: ctxt.fct_info(fct.id, |fct| fct.stacksize),
+            info: Default::default(),
+
             lbl_break: None,
             lbl_continue: None
         }
     }
 
     pub fn generate(mut self) -> (DSeg, Vec<u8>) {
-        info::generate(self.ctxt, self.fct);
+        self.info = info::generate(self.ctxt, self.fct);
 
         self.emit_prolog();
         self.store_params();
@@ -69,14 +73,18 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         emit_pushq_reg(&mut self.buf, Reg::RBP);
         emit_movq_reg_reg(&mut self.buf, Reg::RSP, Reg::RBP);
 
-        if self.localsize > 0 {
-            emit_subq_imm_reg(&mut self.buf, self.localsize as i32, RSP);
+        let stacksize = self.info.stacksize() as i32;
+
+        if stacksize > 0 {
+            emit_subq_imm_reg(&mut self.buf, stacksize, RSP);
         }
     }
 
     fn emit_epilog(&mut self) {
-        if self.localsize > 0 {
-            emit_addq_imm_reg(&mut self.buf, self.localsize as i32, RSP);
+        let stacksize = self.info.stacksize() as i32;
+
+        if stacksize > 0 {
+            emit_addq_imm_reg(&mut self.buf, stacksize, RSP);
         }
 
         emit_popq_reg(&mut self.buf, Reg::RBP);
@@ -195,7 +203,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf,
-            &mut self.dseg, self.localsize);
+            &mut self.dseg, self.info.localsize);
 
         expr_gen.generate(e)
     }

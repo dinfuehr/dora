@@ -25,6 +25,10 @@ pub trait Visitor<'v> : Sized {
         walk_stmt(self, s);
     }
 
+    fn visit_expr_top(&mut self, e: &'v Expr) {
+        self.visit_expr(e);
+    }
+
     fn visit_expr(&mut self, e: &'v Expr) {
         walk_expr(self, e);
     }
@@ -82,12 +86,12 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
 
             if let Some(ref e) = value.expr {
-                v.visit_expr(e);
+                v.visit_expr_top(e);
             }
         }
 
         StmtWhile(ref value) => {
-            v.visit_expr(&value.cond);
+            v.visit_expr_top(&value.cond);
             v.visit_stmt(&value.block);
         }
 
@@ -96,7 +100,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
         }
 
         StmtIf(ref value) => {
-            v.visit_expr(&value.cond);
+            v.visit_expr_top(&value.cond);
             v.visit_stmt(&value.then_block);
 
             if let Some(ref b) = value.else_block {
@@ -105,7 +109,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
         }
 
         StmtExpr(ref value) => {
-            v.visit_expr(&value.expr);
+            v.visit_expr_top(&value.expr);
         }
 
         StmtBlock(ref value) => {
@@ -116,7 +120,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
 
         StmtReturn(ref value) => {
             if let Some(ref e) = value.expr {
-                v.visit_expr(e);
+                v.visit_expr_top(e);
             }
         }
 
