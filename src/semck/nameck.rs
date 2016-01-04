@@ -40,9 +40,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             ast: Some(f),
             ir: None,
             vars: Vec::new(),
-            stacksize: 0,
             always_returns: false,
-            contains_fct_invocation: false,
             compiled_fct: ptr::null(),
         };
 

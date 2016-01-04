@@ -150,13 +150,9 @@ pub struct FctInfo<'ast> {
 
     pub vars: Vec<VarInfoId>,
 
-    pub stacksize: u32,
-
     // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub always_returns: bool,
-
-    pub contains_fct_invocation: bool,
 
     pub compiled_fct: *const c_void,
 }
