@@ -15,7 +15,7 @@ struct CodeGenInfo<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
 
-    stacksize: u32,
+    localsize: u32,
     param_offset: i32,
     contains_fct_invocation: bool,
 }
@@ -26,7 +26,7 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
             ctxt: ctxt,
             fct: fct,
 
-            stacksize: 0,
+            localsize: 0,
 
             // first param offset to rbp is +16,
             // rbp+0 -> saved rbp
@@ -41,7 +41,7 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
         self.visit_fct(self.fct);
 
         self.ctxt.fct_info_mut(self.fct.id, |fct| {
-            fct.stacksize = self.stacksize;
+            fct.stacksize = self.localsize;
             fct.contains_fct_invocation = self.contains_fct_invocation;
         });
     }
@@ -49,8 +49,8 @@ impl<'a, 'ast> CodeGenInfo<'a, 'ast> {
     fn increase_stack(&mut self, id: NodeId) {
         self.ctxt.var_mut(id, |v, _| {
             let ty_size = v.data_type.size();
-            self.stacksize = mem::align(self.stacksize + ty_size, ty_size);
-            v.offset = -(self.stacksize as i32);
+            self.localsize = mem::align(self.localsize + ty_size, ty_size);
+            v.offset = -(self.localsize as i32);
         });
     }
 }
