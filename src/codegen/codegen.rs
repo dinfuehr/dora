@@ -378,6 +378,12 @@ mod tests {
         assert_eq!(-1, run("fn f() -> int { return 3-4; }"));
         assert_eq!(3, run("fn f() -> int { return 2-(3-4); }"));
         assert_eq!(-2, run("fn f() -> int { return 1-(2-(3-4)); }"));
+        assert_eq!(42, run("fn f() -> int {
+            var a = 7;
+            var b = 1+(2+3);
+
+            return a*b;
+        }"))
     }
 
     #[test]
