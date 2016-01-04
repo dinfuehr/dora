@@ -18,7 +18,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     buf: Buffer,
     dseg: DSeg,
 
-    stacksize: u32,
+    localsize: u32,
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 }
@@ -31,7 +31,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             buf: Buffer::new(),
             dseg: DSeg::new(),
 
-            stacksize: ctxt.fct_info(fct.id, |fct| fct.stacksize),
+            localsize: ctxt.fct_info(fct.id, |fct| fct.stacksize),
             lbl_break: None,
             lbl_continue: None
         }
@@ -69,14 +69,14 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         emit_pushq_reg(&mut self.buf, Reg::RBP);
         emit_movq_reg_reg(&mut self.buf, Reg::RSP, Reg::RBP);
 
-        if self.stacksize > 0 {
-            emit_subq_imm_reg(&mut self.buf, self.stacksize as i32, RSP);
+        if self.localsize > 0 {
+            emit_subq_imm_reg(&mut self.buf, self.localsize as i32, RSP);
         }
     }
 
     fn emit_epilog(&mut self) {
-        if self.stacksize > 0 {
-            emit_addq_imm_reg(&mut self.buf, self.stacksize as i32, RSP);
+        if self.localsize > 0 {
+            emit_addq_imm_reg(&mut self.buf, self.localsize as i32, RSP);
         }
 
         emit_popq_reg(&mut self.buf, Reg::RBP);
@@ -194,7 +194,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf, &mut self.dseg);
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf,
+            &mut self.dseg, self.localsize);
 
         expr_gen.generate(e)
     }

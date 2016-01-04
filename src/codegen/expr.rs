@@ -6,9 +6,10 @@ use codegen::x64::reg::Reg::*;
 
 use dseg::DSeg;
 
-use ctxt::*;
 use ast::*;
 use ast::Expr::*;
+use ctxt::*;
+use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
@@ -16,6 +17,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     buf: &'a mut Buffer,
     dseg: &'a mut DSeg,
     tempsize: u32,
+    localsize: u32,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
@@ -23,7 +25,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         ctxt: &'a Context<'a, 'ast>,
         fct: &'ast Function,
         buf: &'a mut Buffer,
-        dseg: &'a mut DSeg
+        dseg: &'a mut DSeg,
+        localsize: u32,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -31,6 +34,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             buf: buf,
             dseg: dseg,
             tempsize: 0,
+            localsize: localsize,
         }
     }
 
@@ -238,22 +242,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lhs_reg = lhs_reg.unwrap_or(REG_RESULT);
         let rhs_reg = REG_TMP1;
 
-        let leaf = is_leaf(&e.rhs);
+        let not_leaf = !is_leaf(&e.rhs);
         let mut temp_offset : i32 = 0;
 
-        if !leaf {
-            self.tempsize += 4;
-            temp_offset = -(self.tempsize as i32);
+        if not_leaf {
+            temp_offset = self.add_temp_var(BuiltinType::Int);
         }
 
         self.emit_expr(&e.lhs, lhs_reg);
-        if !leaf { emit_movl_reg_memq(self.buf, lhs_reg, RBP, temp_offset); }
+        if not_leaf { emit_movl_reg_memq(self.buf, lhs_reg, RBP, temp_offset); }
 
         self.emit_expr(&e.rhs, rhs_reg);
-        if !leaf { emit_movl_memq_reg(self.buf, RBP, temp_offset, lhs_reg); }
+        if not_leaf { emit_movl_memq_reg(self.buf, RBP, temp_offset, lhs_reg); }
 
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
         if reg != dest_reg { emit_movl_reg_reg(self.buf, reg, dest_reg); }
+    }
+
+    fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {
+        self.tempsize += ty.size();
+
+        -((self.tempsize + self.localsize) as i32)
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
