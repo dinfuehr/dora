@@ -157,9 +157,8 @@ mod tests {
 
     #[test]
     fn test_tempsize() {
-        info("fn f() { 1+2*3; }", |_, _, info| {
-            assert_eq!(4, info.tempsize);
-        });
+        info("fn f() { 1+2*3; }", |_, _, info| { assert_eq!(4, info.tempsize); });
+        info("fn f() { 2*3+4+5; }", |_, _, info| { assert_eq!(0, info.tempsize); });
     }
 
     #[test]
