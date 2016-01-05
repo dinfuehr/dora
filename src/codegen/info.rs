@@ -120,8 +120,17 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprCall(_) => {
+            ExprCall(ref expr) => {
+                // function invokes another function
                 self.fct_call = true;
+
+                // some function parameters are stored on the stack,
+                // therefore we need to increase `tempsize` in this case.
+                let params_on_stack = expr.args.len() as i32 - REG_PARAMS.len() as i32;
+
+                if params_on_stack > 0 {
+                    self.cur_tempsize += (params_on_stack as u32) * 8;
+                }
             }
 
             ExprBin(ref expr) => {
@@ -160,6 +169,24 @@ mod tests {
         info("fn f() { 1+2*3; }", |_, _, info| { assert_eq!(4, info.tempsize); });
         info("fn f() { 2*3+4+5; }", |_, _, info| { assert_eq!(0, info.tempsize); });
         info("fn f() { 1+(2+(3+4)); }", |_, _, info| { assert_eq!(8, info.tempsize); })
+    }
+
+    #[test]
+    fn test_tempsize_for_fct_call() {
+        info("fn f() { g(1,2,3,4,5,6); }
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |_, _, info| {
+            assert_eq!(0, info.tempsize);
+        });
+
+        info("fn f() { g(1,2,3,4,5,6,7,8); }
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |_, _, info| {
+            assert_eq!(16, info.tempsize);
+        });
+
+        info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |_, _, info| {
+            assert_eq!(20, info.tempsize);
+        });
     }
 
     #[test]
