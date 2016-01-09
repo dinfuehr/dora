@@ -61,10 +61,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             max_tempsize: 0,
             cur_tempsize: 0,
 
-            // first param offset to rbp is +16,
-            // rbp+0 -> saved rbp
-            // rbp+8 -> return address
-            param_offset: 16,
+            param_offset: cpu::PARAM_OFFSET,
 
             fct_call: false,
         }
@@ -80,7 +77,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
-    fn increase_stack(&mut self, id: NodeId) {
+    fn reserve_stack_for_var(&mut self, id: NodeId) {
         self.ctxt.var_mut(id, |v, _| {
             let ty_size = v.data_type.size();
             self.localsize = mem::align(self.localsize + ty_size, ty_size);
@@ -91,22 +88,28 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        // on x64 only the first 6 parameters are stored in registers
+        // only some parameters are passed in registers
+        // these registers need to be stored into local variables
         if (p.idx as usize) < cpu::REG_PARAMS.len() {
-            self.increase_stack(p.id);
+            self.reserve_stack_for_var(p.id);
 
-        // the rest of the parameters need to be stored in the callers stack
+        // the rest of the parameters are already stored on the stack
+        // just use the current offset
         } else {
-            self.ctxt.var_mut(p.id, |v, _| { v.offset = self.param_offset; });
+            let ty = self.ctxt.var_mut(p.id, |v, _| {
+                v.offset = self.param_offset;
 
-            // all params on stack need size of 8
-            self.param_offset += 8;
+                v.data_type
+            });
+
+            // determine next `param_offset`
+            self.param_offset = cpu::next_param_offset(self.param_offset, ty);
         }
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            self.increase_stack(var.id);
+            self.reserve_stack_for_var(var.id);
         }
 
         visit::walk_stmt(self, s);
@@ -124,13 +127,9 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                 // function invokes another function
                 self.fct_call = true;
 
-                // some function parameters are stored on the stack,
-                // therefore we need to increase `tempsize` in this case.
-                let params_on_stack = expr.args.len() as i32 - cpu::REG_PARAMS.len() as i32;
-
-                if params_on_stack > 0 {
-                    self.cur_tempsize += (params_on_stack as u32) * 8;
-                }
+                // some function parameters are stored on stack,
+                // reservere space for them
+                self.cur_tempsize += cpu::reserve_stack_for_call(&expr.args);
             }
 
             ExprBin(ref expr) => {
