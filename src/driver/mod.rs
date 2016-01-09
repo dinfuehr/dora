@@ -1,5 +1,6 @@
 pub mod cmd;
 
+use std;
 use std::mem;
 
 use ast::{self, Function};
@@ -61,15 +62,13 @@ pub fn compile() -> i32 {
     let main = main.unwrap();
 
     let cg = CodeGen::new(&ctxt, main);
-    let (dseg, buffer) = cg.generate();
+    let jit_fct = cg.generate();
 
     if args.flag_emit_asm {
-        dump_asm(&buffer, &ctxt.interner.str(main.name));
+        dump_asm(&jit_fct, &ctxt.interner.str(main.name));
     }
 
-    let code = JitFct::new(&dseg, &buffer);
-
-    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(code.fct()) };
+    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(jit_fct.fct_ptr()) };
     let res = fct();
 
     // main-fct without return value exits with status 0
@@ -82,12 +81,15 @@ pub fn compile() -> i32 {
     }
 }
 
-pub fn dump_asm(buf: &[u8], name: &str) {
+pub fn dump_asm(jit_fct: &JitFct, name: &str) {
     use capstone::*;
+
+    let buf: &[u8] = unsafe { std::slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
 
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
     engine.set_option(Opt::Syntax, 2); // switch to AT&T syntax
-    let instrs = engine.disasm(buf, 0, buf.len()).expect("could not disassemble code");
+    let instrs = engine.disasm(buf,
+        jit_fct.fct_ptr() as u64, jit_fct.fct_len()).expect("could not disassemble code");
 
     println!("fn {}", name);
     for instr in instrs {

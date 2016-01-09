@@ -5,6 +5,7 @@ use dseg::DSeg;
 
 use jit::buffer::*;
 use jit::codegen::*;
+use jit::fct::JitFct;
 
 pub mod buffer;
 pub mod codegen;
@@ -13,7 +14,7 @@ pub mod fct;
 mod expr;
 mod info;
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> (DSeg, Vec<u8>) {
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> JitFct {
     info::generate(ctxt, fct);
 
     CodeGen::new(ctxt, fct).generate()

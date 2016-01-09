@@ -11,6 +11,7 @@ use dseg::DSeg;
 
 use jit::buffer::*;
 use jit::expr::*;
+use jit::fct::JitFct;
 use jit::info;
 use jit::info::Info;
 
@@ -41,7 +42,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    pub fn generate(mut self) -> (DSeg, Vec<u8>) {
+    pub fn generate(mut self) -> JitFct {
         self.info = info::generate(self.ctxt, self.fct);
 
         self.emit_prolog();
@@ -54,7 +55,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_epilog();
         }
 
-        (self.dseg, self.buf.finish())
+        let mc = self.buf.finish();
+        JitFct::new(&self.dseg, &mc)
     }
 
     fn store_params(&mut self) {
@@ -242,31 +244,31 @@ mod tests {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
-            let (dseg, buffer) = jit::generate(ctxt, fct);
+            let jit_fct = jit::generate(ctxt, fct);
 
-            driver::dump_asm(&buffer, &ctxt.interner.str(fct.name));
+            driver::dump_asm(&jit_fct, &ctxt.interner.str(fct.name));
 
-            JitFct::new(&dseg, &buffer)
+            jit_fct
         })
     }
 
     fn run<T>(code: &'static str) -> T {
         let mem = compile(code);
-        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.fct()) };
+        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.fct_ptr()) };
 
         compiled_fct()
     }
 
     fn fct1<T>(code: &'static str) -> (JitFct, extern "C" fn(T) -> T) {
         let m = compile(code);
-        let fct = m.fct();
+        let fct = m.fct_ptr();
 
         (m, unsafe { mem::transmute(fct) })
     }
 
     fn fct2<T>(code: &'static str) -> (JitFct, extern "C" fn(T, T) -> T) {
         let m = compile(code);
-        let fct = m.fct();
+        let fct = m.fct_ptr();
 
         (m, unsafe { mem::transmute(fct) })
     }

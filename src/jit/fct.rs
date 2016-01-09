@@ -1,4 +1,5 @@
 use libc::*;
+
 use std::ptr;
 
 use dseg::DSeg;
@@ -9,6 +10,9 @@ pub struct JitFct {
 
     // pointer to beginning of function
     fct_start: *mut c_void,
+
+    // machine code length in bytes
+    fct_len: usize,
 }
 
 impl JitFct {
@@ -30,10 +34,15 @@ impl JitFct {
         JitFct {
             code: code,
             fct_start: fct_start,
+            fct_len: buffer.len(),
         }
     }
 
-    pub fn fct(&self) -> *mut c_void {
-        self.fct_start
+    pub fn fct_ptr(&self) -> *const u8 {
+        self.fct_start as *const u8
+    }
+
+    pub fn fct_len(&self) -> usize {
+        self.fct_len
     }
 }
