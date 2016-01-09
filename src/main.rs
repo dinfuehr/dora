@@ -13,6 +13,7 @@ extern crate capstone;
 
 mod ast;
 mod codegen;
+mod cpu;
 mod ctxt;
 mod driver;
 mod dseg;

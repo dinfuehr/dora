@@ -1,3 +1,5 @@
+pub use ProtType::*;
+
 use libc;
 
 pub fn page_size() -> u32 {
@@ -8,10 +10,21 @@ pub fn page_size() -> u32 {
     val as u32
 }
 
-pub fn mmap(size: usize) -> *mut libc::c_void {
+#[derive(PartialEq, Eq)]
+pub enum ProtType {
+    Executable, NonExecutable
+}
+
+pub fn mmap(size: usize, exec: ProtType) -> *mut libc::c_void {
+    let prot_exec = if exec == Executable {
+        libc::PROT_EXEC
+    } else {
+        0
+    };
+
     let ptr = unsafe {
         libc::mmap(0 as *mut libc::c_void, size,
-            libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+            libc::PROT_READ | libc::PROT_WRITE | prot_exec,
             libc::MAP_PRIVATE | libc::MAP_ANON, -1, 0) as *mut libc::c_void
     };
 

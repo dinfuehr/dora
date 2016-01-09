@@ -14,7 +14,7 @@ pub struct CodeMemory {
 impl CodeMemory {
     pub fn new(size: usize) -> CodeMemory {
         let size = mem::align_usize(size, os::page_size() as usize);
-        let ptr = os::mmap(size);
+        let ptr = os::mmap(size, os::Executable);
 
         CodeMemory {
             size: size,
