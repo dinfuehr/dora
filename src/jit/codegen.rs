@@ -2,18 +2,17 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use cpu::*;
+use cpu::{Reg, REG_PARAMS};
+use cpu::emit::*;
 use cpu::Reg::*;
 use ctxt::*;
+use dseg::DSeg;
 
 use jit::buffer::*;
 use jit::emit;
 use jit::expr::*;
 use jit::info;
 use jit::info::Info;
-use jit::x64::emit::*;
-
-use dseg::DSeg;
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,

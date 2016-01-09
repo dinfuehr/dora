@@ -10,10 +10,9 @@ pub mod buffer;
 pub mod codegen;
 pub mod fct;
 
-mod x64;
+mod emit;
 mod expr;
 mod info;
-mod emit;
 
 pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> (DSeg, Vec<u8>) {
     info::generate(ctxt, fct);

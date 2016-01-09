@@ -1,9 +1,8 @@
 use cpu::Reg;
+use cpu::emit::*;
 use cpu::Reg::*;
 use ctxt::*;
 use jit::buffer::*;
-use jit::x64::emit::*;
-
 use sym::BuiltinType;
 
 pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {

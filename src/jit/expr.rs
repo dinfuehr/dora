@@ -1,6 +1,7 @@
 use ast::*;
 use ast::Expr::*;
-use cpu::*;
+use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
+use cpu::emit::*;
 use cpu::Reg::*;
 use ctxt::*;
 
@@ -8,7 +9,6 @@ use dseg::DSeg;
 
 use jit::buffer::*;
 use jit::emit;
-use jit::x64::emit::*;
 
 use sym::BuiltinType;
 

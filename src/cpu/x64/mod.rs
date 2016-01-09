@@ -1,5 +1,6 @@
-pub use self::stub::*;
 pub use self::reg::*;
+pub use self::stub::*;
 
-pub mod stub;
+pub mod emit;
 pub mod reg;
+pub mod stub;
