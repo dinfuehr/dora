@@ -8,7 +8,7 @@ pub struct JitFct {
     code: CodeMemory,
 
     // pointer to beginning of function
-    fct: *mut c_void,
+    fct_start: *mut c_void,
 }
 
 impl JitFct {
@@ -20,20 +20,20 @@ impl JitFct {
 
         dseg.finish(ptr);
 
-        let fct;
+        let fct_start;
 
         unsafe {
-            fct = ptr.offset(dseg.size() as isize);
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct as *mut u8, buffer.len());
+            fct_start = ptr.offset(dseg.size() as isize);
+            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start as *mut u8, buffer.len());
         }
 
         JitFct {
             code: code,
-            fct: fct,
+            fct_start: fct_start,
         }
     }
 
     pub fn fct(&self) -> *mut c_void {
-        self.fct
+        self.fct_start
     }
 }
