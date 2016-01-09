@@ -238,6 +238,7 @@ mod tests {
     use jit;
     use jit::fct::JitFct;
     use driver;
+    use driver::cmd::AsmSyntax;
     use test;
 
     fn compile(code: &'static str) -> JitFct {
@@ -246,7 +247,7 @@ mod tests {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
             let jit_fct = jit::generate(ctxt, fct);
 
-            driver::dump_asm(&jit_fct, &ctxt.interner.str(fct.name));
+            driver::dump_asm(&jit_fct, &ctxt.interner.str(fct.name), AsmSyntax::Att);
 
             jit_fct
         })

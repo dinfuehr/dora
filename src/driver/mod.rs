@@ -5,6 +5,7 @@ use std::mem;
 
 use ast::{self, Function};
 use ctxt::Context;
+use driver::cmd::AsmSyntax;
 use error::msg::Msg;
 
 use jit::codegen::CodeGen;
@@ -65,7 +66,8 @@ pub fn compile() -> i32 {
     let jit_fct = cg.generate();
 
     if args.flag_emit_asm {
-        dump_asm(&jit_fct, &ctxt.interner.str(main.name));
+        dump_asm(&jit_fct, &ctxt.interner.str(main.name),
+            args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
     }
 
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(jit_fct.fct_ptr()) };
@@ -81,13 +83,18 @@ pub fn compile() -> i32 {
     }
 }
 
-pub fn dump_asm(jit_fct: &JitFct, name: &str) {
+pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     use capstone::*;
 
     let buf: &[u8] = unsafe { std::slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
 
+    let used_syntax = match asm_syntax {
+        AsmSyntax::Intel => 1,
+        AsmSyntax::Att => 2,
+    };
+
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
-    engine.set_option(Opt::Syntax, 2); // switch to AT&T syntax
+    engine.set_option(Opt::Syntax, used_syntax);
     let instrs = engine.disasm(buf,
         jit_fct.fct_ptr() as u64, jit_fct.fct_len()).expect("could not disassemble code");
 
