@@ -2,6 +2,8 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
+use cpu::*;
+use cpu::Reg::*;
 use ctxt::*;
 
 use jit::buffer::*;
@@ -9,8 +11,6 @@ use jit::emit;
 use jit::expr::*;
 use jit::info;
 use jit::info::Info;
-use jit::x64::reg::*;
-use jit::x64::reg::Reg::*;
 use jit::x64::emit::*;
 
 use dseg::DSeg;

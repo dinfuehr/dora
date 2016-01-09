@@ -4,10 +4,10 @@ use ast::*;
 use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
+use cpu;
+use ctxt::Context;
 
 use jit::expr::is_leaf;
-use jit::x64::reg::*;
-use ctxt::Context;
 
 use mem;
 
@@ -92,7 +92,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         // on x64 only the first 6 parameters are stored in registers
-        if (p.idx as usize) < REG_PARAMS.len() {
+        if (p.idx as usize) < cpu::REG_PARAMS.len() {
             self.increase_stack(p.id);
 
         // the rest of the parameters need to be stored in the callers stack
@@ -126,7 +126,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
                 // some function parameters are stored on the stack,
                 // therefore we need to increase `tempsize` in this case.
-                let params_on_stack = expr.args.len() as i32 - REG_PARAMS.len() as i32;
+                let params_on_stack = expr.args.len() as i32 - cpu::REG_PARAMS.len() as i32;
 
                 if params_on_stack > 0 {
                     self.cur_tempsize += (params_on_stack as u32) * 8;

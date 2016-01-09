@@ -1,9 +1,9 @@
 use ast::CmpOp;
+use cpu::Reg;
+use cpu::Reg::*;
 
 use jit::buffer::*;
 
-use super::reg::Reg;
-use super::reg::Reg::*;
 
 pub fn emit_orl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 0, 0x09, src, dest);
@@ -413,7 +413,7 @@ mod tests {
 
     use ast::CmpOp;
     use jit::buffer::Buffer;
-    use jit::x64::reg::Reg::*;
+    use cpu::Reg::*;
 
     macro_rules! assert_emit {
         (
