@@ -203,7 +203,7 @@ impl<T: CodeReader> Parser<T> {
                 let subtypes = try!(self.parse_comma_list(TokenType::RParen, |p| {
                     let ty = try!(p.parse_type());
 
-                    Ok(box ty)
+                    Ok(Box::new(ty))
                 }));
 
                 Ok(Type::create_tuple(
@@ -248,7 +248,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_var(self.generate_id(), pos, ident, data_type, expr))
+        Ok(Box::new(Stmt::create_var(self.generate_id(), pos, ident, data_type, expr)))
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
@@ -283,7 +283,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_token(TokenType::RBrace));
 
-        Ok(box Stmt::create_block(self.generate_id(), pos, stmts))
+        Ok(Box::new(Stmt::create_block(self.generate_id(), pos, stmts)))
     }
 
     fn parse_if(&mut self) -> StmtResult {
@@ -298,7 +298,7 @@ impl<T: CodeReader> Parser<T> {
             else_block = Some(try!(self.parse_block()));
         }
 
-        Ok(box Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block))
+        Ok(Box::new(Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block)))
     }
 
     fn parse_while(&mut self) -> StmtResult {
@@ -307,28 +307,28 @@ impl<T: CodeReader> Parser<T> {
 
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::create_while(self.generate_id(), pos, expr, block))
+        Ok(Box::new(Stmt::create_while(self.generate_id(), pos, expr, block)))
     }
 
     fn parse_loop(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Loop)).position;
         let block = try!(self.parse_block());
 
-        Ok(box Stmt::create_loop(self.generate_id(), pos, block))
+        Ok(Box::new(Stmt::create_loop(self.generate_id(), pos, block)))
     }
 
     fn parse_break(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Break)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_break(self.generate_id(), pos))
+        Ok(Box::new(Stmt::create_break(self.generate_id(), pos)))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Continue)).position;
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_continue(self.generate_id(), pos))
+        Ok(Box::new(Stmt::create_continue(self.generate_id(), pos)))
     }
 
     fn parse_return(&mut self) -> StmtResult {
@@ -342,7 +342,7 @@ impl<T: CodeReader> Parser<T> {
 
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_return(self.generate_id(), pos, expr))
+        Ok(Box::new(Stmt::create_return(self.generate_id(), pos, expr)))
     }
 
     fn parse_expression_statement(&mut self) -> StmtResult {
@@ -350,7 +350,7 @@ impl<T: CodeReader> Parser<T> {
         let expr = try!(self.parse_expression());
         try!(self.expect_semicolon());
 
-        Ok(box Stmt::create_expr(self.generate_id(), pos, expr))
+        Ok(Box::new(Stmt::create_expr(self.generate_id(), pos, expr)))
     }
 
     fn parse_expression(&mut self) -> ExprResult {
@@ -365,8 +365,8 @@ impl<T: CodeReader> Parser<T> {
             let op = BinOp::Or;
 
             let right = try!(self.parse_expression_l1());
-            left = box Expr::create_bin(self.generate_id(),
-                tok.position, op, left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right));
         }
 
         Ok(left)
@@ -380,8 +380,8 @@ impl<T: CodeReader> Parser<T> {
             let op = BinOp::And;
 
             let right = try!(self.parse_expression_l2());
-            left = box Expr::create_bin(self.generate_id(),
-                tok.position, op, left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(),
+                tok.position, op, left, right));
         }
 
         Ok(left)
@@ -394,7 +394,7 @@ impl<T: CodeReader> Parser<T> {
             let tok = try!(self.read_token());
             let right = try!(self.parse_expression_l3());
 
-            Ok(box Expr::create_assign(self.generate_id(), tok.position, left, right))
+            Ok(Box::new(Expr::create_assign(self.generate_id(), tok.position, left, right)))
         } else {
             Ok(left)
         }
@@ -411,8 +411,8 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l4());
-            left = box Expr::create_bin(self.generate_id(),
-                tok.position, BinOp::Cmp(op), left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(),
+                tok.position, BinOp::Cmp(op), left, right));
         }
 
         Ok(left)
@@ -433,8 +433,8 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l5());
-            left = box Expr::create_bin(self.generate_id(), tok.position,
-                BinOp::Cmp(op), left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(), tok.position,
+                BinOp::Cmp(op), left, right));
         }
 
         Ok(left)
@@ -454,7 +454,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l6());
-            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
         }
 
         Ok(left)
@@ -471,7 +471,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l7());
-            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
         }
 
         Ok(left)
@@ -490,7 +490,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let right = try!(self.parse_expression_l8());
-            left = box Expr::create_bin(self.generate_id(), tok.position, op, left, right);
+            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
         }
 
         Ok(left)
@@ -509,7 +509,7 @@ impl<T: CodeReader> Parser<T> {
             };
 
             let expr = try!(self.parse_factor());
-            Ok(box Expr::create_un(self.generate_id(), tok.position, op, expr))
+            Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
         } else {
             self.parse_factor()
         }
@@ -541,7 +541,7 @@ impl<T: CodeReader> Parser<T> {
 
         // if not we have a simple variable
         } else {
-            Ok(box Expr::create_ident(self.generate_id(), pos, ident))
+            Ok(Box::new(Expr::create_ident(self.generate_id(), pos, ident)))
         }
     }
 
@@ -552,7 +552,7 @@ impl<T: CodeReader> Parser<T> {
             p.parse_expression()
         }));
 
-        Ok(box Expr::create_call(self.generate_id(), pos, ident, args))
+        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, args)))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -567,7 +567,7 @@ impl<T: CodeReader> Parser<T> {
         let tok = try!(self.read_token());
 
         match tok.value.parse() {
-            Ok(num) => Ok(box Expr::create_lit_int(self.generate_id(), tok.position, num)),
+            Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), tok.position, num))),
             _ => Err(ParseError {
                 position: tok.position,
                 message: format!("number {} does not fit into range", tok),
@@ -579,14 +579,14 @@ impl<T: CodeReader> Parser<T> {
     fn parse_string(&mut self) -> ExprResult {
         let string = try!(self.read_token());
 
-        Ok(box Expr::create_lit_str(self.generate_id(), string.position, string.value))
+        Ok(Box::new(Expr::create_lit_str(self.generate_id(), string.position, string.value)))
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
         let tok = try!(self.read_token());
         let value = tok.is(TokenType::True);
 
-        Ok(box Expr::create_lit_bool(self.generate_id(), tok.position, value))
+        Ok(Box::new(Expr::create_lit_bool(self.generate_id(), tok.position, value)))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, ParseError> {

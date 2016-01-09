@@ -1,9 +1,7 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::Error;
 
-use phf;
-
-use lexer::reader::{CodeReader, FileReader};
+use lexer::reader::{CodeReader, FileReader, ReaderResult};
 use lexer::token::{Token, TokenType};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
@@ -22,6 +20,7 @@ pub struct Lexer<T : CodeReader> {
     position: Position,
     eof_reached: bool,
     tabwidth: u32,
+    keywords: HashMap<&'static str, TokenType>,
 
     buffer: VecDeque<Result<CharPos, ParseError>>
 }
@@ -41,24 +40,24 @@ impl Lexer<FileReader> {
     }
 }
 
-static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
-    "fn" => TokenType::Fn,
-    "var" => TokenType::Var,
-    "while" => TokenType::While,
-    "if" => TokenType::If,
-    "else" => TokenType::Else,
-    "loop" => TokenType::Loop,
-    "break" => TokenType::Break,
-    "continue" => TokenType::Continue,
-    "return" => TokenType::Return,
-    "true" => TokenType::True,
-    "false" => TokenType::False,
-    "enum" => TokenType::Enum,
-    "type" => TokenType::Type,
-    "alias" => TokenType::Alias,
-    "struct" => TokenType::Struct,
-    "trait" => TokenType::Trait,
-};
+// static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
+//     "fn" => TokenType::Fn,
+//     "var" => TokenType::Var,
+//     "while" => TokenType::While,
+//     "if" => TokenType::If,
+//     "else" => TokenType::Else,
+//     "loop" => TokenType::Loop,
+//     "break" => TokenType::Break,
+//     "continue" => TokenType::Continue,
+//     "return" => TokenType::Return,
+//     "true" => TokenType::True,
+//     "false" => TokenType::False,
+//     "enum" => TokenType::Enum,
+//     "type" => TokenType::Type,
+//     "alias" => TokenType::Alias,
+//     "struct" => TokenType::Struct,
+//     "trait" => TokenType::Trait,
+// };
 
 impl<T : CodeReader> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
@@ -66,11 +65,30 @@ impl<T : CodeReader> Lexer<T> {
     }
 
     pub fn new_with_tabwidth(reader: T, tabwidth: u32) -> Lexer<T> {
+        let mut keywords = HashMap::new();
+        keywords.insert("fn", TokenType::Fn);
+        keywords.insert("var", TokenType::Var);
+        keywords.insert("while", TokenType::While);
+        keywords.insert("if", TokenType::If);
+        keywords.insert("else", TokenType::Else);
+        keywords.insert("loop", TokenType::Loop);
+        keywords.insert("break", TokenType::Break);
+        keywords.insert("continue", TokenType::Continue);
+        keywords.insert("return", TokenType::Return);
+        keywords.insert("true", TokenType::True);
+        keywords.insert("false", TokenType::False);
+        keywords.insert("enum", TokenType::Enum);
+        keywords.insert("type", TokenType::Type);
+        keywords.insert("alias", TokenType::Alias);
+        keywords.insert("struct", TokenType::Struct);
+        keywords.insert("trait", TokenType::Trait);
+
         let mut lexer = Lexer::<T> {
             reader: reader,
             position: Position::new(1, 1),
             tabwidth: tabwidth,
             eof_reached: false,
+            keywords: keywords,
 
             buffer: VecDeque::with_capacity(10)
         };
@@ -168,7 +186,7 @@ impl<T : CodeReader> Lexer<T> {
             tok.value.push(ch);
         }
 
-        if let Some(toktype) = KEYWORDS.get(&tok.value[..]) {
+        if let Some(toktype) = self.keywords.get(&tok.value[..]) {
             tok.token_type = *toktype
         }
 
@@ -340,7 +358,7 @@ impl<T : CodeReader> Lexer<T> {
     fn fill_buffer(&mut self) {
         while !self.eof_reached && self.buffer.len() < 10 {
             match self.reader.next() {
-                Some(Ok(ch)) => {
+                ReaderResult::Char(ch) => {
                     self.buffer.push_back(Ok(CharPos { value: ch, position: self.position }));
 
                     match ch {
@@ -359,15 +377,15 @@ impl<T : CodeReader> Lexer<T> {
                     }
                 },
 
-                Some(Err(_)) => {
+                ReaderResult::Eof => self.eof_reached = true,
+
+                ReaderResult::Err => {
                     self.buffer.push_back(Err(ParseError {
                         position: self.position,
                         message: "error reading from file".to_string(),
                         code: ErrorCode::IoError,
                     }))
                 },
-
-                None => self.eof_reached = true,
             }
         }
     }

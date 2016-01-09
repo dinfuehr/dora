@@ -1,9 +1,16 @@
 use std::fs::File;
-use std::io::Chars;
-use std::io::{Read, BufReader, Error, CharsError};
+use std::io::Bytes;
+use std::io::{Read, BufReader, Error};
 
 pub trait CodeReader {
-    fn next(&mut self) -> Option<Result<char, CharsError>>;
+    fn next(&mut self) -> ReaderResult;
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum ReaderResult {
+    Char(char),
+    Eof,
+    Err
 }
 
 #[cfg(test)]
@@ -20,16 +27,16 @@ impl StrReader {
 
 #[cfg(test)]
 impl CodeReader for StrReader {
-    fn next(&mut self) -> Option<Result<char, CharsError>> {
+    fn next(&mut self) -> ReaderResult {
         match self.rest.next() {
-            Some(ch) => Some(Ok(ch)),
-            None => None,
+            Some(ch) => ReaderResult::Char(ch),
+            None => ReaderResult::Eof,
         }
     }
 }
 
 pub struct FileReader {
-    rest: Chars<BufReader<File>>,
+    rest: Bytes<BufReader<File>>,
 }
 
 impl FileReader {
@@ -37,27 +44,31 @@ impl FileReader {
         let file = try!(File::open(filename));
         let reader = BufReader::new(file);
 
-        Ok(FileReader { rest: reader.chars() })
+        Ok(FileReader { rest: reader.bytes() })
     }
 }
 
 impl CodeReader for FileReader {
-    fn next(&mut self) -> Option<Result<char, CharsError>> {
-        self.rest.next()
+    fn next(&mut self) -> ReaderResult {
+        match self.rest.next() {
+            Some(Ok(ch)) => ReaderResult::Char(ch as char),
+            Some(Err(_)) => ReaderResult::Err,
+            None => ReaderResult::Eof,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use lexer::reader::{CodeReader, StrReader, FileReader};
+    use super::*;
 
     #[test]
     fn read_from_str() {
         let mut reader = StrReader::new("abc");
 
-        assert_eq!('a', reader.next().unwrap().ok().unwrap());
-        assert_eq!('b', reader.next().unwrap().ok().unwrap());
-        assert_eq!('c', reader.next().unwrap().ok().unwrap());
-        assert_eq!(true, reader.next().is_none());
+        assert_eq!(ReaderResult::Char('a'), reader.next());
+        assert_eq!(ReaderResult::Char('b'), reader.next());
+        assert_eq!(ReaderResult::Char('c'), reader.next());
+        assert_eq!(ReaderResult::Eof, reader.next());
     }
 }
