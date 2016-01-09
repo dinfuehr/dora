@@ -3,13 +3,13 @@ use ast::Stmt::*;
 use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
-use cpu::emit::*;
+use cpu::emit;
+use cpu::instr::*;
 use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
 
 use jit::buffer::*;
-use jit::emit;
 use jit::expr::*;
 use jit::info;
 use jit::info::Info;

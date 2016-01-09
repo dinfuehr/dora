@@ -10,7 +10,6 @@ pub mod buffer;
 pub mod codegen;
 pub mod fct;
 
-mod emit;
 mod expr;
 mod info;
 

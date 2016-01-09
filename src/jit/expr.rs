@@ -1,15 +1,12 @@
 use ast::*;
 use ast::Expr::*;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
-use cpu::emit::*;
+use cpu::emit;
+use cpu::instr::*;
 use cpu::Reg::*;
 use ctxt::*;
-
 use dseg::DSeg;
-
 use jit::buffer::*;
-use jit::emit;
-
 use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
