@@ -65,6 +65,7 @@ impl<T : CodeReader> Lexer<T> {
     }
 
     pub fn new_with_tabwidth(reader: T, tabwidth: u32) -> Lexer<T> {
+        // TODO: replace HashMap with phf when it is stable
         let mut keywords = HashMap::new();
         keywords.insert("fn", TokenType::Fn);
         keywords.insert("var", TokenType::Var);

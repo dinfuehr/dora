@@ -44,6 +44,7 @@ impl FileReader {
         let file = try!(File::open(filename));
         let reader = BufReader::new(file);
 
+        // TODO: use chars instead of bytes when it is stable
         Ok(FileReader { rest: reader.bytes() })
     }
 }
