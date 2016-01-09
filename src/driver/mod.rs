@@ -2,14 +2,15 @@ pub mod cmd;
 
 use std::mem;
 
-use codegen::codegen::CodeGen;
-use codegen::fct::JitFct;
+use ast::{self, Function};
 use ctxt::Context;
 use error::msg::Msg;
 
-use ast::{self, Function};
-use parser::Parser;
+use jit::codegen::CodeGen;
+use jit::fct::JitFct;
 use lexer::position::Position;
+
+use parser::Parser;
 use semck;
 use sym::*;
 

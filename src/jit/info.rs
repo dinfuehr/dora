@@ -5,8 +5,8 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 
-use codegen::expr::is_leaf;
-use codegen::x64::reg::*;
+use jit::expr::is_leaf;
+use jit::x64::reg::*;
 use ctxt::Context;
 
 use mem;

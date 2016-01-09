@@ -1,9 +1,9 @@
-use codegen::buffer::*;
-use codegen::x64::emit::*;
-use codegen::x64::reg::*;
-use codegen::x64::reg::Reg::*;
-
 use ctxt::*;
+
+use jit::buffer::*;
+use jit::x64::emit::*;
+use jit::x64::reg::*;
+use jit::x64::reg::Reg::*;
 
 use sym::BuiltinType;
 

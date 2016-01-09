@@ -2,15 +2,16 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use codegen::buffer::*;
-use codegen::emit;
-use codegen::expr::*;
-use codegen::info;
-use codegen::info::Info;
-use codegen::x64::reg::*;
-use codegen::x64::reg::Reg::*;
-use codegen::x64::emit::*;
 use ctxt::*;
+
+use jit::buffer::*;
+use jit::emit;
+use jit::expr::*;
+use jit::info;
+use jit::info::Info;
+use jit::x64::reg::*;
+use jit::x64::reg::Reg::*;
+use jit::x64::emit::*;
 
 use dseg::DSeg;
 
@@ -233,8 +234,8 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 mod tests {
     use std::mem;
 
-    use codegen;
-    use codegen::fct::JitFct;
+    use jit;
+    use jit::fct::JitFct;
     use driver;
     use test;
 
@@ -242,7 +243,7 @@ mod tests {
         test::parse(code, |ctxt| {
             // generate code for first function
             let fct = ctxt.ast.elements[0].to_function().unwrap();
-            let (dseg, buffer) = codegen::generate(ctxt, fct);
+            let (dseg, buffer) = jit::generate(ctxt, fct);
 
             driver::dump_asm(&buffer, &ctxt.interner.str(fct.name));
 

@@ -1,14 +1,15 @@
-use codegen::buffer::*;
-use codegen::emit;
-use codegen::x64::emit::*;
-use codegen::x64::reg::*;
-use codegen::x64::reg::Reg::*;
-
-use dseg::DSeg;
-
 use ast::*;
 use ast::Expr::*;
 use ctxt::*;
+
+use dseg::DSeg;
+
+use jit::buffer::*;
+use jit::emit;
+use jit::x64::emit::*;
+use jit::x64::reg::*;
+use jit::x64::reg::Reg::*;
+
 use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {

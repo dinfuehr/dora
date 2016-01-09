@@ -1,3 +1,3 @@
-pub fn emit_stub() {
+pub fn generate_stub() {
     // TODO: emit stub code
 }

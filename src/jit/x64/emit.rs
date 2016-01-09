@@ -1,5 +1,7 @@
-use codegen::buffer::*;
 use ast::CmpOp;
+
+use jit::buffer::*;
+
 use super::reg::Reg;
 use super::reg::Reg::*;
 
@@ -407,10 +409,11 @@ pub fn emit_callq_reg(buf: &mut Buffer, dest: Reg) {
 
 #[cfg(test)]
 mod tests {
-    use codegen::buffer::Buffer;
-    use codegen::x64::reg::Reg::*;
-    use ast::CmpOp;
     use super::*;
+
+    use ast::CmpOp;
+    use jit::buffer::Buffer;
+    use jit::x64::reg::Reg::*;
 
     macro_rules! assert_emit {
         (

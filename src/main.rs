@@ -5,15 +5,15 @@ extern crate docopt;
 extern crate capstone;
 
 mod ast;
-mod codegen;
 mod cpu;
 mod ctxt;
 mod driver;
 mod dseg;
 mod error;
 mod interner;
-mod mir;
+mod jit;
 mod lexer;
+mod mir;
 mod mem;
 mod os;
 mod parser;
