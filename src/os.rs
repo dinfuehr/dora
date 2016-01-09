@@ -1,4 +1,4 @@
-pub use ProtType::*;
+pub use self::ProtType::*;
 
 use libc;
 
