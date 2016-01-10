@@ -1,10 +1,9 @@
 use libc::c_void;
-use std::ptr;
 
 use stdlib;
 
 use ctxt::*;
-
+use mem::Ptr;
 use sym::Sym::*;
 use sym::BuiltinType;
 
@@ -25,13 +24,13 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt, stdlib::assert as *const c_void);
-    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, ptr::null());
-    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, ptr::null());
+    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt, Ptr::new(stdlib::assert as *mut c_void));
+    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
+    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
 }
 
 fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context,
-        fct: *const c_void) {
+        fct: Ptr) {
     let name = ctxt.interner.intern(name);
 
     let fct_info = FctInfo {

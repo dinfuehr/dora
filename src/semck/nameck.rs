@@ -1,5 +1,3 @@
-use std::ptr;
-
 use ctxt::*;
 use error::msg::Msg;
 
@@ -10,6 +8,7 @@ use ast::Type::*;
 use ast::visit::*;
 use interner::Name;
 use lexer::position::Position;
+use mem::Ptr;
 
 use sym::Sym::*;
 use sym::BuiltinType;
@@ -41,7 +40,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             ir: None,
             vars: Vec::new(),
             always_returns: false,
-            compiled_fct: ptr::null(),
+            compiled_fct: Ptr::null(),
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {

@@ -1,6 +1,7 @@
 use libc::*;
 
 use mem;
+use mem::Ptr;
 use os;
 
 pub struct CodeMemory {
@@ -8,7 +9,7 @@ pub struct CodeMemory {
     size: usize,
 
     // addr of full memory area
-    ptr: *mut c_void,
+    ptr: Ptr,
 }
 
 impl CodeMemory {
@@ -22,7 +23,7 @@ impl CodeMemory {
         }
     }
 
-    pub fn ptr(&self) -> *mut c_void {
+    pub fn ptr(&self) -> Ptr {
         self.ptr
     }
 }

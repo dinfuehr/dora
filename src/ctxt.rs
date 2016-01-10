@@ -10,6 +10,7 @@ use ast::*;
 use ast::map::Map;
 use interner::*;
 
+use mem::Ptr;
 use mir::Mir;
 
 use sym::*;
@@ -154,7 +155,7 @@ pub struct FctInfo<'ast> {
     // false if function execution could reach the closing } of this function
     pub always_returns: bool,
 
-    pub compiled_fct: *const c_void,
+    pub compiled_fct: Ptr,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

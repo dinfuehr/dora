@@ -1,6 +1,7 @@
 pub use self::ProtType::*;
 
 use libc;
+use mem::Ptr;
 
 pub fn page_size() -> u32 {
     let val = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
@@ -15,7 +16,7 @@ pub enum ProtType {
     Executable, NonExecutable
 }
 
-pub fn mmap(size: usize, exec: ProtType) -> *mut libc::c_void {
+pub fn mmap(size: usize, exec: ProtType) -> Ptr {
     let prot_exec = if exec == Executable {
         libc::PROT_EXEC
     } else {
@@ -32,12 +33,12 @@ pub fn mmap(size: usize, exec: ProtType) -> *mut libc::c_void {
         panic!("mmap failed");
     }
 
-    ptr
+    Ptr::new(ptr)
 }
 
-pub fn munmap(ptr: *mut libc::c_void, size: usize) {
+pub fn munmap(ptr: Ptr, size: usize) {
     let res = unsafe {
-        libc::munmap(ptr, size)
+        libc::munmap(ptr.raw_ptr() as *mut libc::c_void, size)
     };
 
     if res != 0 {

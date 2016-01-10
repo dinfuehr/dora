@@ -86,17 +86,19 @@ pub fn compile() -> i32 {
 pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     use capstone::*;
 
-    let buf: &[u8] = unsafe { std::slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
+    let buf: &[u8] = unsafe {
+        std::slice::from_raw_parts(jit_fct.fct_ptr().as_u8_ptr(), jit_fct.fct_len())
+    };
 
-    let used_syntax = match asm_syntax {
+    let asm_syntax = match asm_syntax {
         AsmSyntax::Intel => 1,
         AsmSyntax::Att => 2,
     };
 
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
-    engine.set_option(Opt::Syntax, used_syntax);
+    engine.set_option(Opt::Syntax, asm_syntax);
     let instrs = engine.disasm(buf,
-        jit_fct.fct_ptr() as u64, jit_fct.fct_len()).expect("could not disassemble code");
+        jit_fct.fct_ptr().as_u64(), jit_fct.fct_len()).expect("could not disassemble code");
 
     println!("fn {}", name);
     for instr in instrs {
