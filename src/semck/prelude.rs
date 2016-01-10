@@ -25,13 +25,13 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 
 fn add_builtin_functions(ctxt: &Context) {
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
-        ctxt, Ptr::new(stdlib::assert as *mut c_void));
-    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
-    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
+        ctxt, Some(Ptr::new(stdlib::assert as *mut c_void)));
+    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, None);
+    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, None);
 }
 
 fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context,
-        fct: Ptr) {
+        fct: Option<Ptr>) {
     let name = ctxt.interner.intern(name);
 
     let fct_info = FctInfo {

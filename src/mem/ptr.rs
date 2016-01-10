@@ -5,11 +5,9 @@ use libc;
 pub struct Ptr(*const libc::c_void);
 
 impl Ptr {
-    pub fn null() -> Ptr {
-        Ptr(ptr::null())
-    }
-
     pub fn new(ptr: *const libc::c_void) -> Ptr {
+        assert!(!ptr.is_null());
+
         Ptr(ptr)
     }
 

@@ -268,7 +268,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let fid = *calls.get(&e.id).unwrap();
 
         self.ctxt.fct_info_for_id(fid, |fct_info| {
-            assert!(!fct_info.compiled_fct.is_null());
+            assert!(fct_info.compiled_fct.is_some());
 
             for (ind, arg) in e.args.iter().enumerate().rev() {
                 if REG_PARAMS.len() > ind {
@@ -280,7 +280,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
             }
 
-            let disp = self.dseg.add_addr(fct_info.compiled_fct);
+            let disp = self.dseg.add_addr(fct_info.compiled_fct.unwrap());
             let pos = self.buf.pos() as i32;
 
             // next instruction has 7 bytes

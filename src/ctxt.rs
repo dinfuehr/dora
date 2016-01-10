@@ -155,7 +155,7 @@ pub struct FctInfo<'ast> {
     // false if function execution could reach the closing } of this function
     pub always_returns: bool,
 
-    pub compiled_fct: Ptr,
+    pub compiled_fct: Option<Ptr>,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
