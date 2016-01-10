@@ -284,7 +284,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let pos = self.buf.pos() as i32;
 
             // next instruction has 7 bytes
-            let disp = disp - pos - 7;
+            let disp = -(disp + pos + 7);
 
             emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
             emit_callq_reg(self.buf, REG_RESULT);

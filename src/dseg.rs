@@ -26,7 +26,7 @@ impl DSeg {
 
     pub fn finish(&self, ptr: *mut c_void) {
         for entry in &self.entries {
-            let offset = self.size + entry.disp;
+            let offset = self.size - entry.disp;
 
             unsafe {
                 let entry_ptr = ptr.offset(offset as isize);

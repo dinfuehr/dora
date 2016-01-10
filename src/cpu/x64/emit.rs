@@ -5,6 +5,12 @@ use ctxt::*;
 use jit::buffer::*;
 use sym::BuiltinType;
 
+// emit debug instruction
+pub fn debug(buf: &mut Buffer) {
+    // emit int3 = 0xCC
+    buf.emit_u8(0xCC);
+}
+
 pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {
     let var_infos = ctxt.var_infos.borrow();
     let var = &var_infos[var.0];

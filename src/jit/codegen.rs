@@ -45,6 +45,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn generate(mut self) -> JitFct {
         self.info = info::generate(self.ctxt, self.fct);
 
+        if self.ctxt.args.flag_emit_debug {
+            emit::debug(&mut self.buf);
+        }
+
         self.emit_prolog();
         self.store_params();
         self.visit_fct(self.fct);

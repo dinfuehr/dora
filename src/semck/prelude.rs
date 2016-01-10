@@ -24,7 +24,8 @@ fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
 }
 
 fn add_builtin_functions(ctxt: &Context) {
-    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit, ctxt, Ptr::new(stdlib::assert as *mut c_void));
+    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
+        ctxt, Ptr::new(stdlib::assert as *mut c_void));
     builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
     builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt, Ptr::null());
 }
