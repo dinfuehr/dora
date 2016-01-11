@@ -23,6 +23,15 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
+pub fn jump_if_zero(buf: &mut Buffer, reg: Reg, lbl: Label) {
+    emit_testl_reg_reg(buf, reg, reg);
+    emit_jz(buf, lbl);
+}
+
+pub fn jump(buf: &mut Buffer, lbl: Label) {
+    emit_jmp(buf, lbl);
+}
+
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC

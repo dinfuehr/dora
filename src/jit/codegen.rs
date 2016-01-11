@@ -4,7 +4,6 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use cpu::instr::*;
 use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
@@ -50,7 +49,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
 
         self.emit_prolog();
-        self.store_params();
+        self.store_register_params_on_stack();
         self.visit_fct(self.fct);
 
         let always_returns = self.ctxt.fct_info(self.fct.id, |fct| fct.always_returns);
@@ -63,7 +62,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         JitFct::new(&self.dseg, &mc)
     }
 
-    fn store_params(&mut self) {
+    fn store_register_params_on_stack(&mut self) {
         let params_len = self.fct.params.len();
         if params_len == 0 { return; }
 
@@ -100,13 +99,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // execute condition, when condition is false jump to
         // end of while
         let reg = self.emit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, reg, reg);
-        emit_jz(&mut self.buf, lbl_end);
+        emit::jump_if_zero(&mut self.buf, reg, lbl_end);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
-            emit_jmp(&mut this.buf, lbl_start);
+            emit::jump(&mut this.buf, lbl_start);
         });
 
         self.buf.define_label(lbl_end);
@@ -123,7 +121,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.buf.define_label(lbl_end);
 
-        emit_jmp(&mut self.buf, lbl_start);
+        emit::jump(&mut self.buf, lbl_start);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -149,13 +147,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         };
 
         let reg = self.emit_expr(&s.cond);
-        emit_testl_reg_reg(&mut self.buf, reg, reg);
-        emit_jz(&mut self.buf, lbl_else);
+        emit::jump_if_zero(&mut self.buf, reg, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
         if let Some(ref else_block) = s.else_block {
-            emit_jmp(&mut self.buf, lbl_end);
+            emit::jump(&mut self.buf, lbl_end);
             self.buf.define_label(lbl_else);
 
             self.visit_stmt(else_block);
@@ -165,11 +162,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType)  {
-        emit_jmp(&mut self.buf, self.lbl_break.unwrap());
+        emit::jump(&mut self.buf, self.lbl_break.unwrap());
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
-        emit_jmp(&mut self.buf, self.lbl_continue.unwrap());
+        emit::jump(&mut self.buf, self.lbl_continue.unwrap());
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
