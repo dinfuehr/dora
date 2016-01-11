@@ -4,7 +4,6 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
 
