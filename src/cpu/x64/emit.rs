@@ -5,6 +5,24 @@ use ctxt::*;
 use jit::buffer::*;
 use sym::BuiltinType;
 
+pub fn prolog(buf: &mut Buffer, stacksize: i32) {
+    emit_pushq_reg(buf, Reg::RBP);
+    emit_movq_reg_reg(buf, Reg::RSP, Reg::RBP);
+
+    if stacksize > 0 {
+        emit_subq_imm_reg(buf, stacksize, RSP);
+    }
+}
+
+pub fn epilog(buf: &mut Buffer, stacksize: i32) {
+    if stacksize > 0 {
+        emit_addq_imm_reg(buf, stacksize, RSP);
+    }
+
+    emit_popq_reg(buf, Reg::RBP);
+    emit_retq(buf);
+}
+
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC

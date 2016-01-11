@@ -76,25 +76,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_prolog(&mut self) {
-        emit_pushq_reg(&mut self.buf, Reg::RBP);
-        emit_movq_reg_reg(&mut self.buf, Reg::RSP, Reg::RBP);
-
-        let stacksize = self.info.stacksize();
-
-        if stacksize > 0 {
-            emit_subq_imm_reg(&mut self.buf, stacksize, RSP);
-        }
+        emit::prolog(&mut self.buf, self.info.stacksize());
     }
 
     fn emit_epilog(&mut self) {
-        let stacksize = self.info.stacksize();
-
-        if stacksize > 0 {
-            emit_addq_imm_reg(&mut self.buf, stacksize, RSP);
-        }
-
-        emit_popq_reg(&mut self.buf, Reg::RBP);
-        emit_retq(&mut self.buf);
+        emit::epilog(&mut self.buf, self.info.stacksize());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
