@@ -14,8 +14,8 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct: &'ast Function,
     buf: &'a mut Buffer,
     dseg: &'a mut DSeg,
-    tempsize: u32,
-    localsize: u32,
+    tempsize: i32,
+    localsize: i32,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
@@ -24,7 +24,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         fct: &'ast Function,
         buf: &'a mut Buffer,
         dseg: &'a mut DSeg,
-        localsize: u32,
+        localsize: i32,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -260,7 +260,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {
         self.tempsize += ty.size();
 
-        -((self.tempsize + self.localsize) as i32)
+        -(self.tempsize + self.localsize)
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {

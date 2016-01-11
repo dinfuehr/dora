@@ -18,13 +18,13 @@ pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> I
 }
 
 pub struct Info {
-    pub localsize: u32,
-    pub tempsize: u32,
+    pub localsize: i32,
+    pub tempsize: i32,
     pub fct_call: bool,
 }
 
 impl Info {
-    pub fn stacksize(&self) -> u32 {
+    pub fn stacksize(&self) -> i32 {
         self.localsize + self.tempsize
     }
 }
@@ -43,9 +43,9 @@ struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'ast Function,
 
-    localsize: u32,
-    max_tempsize: u32,
-    cur_tempsize: u32,
+    localsize: i32,
+    max_tempsize: i32,
+    cur_tempsize: i32,
 
     param_offset: i32,
     fct_call: bool,
@@ -80,8 +80,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stack_for_var(&mut self, id: NodeId) {
         self.ctxt.var_mut(id, |v, _| {
             let ty_size = v.data_type.size();
-            self.localsize = mem::align(self.localsize + ty_size, ty_size);
-            v.offset = -(self.localsize as i32);
+            self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
+            v.offset = -self.localsize;
         });
     }
 }

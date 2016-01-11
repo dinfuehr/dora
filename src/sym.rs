@@ -173,7 +173,7 @@ pub enum BuiltinType {
 }
 
 impl BuiltinType {
-    pub fn size(&self) -> u32 {
+    pub fn size(&self) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,

@@ -79,7 +79,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         emit_pushq_reg(&mut self.buf, Reg::RBP);
         emit_movq_reg_reg(&mut self.buf, Reg::RSP, Reg::RBP);
 
-        let stacksize = self.info.stacksize() as i32;
+        let stacksize = self.info.stacksize();
 
         if stacksize > 0 {
             emit_subq_imm_reg(&mut self.buf, stacksize, RSP);
@@ -87,7 +87,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_epilog(&mut self) {
-        let stacksize = self.info.stacksize() as i32;
+        let stacksize = self.info.stacksize();
 
         if stacksize > 0 {
             emit_addq_imm_reg(&mut self.buf, stacksize, RSP);
