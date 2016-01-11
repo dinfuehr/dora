@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cargo build && cargo test && ruby tester.rb
