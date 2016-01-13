@@ -51,6 +51,23 @@ pub fn stub(buf: &mut Buffer) {
     emit_u32(buf, trap::COMPILER);
 }
 
+pub fn movl_imm_reg(buf: &mut Buffer, imm: u32, dest: Reg) {
+    emit_movl_imm_reg(buf, imm, dest);
+}
+
+pub fn negl_reg(buf: &mut Buffer, dest: Reg) {
+    emit_negl_reg(buf, dest);
+}
+
+pub fn notl_reg(buf: &mut Buffer, dest: Reg) {
+    emit_notl_reg(buf, dest);
+}
+
+pub fn bool_not_reg(buf: &mut Buffer, dest: Reg) {
+    emit_xorb_imm_reg(buf, 1, dest);
+    emit_andb_imm_reg(buf, 1, dest);
+}
+
 pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {
     let var_infos = ctxt.var_infos.borrow();
     let var = &var_infos[var.0];
@@ -80,6 +97,14 @@ mod tests {
     use super::*;
 
     use jit::buffer::Buffer;
+
+    #[test]
+    fn test_debug() {
+        let mut buf = Buffer::new();
+        debug(&mut buf);
+
+        assert_eq!(vec![0xCC], buf.finish());
+    }
 
     #[test]
     fn test_stub() {

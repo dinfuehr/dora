@@ -56,12 +56,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        emit_movl_imm_reg(self.buf, lit.value as u32, dest);
+        emit::movl_imm_reg(self.buf, lit.value as u32, dest);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {
         let value : u32 = if lit.value { 1 } else { 0 };
-        emit_movl_imm_reg(self.buf, value, dest);
+        emit::movl_imm_reg(self.buf, value, dest);
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
@@ -76,12 +76,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         match e.op {
             UnOp::Plus => {},
-            UnOp::Neg => emit_negl_reg(self.buf, dest),
-            UnOp::BitNot => emit_notl_reg(self.buf, dest),
-            UnOp::Not => {
-                emit_xorb_imm_reg(self.buf, 1, dest);
-                emit_andb_imm_reg(self.buf, 1, dest);
-            },
+            UnOp::Neg => emit::negl_reg(self.buf, dest),
+            UnOp::BitNot => emit::notl_reg(self.buf, dest),
+            UnOp::Not => emit::bool_not_reg(self.buf, dest)
         }
     }
 
