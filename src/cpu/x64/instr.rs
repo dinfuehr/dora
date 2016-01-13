@@ -243,7 +243,7 @@ pub fn emit_op(buf: &mut Buffer, opcode: u8) {
     buf.emit_u8(opcode);
 }
 
-fn emit_rex(buf: &mut Buffer, w: u8, r: u8, x: u8, b: u8) {
+pub fn emit_rex(buf: &mut Buffer, w: u8, r: u8, x: u8, b: u8) {
     assert!(w == 0 || w == 1);
     assert!(r == 0 || r == 1);
     assert!(x == 0 || x == 1);
@@ -252,7 +252,7 @@ fn emit_rex(buf: &mut Buffer, w: u8, r: u8, x: u8, b: u8) {
     buf.emit_u8(0x4 << 4 | w << 3 | r << 2 | x << 1 | b);
 }
 
-fn emit_modrm(buf: &mut Buffer, mode: u8, reg: u8, rm: u8) {
+pub fn emit_modrm(buf: &mut Buffer, mode: u8, reg: u8, rm: u8) {
     assert!(mode < 4);
     assert!(reg < 8);
     assert!(rm < 8);
@@ -260,7 +260,7 @@ fn emit_modrm(buf: &mut Buffer, mode: u8, reg: u8, rm: u8) {
     buf.emit_u8(mode << 6 | reg << 3 | rm);
 }
 
-fn emit_sib(buf: &mut Buffer, scale: u8, index: u8, base: u8) {
+pub fn emit_sib(buf: &mut Buffer, scale: u8, index: u8, base: u8) {
     assert!(scale < 4);
     assert!(index < 8);
     assert!(base < 8);
