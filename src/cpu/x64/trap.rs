@@ -1,1 +1,1 @@
-pub static COMPILER: u32 = 0x4711;
+pub static COMPILER: u32 = 7;

@@ -86,6 +86,6 @@ mod tests {
         let mut buf = Buffer::new();
         stub(&mut buf);
 
-        assert_eq!(vec![0x4C, 0x8B, 0x14, 0x25, 0x11, 0x47, 0x00, 0x00], buf.finish());
+        assert_eq!(vec![0x4C, 0x8B, 0x14, 0x25, 7, 0, 0, 0], buf.finish());
     }
 }
