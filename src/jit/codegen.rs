@@ -98,7 +98,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // execute condition, when condition is false jump to
         // end of while
         let reg = self.emit_expr(&s.cond);
-        emit::jump_if_zero(&mut self.buf, reg, lbl_end);
+        emit::jump_if(&mut self.buf, JumpCond::Zero, reg, lbl_end);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -146,7 +146,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         };
 
         let reg = self.emit_expr(&s.cond);
-        emit::jump_if_zero(&mut self.buf, reg, lbl_else);
+        emit::jump_if(&mut self.buf, JumpCond::Zero, reg, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
@@ -215,6 +215,11 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
     fn visit_expr(&mut self, _: &'ast Expr) {
         unreachable!("should not be invoked");
     }
+}
+
+pub enum JumpCond {
+    Zero,
+    NonZero
 }
 
 #[cfg(test)]

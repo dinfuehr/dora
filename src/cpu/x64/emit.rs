@@ -4,6 +4,7 @@ use cpu::Reg::*;
 use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
+use jit::codegen::JumpCond;
 use sym::BuiltinType;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
@@ -24,9 +25,13 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
-pub fn jump_if_zero(buf: &mut Buffer, reg: Reg, lbl: Label) {
+pub fn jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
-    emit_jz(buf, lbl);
+
+    match cond {
+        JumpCond::Zero => emit_jz(buf, lbl),
+        JumpCond::NonZero => emit_jnz(buf, lbl)
+    }
 }
 
 pub fn jump(buf: &mut Buffer, lbl: Label) {
