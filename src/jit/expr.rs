@@ -119,15 +119,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::jump_if(self.buf, JumpCond::NonZero, REG_RESULT, lbl_true);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
-        emit_jz(self.buf, lbl_false);
+        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.buf.define_label(lbl_true);
-        emit_movl_imm_reg(self.buf, 1, dest);
-        emit_jmp(self.buf, lbl_end);
+        emit::movl_imm_reg(self.buf, 1, dest);
+        emit::jump(self.buf, lbl_end);
 
         self.buf.define_label(lbl_false);
-        emit_movl_imm_reg(self.buf, 0, dest);
+        emit::movl_imm_reg(self.buf, 0, dest);
 
         self.buf.define_label(lbl_end);
     }
@@ -138,19 +137,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
-        emit_jz(self.buf, lbl_false);
+        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
-        emit_jz(self.buf, lbl_false);
+        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.buf.define_label(lbl_true);
-        emit_movl_imm_reg(self.buf, 1, dest);
-        emit_jmp(self.buf, lbl_end);
+        emit::movl_imm_reg(self.buf, 1, dest);
+        emit::jump(self.buf, lbl_end);
 
         self.buf.define_label(lbl_false);
-        emit_movl_imm_reg(self.buf, 0, dest);
+        emit::movl_imm_reg(self.buf, 0, dest);
 
         self.buf.define_label(lbl_end);
     }
