@@ -7,6 +7,7 @@ use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
 use jit::buffer::*;
+use jit::codegen::JumpCond;
 use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
@@ -115,8 +116,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);
-        emit_jnz(self.buf, lbl_true);
+        emit::jump_if(self.buf, JumpCond::NonZero, REG_RESULT, lbl_true);
 
         self.emit_expr(&e.rhs, REG_RESULT);
         emit_cmpb_imm_reg(self.buf, 0, REG_RESULT);

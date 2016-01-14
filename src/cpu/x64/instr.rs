@@ -45,6 +45,18 @@ pub fn emit_movl_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
     emit_mov_memq_reg(buf, 0, 0, 0x8b, src, disp, dest);
 }
 
+pub fn emit_movzbl_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
+    let src_msb = if src == RIP { 0 } else { src.msb() };
+
+    if dest.msb() != 0 || src_msb != 0 {
+        emit_rex(buf, 0, dest.msb(), 0, src_msb);
+    }
+
+    emit_op(buf, 0x0F);
+    emit_op(buf, 0xB6);
+    emit_membase(buf, src, disp, dest);
+}
+
 pub fn emit_movq_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
     emit_mov_memq_reg(buf, 0, 1, 0x8b, src, disp, dest);
 }
@@ -558,6 +570,18 @@ mod tests {
 
         assert_emit!(0x8b, 0x05, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RAX));
         assert_emit!(0x8b, 0x0d, 0, 0, 0, 0; emit_movl_memq_reg(RIP, 0, RCX));
+    }
+
+    #[test]
+    fn test_emit_movzbl_memq_reg() {
+        assert_emit!(0x0f, 0xb6, 0x45, 0; emit_movzbl_memq_reg(RBP, 0, RAX));
+        assert_emit!(0x0F, 0xB6, 0x71, 0x11; emit_movzbl_memq_reg(RCX, 0x11, RSI));
+
+        assert_emit!(0x0F, 0xB6, 0x3D, 0x00, 0x00, 0x00, 0x00;
+            emit_movzbl_memq_reg(RIP, 0, RDI));
+
+        assert_emit!(0x44, 0x0F, 0xB6, 0x94, 0x24, 0x22, 0x11, 0, 0;
+            emit_movzbl_memq_reg(RSP, 0x1122, R10));
     }
 
     #[test]

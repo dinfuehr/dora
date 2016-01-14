@@ -90,7 +90,7 @@ pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarInfoId, dest: Reg) {
     let var = &var_infos[var.0];
 
     match var.data_type {
-        BuiltinType::Bool => emit_movb_memq_reg(buf, RBP, var.offset, dest),
+        BuiltinType::Bool => emit_movzbl_memq_reg(buf, RBP, var.offset, dest),
         BuiltinType::Int => emit_movl_memq_reg(buf, RBP, var.offset, dest),
         BuiltinType::Str => emit_movq_memq_reg(buf, RBP, var.offset, dest),
         BuiltinType::Unit => {},
