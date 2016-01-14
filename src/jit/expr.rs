@@ -222,13 +222,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         self.emit_expr(&e.lhs, lhs_reg);
-        if not_leaf { emit_movl_reg_memq(self.buf, lhs_reg, RBP, temp_offset); }
+        if not_leaf { emit::movl_reg_local(self.buf, lhs_reg, temp_offset); }
 
         self.emit_expr(&e.rhs, rhs_reg);
-        if not_leaf { emit_movl_memq_reg(self.buf, RBP, temp_offset, lhs_reg); }
+        if not_leaf { emit::movl_local_reg(self.buf, temp_offset, lhs_reg); }
 
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg { emit_movl_reg_reg(self.buf, reg, dest_reg); }
+        if reg != dest_reg { emit::movl_reg_reg(self.buf, reg, dest_reg); }
     }
 
     fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {

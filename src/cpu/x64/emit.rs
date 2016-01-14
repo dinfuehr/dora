@@ -99,6 +99,18 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
+pub fn movl_reg_local(buf: &mut Buffer, src: Reg, offset: i32) {
+    emit_movl_reg_memq(buf, src, RBP, offset);
+}
+
+pub fn movl_local_reg(buf: &mut Buffer, offset: i32, dest: Reg) {
+    emit_movl_memq_reg(buf, RBP, offset, dest);
+}
+
+pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_movl_reg_reg(buf, src, dest);
+}
+
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC
