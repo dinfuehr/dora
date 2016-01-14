@@ -120,6 +120,10 @@ pub fn call(buf: &mut Buffer, disp: i32) {
     emit_callq_reg(buf, REG_RESULT);
 }
 
+pub fn push_param(buf: &mut Buffer, reg: Reg) {
+    emit_pushq_reg(buf, reg);
+}
+
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC

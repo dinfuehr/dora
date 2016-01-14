@@ -2,7 +2,6 @@ use ast::*;
 use ast::Expr::*;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
 use cpu::emit;
-use cpu::instr::*;
 use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
@@ -250,7 +249,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     self.emit_expr(arg, dest);
                 } else {
                     self.emit_expr(arg, REG_RESULT);
-                    emit_pushq_reg(self.buf, REG_RESULT);
+                    emit::push_param(self.buf, REG_RESULT);
                 }
             }
 
