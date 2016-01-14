@@ -1,3 +1,4 @@
+use ast::CmpOp;
 use cpu::Reg;
 use cpu::instr::*;
 use cpu::Reg::*;
@@ -25,6 +26,12 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
+pub fn cmpl_setl(buf: &mut Buffer, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
+    emit_cmpl_reg_reg(buf, rhs, lhs);
+    emit_setb_reg(buf, op, dest);
+    emit_movzbl_reg_reg(buf, dest, dest);
+}
+
 pub fn jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
 
@@ -36,6 +43,60 @@ pub fn jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
 
 pub fn jump(buf: &mut Buffer, lbl: Label) {
     emit_jmp(buf, lbl);
+}
+
+pub fn divl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    assert_eq!(RAX, lhs);
+
+    emit_cltd(buf);
+    emit_idivl_reg_reg(buf, rhs);
+
+    RAX
+}
+
+pub fn modl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    assert_eq!(RAX, lhs);
+
+    emit_cltd(buf);
+    emit_idivl_reg_reg(buf, rhs);
+
+    RDX
+}
+
+pub fn mull(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_imull_reg_reg(buf, rhs, lhs);
+
+    lhs
+}
+
+pub fn addl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_addl_reg_reg(buf, rhs, lhs);
+
+    lhs
+}
+
+pub fn subl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_subl_reg_reg(buf, rhs, lhs);
+
+    lhs
+}
+
+pub fn orl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_orl_reg_reg(buf, rhs, lhs);
+
+    lhs
+}
+
+pub fn andl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_andl_reg_reg(buf, rhs, lhs);
+
+    lhs
+}
+
+pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+    emit_xorl_reg_reg(buf, rhs, lhs);
+
+    lhs
 }
 
 // emit debug instruction
