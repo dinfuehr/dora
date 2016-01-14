@@ -1,7 +1,8 @@
 use ast::CmpOp;
-use cpu::Reg;
 use cpu::instr::*;
+use cpu::Reg;
 use cpu::Reg::*;
+use cpu::REG_RESULT;
 use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
@@ -109,6 +110,14 @@ pub fn movl_local_reg(buf: &mut Buffer, offset: i32, dest: Reg) {
 
 pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_movl_reg_reg(buf, src, dest);
+}
+
+pub fn call(buf: &mut Buffer, disp: i32) {
+    // next instruction has 7 bytes
+    let disp = -(disp + 7);
+
+    emit_movq_memq_reg(buf, RIP, disp, REG_RESULT); // 7 bytes
+    emit_callq_reg(buf, REG_RESULT);
 }
 
 // emit debug instruction

@@ -257,13 +257,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let disp = self.dseg.add_addr(fct_info.compiled_fct.unwrap());
             let pos = self.buf.pos() as i32;
 
-            // next instruction has 7 bytes
-            let disp = -(disp + pos + 7);
-
-            emit_movq_memq_reg(self.buf, RIP, disp, REG_RESULT); // 7 bytes
-            emit_callq_reg(self.buf, REG_RESULT);
+            emit::call(self.buf, disp + pos);
 
             // TODO: move REG_RESULT into dest
+            assert_eq!(REG_RESULT, dest);
         })
     }
 }
