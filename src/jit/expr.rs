@@ -2,7 +2,6 @@ use ast::*;
 use ast::Expr::*;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
 use cpu::emit;
-use cpu::Reg::*;
 use ctxt::*;
 use dseg::DSeg;
 use jit::buffer::*;
@@ -152,7 +151,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::cmpl_setl(eg.buf, lhs, op, rhs, dest);
 
             dest
@@ -160,57 +159,56 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_div(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, Some(RAX), |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::divl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_mod(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, Some(RAX), |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::modl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::mull(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::addl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::subl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::orl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::andl(eg.buf, lhs, rhs, dest)
         });
     }
 
     fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, None, |eg, lhs, rhs, dest| {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             emit::xorl(eg.buf, lhs, rhs, dest)
         });
     }
 
-    fn emit_binop<F>(&mut self, e: &'ast ExprBinType,
-            dest_reg: Reg, lhs_reg: Option<Reg>, emit_action: F)
+    fn emit_binop<F>(&mut self, e: &'ast ExprBinType, dest_reg: Reg, emit_action: F)
             where F: FnOnce(&mut ExprGen, Reg, Reg, Reg) -> Reg {
-        let lhs_reg = lhs_reg.unwrap_or(REG_RESULT);
+        let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
         let not_leaf = !is_leaf(&e.rhs);
