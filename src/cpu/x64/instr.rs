@@ -4,7 +4,6 @@ use cpu::Reg::*;
 
 use jit::buffer::*;
 
-
 pub fn emit_orl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 0, 0x09, src, dest);
 }

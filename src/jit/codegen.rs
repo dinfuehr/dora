@@ -69,7 +69,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
             let varid = *defs.get(&p.id).unwrap();
-            emit::var_store(&mut self.buf, self.ctxt, *reg, varid);
+            var_store(&mut self.buf, self.ctxt, *reg, varid);
         }
     }
 
@@ -185,7 +185,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            emit::var_store(&mut self.buf, self.ctxt, reg, varid);
+            var_store(&mut self.buf, self.ctxt, reg, varid);
         }
     }
 
@@ -220,6 +220,20 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 pub enum JumpCond {
     Zero,
     NonZero
+}
+
+pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {
+    let var_infos = ctxt.var_infos.borrow();
+    let var = &var_infos[var.0];
+
+    emit::mov_reg_local(buf, var.data_type, src, var.offset);
+}
+
+pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarInfoId, dest: Reg) {
+    let var_infos = ctxt.var_infos.borrow();
+    let var = &var_infos[var.0];
+
+    emit::mov_local_reg(buf, var.data_type, var.offset, dest);
 }
 
 #[cfg(test)]

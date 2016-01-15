@@ -100,12 +100,22 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
-pub fn movl_reg_local(buf: &mut Buffer, src: Reg, offset: i32) {
-    emit_movl_reg_memq(buf, src, RBP, offset);
+pub fn mov_local_reg(buf: &mut Buffer, ty: BuiltinType, offset: i32, dest: Reg) {
+    match ty {
+        BuiltinType::Bool => emit_movzbl_memq_reg(buf, RBP, offset, dest),
+        BuiltinType::Int => emit_movl_memq_reg(buf, RBP, offset, dest),
+        BuiltinType::Str => emit_movq_memq_reg(buf, RBP, offset, dest),
+        BuiltinType::Unit => {},
+    }
 }
 
-pub fn movl_local_reg(buf: &mut Buffer, offset: i32, dest: Reg) {
-    emit_movl_memq_reg(buf, RBP, offset, dest);
+pub fn mov_reg_local(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32) {
+    match ty {
+        BuiltinType::Bool => emit_movb_reg_memq(buf, src, RBP, offset),
+        BuiltinType::Int => emit_movl_reg_memq(buf, src, RBP, offset),
+        BuiltinType::Str => emit_movq_reg_memq(buf, src, RBP, offset),
+        BuiltinType::Unit => {},
+    }
 }
 
 pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
@@ -157,30 +167,6 @@ pub fn notl_reg(buf: &mut Buffer, dest: Reg) {
 pub fn bool_not_reg(buf: &mut Buffer, dest: Reg) {
     emit_xorb_imm_reg(buf, 1, dest);
     emit_andb_imm_reg(buf, 1, dest);
-}
-
-pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {
-    let var_infos = ctxt.var_infos.borrow();
-    let var = &var_infos[var.0];
-
-    match var.data_type {
-        BuiltinType::Bool => emit_movb_reg_memq(buf, src, RBP, var.offset),
-        BuiltinType::Int => emit_movl_reg_memq(buf, src, RBP, var.offset),
-        BuiltinType::Str => emit_movq_reg_memq(buf, src, RBP, var.offset),
-        BuiltinType::Unit => {},
-    }
-}
-
-pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarInfoId, dest: Reg) {
-    let var_infos = ctxt.var_infos.borrow();
-    let var = &var_infos[var.0];
-
-    match var.data_type {
-        BuiltinType::Bool => emit_movzbl_memq_reg(buf, RBP, var.offset, dest),
-        BuiltinType::Int => emit_movl_memq_reg(buf, RBP, var.offset, dest),
-        BuiltinType::Str => emit_movq_memq_reg(buf, RBP, var.offset, dest),
-        BuiltinType::Unit => {},
-    }
 }
 
 #[cfg(test)]
