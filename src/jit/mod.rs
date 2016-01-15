@@ -13,6 +13,7 @@ pub mod fct;
 
 mod expr;
 mod info;
+mod stub;
 
 pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> JitFct {
     info::generate(ctxt, fct);

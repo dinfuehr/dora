@@ -1,3 +1,4 @@
+use std::ptr;
 use libc::*;
 
 use mem;
@@ -21,6 +22,17 @@ impl CodeMemory {
             size: size,
             ptr: ptr,
         }
+    }
+
+    pub fn from_buffer(buffer: &[u8]) -> CodeMemory {
+        let code = CodeMemory::new(buffer.len());
+
+        unsafe {
+            ptr::copy_nonoverlapping(buffer.as_ptr(),
+                code.ptr.as_u8_mut_ptr(), buffer.len());
+        }
+
+        code
     }
 
     pub fn ptr(&self) -> Ptr {
