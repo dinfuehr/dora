@@ -141,7 +141,7 @@ pub fn debug(buf: &mut Buffer) {
 }
 
 // emit stub instruction
-pub fn stub(buf: &mut Buffer) {
+pub fn trap(buf: &mut Buffer, id: u32) {
     let dest = R10;
 
     // mov r10, [trap::COMPILER]
@@ -149,7 +149,7 @@ pub fn stub(buf: &mut Buffer) {
     emit_op(buf, 0x8b);
     emit_modrm(buf, 0, dest.and7(), 0b100);
     emit_sib(buf, 0, 0b100, 0b101);
-    emit_u32(buf, trap::COMPILER);
+    emit_u32(buf, id);
 }
 
 pub fn movl_imm_reg(buf: &mut Buffer, imm: u32, dest: Reg) {
@@ -173,6 +173,7 @@ pub fn bool_not_reg(buf: &mut Buffer, dest: Reg) {
 mod tests {
     use super::*;
 
+    use cpu::trap;
     use jit::buffer::Buffer;
 
     #[test]
@@ -184,9 +185,9 @@ mod tests {
     }
 
     #[test]
-    fn test_stub() {
+    fn test_trap() {
         let mut buf = Buffer::new();
-        stub(&mut buf);
+        trap(&mut buf, trap::COMPILER);
 
         assert_eq!(vec![0x4C, 0x8B, 0x14, 0x25, 7, 0, 0, 0], buf.finish());
     }
