@@ -98,8 +98,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::Add => self.emit_bin_add(e, dest),
             BinOp::Sub => self.emit_bin_sub(e, dest),
             BinOp::Mul => self.emit_bin_mul(e, dest),
-            BinOp::Div => self.emit_bin_div(e, dest),
-            BinOp::Mod => self.emit_bin_mod(e, dest),
+            BinOp::Div |
+            BinOp::Mod => self.emit_bin_divmod(e, dest),
             BinOp::Cmp(op) => self.emit_bin_cmp(e, dest, op),
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
@@ -159,20 +159,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         });
     }
 
-    fn emit_bin_div(&mut self, e: &'ast ExprBinType, dest: Reg) {
+    fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             let lbl_div = eg.buf.create_label();
             emit::jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
             emit::trap(eg.buf, trap::DIV0);
 
             eg.buf.define_label(lbl_div);
-            emit::divl(eg.buf, lhs, rhs, dest)
-        });
-    }
 
-    fn emit_bin_mod(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::modl(eg.buf, lhs, rhs, dest)
+            if e.op == BinOp::Div {
+                emit::divl(eg.buf, lhs, rhs, dest)
+            } else {
+                emit::modl(eg.buf, lhs, rhs, dest)
+            }
         });
     }
 
