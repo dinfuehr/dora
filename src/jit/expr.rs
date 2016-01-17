@@ -2,6 +2,7 @@ use ast::*;
 use ast::Expr::*;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
 use cpu::emit;
+use cpu::trap;
 use ctxt::*;
 use dseg::DSeg;
 use jit::buffer::*;
@@ -160,6 +161,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_bin_div(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+            let lbl_div = eg.buf.create_label();
+            emit::jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
+            emit::trap(eg.buf, trap::DIV0);
+
+            eg.buf.define_label(lbl_div);
             emit::divl(eg.buf, lhs, rhs, dest)
         });
     }
