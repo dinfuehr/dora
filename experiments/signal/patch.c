@@ -55,6 +55,12 @@ void handler(int signo, siginfo_t *info, void *context) {
   printf("program counter = %p\n", xpc);
   dump("program counter", xpc, 8);
 
+  intptr_t *bp = ((intptr_t *) mcontext->gregs[REG_RBP]);
+  printf("base pointer = %p\n", *bp);
+
+  intptr_t *sp = ((intptr_t *) mcontext->gregs[REG_RSP]);
+  printf("stack pointer = %p\n", *sp);
+
   intptr_t *ra = ((intptr_t *) mcontext->gregs[REG_RSP]);
   printf("return adress = %p\n", *ra);
 
