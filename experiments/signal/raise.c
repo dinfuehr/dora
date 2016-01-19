@@ -13,9 +13,6 @@ void handler(int signo, siginfo_t *info, void *context) {
   ucontext_t *ucontext = context;
   mcontext_t *mcontext = &ucontext->uc_mcontext;
 
-  printf("ucontext->uc_stack.ss_sp = %d\n", ucontext->uc_stack.ss_sp);
-  printf("ucontext->uc_stack.ss_size = %d\n", ucontext->uc_stack.ss_size);
-
   uint8_t *pc = (uint8_t*) mcontext->gregs[REG_RIP];
   printf("pc  = %p\n", pc);
 
