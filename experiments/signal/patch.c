@@ -51,18 +51,15 @@ void handler(int signo, siginfo_t *info, void *context) {
 
   printf("signal %d!\n", signo);
 
-  uint8_t *xpc = (uint8_t*) mcontext->gregs[REG_RIP];
+  uintptr_t xpc = mcontext->gregs[REG_RIP];
   printf("program counter = %p\n", xpc);
-  dump("program counter", xpc, 8);
+  dump("program counter", (void *) xpc, 8);
 
-  intptr_t *bp = ((intptr_t *) mcontext->gregs[REG_RBP]);
-  printf("base pointer = %p\n", *bp);
+  uintptr_t rbp = mcontext->gregs[REG_RBP];
+  printf("base pointer = %p\n", rbp);
 
-  intptr_t *sp = ((intptr_t *) mcontext->gregs[REG_RSP]);
-  printf("stack pointer = %p\n", *sp);
-
-  intptr_t *ra = ((intptr_t *) mcontext->gregs[REG_RSP]);
-  printf("return adress = %p\n", *ra);
+  uintptr_t rsp = mcontext->gregs[REG_RSP];
+  printf("stack pointer = %p\n", rsp);
 
   // push rbp
   // mov eax, 4
