@@ -13,14 +13,14 @@ void handler(int signo, siginfo_t *info, void *context) {
   ucontext_t *ucontext = context;
   mcontext_t *mcontext = &ucontext->uc_mcontext;
 
-  uint8_t *pc = (uint8_t*) mcontext->gregs[REG_RIP];
-  printf("pc  = %p\n", pc);
+  uintptr_t rip = mcontext->gregs[REG_RIP];
+  printf("rip  = %p\n", rip);
 
-  intptr_t *bp = ((intptr_t *) mcontext->gregs[REG_RBP]);
-  printf("rbp = %p\n", *bp);
+  uintptr_t rbp = mcontext->gregs[REG_RBP];
+  printf("rbp = %p\n", rbp);
 
-  intptr_t *sp = ((intptr_t *) mcontext->gregs[REG_RSP]);
-  printf("rsp = %p\n", *sp);
+  uintptr_t rsp = mcontext->gregs[REG_RSP];
+  printf("rsp = %p\n", rsp);
 }
 
 int main() {
