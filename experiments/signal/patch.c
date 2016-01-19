@@ -49,17 +49,22 @@ void handler(int signo, siginfo_t *info, void *context) {
   ucontext_t *ucontext = context;
   mcontext_t *mcontext = &ucontext->uc_mcontext;
 
-  printf("signal %d!\n", signo);
+  printf("SIGNAL!\n", signo);
 
-  uintptr_t xpc = mcontext->gregs[REG_RIP];
-  printf("program counter = %p\n", xpc);
-  dump("program counter", (void *) xpc, 8);
+  uintptr_t rip = mcontext->gregs[REG_RIP];
+  dump("\trip", (void *) rip, 8);
 
   uintptr_t rbp = mcontext->gregs[REG_RBP];
-  printf("base pointer = %p\n", rbp);
+  printf("\trbp = %p\n", rbp);
 
   uintptr_t rsp = mcontext->gregs[REG_RSP];
-  printf("stack pointer = %p\n", rsp);
+  printf("\trsp = %p\n", rsp);
+
+  uintptr_t *rap = (uintptr_t *) rsp;
+  printf("\treturn address = %p\n", *rap);
+
+  uintptr_t ra = *rap - 12;
+  printf("\treturn address before call %p\n", ra);
 
   // push rbp
   // mov eax, 4
@@ -73,9 +78,20 @@ void handler(int signo, siginfo_t *info, void *context) {
   };
 
   ftype fct2 = alloc_code(fct2_code, sizeof(fct2_code), false);
-  dump("fct2", fct2, sizeof(fct2_code));
+  dump("\tfct2", fct2, sizeof(fct2_code));
 
-  mcontext->gregs[REG_RIP] = (greg_t) fct2;
+  // patch function invocation
+  uintptr_t *patcher = (uintptr_t *) (ra + 2);
+  *patcher = (uintptr_t) fct2;
+
+  dump("\tfct1 patched", (void*) (ra-1), 15);
+
+  // undo function invocation, set RIP before call
+  mcontext->gregs[REG_RIP] = (greg_t) ra;
+
+  // remove return address from stack
+  // (was pushed by call)
+  mcontext->gregs[REG_RSP] = (greg_t) (rsp + 8);
 }
 
 int main(int argc, char *argv[]) {
