@@ -11,7 +11,6 @@ static REG_RIP: usize = 16;
 
 type Fct = extern "C" fn() -> i32;
 
-
 fn main() {
     unsafe {
         let mut sa: sigaction = std::mem::uninitialized();
@@ -59,26 +58,29 @@ fn main() {
         let res2 = fct1();
         println!("res = {}", res2);
     }
-
-    println!("after raising and handling SIGSEGV");
 }
 
 fn handler(signo: c_int, _: *const siginfo_t, ucontext: *mut ucontext_t) {
-    println!("signal {}!", signo);
+    println!("SIGNAL {}!", signo);
 
     unsafe {
-        let mcontext = &mut (*ucontext).uc_mcontext as *mut mcontext_t;
+        let mcontext = &mut (*ucontext).uc_mcontext;
 
-        for (ind, val) in (*mcontext).gregs.iter().enumerate() {
-            println!("{:02} = {:x}", ind, val);
-        }
+        let rip = mcontext.gregs[REG_RIP] as usize;
+        println!("\trip = {:x}\n", rip);
+        //dump("\trip", rip, 8);
 
-        let pc = (*mcontext).gregs[REG_RIP];
-        println!("program counter = {:x}", pc);
-        dump("program counter", pc as usize, 8);
+        let rbp = mcontext.gregs[REG_RBP] as usize;
+        println!("\trbp = {:x}", rbp);
 
-        let ra = (*mcontext).gregs[REG_RSP];
-        println!("return address = {:x}", ra);
+        let rsp = mcontext.gregs[REG_RSP] as usize;
+        println!("\trsp = {:x}", rsp);
+
+        let ra = *(rsp as *mut usize);
+        println!("\treturn address = {:x}\n", ra);
+
+        let ra = ra - 12;
+        println!("\treturn address before call {:x}\n", ra);
 
         // push rbp
         // mov eax, 4
@@ -92,9 +94,15 @@ fn handler(signo: c_int, _: *const siginfo_t, ucontext: *mut ucontext_t) {
         ];
 
         let fct2 = alloc_code(&code);
-        dump("fct2", fct2 as usize, code.len());
+        dump("\tfct2", fct2 as usize, code.len());
 
-        (*mcontext).gregs[REG_RIP] = fct2 as i64;
+        let patcher = (ra + 2) as *mut usize;
+        *patcher = fct2 as usize;
+
+        dump("\tfct1 patched", ra-1, 15);
+
+        mcontext.gregs[REG_RIP] = ra as i64;
+        mcontext.gregs[REG_RSP] = (rsp + 8) as i64;
     }
 }
 
@@ -125,3 +133,4 @@ fn dump(name: &'static str, ptr: usize, len: usize) {
 
     println!("");
 }
+
