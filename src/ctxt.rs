@@ -101,6 +101,11 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&fct_infos[id.0])
     }
 
+    pub fn fct_info_for_id_mut<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+        let mut fct_infos = self.fct_infos.borrow_mut();
+        f(&mut fct_infos[id.0])
+    }
+
     pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
         let map = self.calls.borrow();
         let fct_info_id = *map.get(&id).unwrap();
@@ -155,7 +160,11 @@ pub struct FctInfo<'ast> {
     // false if function execution could reach the closing } of this function
     pub always_returns: bool,
 
+    // ptr to machine code if already compiled
     pub compiled_fct: Option<Ptr>,
+
+    // compiler stub
+    pub stub: Option<Ptr>
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

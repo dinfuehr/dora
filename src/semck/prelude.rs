@@ -43,6 +43,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         vars: Vec::new(),
         always_returns: false,
         compiled_fct: fct,
+        stub: None,
     };
 
     assert!(ctxt.add_function(fct_info).is_ok());

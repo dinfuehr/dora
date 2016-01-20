@@ -7,6 +7,7 @@ use ctxt::*;
 use dseg::DSeg;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
+use jit::stub::Stub;
 use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
@@ -243,8 +244,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let calls = self.ctxt.calls.borrow();
         let fid = *calls.get(&e.id).unwrap();
 
-        self.ctxt.fct_info_for_id(fid, |fct_info| {
-            assert!(fct_info.compiled_fct.is_some());
+        self.ctxt.fct_info_for_id_mut(fid, |fct_info| {
+            let ptr;
+
+            if let Some(fctptr) = fct_info.compiled_fct {
+                ptr = fctptr;
+            } else if let Some(stubptr) = fct_info.stub {
+                ptr = stubptr;
+            } else {
+                let stub = Stub::new();
+
+                ptr = stub.ptr_start();
+                fct_info.stub = Some(ptr);
+            }
 
             for (ind, arg) in e.args.iter().enumerate().rev() {
                 if REG_PARAMS.len() > ind {

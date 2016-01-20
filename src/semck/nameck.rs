@@ -41,6 +41,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             vars: Vec::new(),
             always_returns: false,
             compiled_fct: None,
+            stub: None,
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {
