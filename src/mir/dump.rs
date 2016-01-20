@@ -58,20 +58,6 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
                 self.opnd(instr.dest), instr.op.as_str(), self.opnd(instr.src)),
             InstrBin(ref instr) => println!("{} = {} {} {}", self.opnd(instr.dest),
                 self.opnd(instr.lhs), instr.op.as_str(), self.opnd(instr.rhs)),
-            InstrPhi(ref instr) => {
-                let dest = OpndVar(instr.var_id, instr.dest);
-                print!("{} = phi(", self.opnd(dest));
-                let mut first = true;
-
-                for opnd in &instr.opnds {
-                    if !first { print!(", "); }
-                    let opnd = OpndVar(instr.var_id, *opnd);
-                    print!("{}", self.opnd(opnd));
-                    first = false;
-                }
-
-                println!(") (backup {})", instr.backup);
-            },
             InstrStr(ref instr) => println!("{} = str {:?}",
                 self.opnd(instr.dest), instr.value),
             _ => panic!("unknown instruction")
@@ -83,11 +69,11 @@ impl<'a, 'ast> Dumper<'a, 'ast> {
             OpndReg(ind) => format!("%reg{}", ind),
             OpndInt(val) => format!("{}", val),
             OpndBool(val) => format!("{}", val),
-            OpndVar(id, ssa) => {
+            OpndVar(id) => {
                 let var = &self.mir.vars[id.0];
                 let name = self.ctxt.interner.str(var.name);
 
-                format!("%{}.{}", name, ssa)
+                format!("%{}", name)
             }
         }
     }

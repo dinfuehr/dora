@@ -88,7 +88,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             self.visit_expr(expr);
 
             let src = self.result;
-            self.add_instr_assign_var(var_id, src);
+            self.add_instr_assign(OpndVar(var_id), src);
         }
     }
 
@@ -110,60 +110,25 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         let result = self.result;
         self.add_instr(Instr::test(result, then_id, false_block));
 
-        // emit then block
-        self.use_join_node(join_id, JoinAction::If(1), |gen| {
-            gen.cur_block = then_id;
-            gen.visit_stmt(&stmt.then_block);
-            gen.add_instr(Instr::goto(join_id));
+        self.cur_block = then_id;
+        self.visit_stmt(&stmt.then_block);
+        self.add_instr(Instr::goto(join_id));
 
-            let blk = gen.block();
-            blk.borrow_mut().add_predecessor(cond_id);
-        });
+        let blk = self.block();
+        blk.borrow_mut().add_predecessor(cond_id);
 
         // emit else block
         if let Some(ref else_block) = stmt.else_block {
-            self.use_join_node(join_id, JoinAction::If(2), |gen| {
-                gen.reset_vars_from_phi_backup();
-                gen.ensure_phi_opnds_for_else();
+            self.cur_block = else_id.unwrap();
+            self.visit_stmt(else_block);
+            self.add_instr(Instr::goto(join_id));
 
-                gen.cur_block = else_id.unwrap();
-                gen.visit_stmt(else_block);
-                gen.add_instr(Instr::goto(join_id));
-
-                let blk = gen.block();
-                blk.borrow_mut().add_predecessor(cond_id);
-            });
+            let blk = self.block();
+            blk.borrow_mut().add_predecessor(cond_id);
         }
 
         // set join block as current block
         self.cur_block = join_id;
-        self.reset_vars_from_phi_dest();
-    }
-
-    fn reset_vars_from_phi_backup(&mut self) {
-        let blk = self.join();
-
-        for phi in blk.borrow().phi_iter() {
-            self.ir.var_mut(phi.var_id).cur_ssa = phi.backup;
-        }
-    }
-
-    fn reset_vars_from_phi_dest(&mut self) {
-        let blk = self.block();
-
-        for phi in blk.borrow().phi_iter() {
-            self.ir.var_mut(phi.var_id).cur_ssa = phi.dest;
-        }
-    }
-
-    fn ensure_phi_opnds_for_else(&mut self) {
-        let blk = self.join();
-
-        for phi in blk.borrow_mut().phi_iter_mut() {
-            while phi.opnds.len() < 2 {
-                phi.opnds.push(phi.backup);
-            }
-        }
     }
 
     fn add_stmt_loop(&mut self, stmt: &'ast StmtLoopType) {
@@ -178,16 +143,14 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
         self.add_instr(Instr::goto(cond_id));
 
-        self.use_join_node(cond_id, JoinAction::While, |gen| {
-            gen.cur_block = cond_id;
-            gen.visit_expr(&stmt.cond);
-            let result = gen.result;
-            gen.add_instr(Instr::test(result, body_id, after_id));
+        self.cur_block = cond_id;
+        self.visit_expr(&stmt.cond);
+        let result = self.result;
+        self.add_instr(Instr::test(result, body_id, after_id));
 
-            gen.cur_block = body_id;
-            gen.visit_stmt(&stmt.block);
-            gen.add_instr(Instr::goto(cond_id));
-        });
+        self.cur_block = body_id;
+        self.visit_stmt(&stmt.block);
+        self.add_instr(Instr::goto(cond_id));
 
         self.cur_block = after_id;
     }
@@ -253,8 +216,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             *self.var_map.get(&ctxt_var_id).unwrap()
         });
 
-        let cur_ssa = self.ir.var(var_id).cur_ssa;
-        self.result = OpndVar(var_id, cur_ssa);
+        self.result = OpndVar(var_id);
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
@@ -265,7 +227,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         self.visit_expr(&expr.rhs);
         let src = self.result;
 
-        self.add_instr_assign_var(var_id, src);
+        self.add_instr_assign(OpndVar(var_id), src);
     }
 
     fn ensure_return(&mut self) {
@@ -282,88 +244,6 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         }
     }
 
-    fn add_instr_assign_var(&mut self, dest: VarId, src: Opnd) {
-        let dest_ssa = self.ir.increase_var(dest);
-        self.ir.var_mut(dest).cur_ssa = dest_ssa;
-
-        self.add_instr_assign(OpndVar(dest, dest_ssa), src);
-        self.phi_for_assign(dest, dest_ssa);
-    }
-
-    fn phi_for_assign(&mut self, dest: VarId, dest_ssa: u32) {
-        let old_ssa = dest_ssa - 1;
-
-        // if current join node exists
-        if let Some(join_id) = self.cur_join {
-            match self.cur_join_action {
-                JoinAction::If(join_idx) =>
-                    self.phi_for_assign_in_if(dest, dest_ssa, old_ssa, join_id, join_idx),
-                JoinAction::While => {
-                    self.phi_for_assign_in_while(dest, dest_ssa, old_ssa, join_id);
-                    self.replace_var_usages(dest, old_ssa, dest_ssa);
-                }
-            }
-        }
-    }
-
-    fn phi_for_assign_in_if(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
-        join_id: BlockId, join_idx: usize)
-    {
-        let blk = self.join();
-
-        // find existing phi instruction in join node
-        if let Some(phi) = blk.borrow_mut().find_phi_mut(dest) {
-            while phi.opnds.len() < join_idx {
-                phi.opnds.push(old_ssa);
-            }
-
-            phi.opnds[join_idx - 1] = dest_ssa;
-            return;
-        }
-
-        // otherwise add phi instruction into join node
-        let join_ssa = self.ir.increase_var(dest);
-
-        let opnds: Vec<u32> =
-            repeat(old_ssa).take(join_idx - 1).
-            chain(once(dest_ssa)).collect();
-
-        let phi = InstrPhiType {
-            var_id: dest,
-            dest: join_ssa,
-            opnds: opnds,
-            backup: old_ssa,
-        };
-
-        blk.borrow_mut().add_phi(phi);
-    }
-
-    fn phi_for_assign_in_while(&mut self, dest: VarId, dest_ssa: u32, old_ssa: u32,
-        join_id: BlockId)
-    {
-        let blk = self.join();
-
-        if let Some(phi) = blk.borrow_mut().find_phi_mut(dest) {
-            phi.opnds[1] = dest_ssa;
-            return;
-        }
-
-        let join_ssa = self.ir.increase_var(dest);
-
-        let phi = InstrPhiType {
-            var_id: dest,
-            dest: join_ssa,
-            opnds: vec![old_ssa, dest_ssa],
-            backup: 0
-        };
-
-        blk.borrow_mut().add_phi(phi);
-    }
-
-    fn replace_var_usages(&mut self, var: VarId, old_ssa: u32, new_ssa: u32) {
-        // TODO
-    }
-
     fn add_instr_assign(&self, dest: Opnd, src: Opnd) {
         self.add_instr(Instr::assign(dest, src));
     }
@@ -373,34 +253,16 @@ impl<'a, 'ast> Generator<'a, 'ast> {
         blk.borrow_mut().add_instr(instr);
     }
 
-    fn use_join_node<F>(&mut self, id: BlockId, action: JoinAction, f: F)
-        where F: FnOnce(&mut Generator<'a, 'ast>)
-    {
-        let old_join = self.cur_join;
-        let old_join_action = self.cur_join_action;
-        self.cur_join = Some(id);
-        self.cur_join_action = action;
-
-        f(self);
-
-        self.cur_join = old_join;
-        self.cur_join_action = old_join_action;
-    }
-
-    fn join(&self) -> Rc<RefCell<Block>> {
-        self.ir.block(self.cur_join.unwrap())
-    }
-
-    fn block(&self) -> Rc<RefCell<Block>> {
-        self.ir.block(self.cur_block)
-    }
-
     fn next_vreg(&mut self) -> Opnd {
         let vreg = self.vreg;
 
         self.vreg += 1;
 
         OpndReg(vreg)
+    }
+
+    fn block(&self) -> Rc<RefCell<Block>> {
+        self.ir.block(self.cur_block)
     }
 }
 
@@ -476,11 +338,11 @@ mod tests {
             let x = VarId(0);
 
             assert_block(ir_fct, 0, vec![
-                Instr::assign(OpndVar(x, 1), OpndInt(1)),
-                Instr::bin(OpndReg(0), OpndVar(x, 1), BinOp::Add, OpndInt(2)),
-                Instr::assign(OpndVar(x, 2), OpndReg(0)),
-                Instr::bin(OpndReg(1), OpndVar(x, 2), BinOp::Add, OpndInt(3)),
-                Instr::assign(OpndVar(x, 3), OpndReg(1)),
+                Instr::assign(OpndVar(x), OpndInt(1)),
+                Instr::bin(OpndReg(0), OpndVar(x), BinOp::Add, OpndInt(2)),
+                Instr::assign(OpndVar(x), OpndReg(0)),
+                Instr::bin(OpndReg(1), OpndVar(x), BinOp::Add, OpndInt(3)),
+                Instr::assign(OpndVar(x), OpndReg(1)),
                 Instr::ret()
             ]);
         });
@@ -528,7 +390,7 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
             assert_eq!(1, ir_fct.blocks.len());
 
-            let param = OpndVar(VarId(0), 0);
+            let param = OpndVar(VarId(0));
             assert_block(ir_fct, 0, vec![Instr::ret_value(param)]);
         });
     }
@@ -552,8 +414,8 @@ mod tests {
             assert_eq!(2, ir_fct.vars.len());
             assert_eq!(1, ir_fct.blocks.len());
 
-            let a = OpndVar(VarId(0), 0);
-            let b = OpndVar(VarId(1), 0);
+            let a = OpndVar(VarId(0));
+            let b = OpndVar(VarId(1));
             let temp = OpndReg(0);
 
             assert_block(ir_fct, 0, vec![
@@ -573,7 +435,7 @@ mod tests {
             assert_eq!(1, ir_fct.blocks.len());
 
             assert_block(ir_fct, 0, vec![
-                Instr::un(OpndReg(0), UnOp::Neg, OpndVar(VarId(0), 0)),
+                Instr::un(OpndReg(0), UnOp::Neg, OpndVar(VarId(0))),
                 Instr::ret_value(OpndReg(0))
             ]);
         });
@@ -594,32 +456,29 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
 
             assert_block(ir_fct, 0, vec![
-                Instr::assign(OpndVar(VarId(0), 1), OpndVar(VarId(1), 0)),
-                Instr::bin(OpndReg(0), OpndVar(VarId(1), 0), BinOp::Cmp(CmpOp::Eq), OpndInt(7)),
+                Instr::assign(OpndVar(VarId(0)), OpndVar(VarId(1))),
+                Instr::bin(OpndReg(0), OpndVar(VarId(1)), BinOp::Cmp(CmpOp::Eq), OpndInt(7)),
                 Instr::test(OpndReg(0), BlockId(1), BlockId(2))
             ]);
 
             assert_block(ir_fct, 1, vec![
-                Instr::assign(OpndVar(VarId(0), 2), OpndInt(1)),
-                Instr::bin(OpndReg(1), OpndVar(VarId(0), 2), BinOp::Add, OpndInt(1)),
-                Instr::assign(OpndVar(VarId(1), 1), OpndReg(1)),
+                Instr::assign(OpndVar(VarId(0)), OpndInt(1)),
+                Instr::bin(OpndReg(1), OpndVar(VarId(0)), BinOp::Add, OpndInt(1)),
+                Instr::assign(OpndVar(VarId(1)), OpndReg(1)),
                 Instr::goto(BlockId(3))
             ]);
 
             assert_block(ir_fct, 2, vec![
-                Instr::bin(OpndReg(2), OpndVar(VarId(0),1), BinOp::Add, OpndInt(1)),
-                Instr::bin(OpndReg(3), OpndReg(2), BinOp::Add, OpndVar(VarId(1), 0)),
-                Instr::assign(OpndVar(VarId(0), 4), OpndReg(3)),
-                Instr::assign(OpndVar(VarId(2), 1), OpndInt(2)),
+                Instr::bin(OpndReg(2), OpndVar(VarId(0)), BinOp::Add, OpndInt(1)),
+                Instr::bin(OpndReg(3), OpndReg(2), BinOp::Add, OpndVar(VarId(1))),
+                Instr::assign(OpndVar(VarId(0)), OpndReg(3)),
+                Instr::assign(OpndVar(VarId(2)), OpndInt(2)),
                 Instr::goto(BlockId(3))
             ]);
 
             assert_block(ir_fct, 3, vec![
-                Instr::phi(VarId(0), 3, vec![2, 4], 1),
-                Instr::phi(VarId(1), 2, vec![1, 0], 0),
-                Instr::phi(VarId(2), 2, vec![0, 1], 0),
-                Instr::bin(OpndReg(4), OpndVar(VarId(0), 3), BinOp::Add, OpndVar(VarId(1), 2)),
-                Instr::bin(OpndReg(5), OpndReg(4), BinOp::Add, OpndVar(VarId(2), 2)),
+                Instr::bin(OpndReg(4), OpndVar(VarId(0)), BinOp::Add, OpndVar(VarId(1))),
+                Instr::bin(OpndReg(5), OpndReg(4), BinOp::Add, OpndVar(VarId(2))),
                 Instr::ret_value(OpndReg(5))
             ]);
         })
@@ -638,7 +497,7 @@ mod tests {
             let ir_fct = fct.ir.as_ref().unwrap();
 
             assert_block(ir_fct, 0, vec![
-                Instr::assign(OpndVar(VarId(0), 1), OpndInt(1)),
+                Instr::assign(OpndVar(VarId(0)), OpndInt(1)),
                 Instr::goto(BlockId(1))
             ]);
 
