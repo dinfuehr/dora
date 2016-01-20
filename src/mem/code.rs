@@ -10,7 +10,10 @@ pub struct CodeMemory {
     size: usize,
 
     // addr of full memory area
-    ptr: Ptr,
+    ptr_start: Ptr,
+
+    // end of full memory area
+    ptr_end: Ptr
 }
 
 impl CodeMemory {
@@ -20,7 +23,8 @@ impl CodeMemory {
 
         CodeMemory {
             size: size,
-            ptr: ptr,
+            ptr_start: ptr,
+            ptr_end: ptr.offset(size as isize)
         }
     }
 
@@ -29,19 +33,23 @@ impl CodeMemory {
 
         unsafe {
             ptr::copy_nonoverlapping(buffer.as_ptr(),
-                code.ptr.as_u8_mut_ptr(), buffer.len());
+                code.ptr_start.as_u8_mut_ptr(), buffer.len());
         }
 
         code
     }
 
-    pub fn ptr(&self) -> Ptr {
-        self.ptr
+    pub fn ptr_start(&self) -> Ptr {
+        self.ptr_start
+    }
+
+    pub fn ptr_end(&self) -> Ptr {
+        self.ptr_end
     }
 }
 
 impl Drop for CodeMemory {
     fn drop(&mut self) {
-        os::munmap(self.ptr, self.size);
+        os::munmap(self.ptr_start, self.size);
     }
 }

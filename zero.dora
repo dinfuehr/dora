@@ -1,0 +1,7 @@
+fn main() -> int {
+  return zero();
+}
+
+fn zero() -> int {
+  return 0;
+}

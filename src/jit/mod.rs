@@ -1,4 +1,4 @@
-use ast::*;
+use ast::Function;
 use ctxt::*;
 
 use dseg::DSeg;
@@ -10,6 +10,7 @@ use jit::fct::JitFct;
 pub mod buffer;
 pub mod codegen;
 pub mod fct;
+pub mod map;
 
 mod expr;
 mod info;

@@ -22,6 +22,10 @@ impl Stub {
     }
 
     pub fn ptr_start(&self) -> Ptr {
-        self.mem.ptr()
+        self.mem.ptr_start()
+    }
+
+    pub fn ptr_end(&self) -> Ptr {
+        self.mem.ptr_end()
     }
 }

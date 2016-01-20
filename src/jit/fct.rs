@@ -20,7 +20,7 @@ impl JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
-        let ptr = code.ptr();
+        let ptr = code.ptr_start();
 
         dseg.finish(ptr.raw_mut_ptr());
 

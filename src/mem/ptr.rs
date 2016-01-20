@@ -1,7 +1,7 @@
 use std::ptr;
 use libc;
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
 pub struct Ptr(*const libc::c_void);
 
 impl Ptr {

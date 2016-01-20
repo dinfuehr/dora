@@ -256,6 +256,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 ptr = stub.ptr_start();
                 fct_info.stub = Some(ptr);
+
+                let mut code_map = self.ctxt.code_map.borrow_mut();
+                code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
             }
 
             for (ind, arg) in e.args.iter().enumerate().rev() {
@@ -268,7 +271,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
             }
 
-            let disp = self.dseg.add_addr(fct_info.compiled_fct.unwrap());
+            let disp = self.dseg.add_addr(ptr);
             let pos = self.buf.pos() as i32;
 
             emit::call(self.buf, disp + pos);

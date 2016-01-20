@@ -9,6 +9,7 @@ use error::diag::Diagnostic;
 use ast::*;
 use ast::map::Map;
 use interner::*;
+use jit::map::CodeMap;
 
 use mem::Ptr;
 use mir::Mir;
@@ -35,6 +36,9 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
 
     // stores all var definitions
     pub var_infos: RefCell<Vec<VarInfo>>,
+
+    // stores all compiled functions
+    pub code_map: RefCell<CodeMap>,
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -51,6 +55,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             calls: RefCell::new(HashMap::new()),
             fct_infos: RefCell::new(Vec::new()),
             var_infos: RefCell::new(Vec::new()),
+            code_map: RefCell::new(CodeMap::new()),
         }
     }
 
