@@ -49,6 +49,12 @@ fn main() {
         let fct1 = alloc_code(&fct1_code);
         dump("fct1", fct1 as usize, fct1_code.len());
 
+        let patcher = (fct1 as usize) + 3;
+        let patcher = patcher as *mut usize;
+        *patcher = fct2_stub as usize;
+
+        dump("fct1 patched (1)", fct1 as usize, fct1_code.len());
+
         println!("invoke fct1:");
         let res1 = fct1();
         println!("res = {}", res1);
@@ -67,8 +73,7 @@ fn handler(signo: c_int, _: *const siginfo_t, ucontext: *mut ucontext_t) {
         let mcontext = &mut (*ucontext).uc_mcontext;
 
         let rip = mcontext.gregs[REG_RIP] as usize;
-        println!("\trip = {:x}\n", rip);
-        //dump("\trip", rip, 8);
+        dump("\trip", rip, 8);
 
         let rbp = mcontext.gregs[REG_RBP] as usize;
         println!("\trbp = {:x}", rbp);
@@ -99,7 +104,7 @@ fn handler(signo: c_int, _: *const siginfo_t, ucontext: *mut ucontext_t) {
         let patcher = (ra + 2) as *mut usize;
         *patcher = fct2 as usize;
 
-        dump("\tfct1 patched", ra-1, 15);
+        dump("\tfct1 patched (2)", ra-1, 15);
 
         mcontext.gregs[REG_RIP] = ra as i64;
         mcontext.gregs[REG_RSP] = (rsp + 8) as i64;
