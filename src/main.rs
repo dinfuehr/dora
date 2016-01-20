@@ -20,6 +20,7 @@ mod parser;
 mod semck;
 mod stdlib;
 mod sym;
+mod trap;
 
 #[cfg(test)]
 mod test;
