@@ -1,9 +1,8 @@
 use cpu::REG_COUNT;
 
 pub struct ExecState {
-    pc: usize,
-    sp: usize,
-    ra: usize,
+    pub pc: usize,
+    pub sp: usize,
 
-    regs: [usize; REG_COUNT]
+    pub regs: [usize; REG_COUNT]
 }

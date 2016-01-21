@@ -1,6 +1,9 @@
 use std;
 use libc::*;
 
+use os_cpu::*;
+use trap::*;
+
 pub fn register_signals() {
     unsafe {
         let mut sa: sigaction = std::mem::uninitialized();
@@ -15,8 +18,23 @@ pub fn register_signals() {
     }
 }
 
-fn handler(signo: c_int) {
-    println!("SIGNAL {}!", signo);
+fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
+    let es = read_execstate(ucontext);
 
-    unsafe { _exit(1); }
+    if let Some(trap) = detect_trap(&es) {
+        match trap {
+            Trap::Compiler => {
+                println!("need to compile function");
+            }
+
+            Trap::Div0 => {
+                println!("error: division by zero.");
+            }
+        }
+
+    // could not recognize trap -> crash vm
+    } else {
+        println!("error: trap not detected (signal {}).", signo);
+        unsafe { _exit(1); }
+    }
 }
