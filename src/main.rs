@@ -18,6 +18,7 @@ mod mem;
 mod os;
 mod parser;
 mod semck;
+mod signal;
 mod stdlib;
 mod sym;
 mod trap;
@@ -30,5 +31,5 @@ use std::process::exit;
 
 #[cfg(not(test))]
 fn main() {
-    exit(driver::compile());
+    exit(driver::start());
 }
