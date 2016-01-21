@@ -15,6 +15,8 @@ pub fn register_signals() {
     }
 }
 
-fn handler() {
-    println!("das ist ein test");
+fn handler(signo: c_int) {
+    println!("SIGNAL {}!", signo);
+
+    unsafe { _exit(1); }
 }

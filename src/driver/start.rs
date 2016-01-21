@@ -9,10 +9,10 @@ use error::msg::Msg;
 use jit::codegen::CodeGen;
 use jit::fct::JitFct;
 use lexer::position::Position;
+use os;
 
 use parser::Parser;
 use semck;
-use signal;
 use sym::*;
 
 pub fn start() -> i32 {
@@ -24,7 +24,7 @@ pub fn start() -> i32 {
     }
 
     // register signal handler
-    signal::register();
+    os::register_signals();
 
     let mut parser = match Parser::from_file(&args.arg_file) {
         Err(_) => {
