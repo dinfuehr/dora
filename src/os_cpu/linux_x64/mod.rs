@@ -42,6 +42,6 @@ pub fn write_execstate(es: ExecState, uc: *const c_void) {
     }
 }
 
-pub fn detect_trap(es: &ExecState) -> Option<Trap> {
+pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
     None
 }

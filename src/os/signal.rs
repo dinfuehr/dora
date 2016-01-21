@@ -21,7 +21,7 @@ pub fn register_signals() {
 fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let es = read_execstate(ucontext);
 
-    if let Some(trap) = detect_trap(&es) {
+    if let Some(trap) = detect_trap(signo as i32, &es) {
         match trap {
             Trap::Compiler => {
                 println!("need to compile function");
