@@ -19,6 +19,7 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
 
         es.pc = mc.gregs[REG_RIP] as usize;
         es.sp = mc.gregs[REG_RSP] as usize;
+        es.ra = 0;
 
         for i in 0..es.regs.len() {
             es.regs[i] = mc.gregs[i] as usize;
