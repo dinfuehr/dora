@@ -22,7 +22,10 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
         es.ra = 0;
 
         for i in 0..es.regs.len() {
-            es.regs[i] = mc.gregs[i] as usize;
+            let src = reg2ucontext(i);
+            let dest = i;
+
+            es.regs[dest] = mc.gregs[src] as usize;
         }
     }
 
@@ -38,8 +41,35 @@ pub fn write_execstate(es: ExecState, uc: *const c_void) {
         mc.gregs[REG_RSP] = es.sp as i64;
 
         for i in 0..es.regs.len() {
-            mc.gregs[i] = es.regs[i] as i64;
+            let src = i;
+            let dest = reg2ucontext(i);
+
+            mc.gregs[dest] = es.regs[src] as i64;
         }
+    }
+}
+
+/// Dora uses same index for register as CPU,
+// but the indices in mcontext are different and need to be mapped
+fn reg2ucontext(reg: usize) -> usize {
+    match reg {
+        0 => REG_RAX,
+        1 => REG_RCX,
+        2 => REG_RDX,
+        3 => REG_RBX,
+        4 => REG_RSP,
+        5 => REG_RBP,
+        6 => REG_RSI,
+        7 => REG_RDI,
+        8 => REG_R8,
+        9 => REG_R9,
+        10 => REG_R10,
+        11 => REG_R11,
+        12 => REG_R12,
+        13 => REG_R13,
+        14 => REG_R14,
+        15 => REG_R15,
+        _ => unreachable!()
     }
 }
 
