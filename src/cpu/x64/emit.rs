@@ -1,17 +1,14 @@
 use ast::CmpOp;
 use cpu::instr::*;
-use cpu::Reg;
-use cpu::Reg::*;
-use cpu::REG_RESULT;
-use cpu::trap;
+use cpu::*;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
 use sym::BuiltinType;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
-    emit_pushq_reg(buf, Reg::RBP);
-    emit_movq_reg_reg(buf, Reg::RSP, Reg::RBP);
+    emit_pushq_reg(buf, RBP);
+    emit_movq_reg_reg(buf, RSP, RBP);
 
     if stacksize > 0 {
         emit_subq_imm_reg(buf, stacksize, RSP);
@@ -23,7 +20,7 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
         emit_addq_imm_reg(buf, stacksize, RSP);
     }
 
-    emit_popq_reg(buf, Reg::RBP);
+    emit_popq_reg(buf, RBP);
     emit_retq(buf);
 }
 

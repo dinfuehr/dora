@@ -1,18 +1,30 @@
-use self::Reg::*;
-
 pub const REG_COUNT: usize = 16;
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
-// pub static REG_TMP2: Reg = R11;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Reg {
-    RAX, RCX, RDX, RBX, RSP, RBP, RSI, RDI,
-    R8, R9, R10, R11, R12, R13, R14, R15,
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Reg(u8);
 
-    RIP
-}
+pub const RAX: Reg = Reg(0);
+pub const RCX: Reg = Reg(1);
+pub const RDX: Reg = Reg(2);
+pub const RBX: Reg = Reg(3);
+pub const RSP: Reg = Reg(4);
+pub const RBP: Reg = Reg(5);
+pub const RSI: Reg = Reg(6);
+pub const RDI: Reg = Reg(7);
+
+pub const R8: Reg = Reg(8);
+pub const R9: Reg = Reg(9);
+pub const R10: Reg = Reg(10);
+pub const R11: Reg = Reg(11);
+pub const R12: Reg = Reg(12);
+pub const R13: Reg = Reg(13);
+pub const R14: Reg = Reg(14);
+pub const R15: Reg = Reg(15);
+
+pub const RIP: Reg = Reg(16);
 
 impl Reg {
     // these four register need sometimes special treatment: e.g. because of bl vs bh
@@ -24,7 +36,7 @@ impl Reg {
     pub fn int(self) -> u8 {
         assert!(self != RIP);
 
-        self as u8
+        self.0
     }
 
     pub fn msb(self) -> u8 {
@@ -42,7 +54,7 @@ impl Reg {
 
 #[cfg(test)]
 mod tests {
-    use super::Reg::*;
+    use super::*;
 
     #[test]
     fn test_int() {

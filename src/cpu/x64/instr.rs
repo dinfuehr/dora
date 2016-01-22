@@ -1,6 +1,5 @@
 use ast::CmpOp;
-use cpu::Reg;
-use cpu::Reg::*;
+use cpu::*;
 
 use jit::buffer::*;
 
@@ -423,8 +422,8 @@ mod tests {
     use super::*;
 
     use ast::CmpOp;
+    use cpu::*;
     use jit::buffer::Buffer;
-    use cpu::Reg::*;
 
     macro_rules! assert_emit {
         (
