@@ -4,7 +4,7 @@ use execstate::ExecState;
 
 use jit::buffer::Buffer;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TrapId(u32);
 
 impl TrapId {
@@ -40,7 +40,9 @@ pub fn read(es: &ExecState) -> Option<TrapId> {
         v2 = *ptr;
     }
 
-    println!("v1 = {:x} v2 = {:x}", v1, v2);
-
-    None
+    if v1 == 0x25148b4c {
+        Some(TrapId(v2))
+    } else {
+        None
+    }
 }

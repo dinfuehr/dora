@@ -9,6 +9,7 @@ use error::diag::Diagnostic;
 use ast::*;
 use ast::map::Map;
 use interner::*;
+use jit::fct::JitFct;
 use jit::map::CodeMap;
 use jit::stub::Stub;
 
@@ -167,10 +168,15 @@ pub struct FctInfo<'ast> {
     pub always_returns: bool,
 
     // ptr to machine code if already compiled
-    pub compiled_fct: Option<Ptr>,
+    pub code: FctCode,
 
     // compiler stub
     pub stub: Option<Stub>
+}
+
+#[derive(Debug)]
+pub enum FctCode {
+    Uncompiled, Builtin(Ptr), Fct(JitFct)
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

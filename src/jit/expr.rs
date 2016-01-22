@@ -8,6 +8,7 @@ use dseg::DSeg;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
 use jit::stub::Stub;
+use mem::ptr::Ptr;
 use sym::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
@@ -245,21 +246,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let fid = *calls.get(&e.id).unwrap();
 
         self.ctxt.fct_info_for_id_mut(fid, |fct_info| {
-            let ptr;
-
-            if let Some(fctptr) = fct_info.compiled_fct {
-                ptr = fctptr;
-            } else if let Some(ref stubptr) = fct_info.stub {
-                ptr = stubptr.ptr_start();
-            } else {
-                let stub = Stub::new();
-
-                let mut code_map = self.ctxt.code_map.borrow_mut();
-                code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
-
-                ptr = stub.ptr_start();
-                fct_info.stub = Some(stub);
-            }
+            let ptr = match fct_info.code {
+                FctCode::Uncompiled => self.create_stub(fid, fct_info),
+                FctCode::Builtin(ptr) => ptr,
+                FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
+            };
 
             for (ind, arg) in e.args.iter().enumerate().rev() {
                 if REG_PARAMS.len() > ind {
@@ -279,6 +270,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             // TODO: move REG_RESULT into dest
             assert_eq!(REG_RESULT, dest);
         })
+    }
+
+    fn create_stub(&self, id: FctInfoId, fct_info: &mut FctInfo) -> Ptr {
+        let stub = Stub::new();
+
+        let mut code_map = self.ctxt.code_map.borrow_mut();
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
+
+        let ptr = stub.ptr_start();
+        fct_info.stub = Some(stub);
+
+        ptr
     }
 }
 

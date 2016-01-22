@@ -2,7 +2,6 @@ use std;
 use libc::*;
 
 use os_cpu::*;
-use trap::*;
 
 pub fn register_signals() {
     unsafe {
@@ -22,14 +21,15 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let es = read_execstate(ucontext);
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
+        use cpu::trap::COMPILER;
+
         match trap {
-            Trap::Compiler => {
-                println!("need to compile function");
+            COMPILER => {
+                println!("please compile me!");
+                unsafe { _exit(2); }
             }
 
-            Trap::Div0 => {
-                println!("error: division by zero.");
-            }
+            _ => unsafe { _exit(1); }
         }
 
     // could not recognize trap -> crash vm

@@ -40,7 +40,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             ir: None,
             vars: Vec::new(),
             always_returns: false,
-            compiled_fct: None,
+            code: FctCode::Uncompiled,
             stub: None,
         };
 

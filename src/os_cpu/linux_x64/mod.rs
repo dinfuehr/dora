@@ -1,8 +1,8 @@
 use std;
 use libc::c_void;
 
+use cpu::trap::TrapId;
 use execstate::ExecState;
-use trap::Trap;
 
 use self::ucontext::ucontext_t;
 use self::ucontext_reg::*;
@@ -73,10 +73,8 @@ fn reg2ucontext(reg: usize) -> usize {
     }
 }
 
-pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
+pub fn detect_trap(signo: i32, es: &ExecState) -> Option<TrapId> {
     use cpu::trap;
 
-    trap::read(&es);
-
-    None
+    trap::read(&es)
 }
