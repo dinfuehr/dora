@@ -1,3 +1,5 @@
+use std::fmt;
+
 use cpu::emit;
 use cpu::trap;
 use mem::code::CodeMemory;
@@ -27,5 +29,12 @@ impl Stub {
 
     pub fn ptr_end(&self) -> Ptr {
         self.mem.ptr_end()
+    }
+}
+
+impl fmt::Debug for Stub {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Stub {{ start: {:x}, end: {:x} }}",
+            self.ptr_start().as_u64(), self.ptr_end().as_u64())
     }
 }

@@ -249,16 +249,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             if let Some(fctptr) = fct_info.compiled_fct {
                 ptr = fctptr;
-            } else if let Some(stubptr) = fct_info.stub {
-                ptr = stubptr;
+            } else if let Some(ref stubptr) = fct_info.stub {
+                ptr = stubptr.ptr_start();
             } else {
                 let stub = Stub::new();
 
-                ptr = stub.ptr_start();
-                fct_info.stub = Some(ptr);
-
                 let mut code_map = self.ctxt.code_map.borrow_mut();
                 code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+
+                ptr = stub.ptr_start();
+                fct_info.stub = Some(stub);
             }
 
             for (ind, arg) in e.args.iter().enumerate().rev() {

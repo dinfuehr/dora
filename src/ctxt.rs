@@ -10,6 +10,7 @@ use ast::*;
 use ast::map::Map;
 use interner::*;
 use jit::map::CodeMap;
+use jit::stub::Stub;
 
 use mem::Ptr;
 use mir::Mir;
@@ -169,7 +170,7 @@ pub struct FctInfo<'ast> {
     pub compiled_fct: Option<Ptr>,
 
     // compiler stub
-    pub stub: Option<Ptr>
+    pub stub: Option<Stub>
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

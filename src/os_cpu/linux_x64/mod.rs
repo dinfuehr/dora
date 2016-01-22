@@ -32,7 +32,7 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
     es
 }
 
-pub fn write_execstate(es: ExecState, uc: *const c_void) {
+pub fn write_execstate(es: &ExecState, uc: *mut c_void) {
     unsafe {
         let uc = uc as *mut ucontext_t;
         let mc = &mut (*uc).uc_mcontext;
@@ -74,5 +74,9 @@ fn reg2ucontext(reg: usize) -> usize {
 }
 
 pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
+    use cpu::trap;
+
+    trap::read(&es);
+
     None
 }
