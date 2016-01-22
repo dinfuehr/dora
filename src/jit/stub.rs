@@ -11,7 +11,7 @@ pub struct Stub {
 impl Stub {
     pub fn new() -> Stub {
         let mut buf = Buffer::new();
-        emit::trap(&mut buf, trap::COMPILER);
+        trap::emit(&mut buf, trap::COMPILER);
         let buf = buf.finish();
 
         let code = CodeMemory::from_buffer(&buf);

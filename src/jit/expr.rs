@@ -164,7 +164,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             let lbl_div = eg.buf.create_label();
             emit::jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
-            emit::trap(eg.buf, trap::DIV0);
+            trap::emit(eg.buf, trap::DIV0);
 
             eg.buf.define_label(lbl_div);
 
