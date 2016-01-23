@@ -268,10 +268,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        let calls = self.ctxt.calls.borrow();
-        let fct_id = *calls.get(&e.id).unwrap();
+        let fct_id = self.ctxt.fct_info(self.fct.unwrap().id, |caller| {
+            *caller.calls.get(&e.id).unwrap()
+        });
 
-        self.ctxt.fct_info_for_id(fct_id, |fct_info| {
+        self.ctxt.fct_info_for_id(fct_id, |callee| {
             let fct_infos = self.ctxt.fct_infos.borrow();
             let fct = &fct_infos[fct_id.0];
             self.expr_type = fct.return_type;

@@ -242,8 +242,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let calls = self.ctxt.calls.borrow();
-        let fid = *calls.get(&e.id).unwrap();
+        let fid = self.ctxt.fct_info(self.fct.id, |caller| {
+            *caller.calls.get(&e.id).unwrap()
+        });
 
         self.ctxt.fct_info_for_id_mut(fid, |fct_info| {
             let ptr = match fct_info.code {

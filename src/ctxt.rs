@@ -33,9 +33,6 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     // points to the definition of variable from its usage
     pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
-    // maps function call to FctInfoId
-    pub calls: RefCell<HashMap<NodeId, FctInfoId>>,
-
     // stores all function definitions
     pub fct_infos: RefCell<Vec<FctInfo<'ast>>>,
 
@@ -58,7 +55,6 @@ impl<'a, 'ast> Context<'a, 'ast> {
             sym: RefCell::new(SymTable::new()),
             fct_defs: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
-            calls: RefCell::new(HashMap::new()),
             fct_infos: RefCell::new(Vec::new()),
             var_infos: RefCell::new(Vec::new()),
             code_map: RefCell::new(CodeMap::new()),
@@ -162,6 +158,9 @@ pub struct FctInfo<'ast> {
     pub return_type: BuiltinType,
 
     pub ast: Option<&'ast Function>,
+
+    // maps function call to FctInfoId
+    pub calls: HashMap<NodeId, FctInfoId>,
 
     pub ir: Option<Mir>,
 

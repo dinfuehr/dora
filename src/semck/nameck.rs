@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ctxt::*;
 use error::msg::Msg;
 
@@ -37,6 +39,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             ast: Some(f),
+            calls: HashMap::new(),
             ir: None,
             vars: Vec::new(),
             always_returns: false,
@@ -153,7 +156,9 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.ctxt.calls.borrow_mut().insert(call.id, id);
+                    self.ctxt.fct_info_mut(self.fct.unwrap(), |fct| {
+                        fct.calls.insert(call.id, id);
+                    });
                 } else {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));

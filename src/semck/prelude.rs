@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use libc::c_void;
 
 use stdlib;
@@ -43,6 +44,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         params_types: args,
         return_type: ret,
         ast: None,
+        calls: HashMap::new(),
         ir: None,
         vars: Vec::new(),
         always_returns: false,
