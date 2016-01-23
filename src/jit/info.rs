@@ -205,7 +205,7 @@ mod tests {
             assert_eq!(12, info.localsize);
 
             for (varid, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
-                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
             }
         });
     }
@@ -220,7 +220,7 @@ mod tests {
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
             for (varid, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
             }
         });
     }
@@ -231,7 +231,7 @@ mod tests {
             assert_eq!(16, info.localsize);
 
             for (varid, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                assert_eq!(*offset, ctxt.var_infos.borrow()[varid.0].offset);
+                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
             }
         });
     }

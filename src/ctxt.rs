@@ -31,13 +31,13 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub fct_defs: RefCell<HashMap<NodeId, FctContextId>>,
 
     // points to the definition of variable from its usage
-    pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
+    pub defs: RefCell<HashMap<NodeId, VarContextId>>,
 
     // stores all function definitions
     pub fcts: RefCell<Vec<FctContext<'ast>>>,
 
     // stores all var definitions
-    pub var_infos: RefCell<Vec<VarInfo>>,
+    pub vars: RefCell<Vec<VarContext>>,
 
     // stores all compiled functions
     pub code_map: RefCell<CodeMap>,
@@ -56,7 +56,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             fct_defs: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
             fcts: RefCell::new(Vec::new()),
-            var_infos: RefCell::new(Vec::new()),
+            vars: RefCell::new(Vec::new()),
             code_map: RefCell::new(CodeMap::new()),
         }
     }
@@ -83,10 +83,10 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_var<F>(&self, fct: NodeId, var_info: VarInfo, replacable: F) ->
-            Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
-        let name = var_info.name;
-        let varid = VarInfoId(self.var_infos.borrow().len());
+    pub fn add_var<F>(&self, fct: NodeId, var: VarContext, replacable: F) ->
+            Result<VarContextId, Sym> where F: FnOnce(&Sym) -> bool {
+        let name = var.name;
+        let varid = VarContextId(self.vars.borrow().len());
         self.fct_mut(fct, |fct| { fct.vars.push(varid); });
 
         let result = match self.sym.borrow().get(name) {
@@ -96,8 +96,8 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         if result.is_ok() {
             self.sym.borrow_mut().insert(name, SymVar(varid));
-            assert!(self.defs.borrow_mut().insert(var_info.node_id, varid).is_none());
-            self.var_infos.borrow_mut().push(var_info);
+            assert!(self.defs.borrow_mut().insert(var.node_id, varid).is_none());
+            self.vars.borrow_mut().push(var);
         }
 
         result
@@ -129,20 +129,20 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&fcts[fctid.0])
     }
 
-    pub fn var_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {
+    pub fn var_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarContext, VarContextId) -> R {
         let defs = self.defs.borrow();
         let varid = *defs.get(&id).unwrap();
 
-        let mut var_infos = self.var_infos.borrow_mut();
-        f(&mut var_infos[varid.0], varid)
+        let mut vars = self.vars.borrow_mut();
+        f(&mut vars[varid.0], varid)
     }
 
-    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&VarInfo, VarInfoId) -> R {
+    pub fn var<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&VarContext, VarContextId) -> R {
         let defs = self.defs.borrow();
         let varid = *defs.get(&id).unwrap();
 
-        let var_infos = self.var_infos.borrow();
-        f(&var_infos[varid.0], varid)
+        let vars = self.vars.borrow();
+        f(&vars[varid.0], varid)
     }
 }
 
@@ -164,7 +164,7 @@ pub struct FctContext<'ast> {
 
     pub ir: Option<Mir>,
 
-    pub vars: Vec<VarInfoId>,
+    pub vars: Vec<VarContextId>,
 
     // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
@@ -183,10 +183,10 @@ pub enum FctCode {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct VarInfoId(pub usize);
+pub struct VarContextId(pub usize);
 
 #[derive(Debug)]
-pub struct VarInfo {
+pub struct VarContext {
     pub name: Name,
 
     pub data_type: BuiltinType,

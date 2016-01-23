@@ -74,7 +74,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
-        let varinfo = VarInfo {
+        let VarContext = VarContext {
             name: var.name,
             data_type: BuiltinType::Unit,
             node_id: var.id,
@@ -83,7 +83,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), varinfo, |sym| !sym.is_type()) {
+        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), VarContext, |sym| !sym.is_type()) {
             let name = str(self.ctxt, var.name);
             report(self.ctxt, var.pos, Msg::ShadowType(name));
         }
@@ -112,7 +112,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
-        let var = VarInfo {
+        let var = VarContext {
             name: p.name,
             data_type: BuiltinType::Unit,
             node_id: p.id,

@@ -222,16 +222,16 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarInfoId) {
-    let var_infos = ctxt.var_infos.borrow();
-    let var = &var_infos[var.0];
+pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarContextId) {
+    let vars = ctxt.vars.borrow();
+    let var = &vars[var.0];
 
     emit::mov_reg_local(buf, var.data_type, src, var.offset);
 }
 
-pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarInfoId, dest: Reg) {
-    let var_infos = ctxt.var_infos.borrow();
-    let var = &var_infos[var.0];
+pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarContextId, dest: Reg) {
+    let vars = ctxt.vars.borrow();
+    let var = &vars[var.0];
 
     emit::mov_local_reg(buf, var.data_type, var.offset, dest);
 }

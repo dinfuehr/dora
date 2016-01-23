@@ -38,7 +38,7 @@ impl SymTable {
         None
     }
 
-    pub fn get_var(&self, name: Name) -> Option<VarInfoId> {
+    pub fn get_var(&self, name: Name) -> Option<VarContextId> {
         self.get(name).and_then(|n| n.to_var())
     }
 
@@ -117,7 +117,7 @@ impl SymEntry {
 pub enum Sym {
     SymType(BuiltinType),
     SymFunction(FctContextId),
-    SymVar(VarInfoId),
+    SymVar(VarContextId),
 }
 
 impl Sym {
@@ -156,7 +156,7 @@ impl Sym {
         }
     }
 
-    pub fn to_var(&self) -> Option<VarInfoId> {
+    pub fn to_var(&self) -> Option<VarContextId> {
         match *self {
             SymVar(id) => Some(id),
             _ => None

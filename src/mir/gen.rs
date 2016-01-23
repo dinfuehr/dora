@@ -36,7 +36,7 @@ struct Generator<'a, 'ast: 'a> {
     cur_join: Option<BlockId>,
     ast_fct: &'ast Function,
     ir: Mir,
-    var_map: HashMap<VarInfoId, VarId>
+    var_map: HashMap<VarContextId, VarId>
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
