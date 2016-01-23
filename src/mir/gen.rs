@@ -318,7 +318,7 @@ mod tests {
             let name = ctxt.interner.intern(fname);
             let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
 
-            let fct = ctxt.fct_by_id(fct_id, |fct_info| fct_info.ast.unwrap());
+            let fct = ctxt.fct_by_id(fct_id, |fct| fct.ast.unwrap());
             mir::gen::generate(ctxt, fct);
 
             ctxt.fct_by_id(fct_id, |fct| f(ctxt, fct))

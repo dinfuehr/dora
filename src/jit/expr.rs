@@ -246,9 +246,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             *caller.calls.get(&e.id).unwrap()
         });
 
-        self.ctxt.fct_by_id_mut(fid, |fct_info| {
-            let ptr = match fct_info.code {
-                FctCode::Uncompiled => self.create_stub(fid, fct_info),
+        self.ctxt.fct_by_id_mut(fid, |fct| {
+            let ptr = match fct.code {
+                FctCode::Uncompiled => self.create_stub(fid, fct),
                 FctCode::Builtin(ptr) => ptr,
                 FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
             };
@@ -273,14 +273,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         })
     }
 
-    fn create_stub(&self, id: FctContextId, fct_info: &mut FctContext) -> Ptr {
+    fn create_stub(&self, id: FctContextId, fct: &mut FctContext) -> Ptr {
         let stub = Stub::new();
 
         let mut code_map = self.ctxt.code_map.borrow_mut();
         code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
 
         let ptr = stub.ptr_start();
-        fct_info.stub = Some(stub);
+        fct.stub = Some(stub);
 
         ptr
     }

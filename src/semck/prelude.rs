@@ -39,7 +39,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         fct: FctCode) {
     let name = ctxt.interner.intern(name);
 
-    let fct_info = FctContext {
+    let fct = FctContext {
         name: name,
         params_types: args,
         return_type: ret,
@@ -52,7 +52,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
         stub: None,
     };
 
-    assert!(ctxt.add_function(fct_info).is_ok());
+    assert!(ctxt.add_function(fct).is_ok());
 }
 
 #[cfg(test)]
