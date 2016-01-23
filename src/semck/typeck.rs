@@ -273,8 +273,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         self.ctxt.fct_info_for_id(fct_id, |callee| {
-            let fct_infos = self.ctxt.fct_infos.borrow();
-            let fct = &fct_infos[fct_id.0];
+            let fct_ctxts = self.ctxt.fct_ctxts.borrow();
+            let fct = &fct_ctxts[fct_id.0];
             self.expr_type = fct.return_type;
 
             let mut call_types = Vec::with_capacity(e.args.len());
