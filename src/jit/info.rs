@@ -78,7 +78,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_var(&mut self, id: NodeId) {
-        self.ctxt.var_mut(id, |v, _| {
+        self.ctxt.var_mut(self.fct.id, id, |v, _| {
             let ty_size = v.data_type.size();
             self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
             v.offset = -self.localsize;
@@ -96,7 +96,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // the rest of the parameters are already stored on the stack
         // just use the current offset
         } else {
-            let ty = self.ctxt.var_mut(p.id, |v, _| {
+            let ty = self.ctxt.var_mut(self.fct.id, p.id, |v, _| {
                 v.offset = self.param_offset;
 
                 v.data_type
@@ -204,8 +204,8 @@ mod tests {
         info("fn f(a: bool, b: int) { var c = 1; }", |ctxt, fct, info| {
             assert_eq!(12, info.localsize);
 
-            for (varid, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
-                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
+            for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
+                assert_eq!(*offset, var.offset);
             }
         });
     }
@@ -219,8 +219,8 @@ mod tests {
             assert_eq!(28, info.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-            for (varid, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
+            for (var, offset) in fct.vars.iter().zip(&offsets) {
+                assert_eq!(*offset, var.offset);
             }
         });
     }
@@ -230,8 +230,8 @@ mod tests {
         info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |ctxt, fct, info| {
             assert_eq!(16, info.localsize);
 
-            for (varid, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                assert_eq!(*offset, ctxt.vars.borrow()[varid.0].offset);
+            for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+                assert_eq!(*offset, var.offset);
             }
         });
     }

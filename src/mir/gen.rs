@@ -77,7 +77,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
-        let var_id = self.ctxt.var(stmt.id, |ctxt_var, ctxt_var_id| {
+        let var_id = self.ctxt.var(self.ast_fct.id, stmt.id, |ctxt_var, ctxt_var_id| {
             let ir_var_id = self.ir.add_var(stmt.name, ctxt_var.data_type);
             self.var_map.insert(ctxt_var_id, ir_var_id);
 
@@ -212,7 +212,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_expr_ident(&mut self, expr: &'ast ExprIdentType) {
-        let var_id = self.ctxt.var(expr.id, |_, ctxt_var_id| {
+        let var_id = self.ctxt.var(self.ast_fct.id, expr.id, |_, ctxt_var_id| {
             *self.var_map.get(&ctxt_var_id).unwrap()
         });
 
@@ -220,7 +220,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
-        let var_id = self.ctxt.var(expr.lhs.id(), |_, ctxt_var_id| {
+        let var_id = self.ctxt.var(self.ast_fct.id, expr.lhs.id(), |_, ctxt_var_id| {
             *self.var_map.get(&ctxt_var_id).unwrap()
         });
 
@@ -268,7 +268,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        self.ctxt.var(p.id, |ctxt_var, ctxt_var_id| {
+        self.ctxt.var(self.ast_fct.id, p.id, |ctxt_var, ctxt_var_id| {
             let ir_var_id = self.ir.add_var(p.name, ctxt_var.data_type);
             self.var_map.insert(ctxt_var_id, ir_var_id);
         });

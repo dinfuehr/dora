@@ -57,7 +57,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
 
     fn visit_param(&mut self, p: &'ast Param) {
         self.visit_type(&p.data_type);
-        self.ctxt.var_mut(p.id, |var, _| { var.data_type = self.current_type; });
+        self.ctxt.var_mut(self.current_fct.unwrap(), p.id, |var, _| { var.data_type = self.current_type; });
 
         self.ctxt.fct_mut(self.current_fct.unwrap(), |fct| {
             fct.params_types.push(self.current_type);
@@ -68,7 +68,9 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let StmtVar(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
-                self.ctxt.var_mut(var.id, |var, _| { var.data_type = self.current_type; });
+                self.ctxt.var_mut(self.current_fct.unwrap(), var.id, |var, _| {
+                    var.data_type = self.current_type;
+                });
             }
 
             if let Some(ref expr) = var.expr {
@@ -119,7 +121,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         let defined_type = if let Some(_) = s.data_type {
-            let ty = self.ctxt.var(s.id, |var, _| var.data_type);
+            let ty = self.ctxt.var(self.fct.unwrap().id, s.id, |var, _| var.data_type);
             if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
             expr_type
@@ -137,7 +139,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.ctxt.var_mut(s.id, |var, _| { var.data_type = defined_type });
+        self.ctxt.var_mut(self.fct.unwrap().id, s.id, |var, _| {
+            var.data_type = defined_type
+        });
 
         if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();
@@ -195,7 +199,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        self.expr_type = self.ctxt.var(e.id, |var, _| var.data_type);
+        self.expr_type = self.ctxt.var(self.fct.unwrap().id, e.id, |var, _| var.data_type);
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {

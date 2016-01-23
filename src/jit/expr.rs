@@ -70,7 +70,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let defs = self.ctxt.defs.borrow();
         let varid = *defs.get(&e.id).unwrap();
 
-        codegen::var_load(self.buf, self.ctxt, varid, dest);
+        codegen::var_load(self.buf, self.ctxt, self.fct.id, varid, dest);
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
@@ -90,7 +90,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let defs = self.ctxt.defs.borrow();
         let varid = *defs.get(&e.lhs.id()).unwrap();
 
-        codegen::var_store(&mut self.buf, self.ctxt, dest, varid);
+        codegen::var_store(&mut self.buf, self.ctxt, self.fct.id, dest, varid);
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -246,31 +246,31 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             *caller.calls.get(&e.id).unwrap()
         });
 
-        self.ctxt.fct_by_id_mut(fid, |fct| {
-            let ptr = match fct.code {
+        let ptr = self.ctxt.fct_by_id_mut(fid, |fct| {
+            match fct.code {
                 FctCode::Uncompiled => self.create_stub(fid, fct),
                 FctCode::Builtin(ptr) => ptr,
                 FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
-            };
-
-            for (ind, arg) in e.args.iter().enumerate().rev() {
-                if REG_PARAMS.len() > ind {
-                    let dest = REG_PARAMS[ind];
-                    self.emit_expr(arg, dest);
-                } else {
-                    self.emit_expr(arg, REG_RESULT);
-                    emit::push_param(self.buf, REG_RESULT);
-                }
             }
+        });
 
-            let disp = self.dseg.add_addr(ptr);
-            let pos = self.buf.pos() as i32;
+        for (ind, arg) in e.args.iter().enumerate().rev() {
+            if REG_PARAMS.len() > ind {
+                let dest = REG_PARAMS[ind];
+                self.emit_expr(arg, dest);
+            } else {
+                self.emit_expr(arg, REG_RESULT);
+                emit::push_param(self.buf, REG_RESULT);
+            }
+        }
 
-            emit::call(self.buf, disp + pos);
+        let disp = self.dseg.add_addr(ptr);
+        let pos = self.buf.pos() as i32;
 
-            // TODO: move REG_RESULT into dest
-            assert_eq!(REG_RESULT, dest);
-        })
+        emit::call(self.buf, disp + pos);
+
+        // TODO: move REG_RESULT into dest
+        assert_eq!(REG_RESULT, dest);
     }
 
     fn create_stub(&self, id: FctContextId, fct: &mut FctContext) -> Ptr {

@@ -69,7 +69,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
             let varid = *defs.get(&p.id).unwrap();
-            var_store(&mut self.buf, self.ctxt, *reg, varid);
+            var_store(&mut self.buf, self.ctxt, self.fct.id, *reg, varid);
         }
     }
 
@@ -185,7 +185,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let defs = self.ctxt.defs.borrow();
             let varid = *defs.get(&s.id).unwrap();
 
-            var_store(&mut self.buf, self.ctxt, reg, varid);
+            var_store(&mut self.buf, self.ctxt, self.fct.id, reg, varid);
         }
     }
 
@@ -222,18 +222,20 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, ctxt: &Context, src: Reg, var: VarContextId) {
-    let vars = ctxt.vars.borrow();
-    let var = &vars[var.0];
+pub fn var_store(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, src: Reg, var: VarContextId) {
+    ctxt.fct(fctid, |fct| {
+        let var = &fct.vars[var.0];
 
-    emit::mov_reg_local(buf, var.data_type, src, var.offset);
+        emit::mov_reg_local(buf, var.data_type, src, var.offset);
+    })
 }
 
-pub fn var_load(buf: &mut Buffer, ctxt: &Context, var: VarContextId, dest: Reg) {
-    let vars = ctxt.vars.borrow();
-    let var = &vars[var.0];
+pub fn var_load(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, var: VarContextId, dest: Reg) {
+    ctxt.fct(fctid, |fct| {
+        let var = &fct.vars[var.0];
 
-    emit::mov_local_reg(buf, var.data_type, var.offset, dest);
+        emit::mov_local_reg(buf, var.data_type, var.offset, dest);
+    });
 }
 
 #[cfg(test)]
