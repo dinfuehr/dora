@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::FctInfoId;
+use ctxt::FctContextId;
 use mem::Ptr;
 
 pub struct CodeMap {
-    tree: BTreeMap<PtrSpan, FctInfoId>
+    tree: BTreeMap<PtrSpan, FctContextId>
 }
 
 impl CodeMap {
@@ -15,12 +15,12 @@ impl CodeMap {
         }
     }
 
-    pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctInfoId) {
+    pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctContextId) {
         let span = PtrSpan::new(start, end);
         assert!(self.tree.insert(span, fct).is_none());
     }
 
-    pub fn get(&self, ptr: Ptr) -> Option<FctInfoId> {
+    pub fn get(&self, ptr: Ptr) -> Option<FctContextId> {
         let span = PtrSpan::new(ptr, ptr.offset(1));
 
         self.tree.get(&span).map(|el| { *el })
@@ -113,20 +113,20 @@ pub fn ptr(val: usize) -> Ptr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctxt::FctInfoId;
+    use ctxt::FctContextId;
 
     #[test]
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctInfoId(1));
-        map.insert(ptr(7), ptr(9), FctInfoId(2));
+        map.insert(ptr(5), ptr(7), FctContextId(1));
+        map.insert(ptr(7), ptr(9), FctContextId(2));
 
         assert_eq!(None, map.get(ptr(4)));
-        assert_eq!(Some(FctInfoId(1)), map.get(ptr(5)));
-        assert_eq!(Some(FctInfoId(1)), map.get(ptr(6)));
-        assert_eq!(Some(FctInfoId(2)), map.get(ptr(7)));
-        assert_eq!(Some(FctInfoId(2)), map.get(ptr(8)));
+        assert_eq!(Some(FctContextId(1)), map.get(ptr(5)));
+        assert_eq!(Some(FctContextId(1)), map.get(ptr(6)));
+        assert_eq!(Some(FctContextId(2)), map.get(ptr(7)));
+        assert_eq!(Some(FctContextId(2)), map.get(ptr(8)));
         assert_eq!(None, map.get(ptr(9)));
     }
 
@@ -135,7 +135,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctInfoId(1));
-        map.insert(ptr(6), ptr(7), FctInfoId(2));
+        map.insert(ptr(5), ptr(7), FctContextId(1));
+        map.insert(ptr(6), ptr(7), FctContextId(2));
     }
 }

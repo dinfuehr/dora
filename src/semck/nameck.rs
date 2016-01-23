@@ -34,7 +34,7 @@ impl<'a, 'ast> GlobalDef<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let fct = FctInfo {
+        let fct = FctContext {
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,

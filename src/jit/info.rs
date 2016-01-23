@@ -152,7 +152,7 @@ mod tests {
     use ctxt::*;
     use test;
 
-    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctInfo, Info) {
+    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctContext, Info) {
         test::parse(code, |ctxt| {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
             let info = generate(ctxt, fct);

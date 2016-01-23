@@ -312,7 +312,7 @@ mod tests {
     use test::parse;
 
     fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T
-        where F: FnOnce(&Context, &FctInfo) -> T
+        where F: FnOnce(&Context, &FctContext) -> T
     {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern(fname);

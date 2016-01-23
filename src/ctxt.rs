@@ -27,14 +27,14 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
 
-    // points from AST function definition node id to FctInfoId
-    pub fct_defs: RefCell<HashMap<NodeId, FctInfoId>>,
+    // points from AST function definition node id to FctContextId
+    pub fct_defs: RefCell<HashMap<NodeId, FctContextId>>,
 
     // points to the definition of variable from its usage
     pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
     // stores all function definitions
-    pub fct_infos: RefCell<Vec<FctInfo<'ast>>>,
+    pub fct_infos: RefCell<Vec<FctContext<'ast>>>,
 
     // stores all var definitions
     pub var_infos: RefCell<Vec<VarInfo>>,
@@ -61,9 +61,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_function(&self, fct_info: FctInfo<'ast>) -> Result<FctInfoId, Sym> {
+    pub fn add_function(&self, fct_info: FctContext<'ast>) -> Result<FctContextId, Sym> {
         let name = fct_info.name;
-        let fctid = FctInfoId(self.fct_infos.borrow().len());
+        let fctid = FctContextId(self.fct_infos.borrow().len());
 
         if let Some(ast) = fct_info.ast {
             assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
@@ -103,17 +103,17 @@ impl<'a, 'ast> Context<'a, 'ast> {
         result
     }
 
-    pub fn fct_info_for_id<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
+    pub fn fct_info_for_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
         let fct_infos = self.fct_infos.borrow();
         f(&fct_infos[id.0])
     }
 
-    pub fn fct_info_for_id_mut<F, R>(&self, id: FctInfoId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+    pub fn fct_info_for_id_mut<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
         let mut fct_infos = self.fct_infos.borrow_mut();
         f(&mut fct_infos[id.0])
     }
 
-    pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
+    pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
         let fct_info_id = *map.get(&id).unwrap();
 
@@ -121,7 +121,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&mut fct_infos[fct_info_id.0])
     }
 
-    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
+    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
         let fctid = *map.get(&id).unwrap();
 
@@ -147,10 +147,10 @@ impl<'a, 'ast> Context<'a, 'ast> {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct FctInfoId(pub usize);
+pub struct FctContextId(pub usize);
 
 #[derive(Debug)]
-pub struct FctInfo<'ast> {
+pub struct FctContext<'ast> {
     pub name: Name,
 
     pub params_types: Vec<BuiltinType>,
@@ -159,8 +159,8 @@ pub struct FctInfo<'ast> {
 
     pub ast: Option<&'ast Function>,
 
-    // maps function call to FctInfoId
-    pub calls: HashMap<NodeId, FctInfoId>,
+    // maps function call to FctContextId
+    pub calls: HashMap<NodeId, FctContextId>,
 
     pub ir: Option<Mir>,
 
