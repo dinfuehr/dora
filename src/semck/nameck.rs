@@ -156,7 +156,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.ctxt.fct_info_mut(self.fct.unwrap(), |fct| {
+                    self.ctxt.fct_mut(self.fct.unwrap(), |fct| {
                         fct.calls.insert(call.id, id);
                     });
                 } else {

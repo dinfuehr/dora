@@ -51,7 +51,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.store_register_params_on_stack();
         self.visit_fct(self.fct);
 
-        let always_returns = self.ctxt.fct_info(self.fct.id, |fct| fct.always_returns);
+        let always_returns = self.ctxt.fct(self.fct.id, |fct| fct.always_returns);
 
         if !always_returns {
             self.emit_epilog();

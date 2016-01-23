@@ -157,7 +157,7 @@ mod tests {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
             let info = generate(ctxt, fct);
 
-            ctxt.fct_info(fct.id, |fct| {
+            ctxt.fct(fct.id, |fct| {
                 f(ctxt, fct, info);
             });
         });

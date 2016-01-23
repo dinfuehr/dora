@@ -118,7 +118,7 @@ fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where
         }
     };
 
-    ctxt.fct_info_for_id(fctid, |fct_info| {
+    ctxt.fct_by_id(fctid, |fct_info| {
         let ret = fct_info.return_type;
 
         if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||

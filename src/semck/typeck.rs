@@ -47,7 +47,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let Some(ref ty) = f.return_type {
             self.visit_type(ty);
 
-            self.ctxt.fct_info_mut(self.current_fct.unwrap(), |fct| {
+            self.ctxt.fct_mut(self.current_fct.unwrap(), |fct| {
                 fct.return_type = self.current_type;
             });
         }
@@ -59,7 +59,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         self.visit_type(&p.data_type);
         self.ctxt.var_mut(p.id, |var, _| { var.data_type = self.current_type; });
 
-        self.ctxt.fct_info_mut(self.current_fct.unwrap(), |fct| {
+        self.ctxt.fct_mut(self.current_fct.unwrap(), |fct| {
             fct.params_types.push(self.current_type);
         });
     }
@@ -186,7 +186,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }).unwrap_or(BuiltinType::Unit);
 
         let fct = self.fct.unwrap();
-        let fct_type = self.ctxt.fct_info(fct.id, |fct| fct.return_type);
+        let fct_type = self.ctxt.fct(fct.id, |fct| fct.return_type);
 
         if expr_type != fct_type {
             let msg = Msg::ReturnType(fct_type.to_string(), expr_type.to_string());
@@ -268,13 +268,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        let fct_id = self.ctxt.fct_info(self.fct.unwrap().id, |caller| {
+        let fct_id = self.ctxt.fct(self.fct.unwrap().id, |caller| {
             *caller.calls.get(&e.id).unwrap()
         });
 
-        self.ctxt.fct_info_for_id(fct_id, |callee| {
-            let fct_ctxts = self.ctxt.fct_ctxts.borrow();
-            let fct = &fct_ctxts[fct_id.0];
+        self.ctxt.fct_by_id(fct_id, |callee| {
+            let fcts = self.ctxt.fcts.borrow();
+            let fct = &fcts[fct_id.0];
             self.expr_type = fct.return_type;
 
             let mut call_types = Vec::with_capacity(e.args.len());

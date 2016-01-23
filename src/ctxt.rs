@@ -34,7 +34,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
     // stores all function definitions
-    pub fct_ctxts: RefCell<Vec<FctContext<'ast>>>,
+    pub fcts: RefCell<Vec<FctContext<'ast>>>,
 
     // stores all var definitions
     pub var_infos: RefCell<Vec<VarInfo>>,
@@ -55,21 +55,21 @@ impl<'a, 'ast> Context<'a, 'ast> {
             sym: RefCell::new(SymTable::new()),
             fct_defs: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
-            fct_ctxts: RefCell::new(Vec::new()),
+            fcts: RefCell::new(Vec::new()),
             var_infos: RefCell::new(Vec::new()),
             code_map: RefCell::new(CodeMap::new()),
         }
     }
 
-    pub fn add_function(&self, fct_ctxt: FctContext<'ast>) -> Result<FctContextId, Sym> {
-        let name = fct_ctxt.name;
-        let fctid = FctContextId(self.fct_ctxts.borrow().len());
+    pub fn add_function(&self, fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
+        let name = fct.name;
+        let fctid = FctContextId(self.fcts.borrow().len());
 
-        if let Some(ast) = fct_ctxt.ast {
+        if let Some(ast) = fct.ast {
             assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
         }
 
-        self.fct_ctxts.borrow_mut().push(fct_ctxt);
+        self.fcts.borrow_mut().push(fct);
 
         let mut sym = self.sym.borrow_mut();
 
@@ -87,7 +87,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             Result<VarInfoId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var_info.name;
         let varid = VarInfoId(self.var_infos.borrow().len());
-        self.fct_info_mut(fct, |fct| { fct.vars.push(varid); });
+        self.fct_mut(fct, |fct| { fct.vars.push(varid); });
 
         let result = match self.sym.borrow().get(name) {
             Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
@@ -103,30 +103,30 @@ impl<'a, 'ast> Context<'a, 'ast> {
         result
     }
 
-    pub fn fct_info_for_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
-        let fct_ctxts = self.fct_ctxts.borrow();
-        f(&fct_ctxts[id.0])
+    pub fn fct_by_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
+        let fcts = self.fcts.borrow();
+        f(&fcts[id.0])
     }
 
-    pub fn fct_info_for_id_mut<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
-        let mut fct_ctxts = self.fct_ctxts.borrow_mut();
-        f(&mut fct_ctxts[id.0])
+    pub fn fct_by_id_mut<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+        let mut fcts = self.fcts.borrow_mut();
+        f(&mut fcts[id.0])
     }
 
-    pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+    pub fn fct_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
-        let fct_ctxt_id = *map.get(&id).unwrap();
+        let fct_id = *map.get(&id).unwrap();
 
-        let mut fct_ctxts = self.fct_ctxts.borrow_mut();
-        f(&mut fct_ctxts[fct_ctxt_id.0])
+        let mut fcts = self.fcts.borrow_mut();
+        f(&mut fcts[fct_id.0])
     }
 
-    pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
+    pub fn fct<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
         let fctid = *map.get(&id).unwrap();
 
-        let mut fct_ctxts = self.fct_ctxts.borrow();
-        f(&fct_ctxts[fctid.0])
+        let mut fcts = self.fcts.borrow();
+        f(&fcts[fctid.0])
     }
 
     pub fn var_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut VarInfo, VarInfoId) -> R {
