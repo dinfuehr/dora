@@ -16,7 +16,7 @@ macro_rules! return_on_error {
 pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     prelude::init(ctxt);
 
-    globaldef::check(ctxt, ctxt.ast);
+    globaldef::check(ctxt);
     nameck::check(ctxt, ctxt.ast);
     return_on_error!(ctxt);
 

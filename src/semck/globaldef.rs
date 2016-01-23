@@ -9,8 +9,8 @@ use lexer::position::Position;
 
 use sym::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    GlobalDef::new(ctxt).visit_ast(ast);
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+    GlobalDef::new(ctxt).visit_ast(ctxt.ast);
 }
 
 struct GlobalDef<'a, 'ast: 'a> {
