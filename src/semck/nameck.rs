@@ -16,49 +16,7 @@ use sym::Sym::*;
 use sym::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    GlobalDef::new(ctxt).visit_ast(ast);
     NameCheck::new(ctxt).visit_ast(ast);
-}
-
-struct GlobalDef<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>
-}
-
-impl<'a, 'ast> GlobalDef<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> GlobalDef<'a, 'ast> {
-        GlobalDef {
-            ctxt: ctxt
-        }
-    }
-}
-
-impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
-        let fct = FctContext {
-            name: f.name,
-            params_types: Vec::new(),
-            return_type: BuiltinType::Unit,
-            ast: Some(f),
-            calls: HashMap::new(),
-            defs: HashMap::new(),
-            ir: None,
-            vars: Vec::new(),
-            always_returns: false,
-            code: FctCode::Uncompiled,
-            stub: None,
-        };
-
-        if let Err(sym) = self.ctxt.add_function(fct) {
-            let name = self.ctxt.interner.str(f.name).to_string();
-            let msg = if sym.is_type() {
-                Msg::ShadowType(name)
-            } else {
-                Msg::ShadowFunction(name)
-            };
-
-            report(self.ctxt, f.pos, msg);
-        }
-    }
 }
 
 struct NameCheck<'a, 'ast: 'a> {

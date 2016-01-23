@@ -1,9 +1,10 @@
 use ctxt::Context;
 
+mod flowck;
+mod globaldef;
+mod nameck;
 mod prelude;
 mod typeck;
-mod nameck;
-mod flowck;
 mod returnck;
 
 macro_rules! return_on_error {
@@ -15,6 +16,7 @@ macro_rules! return_on_error {
 pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     prelude::init(ctxt);
 
+    globaldef::check(ctxt, ctxt.ast);
     nameck::check(ctxt, ctxt.ast);
     return_on_error!(ctxt);
 
