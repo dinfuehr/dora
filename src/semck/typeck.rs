@@ -279,7 +279,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.ctxt.fct_by_id(fct_id, |callee| {
             let fcts = self.ctxt.fcts.borrow();
             let fct = &fcts[fct_id.0];
-            self.expr_type = fct.return_type;
+            self.expr_type = callee.return_type;
 
             let mut call_types = Vec::with_capacity(e.args.len());
 
@@ -288,9 +288,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 call_types.push(self.expr_type);
             }
 
-            if fct.params_types != call_types {
-                let fct_name = self.ctxt.interner.str(fct.name).to_string();
-                let msg = Msg::ParamTypesIncompatible(fct_name, fct.params_types.clone(), call_types);
+            if callee.params_types != call_types {
+                let fct_name = self.ctxt.interner.str(callee.name).to_string();
+                let msg = Msg::ParamTypesIncompatible(fct_name, callee.params_types.clone(), call_types);
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
         })
