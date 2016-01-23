@@ -65,10 +65,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let params_len = self.fct.params.len();
         if params_len == 0 { return; }
 
-        let defs = self.ctxt.defs.borrow();
-
         for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
-            let varid = *defs.get(&p.id).unwrap();
+            let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&p.id).unwrap());
             var_store(&mut self.buf, self.ctxt, self.fct.id, *reg, varid);
         }
     }
@@ -181,9 +179,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
-
-            let defs = self.ctxt.defs.borrow();
-            let varid = *defs.get(&s.id).unwrap();
+            let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&s.id).unwrap());
 
             var_store(&mut self.buf, self.ctxt, self.fct.id, reg, varid);
         }

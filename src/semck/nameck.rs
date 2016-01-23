@@ -40,6 +40,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
             return_type: BuiltinType::Unit,
             ast: Some(f),
             calls: HashMap::new(),
+            defs: HashMap::new(),
             ir: None,
             vars: Vec::new(),
             always_returns: false,
@@ -147,7 +148,9 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *e {
             ExprIdent(ref ident) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-                    self.ctxt.defs.borrow_mut().insert(ident.id, id);
+                    self.ctxt.fct_mut(self.fct.unwrap(), |fct| {
+                        fct.defs.insert(ident.id, id);
+                    });
                 } else {
                     let name = str(self.ctxt, ident.name);
                     report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));

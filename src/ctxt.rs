@@ -30,9 +30,6 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     // points from AST function definition node id to FctContextId
     pub fct_defs: RefCell<HashMap<NodeId, FctContextId>>,
 
-    // points to the definition of variable from its usage
-    pub defs: RefCell<HashMap<NodeId, VarContextId>>,
-
     // stores all function definitions
     pub fcts: RefCell<Vec<FctContext<'ast>>>,
 
@@ -51,7 +48,6 @@ impl<'a, 'ast> Context<'a, 'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fct_defs: RefCell::new(HashMap::new()),
-            defs: RefCell::new(HashMap::new()),
             fcts: RefCell::new(Vec::new()),
             code_map: RefCell::new(CodeMap::new()),
         }
@@ -92,7 +88,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         if result.is_ok() {
             self.sym.borrow_mut().insert(name, SymVar(varid));
-            assert!(self.defs.borrow_mut().insert(var.node_id, varid).is_none());
+            self.fct_mut(fct, |fct| {
+                assert!(fct.defs.insert(var.node_id, varid).is_none());
+            });
         }
 
         self.fct_mut(fct, |fct| { fct.vars.push(var); });
@@ -129,26 +127,16 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
     pub fn var_mut<F, R>(&self, fctid: NodeId, id: NodeId, f: F) -> R where
                          F: FnOnce(&mut VarContext, VarContextId) -> R {
-        let varid = {
-            let defs = self.defs.borrow();
-
-            *defs.get(&id).unwrap()
-        };
-
         self.fct_mut(fctid, |fct| {
+            let varid = *fct.defs.get(&id).unwrap();
             f(&mut fct.vars[varid.0], varid)
         })
     }
 
     pub fn var<F, R>(&self, fctid: NodeId, id: NodeId, f: F) -> R where
                      F: FnOnce(&VarContext, VarContextId) -> R {
-         let varid = {
-             let defs = self.defs.borrow();
-
-             *defs.get(&id).unwrap()
-         };
-
          self.fct(fctid, |fct| {
+             let varid = *fct.defs.get(&id).unwrap();
              f(&fct.vars[varid.0], varid)
          })
     }
@@ -169,6 +157,9 @@ pub struct FctContext<'ast> {
 
     // maps function call to FctContextId
     pub calls: HashMap<NodeId, FctContextId>,
+
+    // points to the definition of variable from its usage
+    pub defs: HashMap<NodeId, VarContextId>,
 
     pub ir: Option<Mir>,
 

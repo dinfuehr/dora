@@ -67,8 +67,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        let defs = self.ctxt.defs.borrow();
-        let varid = *defs.get(&e.id).unwrap();
+        let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&e.id).unwrap());
 
         codegen::var_load(self.buf, self.ctxt, self.fct.id, varid, dest);
     }
@@ -87,8 +86,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         self.emit_expr(&e.rhs, dest);
 
-        let defs = self.ctxt.defs.borrow();
-        let varid = *defs.get(&e.lhs.id()).unwrap();
+        let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&e.lhs.id()).unwrap());
 
         codegen::var_store(&mut self.buf, self.ctxt, self.fct.id, dest, varid);
     }
