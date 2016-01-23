@@ -27,6 +27,9 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
 
+    // points from AST function definition node id to FctInfoId
+    pub fct_defs: RefCell<HashMap<NodeId, FctInfoId>>,
+
     // points to the definition of variable from its usage
     pub defs: RefCell<HashMap<NodeId, VarInfoId>>,
 
@@ -53,6 +56,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
+            fct_defs: RefCell::new(HashMap::new()),
             defs: RefCell::new(HashMap::new()),
             calls: RefCell::new(HashMap::new()),
             fct_infos: RefCell::new(Vec::new()),
@@ -66,7 +70,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         let fctid = FctInfoId(self.fct_infos.borrow().len());
 
         if let Some(ast) = fct_info.ast {
-            assert!(self.calls.borrow_mut().insert(ast.id, fctid).is_none());
+            assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
         }
 
         self.fct_infos.borrow_mut().push(fct_info);
@@ -114,7 +118,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
     }
 
     pub fn fct_info_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctInfo<'ast>) -> R {
-        let map = self.calls.borrow();
+        let map = self.fct_defs.borrow();
         let fct_info_id = *map.get(&id).unwrap();
 
         let mut fct_infos = self.fct_infos.borrow_mut();
@@ -122,7 +126,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
     }
 
     pub fn fct_info<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&FctInfo<'ast>) -> R {
-        let map = self.calls.borrow();
+        let map = self.fct_defs.borrow();
         let fctid = *map.get(&id).unwrap();
 
         let mut fct_infos = self.fct_infos.borrow();
