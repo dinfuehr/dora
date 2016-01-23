@@ -4,7 +4,7 @@ use cpu::*;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     emit_pushq_reg(buf, RBP);

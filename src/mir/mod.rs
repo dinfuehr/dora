@@ -8,7 +8,7 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use ast::{BinOp, UnOp};
 use interner::Name;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub struct Mir {
     blocks: Vec<Rc<RefCell<Block>>>,

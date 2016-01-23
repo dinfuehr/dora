@@ -14,9 +14,13 @@ macro_rules! return_on_error {
 }
 
 pub fn check<'a>(ctxt: &Context<'a, 'a>) {
+    // add builtin fcts and types to ctxt
     prelude::init(ctxt);
 
+    // add user defined fcts and types to ctxt
     globaldef::check(ctxt);
+    return_on_error!(ctxt);
+
     nameck::check(ctxt, ctxt.ast);
     return_on_error!(ctxt);
 

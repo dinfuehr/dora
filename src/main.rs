@@ -22,6 +22,7 @@ mod parser;
 mod semck;
 mod stdlib;
 mod sym;
+mod ty;
 
 #[cfg(test)]
 mod test;

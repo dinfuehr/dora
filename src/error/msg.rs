@@ -1,6 +1,6 @@
 use self::Msg::*;
 use lexer::position::Position;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {

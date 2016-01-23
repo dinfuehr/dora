@@ -9,7 +9,7 @@ use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
 use jit::stub::Stub;
 use mem::ptr::Ptr;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,

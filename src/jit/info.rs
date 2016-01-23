@@ -6,12 +6,9 @@ use ast::Expr::*;
 use ast::visit::*;
 use cpu;
 use ctxt::Context;
-
 use jit::expr::is_leaf;
-
 use mem;
-
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> Info {
     InfoGenerator::new(ctxt, fct).generate()

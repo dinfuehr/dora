@@ -9,6 +9,7 @@ use ast::visit::Visitor;
 
 use sym::*;
 use sym::Sym::*;
+use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     DefCheck::new(ctxt).visit_ast(ast);
@@ -338,7 +339,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 mod tests {
     use error::msg::Msg;
     use semck::tests::*;
-    use sym::BuiltinType;
+    use ty::BuiltinType;
 
     #[test]
     fn type_def_for_return_type() {

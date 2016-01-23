@@ -14,6 +14,7 @@ use os;
 use parser::Parser;
 use semck;
 use sym::*;
+use ty::BuiltinType;
 
 pub fn start() -> i32 {
     let args = cmd::parse();

@@ -19,6 +19,7 @@ use mir::Mir;
 
 use sym::*;
 use sym::Sym::*;
+use ty::BuiltinType;
 
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,

@@ -7,6 +7,7 @@ use ast::visit::*;
 use lexer::position::Position;
 
 use sym::*;
+use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
     ReturnCheck::new(ctxt).visit_ast(ast);

@@ -7,7 +7,7 @@ use ctxt::*;
 use error::msg::Msg;
 use lexer::position::Position;
 
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
     GlobalDef::new(ctxt).visit_ast(ctxt.ast);

@@ -21,7 +21,7 @@ use mir::*;
 use mir::Instr::*;
 use mir::Opnd::*;
 
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct: &'ast Function) {
     Generator::new(ctxt, fct).generate();

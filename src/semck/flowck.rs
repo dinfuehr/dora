@@ -54,7 +54,7 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
 mod tests {
     use error::msg::Msg;
     use semck::tests::*;
-    use sym::BuiltinType;
+    use ty::BuiltinType;
 
     #[test]
     fn flowck_break() {

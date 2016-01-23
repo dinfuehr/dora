@@ -6,7 +6,7 @@ use stdlib;
 use ctxt::*;
 use mem::Ptr;
 use sym::Sym::*;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 pub fn init(ctxt: &Context) {
     add_builtin_types(ctxt);

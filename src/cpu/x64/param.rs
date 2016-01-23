@@ -1,6 +1,6 @@
 use ast::Expr;
 use cpu;
-use sym::BuiltinType;
+use ty::BuiltinType;
 
 // first param offset to rbp is +16,
 // rbp+0 -> saved rbp
