@@ -1,5 +1,6 @@
 use ctxt::Context;
 
+mod defck;
 mod flowck;
 mod globaldef;
 mod nameck;
@@ -24,7 +25,12 @@ pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     nameck::check(ctxt);
     return_on_error!(ctxt);
 
-    typeck::check(ctxt, ctxt.ast);
+    // check type definitions
+    defck::check(ctxt);
+    return_on_error!(ctxt);
+
+    // check types in expressions
+    typeck::check(ctxt);
     return_on_error!(ctxt);
 
     flowck::check(ctxt, ctxt.ast);
