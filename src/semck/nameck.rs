@@ -58,19 +58,21 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.ctxt.sym.borrow_mut().pop_level();
     }
 
-    pub fn add_var<F>(&mut self, var: VarContext, replacable: F) ->
+    pub fn add_var<F>(&mut self, mut var: VarContext, replacable: F) ->
             Result<VarContextId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var.name;
-        let varid = VarContextId(self.fct.vars.len());
+        let var_id = VarContextId(self.fct.vars.len());
+
+        var.id = var_id;
 
         let result = match self.ctxt.sym.borrow().get(name) {
-            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
-            None => Ok(varid)
+            Some(sym) => if replacable(&sym) { Ok(var_id) } else { Err(sym) },
+            None => Ok(var_id)
         };
 
         if result.is_ok() {
-            self.ctxt.sym.borrow_mut().insert(name, SymVar(varid));
-            assert!(self.fct.defs.insert(var.node_id, varid).is_none());
+            self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
+            assert!(self.fct.defs.insert(var.node_id, var_id).is_none());
         }
 
         self.fct.vars.push(var);
@@ -80,6 +82,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
         let var_ctxt = VarContext {
+            id: VarContextId(0),
             name: var.name,
             data_type: BuiltinType::Unit,
             node_id: var.id,
@@ -108,6 +111,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         let var_ctxt = VarContext {
+            id: VarContextId(0),
             name: p.name,
             data_type: BuiltinType::Unit,
             node_id: p.id,

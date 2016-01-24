@@ -193,6 +193,8 @@ pub struct VarContextId(pub usize);
 
 #[derive(Debug)]
 pub struct VarContext {
+    pub id: VarContextId,
+
     pub name: Name,
 
     pub data_type: BuiltinType,

@@ -23,18 +23,19 @@ use mir::Opnd::*;
 
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct: &'ast Function) {
-    Generator::new(ctxt, fct).generate();
+pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct_id: FctContextId) {
+    ctxt.fct_by_id_mut(fct_id, |fct| {
+        Generator::new(ctxt, fct).generate();
+    });
 }
 
 struct Generator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     vreg: u32,
     result: Opnd,
     cur_block: BlockId,
-    cur_join_action: JoinAction,
-    cur_join: Option<BlockId>,
-    ast_fct: &'ast Function,
     ir: Mir,
     var_map: HashMap<VarContextId, VarId>
 }
@@ -46,49 +47,51 @@ enum JoinAction {
 }
 
 impl<'a, 'ast> Generator<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> Generator<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) -> Generator<'a, 'ast> {
+        let ast = fct.ast.unwrap();
+
         Generator {
             ctxt: ctxt,
+            fct: fct,
+            ast: ast,
             vreg: 0,
             result: OpndInt(0),
             cur_block: BlockId(0),
-            cur_join_action: JoinAction::If(0),
-            cur_join: None,
-            ast_fct: fct,
             ir: Mir::new(),
             var_map: HashMap::new(),
         }
     }
 
     fn generate(&mut self) {
-        for p in &self.ast_fct.params {
+        for p in &self.ast.params {
             self.visit_param(p);
         }
 
         self.cur_block = self.ir.add_block();
-        self.visit_stmt(&self.ast_fct.block);
+        self.visit_stmt(&self.ast.block);
 
         self.ensure_return();
 
         let ir = mem::replace(&mut self.ir, Mir::new());
         mir::dump::dump(self.ctxt, &ir);
 
-        self.ctxt.fct_mut(self.ast_fct.id, |fct| fct.ir = Some(ir));
+        self.fct.ir = Some(ir);
     }
 
     fn add_stmt_var(&mut self, stmt: &'ast StmtVarType) {
-        let var_id = self.ctxt.var(self.ast_fct.id, stmt.id, |ctxt_var, ctxt_var_id| {
-            let ir_var_id = self.ir.add_var(stmt.name, ctxt_var.data_type);
-            self.var_map.insert(ctxt_var_id, ir_var_id);
+        let ir_var_id = {
+            let var = self.fct.var_by_node_id(stmt.id);
+            let ir_var_id = self.ir.add_var(stmt.name, var.data_type);
+            self.var_map.insert(var.id, ir_var_id);
 
             ir_var_id
-        });
+        };
 
         if let Some(ref expr) = stmt.expr {
             self.visit_expr(expr);
 
             let src = self.result;
-            self.add_instr_assign(OpndVar(var_id), src);
+            self.add_instr_assign(OpndVar(ir_var_id), src);
         }
     }
 
@@ -212,22 +215,20 @@ impl<'a, 'ast> Generator<'a, 'ast> {
     }
 
     fn add_expr_ident(&mut self, expr: &'ast ExprIdentType) {
-        let var_id = self.ctxt.var(self.ast_fct.id, expr.id, |_, ctxt_var_id| {
-            *self.var_map.get(&ctxt_var_id).unwrap()
-        });
+        let var = self.fct.var_by_node_id(expr.id);
+        let ir_var_id = *self.var_map.get(&var.id).unwrap();
 
-        self.result = OpndVar(var_id);
+        self.result = OpndVar(ir_var_id);
     }
 
     fn add_expr_assign(&mut self, expr: &'ast ExprAssignType) {
-        let var_id = self.ctxt.var(self.ast_fct.id, expr.lhs.id(), |_, ctxt_var_id| {
-            *self.var_map.get(&ctxt_var_id).unwrap()
-        });
+        let var_id = self.fct.var_by_node_id(expr.lhs.id()).id;
+        let ir_var_id = *self.var_map.get(&var_id).unwrap();
 
         self.visit_expr(&expr.rhs);
         let src = self.result;
 
-        self.add_instr_assign(OpndVar(var_id), src);
+        self.add_instr_assign(OpndVar(ir_var_id), src);
     }
 
     fn ensure_return(&mut self) {
@@ -238,8 +239,7 @@ impl<'a, 'ast> Generator<'a, 'ast> {
             return;
         }
 
-        if self.ctxt.fct(self.ast_fct.id,
-                |fct| fct.return_type) == BuiltinType::Unit {
+        if self.fct.return_type == BuiltinType::Unit {
             self.add_instr(Instr::ret());
         }
     }
@@ -268,10 +268,10 @@ impl<'a, 'ast> Generator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for Generator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        self.ctxt.var(self.ast_fct.id, p.id, |ctxt_var, ctxt_var_id| {
-            let ir_var_id = self.ir.add_var(p.name, ctxt_var.data_type);
-            self.var_map.insert(ctxt_var_id, ir_var_id);
-        });
+        let var = self.fct.var_by_node_id(p.id);
+
+        let ir_var_id = self.ir.add_var(p.name, var.data_type);
+        self.var_map.insert(var.id, ir_var_id);
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -318,8 +318,7 @@ mod tests {
             let name = ctxt.interner.intern(fname);
             let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
 
-            let fct = ctxt.fct_by_id(fct_id, |fct| fct.ast.unwrap());
-            mir::gen::generate(ctxt, fct);
+            mir::gen::generate(ctxt, fct_id);
 
             ctxt.fct_by_id(fct_id, |fct| f(ctxt, fct))
         })
