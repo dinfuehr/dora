@@ -1,4 +1,4 @@
-use ctxt::Context;
+use ctxt::{Context, FctContext};
 use error::msg::Msg;
 
 use ast::*;
@@ -9,19 +9,33 @@ use lexer::position::Position;
 use sym::*;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    ReturnCheck::new(ctxt).visit_ast(ast);
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+    let fcts = ctxt.fcts.borrow();
+
+    for fct in fcts.iter() {
+        let mut fct = fct.lock().unwrap();
+
+        if let Some(ast) = fct.ast {
+            let mut returnck = ReturnCheck {
+                ctxt: ctxt,
+                fct: &mut fct,
+                ast: ast,
+            };
+
+            returnck.check();
+        }
+    }
 }
 
 struct ReturnCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
 }
 
 impl<'a, 'ast> ReturnCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> ReturnCheck<'a, 'ast> {
-        ReturnCheck {
-            ctxt: ctxt,
-        }
+    fn check(&mut self) {
+        self.visit_fct(self.ast);
     }
 }
 
@@ -30,7 +44,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
         let returns = returns_value(&f.block);
 
         if let Err(pos) = returns {
-            let return_type = self.ctxt.fct(f.id, |fct| fct.return_type);
+            let return_type = self.fct.return_type;
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
@@ -42,7 +56,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             // save this information for the function, this information is useful
             // for code generation
 
-            self.ctxt.fct_mut(f.id, |fct| fct.always_returns = true);
+            self.fct.always_returns = true;
         }
     }
 }

@@ -1,25 +1,39 @@
-use ctxt::Context;
+use ctxt::{Context, FctContext};
 use error::msg::Msg;
 
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    FlowCheck::new(ctxt).visit_ast(ast);
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+    let fcts = ctxt.fcts.borrow();
+
+    for fct in fcts.iter() {
+        let mut fct = fct.lock().unwrap();
+
+        if let Some(ast) = fct.ast {
+            let mut flowck = FlowCheck {
+                ctxt: ctxt,
+                fct: &mut fct,
+                ast: ast,
+                in_loop: false,
+            };
+
+            flowck.check();
+        }
+    }
 }
 
 struct FlowCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     in_loop: bool,
 }
 
 impl<'a, 'ast> FlowCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> FlowCheck<'a, 'ast> {
-        FlowCheck {
-            ctxt: ctxt,
-            in_loop: false
-        }
+    fn check(&mut self) {
+        self.visit_fct(self.ast);
     }
 
     fn handle_loop(&mut self, block: &'ast Stmt) {
