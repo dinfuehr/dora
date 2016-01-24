@@ -40,6 +40,7 @@ fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: 
     let name = ctxt.interner.intern(name);
 
     let fct = FctContext {
+        id: FctContextId(0),
         name: name,
         params_types: args,
         return_type: ret,

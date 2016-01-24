@@ -13,7 +13,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
         let mut fct = fct.lock().unwrap();
 
         if let Some(ast) = fct.ast {
-            let mut defck = DefCheck {
+            let mut defck = TypeDefCheck {
                 ctxt: ctxt,
                 fct: &mut fct,
                 ast: ast,
@@ -25,20 +25,20 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
     }
 }
 
-struct DefCheck<'a, 'ast: 'a> {
+struct TypeDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'a mut FctContext<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
 }
 
-impl<'a, 'ast> DefCheck<'a, 'ast> {
+impl<'a, 'ast> TypeDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor<'ast> for TypeDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         for p in &f.params {
             self.visit_param(p);
@@ -65,7 +65,7 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
         if let StmtVar(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
-                
+
                 let var = self.fct.var_by_node_id_mut(var.id);
                 var.data_type = self.current_type;
             }

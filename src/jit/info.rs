@@ -180,7 +180,9 @@ mod tests {
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
-              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |_, _, info| {
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
+                  return 0;
+              }", |_, _, info| {
             assert_eq!(20, info.tempsize);
         });
     }

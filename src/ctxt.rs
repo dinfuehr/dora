@@ -55,9 +55,11 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_function(&self, fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
+    pub fn add_function(&self, mut fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
         let name = fct.name;
         let fctid = FctContextId(self.fcts.borrow().len());
+
+        fct.id = fctid;
 
         if let Some(ast) = fct.ast {
             assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
@@ -136,6 +138,8 @@ pub struct FctContextId(pub usize);
 
 #[derive(Debug)]
 pub struct FctContext<'ast> {
+    pub id: FctContextId,
+
     pub name: Name,
 
     pub params_types: Vec<BuiltinType>,

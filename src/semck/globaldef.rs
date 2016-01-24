@@ -24,6 +24,7 @@ struct GlobalDef<'a, 'ast: 'a> {
 impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         let fct = FctContext {
+            id: FctContextId(0),
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,

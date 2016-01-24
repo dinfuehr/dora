@@ -1,4 +1,4 @@
-use ctxt::Context;
+use ctxt::{Context, FctContext};
 use error::msg::Msg;
 
 use ast::*;
@@ -12,22 +12,34 @@ use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
-    TypeCheck::new(ctxt).visit_ast(ctxt.ast);
+    let fcts = ctxt.fcts.borrow();
+
+    for fct in fcts.iter() {
+        let mut fct = fct.lock().unwrap();
+
+        if let Some(ast) = fct.ast {
+            let mut typeck = TypeCheck {
+                ctxt: ctxt,
+                fct: &mut fct,
+                ast: ast,
+                expr_type: BuiltinType::Unit,
+            };
+
+            typeck.check();
+        }
+    }
 }
 
 struct TypeCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     expr_type: BuiltinType,
-    fct: Option<&'ast Function>,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> TypeCheck<'a, 'ast> {
-        TypeCheck {
-            ctxt: ctxt,
-            expr_type: BuiltinType::Unit,
-            fct: None
-        }
+    fn check(&mut self) {
+        self.visit_fct(self.ast);
     }
 
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
@@ -37,7 +49,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         let defined_type = if let Some(_) = s.data_type {
-            let ty = self.ctxt.var(self.fct.unwrap().id, s.id, |var, _| var.data_type);
+            let ty = self.fct.var_by_node_id(s.id).data_type;
             if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
             expr_type
@@ -55,9 +67,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.ctxt.var_mut(self.fct.unwrap().id, s.id, |var, _| {
-            var.data_type = defined_type
-        });
+        self.fct.var_by_node_id_mut(s.id).data_type = defined_type;
 
         if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
             let varname = self.ctxt.interner.str(s.name).to_string();
@@ -105,8 +115,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         }).unwrap_or(BuiltinType::Unit);
 
-        let fct = self.fct.unwrap();
-        let fct_type = self.ctxt.fct(fct.id, |fct| fct.return_type);
+        let fct_type = self.fct.return_type;
 
         if expr_type != fct_type {
             let msg = Msg::ReturnType(fct_type.to_string(), expr_type.to_string());
@@ -115,7 +124,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        self.expr_type = self.ctxt.var(self.fct.unwrap().id, e.id, |var, _| var.data_type);
+        self.expr_type = self.fct.var_by_node_id(e.id).data_type;
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
@@ -188,38 +197,44 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        let fct_id = self.ctxt.fct(self.fct.unwrap().id, |caller| {
-            *caller.calls.get(&e.id).unwrap()
-        });
+        let callee_id = *self.fct.calls.get(&e.id).unwrap();
+        let caller_id = self.fct.id;
 
-        self.ctxt.fct_by_id(fct_id, |callee| {
+        let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
+            self.visit_expr(arg);
+            self.expr_type
+        }).collect();
+
+        let callee_name;
+        let callee_params;
+        let callee_return;
+
+        if callee_id == caller_id {
+            callee_name = self.fct.name;
+            callee_params = self.fct.params_types.clone();
+            callee_return = self.fct.return_type;
+
+        } else {
             let fcts = self.ctxt.fcts.borrow();
-            let fct = &fcts[fct_id.0];
-            self.expr_type = callee.return_type;
+            let fct = fcts[callee_id.0].clone();
+            let callee = &mut fct.lock().unwrap();
 
-            let mut call_types = Vec::with_capacity(e.args.len());
+            callee_name = callee.name;
+            callee_params = callee.params_types.clone();
+            callee_return = callee.return_type;
+        }
 
-            for arg in &e.args {
-                self.visit_expr(arg);
-                call_types.push(self.expr_type);
-            }
+        self.expr_type = callee_return;
 
-            if callee.params_types != call_types {
-                let fct_name = self.ctxt.interner.str(callee.name).to_string();
-                let msg = Msg::ParamTypesIncompatible(fct_name, callee.params_types.clone(), call_types);
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            }
-        })
+        if callee_params != call_types {
+            let callee_name = self.ctxt.interner.str(callee_name).to_string();
+            let msg = Msg::ParamTypesIncompatible(callee_name, callee_params.clone(), call_types);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
-        self.fct = Some(f);
-
-        visit::walk_fct(self, f);
-    }
-
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitInt(_) => self.expr_type = BuiltinType::Int,
@@ -319,6 +334,12 @@ mod tests {
         ok("fn f() -> int { return 1; }");
         err("fn f() -> int { return; }", pos(1, 17),
             Msg::ReturnType("int".into(), "()".into()));
+
+        ok("fn f() -> int { return 0; }
+            fn g() -> int { return f(); }");
+        err("fn f() { }
+             fn g() -> int { return f(); }", pos(2, 30),
+             Msg::ReturnType("int".into(), "()".into()));
     }
 
     #[test]
@@ -381,6 +402,11 @@ mod tests {
     #[test]
     fn type_ident_in_function_params() {
         ok("fn f(a: int) {}\nfn g() { var a = 1; f(a); }");
+    }
+
+    #[test]
+    fn type_recursive_function_call() {
+        ok("fn f(a: int) { f(a); }");
     }
 
     #[test]
