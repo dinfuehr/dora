@@ -21,7 +21,7 @@ pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     globaldef::check(ctxt);
     return_on_error!(ctxt);
 
-    nameck::check(ctxt, ctxt.ast);
+    nameck::check(ctxt);
     return_on_error!(ctxt);
 
     typeck::check(ctxt, ctxt.ast);

@@ -12,28 +12,68 @@ use interner::Name;
 use lexer::position::Position;
 use mem::Ptr;
 
+use sym::Sym;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>, ast: &'ast Ast) {
-    NameCheck::new(ctxt).visit_ast(ast);
+pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+    let fcts = ctxt.fcts.borrow();
+
+    for fct in fcts.iter() {
+        let mut fct = fct.lock().unwrap();
+
+        if let Some(ast) = fct.ast {
+            NameCheck::new(ctxt, &mut fct, ast).check();
+        }
+    }
 }
 
 struct NameCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: Option<NodeId>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> NameCheck<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>, ast: &'ast Function) -> NameCheck<'a, 'ast> {
         NameCheck {
             ctxt: ctxt,
-            fct: None,
+            fct: fct,
+            ast: ast,
         }
     }
 
+    fn check(&mut self) {
+        self.ctxt.sym.borrow_mut().push_level();
+
+        for p in &self.ast.params { self.visit_param(p); }
+        self.visit_stmt(&self.ast.block);
+
+        self.ctxt.sym.borrow_mut().pop_level();
+    }
+
+    pub fn add_var<F>(&mut self, var: VarContext, replacable: F) ->
+            Result<VarContextId, Sym> where F: FnOnce(&Sym) -> bool {
+        let name = var.name;
+        let varid = VarContextId(self.fct.vars.len());
+
+        let result = match self.ctxt.sym.borrow().get(name) {
+            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
+            None => Ok(varid)
+        };
+
+        if result.is_ok() {
+            self.ctxt.sym.borrow_mut().insert(name, SymVar(varid));
+            assert!(self.fct.defs.insert(var.node_id, varid).is_none());
+        }
+
+        self.fct.vars.push(var);
+
+        result
+    }
+
     fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
-        let VarContext = VarContext {
+        let var_ctxt = VarContext {
             name: var.name,
             data_type: BuiltinType::Unit,
             node_id: var.id,
@@ -42,7 +82,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), VarContext, |sym| !sym.is_type()) {
+        if let Err(sym) = self.add_var(var_ctxt, |sym| !sym.is_type()) {
             let name = str(self.ctxt, var.name);
             report(self.ctxt, var.pos, Msg::ShadowType(name));
         }
@@ -60,18 +100,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
-    fn visit_fct(&mut self, f: &'ast Function) {
-        self.fct = Some(f.id);
-        self.ctxt.sym.borrow_mut().push_level();
-
-        for p in &f.params { self.visit_param(p); }
-        self.visit_stmt(&f.block);
-
-        self.ctxt.sym.borrow_mut().pop_level();
-    }
-
     fn visit_param(&mut self, p: &'ast Param) {
-        let var = VarContext {
+        let var_ctxt = VarContext {
             name: p.name,
             data_type: BuiltinType::Unit,
             node_id: p.id,
@@ -80,7 +110,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        if let Err(sym) = self.ctxt.add_var(self.fct.unwrap(), var, |sym| sym.is_function()) {
+        if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_function()) {
             let name = str(self.ctxt, p.name);
             let msg = if sym.is_type() {
                 Msg::ShadowType(name)
@@ -106,9 +136,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *e {
             ExprIdent(ref ident) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-                    self.ctxt.fct_mut(self.fct.unwrap(), |fct| {
-                        fct.defs.insert(ident.id, id);
-                    });
+                    self.fct.defs.insert(ident.id, id);
                 } else {
                     let name = str(self.ctxt, ident.name);
                     report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
@@ -117,9 +145,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.ctxt.fct_mut(self.fct.unwrap(), |fct| {
-                        fct.calls.insert(call.id, id);
-                    });
+                    self.fct.calls.insert(call.id, id);
                 } else {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));
