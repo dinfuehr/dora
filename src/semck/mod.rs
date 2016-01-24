@@ -1,11 +1,11 @@
 use ctxt::Context;
 
-mod defck;
 mod flowck;
 mod globaldef;
 mod nameck;
 mod prelude;
 mod typeck;
+mod typedefck;
 mod returnck;
 
 macro_rules! return_on_error {
@@ -19,21 +19,28 @@ pub fn check<'a>(ctxt: &Context<'a, 'a>) {
     prelude::init(ctxt);
 
     // add user defined fcts and types to ctxt
+    // does not look into fct bodies
     globaldef::check(ctxt);
     return_on_error!(ctxt);
 
+    // check names/identifiers of local variables
+    // and their usage in function bodies
     nameck::check(ctxt);
     return_on_error!(ctxt);
 
-    // check type definitions
-    defck::check(ctxt);
+    // check type definitions of params,
+    // return types and local variables
+    typedefck::check(ctxt);
     return_on_error!(ctxt);
 
-    // check types in expressions
+    // check types of expressions in functions
     typeck::check(ctxt);
     return_on_error!(ctxt);
 
+    // are break and continue used in the right places?
     flowck::check(ctxt, ctxt.ast);
+
+    // checks if function has a return value
     returnck::check(ctxt, ctxt.ast);
 }
 
