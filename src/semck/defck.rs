@@ -2,46 +2,51 @@ use ast::*;
 use ast::Stmt::*;
 use ast::Type::*;
 use ast::visit::*;
-use ctxt::Context;
+use ctxt::{Context, FctContext};
 use error::msg::Msg;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
-    DefCheck::new(ctxt).visit_ast(ctxt.ast);
+    let fcts = ctxt.fcts.borrow();
+
+    for fct in fcts.iter() {
+        let mut fct = fct.lock().unwrap();
+
+        if let Some(ast) = fct.ast {
+            let mut defck = DefCheck {
+                ctxt: ctxt,
+                fct: &mut fct,
+                ast: ast,
+                current_type: BuiltinType::Unit,
+            };
+
+            defck.check();
+        }
+    }
 }
 
 struct DefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    current_fct: Option<NodeId>,
-    current_id: Option<NodeId>,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     current_type: BuiltinType,
 }
 
 impl<'a, 'ast> DefCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> DefCheck<'a, 'ast> {
-        DefCheck {
-            ctxt: ctxt,
-            current_fct: None,
-            current_id: None,
-            current_type: BuiltinType::Unit,
-        }
+    fn check(&mut self) {
+        self.visit_fct(self.ast);
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        self.current_fct = Some(f.id);
-
         for p in &f.params {
             self.visit_param(p);
         }
 
         if let Some(ref ty) = f.return_type {
             self.visit_type(ty);
-
-            self.ctxt.fct_mut(self.current_fct.unwrap(), |fct| {
-                fct.return_type = self.current_type;
-            });
+            self.fct.return_type = self.current_type;
         }
 
         self.visit_stmt(&f.block);
@@ -49,20 +54,20 @@ impl<'a, 'ast> Visitor<'ast> for DefCheck<'a, 'ast> {
 
     fn visit_param(&mut self, p: &'ast Param) {
         self.visit_type(&p.data_type);
-        self.ctxt.var_mut(self.current_fct.unwrap(), p.id, |var, _| { var.data_type = self.current_type; });
 
-        self.ctxt.fct_mut(self.current_fct.unwrap(), |fct| {
-            fct.params_types.push(self.current_type);
-        });
+        self.fct.params_types.push(self.current_type);
+
+        let var = self.fct.var_by_node_id_mut(p.id);
+        var.data_type = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
-                self.ctxt.var_mut(self.current_fct.unwrap(), var.id, |var, _| {
-                    var.data_type = self.current_type;
-                });
+                
+                let var = self.fct.var_by_node_id_mut(var.id);
+                var.data_type = self.current_type;
             }
 
             if let Some(ref expr) = var.expr {

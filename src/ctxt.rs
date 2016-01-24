@@ -77,29 +77,6 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_var<F>(&self, fct: NodeId, var: VarContext, replacable: F) ->
-            Result<VarContextId, Sym> where F: FnOnce(&Sym) -> bool {
-        let name = var.name;
-        let varid = self.fct(fct, |fct| fct.vars.len());
-        let varid = VarContextId(varid);
-
-        let result = match self.sym.borrow().get(name) {
-            Some(sym) => if replacable(&sym) { Ok(varid) } else { Err(sym) },
-            None => Ok(varid)
-        };
-
-        if result.is_ok() {
-            self.sym.borrow_mut().insert(name, SymVar(varid));
-            self.fct_mut(fct, |fct| {
-                assert!(fct.defs.insert(var.node_id, varid).is_none());
-            });
-        }
-
-        self.fct_mut(fct, |fct| { fct.vars.push(var); });
-
-        result
-    }
-
     pub fn fct_by_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
         let fct = {
             let fcts = self.fcts.borrow();
@@ -186,6 +163,20 @@ pub struct FctContext<'ast> {
 
     // compiler stub
     pub stub: Option<Stub>
+}
+
+impl<'ast> FctContext<'ast> {
+    pub fn var_by_node_id(&self, id: NodeId) -> &VarContext {
+        let varid = *self.defs.get(&id).unwrap();
+
+        &self.vars[varid.0]
+    }
+
+    pub fn var_by_node_id_mut(&mut self, id: NodeId) -> &mut VarContext {
+        let varid = *self.defs.get(&id).unwrap();
+
+        &mut self.vars[varid.0]
+    }
 }
 
 #[derive(Debug)]

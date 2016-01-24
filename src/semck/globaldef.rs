@@ -10,19 +10,15 @@ use lexer::position::Position;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
-    GlobalDef::new(ctxt).visit_ast(ctxt.ast);
+    let mut gdef = GlobalDef {
+        ctxt: ctxt
+    };
+
+    gdef.visit_ast(ctxt.ast);
 }
 
 struct GlobalDef<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>
-}
-
-impl<'a, 'ast> GlobalDef<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>) -> GlobalDef<'a, 'ast> {
-        GlobalDef {
-            ctxt: ctxt
-        }
-    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {

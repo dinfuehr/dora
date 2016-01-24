@@ -23,7 +23,13 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
         let mut fct = fct.lock().unwrap();
 
         if let Some(ast) = fct.ast {
-            NameCheck::new(ctxt, &mut fct, ast).check();
+            let mut nameck = NameCheck {
+                ctxt: ctxt,
+                fct: &mut fct,
+                ast: ast,
+            };
+
+            nameck.check();
         }
     }
 }
