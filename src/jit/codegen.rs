@@ -4,7 +4,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::*;
+use ctxt::{Context, FctContext, VarContextId};
 use dseg::DSeg;
 
 use jit::buffer::*;
@@ -13,9 +13,29 @@ use jit::fct::JitFct;
 use jit::info;
 use jit::info::Info;
 
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> JitFct {
+    ctxt.fct_by_node_id_mut(ast.id, |fct| {
+        let mut cg = CodeGen {
+            ctxt: ctxt,
+            fct: fct,
+            ast: ast,
+            buf: Buffer::new(),
+            dseg: DSeg::new(),
+
+            info: Default::default(),
+
+            lbl_break: None,
+            lbl_continue: None
+        };
+
+        cg.generate()
+    })
+}
+
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'ast Function,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     buf: Buffer,
     dseg: DSeg,
 
@@ -26,20 +46,6 @@ pub struct CodeGen<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
-    pub fn new(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> CodeGen<'a, 'ast> {
-        CodeGen {
-            ctxt: ctxt,
-            fct: fct,
-            buf: Buffer::new(),
-            dseg: DSeg::new(),
-
-            info: Default::default(),
-
-            lbl_break: None,
-            lbl_continue: None
-        }
-    }
-
     pub fn generate(mut self) -> JitFct {
         self.info = info::generate(self.ctxt, self.fct);
 
@@ -49,9 +55,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.emit_prolog();
         self.store_register_params_on_stack();
-        self.visit_fct(self.fct);
+        self.visit_fct(self.ast);
 
-        let always_returns = self.ctxt.fct_by_node_id(self.fct.id, |fct| fct.always_returns);
+        let always_returns = self.fct.always_returns;
 
         if !always_returns {
             self.emit_epilog();
@@ -62,12 +68,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let params_len = self.fct.params.len();
+        let params_len = self.ast.params.len();
         if params_len == 0 { return; }
 
-        for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
-            let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&p.id).unwrap());
-            var_store(&mut self.buf, self.ctxt, self.fct.id, *reg, varid);
+        for (reg, p) in REG_PARAMS.iter().zip(&self.ast.params) {
+            var_store(&mut self.buf, self.fct, *reg, p.id);
         }
     }
 
@@ -179,14 +184,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
-            let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&s.id).unwrap());
 
-            var_store(&mut self.buf, self.ctxt, self.fct.id, reg, varid);
+            var_store(&mut self.buf, self.fct, reg, s.id);
         }
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.buf,
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast, &mut self.buf,
             &mut self.dseg, self.info.localsize);
 
         expr_gen.generate(e)
@@ -218,20 +222,16 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, src: Reg, var: VarContextId) {
-    ctxt.fct_by_node_id(fctid, |fct| {
-        let var = &fct.vars[var.0];
+pub fn var_store(buf: &mut Buffer, fct: &FctContext, src: Reg, var_id: NodeId) {
+    let var = fct.var_by_node_id(var_id);
 
-        emit::mov_reg_local(buf, var.data_type, src, var.offset);
-    })
+    emit::mov_reg_local(buf, var.data_type, src, var.offset);
 }
 
-pub fn var_load(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, var: VarContextId, dest: Reg) {
-    ctxt.fct_by_node_id(fctid, |fct| {
-        let var = &fct.vars[var.0];
+pub fn var_load(buf: &mut Buffer, fct: &FctContext, var_id: NodeId, dest: Reg) {
+    let var = fct.var_by_node_id(var_id);
 
-        emit::mov_local_reg(buf, var.data_type, var.offset, dest);
-    });
+    emit::mov_local_reg(buf, var.data_type, var.offset, dest);
 }
 
 #[cfg(test)]

@@ -13,7 +13,8 @@ use ty::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'ast Function,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
     buf: &'a mut Buffer,
     dseg: &'a mut DSeg,
     tempsize: i32,
@@ -23,7 +24,8 @@ pub struct ExprGen<'a, 'ast: 'a> {
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
         ctxt: &'a Context<'a, 'ast>,
-        fct: &'ast Function,
+        fct: &'a mut FctContext<'ast>,
+        ast: &'ast Function,
         buf: &'a mut Buffer,
         dseg: &'a mut DSeg,
         localsize: i32,
@@ -31,6 +33,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
+            ast: ast,
             buf: buf,
             dseg: dseg,
             tempsize: 0,
@@ -67,9 +70,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&e.id).unwrap());
-
-        codegen::var_load(self.buf, self.ctxt, self.fct.id, varid, dest);
+        codegen::var_load(self.buf, self.fct, e.id, dest);
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
@@ -86,9 +87,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         self.emit_expr(&e.rhs, dest);
 
-        let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&e.lhs.id()).unwrap());
-
-        codegen::var_store(&mut self.buf, self.ctxt, self.fct.id, dest, varid);
+        codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -240,9 +239,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let fid = self.ctxt.fct_by_node_id(self.fct.id, |caller| {
-            *caller.calls.get(&e.id).unwrap()
-        });
+        let fid = *self.fct.calls.get(&e.id).unwrap();
 
         let ptr = self.ctxt.fct_by_id_mut(fid, |fct| {
             match fct.code {

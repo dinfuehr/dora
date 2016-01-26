@@ -10,23 +10,23 @@ use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> Info {
-    ctxt.fct_by_node_id_mut(ast.id, |fct| {
-        let mut ig = InfoGenerator {
-            ctxt: ctxt,
-            fct: fct,
-            ast: ast,
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) -> Info {
+    let ast = fct.ast.unwrap();
 
-            localsize: 0,
-            max_tempsize: 0,
-            cur_tempsize: 0,
+    let mut ig = InfoGenerator {
+        ctxt: ctxt,
+        fct: fct,
+        ast: ast,
 
-            param_offset: cpu::PARAM_OFFSET,
-            fct_call: false,
-        };
+        localsize: 0,
+        max_tempsize: 0,
+        cur_tempsize: 0,
 
-        ig.generate()
-    })
+        param_offset: cpu::PARAM_OFFSET,
+        fct_call: false,
+    };
+
+    ig.generate()
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
@@ -118,6 +118,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 }
 
+#[derive(Debug)]
 pub struct Info {
     pub localsize: i32,
     pub tempsize: i32,
@@ -149,10 +150,11 @@ mod tests {
 
     fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctContext, Info) {
         test::parse(code, |ctxt| {
-            let fct = ctxt.ast.elements[0].to_function().unwrap();
-            let info = generate(ctxt, fct);
+            let ast = ctxt.ast.elements[0].to_function().unwrap();
 
-            ctxt.fct_by_node_id(fct.id, |fct| {
+            ctxt.fct_by_node_id_mut(ast.id, |fct| {
+                let info = generate(ctxt, fct);
+
                 f(ctxt, fct, info);
             });
         });
