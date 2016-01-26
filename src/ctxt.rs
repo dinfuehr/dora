@@ -140,6 +140,14 @@ pub struct FctContext<'ast> {
 
     pub ir: Option<Mir>,
 
+    // size of temporary variables on stack
+    pub tempsize: i32,
+
+    // size of local variables on stack
+    pub localsize: i32,
+
+    pub leaf: bool,
+
     pub vars: Vec<VarContext>,
 
     // true if function is always exited via return statement
@@ -154,6 +162,10 @@ pub struct FctContext<'ast> {
 }
 
 impl<'ast> FctContext<'ast> {
+    pub fn stacksize(&self) -> i32 {
+        self.tempsize + self.localsize
+    }
+
     pub fn var_by_node_id(&self, id: NodeId) -> &VarContext {
         let varid = *self.defs.get(&id).unwrap();
 

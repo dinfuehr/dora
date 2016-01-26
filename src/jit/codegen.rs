@@ -11,7 +11,6 @@ use jit::buffer::*;
 use jit::expr::*;
 use jit::fct::JitFct;
 use jit::info;
-use jit::info::Info;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> JitFct {
     ctxt.fct_by_node_id_mut(ast.id, |fct| {
@@ -21,8 +20,6 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) 
             ast: ast,
             buf: Buffer::new(),
             dseg: DSeg::new(),
-
-            info: Default::default(),
 
             lbl_break: None,
             lbl_continue: None
@@ -39,15 +36,13 @@ pub struct CodeGen<'a, 'ast: 'a> {
     buf: Buffer,
     dseg: DSeg,
 
-    info: Info,
-
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn generate(mut self) -> JitFct {
-        self.info = info::generate(self.ctxt, self.fct);
+        info::generate(self.ctxt, self.fct);
 
         if self.ctxt.args.flag_emit_debug {
             emit::debug(&mut self.buf);
@@ -77,11 +72,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_prolog(&mut self) {
-        emit::prolog(&mut self.buf, self.info.stacksize());
+        emit::prolog(&mut self.buf, self.fct.stacksize());
     }
 
     fn emit_epilog(&mut self) {
-        emit::epilog(&mut self.buf, self.info.stacksize());
+        emit::epilog(&mut self.buf, self.fct.stacksize());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -191,7 +186,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast, &mut self.buf,
-            &mut self.dseg, self.info.localsize);
+            &mut self.dseg);
 
         expr_gen.generate(e)
     }

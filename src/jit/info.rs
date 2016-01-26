@@ -10,7 +10,7 @@ use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) -> Info {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) {
     let ast = fct.ast.unwrap();
 
     let mut ig = InfoGenerator {
@@ -23,10 +23,10 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctConte
         cur_tempsize: 0,
 
         param_offset: cpu::PARAM_OFFSET,
-        fct_call: false,
+        leaf: true,
     };
 
-    ig.generate()
+    ig.generate();
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
@@ -39,18 +39,16 @@ struct InfoGenerator<'a, 'ast: 'a> {
     cur_tempsize: i32,
 
     param_offset: i32,
-    fct_call: bool,
+    leaf: bool,
 }
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
-    fn generate(&mut self) -> Info {
+    fn generate(&mut self) {
         self.visit_fct(self.ast);
 
-        Info {
-            localsize: self.localsize,
-            tempsize: self.max_tempsize,
-            fct_call: self.fct_call,
-        }
+        self.fct.localsize = self.localsize;
+        self.fct.tempsize = self.max_tempsize;
+        self.fct.leaf = self.leaf;
     }
 
     fn reserve_stack_for_var(&mut self, id: NodeId) {
@@ -98,7 +96,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         match *e {
             ExprCall(ref expr) => {
                 // function invokes another function
-                self.fct_call = true;
+                self.leaf = false;
 
                 // some function parameters are stored on stack,
                 // reservere space for them
@@ -118,29 +116,6 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 }
 
-#[derive(Debug)]
-pub struct Info {
-    pub localsize: i32,
-    pub tempsize: i32,
-    pub fct_call: bool,
-}
-
-impl Info {
-    pub fn stacksize(&self) -> i32 {
-        self.localsize + self.tempsize
-    }
-}
-
-impl Default for Info {
-    fn default() -> Info {
-        Info {
-            localsize: 0,
-            tempsize: 0,
-            fct_call: false,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,60 +123,60 @@ mod tests {
     use ctxt::*;
     use test;
 
-    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Context, &FctContext, Info) {
+    fn info<F>(code: &'static str, f: F) where F: FnOnce(&FctContext) {
         test::parse(code, |ctxt| {
             let ast = ctxt.ast.elements[0].to_function().unwrap();
 
             ctxt.fct_by_node_id_mut(ast.id, |fct| {
-                let info = generate(ctxt, fct);
+                generate(ctxt, fct);
 
-                f(ctxt, fct, info);
+                f(fct);
             });
         });
     }
 
     #[test]
     fn test_tempsize() {
-        info("fn f() { 1+2*3; }", |_, _, info| { assert_eq!(4, info.tempsize); });
-        info("fn f() { 2*3+4+5; }", |_, _, info| { assert_eq!(0, info.tempsize); });
-        info("fn f() { 1+(2+(3+4)); }", |_, _, info| { assert_eq!(8, info.tempsize); })
+        info("fn f() { 1+2*3; }", |fct| { assert_eq!(4, fct.tempsize); });
+        info("fn f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.tempsize); });
+        info("fn f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.tempsize); })
     }
 
     #[test]
     fn test_tempsize_for_fct_call() {
         info("fn f() { g(1,2,3,4,5,6); }
-              fn g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |_, _, info| {
-            assert_eq!(0, info.tempsize);
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |fct| {
+            assert_eq!(0, fct.tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8); }
-              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |_, _, info| {
-            assert_eq!(16, info.tempsize);
+              fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
+            assert_eq!(16, fct.tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
-              }", |_, _, info| {
-            assert_eq!(20, info.tempsize);
+              }", |fct| {
+            assert_eq!(20, fct.tempsize);
         });
     }
 
     #[test]
     fn test_invocation_flag() {
-        info("fn f() { g(); } fn g() { }", |_, _, info| {
-            assert!(info.fct_call);
+        info("fn f() { g(); } fn g() { }", |fct| {
+            assert!(!fct.leaf);
         });
 
-        info("fn f() { }", |_, _, info| {
-            assert!(!info.fct_call);
+        info("fn f() { }", |fct| {
+            assert!(fct.leaf);
         });
     }
 
     #[test]
     fn test_param_offset() {
-        info("fn f(a: bool, b: int) { var c = 1; }", |ctxt, fct, info| {
-            assert_eq!(12, info.localsize);
+        info("fn f(a: bool, b: int) { var c = 1; }", |fct| {
+            assert_eq!(12, fct.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, var.offset);
@@ -214,8 +189,8 @@ mod tests {
         info("fn f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int) {
                   var i : int = 1;
-              }", |ctxt, fct, info| {
-            assert_eq!(28, info.localsize);
+              }", |fct| {
+            assert_eq!(28, fct.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
@@ -226,8 +201,8 @@ mod tests {
 
     #[test]
     fn test_var_offset() {
-        info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |ctxt, fct, info| {
-            assert_eq!(16, info.localsize);
+        info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |fct| {
+            assert_eq!(16, fct.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
                 assert_eq!(*offset, var.offset);
