@@ -11,7 +11,7 @@ use mem;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> Info {
-    ctxt.fct_mut(ast.id, |fct| {
+    ctxt.fct_by_node_id_mut(ast.id, |fct| {
         let mut ig = InfoGenerator {
             ctxt: ctxt,
             fct: fct,
@@ -152,7 +152,7 @@ mod tests {
             let fct = ctxt.ast.elements[0].to_function().unwrap();
             let info = generate(ctxt, fct);
 
-            ctxt.fct(fct.id, |fct| {
+            ctxt.fct_by_node_id(fct.id, |fct| {
                 f(ctxt, fct, info);
             });
         });

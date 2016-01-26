@@ -67,7 +67,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&e.id).unwrap());
+        let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&e.id).unwrap());
 
         codegen::var_load(self.buf, self.ctxt, self.fct.id, varid, dest);
     }
@@ -86,7 +86,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         self.emit_expr(&e.rhs, dest);
 
-        let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&e.lhs.id()).unwrap());
+        let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&e.lhs.id()).unwrap());
 
         codegen::var_store(&mut self.buf, self.ctxt, self.fct.id, dest, varid);
     }
@@ -240,7 +240,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let fid = self.ctxt.fct(self.fct.id, |caller| {
+        let fid = self.ctxt.fct_by_node_id(self.fct.id, |caller| {
             *caller.calls.get(&e.id).unwrap()
         });
 

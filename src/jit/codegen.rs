@@ -51,7 +51,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.store_register_params_on_stack();
         self.visit_fct(self.fct);
 
-        let always_returns = self.ctxt.fct(self.fct.id, |fct| fct.always_returns);
+        let always_returns = self.ctxt.fct_by_node_id(self.fct.id, |fct| fct.always_returns);
 
         if !always_returns {
             self.emit_epilog();
@@ -66,7 +66,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if params_len == 0 { return; }
 
         for (reg, p) in REG_PARAMS.iter().zip(&self.fct.params) {
-            let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&p.id).unwrap());
+            let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&p.id).unwrap());
             var_store(&mut self.buf, self.ctxt, self.fct.id, *reg, varid);
         }
     }
@@ -179,7 +179,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
-            let varid = self.ctxt.fct(self.fct.id, |fct| *fct.defs.get(&s.id).unwrap());
+            let varid = self.ctxt.fct_by_node_id(self.fct.id, |fct| *fct.defs.get(&s.id).unwrap());
 
             var_store(&mut self.buf, self.ctxt, self.fct.id, reg, varid);
         }
@@ -219,7 +219,7 @@ pub enum JumpCond {
 }
 
 pub fn var_store(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, src: Reg, var: VarContextId) {
-    ctxt.fct(fctid, |fct| {
+    ctxt.fct_by_node_id(fctid, |fct| {
         let var = &fct.vars[var.0];
 
         emit::mov_reg_local(buf, var.data_type, src, var.offset);
@@ -227,7 +227,7 @@ pub fn var_store(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, src: Reg, var:
 }
 
 pub fn var_load(buf: &mut Buffer, ctxt: &Context, fctid: NodeId, var: VarContextId, dest: Reg) {
-    ctxt.fct(fctid, |fct| {
+    ctxt.fct_by_node_id(fctid, |fct| {
         let var = &fct.vars[var.0];
 
         emit::mov_local_reg(buf, var.data_type, var.offset, dest);

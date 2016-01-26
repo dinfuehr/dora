@@ -101,14 +101,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&mut fctxt)
     }
 
-    pub fn fct_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+    pub fn fct_by_node_id_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
         let fct_id = *map.get(&id).unwrap();
 
         self.fct_by_id_mut(fct_id, f)
     }
 
-    pub fn fct<F, R>(&self, id: NodeId, f: F) -> R where
+    pub fn fct_by_node_id<F, R>(&self, id: NodeId, f: F) -> R where
                      F: FnOnce(&FctContext<'ast>) -> R {
         let map = self.fct_defs.borrow();
         let fct_id = *map.get(&id).unwrap();
