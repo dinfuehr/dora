@@ -6,7 +6,7 @@ use ctxt::Context;
 use driver::cmd::{self, AsmSyntax};
 use error::msg::Msg;
 
-use jit::codegen::CodeGen;
+use jit;
 use jit::fct::JitFct;
 use lexer::position::Position;
 use os;
@@ -64,9 +64,7 @@ pub fn start() -> i32 {
     }
 
     let main = main.unwrap();
-
-    let cg = CodeGen::new(&ctxt, main);
-    let jit_fct = cg.generate();
+    let jit_fct = jit::generate(&ctxt, main);
 
     if args.flag_emit_asm {
         dump_asm(&jit_fct, &ctxt.interner.str(main.name),
