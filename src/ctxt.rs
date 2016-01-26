@@ -115,14 +115,6 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         self.fct_by_id(fct_id, f)
     }
-
-    pub fn var_mut<F, R>(&self, fctid: NodeId, id: NodeId, f: F) -> R where
-                         F: FnOnce(&mut VarContext, VarContextId) -> R {
-        self.fct_mut(fctid, |fct| {
-            let varid = *fct.defs.get(&id).unwrap();
-            f(&mut fct.vars[varid.0], varid)
-        })
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

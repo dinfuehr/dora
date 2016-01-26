@@ -5,40 +5,34 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu;
-use ctxt::Context;
+use ctxt::{Context, FctContext};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> Info {
-    InfoGenerator::new(ctxt, fct).generate()
-}
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> Info {
+    ctxt.fct_mut(ast.id, |fct| {
+        let mut ig = InfoGenerator {
+            ctxt: ctxt,
+            fct: fct,
+            ast: ast,
 
-pub struct Info {
-    pub localsize: i32,
-    pub tempsize: i32,
-    pub fct_call: bool,
-}
-
-impl Info {
-    pub fn stacksize(&self) -> i32 {
-        self.localsize + self.tempsize
-    }
-}
-
-impl Default for Info {
-    fn default() -> Info {
-        Info {
             localsize: 0,
-            tempsize: 0,
+            max_tempsize: 0,
+            cur_tempsize: 0,
+
+            param_offset: cpu::PARAM_OFFSET,
             fct_call: false,
-        }
-    }
+        };
+
+        ig.generate()
+    })
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'ast Function,
+    fct: &'a mut FctContext<'ast>,
+    ast: &'ast Function,
 
     localsize: i32,
     max_tempsize: i32,
@@ -49,23 +43,8 @@ struct InfoGenerator<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> InfoGenerator<'a, 'ast> {
-        InfoGenerator {
-            ctxt: ctxt,
-            fct: fct,
-
-            localsize: 0,
-            max_tempsize: 0,
-            cur_tempsize: 0,
-
-            param_offset: cpu::PARAM_OFFSET,
-
-            fct_call: false,
-        }
-    }
-
-    fn generate(mut self) -> Info {
-        self.visit_fct(self.fct);
+    fn generate(&mut self) -> Info {
+        self.visit_fct(self.ast);
 
         Info {
             localsize: self.localsize,
@@ -75,11 +54,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_var(&mut self, id: NodeId) {
-        self.ctxt.var_mut(self.fct.id, id, |v, _| {
-            let ty_size = v.data_type.size();
-            self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-            v.offset = -self.localsize;
-        });
+        let var = self.fct.var_by_node_id_mut(id);
+
+        let ty_size = var.data_type.size();
+        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
+        var.offset = -self.localsize;
     }
 }
 
@@ -93,14 +72,11 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // the rest of the parameters are already stored on the stack
         // just use the current offset
         } else {
-            let ty = self.ctxt.var_mut(self.fct.id, p.id, |v, _| {
-                v.offset = self.param_offset;
-
-                v.data_type
-            });
+            let var = self.fct.var_by_node_id_mut(p.id);
+            var.offset = self.param_offset;
 
             // determine next `param_offset`
-            self.param_offset = cpu::next_param_offset(self.param_offset, ty);
+            self.param_offset = cpu::next_param_offset(self.param_offset, var.data_type);
         }
     }
 
@@ -139,6 +115,28 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         }
 
         visit::walk_expr(self, e);
+    }
+}
+
+pub struct Info {
+    pub localsize: i32,
+    pub tempsize: i32,
+    pub fct_call: bool,
+}
+
+impl Info {
+    pub fn stacksize(&self) -> i32 {
+        self.localsize + self.tempsize
+    }
+}
+
+impl Default for Info {
+    fn default() -> Info {
+        Info {
+            localsize: 0,
+            tempsize: 0,
+            fct_call: false,
+        }
     }
 }
 
