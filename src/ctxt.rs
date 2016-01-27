@@ -30,7 +30,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub sym: RefCell<SymTable>,
 
     // points from AST function definition node id to FctContextId
-    pub fct_defs: RefCell<HashMap<NodeId, FctContextId>>,
+    pub fct_defs: HashMap<NodeId, FctContextId>,
 
     // stores all function definitions
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>,
@@ -49,7 +49,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
-            fct_defs: RefCell::new(HashMap::new()),
+            fct_defs: HashMap::new(),
             fcts: Vec::new(),
             code_map: RefCell::new(CodeMap::new()),
         }
@@ -62,7 +62,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         fct.id = fctid;
 
         if let Some(ast) = fct.ast {
-            assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
+            assert!(self.fct_defs.insert(ast.id, fctid).is_none());
         }
 
         self.fcts.push(Arc::new(Mutex::new(fct)));
@@ -94,16 +94,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
     }
 
     pub fn fct_by_node_id_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
-        let map = self.fct_defs.borrow();
-        let fct_id = *map.get(&id).unwrap();
+        let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id_mut(fct_id, f)
     }
 
     pub fn fct_by_node_id<F, R>(&self, id: NodeId, f: F) -> R where
                      F: FnOnce(&FctContext<'ast>) -> R {
-        let map = self.fct_defs.borrow();
-        let fct_id = *map.get(&id).unwrap();
+        let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id(fct_id, f)
     }
