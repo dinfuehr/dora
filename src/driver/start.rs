@@ -50,9 +50,9 @@ pub fn start() -> i32 {
     }
 
     let ast_map = ast::map::build(&ast, &interner);
-    let ctxt = Context::new(&args, &interner, &ast_map, &ast);
+    let mut ctxt = Context::new(&args, &interner, &ast_map, &ast);
 
-    semck::check(&ctxt);
+    semck::check(&mut ctxt);
 
     let main = find_main(&ctxt);
 

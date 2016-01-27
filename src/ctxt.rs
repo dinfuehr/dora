@@ -33,7 +33,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub fct_defs: RefCell<HashMap<NodeId, FctContextId>>,
 
     // stores all function definitions
-    pub fcts: RefCell<Vec<Arc<Mutex<FctContext<'ast>>>>>,
+    pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>,
 
     // stores all compiled functions
     pub code_map: RefCell<CodeMap>,
@@ -50,14 +50,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fct_defs: RefCell::new(HashMap::new()),
-            fcts: RefCell::new(Vec::new()),
+            fcts: Vec::new(),
             code_map: RefCell::new(CodeMap::new()),
         }
     }
 
-    pub fn add_function(&self, mut fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
+    pub fn add_function(&mut self, mut fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
         let name = fct.name;
-        let fctid = FctContextId(self.fcts.borrow().len());
+        let fctid = FctContextId(self.fcts.len());
 
         fct.id = fctid;
 
@@ -65,7 +65,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             assert!(self.fct_defs.borrow_mut().insert(ast.id, fctid).is_none());
         }
 
-        self.fcts.borrow_mut().push(Arc::new(Mutex::new(fct)));
+        self.fcts.push(Arc::new(Mutex::new(fct)));
 
         let mut sym = self.sym.borrow_mut();
 
@@ -80,22 +80,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
     }
 
     pub fn fct_by_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
-        let fct = {
-            let fcts = self.fcts.borrow();
-            fcts[id.0].clone()
-        };
-
+        let fct = self.fcts[id.0].clone();
         let fctxt = fct.lock().unwrap();
 
         f(&fctxt)
     }
 
     pub fn fct_by_id_mut<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
-        let fct = {
-            let fcts = self.fcts.borrow();
-            fcts[id.0].clone()
-        };
-
+        let fct = self.fcts[id.0].clone();
         let mut fctxt = fct.lock().unwrap();
 
         f(&mut fctxt)

@@ -12,9 +12,7 @@ use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
-    let fcts = ctxt.fcts.borrow();
-
-    for fct in fcts.iter() {
+    for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
         if let Some(ast) = fct.ast {
@@ -215,8 +213,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             callee_return = self.fct.return_type;
 
         } else {
-            let fcts = self.ctxt.fcts.borrow();
-            let fct = fcts[callee_id.0].clone();
+            let fct = self.ctxt.fcts[callee_id.0].clone();
             let callee = &mut fct.lock().unwrap();
 
             callee_name = callee.name;

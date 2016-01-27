@@ -10,9 +10,7 @@ use sym::*;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
-    let fcts = ctxt.fcts.borrow();
-
-    for fct in fcts.iter() {
+    for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
         if let Some(ast) = fct.ast {

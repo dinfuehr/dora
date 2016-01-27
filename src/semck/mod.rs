@@ -14,7 +14,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'a>(ctxt: &Context<'a, 'a>) {
+pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     // add builtin fcts and types to ctxt
     prelude::init(ctxt);
 

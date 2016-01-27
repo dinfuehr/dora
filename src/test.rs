@@ -20,9 +20,9 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&C
 
     ast::dump::dump(&ast, &interner);
 
-    let ctxt = Context::new(&args, &interner, &map, &ast);
+    let mut ctxt = Context::new(&args, &interner, &map, &ast);
 
-    semck::check(&ctxt);
+    semck::check(&mut ctxt);
 
     f(&ctxt)
 }

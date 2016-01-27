@@ -9,7 +9,7 @@ use lexer::position::Position;
 
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt
     };
@@ -17,11 +17,11 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
     gdef.visit_ast(ctxt.ast);
 }
 
-struct GlobalDef<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>
+struct GlobalDef<'x, 'a: 'x, 'ast: 'a> {
+    ctxt: &'x mut Context<'a, 'ast>
 }
 
-impl<'a, 'ast> Visitor<'ast> for GlobalDef<'a, 'ast> {
+impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         let fct = FctContext {
             id: FctContextId(0),

@@ -8,23 +8,23 @@ use mem::Ptr;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub fn init(ctxt: &Context) {
+pub fn init<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     add_builtin_types(ctxt);
     add_builtin_functions(ctxt);
 }
 
-fn add_builtin_types(ctxt: &Context) {
+fn add_builtin_types<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     builtin_type("int", BuiltinType::Int, ctxt);
     builtin_type("bool", BuiltinType::Bool, ctxt);
     builtin_type("str", BuiltinType::Str, ctxt);
 }
 
-fn builtin_type(name: &str, ty: BuiltinType, ctxt: &Context) {
+fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'a, 'ast>) {
     let name = ctxt.interner.intern(name.into());
     assert!(ctxt.sym.borrow_mut().insert(name, SymType(ty)).is_none());
 }
 
-fn add_builtin_functions(ctxt: &Context) {
+fn add_builtin_functions<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
         ctxt, FctCode::Builtin(Ptr::new(stdlib::assert as *mut c_void)));
 
@@ -35,8 +35,8 @@ fn add_builtin_functions(ctxt: &Context) {
         BuiltinType::Unit, ctxt, FctCode::Uncompiled);
 }
 
-fn builtin_function(name: &str, args: Vec<BuiltinType>, ret: BuiltinType, ctxt: &Context,
-        fct: FctCode) {
+fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
+                    ctxt: &mut Context<'a, 'ast>, fct: FctCode) {
     let name = ctxt.interner.intern(name);
 
     let fct = FctContext {
