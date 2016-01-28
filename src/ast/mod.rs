@@ -42,6 +42,13 @@ pub enum Elem {
 }
 
 impl Elem {
+    pub fn id(&self) -> NodeId {
+        match *self {
+            ElemFunction(ref fct) => fct.id,
+            _ => unreachable!()
+        }
+    }
+
     pub fn to_function(&self) -> Option<&Function> {
         match *self {
             ElemFunction(ref fct) => Some(fct),

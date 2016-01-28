@@ -15,6 +15,6 @@ pub mod map;
 pub mod stub;
 
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, fct: &'ast Function) -> JitFct {
-    codegen::generate(ctxt, fct)
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> JitFct {
+    codegen::generate(ctxt, id)
 }

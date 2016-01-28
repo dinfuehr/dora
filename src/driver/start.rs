@@ -3,7 +3,7 @@ use std;
 use std::mem;
 
 use ast::{self, Function};
-use ctxt::{Context, ctxt_ptr};
+use ctxt::{Context, ctxt_ptr, FctContextId};
 use driver::cmd::{self, AsmSyntax};
 use error::msg::Msg;
 
@@ -65,8 +65,8 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    let main = main.unwrap();
-    let jit_fct = jit::generate(&ctxt, main);
+    let (main_id, main) = main.unwrap();
+    let jit_fct = jit::generate(&ctxt, main_id);
 
     if args.flag_emit_asm {
         dump_asm(&jit_fct, &ctxt.interner.str(main.name),
@@ -109,7 +109,8 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     }
 }
 
-fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where 'a: 'ast {
+fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctContextId, &'ast Function)>
+        where 'a: 'ast {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_function(name) {
         Some(id) => id,
@@ -122,12 +123,12 @@ fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<&'ast Function> where
     ctxt.fct_by_id(fctid, |fct| {
         let ret = fct.return_type;
 
-        if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
-            fct.params_types.len() > 0 {
+        if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
+            || fct.params_types.len() > 0 {
             ctxt.diag.borrow_mut().report(fct.ast.unwrap().pos, Msg::WrongMainDefinition);
             return None;
         }
 
-        Some(fct.ast.unwrap())
+        Some((fctid, fct.ast.unwrap()))
     })
 }

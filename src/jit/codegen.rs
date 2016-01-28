@@ -4,7 +4,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::{Context, FctContext, VarContextId};
+use ctxt::{Context, FctContext, FctContextId, VarContextId};
 use dseg::DSeg;
 
 use jit::buffer::*;
@@ -12,8 +12,10 @@ use jit::expr::*;
 use jit::fct::JitFct;
 use jit::info;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, ast: &'ast Function) -> JitFct {
-    ctxt.fct_by_node_id_mut(ast.id, |fct| {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> JitFct {
+    ctxt.fct_by_id_mut(id, |fct| {
+        let ast = fct.ast.unwrap();
+
         let mut cg = CodeGen {
             ctxt: ctxt,
             fct: fct,
@@ -241,11 +243,13 @@ mod tests {
 
     fn compile(code: &'static str) -> JitFct {
         test::parse(code, |ctxt| {
-            // generate code for first function
-            let fct = ctxt.ast.elements[0].to_function().unwrap();
+            let fct_name = "f";
+
+            let name = ctxt.interner.intern("f");
+            let fct = ctxt.sym.borrow().get_function(name).unwrap();
             let jit_fct = jit::generate(ctxt, fct);
 
-            driver::dump_asm(&jit_fct, &ctxt.interner.str(fct.name), AsmSyntax::Att);
+            driver::dump_asm(&jit_fct, fct_name, AsmSyntax::Att);
 
             jit_fct
         })
