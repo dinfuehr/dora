@@ -36,7 +36,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>,
 
     // stores all compiled functions
-    pub code_map: RefCell<CodeMap>,
+    pub code_map: Mutex<CodeMap>,
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -51,7 +51,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             sym: RefCell::new(SymTable::new()),
             fct_defs: HashMap::new(),
             fcts: Vec::new(),
-            code_map: RefCell::new(CodeMap::new()),
+            code_map: Mutex::new(CodeMap::new()),
         }
     }
 

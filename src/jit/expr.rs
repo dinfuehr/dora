@@ -268,8 +268,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn create_stub(&self, id: FctContextId, fct: &mut FctContext) -> Ptr {
         let stub = Stub::new();
 
-        let mut code_map = self.ctxt.code_map.borrow_mut();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
+        {
+            let mut code_map = self.ctxt.code_map.lock().unwrap();
+            code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
+        }
 
         let ptr = stub.ptr_start();
         fct.stub = Some(stub);
