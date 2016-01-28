@@ -3,6 +3,7 @@ use std::mem;
 use libc::*;
 
 use ctxt::{Context, ctxt_ptr};
+use jit;
 use mem::ptr::Ptr;
 use os_cpu::*;
 
@@ -38,7 +39,11 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                 let ptr = Ptr::new(es.pc as *const c_void);
                 let code_map = ctxt.code_map.lock().unwrap();
 
-                println!("stub = {:?}", code_map.get(ptr));
+                if let Some(fct_id) = code_map.get(ptr) {
+                    let jit_fct = jit::generate(ctxt, fct_id);
+                    println!("{:?}", jit_fct);
+                }
+
                 unsafe { _exit(2); }
             }
 
