@@ -1,10 +1,16 @@
 use std;
+use std::mem;
 use libc::*;
 
+use ctxt::{Context, ctxt_ptr};
+use mem::ptr::Ptr;
 use os_cpu::*;
 
-pub fn register_signals() {
+pub fn register_signals(ctxt: &Context) {
     unsafe {
+        let ptr = Ptr::new(ctxt as *const Context as *const c_void);
+        unsafe { ctxt_ptr = Some(ptr); }
+
         let mut sa: sigaction = std::mem::uninitialized();
 
         sa.sa_sigaction = handler as usize;
@@ -25,7 +31,14 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
         match trap {
             COMPILER => {
-                println!("please compile me!");
+                let ctxt: &Context = unsafe {
+                    &*(ctxt_ptr.unwrap().raw_mut_ptr() as *const Context)
+                };
+
+                let ptr = Ptr::new(es.pc as *const c_void);
+                let code_map = ctxt.code_map.lock().unwrap();
+
+                println!("stub = {:?}", code_map.get(ptr));
                 unsafe { _exit(2); }
             }
 

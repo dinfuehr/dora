@@ -1,14 +1,16 @@
+use libc;
 use std;
 use std::mem;
 
 use ast::{self, Function};
-use ctxt::Context;
+use ctxt::{Context, ctxt_ptr};
 use driver::cmd::{self, AsmSyntax};
 use error::msg::Msg;
 
 use jit;
 use jit::fct::JitFct;
 use lexer::position::Position;
+use mem::ptr::Ptr;
 use os;
 
 use parser::Parser;
@@ -23,9 +25,6 @@ pub fn start() -> i32 {
         println!("dora v0.01b");
         return 0;
     }
-
-    // register signal handler
-    os::register_signals();
 
     let mut parser = match Parser::from_file(&args.arg_file) {
         Err(_) => {
@@ -53,6 +52,9 @@ pub fn start() -> i32 {
     let mut ctxt = Context::new(&args, &interner, &ast_map, &ast);
 
     semck::check(&mut ctxt);
+
+    // register signal handler
+    os::register_signals(&ctxt);
 
     let main = find_main(&ctxt);
 

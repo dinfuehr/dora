@@ -21,6 +21,8 @@ use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
 
+pub static mut ctxt_ptr: Option<Ptr> = None;
+
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
     pub interner: &'a Interner,
