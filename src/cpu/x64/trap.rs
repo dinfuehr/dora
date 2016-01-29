@@ -3,6 +3,9 @@ use cpu::instr::*;
 use execstate::ExecState;
 
 use jit::buffer::Buffer;
+use jit::fct::JitFct;
+use mem;
+use mem::ptr::Ptr;
 
 #[derive(Copy, Clone, Debug)]
 pub struct TrapId(u32);
@@ -45,4 +48,33 @@ pub fn read(es: &ExecState) -> Option<TrapId> {
     } else {
         None
     }
+}
+
+pub fn patch_fct_call(es: &mut ExecState, fct_ptr: Ptr) {
+    // get return address from top of stack
+    let mut ra : isize = unsafe { *(es.sp as *const isize) };
+
+    // return address is now after `call *%rax` (needs 2 bytes),
+    // we want to be before it
+    ra -= 2;
+
+    // return address is now after `movq (%rip, disp), %rax`, we also
+    // want to be before it to execute it again
+    ra -= 7;
+
+    // get address of function pointer
+    let disp_addr : *const i32 = (ra + 3) as *const i32;
+    let disp : isize = unsafe { *disp_addr } as isize;
+
+    let fct_addr : *mut usize = (ra + 7 + disp) as *mut usize;
+    println!("write to {:x} value {:x}", fct_addr as usize, fct_ptr.as_u64());
+
+    // write function pointer
+    unsafe { *fct_addr = fct_ptr.as_u64() as usize; }
+
+    // pop return address from stack
+    es.sp += mem::ptr_width() as usize;
+
+    // execute fct call again
+    es.pc = ra as usize;
 }

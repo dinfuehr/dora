@@ -1,34 +1,80 @@
+use std::slice;
+
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::{Context, FctContext, FctContextId, VarContextId};
+use ctxt::{Context, FctCode, FctContext, FctContextId, VarContextId};
+use driver::cmd::AsmSyntax;
 use dseg::DSeg;
 
 use jit::buffer::*;
 use jit::expr::*;
 use jit::fct::JitFct;
 use jit::info;
+use mem::ptr::Ptr;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> JitFct {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
+        // check current status of function, do not compile method twice
+        match fct.code {
+            FctCode::Uncompiled => {},
+            FctCode::Builtin(_) => unreachable!("jit::generate called for builtin fct"),
+            FctCode::Fct(ref fct) => return fct.fct_ptr()
+        }
+
         let ast = fct.ast.unwrap();
 
-        let mut cg = CodeGen {
-            ctxt: ctxt,
-            fct: fct,
-            ast: ast,
-            buf: Buffer::new(),
-            dseg: DSeg::new(),
+        let jit_fct = {
+            let mut cg = CodeGen {
+                ctxt: ctxt,
+                fct: fct,
+                ast: ast,
+                buf: Buffer::new(),
+                dseg: DSeg::new(),
 
-            lbl_break: None,
-            lbl_continue: None
+                lbl_break: None,
+                lbl_continue: None
+            };
+
+            cg.generate()
         };
 
-        cg.generate()
+        if ctxt.args.flag_emit_asm {
+            dump_asm(&jit_fct, &ctxt.interner.str(ast.name),
+                ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+        }
+
+        let fct_ptr = jit_fct.fct_ptr();
+        fct.code = FctCode::Fct(jit_fct);
+
+        fct_ptr
     })
+}
+
+pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
+    use capstone::*;
+
+    let buf: &[u8] = unsafe {
+        slice::from_raw_parts(jit_fct.fct_ptr().as_u8_ptr(), jit_fct.fct_len())
+    };
+
+    let asm_syntax = match asm_syntax {
+        AsmSyntax::Intel => 1,
+        AsmSyntax::Att => 2,
+    };
+
+    let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
+    engine.set_option(Opt::Syntax, asm_syntax);
+    let instrs = engine.disasm(buf,
+        jit_fct.fct_ptr().as_u64(), jit_fct.fct_len()).expect("could not disassemble code");
+
+    println!("fn {}", name);
+    for instr in instrs {
+        println!("  {:#06x}: {}\t\t{}", instr.addr, instr.mnemonic, instr.op_str);
+    }
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
@@ -235,10 +281,14 @@ pub fn var_load(buf: &mut Buffer, fct: &FctContext, var_id: NodeId, dest: Reg) {
 mod tests {
     use std::mem;
 
-    use jit;
-    use jit::fct::JitFct;
     use driver;
     use driver::cmd::AsmSyntax;
+    use dseg::DSeg;
+    use jit;
+    use jit::buffer::Buffer;
+    use jit::codegen::CodeGen;
+    use jit::fct::JitFct;
+    use mem::ptr::Ptr;
     use test;
 
     fn compile(code: &'static str) -> JitFct {
@@ -246,18 +296,30 @@ mod tests {
             let fct_name = "f";
 
             let name = ctxt.interner.intern("f");
-            let fct = ctxt.sym.borrow().get_function(name).unwrap();
-            let jit_fct = jit::generate(ctxt, fct);
+            let fctid = ctxt.sym.borrow().get_function(name).unwrap();
 
-            driver::dump_asm(&jit_fct, fct_name, AsmSyntax::Att);
+            ctxt.fct_by_id_mut(fctid, |fct| {
+                let ast = fct.ast.unwrap();
 
-            jit_fct
+                let mut cg = CodeGen {
+                    ctxt: ctxt,
+                    fct: fct,
+                    ast: ast,
+                    buf: Buffer::new(),
+                    dseg: DSeg::new(),
+
+                    lbl_break: None,
+                    lbl_continue: None
+                };
+
+                cg.generate()
+            })
         })
     }
 
     fn run<T>(code: &'static str) -> T {
-        let mem = compile(code);
-        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(mem.fct_ptr()) };
+        let m = compile(code);
+        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(m.fct_ptr()) };
 
         compiled_fct()
     }

@@ -273,6 +273,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
         }
 
+        if self.ctxt.args.flag_emit_stubs {
+            println!("create stub at {:x}", stub.ptr_start().as_u64());
+        }
+
         let ptr = stub.ptr_start();
         fct.stub = Some(stub);
 

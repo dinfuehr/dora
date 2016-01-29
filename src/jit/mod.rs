@@ -4,7 +4,7 @@ use ctxt::*;
 use dseg::DSeg;
 
 use jit::buffer::*;
-use jit::fct::JitFct;
+use mem::ptr::Ptr;
 
 pub mod buffer;
 pub mod codegen;
@@ -15,6 +15,6 @@ pub mod map;
 pub mod stub;
 
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> JitFct {
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> Ptr {
     codegen::generate(ctxt, id)
 }

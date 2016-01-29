@@ -4,7 +4,7 @@ use std::mem;
 
 use ast::{self, Function};
 use ctxt::{Context, ctxt_ptr, FctContextId};
-use driver::cmd::{self, AsmSyntax};
+use driver::cmd;
 use error::msg::Msg;
 
 use jit;
@@ -66,14 +66,9 @@ pub fn start() -> i32 {
     }
 
     let (main_id, main) = main.unwrap();
-    let jit_fct = jit::generate(&ctxt, main_id);
+    let fct_ptr = jit::generate(&ctxt, main_id);
 
-    if args.flag_emit_asm {
-        dump_asm(&jit_fct, &ctxt.interner.str(main.name),
-            args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
-    }
-
-    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(jit_fct.fct_ptr()) };
+    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
 
     // main-fct without return value exits with status 0
@@ -83,29 +78,6 @@ pub fn start() -> i32 {
     // use return value of main for exit status
     } else {
         res
-    }
-}
-
-pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
-    use capstone::*;
-
-    let buf: &[u8] = unsafe {
-        std::slice::from_raw_parts(jit_fct.fct_ptr().as_u8_ptr(), jit_fct.fct_len())
-    };
-
-    let asm_syntax = match asm_syntax {
-        AsmSyntax::Intel => 1,
-        AsmSyntax::Att => 2,
-    };
-
-    let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
-    engine.set_option(Opt::Syntax, asm_syntax);
-    let instrs = engine.disasm(buf,
-        jit_fct.fct_ptr().as_u64(), jit_fct.fct_len()).expect("could not disassemble code");
-
-    println!("fn {}", name);
-    for instr in instrs {
-        println!("  {:#06x}: {}\t\t{}", instr.addr, instr.mnemonic, instr.op_str);
     }
 }
 

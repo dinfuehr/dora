@@ -2,6 +2,7 @@ use std;
 use std::mem;
 use libc::*;
 
+use cpu;
 use ctxt::{Context, ctxt_ptr};
 use jit;
 use mem::ptr::Ptr;
@@ -25,7 +26,7 @@ pub fn register_signals(ctxt: &Context) {
 }
 
 fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
-    let es = read_execstate(ucontext);
+    let mut es = read_execstate(ucontext);
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
         use cpu::trap::COMPILER;
@@ -41,10 +42,11 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
                 if let Some(fct_id) = code_map.get(ptr) {
                     let jit_fct = jit::generate(ctxt, fct_id);
-                    println!("{:?}", jit_fct);
+                    cpu::trap::patch_fct_call(&mut es, jit_fct);
+                    write_execstate(&es, ucontext as *mut c_void);
+                } else {
+                    unsafe { _exit(1); }
                 }
-
-                unsafe { _exit(2); }
             }
 
             _ => unsafe { _exit(1); }
