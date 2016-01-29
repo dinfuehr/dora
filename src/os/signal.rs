@@ -33,6 +33,8 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
         match trap {
             COMPILER => {
+                println!("es = {:?}", es);
+
                 let ctxt: &Context = unsafe {
                     &*(ctxt_ptr.unwrap().raw_mut_ptr() as *const Context)
                 };
@@ -43,7 +45,11 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                 if let Some(fct_id) = code_map.get(ptr) {
                     let jit_fct = jit::generate(ctxt, fct_id);
                     cpu::trap::patch_fct_call(&mut es, jit_fct);
+                    println!("es updated = {:?}", es);
                     write_execstate(&es, ucontext as *mut c_void);
+
+                    let es2 = read_execstate(ucontext);
+                    println!("es2 = {:?}", es2);
                 } else {
                     unsafe { _exit(1); }
                 }
