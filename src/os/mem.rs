@@ -38,7 +38,7 @@ pub fn mmap(size: usize, exec: ProtType) -> Ptr {
 
 pub fn munmap(ptr: Ptr, size: usize) {
     let res = unsafe {
-        libc::munmap(ptr.raw_ptr() as *mut libc::c_void, size)
+        libc::munmap(ptr.raw() as *mut libc::c_void, size)
     };
 
     if res != 0 {

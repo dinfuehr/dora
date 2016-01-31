@@ -33,7 +33,7 @@ impl CodeMemory {
 
         unsafe {
             ptr::copy_nonoverlapping(buffer.as_ptr(),
-                code.ptr_start.as_u8_mut_ptr(), buffer.len());
+                code.ptr_start.raw() as *mut u8, buffer.len());
         }
 
         code

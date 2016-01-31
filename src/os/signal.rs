@@ -10,7 +10,7 @@ use os_cpu::*;
 
 pub fn register_signals(ctxt: &Context) {
     unsafe {
-        let ptr = Ptr::new(ctxt as *const Context as *const c_void);
+        let ptr = Ptr::new(ctxt as *const Context as *mut c_void);
         unsafe { ctxt_ptr = Some(ptr); }
 
         let mut sa: sigaction = std::mem::uninitialized();
@@ -34,10 +34,10 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
         match trap {
             COMPILER => {
                 let ctxt: &Context = unsafe {
-                    &*(ctxt_ptr.unwrap().raw_mut_ptr() as *const Context)
+                    &*(ctxt_ptr.unwrap().raw() as *const Context)
                 };
 
-                let ptr = Ptr::new(es.pc as *const c_void);
+                let ptr = Ptr::new(es.pc as *mut c_void);
                 let code_map = ctxt.code_map.lock().unwrap();
 
                 if let Some(fct_id) = code_map.get(ptr) {
@@ -45,7 +45,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                     cpu::trap::patch_fct_call(&mut es, jit_fct);
                     write_execstate(&es, ucontext as *mut c_void);
                 } else {
-                    println!("error: code not found for address {:x}", ptr.as_u64());
+                    println!("error: code not found for address {:x}", ptr.raw() as u64);
                     unsafe { _exit(1); }
                 }
             }

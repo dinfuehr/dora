@@ -23,13 +23,13 @@ impl JitFct {
         let code = CodeMemory::new(size);
         let ptr = code.ptr_start();
 
-        dseg.finish(ptr.raw_mut_ptr());
+        dseg.finish(ptr.raw());
 
         let fct_start;
 
         unsafe {
             fct_start = ptr.offset(dseg.size() as isize);
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.as_u8_mut_ptr(), buffer.len());
+            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.raw() as *mut u8, buffer.len());
         }
 
         JitFct {
@@ -58,7 +58,7 @@ impl JitFct {
 
 impl fmt::Debug for JitFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "JitFct {{ start: {:x}, end: {:x} }}",
-            self.ptr_start().as_u64(), self.ptr_end().as_u64())
+        write!(f, "JitFct {{ start: {:?}, end: {:?} }}",
+            self.ptr_start(), self.ptr_end())
     }
 }

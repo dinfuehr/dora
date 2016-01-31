@@ -69,8 +69,8 @@ pub fn patch_fct_call(es: &mut ExecState, fct_ptr: Ptr) {
     let fct_addr : *mut usize = (ra + 7 + disp) as *mut usize;
 
     // write function pointer
-    unsafe { *fct_addr = fct_ptr.as_u64() as usize; }
+    unsafe { *fct_addr = fct_ptr.raw() as usize; }
 
     // execute fct call again
-    es.pc = fct_ptr.as_u64() as usize;
+    es.pc = fct_ptr.raw() as usize;
 }

@@ -34,7 +34,7 @@ impl Stub {
 
 impl fmt::Debug for Stub {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Stub {{ start: {:x}, end: {:x} }}",
-            self.ptr_start().as_u64(), self.ptr_end().as_u64())
+        write!(f, "Stub {{ start: {:?}, end: {:?} }}",
+            self.ptr_start(), self.ptr_end())
     }
 }

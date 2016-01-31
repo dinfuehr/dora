@@ -30,7 +30,7 @@ impl DSeg {
 
             unsafe {
                 let entry_ptr = ptr.offset(offset as isize);
-                *(entry_ptr as *mut (*const c_void)) = entry.value.raw_ptr();
+                *(entry_ptr as *mut (*const c_void)) = entry.value.raw();
             }
         }
     }

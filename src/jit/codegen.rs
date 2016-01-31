@@ -58,7 +58,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     use capstone::*;
 
     let buf: &[u8] = unsafe {
-        slice::from_raw_parts(jit_fct.fct_ptr().as_u8_ptr(), jit_fct.fct_len())
+        slice::from_raw_parts(jit_fct.fct_ptr().raw() as *const u8, jit_fct.fct_len())
     };
 
     let asm_syntax = match asm_syntax {
@@ -68,8 +68,9 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 
     let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
     engine.set_option(Opt::Syntax, asm_syntax);
-    let instrs = engine.disasm(buf,
-        jit_fct.fct_ptr().as_u64(), jit_fct.fct_len()).expect("could not disassemble code");
+
+    let instrs = engine.disasm(buf, jit_fct.fct_ptr().raw() as u64,
+        jit_fct.fct_len()).expect("could not disassemble code");
 
     println!("fn {}", name);
     for instr in instrs {

@@ -11,6 +11,7 @@ mod driver;
 mod dseg;
 mod error;
 mod execstate;
+mod gc;
 mod interner;
 mod jit;
 mod lexer;

@@ -274,7 +274,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         if self.ctxt.args.flag_emit_stubs {
-            println!("create stub at {:x}", stub.ptr_start().as_u64());
+            println!("create stub at {:x}", stub.ptr_start().raw() as u64);
         }
 
         let ptr = stub.ptr_start();
