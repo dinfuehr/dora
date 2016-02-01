@@ -5,6 +5,7 @@ extern crate docopt;
 extern crate capstone;
 
 mod ast;
+mod class;
 mod cpu;
 mod ctxt;
 mod driver;

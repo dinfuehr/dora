@@ -9,6 +9,7 @@ use error::diag::Diagnostic;
 
 use ast::*;
 use ast::map::Map;
+use class::ClassInfo;
 use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
@@ -30,15 +31,11 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub ast: &'ast Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
-
-    // points from AST function definition node id to FctContextId
-    pub fct_defs: HashMap<NodeId, FctContextId>,
-
-    // stores all function definitions
-    pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>,
-
-    // stores all compiled functions
-    pub code_map: Mutex<CodeMap>,
+    pub classes: Vec<ClassInfo>, // stores all class definitions
+    pub fct_defs: HashMap<NodeId, FctContextId>, // points from AST function definition
+                                                 // node id to FctContextId
+    pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
+    pub code_map: Mutex<CodeMap>, // stores all compiled functions
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -46,6 +43,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
            map: &'a Map<'ast>, ast: &'ast Ast) -> Context<'a, 'ast> {
         Context {
             args: args,
+            classes: Vec::new(),
             interner: interner,
             map: map,
             ast: ast,
@@ -115,42 +113,21 @@ pub struct FctContextId(pub usize);
 #[derive(Debug)]
 pub struct FctContext<'ast> {
     pub id: FctContextId,
-
     pub name: Name,
-
     pub params_types: Vec<BuiltinType>,
-
     pub return_type: BuiltinType,
-
     pub ast: Option<&'ast Function>,
-
-    // maps function call to FctContextId
-    pub calls: HashMap<NodeId, FctContextId>,
-
-    // points to the definition of variable from its usage
-    pub defs: HashMap<NodeId, VarContextId>,
-
+    pub calls: HashMap<NodeId, FctContextId>, // maps function call to FctContextId
+    pub defs: HashMap<NodeId, VarContextId>, // points to the definition of variable from its usage
     pub ir: Option<Mir>,
-
-    // size of temporary variables on stack
-    pub tempsize: i32,
-
-    // size of local variables on stack
-    pub localsize: i32,
-
+    pub tempsize: i32, // size of temporary variables on stack
+    pub localsize: i32, // size of local variables on stack
     pub leaf: bool,
-
     pub vars: Vec<VarContext>,
-
-    // true if function is always exited via return statement
-    // false if function execution could reach the closing } of this function
-    pub always_returns: bool,
-
-    // ptr to machine code if already compiled
-    pub code: FctCode,
-
-    // compiler stub
-    pub stub: Option<Stub>
+    pub always_returns: bool, // true if function is always exited via return statement
+                              // false if function execution could reach the closing } of this function
+    pub code: FctCode, // ptr to machine code if already compiled
+    pub stub: Option<Stub> // compiler stub
 }
 
 impl<'ast> FctContext<'ast> {
