@@ -46,12 +46,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
+            ExprLitStr(ref expr) => self.emit_lit_str(expr, dest),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            _ => unreachable!(),
         }
 
         dest
@@ -64,6 +64,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {
         let value : u32 = if lit.value { 1 } else { 0 };
         emit::movl_imm_reg(self.buf, value, dest);
+    }
+
+    fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
+        // TODO: load string constant
+
+        unreachable!();
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
