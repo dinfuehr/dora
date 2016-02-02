@@ -119,12 +119,15 @@ pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_movl_reg_reg(buf, src, dest);
 }
 
-pub fn call(buf: &mut Buffer, disp: i32) {
+pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {
     // next instruction has 7 bytes
     let disp = -(disp + 7);
 
-    emit_movq_memq_reg(buf, RIP, disp, REG_RESULT); // 7 bytes
-    emit_callq_reg(buf, REG_RESULT);
+    emit_movq_memq_reg(buf, RIP, disp, dest); // 7 bytes
+}
+
+pub fn call(buf: &mut Buffer, reg: Reg) {
+    emit_callq_reg(buf, reg);
 }
 
 pub fn push_param(buf: &mut Buffer, reg: Reg) {

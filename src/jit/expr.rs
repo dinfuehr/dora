@@ -8,6 +8,7 @@ use dseg::DSeg;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
 use jit::stub::Stub;
+use object::Str;
 use mem::ptr::Ptr;
 use ty::BuiltinType;
 
@@ -67,9 +68,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
-        // let ptr = Str::from_buffer(&lit.value);
+        let string = {
+            let mut gc = self.ctxt.gc.lock().unwrap();
+            Str::from_buffer(&mut gc, lit.value.as_bytes())
+        };
 
-        unreachable!();
+        let disp = self.dseg.add_addr(string.ptr());
+        let pos = self.buf.pos() as i32;
+
+        emit::movq_addr_reg(self.buf, disp + pos, dest);
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
@@ -265,7 +272,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let disp = self.dseg.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 
-        emit::call(self.buf, disp + pos);
+        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
+        emit::call(self.buf, REG_RESULT);
 
         // TODO: move REG_RESULT into dest
         assert_eq!(REG_RESULT, dest);
