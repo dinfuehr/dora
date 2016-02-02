@@ -2,7 +2,7 @@ use libc;
 
 use mem::ptr::Ptr;
 
-struct Gc {
+pub struct Gc {
     memory: Vec<Ptr>,
 }
 

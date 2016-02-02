@@ -18,6 +18,7 @@ mod jit;
 mod lexer;
 mod mir;
 mod mem;
+mod object;
 mod os;
 mod os_cpu;
 mod parser;

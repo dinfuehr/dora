@@ -67,7 +67,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
-        // TODO: load string constant
+        // let ptr = Str::from_buffer(&lit.value);
 
         unreachable!();
     }

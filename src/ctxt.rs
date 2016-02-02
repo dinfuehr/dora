@@ -10,6 +10,7 @@ use error::diag::Diagnostic;
 use ast::*;
 use ast::map::Map;
 use class::ClassInfo;
+use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
@@ -36,6 +37,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
                                                  // node id to FctContextId
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
+    pub gc: Mutex<Gc>, // garbage collector
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
@@ -45,6 +47,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
             args: args,
             classes: Vec::new(),
             interner: interner,
+            gc: Mutex::new(Gc::new()),
             map: map,
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
