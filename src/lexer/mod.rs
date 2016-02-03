@@ -224,31 +224,33 @@ impl<T : CodeReader> Lexer<T> {
         let nch = self.top();
         let nch = if nch.is_some() { nch.unwrap().value } else { 'x' };
 
-        match ch {
-            '+' => tok.token_type = TokenType::Add,
+        let nnch = self.at(1);
+        let nnch = if nnch.is_some() { nnch.unwrap().value } else { 'x' };
+
+        tok.token_type = match ch {
+            '+' => TokenType::Add,
             '-' => {
-                tok.token_type = if nch == '>' {
+                if nch == '>' {
                     self.read_char();
                     TokenType::Arrow
                 } else {
                     TokenType::Sub
                 }
-
             }
 
-            '*' => tok.token_type = TokenType::Mul,
-            '/' => tok.token_type = TokenType::Div,
-            '%' => tok.token_type = TokenType::Mod,
+            '*' => TokenType::Mul,
+            '/' => TokenType::Div,
+            '%' => TokenType::Mod,
 
-            '(' => tok.token_type = TokenType::LParen,
-            ')' => tok.token_type = TokenType::RParen,
-            '[' => tok.token_type = TokenType::LBracket,
-            ']' => tok.token_type = TokenType::RBracket,
-            '{' => tok.token_type = TokenType::LBrace,
-            '}' => tok.token_type = TokenType::RBrace,
+            '(' => TokenType::LParen,
+            ')' => TokenType::RParen,
+            '[' => TokenType::LBracket,
+            ']' => TokenType::RBracket,
+            '{' => TokenType::LBrace,
+            '}' => TokenType::RBrace,
 
             '|' => {
-                tok.token_type = if nch == '|' {
+                if nch == '|' {
                     self.read_char();
                     TokenType::Or
                 } else {
@@ -257,7 +259,7 @@ impl<T : CodeReader> Lexer<T> {
             }
 
             '&' => {
-                tok.token_type = if nch == '&' {
+                if nch == '&' {
                     self.read_char();
                     TokenType::And
                 } else {
@@ -265,23 +267,29 @@ impl<T : CodeReader> Lexer<T> {
                 }
             }
 
-            '^' => tok.token_type = TokenType::Caret,
-            '~' => tok.token_type = TokenType::Tilde,
-            ',' => tok.token_type = TokenType::Comma,
-            ';' => tok.token_type = TokenType::Semicolon,
-            ':' => tok.token_type = TokenType::Colon,
-            '.' => tok.token_type = TokenType::Dot,
+            '^' => TokenType::Caret,
+            '~' => TokenType::Tilde,
+            ',' => TokenType::Comma,
+            ';' => TokenType::Semicolon,
+            ':' => TokenType::Colon,
+            '.' => TokenType::Dot,
             '=' => {
-                tok.token_type = if nch == '=' {
+                if nch == '=' {
                     self.read_char();
-                    TokenType::EqEq
+
+                    if nnch == '=' {
+                        self.read_char();
+                        TokenType::Is
+                    } else {
+                        TokenType::EqEq
+                    }
                 } else {
                     TokenType::Eq
                 }
             }
 
             '<' => {
-                tok.token_type = if nch == '=' {
+                if nch == '=' {
                     self.read_char();
                     TokenType::Le
                 } else {
@@ -290,7 +298,7 @@ impl<T : CodeReader> Lexer<T> {
             }
 
             '>' => {
-                tok.token_type = if nch == '=' {
+                if nch == '=' {
                     self.read_char();
                     TokenType::Ge
                 } else {
@@ -299,9 +307,15 @@ impl<T : CodeReader> Lexer<T> {
             }
 
             '!' => {
-                tok.token_type = if nch == '=' {
+                if nch == '=' {
                     self.read_char();
-                    TokenType::Ne
+
+                    if nnch == '=' {
+                        self.read_char();
+                        TokenType::IsNot
+                    } else {
+                        TokenType::Ne
+                    }
                 } else {
                     TokenType::Not
                 }
@@ -314,7 +328,7 @@ impl<T : CodeReader> Lexer<T> {
                     message: format!("unknown character {} (ascii code {})", ch, ch as usize)
                 } )
             }
-        }
+        };
 
         Ok(tok)
     }
@@ -634,10 +648,10 @@ mod tests {
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("===+-*/%~");
+        let mut reader = Lexer::from_str("==+=-*/%~");
         assert_tok(&mut reader, TokenType::EqEq, "", 1, 1);
-        assert_tok(&mut reader, TokenType::Eq, "", 1, 3);
-        assert_tok(&mut reader, TokenType::Add, "", 1, 4);
+        assert_tok(&mut reader, TokenType::Add, "", 1, 3);
+        assert_tok(&mut reader, TokenType::Eq, "", 1, 4);
         assert_tok(&mut reader, TokenType::Sub, "", 1, 5);
         assert_tok(&mut reader, TokenType::Mul, "", 1, 6);
         assert_tok(&mut reader, TokenType::Div, "", 1, 7);
@@ -650,6 +664,11 @@ mod tests {
         assert_tok(&mut reader, TokenType::Ge, "", 1, 4);
         assert_tok(&mut reader, TokenType::Gt, "", 1, 6);
         assert_tok(&mut reader, TokenType::Lt, "", 1, 7);
+
+        let mut reader = Lexer::from_str("!=====!");
+        assert_tok(&mut reader, TokenType::IsNot, "", 1, 1);
+        assert_tok(&mut reader, TokenType::Is, "", 1, 4);
+        assert_tok(&mut reader, TokenType::Not, "", 1, 7);
 
         let mut reader = Lexer::from_str("!=!");
         assert_tok(&mut reader, TokenType::Ne, "", 1, 1);
