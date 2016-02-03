@@ -120,6 +120,7 @@ pub struct FctContext<'ast> {
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ast: Option<&'ast Function>,
+    pub types: HashMap<NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<NodeId, FctContextId>, // maps function call to FctContextId
     pub defs: HashMap<NodeId, VarContextId>, // points to the definition of variable from its usage
     pub ir: Option<Mir>,

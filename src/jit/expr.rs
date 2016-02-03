@@ -162,7 +162,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::cmpl_setl(eg.buf, lhs, op, rhs, dest);
+            match op {
+                CmpOp::Is =>
+                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Eq, rhs, dest),
+                CmpOp::IsNot =>
+                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Ne, rhs, dest),
+
+                _ => emit::cmp_setl(eg.buf, BuiltinType::Int, lhs, op, rhs, dest),
+            }
 
             dest
         });
@@ -228,18 +235,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let not_leaf = !is_leaf(&e.rhs);
         let mut temp_offset : i32 = 0;
 
+        let ty = *self.fct.types.get(&e.id).unwrap();
+
         if not_leaf {
-            temp_offset = self.add_temp_var(BuiltinType::Int);
+            temp_offset = self.add_temp_var(ty);
         }
 
         self.emit_expr(&e.lhs, lhs_reg);
-        if not_leaf { emit::mov_reg_local(self.buf, BuiltinType::Int, lhs_reg, temp_offset); }
+        if not_leaf { emit::mov_reg_local(self.buf, ty, lhs_reg, temp_offset); }
 
         self.emit_expr(&e.rhs, rhs_reg);
-        if not_leaf { emit::mov_local_reg(self.buf, BuiltinType::Int, temp_offset, lhs_reg); }
+        if not_leaf { emit::mov_local_reg(self.buf, ty, temp_offset, lhs_reg); }
 
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg { emit::movl_reg_reg(self.buf, reg, dest_reg); }
+        if reg != dest_reg { emit::mov_reg_reg(self.buf, ty, reg, dest_reg); }
     }
 
     fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {

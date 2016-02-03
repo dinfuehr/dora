@@ -45,6 +45,7 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
         params_types: args,
         return_type: ret,
         ast: None,
+        types: HashMap::new(),
         calls: HashMap::new(),
         defs: HashMap::new(),
         ir: None,

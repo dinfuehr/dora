@@ -245,6 +245,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
         }
+
+        self.fct.types.insert(e.id(), self.expr_type);
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {

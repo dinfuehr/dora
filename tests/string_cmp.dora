@@ -1,0 +1,5 @@
+fn main() {
+  var x = "hello";
+  assert(x === x);
+}
+

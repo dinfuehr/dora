@@ -349,6 +349,10 @@ pub fn emit_cmpl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 0, 0x39, src, dest);
 }
 
+pub fn emit_cmpq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, 1, 0x39, src, dest);
+}
+
 pub fn emit_cltd(buf: &mut Buffer) {
     emit_op(buf, 0x99);
 }
@@ -718,6 +722,13 @@ mod tests {
         assert_emit!(0x44, 0x39, 0xf8; emit_cmpl_reg_reg(R15, RAX));
         assert_emit!(0x41, 0x39, 0xdf; emit_cmpl_reg_reg(RBX, R15));
         assert_emit!(0x39, 0xd8; emit_cmpl_reg_reg(RBX, RAX));
+    }
+
+    #[test]
+    fn test_cmpq_reg_reg() {
+        assert_emit!(0x4C, 0x39, 0xf8; emit_cmpq_reg_reg(R15, RAX));
+        assert_emit!(0x49, 0x39, 0xdf; emit_cmpq_reg_reg(RBX, R15));
+        assert_emit!(0x48, 0x39, 0xd8; emit_cmpq_reg_reg(RBX, RAX));
     }
 
     #[test]

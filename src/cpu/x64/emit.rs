@@ -24,8 +24,13 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
-pub fn cmpl_setl(buf: &mut Buffer, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
-    emit_cmpl_reg_reg(buf, rhs, lhs);
+pub fn cmp_setl(buf: &mut Buffer, ty: BuiltinType, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
+    match ty {
+        BuiltinType::Bool | BuiltinType::Int => emit_cmpl_reg_reg(buf, rhs, lhs),
+        BuiltinType::Str => emit_cmpq_reg_reg(buf, rhs, lhs),
+        BuiltinType::Unit => unreachable!(),
+    }
+
     emit_setb_reg(buf, op, dest);
     emit_movzbl_reg_reg(buf, dest, dest);
 }
@@ -117,6 +122,14 @@ pub fn mov_reg_local(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32) {
 
 pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_movl_reg_reg(buf, src, dest);
+}
+
+pub fn mov_reg_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg) {
+    match ty {
+        BuiltinType::Unit => unreachable!(),
+        BuiltinType::Int | BuiltinType::Bool => emit_movl_reg_reg(buf, src, dest),
+        BuiltinType::Str => emit_movq_reg_reg(buf, src, dest),
+    }
 }
 
 pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {

@@ -29,6 +29,7 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             ast: Some(f),
+            types: HashMap::new(),
             calls: HashMap::new(),
             defs: HashMap::new(),
             ir: None,
