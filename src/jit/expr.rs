@@ -284,8 +284,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
         emit::call(self.buf, REG_RESULT);
 
-        // TODO: move REG_RESULT into dest
-        assert_eq!(REG_RESULT, dest);
+        let return_type = *self.fct.types.get(&e.id).unwrap();
+
+        if REG_RESULT != dest {
+            emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
+        }
     }
 
     fn create_stub(&self, id: FctContextId, fct: &mut FctContext) -> Ptr {
