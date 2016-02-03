@@ -1,0 +1,10 @@
+fn main() {
+  var x = "hello";
+  var result = eq(x, x);
+
+  assert(result);
+}
+
+fn eq(x: str, y: str) -> bool {
+  return x === y;
+}

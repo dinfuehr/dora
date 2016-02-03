@@ -169,6 +169,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_bin(&mut self, e: &'ast ExprBinType) {
         let expected_type = if e.op == BinOp::Or || e.op == BinOp::And {
             BuiltinType::Bool
+        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
+            BuiltinType::Str
         } else {
             BuiltinType::Int
         };

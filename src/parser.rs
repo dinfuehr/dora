@@ -419,7 +419,7 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_expression_l4(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l5());
+        let mut left = try!(self.parse_expression_l5a());
 
         while self.token.is(TokenType::Lt) || self.token.is(TokenType::Le) ||
                 self.token.is(TokenType::Gt) || self.token.is(TokenType::Ge) {
@@ -430,6 +430,25 @@ impl<T: CodeReader> Parser<T> {
                 TokenType::Le => CmpOp::Le,
                 TokenType::Gt => CmpOp::Gt,
                 _ => CmpOp::Ge
+            };
+
+            let right = try!(self.parse_expression_l5a());
+            left = Box::new(Expr::create_bin(self.generate_id(), tok.position,
+                BinOp::Cmp(op), left, right));
+        }
+
+        Ok(left)
+    }
+
+    fn parse_expression_l5a(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l5());
+
+        while self.token.is(TokenType::Is) || self.token.is(TokenType::IsNot) {
+
+            let tok = try!(self.read_token());
+            let op = match tok.token_type {
+                TokenType::Is => CmpOp::Is,
+                _ => CmpOp::IsNot
             };
 
             let right = try!(self.parse_expression_l5());
@@ -982,6 +1001,26 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_is_not() {
+        let (expr, _) = parse_expr("1!==2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_is() {
+        let (expr, _) = parse_expr("1===2");
+
+        let cmp = expr.to_bin().unwrap();
+        assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
         assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
         assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }

@@ -558,6 +558,8 @@ pub enum CmpOp {
     Le,
     Gt,
     Ge,
+    Is,
+    IsNot,
 }
 
 impl CmpOp {
@@ -569,6 +571,8 @@ impl CmpOp {
             CmpOp::Le => "<=",
             CmpOp::Gt => ">",
             CmpOp::Ge => ">=",
+            CmpOp::Is => "===",
+            CmpOp::IsNot => "!==",
         }
     }
 }

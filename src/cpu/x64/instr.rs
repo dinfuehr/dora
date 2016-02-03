@@ -365,6 +365,7 @@ pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
         CmpOp::Ge => 0x9d,
         CmpOp::Eq => 0x94,
         CmpOp::Ne => 0x95,
+        _ => unreachable!(),
     };
 
     emit_op(buf, 0x0f);
