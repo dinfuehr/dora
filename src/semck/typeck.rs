@@ -167,19 +167,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_bin(&mut self, e: &'ast ExprBinType) {
-        let expected_type = if e.op == BinOp::Or || e.op == BinOp::And {
-            BuiltinType::Bool
-        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
-            BuiltinType::Str
-        } else {
-            BuiltinType::Int
-        };
-
         self.visit_expr(&e.lhs);
         let lhs_type = self.expr_type;
 
         self.visit_expr(&e.rhs);
         let rhs_type = self.expr_type;
+
+        let expected_type = match e.op {
+            BinOp::Or | BinOp::And => BuiltinType::Bool,
+            BinOp::Cmp(CmpOp::Is) | BinOp::Cmp(CmpOp::IsNot) => BuiltinType::Str,
+            BinOp::Cmp(_) | BinOp::Add =>
+                if lhs_type == BuiltinType::Str {
+                    BuiltinType::Str
+                } else {
+                    BuiltinType::Int
+                },
+            _ => BuiltinType::Int
+        };
 
         if expected_type != lhs_type || expected_type != rhs_type {
             let op = e.op.as_str().into();
@@ -378,6 +382,8 @@ mod tests {
     fn type_bin_op() {
         ok("fn f(a: int) { a+a; a-a; a*a; a/a; a%a; }");
         ok("fn f(a: int) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+        ok("fn f(a: Str) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+        ok("fn f(a: Str) { a===a; a!==a; a+a; }");
         ok("fn f(a: int) { a|a; a&a; a^a; }");
         ok("fn f(a: bool) { a||a; a&&a; }");
 
@@ -389,6 +395,20 @@ mod tests {
             Msg::BinOpType("||".into(), BuiltinType::Int, BuiltinType::Int));
         err("fn f(a: int) { a&&a; }", pos(1, 17),
             Msg::BinOpType("&&".into(), BuiltinType::Int, BuiltinType::Int));
+        err("fn f(a: int) { a===a; }", pos(1, 17),
+            Msg::BinOpType("===".into(), BuiltinType::Int, BuiltinType::Int));
+        err("fn f(a: int) { a!==a; }", pos(1, 17),
+            Msg::BinOpType("!==".into(), BuiltinType::Int, BuiltinType::Int));
+        err("fn f(a: bool) { a===a; }", pos(1, 18),
+            Msg::BinOpType("===".into(), BuiltinType::Bool, BuiltinType::Bool));
+        err("fn f(a: bool) { a!==a; }", pos(1, 18),
+            Msg::BinOpType("!==".into(), BuiltinType::Bool, BuiltinType::Bool));
+        err("fn f(a: Str) { a-a; }", pos(1, 17),
+            Msg::BinOpType("-".into(), BuiltinType::Str, BuiltinType::Str));
+        err("fn f(a: Str) { a*a; }", pos(1, 17),
+            Msg::BinOpType("*".into(), BuiltinType::Str, BuiltinType::Str));
+        err("fn f(a: Str) { a%a; }", pos(1, 17),
+            Msg::BinOpType("%".into(), BuiltinType::Str, BuiltinType::Str));
     }
 
     #[test]

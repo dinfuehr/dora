@@ -26,3 +26,9 @@ pub extern "C" fn println(val: Str) {
     print(val);
     println!("");
 }
+
+pub extern "C" fn strcmp(lhs: Str, rhs: Str) -> i32 {
+    unsafe {
+        libc::strcmp(lhs.data() as *const i8, rhs.data() as *const i8)
+    }
+}
