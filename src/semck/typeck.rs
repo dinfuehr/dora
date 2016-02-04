@@ -299,7 +299,7 @@ mod tests {
     fn type_var_wrong_type_defined() {
         ok("fn f() { var a : int = 1; }");
         ok("fn f() { var a : bool = false; }");
-        ok("fn f() { var a : str = \"f\"; }");
+        ok("fn f() { var a : Str = \"f\"; }");
 
         err("fn f() { var a : int = true; }",
             pos(1, 10), Msg::AssignType(

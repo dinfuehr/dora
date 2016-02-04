@@ -203,14 +203,14 @@ mod tests {
 
     #[test]
     fn shadow_type_with_param() {
-        err("fn test(bool: str) {}", pos(1, 9),
+        err("fn test(bool: Str) {}", pos(1, 9),
             Msg::ShadowType("bool".into()));
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err("fn test() { var str = 3; }", pos(1, 13),
-            Msg::ShadowType("str".into()));
+        err("fn test() { var Str = 3; }", pos(1, 13),
+            Msg::ShadowType("Str".into()));
     }
 
     #[test]
@@ -227,13 +227,13 @@ mod tests {
 
     #[test]
     fn shadow_param() {
-        err("fn f(a: int, b: int, a: str) {}", pos(1, 22),
+        err("fn f(a: int, b: int, a: Str) {}", pos(1, 22),
             Msg::ShadowParam("a".into()));
     }
 
     #[test]
     fn multiple_params() {
-        ok("fn f(a: int, b: int, c:str) {}");
+        ok("fn f(a: int, b: int, c:Str) {}");
     }
 
     #[test]

@@ -16,7 +16,7 @@ pub fn init<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
 fn add_builtin_types<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     builtin_type("int", BuiltinType::Int, ctxt);
     builtin_type("bool", BuiltinType::Bool, ctxt);
-    builtin_type("str", BuiltinType::Str, ctxt);
+    builtin_type("Str", BuiltinType::Str, ctxt);
 }
 
 fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'a, 'ast>) {
