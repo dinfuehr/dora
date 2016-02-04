@@ -101,8 +101,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        // assert!(e.rhs.is_leaf());
-
         match e.op {
             BinOp::Add => self.emit_bin_add(e, dest),
             BinOp::Sub => self.emit_bin_sub(e, dest),
@@ -269,6 +267,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         });
 
         for (ind, arg) in e.args.iter().enumerate().rev() {
+            assert!(!contains_fct_call(arg));
+
             if REG_PARAMS.len() > ind {
                 let dest = REG_PARAMS[ind];
                 self.emit_expr(arg, dest);
@@ -315,12 +315,26 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 pub fn is_leaf(expr: &Expr) -> bool {
     match *expr {
         ExprUn(_) => false,
-        ExprBin(ref val) => false,
-        ExprLitInt(ref val) => true,
-        ExprLitStr(ref val) => true,
-        ExprLitBool(ref val) => true,
-        ExprIdent(ref val) => true,
-        ExprAssign(ref val) => false,
-        ExprCall(ref val) => false,
+        ExprBin(_) => false,
+        ExprLitInt(_) => true,
+        ExprLitStr(_) => true,
+        ExprLitBool(_) => true,
+        ExprIdent(_) => true,
+        ExprAssign(_) => false,
+        ExprCall(_) => false,
+    }
+}
+
+/// Returns `true` if the given expression `expr` contains a function call
+pub fn contains_fct_call(expr: &Expr) -> bool {
+    match *expr {
+        ExprUn(ref e) => contains_fct_call(&e.opnd),
+        ExprBin(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
+        ExprLitInt(_) => false,
+        ExprLitStr(_) => false,
+        ExprLitBool(_) => false,
+        ExprIdent(_) => false,
+        ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
+        ExprCall(ref val) => true,
     }
 }
