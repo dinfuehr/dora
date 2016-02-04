@@ -28,11 +28,11 @@ fn add_builtin_functions<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
         ctxt, FctCode::Builtin(Ptr::new(stdlib::assert as *mut c_void)));
 
-    builtin_function("print", vec![BuiltinType::Str],
-        BuiltinType::Unit, ctxt, FctCode::Uncompiled);
+    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
+        FctCode::Builtin(Ptr::new(stdlib::print as *mut c_void)));
 
-    builtin_function("println", vec![BuiltinType::Str],
-        BuiltinType::Unit, ctxt, FctCode::Uncompiled);
+    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
+        FctCode::Builtin(Ptr::new(stdlib::println as *mut c_void)));
 }
 
 fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
