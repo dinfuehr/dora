@@ -1,4 +1,19 @@
 fn main() {
   var x = "hello";
   assert(x === x);
+  assert(x == "hello");
+  assert("a" == "a");
+  assert("a" != "b");
+
+  assert("a" < "b");
+  assert("b" > "a");
+
+  assert("a" <= "b");
+  assert("b" <= "b");
+
+  assert("b" >= "b");
+  assert("b" >= "a");
+
+  var y = "hel" + "lo";
+  assert(x == y);
 }

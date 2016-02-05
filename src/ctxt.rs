@@ -25,6 +25,12 @@ use ty::BuiltinType;
 
 pub static mut ctxt_ptr: Option<Ptr> = None;
 
+pub fn get_ctxt() -> &'static Context<'static, 'static> {
+    unsafe {
+        &*(ctxt_ptr.unwrap().raw() as *const Context)
+    }
+}
+
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
     pub interner: &'a Interner,

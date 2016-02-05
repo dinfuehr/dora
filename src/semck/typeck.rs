@@ -193,10 +193,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         self.expr_type = match e.op {
-            BinOp::Or => BuiltinType::Bool,
-            BinOp::And => BuiltinType::Bool,
             BinOp::Cmp(_) => BuiltinType::Bool,
-            _ => BuiltinType::Int,
+            _ => expected_type,
         };
     }
 

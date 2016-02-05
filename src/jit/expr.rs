@@ -159,18 +159,40 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            match op {
-                CmpOp::Is =>
-                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Eq, rhs, dest),
-                CmpOp::IsNot =>
-                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Ne, rhs, dest),
+        let cmp_type = *self.fct.types.get(&e.lhs.id()).unwrap();
 
-                _ => emit::cmp_setl(eg.buf, BuiltinType::Int, lhs, op, rhs, dest),
+        if cmp_type == BuiltinType::Str {
+            if op == CmpOp::Is {
+                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Eq, rhs, dest);
+
+                    dest
+                });
+
+            } else if op == CmpOp::IsNot {
+                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Ne, rhs, dest);
+
+                    dest
+                });
+
+            } else {
+                use libc::c_void;
+                use stdlib;
+
+                let fct = Ptr::new(stdlib::strcmp as *mut c_void);
+                self.emit_builtin_call(fct, e, REG_RESULT);
+                emit::movl_imm_reg(self.buf, 0, REG_TMP1);
+                emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
             }
 
-            dest
-        });
+        } else {
+            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                emit::cmp_setl(eg.buf, BuiltinType::Int, lhs, op, rhs, dest);
+
+                dest
+            });
+        }
     }
 
     fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -196,9 +218,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::addl(eg.buf, lhs, rhs, dest)
-        });
+        let add_type = *self.fct.types.get(&e.id).unwrap();
+
+        if add_type == BuiltinType::Str {
+            use libc::c_void;
+            use stdlib;
+
+            let fct = Ptr::new(stdlib::strcat as *mut c_void);
+            self.emit_builtin_call(fct, e, dest);
+
+        } else {
+            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                emit::addl(eg.buf, lhs, rhs, dest)
+            });
+        }
     }
 
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -284,9 +317,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
         emit::call(self.buf, REG_RESULT);
 
-        let return_type = *self.fct.types.get(&e.id).unwrap();
+        if REG_RESULT != dest {
+            let return_type = *self.fct.types.get(&e.id).unwrap();
+            emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
+        }
+    }
+
+    fn emit_builtin_call(&mut self, fct: Ptr, expr: &'ast ExprBinType, dest: Reg) {
+        assert!(!contains_fct_call(&expr.lhs));
+        self.emit_expr(&expr.lhs, REG_PARAMS[0]);
+
+        assert!(!contains_fct_call(&expr.rhs));
+        self.emit_expr(&expr.rhs, REG_PARAMS[1]);
+
+        let disp = self.dseg.add_addr(fct);
+        let pos = self.buf.pos() as i32;
+
+        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
+        emit::call(self.buf, REG_RESULT);
 
         if REG_RESULT != dest {
+            let return_type = *self.fct.types.get(&expr.id).unwrap();
             emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
         }
     }

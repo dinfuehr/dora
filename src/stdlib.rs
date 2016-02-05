@@ -4,6 +4,7 @@ use std::os::raw::c_char;
 
 use libc;
 
+use ctxt::{Context, get_ctxt};
 use object::Str;
 
 
@@ -31,4 +32,11 @@ pub extern "C" fn strcmp(lhs: Str, rhs: Str) -> i32 {
     unsafe {
         libc::strcmp(lhs.data() as *const i8, rhs.data() as *const i8)
     }
+}
+
+pub extern "C" fn strcat(lhs: Str, rhs: Str) -> Str {
+    let ctxt = get_ctxt();
+    let mut gc = ctxt.gc.lock().unwrap();
+
+    Str::concat(&mut gc, lhs, rhs)
 }

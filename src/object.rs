@@ -36,8 +36,7 @@ impl Str {
 
 impl Str {
     pub fn from_buffer(gc: &mut Gc, buf: &[u8]) -> Str {
-        let size = mem::ptr_width() as usize + buf.len() + 1;
-        let string = Str { ptr: gc.alloc(size) };
+        let string = Str::new(gc, buf.len());
 
         unsafe {
             // write len of Str (excluding 0 at end)
@@ -48,6 +47,29 @@ impl Str {
 
             // string should end with 0 for C compatibility
             *(string.data().offset(buf.len() as isize)) = 0;
+        }
+
+        string
+    }
+
+    fn new(gc: &mut Gc, len: usize) -> Str {
+        let size = mem::ptr_width() as usize + len + 1;
+
+        Str { ptr: gc.alloc(size) }
+    }
+
+    pub fn concat(gc: &mut Gc, lhs: Str, rhs: Str) -> Str {
+        let len = lhs.len() + rhs.len();
+        let string = Str::new(gc, len);
+
+        unsafe {
+            string.set_len(len);
+
+            ptr::copy_nonoverlapping(lhs.data(), string.data(), lhs.len());
+            ptr::copy_nonoverlapping(rhs.data(),
+                string.data().offset(lhs.len() as isize), rhs.len());
+
+            *(string.data().offset(len as isize)) = 0;
         }
 
         string

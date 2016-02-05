@@ -3,7 +3,7 @@ use std::mem;
 use libc::*;
 
 use cpu;
-use ctxt::{Context, ctxt_ptr};
+use ctxt::{Context, ctxt_ptr, get_ctxt};
 use jit;
 use mem::ptr::Ptr;
 use os_cpu::*;
@@ -33,9 +33,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
         match trap {
             COMPILER => {
-                let ctxt: &Context = unsafe {
-                    &*(ctxt_ptr.unwrap().raw() as *const Context)
-                };
+                let ctxt: &Context = get_ctxt();
 
                 let ptr = Ptr::new(es.pc as *mut c_void);
                 let code_map = ctxt.code_map.lock().unwrap();
