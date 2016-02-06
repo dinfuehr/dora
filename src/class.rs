@@ -3,10 +3,9 @@ use std::collections::HashMap;
 use ctxt::FctContextId;
 use interner::Name;
 
-pub struct ClassInfoId(usize);
+pub struct ClassId(usize);
 
-pub struct ClassInfo {
-    pub id: ClassInfoId,
+pub struct Class {
+    pub id: ClassId,
     pub name: Name,
-    pub methods: HashMap<Name, FctContextId>,
 }

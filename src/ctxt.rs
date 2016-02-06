@@ -9,7 +9,7 @@ use error::diag::Diagnostic;
 
 use ast::*;
 use ast::map::Map;
-use class::ClassInfo;
+use class::Class;
 use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
@@ -38,7 +38,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub ast: &'ast Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
-    pub classes: Vec<ClassInfo>, // stores all class definitions
+    pub classes: Vec<Box<Class>>, // stores all class definitions
     pub fct_defs: HashMap<NodeId, FctContextId>, // points from AST function definition
                                                  // node id to FctContextId
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
