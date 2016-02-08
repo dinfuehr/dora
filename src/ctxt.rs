@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use driver::cmd::Args;
 use error::diag::Diagnostic;
 
-use ast::*;
+use ast;
 use ast::map::Map;
 use class::Class;
 use gc::Gc;
@@ -35,11 +35,11 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: &'a Args,
     pub interner: &'a Interner,
     pub map: &'a Map<'ast>,
-    pub ast: &'ast Ast,
+    pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub classes: Vec<Box<Class>>, // stores all class definitions
-    pub fct_defs: HashMap<NodeId, FctContextId>, // points from AST function definition
+    pub fct_defs: HashMap<ast::NodeId, FctContextId>, // points from AST function definition
                                                  // node id to FctContextId
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
@@ -48,7 +48,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
 
 impl<'a, 'ast> Context<'a, 'ast> {
     pub fn new(args: &'a Args, interner: &'a Interner,
-           map: &'a Map<'ast>, ast: &'ast Ast) -> Context<'a, 'ast> {
+           map: &'a Map<'ast>, ast: &'ast ast::Ast) -> Context<'a, 'ast> {
         Context {
             args: args,
             classes: Vec::new(),
@@ -102,13 +102,13 @@ impl<'a, 'ast> Context<'a, 'ast> {
         f(&mut fctxt)
     }
 
-    pub fn fct_by_node_id_mut<F, R>(&self, id: NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+    pub fn fct_by_node_id_mut<F, R>(&self, id: ast::NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id_mut(fct_id, f)
     }
 
-    pub fn fct_by_node_id<F, R>(&self, id: NodeId, f: F) -> R where
+    pub fn fct_by_node_id<F, R>(&self, id: ast::NodeId, f: F) -> R where
                      F: FnOnce(&FctContext<'ast>) -> R {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
@@ -125,10 +125,10 @@ pub struct FctContext<'ast> {
     pub name: Name,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
-    pub ast: Option<&'ast Function>,
-    pub types: HashMap<NodeId, BuiltinType>, // maps expression to type
-    pub calls: HashMap<NodeId, FctContextId>, // maps function call to FctContextId
-    pub defs: HashMap<NodeId, VarContextId>, // points to the definition of variable from its usage
+    pub ast: Option<&'ast ast::Function>,
+    pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
+    pub calls: HashMap<ast::NodeId, FctContextId>, // maps function call to FctContextId
+    pub defs: HashMap<ast::NodeId, VarContextId>, // points to the definition of variable from its usage
     pub ir: Option<Mir>,
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -145,13 +145,13 @@ impl<'ast> FctContext<'ast> {
         self.tempsize + self.localsize
     }
 
-    pub fn var_by_node_id(&self, id: NodeId) -> &VarContext {
+    pub fn var_by_node_id(&self, id: ast::NodeId) -> &VarContext {
         let varid = *self.defs.get(&id).unwrap();
 
         &self.vars[varid.0]
     }
 
-    pub fn var_by_node_id_mut(&mut self, id: NodeId) -> &mut VarContext {
+    pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut VarContext {
         let varid = *self.defs.get(&id).unwrap();
 
         &mut self.vars[varid.0]
@@ -174,7 +174,7 @@ pub struct VarContext {
 
     pub data_type: BuiltinType,
 
-    pub node_id: NodeId,
+    pub node_id: ast::NodeId,
 
     pub offset: i32,
 }

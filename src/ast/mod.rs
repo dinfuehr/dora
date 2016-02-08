@@ -1,7 +1,7 @@
 use std::fmt;
 use std::hash::*;
 
-use ast::Elem::ElemFunction;
+use ast::Elem::*;
 use lexer::position::Position;
 use interner::{Interner, Name};
 
@@ -38,20 +38,27 @@ impl fmt::Display for NodeId {
 
 pub enum Elem {
     ElemFunction(Function),
-    ElemUnknown
+    ElemClass(Class),
 }
 
 impl Elem {
     pub fn id(&self) -> NodeId {
         match *self {
             ElemFunction(ref fct) => fct.id,
-            _ => unreachable!()
+            ElemClass(ref class) => class.id,
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
         match *self {
             ElemFunction(ref fct) => Some(fct),
+            _ => None
+        }
+    }
+
+    pub fn to_class(&self) -> Option<&Class> {
+        match *self {
+            ElemClass(ref class) => Some(class),
             _ => None
         }
     }
@@ -193,6 +200,15 @@ impl Type {
             Type::TypeArray(ref val) => val.id,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Class {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+
+    pub params: Vec<Param>,
 }
 
 #[derive(Debug)]

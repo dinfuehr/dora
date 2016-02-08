@@ -38,7 +38,7 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
     for e in &a.elements {
         match *e {
             ElemFunction(ref f) => v.visit_fct(f),
-            ElemUnknown => unreachable!()
+            _ => unreachable!()
         }
     }
 }

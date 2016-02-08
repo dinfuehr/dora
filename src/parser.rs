@@ -93,12 +93,35 @@ impl<T: CodeReader> Parser<T> {
                 Ok(ElemFunction(fct))
             }
 
+            TokenType::Class => {
+                let class = try!(self.parse_class());
+                Ok(ElemClass(class))
+            }
+
             _ => Err(ParseError {
                 position: self.token.position,
                 code: ErrorCode::ExpectedTopLevelElement,
                 message: format!("top level element expected but got {}", self.token)
             })
         }
+    }
+
+    fn parse_class(&mut self) -> Result<Class, ParseError> {
+        let pos = try!(self.expect_token(TokenType::Class)).position;
+        let ident = try!(self.expect_identifier());
+
+        let params = if self.token.is(TokenType::LParen) {
+            try!(self.parse_function_params())
+        } else {
+            Vec::new()
+        };
+
+        Ok(Class {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            params: params,
+        })
     }
 
     fn parse_function(&mut self) -> Result<Function, ParseError> {
@@ -1321,5 +1344,31 @@ mod tests {
 
         let ty2 = subtypes[1].to_basic().unwrap();
         assert_eq!("b", *interner.str(ty2.name));
+    }
+
+    #[test]
+    fn parse_class_without_parens() {
+        let (prog, interner) = parse("class Foo");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(0, class.params.len());
+        assert_eq!(Position::new(1, 1), class.pos);
+        assert_eq!("Foo", *interner.str(class.name));
+    }
+
+    #[test]
+    fn parse_class_with_param() {
+        let (prog, interner) = parse("class Foo(a: int)");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(1, class.params.len());
+    }
+
+    #[test]
+    fn parse_class_with_params() {
+        let (prog, interner) = parse("class Foo(a: int, b: int)");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(2, class.params.len());
     }
 }
