@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use ast::*;
 use ast::visit::*;
-
+use class::{self, ClassId};
 use ctxt::*;
 use error::msg::Msg;
+use interner::Name;
 use lexer::position::Position;
-
+use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
@@ -22,6 +23,21 @@ struct GlobalDef<'x, 'a: 'x, 'ast: 'a> {
 }
 
 impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
+    fn visit_class(&mut self, c: &'ast Class) {
+        let id = ClassId(self.ctxt.classes.len());
+        let cls = class::Class {
+            id: id,
+            name: c.name,
+            props: Vec::new()
+        };
+
+        self.ctxt.classes.push(Box::new(cls));
+
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, SymClass(id)) {
+            report(self.ctxt, c.name, c.pos, sym);
+        }
+    }
+
     fn visit_fct(&mut self, f: &'ast Function) {
         let fct = FctContext {
             id: FctContextId(0),
@@ -43,18 +59,19 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
         };
 
         if let Err(sym) = self.ctxt.add_function(fct) {
-            let name = self.ctxt.interner.str(f.name).to_string();
-            let msg = if sym.is_type() {
-                Msg::ShadowType(name)
-            } else {
-                Msg::ShadowFunction(name)
-            };
-
-            report(self.ctxt, f.pos, msg);
+            report(self.ctxt, f.name, f.pos, sym);
         }
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
+    let name = ctxt.interner.str(name).to_string();
+
+    let msg = if sym.is_type() {
+        Msg::ShadowType(name)
+    } else {
+        Msg::ShadowFunction(name)
+    };
+
     ctxt.diag.borrow_mut().report(pos, msg);
 }

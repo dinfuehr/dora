@@ -1,5 +1,6 @@
 use ctxt::Context;
 
+mod clsck;
 mod flowck;
 mod globaldef;
 mod nameck;
@@ -21,6 +22,10 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     // add user defined fcts and types to ctxt
     // this check does not look into fct bodies
     globaldef::check(ctxt);
+    return_on_error!(ctxt);
+
+    // add properties of classes
+    clsck::check(ctxt);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables

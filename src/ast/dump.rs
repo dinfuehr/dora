@@ -37,9 +37,27 @@ impl<'a> AstDumper<'a> {
         for el in &self.ast.elements {
             match *el {
                 ElemFunction(ref fct) => self.dump_fct(fct),
-                _ => unreachable!()
+                ElemClass(ref cls) => self.dump_class(cls),
             }
         }
+    }
+
+    fn dump_class(&mut self, cls: &Class) {
+        dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
+
+        self.indent(|d| {
+            dump!(d, "props");
+
+            d.indent(|d| {
+                if cls.params.is_empty() {
+                    dump!(d, "no props");
+                } else {
+                    for param in &cls.params {
+                        d.dump_param(param);
+                    }
+                }
+            });
+        });
     }
 
     fn dump_fct(&mut self, fct: &Function) {
@@ -52,7 +70,7 @@ impl<'a> AstDumper<'a> {
                     dump!(d, "no params");
                 } else {
                     for param in &fct.params {
-                        d.dump_param(&param);
+                        d.dump_param(param);
                     }
                 }
             });

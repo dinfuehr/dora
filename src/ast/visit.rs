@@ -9,6 +9,14 @@ pub trait Visitor<'v> : Sized {
         walk_ast(self, a);
     }
 
+    fn visit_class(&mut self, c: &'v Class) {
+        walk_class(self, c);
+    }
+
+    fn visit_prop(&mut self, p: &'v Param) {
+        walk_prop(self, p);
+    }
+
     fn visit_fct(&mut self, f: &'v Function) {
         walk_fct(self, f);
     }
@@ -38,9 +46,19 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
     for e in &a.elements {
         match *e {
             ElemFunction(ref f) => v.visit_fct(f),
-            _ => unreachable!()
+            ElemClass(ref c) => v.visit_class(c),
         }
     }
+}
+
+pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
+    for p in &c.params {
+        v.visit_prop(p);
+    }
+}
+
+pub fn walk_prop<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
+    v.visit_type(&p.data_type);
 }
 
 pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
