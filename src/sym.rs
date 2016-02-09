@@ -120,7 +120,6 @@ pub enum Sym {
     SymType(BuiltinType),
     SymFunction(FctContextId),
     SymVar(VarContextId),
-    SymClass(ClassId),
 }
 
 impl Sym {
@@ -162,20 +161,6 @@ impl Sym {
     pub fn to_var(&self) -> Option<VarContextId> {
         match *self {
             SymVar(id) => Some(id),
-            _ => None
-        }
-    }
-
-    pub fn is_class(&self) -> bool {
-        match *self {
-            SymType(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn to_class(&self) -> Option<ClassId> {
-        match *self {
-            SymClass(id) => Some(id),
             _ => None
         }
     }

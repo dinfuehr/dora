@@ -1,9 +1,13 @@
+use class::ClassId;
+use mem;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BuiltinType {
     Unit,
     Int,
     Bool,
     Str,
+    Class(ClassId),
 }
 
 impl BuiltinType {
@@ -12,7 +16,7 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Int => 4,
-            BuiltinType::Str => 8,
+            BuiltinType::Str | BuiltinType::Class(_) => mem::ptr_width(),
         }
     }
 }
@@ -23,7 +27,8 @@ impl ToString for BuiltinType {
             BuiltinType::Unit => "()",
             BuiltinType::Int => "int",
             BuiltinType::Bool => "bool",
-            BuiltinType::Str => "str"
+            BuiltinType::Str => "str",
+            BuiltinType::Class(_) => "<class>",
         };
 
         name.into()

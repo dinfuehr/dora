@@ -7,7 +7,7 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use sym::Sym::{self, SymClass};
+use sym::Sym::{self, SymType};
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
@@ -33,8 +33,10 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
         };
 
         self.ctxt.classes.push(Box::new(cls));
+        let ty = BuiltinType::Class(id);
+        let sym = SymType(ty);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, SymClass(id)) {
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);
         }
     }
