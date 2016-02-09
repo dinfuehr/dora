@@ -4,6 +4,7 @@ use ast::Type::*;
 use ast::visit::*;
 use ctxt::{Context, FctContext};
 use error::msg::Msg;
+use semck;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
@@ -11,7 +12,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
         let mut fct = fct.lock().unwrap();
 
         if let Some(ast) = fct.ast {
-            let mut defck = TypeDefCheck {
+            let mut defck = FctDefCheck {
                 ctxt: ctxt,
                 fct: &mut fct,
                 ast: ast,
@@ -23,20 +24,35 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
     }
 }
 
-struct TypeDefCheck<'a, 'ast: 'a> {
+struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
     fct: &'a mut FctContext<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
 }
 
-impl<'a, 'ast> TypeDefCheck<'a, 'ast> {
+impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for TypeDefCheck<'a, 'ast> {
+impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
+    fn visit_class(&mut self, c: &'ast Class) {
+        println!("visit class {}", c.id);
+
+        for p in &c.params {
+            self.visit_prop(p);
+        }
+    }
+
+    fn visit_prop(&mut self, p: &'ast Param) {
+        println!("visit prop {}", p.id);
+        self.visit_type(&p.data_type);
+
+        // TODO: store type in Class
+    }
+
     fn visit_fct(&mut self, f: &'ast Function) {
         for p in &f.params {
             self.visit_param(p);
@@ -78,18 +94,6 @@ impl<'a, 'ast> Visitor<'ast> for TypeDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        match *t {
-            TypeBasic(ref basic) => {
-                if let Some(builtin) = self.ctxt.sym.borrow().get_type(basic.name) {
-                    self.current_type = builtin;
-                } else {
-                    let tyname = self.ctxt.interner.str(basic.name).to_string();
-                    let msg = Msg::UnknownType(tyname);
-                    self.ctxt.diag.borrow_mut().report(basic.pos, msg);
-                }
-            }
-
-            _ => self.ctxt.diag.borrow_mut().report_unimplemented(t.pos())
-        }
+        self.current_type = semck::read_type(self.ctxt, t);
     }
 }

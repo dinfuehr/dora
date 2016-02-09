@@ -28,7 +28,8 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
-            props: Vec::new()
+            props: Vec::new(),
+            ast: Some(c)
         };
 
         self.ctxt.classes.push(Box::new(cls));

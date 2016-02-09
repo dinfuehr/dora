@@ -1,12 +1,16 @@
+use ast::Type;
+use ast::Type::TypeBasic;
 use ctxt::Context;
+use error::msg::Msg;
+use ty::BuiltinType;
 
-mod clsck;
+mod clsdefck;
+mod fctdefck;
 mod flowck;
 mod globaldef;
 mod nameck;
 mod prelude;
 mod typeck;
-mod typedefck;
 mod returnck;
 
 macro_rules! return_on_error {
@@ -19,13 +23,13 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     // add builtin fcts and types to ctxt
     prelude::init(ctxt);
 
-    // add user defined fcts and types to ctxt
-    // this check does not look into fct bodies
+    // add user defined fcts and classes to ctxt
+    // this check does not look into fct or class bodies
     globaldef::check(ctxt);
     return_on_error!(ctxt);
 
-    // add properties of classes
-    clsck::check(ctxt);
+    // checks class definitions/bodies
+    clsdefck::check(ctxt);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables
@@ -34,8 +38,8 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     return_on_error!(ctxt);
 
     // check type definitions of params,
-    // return types and local variables
-    typedefck::check(ctxt);
+    // return types and local variables in functions
+    fctdefck::check(ctxt);
     return_on_error!(ctxt);
 
     // check types of expressions in functions
@@ -47,6 +51,25 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
 
     // checks if function has a return value
     returnck::check(ctxt);
+}
+
+pub fn read_type<'a, 'ast>(ctxt: &Context<'a, 'ast>, t: &'ast Type) -> BuiltinType {
+    match *t {
+        TypeBasic(ref basic) => {
+            if let Some(builtin) = ctxt.sym.borrow().get_type(basic.name) {
+                return builtin;
+
+            } else {
+                let tyname = ctxt.interner.str(basic.name).to_string();
+                let msg = Msg::UnknownType(tyname);
+                ctxt.diag.borrow_mut().report(basic.pos, msg);
+            }
+        }
+
+        _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos())
+    }
+
+    BuiltinType::Unit
 }
 
 #[cfg(test)]

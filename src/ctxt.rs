@@ -38,7 +38,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
-    pub classes: Vec<Box<Class>>, // stores all class definitions
+    pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub fct_defs: HashMap<ast::NodeId, FctContextId>, // points from AST function definition
                                                  // node id to FctContextId
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
