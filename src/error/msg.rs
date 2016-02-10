@@ -12,6 +12,7 @@ pub enum Msg {
     ShadowFunction(String),
     ShadowParam(String),
     ShadowType(String),
+    ShadowProp(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<BuiltinType>, Vec<BuiltinType>),
     WhileCondType(String),
@@ -38,6 +39,7 @@ impl Msg {
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             ShadowType(ref name) => format!("can not shadow type `{}`.", name),
+            ShadowProp(ref name) => format!("property with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
             ParamTypesIncompatible(ref name, ref def, ref expr) =>

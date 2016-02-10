@@ -13,6 +13,7 @@ pub struct Class<'ast> {
     pub id: ClassId,
     pub name: Name,
     pub props: Vec<Prop>,
+    pub size: i32,
     pub ast: Option<&'ast ast::Class>,
 }
 

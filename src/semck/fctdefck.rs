@@ -38,21 +38,6 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
-    fn visit_class(&mut self, c: &'ast Class) {
-        println!("visit class {}", c.id);
-
-        for p in &c.params {
-            self.visit_prop(p);
-        }
-    }
-
-    fn visit_prop(&mut self, p: &'ast Param) {
-        println!("visit prop {}", p.id);
-        self.visit_type(&p.data_type);
-
-        // TODO: store type in Class
-    }
-
     fn visit_fct(&mut self, f: &'ast Function) {
         for p in &f.params {
             self.visit_param(p);

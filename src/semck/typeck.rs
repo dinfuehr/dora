@@ -429,17 +429,6 @@ mod tests {
     }
 
     #[test]
-    fn type_class() {
-        ok("class Foo");
-        ok("class Foo()");
-        ok("class Foo(a: int)");
-        ok("class Foo(a: int, b:int)");
-        ok("class Foo(a: Foo)");
-        ok("class Foo(a: Bar) class Bar");
-        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType("Unknown".to_string()));
-    }
-
-    #[test]
     fn type_function_params() {
         ok("fn foo() {}\nfn f() { foo(); }");
         ok("fn foo(a: int) {}\nfn f() { foo(1); }");

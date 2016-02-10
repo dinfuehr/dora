@@ -29,12 +29,15 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             id: id,
             name: c.name,
             props: Vec::new(),
-            ast: Some(c)
+            ast: Some(c),
+            size: 0,
         };
 
         self.ctxt.classes.push(Box::new(cls));
         let ty = BuiltinType::Class(id);
         let sym = SymType(ty);
+
+        assert!(self.ctxt.cls_defs.insert(c.id, id).is_none());
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);

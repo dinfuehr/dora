@@ -9,7 +9,7 @@ use error::diag::Diagnostic;
 
 use ast;
 use ast::map::Map;
-use class::Class;
+use class::{Class, ClassId};
 use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
@@ -39,6 +39,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
+    pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctContextId>, // points from AST function definition
                                                  // node id to FctContextId
     pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
@@ -52,6 +53,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         Context {
             args: args,
             classes: Vec::new(),
+            cls_defs: HashMap::new(),
             interner: interner,
             gc: Mutex::new(Gc::new()),
             map: map,
@@ -100,6 +102,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
         let mut fctxt = fct.lock().unwrap();
 
         f(&mut fctxt)
+    }
+
+    pub fn cls_by_id(&self, id: ClassId) -> &Class<'ast> {
+        &self.classes[id.0]
+    }
+
+    pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class<'ast> {
+        &mut self.classes[id.0]
     }
 
     pub fn fct_by_node_id_mut<F, R>(&self, id: ast::NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
