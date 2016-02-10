@@ -291,13 +291,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         let fid = *self.fct.calls.get(&e.id).unwrap();
 
-        let ptr = self.ctxt.fct_by_id_mut(fid, |fct| {
-            match fct.code {
-                FctCode::Uncompiled => self.create_stub(fid, fct),
-                FctCode::Builtin(ptr) => ptr,
-                FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
-            }
-        });
+        let ptr = if self.fct.id == fid {
+            // we want to recursively invoke the function we are compiling right now
+            self.ensure_stub(fid, None)
+
+        } else {
+            self.ctxt.fct_by_id_mut(fid, |fct| {
+                match fct.code {
+                    FctCode::Uncompiled => self.ensure_stub(fid, Some(fct)),
+                    FctCode::Builtin(ptr) => ptr,
+                    FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
+                }
+            })
+        };
 
         for (ind, arg) in e.args.iter().enumerate().rev() {
             assert!(!contains_fct_call(arg));
@@ -342,7 +348,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn create_stub(&self, id: FctContextId, fct: &mut FctContext) -> Ptr {
+    fn ensure_stub(&mut self, id: FctContextId, fct: Option<&mut FctContext<'ast>>) -> Ptr {
+        let fct = fct.unwrap_or(&mut self.fct);
+
+        if let Some(ref stub) = fct.stub {
+            return stub.ptr_start();
+        }
+
         let stub = Stub::new();
 
         {

@@ -1,0 +1,12 @@
+fn main() {
+  var result = recursive(5);
+  assert(result == 120);
+}
+
+fn recursive(x: int) -> int {
+  if x <= 1 {
+    return 1;
+  } else {
+    return x*recursive(x-1);
+  }
+}
