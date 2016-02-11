@@ -80,11 +80,25 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
+    use mem;
     use semck::tests::*;
     use ty::BuiltinType;
 
+    fn class_size(code: &'static str) -> i32 {
+        ok_with_test(code, |ctxt| {
+            ctxt.classes[0].size
+        })
+    }
+
     #[test]
-    fn type_prop() {
+    fn test_class_size() {
+        assert_eq!(mem::ptr_width(), class_size("class Foo"));
+        assert_eq!(mem::ptr_width() + 4, class_size("class Foo(a: int)"));
+        assert_eq!(2 * mem::ptr_width(), class_size("class Foo(a: Str)"));
+    }
+
+    #[test]
+    fn test_class_definition() {
         ok("class Foo");
         ok("class Foo()");
         ok("class Foo(a: int)");

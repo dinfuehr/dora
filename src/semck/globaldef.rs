@@ -7,6 +7,7 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
+use mem;
 use sym::Sym::{self, SymType};
 use ty::BuiltinType;
 
@@ -30,7 +31,7 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             name: c.name,
             props: Vec::new(),
             ast: Some(c),
-            size: 0,
+            size: mem::ptr_width(),
         };
 
         self.ctxt.classes.push(Box::new(cls));

@@ -74,6 +74,7 @@ pub fn read_type<'a, 'ast>(ctxt: &Context<'a, 'ast>, t: &'ast Type) -> BuiltinTy
 
 #[cfg(test)]
 mod tests {
+    use ctxt::Context;
     use error::msg::Msg;
     use lexer::position::Position;
     use test;
@@ -86,6 +87,18 @@ mod tests {
             println!("errors = {:?}", errors);
             assert!(!ctxt.diag.borrow().has_errors());
         });
+    }
+
+    pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R where F: FnOnce(&Context) -> R {
+        test::parse_with_errors(code, |ctxt| {
+            let diag = ctxt.diag.borrow();
+            let errors = diag.errors();
+
+            println!("errors = {:?}", errors);
+            assert!(!ctxt.diag.borrow().has_errors());
+
+            f(ctxt)
+        })
     }
 
     pub fn err(code: &'static str, pos: Position, msg: Msg) {
