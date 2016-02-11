@@ -1,12 +1,18 @@
 fn main() {
-  var result = recursive(5);
+  var result = fact(5);
   assert(result == 120);
+
+  result = fact(-10);
+  assert(result == 1);
+
+  result = fact(3);
+  assert(result == 6);
 }
 
-fn recursive(x: int) -> int {
+fn fact(x: int) -> int {
   if x <= 1 {
     return 1;
   } else {
-    return x*recursive(x-1);
+    return x*fact(x-1);
   }
 }
