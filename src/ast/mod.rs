@@ -636,6 +636,7 @@ pub enum Expr {
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
     ExprAssign(ExprAssignType),
+    ExprProp(ExprPropType),
 }
 
 impl Expr {
@@ -708,6 +709,16 @@ impl Expr {
             pos: pos,
             lhs: lhs,
             rhs: rhs,
+        })
+    }
+
+    pub fn create_prop(id: NodeId, pos: Position,
+                       object: Box<Expr>, name: Name) -> Expr {
+        Expr::ExprProp(ExprPropType {
+            id: id,
+            pos: pos,
+            object: object,
+            name: name
         })
     }
 
@@ -816,6 +827,20 @@ impl Expr {
         }
     }
 
+    pub fn to_prop(&self) -> Option<&ExprPropType> {
+        match *self {
+            Expr::ExprProp(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_prop(&self) -> bool {
+        match *self {
+            Expr::ExprProp(_) => true,
+            _ => false
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
@@ -825,7 +850,8 @@ impl Expr {
             Expr::ExprLitBool(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
-            Expr::ExprCall(ref val) => val.id
+            Expr::ExprCall(ref val) => val.id,
+            Expr::ExprProp(ref val) => val.id,
         }
     }
 }
@@ -897,4 +923,13 @@ pub struct ExprAssignType {
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>
+}
+
+#[derive(Debug)]
+pub struct ExprPropType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub object: Box<Expr>,
+    pub name: Name,
 }

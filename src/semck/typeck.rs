@@ -246,6 +246,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
+            ExprProp(_) => unreachable!(),
         }
 
         self.fct.types.insert(e.id(), self.expr_type);

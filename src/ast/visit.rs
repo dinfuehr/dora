@@ -169,6 +169,10 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprProp(ref value) => {
+            v.visit_expr(&value.object);
+        }
+
         ExprLitInt(_) => {}
         ExprLitStr(_) => {}
         ExprLitBool(_) => {}

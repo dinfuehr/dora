@@ -15,26 +15,31 @@ macro_rules! dump {
 }
 
 pub fn dump<'a>(ast: &'a Ast, interner: &'a Interner) {
-    AstDumper::new(ast, interner).dump();
+    let mut dumper = AstDumper {
+        interner: interner,
+        indent: 0
+    };
+
+    dumper.dump_ast(ast);
+}
+
+pub fn dump_expr<'a>(expr: &'a Expr, interner: &'a Interner) {
+    let mut dumper = AstDumper {
+        interner: interner,
+        indent: 0
+    };
+
+    dumper.dump_expr(expr);
 }
 
 struct AstDumper<'a> {
-    ast: &'a Ast,
     interner: &'a Interner,
     indent: u32,
 }
 
 impl<'a> AstDumper<'a> {
-    fn new<'b>(ast: &'b Ast, interner: &'b Interner) -> AstDumper<'b> {
-        AstDumper {
-            ast: ast,
-            interner: interner,
-            indent: 0
-        }
-    }
-
-    fn dump(&mut self) {
-        for el in &self.ast.elements {
+    fn dump_ast(&mut self, ast: &'a Ast) {
+        for el in &ast.elements {
             match *el {
                 ElemFunction(ref fct) => self.dump_fct(fct),
                 ElemClass(ref cls) => self.dump_class(cls),
@@ -210,6 +215,7 @@ impl<'a> AstDumper<'a> {
         match *expr {
             ExprUn(ref un) => self.dump_expr_un(un),
             ExprBin(ref bin) => self.dump_expr_bin(bin),
+            ExprProp(ref prop) => self.dump_expr_prop(prop),
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
@@ -244,6 +250,11 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.rhs));
         dump!(self, "binary {:?} @ {} {}", expr.op, expr.pos, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
+    }
+
+    fn dump_expr_prop(&mut self, prop: &ExprPropType) {
+        dump!(self, "prop {} @ {} {}", self.str(prop.name), prop.pos, prop.id);
+        self.indent(|d| d.dump_expr(&prop.object));
     }
 
     fn dump_expr_assign(&mut self, expr: &ExprAssignType) {

@@ -649,7 +649,7 @@ mod tests {
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("==+=-*/%~");
+        let mut reader = Lexer::from_str("==+=-*/%~.");
         assert_tok(&mut reader, TokenType::EqEq, "", 1, 1);
         assert_tok(&mut reader, TokenType::Add, "", 1, 3);
         assert_tok(&mut reader, TokenType::Eq, "", 1, 4);
@@ -658,6 +658,7 @@ mod tests {
         assert_tok(&mut reader, TokenType::Div, "", 1, 7);
         assert_tok(&mut reader, TokenType::Mod, "", 1, 8);
         assert_tok(&mut reader, TokenType::Tilde, "", 1, 9);
+        assert_tok(&mut reader, TokenType::Dot, "", 1, 10);
 
         let mut reader = Lexer::from_str("<=<>=><");
         assert_tok(&mut reader, TokenType::Le, "", 1, 1);

@@ -550,11 +550,24 @@ impl<T: CodeReader> Parser<T> {
                 _ => unreachable!()
             };
 
-            let expr = try!(self.parse_factor());
+            let expr = try!(self.parse_expression_l10());
             Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
         } else {
-            self.parse_factor()
+            self.parse_expression_l10()
         }
+    }
+
+    fn parse_expression_l10(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_factor());
+
+        while self.token.is(TokenType::Dot) {
+            let tok = try!(self.read_token());
+            let ident = try!(self.expect_identifier());
+
+            left = Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident));
+        }
+
+        Ok(left)
     }
 
     fn parse_factor(&mut self) -> ExprResult {
@@ -772,6 +785,31 @@ mod tests {
 
         let lit = expr.to_lit_bool().unwrap();
         assert_eq!(true, lit.value);
+    }
+
+    #[test]
+    fn parse_prop() {
+        use ast::dump::dump_expr;
+
+        let (expr, interner) = parse_expr("obj.prop");
+        let prop = expr.to_prop().unwrap();
+
+        let ident = prop.object.to_ident().unwrap();
+        assert_eq!("obj", *interner.str(ident.name));
+        assert_eq!("prop", *interner.str(prop.name));
+    }
+
+    #[test]
+    fn parse_prop_negated() {
+        use ast::dump::dump_expr;
+
+        let (expr, interner) = parse_expr("-obj.prop");
+        assert!(expr.to_un().unwrap().opnd.is_prop());
+    }
+
+    #[test]
+    fn parse_prop_non_ident() {
+        err_expr("obj.12", ErrorCode::ExpectedIdentifier, 1, 5);
     }
 
     #[test]
