@@ -80,9 +80,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.cond);
 
         if self.expr_type != BuiltinType::Bool {
-            let tyname = self.expr_type.to_string();
-            let msg = Msg::WhileCondType(tyname);
-
+            let msg = Msg::WhileCondType(self.expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
 
@@ -93,9 +91,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.cond);
 
         if self.expr_type != BuiltinType::Bool {
-            let tyname = self.expr_type.to_string();
-            let msg = Msg::IfCondType(tyname);
-
+            let msg = Msg::IfCondType(self.expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
 
@@ -116,7 +112,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let fct_type = self.fct.return_type;
 
         if expr_type != fct_type {
-            let msg = Msg::ReturnType(fct_type.to_string(), expr_type.to_string());
+            let msg = Msg::ReturnType(fct_type, expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
     }
@@ -233,6 +229,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
     }
+
+    fn check_expr_prop(&mut self, e: &'ast ExprPropType) {
+        self.visit_expr(&e.object);
+
+        if let BuiltinType::Class(classid) = self.expr_type {
+            let cls = self.ctxt.cls_by_id(classid);
+
+            for prop in &cls.props {
+                if prop.name == e.name {
+                    self.expr_type = prop.ty;
+                    return;
+                }
+            }
+        }
+
+        // property not found, report error
+        let prop_name = self.ctxt.interner.str(e.name).to_string();
+        let msg = Msg::UnknownProp(prop_name, self.expr_type);
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+        // we don't know the type of the property, just assume ()
+        self.expr_type = BuiltinType::Unit;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -246,7 +265,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
-            ExprProp(_) => unreachable!(),
+            ExprProp(ref expr) => self.check_expr_prop(expr),
         }
 
         self.fct.types.insert(e.id(), self.expr_type);
@@ -271,9 +290,31 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
+    use class::ClassId;
     use error::msg::Msg;
     use semck::tests::*;
+    use test::parse_with_errors;
     use ty::BuiltinType;
+
+    #[test]
+    fn type_object_prop() {
+        ok("class Foo(a:int) fn f(x: Foo) -> int { return x.a; }");
+        ok("class Foo(a:Str) fn f(x: Foo) -> Str { return x.a; }");
+        err("class Foo(a:int) fn f(x: Foo) -> bool { return x.a; }",
+             pos(1, 41), Msg::ReturnType(BuiltinType::Bool, BuiltinType::Int));
+
+        parse_with_errors("class Foo(a:int) fn f(x: Foo) -> int { return x.b; }", |ctxt| {
+            let diag = ctxt.diag.borrow();
+            let errors = diag.errors();
+            assert_eq!(2, errors.len());
+
+            assert_eq!(pos(1, 48), errors[0].pos);
+            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(0))), errors[0].msg);
+
+            assert_eq!(pos(1, 40), errors[1].pos);
+            assert_eq!(Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit), errors[1].msg);
+        });
+    }
 
     #[test]
     fn type_def_for_return_type() {
@@ -316,20 +357,21 @@ mod tests {
     fn type_while() {
         ok("fn x() { while true { } }");
         ok("fn x() { while false { } }");
-        err("fn x() { while 2 { } }", pos(1, 10), Msg::WhileCondType("int".into()));
+        err("fn x() { while 2 { } }", pos(1, 10), Msg::WhileCondType(BuiltinType::Int));
     }
 
     #[test]
     fn type_if() {
         ok("fn x() { if true { } }");
         ok("fn x() { if false { } }");
-        err("fn x() { if 4 { } }", pos(1, 10), Msg::IfCondType("int".into()));
+        err("fn x() { if 4 { } }", pos(1, 10), Msg::IfCondType(BuiltinType::Int));
     }
 
     #[test]
     fn type_return_unit() {
         ok("fn f() { return; }");
-        err("fn f() { return 1; }", pos(1, 10), Msg::ReturnType("()".into(), "int".into()));
+        err("fn f() { return 1; }", pos(1, 10),
+            Msg::ReturnType(BuiltinType::Unit, BuiltinType::Int));
     }
 
     #[test]
@@ -337,13 +379,13 @@ mod tests {
         ok("fn f() -> int { var a = 1; return a; }");
         ok("fn f() -> int { return 1; }");
         err("fn f() -> int { return; }", pos(1, 17),
-            Msg::ReturnType("int".into(), "()".into()));
+            Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit));
 
         ok("fn f() -> int { return 0; }
             fn g() -> int { return f(); }");
         err("fn f() { }
              fn g() -> int { return f(); }", pos(2, 30),
-             Msg::ReturnType("int".into(), "()".into()));
+             Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit));
     }
 
     #[test]

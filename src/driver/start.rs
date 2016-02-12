@@ -59,7 +59,7 @@ pub fn start() -> i32 {
     let main = find_main(&ctxt);
 
     if ctxt.diag.borrow().has_errors() {
-        ctxt.diag.borrow().dump();
+        ctxt.diag.borrow().dump(&ctxt);
 
         println!("{} error(s) found", ctxt.diag.borrow().errors().len());
         return 1;

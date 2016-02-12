@@ -1,4 +1,5 @@
 use class::ClassId;
+use ctxt::Context;
 use mem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -11,6 +12,20 @@ pub enum BuiltinType {
 }
 
 impl BuiltinType {
+    pub fn name(&self, ctxt: &Context) -> String {
+        match *self {
+            BuiltinType::Unit => "()".into(),
+            BuiltinType::Int => "int".into(),
+            BuiltinType::Bool => "bool".into(),
+            BuiltinType::Str => "str".into(),
+            BuiltinType::Class(cid) => {
+                let cls = ctxt.cls_by_id(cid);
+
+                ctxt.interner.str(cls.name).to_string()
+            }
+        }
+    }
+
     pub fn size(&self) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
@@ -18,20 +33,6 @@ impl BuiltinType {
             BuiltinType::Int => 4,
             BuiltinType::Str | BuiltinType::Class(_) => mem::ptr_width(),
         }
-    }
-}
-
-impl ToString for BuiltinType {
-    fn to_string(&self) -> String {
-        let name = match *self {
-            BuiltinType::Unit => "()",
-            BuiltinType::Int => "int",
-            BuiltinType::Bool => "bool",
-            BuiltinType::Str => "str",
-            BuiltinType::Class(_) => "<class>",
-        };
-
-        name.into()
     }
 }
 

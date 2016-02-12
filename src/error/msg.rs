@@ -1,4 +1,5 @@
 use self::Msg::*;
+use ctxt::Context;
 use lexer::position::Position;
 use ty::BuiltinType;
 
@@ -8,6 +9,7 @@ pub enum Msg {
     UnknownType(String),
     UnknownIdentifier(String),
     UnknownFunction(String),
+    UnknownProp(String, BuiltinType),
     IdentifierExists(String),
     ShadowFunction(String),
     ShadowParam(String),
@@ -15,9 +17,9 @@ pub enum Msg {
     ShadowProp(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<BuiltinType>, Vec<BuiltinType>),
-    WhileCondType(String),
-    IfCondType(String),
-    ReturnType(String, String),
+    WhileCondType(BuiltinType),
+    IfCondType(BuiltinType),
+    ReturnType(BuiltinType, BuiltinType),
     LvalueExpected,
     AssignType(String, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
@@ -29,12 +31,14 @@ pub enum Msg {
 }
 
 impl Msg {
-    pub fn message(&self) -> String {
+    pub fn message(&self, ctxt: &Context) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
             UnknownType(ref name) => format!("no type with name `{}` known.", name),
             UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
+            UnknownProp(ref prop, ref ty) =>
+                format!("unknown property `{}` for type `{}`", prop, ty.name(ctxt)),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
@@ -44,22 +48,23 @@ impl Msg {
                 format!("variable `{}` needs either type declaration or expression.", name),
             ParamTypesIncompatible(ref name, ref def, ref expr) =>
                 format!("function types incompatible"),
-            WhileCondType(ref name) =>
-                format!("while expects condition of type `bool` but got `{}`.", name),
-            IfCondType(ref name) =>
-                format!("if expects condition of type `bool` but got `{}`.", name),
+            WhileCondType(ref ty) =>
+                format!("while expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
+            IfCondType(ref ty) =>
+                format!("if expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
             ReturnType(ref def, ref expr) =>
-                format!("return expects value of type `{}` but got `{}`.", def, expr),
+                format!("return expects value of type `{}` but got `{}`.",
+                    def.name(ctxt), expr.name(ctxt)),
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref name, ref def, ref expr) =>
                 format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
-                        name, &def.to_string(), &expr.to_string()),
+                        name, &def.name(ctxt), &expr.name(ctxt)),
             UnOpType(ref op, ref expr) =>
                 format!("unary unary `{}` can not handle value of type `{} {}`.", op, op,
-                    &expr.to_string()),
+                    &expr.name(ctxt)),
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
-                    op, &lhs.to_string(), op, &rhs.to_string()),
+                    op, &lhs.name(ctxt), op, &rhs.name(ctxt)),
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no main function found in the program".into(),
@@ -82,7 +87,7 @@ impl MsgWithPos {
         }
     }
 
-    pub fn message(&self) -> String {
-        format!("error at {}: {}", self.pos, self.msg.message())
+    pub fn message(&self, ctxt: &Context) -> String {
+        format!("error at {}: {}", self.pos, self.msg.message(ctxt))
     }
 }
