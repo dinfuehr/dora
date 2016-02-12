@@ -80,41 +80,6 @@ impl SymLevel {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum SymEntry {
-    Empty, Type, Function, Var
-}
-
-impl SymEntry {
-    pub fn is_empty(self) -> bool {
-        match self {
-            SymEntry::Empty => true,
-            _ => false
-        }
-    }
-
-    pub fn is_type(self) -> bool {
-        match self {
-            SymEntry::Type => true,
-            _ => false
-        }
-    }
-
-    pub fn is_function(self) -> bool {
-        match self {
-            SymEntry::Function => true,
-            _ => false
-        }
-    }
-
-    pub fn is_var(self) -> bool {
-        match self {
-            SymEntry::Var => true,
-            _ => false
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Sym {
     SymType(BuiltinType),
