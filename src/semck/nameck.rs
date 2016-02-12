@@ -1,16 +1,12 @@
-use std::collections::HashMap;
-
 use ctxt::*;
 use error::msg::Msg;
 
 use ast::*;
 use ast::Expr::*;
 use ast::Stmt::*;
-use ast::Type::*;
 use ast::visit::*;
 use interner::Name;
 use lexer::position::Position;
-use mem::Ptr;
 
 use sym::Sym;
 use sym::Sym::*;
@@ -39,14 +35,6 @@ struct NameCheck<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>, ast: &'ast Function) -> NameCheck<'a, 'ast> {
-        NameCheck {
-            ctxt: ctxt,
-            fct: fct,
-            ast: ast,
-        }
-    }
-
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
@@ -89,7 +77,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(sym) = self.add_var(var_ctxt, |sym| !sym.is_type()) {
+        if let Err(_) = self.add_var(var_ctxt, |sym| !sym.is_type()) {
             let name = str(self.ctxt, var.name);
             report(self.ctxt, var.pos, Msg::ShadowType(name));
         }

@@ -1,5 +1,4 @@
 use std;
-use std::mem;
 use libc::*;
 
 use cpu;
@@ -11,7 +10,7 @@ use os_cpu::*;
 pub fn register_signals(ctxt: &Context) {
     unsafe {
         let ptr = Ptr::new(ctxt as *const Context as *mut c_void);
-        unsafe { ctxt_ptr = Some(ptr); }
+        ctxt_ptr = Some(ptr);
 
         let mut sa: sigaction = std::mem::uninitialized();
 

@@ -82,7 +82,6 @@ mod tests {
     use error::msg::Msg;
     use mem;
     use semck::tests::*;
-    use ty::BuiltinType;
 
     fn class_size(code: &'static str) -> i32 {
         ok_with_test(code, |ctxt| {

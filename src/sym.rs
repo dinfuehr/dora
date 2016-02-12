@@ -1,9 +1,7 @@
 use std::collections::HashMap;
-use std::string::ToString;
 
 use self::Sym::*;
 
-use class::ClassId;
 use ctxt::*;
 use interner::Name;
 use ty::BuiltinType;
@@ -118,7 +116,7 @@ impl Sym {
 
     pub fn is_var(&self) -> bool {
         match *self {
-            SymType(_) => true,
+            SymVar(_) => true,
             _ => false
         }
     }

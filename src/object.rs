@@ -81,7 +81,6 @@ mod tests {
     use super::*;
 
     use gc::Gc;
-    use mem;
     use libc;
 
     #[test]

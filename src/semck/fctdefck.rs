@@ -1,9 +1,7 @@
 use ast::*;
 use ast::Stmt::*;
-use ast::Type::*;
 use ast::visit::*;
 use ctxt::{Context, Fct};
-use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 

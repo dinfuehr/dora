@@ -1,5 +1,4 @@
 use std::fmt;
-use std::ops::Deref;
 use std::ptr;
 use libc;
 

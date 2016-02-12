@@ -85,8 +85,6 @@ impl<T: CodeReader> Parser<T> {
     }
 
     fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
-        let pos = self.token.position;
-
         match self.token.token_type {
             TokenType::Fn => {
                 let fct = try!(self.parse_function());

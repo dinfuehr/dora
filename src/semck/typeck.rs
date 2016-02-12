@@ -4,11 +4,7 @@ use error::msg::Msg;
 use ast::*;
 use ast::Expr::*;
 use ast::Stmt::*;
-use ast::Type::*;
 use ast::visit::Visitor;
-
-use sym::*;
-use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
@@ -279,11 +275,11 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            StmtBreak(ref stmt) => visit::walk_stmt(self, s),
-            StmtContinue(ref stmt) => visit::walk_stmt(self, s),
-            StmtLoop(ref stmt) => visit::walk_stmt(self, s),
-            StmtExpr(ref stmt) => visit::walk_stmt(self, s),
-            StmtBlock(ref stmt) => visit::walk_stmt(self, s),
+            StmtBreak(_) => visit::walk_stmt(self, s),
+            StmtContinue(_) => visit::walk_stmt(self, s),
+            StmtLoop(_) => visit::walk_stmt(self, s),
+            StmtExpr(_) => visit::walk_stmt(self, s),
+            StmtBlock(_) => visit::walk_stmt(self, s),
         }
     }
 }
