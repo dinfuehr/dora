@@ -133,8 +133,10 @@ pub struct FctContextId(pub usize);
 pub struct FctContext<'ast> {
     pub id: FctContextId,
     pub name: Name,
+    pub owner_class: Option<ClassId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
+    pub is_ctor: bool,
     pub ast: Option<&'ast ast::Function>,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctContextId>, // maps function call to FctContextId

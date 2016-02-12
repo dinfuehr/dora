@@ -308,13 +308,21 @@ mod tests {
             let errors = diag.errors();
             assert_eq!(2, errors.len());
 
-            assert_eq!(pos(1, 48), errors[0].pos);
-            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(0))), errors[0].msg);
+            let err = &errors[0];
+            assert_eq!(pos(1, 48), err.pos);
+            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(0))), err.msg);
 
-            assert_eq!(pos(1, 40), errors[1].pos);
-            assert_eq!(Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit), errors[1].msg);
+            let err = &errors[1];
+            assert_eq!(pos(1, 40), err.pos);
+            assert_eq!(Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit), err.msg);
         });
     }
+
+    // #[test]
+    // fn type_ctor() {
+    //     ok("class Foo fn f() -> Foo { return Foo(); }");
+    //     ok("class Foo(a: int) fn f() -> Foo { return Foo(1); }");
+    // }
 
     #[test]
     fn type_def_for_return_type() {
