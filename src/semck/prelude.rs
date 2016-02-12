@@ -47,8 +47,6 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
         owner_class: None,
         ctor: false,
         kind: FctKind::Builtin(fct),
-        types: HashMap::new(),
-        calls: HashMap::new(),
         defs: HashMap::new(),
         tempsize: 0,
         localsize: 0,

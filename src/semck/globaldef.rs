@@ -54,10 +54,10 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             owner_class: None,
             ctor: false,
             kind: FctKind::Source(FctSrc {
-                ast: f
+                ast: f,
+                types: HashMap::new(),
+                calls: HashMap::new(),
             }),
-            types: HashMap::new(),
-            calls: HashMap::new(),
             defs: HashMap::new(),
             tempsize: 0,
             localsize: 0,

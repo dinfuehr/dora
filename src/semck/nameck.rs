@@ -142,7 +142,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             ExprCall(ref call) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.fct.calls.insert(call.id, id);
+                    self.fct.src_mut().calls.insert(call.id, id);
                 } else {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));

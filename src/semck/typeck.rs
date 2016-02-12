@@ -192,7 +192,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        let callee_id = *self.fct.calls.get(&e.id).unwrap();
+        let callee_id = *self.fct.src().calls.get(&e.id).unwrap();
         let caller_id = self.fct.id;
 
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
@@ -265,7 +265,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprProp(ref expr) => self.check_expr_prop(expr),
         }
 
-        self.fct.types.insert(e.id(), self.expr_type);
+        self.fct.src_mut().types.insert(e.id(), self.expr_type);
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {

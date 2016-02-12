@@ -137,8 +137,6 @@ pub struct Fct<'ast> {
 
     pub kind: FctKind<'ast>,
 
-    pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
-    pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -211,6 +209,8 @@ impl<'ast> FctKind<'ast> {
 #[derive(Debug)]
 pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
+    pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
+    pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
 }
 
 #[derive(Debug)]

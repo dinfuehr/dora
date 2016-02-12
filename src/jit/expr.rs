@@ -160,7 +160,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        let cmp_type = *self.fct.types.get(&e.lhs.id()).unwrap();
+        let cmp_type = *self.fct.src().types.get(&e.lhs.id()).unwrap();
 
         if cmp_type == BuiltinType::Str {
             if op == CmpOp::Is {
@@ -219,7 +219,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        let add_type = *self.fct.types.get(&e.id).unwrap();
+        let add_type = *self.fct.src().types.get(&e.id).unwrap();
 
         if add_type == BuiltinType::Str {
             use libc::c_void;
@@ -267,7 +267,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let not_leaf = !is_leaf(&e.rhs);
         let mut temp_offset : i32 = 0;
 
-        let ty = *self.fct.types.get(&e.id).unwrap();
+        let ty = *self.fct.src().types.get(&e.id).unwrap();
 
         if not_leaf {
             temp_offset = self.add_temp_var(ty);
@@ -290,7 +290,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let fid = *self.fct.calls.get(&e.id).unwrap();
+        let fid = *self.fct.src().calls.get(&e.id).unwrap();
 
         let ptr = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
@@ -325,7 +325,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
 
         if REG_RESULT != dest {
-            let return_type = *self.fct.types.get(&e.id).unwrap();
+            let return_type = *self.fct.src().types.get(&e.id).unwrap();
             emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
         }
     }
@@ -344,7 +344,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
 
         if REG_RESULT != dest {
-            let return_type = *self.fct.types.get(&expr.id).unwrap();
+            let return_type = *self.fct.src().types.get(&expr.id).unwrap();
             emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
         }
     }
