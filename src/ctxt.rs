@@ -15,10 +15,7 @@ use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
 use jit::stub::Stub;
-
 use mem::Ptr;
-use mir::Mir;
-
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -140,12 +137,11 @@ pub struct Fct<'ast> {
     pub ast: Option<&'ast ast::Function>,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
-    pub defs: HashMap<ast::NodeId, VarContextId>, // points to the definition of variable from its usage
-    pub ir: Option<Mir>,
+    pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool,
-    pub vars: Vec<VarContext>,
+    pub vars: Vec<Var>,
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
     pub code: FctCode, // ptr to machine code if already compiled
@@ -157,13 +153,13 @@ impl<'ast> Fct<'ast> {
         self.tempsize + self.localsize
     }
 
-    pub fn var_by_node_id(&self, id: ast::NodeId) -> &VarContext {
+    pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
         let varid = *self.defs.get(&id).unwrap();
 
         &self.vars[varid.0]
     }
 
-    pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut VarContext {
+    pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Var {
         let varid = *self.defs.get(&id).unwrap();
 
         &mut self.vars[varid.0]
@@ -176,11 +172,11 @@ pub enum FctCode {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct VarContextId(pub usize);
+pub struct VarId(pub usize);
 
 #[derive(Debug)]
-pub struct VarContext {
-    pub id: VarContextId,
+pub struct Var {
+    pub id: VarId,
 
     pub name: Name,
 

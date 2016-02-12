@@ -57,7 +57,6 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             types: HashMap::new(),
             calls: HashMap::new(),
             defs: HashMap::new(),
-            ir: None,
             tempsize: 0,
             localsize: 0,
             leaf: false,

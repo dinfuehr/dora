@@ -16,7 +16,6 @@ mod gc;
 mod interner;
 mod jit;
 mod lexer;
-mod mir;
 mod mem;
 mod object;
 mod os;

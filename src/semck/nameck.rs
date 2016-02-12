@@ -56,10 +56,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.ctxt.sym.borrow_mut().pop_level();
     }
 
-    pub fn add_var<F>(&mut self, mut var: VarContext, replacable: F) ->
-            Result<VarContextId, Sym> where F: FnOnce(&Sym) -> bool {
+    pub fn add_var<F>(&mut self, mut var: Var, replacable: F) ->
+            Result<VarId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var.name;
-        let var_id = VarContextId(self.fct.vars.len());
+        let var_id = VarId(self.fct.vars.len());
 
         var.id = var_id;
 
@@ -79,8 +79,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
-        let var_ctxt = VarContext {
-            id: VarContextId(0),
+        let var_ctxt = Var {
+            id: VarId(0),
             name: var.name,
             data_type: BuiltinType::Unit,
             node_id: var.id,
@@ -108,8 +108,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let var_ctxt = VarContext {
-            id: VarContextId(0),
+        let var_ctxt = Var {
+            id: VarId(0),
             name: p.name,
             data_type: BuiltinType::Unit,
             node_id: p.id,

@@ -6,7 +6,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::{Context, FctCode, Fct, FctId, VarContextId};
+use ctxt::{Context, FctCode, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
 use dseg::DSeg;
 

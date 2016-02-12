@@ -37,7 +37,7 @@ struct Generator<'a, 'ast: 'a> {
     result: Opnd,
     cur_block: BlockId,
     ir: Mir,
-    var_map: HashMap<VarContextId, VarId>
+    var_map: HashMap<VarId, VarId>
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
