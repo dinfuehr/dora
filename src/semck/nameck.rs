@@ -59,7 +59,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         if result.is_ok() {
             self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
-            assert!(self.fct.defs.insert(var.node_id, var_id).is_none());
+            assert!(self.fct.src_mut().defs.insert(var.node_id, var_id).is_none());
         }
 
         self.fct.vars.push(var);
@@ -133,7 +133,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *e {
             ExprIdent(ref ident) => {
                 if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-                    self.fct.defs.insert(ident.id, id);
+                    self.fct.src_mut().defs.insert(ident.id, id);
                 } else {
                     let name = str(self.ctxt, ident.name);
                     report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));

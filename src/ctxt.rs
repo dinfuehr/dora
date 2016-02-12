@@ -137,7 +137,6 @@ pub struct Fct<'ast> {
 
     pub kind: FctKind<'ast>,
 
-    pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool,
@@ -166,13 +165,13 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
-        let varid = *self.defs.get(&id).unwrap();
+        let varid = *self.src().defs.get(&id).unwrap();
 
         &self.vars[varid.0]
     }
 
     pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Var {
-        let varid = *self.defs.get(&id).unwrap();
+        let varid = *self.src().defs.get(&id).unwrap();
 
         &mut self.vars[varid.0]
     }
@@ -211,6 +210,7 @@ pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
+    pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
 }
 
 #[derive(Debug)]
