@@ -9,7 +9,8 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if let Some(ast) = fct.ast {
+        if fct.kind.is_src() {
+            let ast = fct.ast();
             let mut defck = FctDefCheck {
                 ctxt: ctxt,
                 fct: &mut fct,

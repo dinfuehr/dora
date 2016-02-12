@@ -69,8 +69,8 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         fct.id = fctid;
 
-        if let Some(ast) = fct.ast {
-            assert!(self.fct_defs.insert(ast.id, fctid).is_none());
+        if fct.kind.is_src() {
+            assert!(self.fct_defs.insert(fct.ast().id, fctid).is_none());
         }
 
         self.fcts.push(Arc::new(Mutex::new(fct)));
@@ -133,8 +133,10 @@ pub struct Fct<'ast> {
     pub owner_class: Option<ClassId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
-    pub is_ctor: bool,
-    pub ast: Option<&'ast ast::Function>,
+    pub ctor: bool,
+
+    pub kind: FctKind<'ast>,
+
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
@@ -149,6 +151,18 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn ast(&self) -> &'ast ast::Function {
+        self.src().ast
+    }
+
+    pub fn src(&self) -> &FctSrc<'ast> {
+        self.kind.src()
+    }
+
+    pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
+        self.kind.src_mut()
+    }
+
     pub fn stacksize(&self) -> i32 {
         self.tempsize + self.localsize
     }
@@ -167,6 +181,39 @@ impl<'ast> Fct<'ast> {
 }
 
 #[derive(Debug)]
+pub enum FctKind<'ast> {
+    Source(FctSrc<'ast>), Builtin(Ptr), Intrinsic
+}
+
+impl<'ast> FctKind<'ast> {
+    pub fn is_src(&self) -> bool {
+        match *self {
+            FctKind::Source(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn src(&self) -> &FctSrc<'ast> {
+        match *self {
+            FctKind::Source(ref ast_info) => ast_info,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
+        match *self {
+            FctKind::Source(ref mut ast_info) => ast_info,
+            _ => unreachable!()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FctSrc<'ast> {
+    pub ast: &'ast ast::Function,
+}
+
+#[derive(Debug)]
 pub enum FctCode {
     Uncompiled, Builtin(Ptr), Fct(JitFct)
 }
@@ -177,12 +224,8 @@ pub struct VarId(pub usize);
 #[derive(Debug)]
 pub struct Var {
     pub id: VarId,
-
     pub name: Name,
-
     pub data_type: BuiltinType,
-
     pub node_id: ast::NodeId,
-
     pub offset: i32,
 }

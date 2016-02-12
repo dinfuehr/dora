@@ -97,10 +97,10 @@ fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctId, &'ast Functio
 
         if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
             || fct.params_types.len() > 0 {
-            ctxt.diag.borrow_mut().report(fct.ast.unwrap().pos, Msg::WrongMainDefinition);
+            ctxt.diag.borrow_mut().report(fct.ast().pos, Msg::WrongMainDefinition);
             return None;
         }
 
-        Some((fctid, fct.ast.unwrap()))
+        Some((fctid, fct.ast()))
     })
 }

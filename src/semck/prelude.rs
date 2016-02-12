@@ -26,17 +26,17 @@ fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'a
 
 fn add_builtin_functions<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
-        ctxt, FctCode::Builtin(Ptr::new(stdlib::assert as *mut c_void)));
+        ctxt, Ptr::new(stdlib::assert as *mut c_void));
 
     builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        FctCode::Builtin(Ptr::new(stdlib::print as *mut c_void)));
+        Ptr::new(stdlib::print as *mut c_void));
 
     builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        FctCode::Builtin(Ptr::new(stdlib::println as *mut c_void)));
+        Ptr::new(stdlib::println as *mut c_void));
 }
 
 fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
-                    ctxt: &mut Context<'a, 'ast>, fct: FctCode) {
+                    ctxt: &mut Context<'a, 'ast>, fct: Ptr) {
     let name = ctxt.interner.intern(name);
 
     let fct = Fct {
@@ -45,8 +45,8 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
         params_types: args,
         return_type: ret,
         owner_class: None,
-        is_ctor: false,
-        ast: None,
+        ctor: false,
+        kind: FctKind::Builtin(fct),
         types: HashMap::new(),
         calls: HashMap::new(),
         defs: HashMap::new(),
@@ -55,7 +55,7 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
         leaf: false,
         vars: Vec::new(),
         always_returns: false,
-        code: fct,
+        code: FctCode::Builtin(fct),
         stub: None,
     };
 

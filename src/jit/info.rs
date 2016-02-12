@@ -11,7 +11,7 @@ use mem;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>) {
-    let ast = fct.ast.unwrap();
+    let ast = fct.ast();
 
     let mut ig = InfoGenerator {
         ctxt: ctxt,

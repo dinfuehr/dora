@@ -25,7 +25,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
             FctCode::Fct(ref fct) => return fct.fct_ptr()
         }
 
-        let ast = fct.ast.unwrap();
+        let ast = fct.src().ast;
 
         let jit_fct = {
             let mut cg = CodeGen {
@@ -300,7 +300,7 @@ mod tests {
             let fctid = ctxt.sym.borrow().get_function(name).unwrap();
 
             ctxt.fct_by_id_mut(fctid, |fct| {
-                let ast = fct.ast.unwrap();
+                let ast = fct.ast();
 
                 let mut cg = CodeGen {
                     ctxt: ctxt,
