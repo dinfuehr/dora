@@ -15,6 +15,6 @@ pub mod map;
 pub mod stub;
 
 
-pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> Ptr {
+pub fn generate<'a, 'ast>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
     codegen::generate(ctxt, id)
 }

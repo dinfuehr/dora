@@ -23,7 +23,7 @@ use mir::Opnd::*;
 
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct_id: FctContextId) {
+pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct_id: FctId) {
     ctxt.fct_by_id_mut(fct_id, |fct| {
         Generator::new(ctxt, fct).generate();
     });
@@ -31,7 +31,7 @@ pub fn generate<'a, 'ast>(ctxt: &Context<'a, 'ast>, fct_id: FctContextId) {
 
 struct Generator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     vreg: u32,
     result: Opnd,
@@ -47,7 +47,7 @@ enum JoinAction {
 }
 
 impl<'a, 'ast> Generator<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) -> Generator<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>) -> Generator<'a, 'ast> {
         let ast = fct.ast.unwrap();
 
         Generator {
@@ -312,7 +312,7 @@ mod tests {
     use test::parse;
 
     fn check_fct<F, T>(code: &'static str, fname: &'static str, f: F) -> T
-        where F: FnOnce(&Context, &FctContext) -> T
+        where F: FnOnce(&Context, &Fct) -> T
     {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern(fname);

@@ -40,9 +40,9 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub sym: RefCell<SymTable>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
-    pub fct_defs: HashMap<ast::NodeId, FctContextId>, // points from AST function definition
-                                                 // node id to FctContextId
-    pub fcts: Vec<Arc<Mutex<FctContext<'ast>>>>, // stores all function definitions
+    pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
+                                                 // node id to FctId
+    pub fcts: Vec<Arc<Mutex<Fct<'ast>>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
 }
@@ -66,9 +66,9 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_function(&mut self, mut fct: FctContext<'ast>) -> Result<FctContextId, Sym> {
+    pub fn add_function(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
         let name = fct.name;
-        let fctid = FctContextId(self.fcts.len());
+        let fctid = FctId(self.fcts.len());
 
         fct.id = fctid;
 
@@ -90,14 +90,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn fct_by_id<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&FctContext<'ast>) -> R {
+    pub fn fct_by_id<F, R>(&self, id: FctId, f: F) -> R where F: FnOnce(&Fct<'ast>) -> R {
         let fct = self.fcts[id.0].clone();
         let fctxt = fct.lock().unwrap();
 
         f(&fctxt)
     }
 
-    pub fn fct_by_id_mut<F, R>(&self, id: FctContextId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+    pub fn fct_by_id_mut<F, R>(&self, id: FctId, f: F) -> R where F: FnOnce(&mut Fct<'ast>) -> R {
         let fct = self.fcts[id.0].clone();
         let mut fctxt = fct.lock().unwrap();
 
@@ -112,14 +112,14 @@ impl<'a, 'ast> Context<'a, 'ast> {
         &mut self.classes[id.0]
     }
 
-    pub fn fct_by_node_id_mut<F, R>(&self, id: ast::NodeId, f: F) -> R where F: FnOnce(&mut FctContext<'ast>) -> R {
+    pub fn fct_by_node_id_mut<F, R>(&self, id: ast::NodeId, f: F) -> R where F: FnOnce(&mut Fct<'ast>) -> R {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id_mut(fct_id, f)
     }
 
     pub fn fct_by_node_id<F, R>(&self, id: ast::NodeId, f: F) -> R where
-                     F: FnOnce(&FctContext<'ast>) -> R {
+                     F: FnOnce(&Fct<'ast>) -> R {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id(fct_id, f)
@@ -127,11 +127,11 @@ impl<'a, 'ast> Context<'a, 'ast> {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct FctContextId(pub usize);
+pub struct FctId(pub usize);
 
 #[derive(Debug)]
-pub struct FctContext<'ast> {
-    pub id: FctContextId,
+pub struct Fct<'ast> {
+    pub id: FctId,
     pub name: Name,
     pub owner_class: Option<ClassId>,
     pub params_types: Vec<BuiltinType>,
@@ -139,7 +139,7 @@ pub struct FctContext<'ast> {
     pub is_ctor: bool,
     pub ast: Option<&'ast ast::Function>,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
-    pub calls: HashMap<ast::NodeId, FctContextId>, // maps function call to FctContextId
+    pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, VarContextId>, // points to the definition of variable from its usage
     pub ir: Option<Mir>,
     pub tempsize: i32, // size of temporary variables on stack
@@ -152,7 +152,7 @@ pub struct FctContext<'ast> {
     pub stub: Option<Stub> // compiler stub
 }
 
-impl<'ast> FctContext<'ast> {
+impl<'ast> Fct<'ast> {
     pub fn stacksize(&self) -> i32 {
         self.tempsize + self.localsize
     }

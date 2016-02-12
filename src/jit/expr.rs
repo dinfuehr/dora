@@ -14,7 +14,7 @@ use ty::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
     dseg: &'a mut DSeg,
@@ -24,7 +24,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
         ctxt: &'a Context<'a, 'ast>,
-        fct: &'a mut FctContext<'ast>,
+        fct: &'a mut Fct<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,
         dseg: &'a mut DSeg,
@@ -349,7 +349,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn ensure_stub(&mut self, id: FctContextId, fct: Option<&mut FctContext<'ast>>) -> Ptr {
+    fn ensure_stub(&mut self, id: FctId, fct: Option<&mut Fct<'ast>>) -> Ptr {
         let fct = fct.unwrap_or(&mut self.fct);
 
         if let Some(ref stub) = fct.stub {

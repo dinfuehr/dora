@@ -39,8 +39,8 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
                     ctxt: &mut Context<'a, 'ast>, fct: FctCode) {
     let name = ctxt.interner.intern(name);
 
-    let fct = FctContext {
-        id: FctContextId(0),
+    let fct = Fct {
+        id: FctId(0),
         name: name,
         params_types: args,
         return_type: ret,

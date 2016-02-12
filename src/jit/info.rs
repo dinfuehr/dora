@@ -5,12 +5,12 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu;
-use ctxt::{Context, FctContext};
+use ctxt::{Context, Fct};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>) {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>) {
     let ast = fct.ast.unwrap();
 
     let mut ig = InfoGenerator {
@@ -31,7 +31,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctConte
 
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
 
     localsize: i32,
@@ -123,7 +123,7 @@ mod tests {
     use ctxt::*;
     use test;
 
-    fn info<F>(code: &'static str, f: F) where F: FnOnce(&FctContext) {
+    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Fct) {
         test::parse(code, |ctxt| {
             let ast = ctxt.ast.elements[0].to_function().unwrap();
 

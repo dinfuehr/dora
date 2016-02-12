@@ -6,7 +6,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::{Context, FctCode, FctContext, FctContextId, VarContextId};
+use ctxt::{Context, FctCode, Fct, FctId, VarContextId};
 use driver::cmd::AsmSyntax;
 use dseg::DSeg;
 
@@ -16,7 +16,7 @@ use jit::fct::JitFct;
 use jit::info;
 use mem::ptr::Ptr;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctContextId) -> Ptr {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
         // check current status of function, do not compile method twice
         match fct.code {
@@ -80,7 +80,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: Buffer,
     dseg: DSeg,
@@ -266,13 +266,13 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, fct: &FctContext, src: Reg, var_id: NodeId) {
+pub fn var_store(buf: &mut Buffer, fct: &Fct, src: Reg, var_id: NodeId) {
     let var = fct.var_by_node_id(var_id);
 
     emit::mov_reg_local(buf, var.data_type, src, var.offset);
 }
 
-pub fn var_load(buf: &mut Buffer, fct: &FctContext, var_id: NodeId, dest: Reg) {
+pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: NodeId, dest: Reg) {
     let var = fct.var_by_node_id(var_id);
 
     emit::mov_local_reg(buf, var.data_type, var.offset, dest);

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ast;
-use ctxt::FctContextId;
+use ctxt::FctId;
 use interner::Name;
 use ty::BuiltinType;
 

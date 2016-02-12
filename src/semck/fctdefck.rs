@@ -2,7 +2,7 @@ use ast::*;
 use ast::Stmt::*;
 use ast::Type::*;
 use ast::visit::*;
-use ctxt::{Context, FctContext};
+use ctxt::{Context, Fct};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
@@ -26,7 +26,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
 
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
 }

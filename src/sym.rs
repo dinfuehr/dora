@@ -48,7 +48,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_type())
     }
 
-    pub fn get_function(&self, name: Name) -> Option<FctContextId> {
+    pub fn get_function(&self, name: Name) -> Option<FctId> {
         self.get(name).and_then(|n| n.to_function())
     }
 
@@ -118,7 +118,7 @@ impl SymEntry {
 #[derive(Debug, Clone)]
 pub enum Sym {
     SymType(BuiltinType),
-    SymFunction(FctContextId),
+    SymFunction(FctId),
     SymVar(VarContextId),
 }
 
@@ -144,7 +144,7 @@ impl Sym {
         }
     }
 
-    pub fn to_function(&self) -> Option<FctContextId> {
+    pub fn to_function(&self) -> Option<FctId> {
         match *self {
             SymFunction(id) => Some(id),
             _ => None

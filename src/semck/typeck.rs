@@ -1,4 +1,4 @@
-use ctxt::{Context, FctContext};
+use ctxt::{Context, Fct};
 use error::msg::Msg;
 
 use ast::*;
@@ -30,7 +30,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
 
 struct TypeCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     expr_type: BuiltinType,
 }

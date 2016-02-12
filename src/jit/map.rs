@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::FctContextId;
+use ctxt::FctId;
 use mem::Ptr;
 
 pub struct CodeMap {
-    tree: BTreeMap<PtrSpan, FctContextId>
+    tree: BTreeMap<PtrSpan, FctId>
 }
 
 impl CodeMap {
@@ -15,12 +15,12 @@ impl CodeMap {
         }
     }
 
-    pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctContextId) {
+    pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctId) {
         let span = PtrSpan::new(start, end);
         assert!(self.tree.insert(span, fct).is_none());
     }
 
-    pub fn get(&self, ptr: Ptr) -> Option<FctContextId> {
+    pub fn get(&self, ptr: Ptr) -> Option<FctId> {
         let span = PtrSpan::new(ptr, ptr.offset(1));
 
         self.tree.get(&span).map(|el| { *el })
@@ -113,20 +113,20 @@ pub fn ptr(val: usize) -> Ptr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctxt::FctContextId;
+    use ctxt::FctId;
 
     #[test]
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctContextId(1));
-        map.insert(ptr(7), ptr(9), FctContextId(2));
+        map.insert(ptr(5), ptr(7), FctId(1));
+        map.insert(ptr(7), ptr(9), FctId(2));
 
         assert_eq!(None, map.get(ptr(4)));
-        assert_eq!(Some(FctContextId(1)), map.get(ptr(5)));
-        assert_eq!(Some(FctContextId(1)), map.get(ptr(6)));
-        assert_eq!(Some(FctContextId(2)), map.get(ptr(7)));
-        assert_eq!(Some(FctContextId(2)), map.get(ptr(8)));
+        assert_eq!(Some(FctId(1)), map.get(ptr(5)));
+        assert_eq!(Some(FctId(1)), map.get(ptr(6)));
+        assert_eq!(Some(FctId(2)), map.get(ptr(7)));
+        assert_eq!(Some(FctId(2)), map.get(ptr(8)));
         assert_eq!(None, map.get(ptr(9)));
     }
 
@@ -135,7 +135,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctContextId(1));
-        map.insert(ptr(6), ptr(7), FctContextId(2));
+        map.insert(ptr(5), ptr(7), FctId(1));
+        map.insert(ptr(6), ptr(7), FctId(2));
     }
 }

@@ -34,12 +34,12 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
 
 struct NameCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'a, 'ast>,
-    fct: &'a mut FctContext<'ast>,
+    fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
 }
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
-    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut FctContext<'ast>, ast: &'ast Function) -> NameCheck<'a, 'ast> {
+    fn new(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>, ast: &'ast Function) -> NameCheck<'a, 'ast> {
         NameCheck {
             ctxt: ctxt,
             fct: fct,

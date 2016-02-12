@@ -3,7 +3,7 @@ use std;
 use std::mem;
 
 use ast::{self, Function};
-use ctxt::{Context, ctxt_ptr, FctContextId};
+use ctxt::{Context, ctxt_ptr, FctId};
 use driver::cmd;
 use error::msg::Msg;
 
@@ -81,7 +81,7 @@ pub fn start() -> i32 {
     }
 }
 
-fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctContextId, &'ast Function)>
+fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctId, &'ast Function)>
         where 'a: 'ast {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_function(name) {
