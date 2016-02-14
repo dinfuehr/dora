@@ -28,7 +28,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let mut es = read_execstate(ucontext);
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        use cpu::trap::COMPILER;
+        use cpu::trap::{ASSERT, COMPILER};
 
         match trap {
             COMPILER => {
@@ -43,11 +43,19 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                     write_execstate(&es, ucontext as *mut c_void);
                 } else {
                     println!("error: code not found for address {:x}", ptr.raw() as u64);
-                    unsafe { _exit(1); }
+                    unsafe { _exit(200); }
                 }
             }
 
-            _ => unsafe { _exit(1); }
+            ASSERT => {
+                println!("assert failed");
+                unsafe { _exit(199); }
+            }
+
+            _ =>  {
+                println!("error: trap {:?} not supported.", trap);
+                unsafe { _exit(200); }
+            }
         }
 
     // could not recognize trap -> crash vm

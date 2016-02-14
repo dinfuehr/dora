@@ -4,7 +4,7 @@ use libc::{c_void, SIGSEGV};
 use cpu::trap::TrapId;
 use execstate::ExecState;
 
-use self::ucontext::ucontext_t;
+use self::ucontext::*;
 use self::ucontext_reg::*;
 
 mod ucontext;
@@ -15,17 +15,18 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
 
     unsafe {
         let uc = uc as *mut ucontext_t;
-        let mc = &(*uc).uc_mcontext;
+        let mc = (*uc).uc_mcontext;
+        let ss = &(*mc).ss[..];
 
-        es.pc = mc.gregs[REG_RIP] as usize;
-        es.sp = mc.gregs[REG_RSP] as usize;
+        es.pc = ss[REG_RIP] as usize;
+        es.sp = ss[REG_RSP] as usize;
         es.ra = 0;
 
         for i in 0..es.regs.len() {
             let src = reg2ucontext(i);
             let dest = i;
 
-            es.regs[dest] = mc.gregs[src] as usize;
+            es.regs[dest] = ss[src] as usize;
         }
     }
 
@@ -35,16 +36,17 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
 pub fn write_execstate(es: &ExecState, uc: *mut c_void) {
     unsafe {
         let uc = uc as *mut ucontext_t;
-        let mc = &mut (*uc).uc_mcontext;
+        let mc = (*uc).uc_mcontext;
+        let ss = &mut (*mc).ss[..];
 
-        mc.gregs[REG_RIP] = es.pc as i64;
-        mc.gregs[REG_RSP] = es.sp as i64;
+        ss[REG_RIP] = es.pc as u64;
+        ss[REG_RSP] = es.sp as u64;
 
         for i in 0..es.regs.len() {
             let src = i;
             let dest = reg2ucontext(i);
 
-            mc.gregs[dest] = es.regs[src] as i64;
+            ss[dest] = es.regs[src] as u64;
         }
     }
 }

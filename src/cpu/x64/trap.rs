@@ -18,6 +18,7 @@ impl TrapId {
 
 pub const COMPILER: TrapId = TrapId(7);
 pub const DIV0: TrapId = TrapId(8);
+pub const ASSERT: TrapId = TrapId(9);
 
 // emit stub instruction
 pub fn emit(buf: &mut Buffer, trap: TrapId) {
