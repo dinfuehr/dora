@@ -298,10 +298,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
-                match fct.code {
-                    FctCode::Uncompiled => self.ensure_stub(fid, Some(fct)),
-                    FctCode::Builtin(ptr) => ptr,
-                    FctCode::Fct(ref fctcode) => fctcode.fct_ptr(),
+                match fct.kind {
+                    FctKind::Source(_) => self.ensure_stub(fid, Some(fct)),
+                    FctKind::Builtin(ptr) => ptr,
+                    FctKind::Intrinsic => unreachable!("intrinsic fct call"),
                 }
             })
         };

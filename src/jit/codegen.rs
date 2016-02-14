@@ -6,7 +6,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
-use ctxt::{Context, FctCode, Fct, FctId, VarId};
+use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
 use dseg::DSeg;
 
@@ -18,11 +18,9 @@ use mem::ptr::Ptr;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
-        // check current status of function, do not compile method twice
-        match fct.code {
-            FctCode::Uncompiled => {},
-            FctCode::Builtin(_) => unreachable!("jit::generate called for builtin fct"),
-            FctCode::Fct(ref fct) => return fct.fct_ptr()
+        // check if function was already compiled
+        if let Some(ref jit_fct) = fct.src().jit_fct {
+            return jit_fct.fct_ptr();
         }
 
         let ast = fct.src().ast;
@@ -48,7 +46,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
         }
 
         let fct_ptr = jit_fct.fct_ptr();
-        fct.code = FctCode::Fct(jit_fct);
+        fct.src_mut().jit_fct = Some(jit_fct);
 
         fct_ptr
     })

@@ -136,8 +136,6 @@ pub struct Fct<'ast> {
     pub ctor: bool,
 
     pub kind: FctKind<'ast>,
-
-    pub code: FctCode, // ptr to machine code if already compiled
     pub stub: Option<Stub> // compiler stub
 }
 
@@ -207,17 +205,13 @@ pub struct FctSrc<'ast> {
     pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
+    pub jit_fct: Option<JitFct>,
 }
 
 impl<'ast> FctSrc<'ast> {
     pub fn stacksize(&self) -> i32 {
         self.tempsize + self.localsize
     }
-}
-
-#[derive(Debug)]
-pub enum FctCode {
-    Uncompiled, Builtin(Ptr), Fct(JitFct)
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

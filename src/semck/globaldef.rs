@@ -63,8 +63,8 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
                 leaf: false,
                 vars: Vec::new(),
                 always_returns: false,
+                jit_fct: None,
             }),
-            code: FctCode::Uncompiled,
             stub: None,
         };
 
