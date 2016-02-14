@@ -53,7 +53,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             // save this information for the function, this information is useful
             // for code generation
 
-            self.fct.always_returns = true;
+            self.fct.src_mut().always_returns = true;
         }
     }
 }
@@ -106,7 +106,7 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
 
-            assert_eq!(value, ctxt.fct_by_id(fct_id, |fct| fct.always_returns));
+            assert_eq!(value, ctxt.fct_by_id(fct_id, |fct| fct.src().always_returns));
         });
     }
 

@@ -101,7 +101,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.store_register_params_on_stack();
         self.visit_fct(self.ast);
 
-        let always_returns = self.fct.always_returns;
+        let always_returns = self.fct.src().always_returns;
 
         if !always_returns {
             self.emit_epilog();

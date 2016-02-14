@@ -137,8 +137,6 @@ pub struct Fct<'ast> {
 
     pub kind: FctKind<'ast>,
 
-    pub always_returns: bool, // true if function is always exited via return statement
-                              // false if function execution could reach the closing } of this function
     pub code: FctCode, // ptr to machine code if already compiled
     pub stub: Option<Stub> // compiler stub
 }
@@ -207,6 +205,8 @@ pub struct FctSrc<'ast> {
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool, // false if fct calls other functions
     pub vars: Vec<Var>, // variables in functions
+    pub always_returns: bool, // true if function is always exited via return statement
+                              // false if function execution could reach the closing } of this function
 }
 
 impl<'ast> FctSrc<'ast> {
