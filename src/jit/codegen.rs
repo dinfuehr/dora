@@ -25,20 +25,16 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
 
         let ast = fct.src().ast;
 
-        let jit_fct = {
-            let mut cg = CodeGen {
-                ctxt: ctxt,
-                fct: fct,
-                ast: ast,
-                buf: Buffer::new(),
-                dseg: DSeg::new(),
+        let jit_fct = CodeGen {
+            ctxt: ctxt,
+            fct: fct,
+            ast: ast,
+            buf: Buffer::new(),
+            dseg: DSeg::new(),
 
-                lbl_break: None,
-                lbl_continue: None
-            };
-
-            cg.generate()
-        };
+            lbl_break: None,
+            lbl_continue: None
+        }.generate();
 
         if ctxt.args.flag_emit_asm {
             dump_asm(&jit_fct, &ctxt.interner.str(ast.name),
