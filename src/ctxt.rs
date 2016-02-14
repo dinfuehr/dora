@@ -136,7 +136,6 @@ pub struct Fct<'ast> {
     pub ctor: bool,
 
     pub kind: FctKind<'ast>,
-    pub stub: Option<Stub> // compiler stub
 }
 
 impl<'ast> Fct<'ast> {
@@ -205,7 +204,8 @@ pub struct FctSrc<'ast> {
     pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
-    pub jit_fct: Option<JitFct>,
+    pub jit_fct: Option<JitFct>, // compile function
+    pub stub: Option<Stub> // compiler stub
 }
 
 impl<'ast> FctSrc<'ast> {

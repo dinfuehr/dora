@@ -352,7 +352,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn ensure_stub(&mut self, id: FctId, fct: Option<&mut Fct<'ast>>) -> Ptr {
         let fct = fct.unwrap_or(&mut self.fct);
 
-        if let Some(ref stub) = fct.stub {
+        if let Some(ref stub) = fct.src().stub {
             return stub.ptr_start();
         }
 
@@ -368,7 +368,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         let ptr = stub.ptr_start();
-        fct.stub = Some(stub);
+        fct.src_mut().stub = Some(stub);
 
         ptr
     }
