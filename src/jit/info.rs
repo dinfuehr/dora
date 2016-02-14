@@ -179,7 +179,7 @@ mod tests {
         info("fn f(a: bool, b: int) { var c = 1; }", |fct| {
             assert_eq!(12, fct.src().localsize);
 
-            for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
+            for (var, offset) in fct.src().vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, var.offset);
             }
         });
@@ -194,7 +194,7 @@ mod tests {
             assert_eq!(28, fct.src().localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-            for (var, offset) in fct.vars.iter().zip(&offsets) {
+            for (var, offset) in fct.src().vars.iter().zip(&offsets) {
                 assert_eq!(*offset, var.offset);
             }
         });
@@ -205,7 +205,7 @@ mod tests {
         info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |fct| {
             assert_eq!(16, fct.src().localsize);
 
-            for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+            for (var, offset) in fct.src().vars.iter().zip(&[-1, -2, -8, -16]) {
                 assert_eq!(*offset, var.offset);
             }
         });

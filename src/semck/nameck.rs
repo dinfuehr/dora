@@ -48,7 +48,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     pub fn add_var<F>(&mut self, mut var: Var, replacable: F) ->
             Result<VarId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var.name;
-        let var_id = VarId(self.fct.vars.len());
+        let var_id = VarId(self.fct.src().vars.len());
 
         var.id = var_id;
 
@@ -62,7 +62,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             assert!(self.fct.src_mut().defs.insert(var.node_id, var_id).is_none());
         }
 
-        self.fct.vars.push(var);
+        self.fct.src_mut().vars.push(var);
 
         result
     }

@@ -137,7 +137,6 @@ pub struct Fct<'ast> {
 
     pub kind: FctKind<'ast>,
 
-    pub vars: Vec<Var>,
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
     pub code: FctCode, // ptr to machine code if already compiled
@@ -160,13 +159,13 @@ impl<'ast> Fct<'ast> {
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
         let varid = *self.src().defs.get(&id).unwrap();
 
-        &self.vars[varid.0]
+        &self.src().vars[varid.0]
     }
 
     pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Var {
         let varid = *self.src().defs.get(&id).unwrap();
 
-        &mut self.vars[varid.0]
+        &mut self.src_mut().vars[varid.0]
     }
 }
 
@@ -207,6 +206,7 @@ pub struct FctSrc<'ast> {
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool, // false if fct calls other functions
+    pub vars: Vec<Var>, // variables in functions
 }
 
 impl<'ast> FctSrc<'ast> {
