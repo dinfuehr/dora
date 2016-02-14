@@ -173,7 +173,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(FctSrc<'ast>), Builtin(Ptr), Intrinsic
+    Source(FctSrc<'ast>), Gen(FctGen) Builtin(Ptr), Intrinsic
 }
 
 impl<'ast> FctKind<'ast> {
@@ -197,6 +197,12 @@ impl<'ast> FctKind<'ast> {
             _ => unreachable!()
         }
     }
+}
+
+#[derive(Debug)]
+pub struct FctGen {
+    pub jit_fct: Option<JitFct>, // compile function
+    pub stub: Option<Stub> // compiler stub
 }
 
 #[derive(Debug)]
