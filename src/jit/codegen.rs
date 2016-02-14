@@ -121,11 +121,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_prolog(&mut self) {
-        emit::prolog(&mut self.buf, self.fct.stacksize());
+        emit::prolog(&mut self.buf, self.fct.src().stacksize());
     }
 
     fn emit_epilog(&mut self) {
-        emit::epilog(&mut self.buf, self.fct.stacksize());
+        emit::epilog(&mut self.buf, self.fct.src().stacksize());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {

@@ -137,9 +137,6 @@ pub struct Fct<'ast> {
 
     pub kind: FctKind<'ast>,
 
-    pub tempsize: i32, // size of temporary variables on stack
-    pub localsize: i32, // size of local variables on stack
-    pub leaf: bool,
     pub vars: Vec<Var>,
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
@@ -158,10 +155,6 @@ impl<'ast> Fct<'ast> {
 
     pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
         self.kind.src_mut()
-    }
-
-    pub fn stacksize(&self) -> i32 {
-        self.tempsize + self.localsize
     }
 
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
@@ -211,6 +204,15 @@ pub struct FctSrc<'ast> {
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
+    pub tempsize: i32, // size of temporary variables on stack
+    pub localsize: i32, // size of local variables on stack
+    pub leaf: bool, // false if fct calls other functions
+}
+
+impl<'ast> FctSrc<'ast> {
+    pub fn stacksize(&self) -> i32 {
+        self.tempsize + self.localsize
+    }
 }
 
 #[derive(Debug)]

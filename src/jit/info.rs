@@ -46,9 +46,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
         self.visit_fct(self.ast);
 
-        self.fct.localsize = self.localsize;
-        self.fct.tempsize = self.max_tempsize;
-        self.fct.leaf = self.leaf;
+        let src = self.fct.src_mut();
+        src.localsize = self.localsize;
+        src.tempsize = self.max_tempsize;
+        src.leaf = self.leaf;
     }
 
     fn reserve_stack_for_var(&mut self, id: NodeId) {
@@ -137,46 +138,46 @@ mod tests {
 
     #[test]
     fn test_tempsize() {
-        info("fn f() { 1+2*3; }", |fct| { assert_eq!(4, fct.tempsize); });
-        info("fn f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.tempsize); });
-        info("fn f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.tempsize); })
+        info("fn f() { 1+2*3; }", |fct| { assert_eq!(4, fct.src().tempsize); });
+        info("fn f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.src().tempsize); });
+        info("fn f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.src().tempsize); })
     }
 
     #[test]
     fn test_tempsize_for_fct_call() {
         info("fn f() { g(1,2,3,4,5,6); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |fct| {
-            assert_eq!(0, fct.tempsize);
+            assert_eq!(0, fct.src().tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
-            assert_eq!(16, fct.tempsize);
+            assert_eq!(16, fct.src().tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }", |fct| {
-            assert_eq!(20, fct.tempsize);
+            assert_eq!(20, fct.src().tempsize);
         });
     }
 
     #[test]
     fn test_invocation_flag() {
         info("fn f() { g(); } fn g() { }", |fct| {
-            assert!(!fct.leaf);
+            assert!(!fct.src().leaf);
         });
 
         info("fn f() { }", |fct| {
-            assert!(fct.leaf);
+            assert!(fct.src().leaf);
         });
     }
 
     #[test]
     fn test_param_offset() {
         info("fn f(a: bool, b: int) { var c = 1; }", |fct| {
-            assert_eq!(12, fct.localsize);
+            assert_eq!(12, fct.src().localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, var.offset);
@@ -190,7 +191,7 @@ mod tests {
                    e: int, f: int, g: int, h: int) {
                   var i : int = 1;
               }", |fct| {
-            assert_eq!(28, fct.localsize);
+            assert_eq!(28, fct.src().localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
@@ -202,7 +203,7 @@ mod tests {
     #[test]
     fn test_var_offset() {
         info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |fct| {
-            assert_eq!(16, fct.localsize);
+            assert_eq!(16, fct.src().localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
                 assert_eq!(*offset, var.offset);

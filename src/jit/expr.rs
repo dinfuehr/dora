@@ -286,7 +286,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {
         self.tempsize += ty.size();
 
-        -(self.tempsize + self.fct.localsize)
+        -(self.tempsize + self.fct.src().localsize)
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
