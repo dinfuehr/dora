@@ -84,7 +84,7 @@ pub fn start() -> i32 {
 fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctId, &'ast Function)>
         where 'a: 'ast {
     let name = ctxt.interner.intern("main");
-    let fctid = match ctxt.sym.borrow().get_function(name) {
+    let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,
         None => {
             ctxt.diag.borrow_mut().report(Position::new(1, 1), Msg::MainNotFound);

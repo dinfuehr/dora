@@ -63,7 +63,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         }
     }
 
-    pub fn add_function(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
+    pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
         let name = fct.name;
         let fctid = FctId(self.fcts.len());
 
@@ -75,12 +75,19 @@ impl<'a, 'ast> Context<'a, 'ast> {
 
         self.fcts.push(Arc::new(Mutex::new(fct)));
 
+        fctid
+    }
+
+    pub fn add_function(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
+        let name = fct.name;
+        let fctid = self.add_fct(fct);
+
         let mut sym = self.sym.borrow_mut();
 
         match sym.get(name) {
             Some(sym) => Err(sym),
             None => {
-                assert!(sym.insert(name, SymFunction(fctid)).is_none());
+                assert!(sym.insert(name, SymFct(fctid)).is_none());
 
                 Ok(fctid)
             }

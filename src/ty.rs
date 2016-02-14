@@ -12,6 +12,13 @@ pub enum BuiltinType {
 }
 
 impl BuiltinType {
+    pub fn is_cls(&self) -> bool {
+        match *self {
+            BuiltinType::Class(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn cls(&self) -> ClassId {
         match *self {
             BuiltinType::Class(clsid) => clsid,

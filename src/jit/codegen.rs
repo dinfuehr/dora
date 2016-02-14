@@ -295,7 +295,7 @@ mod tests {
             let fct_name = "f";
 
             let name = ctxt.interner.intern("f");
-            let fctid = ctxt.sym.borrow().get_function(name).unwrap();
+            let fctid = ctxt.sym.borrow().get_fct(name).unwrap();
 
             ctxt.fct_by_id_mut(fctid, |fct| {
                 let ast = fct.ast();

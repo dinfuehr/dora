@@ -29,6 +29,7 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
+            ctor: FctId(0),
             props: Vec::new(),
             ast: Some(c),
             size: mem::ptr_width(),

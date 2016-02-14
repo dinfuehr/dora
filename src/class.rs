@@ -12,6 +12,7 @@ pub struct ClassId(pub usize);
 pub struct Class<'ast> {
     pub id: ClassId,
     pub name: Name,
+    pub ctor: FctId,
     pub props: Vec<Prop>,
     pub size: i32,
     pub ast: Option<&'ast ast::Class>,

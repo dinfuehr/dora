@@ -107,7 +107,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_function()) {
+        if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_fct()) {
             let name = str(self.ctxt, p.name);
             let msg = if sym.is_type() {
                 Msg::ShadowType(name)
@@ -141,9 +141,23 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             }
 
             ExprCall(ref call) => {
-                if let Some(id) = self.ctxt.sym.borrow().get_function(call.name) {
-                    self.fct.src_mut().calls.insert(call.id, id);
-                } else {
+                let mut found = false;
+
+                if let Some(sym) = self.ctxt.sym.borrow().get(call.name) {
+                    if sym.is_fct() {
+                        self.fct.src_mut().calls.insert(call.id, sym.to_fct().unwrap());
+                        found = true;
+
+                    } else if sym.is_type() && sym.to_type().unwrap().is_cls() {
+                        let clsid = sym.to_type().unwrap().cls();
+                        let cls = self.ctxt.cls_by_id(clsid);
+
+                        self.fct.src_mut().calls.insert(call.id, cls.ctor);
+                        found = true;
+                    }
+                }
+
+                if !found {
                     let name = str(self.ctxt, call.name);
                     report(self.ctxt, call.pos, Msg::UnknownFunction(name));
                 }

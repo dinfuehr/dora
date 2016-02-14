@@ -331,14 +331,17 @@ mod tests {
     fn type_object_set_prop() {
         ok("class Foo(a: int) fn f(x: Foo) { x.a = 1; }");
         err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
-            pos(1, 38), Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Bool));
+            pos(1, 38),
+            Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Bool));
     }
 
-    // #[test]
-    // fn type_ctor() {
-    //     ok("class Foo fn f() -> Foo { return Foo(); }");
-    //     ok("class Foo(a: int) fn f() -> Foo { return Foo(1); }");
-    // }
+    #[test]
+    fn type_ctor() {
+        ok("class Foo fn f() -> Foo { return Foo(); }");
+        ok("class Foo(a: int) fn f() -> Foo { return Foo(1); }");
+        err("class Foo fn f() -> Foo { return 1; }", pos(1, 27),
+            Msg::ReturnType(BuiltinType::Class(ClassId(0)), BuiltinType::Int));
+    }
 
     #[test]
     fn type_def_for_return_type() {

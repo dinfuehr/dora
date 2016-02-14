@@ -1,11 +1,12 @@
 use ast;
 use ast::visit::Visitor;
 use class::*;
-use ctxt::Context;
+use ctxt::{Context, Fct, FctId, FctKind};
 use error::msg::Msg;
 use lexer::position::Position;
 use mem;
 use semck;
+use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &mut Context<'a, 'ast>) {
     let mut clsck = ClsDefCheck {
@@ -27,6 +28,35 @@ impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
     fn check(&mut self) {
         self.visit_ast(self.ast);
     }
+
+    fn cls(&self) -> &Class<'ast> {
+        self.ctxt.cls_by_id(self.cls_id.unwrap())
+    }
+
+    fn cls_mut(&mut self) -> &mut Class<'ast> {
+        self.ctxt.cls_by_id_mut(self.cls_id.unwrap())
+    }
+
+    fn add_ctor(&mut self) {
+        let params = self.cls().props.iter().map(|p| p.ty).collect();
+
+        let fct = {
+            let cls = self.cls();
+
+            Fct {
+                id: FctId(0),
+                name: cls.name,
+                owner_class: Some(cls.id),
+                params_types: params,
+                return_type: BuiltinType::Class(cls.id),
+                ctor: true,
+                kind: FctKind::Intrinsic,
+            }
+        };
+
+        let fctid = self.ctxt.add_fct(fct);
+        self.cls_mut().ctor = fctid;
+    }
 }
 
 impl<'x, 'a, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'a, 'ast> {
@@ -36,40 +66,36 @@ impl<'x, 'a, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'a, 'ast> {
         for p in &c.params {
             self.visit_prop(p);
         }
+
+        self.add_ctor();
     }
 
     fn visit_prop(&mut self, p: &'ast ast::Param) {
         let ty = semck::read_type(self.ctxt, &p.data_type);
 
-        {
-            let class = self.ctxt.cls_by_id(self.cls_id.unwrap());
-
-            for prop in &class.props {
-                if prop.name == p.name {
-                    let name = self.ctxt.interner.str(p.name).to_string();
-                    report(self.ctxt, p.pos, Msg::ShadowProp(name));
-                }
+        for prop in &self.cls().props {
+            if prop.name == p.name {
+                let name = self.ctxt.interner.str(p.name).to_string();
+                report(self.ctxt, p.pos, Msg::ShadowProp(name));
             }
         }
 
-        {
-            let mut class = self.ctxt.cls_by_id_mut(self.cls_id.unwrap());
+        let mut class = self.cls_mut();
 
-            let offset = if ty.size() > 0 {
-                mem::align_i32(class.size, ty.size())
-            } else {
-                class.size
-            };
+        let offset = if ty.size() > 0 {
+            mem::align_i32(class.size, ty.size())
+        } else {
+            class.size
+        };
 
-            let prop = Prop {
-                name: p.name,
-                ty: ty,
-                offset: offset,
-            };
+        let prop = Prop {
+            name: p.name,
+            ty: ty,
+            offset: offset,
+        };
 
-            class.size = offset + ty.size();
-            class.props.push(prop);
-        }
+        class.size = offset + ty.size();
+        class.props.push(prop);
     }
 }
 

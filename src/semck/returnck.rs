@@ -104,7 +104,7 @@ mod tests {
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern("f");
-            let fct_id = ctxt.sym.borrow().get_function(name).unwrap();
+            let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
 
             assert_eq!(value, ctxt.fct_by_id(fct_id, |fct| fct.src().always_returns));
         });

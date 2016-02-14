@@ -46,8 +46,8 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_type())
     }
 
-    pub fn get_function(&self, name: Name) -> Option<FctId> {
-        self.get(name).and_then(|n| n.to_function())
+    pub fn get_fct(&self, name: Name) -> Option<FctId> {
+        self.get(name).and_then(|n| n.to_fct())
     }
 
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
@@ -81,7 +81,7 @@ impl SymLevel {
 #[derive(Debug, Clone)]
 pub enum Sym {
     SymType(BuiltinType),
-    SymFunction(FctId),
+    SymFct(FctId),
     SymVar(VarId),
 }
 
@@ -100,16 +100,16 @@ impl Sym {
         }
     }
 
-    pub fn is_function(&self) -> bool {
+    pub fn is_fct(&self) -> bool {
         match *self {
-            SymFunction(_) => true,
+            SymFct(_) => true,
             _ => false
         }
     }
 
-    pub fn to_function(&self) -> Option<FctId> {
+    pub fn to_fct(&self) -> Option<FctId> {
         match *self {
-            SymFunction(id) => Some(id),
+            SymFct(id) => Some(id),
             _ => None
         }
     }
