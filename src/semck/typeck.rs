@@ -119,7 +119,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if !e.lhs.is_ident() {
+        if !e.lhs.is_ident() && !e.lhs.is_prop() {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
             return;
         }
@@ -131,9 +131,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let rhs_type = self.expr_type;
 
         if lhs_type != rhs_type {
-            let ident = e.lhs.to_ident().unwrap();
-            let ident = self.ctxt.interner.str(ident.name).to_string();
-            let msg = Msg::AssignType(ident, lhs_type, rhs_type);
+            let msg = if e.lhs.is_ident() {
+                let ident = e.lhs.to_ident().unwrap();
+                let name = self.ctxt.interner.str(ident.name).to_string();
+
+                Msg::AssignType(name, lhs_type, rhs_type)
+            } else {
+                let prop = e.lhs.to_prop().unwrap();
+                let prop_type = {
+                    self.visit_expr(&prop.object);
+                    self.expr_type
+                };
+
+                Msg::AssignProp(prop.name, prop_type.cls(), lhs_type, rhs_type)
+            };
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
@@ -289,6 +300,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 mod tests {
     use class::ClassId;
     use error::msg::Msg;
+    use interner::Name;
     use semck::tests::*;
     use test::parse_with_errors;
     use ty::BuiltinType;
@@ -313,6 +325,13 @@ mod tests {
             assert_eq!(pos(1, 40), err.pos);
             assert_eq!(Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit), err.msg);
         });
+    }
+
+    #[test]
+    fn type_object_set_prop() {
+        ok("class Foo(a: int) fn f(x: Foo) { x.a = 1; }");
+        err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
+            pos(1, 38), Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Bool));
     }
 
     // #[test]

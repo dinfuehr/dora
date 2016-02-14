@@ -1,5 +1,7 @@
 use self::Msg::*;
+use class::ClassId;
 use ctxt::Context;
+use interner::Name;
 use lexer::position::Position;
 use ty::BuiltinType;
 
@@ -22,6 +24,7 @@ pub enum Msg {
     ReturnType(BuiltinType, BuiltinType),
     LvalueExpected,
     AssignType(String, BuiltinType, BuiltinType),
+    AssignProp(Name, ClassId, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
     OutsideLoop,
@@ -57,8 +60,16 @@ impl Msg {
                     def.name(ctxt), expr.name(ctxt)),
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref name, ref def, ref expr) =>
-                format!("variable `{}` defined with type `{}` but initialized with type `{}`.",
-                        name, &def.name(ctxt), &expr.name(ctxt)),
+                format!("cannot assign `{}` to variable `{}` of type `{}`.",
+                        &expr.name(ctxt), name, &def.name(ctxt)),
+            AssignProp(name, clsid, ref def, ref expr) => {
+                let cls = ctxt.cls_by_id(clsid);
+                let cls_name = ctxt.interner.str(cls.name).to_string();
+                let prop_name = ctxt.interner.str(name).to_string();
+
+                format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
+                        &expr.name(ctxt), cls_name, prop_name, &def.name(ctxt))
+            },
             UnOpType(ref op, ref expr) =>
                 format!("unary unary `{}` can not handle value of type `{} {}`.", op, op,
                     &expr.name(ctxt)),

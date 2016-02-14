@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use libc::c_void;
 
 use stdlib;

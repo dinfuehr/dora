@@ -12,6 +12,13 @@ pub enum BuiltinType {
 }
 
 impl BuiltinType {
+    pub fn cls(&self) -> ClassId {
+        match *self {
+            BuiltinType::Class(clsid) => clsid,
+            _ => unreachable!()
+        }
+    }
+
     pub fn name(&self, ctxt: &Context) -> String {
         match *self {
             BuiltinType::Unit => "()".into(),
@@ -39,12 +46,13 @@ impl BuiltinType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mem;
 
     #[test]
     fn type_size() {
         assert_eq!(0, BuiltinType::Unit.size());
         assert_eq!(1, BuiltinType::Bool.size());
         assert_eq!(4, BuiltinType::Int.size());
-        assert_eq!(8, BuiltinType::Str.size());
+        assert_eq!(mem::ptr_width(), BuiltinType::Str.size());
     }
 }
