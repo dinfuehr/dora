@@ -439,7 +439,7 @@ mod tests {
             $name(&mut buf);
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.finish());
+            assert_eq!(expected, buf.data());
         }};
 
         (
@@ -453,7 +453,7 @@ mod tests {
             $name(&mut buf, $($param,)*);
             let expected = vec![$($expr,)*];
 
-            assert_eq!(expected, buf.finish());
+            assert_eq!(expected, buf.data());
         }};
     }
 
@@ -541,7 +541,7 @@ mod tests {
         emit_jz(&mut buf, lbl);
         emit_nop(&mut buf);
         buf.define_label(lbl);
-        assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.finish());
+        assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.data());
     }
 
     #[test]
@@ -551,7 +551,7 @@ mod tests {
         emit_jnz(&mut buf, lbl);
         emit_nop(&mut buf);
         buf.define_label(lbl);
-        assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.finish());
+        assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.data());
     }
 
     #[test]
@@ -561,7 +561,7 @@ mod tests {
         emit_jmp(&mut buf, lbl);
         emit_nop(&mut buf);
         buf.define_label(lbl);
-        assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.finish());
+        assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.data());
     }
 
     #[test]

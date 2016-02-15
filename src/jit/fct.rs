@@ -39,6 +39,10 @@ impl JitFct {
         }
     }
 
+    pub fn code(self) -> CodeMemory {
+        self.code
+    }
+
     pub fn ptr_start(&self) -> Ptr {
         self.code.ptr_start()
     }

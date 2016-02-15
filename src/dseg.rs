@@ -2,11 +2,13 @@ use libc::c_void;
 
 use mem::{self, Ptr};
 
+#[derive(Debug)]
 pub struct DSeg {
     entries: Vec<Entry>,
     size: i32,
 }
 
+#[derive(Debug)]
 struct Entry {
     disp: i32,
     value: Ptr,

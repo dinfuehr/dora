@@ -1,10 +1,14 @@
 use byteorder::{LittleEndian, WriteBytesExt};
+use dseg::DSeg;
+use jit::fct::JitFct;
+use mem::Ptr;
 
 #[derive(Debug)]
 pub struct Buffer {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
+    dseg: DSeg,
 }
 
 impl Buffer {
@@ -13,17 +17,28 @@ impl Buffer {
             data: Vec::new(),
             labels: Vec::new(),
             jumps: Vec::new(),
+            dseg: DSeg::new(),
         }
+    }
+
+    pub fn jit(mut self) -> JitFct {
+        self.fix_forward_jumps();
+
+        JitFct::new(&self.dseg, &self.data)
+    }
+
+    pub fn data(mut self) -> Vec<u8> {
+        self.fix_forward_jumps();
+
+        self.data
+    }
+
+    pub fn data_addr(&mut self, ptr: Ptr) -> i32 {
+        self.dseg.add_addr(ptr)
     }
 
     pub fn pos(&self) -> usize {
         self.data.len()
-    }
-
-    pub fn finish(mut self) -> Vec<u8> {
-        self.fix_forward_jumps();
-
-        self.data
     }
 
     fn fix_forward_jumps(&mut self) {
@@ -120,7 +135,7 @@ mod tests {
         buf.emit_u8(0x33);
         buf.emit_label(lbl);
 
-        assert_eq!(vec![0x33, 0xfb, 0xff, 0xff, 0xff], buf.finish());
+        assert_eq!(vec![0x33, 0xfb, 0xff, 0xff, 0xff], buf.data());
     }
 
     #[test]
@@ -130,7 +145,7 @@ mod tests {
         buf.define_label(lbl);
         buf.emit_label(lbl);
 
-        assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], buf.finish());
+        assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], buf.data());
     }
 
     #[test]
@@ -141,7 +156,7 @@ mod tests {
         buf.emit_u8(0x11);
         buf.define_label(lbl);
 
-        assert_eq!(vec![1, 0, 0, 0, 0x11], buf.finish());
+        assert_eq!(vec![1, 0, 0, 0, 0x11], buf.data());
     }
 
     #[test]
@@ -151,7 +166,7 @@ mod tests {
         buf.emit_label(lbl);
         buf.define_label(lbl);
 
-        assert_eq!(vec![0, 0, 0, 0], buf.finish());
+        assert_eq!(vec![0, 0, 0, 0], buf.data());
     }
 
     #[test]
@@ -171,6 +186,6 @@ mod tests {
         let lbl = buf.create_label();
 
         buf.emit_label(lbl);
-        buf.finish();
+        buf.jit();
     }
 }

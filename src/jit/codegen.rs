@@ -105,8 +105,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_epilog();
         }
 
-        let mc = self.buf.finish();
-        JitFct::new(&self.dseg, &mc)
+        self.buf.jit()
     }
 
     fn store_register_params_on_stack(&mut self) {
