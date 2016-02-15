@@ -49,7 +49,7 @@ pub fn start() -> i32 {
     }
 
     let ast_map = ast::map::build(&ast, &interner);
-    let mut ctxt = Context::new(&args, &interner, &ast_map, &ast);
+    let mut ctxt = Context::new(args, &interner, &ast_map, &ast);
 
     semck::check(&mut ctxt);
 

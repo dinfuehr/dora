@@ -29,7 +29,7 @@ pub fn get_ctxt() -> &'static Context<'static, 'static> {
 }
 
 pub struct Context<'a, 'ast> where 'ast: 'a {
-    pub args: &'a Args,
+    pub args: Args,
     pub interner: &'a Interner,
     pub map: &'a Map<'ast>,
     pub ast: &'ast ast::Ast,
@@ -45,7 +45,7 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
 }
 
 impl<'a, 'ast> Context<'a, 'ast> {
-    pub fn new(args: &'a Args, interner: &'a Interner,
+    pub fn new(args: Args, interner: &'a Interner,
            map: &'a Map<'ast>, ast: &'ast ast::Ast) -> Context<'a, 'ast> {
         Context {
             args: args,
