@@ -5,7 +5,7 @@ use ctxt::{Context, Fct};
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
@@ -24,7 +24,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>,
+    ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,

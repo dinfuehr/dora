@@ -5,7 +5,7 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
+pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
@@ -24,7 +24,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'a, 'ast>) {
 }
 
 struct FlowCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>,
+    ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     in_loop: bool,

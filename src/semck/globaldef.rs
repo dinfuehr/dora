@@ -11,7 +11,7 @@ use mem;
 use sym::Sym::{self, SymType};
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt
     };
@@ -19,11 +19,11 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     gdef.visit_ast(ctxt.ast);
 }
 
-struct GlobalDef<'x, 'a: 'x, 'ast: 'a> {
-    ctxt: &'x mut Context<'a, 'ast>
+struct GlobalDef<'x, 'ast: 'x> {
+    ctxt: &'x mut Context<'ast>
 }
 
-impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
+impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast Class) {
         let id = ClassId(self.ctxt.classes.len());
         let cls = class::Class {

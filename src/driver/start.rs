@@ -48,7 +48,7 @@ pub fn start() -> i32 {
         ast::dump::dump(&ast, &interner);
     }
 
-    let mut ctxt = Context::new(args, &interner, &ast);
+    let mut ctxt = Context::new(args, &ast, interner);
 
     semck::check(&mut ctxt);
 
@@ -80,8 +80,7 @@ pub fn start() -> i32 {
     }
 }
 
-fn find_main<'a, 'ast>(ctxt: &Context<'a, 'ast>) -> Option<(FctId, &'ast Function)>
-        where 'a: 'ast {
+fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<(FctId, &'ast Function)> {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,

@@ -8,7 +8,7 @@ use mem;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &mut Context<'a, 'ast>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     let mut clsck = ClsDefCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -18,13 +18,13 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'a, 'ast>) {
     clsck.check();
 }
 
-struct ClsDefCheck<'x, 'a : 'x, 'ast: 'a> {
-    ctxt: &'x mut Context<'a, 'ast>,
+struct ClsDefCheck<'x, 'ast: 'x> {
+    ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
     cls_id: Option<ClassId>,
 }
 
-impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
+impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     fn check(&mut self) {
         self.visit_ast(self.ast);
     }
@@ -57,7 +57,7 @@ impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
     }
 }
 
-impl<'x, 'a, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'a, 'ast> {
+impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
 

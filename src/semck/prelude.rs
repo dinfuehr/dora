@@ -7,23 +7,23 @@ use mem::Ptr;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub fn init<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
+pub fn init<'a, 'ast: 'a>(ctxt: &mut Context<'ast>) {
     add_builtin_types(ctxt);
     add_builtin_functions(ctxt);
 }
 
-fn add_builtin_types<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
+fn add_builtin_types<'a, 'ast: 'a>(ctxt: &mut Context<'ast>) {
     builtin_type("int", BuiltinType::Int, ctxt);
     builtin_type("bool", BuiltinType::Bool, ctxt);
     builtin_type("Str", BuiltinType::Str, ctxt);
 }
 
-fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'a, 'ast>) {
+fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'ast>) {
     let name = ctxt.interner.intern(name.into());
     assert!(ctxt.sym.borrow_mut().insert(name, SymType(ty)).is_none());
 }
 
-fn add_builtin_functions<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
+fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
         ctxt, Ptr::new(stdlib::assert as *mut c_void));
 
@@ -34,8 +34,8 @@ fn add_builtin_functions<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
         Ptr::new(stdlib::println as *mut c_void));
 }
 
-fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
-                    ctxt: &mut Context<'a, 'ast>, fct: Ptr) {
+fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
+                    ctxt: &mut Context<'ast>, fct: Ptr) {
     let name = ctxt.interner.intern(name);
 
     let fct = Fct {

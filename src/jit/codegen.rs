@@ -16,7 +16,7 @@ use jit::fct::JitFct;
 use jit::info;
 use mem::ptr::Ptr;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
+pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
         if let Some(ref jit) = fct.src().jit_fct { return jit.fct_ptr(); }
 
@@ -69,7 +69,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>,
+    ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: Buffer,

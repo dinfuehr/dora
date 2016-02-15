@@ -12,7 +12,7 @@ use mem::ptr::Ptr;
 use ty::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>,
+    ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
@@ -21,7 +21,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
-        ctxt: &'a Context<'a, 'ast>,
+        ctxt: &'a Context<'ast>,
         fct: &'a mut Fct<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,

@@ -10,7 +10,7 @@ use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast>) {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
     let ast = fct.ast();
 
     let mut ig = InfoGenerator {
@@ -30,7 +30,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, fct: &'a mut Fct<'ast
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
-    ctxt: &'a Context<'a, 'ast>,
+    ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
 

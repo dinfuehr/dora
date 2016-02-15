@@ -21,15 +21,15 @@ use ty::BuiltinType;
 
 pub static mut ctxt_ptr: Option<Ptr> = None;
 
-pub fn get_ctxt() -> &'static Context<'static, 'static> {
+pub fn get_ctxt() -> &'static Context<'static> {
     unsafe {
         &*(ctxt_ptr.unwrap().raw() as *const Context)
     }
 }
 
-pub struct Context<'a, 'ast> where 'ast: 'a {
+pub struct Context<'ast> {
     pub args: Args,
-    pub interner: &'a Interner,
+    pub interner: Interner,
     pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
@@ -42,9 +42,8 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
     pub gc: Mutex<Gc>, // garbage collector
 }
 
-impl<'a, 'ast> Context<'a, 'ast> {
-    pub fn new(args: Args, interner: &'a Interner,
-           ast: &'ast ast::Ast) -> Context<'a, 'ast> {
+impl<'ast> Context<'ast> {
+    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Context<'ast> {
         Context {
             args: args,
             classes: Vec::new(),

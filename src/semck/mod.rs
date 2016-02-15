@@ -19,7 +19,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // add builtin fcts and types to ctxt
     prelude::init(ctxt);
 
@@ -53,7 +53,7 @@ pub fn check<'a, 'ast: 'a>(ctxt: &mut Context<'a, 'ast>) {
     returnck::check(ctxt);
 }
 
-pub fn read_type<'a, 'ast>(ctxt: &Context<'a, 'ast>, t: &'ast Type) -> BuiltinType {
+pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
     match *t {
         TypeBasic(ref basic) => {
             if let Some(builtin) = ctxt.sym.borrow().get_type(basic.name) {
