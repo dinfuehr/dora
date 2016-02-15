@@ -294,12 +294,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let ptr = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            self.ensure_stub(fid, None)
+            ensure_jit_or_stub_ptr(self.fct, self.ctxt)
 
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
                 match fct.kind {
-                    FctKind::Source(_) => self.ensure_stub(fid, Some(fct)),
+                    FctKind::Source(_) | FctKind::Gen(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
                     FctKind::Builtin(ptr) => ptr,
                     FctKind::Intrinsic => unreachable!("intrinsic fct call"),
                 }
@@ -348,30 +348,41 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
         }
     }
+}
 
-    fn ensure_stub(&mut self, id: FctId, fct: Option<&mut Fct<'ast>>) -> Ptr {
-        let fct = fct.unwrap_or(&mut self.fct);
+fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
+    if fct.is_src() {
+        let src = fct.src();
 
-        if let Some(ref stub) = fct.src().stub {
-            return stub.ptr_start();
-        }
+        if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
+        if let Some(ref stub) = src.stub { return stub.ptr_start(); }
+    } else {
+        let gen = fct.gen();
 
-        let stub = Stub::new();
-
-        {
-            let mut code_map = self.ctxt.code_map.lock().unwrap();
-            code_map.insert(stub.ptr_start(), stub.ptr_end(), id);
-        }
-
-        if self.ctxt.args.flag_emit_stubs {
-            println!("create stub at {:x}", stub.ptr_start().raw() as u64);
-        }
-
-        let ptr = stub.ptr_start();
-        fct.src_mut().stub = Some(stub);
-
-        ptr
+        if let Some(ref jit) = gen.jit_fct { return jit.fct_ptr(); }
+        if let Some(ref stub) = gen.stub { return stub.ptr_start(); }
     }
+
+    let stub = Stub::new();
+
+    {
+        let mut code_map = ctxt.code_map.lock().unwrap();
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fct.id);
+    }
+
+    if ctxt.args.flag_emit_stubs {
+        println!("create stub at {:?}", stub.ptr_start());
+    }
+
+    let ptr = stub.ptr_start();
+
+    if fct.is_src() {
+        fct.src_mut().stub = Some(stub);
+    } else {
+        fct.gen_mut().stub = Some(stub);
+    }
+
+    ptr
 }
 
 /// Returns `true` if the given expression `expr` is either literal or

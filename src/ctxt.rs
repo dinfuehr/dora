@@ -150,12 +150,34 @@ impl<'ast> Fct<'ast> {
         self.src().ast
     }
 
+    pub fn is_src(&self) -> bool {
+        match self.kind {
+            FctKind::Source(_) => true,
+            _ => false
+        }
+    }
+
     pub fn src(&self) -> &FctSrc<'ast> {
         self.kind.src()
     }
 
     pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
         self.kind.src_mut()
+    }
+
+    pub fn is_gen(&self) -> bool {
+        match self.kind {
+            FctKind::Gen(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn gen(&self) -> &FctGen {
+        self.kind.gen()
+    }
+
+    pub fn gen_mut(&mut self) -> &mut FctGen {
+        self.kind.gen_mut()
     }
 
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
@@ -173,7 +195,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(FctSrc<'ast>), Gen(FctGen) Builtin(Ptr), Intrinsic
+    Source(FctSrc<'ast>), Gen(FctGen), Builtin(Ptr), Intrinsic
 }
 
 impl<'ast> FctKind<'ast> {
@@ -197,12 +219,46 @@ impl<'ast> FctKind<'ast> {
             _ => unreachable!()
         }
     }
+
+    pub fn gen(&self) -> &FctGen {
+        match *self {
+            FctKind::Gen(ref gen) => gen,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn gen_mut(&mut self) -> &mut FctGen {
+        match *self {
+            FctKind::Gen(ref mut gen) => gen,
+            _ => unreachable!()
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct FctGen {
     pub jit_fct: Option<JitFct>, // compile function
     pub stub: Option<Stub> // compiler stub
+}
+
+impl FctGen {
+    pub fn new() -> FctGen {
+        FctGen {
+            jit_fct: None,
+            stub: None,
+        }
+    }
+
+    pub fn jit_or_stub_ptr(&mut self) -> Ptr {
+        if let Some(ref jit) = self.jit_fct { return jit.fct_ptr(); }
+        if let Some(ref stub) = self.stub { return stub.ptr_start(); }
+
+        let stub = Stub::new();
+        let ptr = stub.ptr_start();
+        self.stub = Some(stub);
+
+        ptr
+    }
 }
 
 #[derive(Debug)]
@@ -222,6 +278,17 @@ pub struct FctSrc<'ast> {
 }
 
 impl<'ast> FctSrc<'ast> {
+    pub fn jit_or_stub_ptr(&mut self) -> Ptr {
+        if let Some(ref jit) = self.jit_fct { return jit.fct_ptr(); }
+        if let Some(ref stub) = self.stub { return stub.ptr_start(); }
+
+        let stub = Stub::new();
+        let ptr = stub.ptr_start();
+        self.stub = Some(stub);
+
+        ptr
+    }
+
     pub fn stacksize(&self) -> i32 {
         self.tempsize + self.localsize
     }
