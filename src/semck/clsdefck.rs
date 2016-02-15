@@ -38,8 +38,6 @@ impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
     }
 
     fn add_ctor(&mut self) {
-        let params = self.cls().props.iter().map(|p| p.ty).collect();
-
         let fct = {
             let cls = self.cls();
 
@@ -47,7 +45,7 @@ impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
                 id: FctId(0),
                 name: cls.name,
                 owner_class: Some(cls.id),
-                params_types: params,
+                params_types: cls.props.iter().map(|p| p.ty).collect(),
                 return_type: BuiltinType::Class(cls.id),
                 ctor: true,
                 kind: FctKind::Gen(FctGen::new()),
