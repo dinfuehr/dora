@@ -4,7 +4,6 @@ use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
-use dseg::DSeg;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
 use jit::stub::Stub;
@@ -17,7 +16,6 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
-    dseg: &'a mut DSeg,
     tempsize: i32,
 }
 
@@ -27,14 +25,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         fct: &'a mut Fct<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,
-        dseg: &'a mut DSeg,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
             ast: ast,
             buf: buf,
-            dseg: dseg,
             tempsize: 0,
         }
     }
@@ -74,7 +70,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Str::from_buffer(&mut gc, lit.value.as_bytes())
         };
 
-        let disp = self.dseg.add_addr(string.ptr());
+        let disp = self.buf.add_addr(string.ptr());
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, dest);
@@ -318,7 +314,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        let disp = self.dseg.add_addr(ptr);
+        let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
@@ -337,7 +333,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         assert!(!contains_fct_call(&expr.rhs));
         self.emit_expr(&expr.rhs, REG_PARAMS[1]);
 
-        let disp = self.dseg.add_addr(fct);
+        let disp = self.buf.add_addr(fct);
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);

@@ -1,8 +1,6 @@
 use ast::Function;
 use ctxt::*;
 
-use dseg::DSeg;
-
 use jit::buffer::*;
 use mem::ptr::Ptr;
 

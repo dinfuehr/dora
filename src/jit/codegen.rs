@@ -8,7 +8,6 @@ use cpu::{Reg, REG_PARAMS};
 use cpu::emit;
 use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
-use dseg::DSeg;
 
 use jit::autogen;
 use jit::buffer::*;
@@ -34,7 +33,6 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
             fct: fct,
             ast: ast,
             buf: Buffer::new(),
-            dseg: DSeg::new(),
 
             lbl_break: None,
             lbl_continue: None
@@ -81,7 +79,6 @@ pub struct CodeGen<'a, 'ast: 'a> {
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: Buffer,
-    dseg: DSeg,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -231,8 +228,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast, &mut self.buf,
-            &mut self.dseg);
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast, &mut self.buf);
 
         expr_gen.generate(e)
     }
@@ -281,7 +277,6 @@ mod tests {
 
     use driver;
     use driver::cmd::AsmSyntax;
-    use dseg::DSeg;
     use jit;
     use jit::buffer::Buffer;
     use jit::codegen::CodeGen;
@@ -304,7 +299,6 @@ mod tests {
                     fct: fct,
                     ast: ast,
                     buf: Buffer::new(),
-                    dseg: DSeg::new(),
 
                     lbl_break: None,
                     lbl_continue: None

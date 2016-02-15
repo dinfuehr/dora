@@ -33,7 +33,7 @@ impl Buffer {
         self.data
     }
 
-    pub fn data_addr(&mut self, ptr: Ptr) -> i32 {
+    pub fn add_addr(&mut self, ptr: Ptr) -> i32 {
         self.dseg.add_addr(ptr)
     }
 
