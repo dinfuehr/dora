@@ -48,7 +48,7 @@ fn builtin_function<'a, 'ast: 'a>(name: &str, args: Vec<BuiltinType>, ret: Built
         kind: FctKind::Builtin(fct),
     };
 
-    assert!(ctxt.add_function(fct).is_ok());
+    assert!(ctxt.add_fct_to_sym(fct).is_ok());
 }
 
 #[cfg(test)]

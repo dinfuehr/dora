@@ -78,7 +78,7 @@ impl<'a, 'ast> Context<'a, 'ast> {
         fctid
     }
 
-    pub fn add_function(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
+    pub fn add_fct_to_sym(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
         let name = fct.name;
         let fctid = self.add_fct(fct);
 

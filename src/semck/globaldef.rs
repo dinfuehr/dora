@@ -69,7 +69,7 @@ impl<'x, 'a, 'ast> Visitor<'ast> for GlobalDef<'x, 'a, 'ast> {
             }),
         };
 
-        if let Err(sym) = self.ctxt.add_function(fct) {
+        if let Err(sym) = self.ctxt.add_fct_to_sym(fct) {
             report(self.ctxt, f.name, f.pos, sym);
         }
     }
