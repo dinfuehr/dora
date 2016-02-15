@@ -8,7 +8,6 @@ use driver::cmd::Args;
 use error::diag::Diagnostic;
 
 use ast;
-use ast::map::Map;
 use class::{Class, ClassId};
 use gc::Gc;
 use interner::*;
@@ -31,7 +30,6 @@ pub fn get_ctxt() -> &'static Context<'static, 'static> {
 pub struct Context<'a, 'ast> where 'ast: 'a {
     pub args: Args,
     pub interner: &'a Interner,
-    pub map: &'a Map<'ast>,
     pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
@@ -46,14 +44,13 @@ pub struct Context<'a, 'ast> where 'ast: 'a {
 
 impl<'a, 'ast> Context<'a, 'ast> {
     pub fn new(args: Args, interner: &'a Interner,
-           map: &'a Map<'ast>, ast: &'ast ast::Ast) -> Context<'a, 'ast> {
+           ast: &'ast ast::Ast) -> Context<'a, 'ast> {
         Context {
             args: args,
             classes: Vec::new(),
             cls_defs: HashMap::new(),
             interner: interner,
             gc: Mutex::new(Gc::new()),
-            map: map,
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
