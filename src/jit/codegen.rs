@@ -18,12 +18,6 @@ use mem::ptr::Ptr;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'a, 'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
-        if fct.is_gen() {
-            if let Some(ref gen) = fct.gen().jit_fct { return gen.fct_ptr(); }
-
-            return autogen::generate(fct, ctxt);
-        }
-
         if let Some(ref jit) = fct.src().jit_fct { return jit.fct_ptr(); }
 
         let ast = fct.src().ast;

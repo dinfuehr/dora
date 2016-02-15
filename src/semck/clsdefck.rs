@@ -1,7 +1,7 @@
 use ast;
 use ast::visit::Visitor;
 use class::*;
-use ctxt::{Context, Fct, FctGen, FctId, FctKind};
+use ctxt::{Context, Fct, FctId, FctKind};
 use error::msg::Msg;
 use lexer::position::Position;
 use mem;
@@ -48,7 +48,7 @@ impl<'x, 'a, 'ast> ClsDefCheck<'x, 'a, 'ast> {
                 params_types: cls.props.iter().map(|p| p.ty).collect(),
                 return_type: BuiltinType::Class(cls.id),
                 ctor: true,
-                kind: FctKind::Gen(FctGen::new()),
+                kind: FctKind::Intrinsic,
             }
         };
 

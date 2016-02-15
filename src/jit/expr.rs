@@ -295,7 +295,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
                 match fct.kind {
-                    FctKind::Source(_) | FctKind::Gen(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
+                    FctKind::Source(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
                     FctKind::Builtin(ptr) => ptr,
                     FctKind::Intrinsic => unreachable!("intrinsic fct call"),
                 }
@@ -347,16 +347,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
-    if fct.is_src() {
+    {
         let src = fct.src();
 
         if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
         if let Some(ref stub) = src.stub { return stub.ptr_start(); }
-    } else {
-        let gen = fct.gen();
-
-        if let Some(ref jit) = gen.jit_fct { return jit.fct_ptr(); }
-        if let Some(ref stub) = gen.stub { return stub.ptr_start(); }
     }
 
     let stub = Stub::new();
@@ -372,11 +367,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
 
     let ptr = stub.ptr_start();
 
-    if fct.is_src() {
-        fct.src_mut().stub = Some(stub);
-    } else {
-        fct.gen_mut().stub = Some(stub);
-    }
+    fct.src_mut().stub = Some(stub);
 
     ptr
 }
