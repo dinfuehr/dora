@@ -2,11 +2,12 @@ use libc;
 use std;
 use std::mem;
 
-use ast::{self, Function};
+use ast::{self, Ast, Function};
 use ctxt::{Context, ctxt_ptr, FctId};
-use driver::cmd;
+use driver::cmd::{self, Args};
 use error::msg::Msg;
 
+use interner::Interner;
 use jit;
 use jit::fct::JitFct;
 use lexer::position::Position;
@@ -26,27 +27,11 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let mut parser = match Parser::from_file(&args.arg_file) {
-        Err(_) => {
-            println!("unable to read file `{}`", &args.arg_file);
-            return 1;
-        }
-
-        Ok(parser) => parser
+    let mut interner = Interner::new();
+    let ast = match parse_file(&args, &mut interner) {
+        Ok(ast) => ast,
+        Err(code) => return code,
     };
-
-    let (ast, interner) = match parser.parse() {
-        Ok(ret) => ret,
-
-        Err(error) => {
-            error.print();
-            return 1;
-        }
-    };
-
-    if args.flag_emit_ast {
-        ast::dump::dump(&ast, &interner);
-    }
 
     let mut ctxt = Context::new(args, &ast, interner);
 
@@ -78,6 +63,28 @@ pub fn start() -> i32 {
     } else {
         res
     }
+}
+
+fn parse_file(args: &Args, mut interner: &mut Interner) -> Result<Ast, i32> {
+    let mut parser = match Parser::from_file(&args.arg_file, &mut interner) {
+        Err(_) => {
+            println!("unable to read file `{}`", &args.arg_file);
+            return Err(1);
+        }
+
+        Ok(parser) => parser
+    };
+
+    let ast = match parser.parse() {
+        Ok(ret) => ret,
+
+        Err(error) => {
+            error.print();
+            return Err(1);
+        }
+    };
+
+    Ok(ast)
 }
 
 fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<(FctId, &'ast Function)> {

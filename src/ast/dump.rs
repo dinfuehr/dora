@@ -14,7 +14,7 @@ macro_rules! dump {
     }};
 }
 
-pub fn dump<'a>(ast: &'a Ast, interner: &'a Interner) {
+pub fn dump(ast: &Ast, interner: &Interner) {
     let mut dumper = AstDumper {
         interner: interner,
         indent: 0

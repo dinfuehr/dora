@@ -1,6 +1,7 @@
 use ctxt::Context;
 use driver::cmd::Args;
 use ast;
+use interner::Interner;
 use parser::Parser;
 use semck;
 
@@ -13,9 +14,12 @@ pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T
 }
 
 pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
-    let mut parser = Parser::from_str(code);
-    let (ast, interner) = parser.parse().unwrap();
+    let mut interner = Interner::new();
     let args : Args = Default::default();
+    let ast = {
+        let mut parser = Parser::from_str(code, &mut interner);
+        parser.parse().unwrap()
+    };
 
     ast::dump::dump(&ast, &interner);
 
