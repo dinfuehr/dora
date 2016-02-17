@@ -49,17 +49,17 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    let (main_id, main) = main.unwrap();
-    let fct_ptr = jit::generate(&ctxt, main_id);
+    let main = main.unwrap();
+    let fct_ptr = jit::generate(&ctxt, main);
 
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
 
     // main-fct without return value exits with status 0
-    if main.return_type.is_none() {
+    if ctxt.fct_by_id(main, |f| f.return_type.is_unit()) {
         0
 
-    // use return value of main for exit status
+    // else use return value of main for exit status
     } else {
         res
     }
@@ -87,7 +87,7 @@ fn parse_file(args: &Args, mut interner: &mut Interner) -> Result<Ast, i32> {
     Ok(ast)
 }
 
-fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<(FctId, &'ast Function)> {
+fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,
@@ -106,6 +106,6 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<(FctId, &'ast Function)> {
             return None;
         }
 
-        Some((fctid, fct.ast()))
+        Some(fctid)
     })
 }
