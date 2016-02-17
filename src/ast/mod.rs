@@ -8,6 +8,7 @@ use interner::{Interner, Name};
 pub mod visit;
 pub mod dump;
 
+#[derive(Clone, Debug)]
 pub struct Ast {
     pub elements: Vec<Elem>,
 }
@@ -35,6 +36,7 @@ impl fmt::Display for NodeId {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Elem {
     ElemFunction(Function),
     ElemClass(Class),
@@ -63,7 +65,7 @@ impl Elem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Type {
     TypeBasic(TypeBasicType),
     TypeTuple(TypeTupleType),
@@ -71,28 +73,28 @@ pub enum Type {
     TypeArray(TypeArrayType),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TypeTupleType {
     pub id: NodeId,
     pub pos: Position,
     pub subtypes: Vec<Box<Type>>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TypeBasicType {
     pub id: NodeId,
     pub pos: Position,
     pub name: Name,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TypePtrType {
     pub id: NodeId,
     pub pos: Position,
     pub subtype: Box<Type>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TypeArrayType {
     pub id: NodeId,
     pub pos: Position,
@@ -201,17 +203,18 @@ impl Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Class {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
 
+    pub ctor: Option<Function>,
     pub props: Vec<Prop>,
     pub methods: Vec<Function>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Prop {
     pub id: NodeId,
     pub idx: u32,
@@ -220,7 +223,7 @@ pub struct Prop {
     pub data_type: Type,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Function {
     pub id: NodeId,
     pub name: Name,
@@ -233,7 +236,7 @@ pub struct Function {
     pub block: Box<Stmt>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Param {
     pub id: NodeId,
     pub idx: u32,
@@ -242,7 +245,7 @@ pub struct Param {
     pub data_type: Type,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Stmt {
     StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
@@ -489,7 +492,7 @@ impl Stmt {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtVarType {
     pub id: NodeId,
     pub pos: Position,
@@ -499,7 +502,7 @@ pub struct StmtVarType {
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtWhileType {
     pub id: NodeId,
     pub pos: Position,
@@ -508,14 +511,14 @@ pub struct StmtWhileType {
     pub block: Box<Stmt>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtLoopType {
     pub id: NodeId,
     pub pos: Position,
     pub block: Box<Stmt>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtIfType {
     pub id: NodeId,
     pub pos: Position,
@@ -524,34 +527,34 @@ pub struct StmtIfType {
     pub else_block: Option<Box<Stmt>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtExprType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtBlockType {
     pub id: NodeId,
     pub pos: Position,
     pub stmts: Vec<Box<Stmt>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtReturnType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtBreakType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
@@ -636,7 +639,7 @@ impl BinOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Expr {
     ExprUn(ExprUnType),
     ExprBin(ExprBinType),
@@ -866,7 +869,7 @@ impl Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprUnType {
     pub id: NodeId,
     pub pos: Position,
@@ -875,7 +878,7 @@ pub struct ExprUnType {
     pub opnd: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprBinType {
     pub id: NodeId,
     pub pos: Position,
@@ -885,7 +888,7 @@ pub struct ExprBinType {
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
@@ -893,7 +896,7 @@ pub struct ExprLitIntType {
     pub value: i32,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprLitStrType {
     pub id: NodeId,
     pub pos: Position,
@@ -901,7 +904,7 @@ pub struct ExprLitStrType {
     pub value: String,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprLitBoolType {
     pub id: NodeId,
     pub pos: Position,
@@ -909,7 +912,7 @@ pub struct ExprLitBoolType {
     pub value: bool,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprIdentType {
     pub id: NodeId,
     pub pos: Position,
@@ -917,7 +920,7 @@ pub struct ExprIdentType {
     pub name: Name,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprCallType {
     pub id: NodeId,
     pub pos: Position,
@@ -926,7 +929,7 @@ pub struct ExprCallType {
     pub args: Vec<Box<Expr>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprAssignType {
     pub id: NodeId,
     pub pos: Position,
@@ -935,7 +938,7 @@ pub struct ExprAssignType {
     pub rhs: Box<Expr>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExprPropType {
     pub id: NodeId,
     pub pos: Position,

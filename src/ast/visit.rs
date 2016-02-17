@@ -13,6 +13,10 @@ pub trait Visitor<'v> : Sized {
         walk_class(self, c);
     }
 
+    fn visit_ctor(&mut self, m: &'v Function) {
+        walk_fct(self, m);
+    }
+
     fn visit_method(&mut self, m: &'v Function) {
         walk_fct(self, m);
     }
@@ -58,6 +62,10 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
 pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
     for p in &c.props {
         v.visit_prop(p);
+    }
+
+    if let Some(ref ctor) = c.ctor {
+        v.visit_ctor(ctor);
     }
 
     for m in &c.methods {

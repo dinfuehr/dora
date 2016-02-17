@@ -114,6 +114,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: self.generate_id(),
             name: ident,
             pos: pos,
+            ctor: None,
             props: Vec::new(),
             methods: Vec::new()
         };
@@ -142,7 +143,118 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         cls.props.append(&mut props);
 
+        if !cls.props.is_empty() {
+            let ctor = self.generate_ctor(cls);
+            cls.ctor = Some(ctor);
+        }
+
         Ok(())
+    }
+
+    fn generate_ctor(&mut self, cls: &mut Class) -> Function {
+        let assignments = cls.props.iter().map(|prop| {
+            let this = self.build_this();
+            let lhs = self.build_prop(this, prop.name);
+            let rhs = self.build_ident(prop.name);
+            let ass = self.build_assign(lhs, rhs);
+
+            self.build_stmt_expr(ass)
+        }).collect();
+
+        let params = cls.props.iter().map(|prop| {
+            self.build_param(prop.name, prop.data_type.clone())
+        }).collect();
+        let id = self.generate_id();
+
+        Function {
+            id: id,
+            pos: Position::new(1, 1),
+            name: cls.name,
+            method: true,
+            params: params,
+            return_type: Some(self.build_type(cls.name)),
+            block: self.build_block(assignments)
+        }
+    }
+
+    fn build_stmt_expr(&mut self, expr: Box<Expr>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtExpr(StmtExprType {
+            id: id,
+            pos: Position::new(1, 1),
+            expr: expr
+        }))
+    }
+
+    fn build_param(&mut self, name: Name, ty: Type) -> Param {
+        let id = self.generate_id();
+
+        Param {
+            id: id,
+            idx: 0,
+            name: name,
+            pos: Position::new(1, 1),
+            data_type: ty
+        }
+    }
+
+    fn build_block(&mut self, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtBlock(StmtBlockType {
+            id: id,
+            pos: Position::new(1, 1),
+            stmts: stmts
+        }))
+    }
+
+    fn build_type(&mut self, name: Name) -> Type {
+        let id = self.generate_id();
+
+        Type::TypeBasic(TypeBasicType {
+            id: id,
+            pos: Position::new(1, 1),
+            name: name
+        })
+    }
+
+    fn build_ident(&mut self, name: Name) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprIdent(ExprIdentType {
+            id: id,
+            pos: Position::new(1, 1),
+            name: name
+        }))
+    }
+
+    fn build_this(&mut self) -> Box<Expr> {
+        let this = self.interner.intern("this");
+
+        self.build_ident(this)
+    }
+
+    fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprAssign(ExprAssignType {
+            id: id,
+            pos: Position::new(1, 1),
+            lhs: lhs,
+            rhs: rhs
+        }))
+    }
+
+    fn build_prop(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprProp(ExprPropType {
+            id: id,
+            pos: Position::new(1, 1),
+            object: object,
+            name: name
+        }))
     }
 
     fn parse_primary_ctor_param(&mut self) -> Result<Prop, ParseError> {
@@ -1481,13 +1593,25 @@ mod tests {
     }
 
     #[test]
-    fn parse_class_without_parens() {
+    fn parse_class() {
         let (prog, interner) = parse("class Foo");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.props.len());
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
+        assert!(class.ctor.is_none());
+    }
+
+    #[test]
+    fn parse_class_with_parens_but_no_params() {
+        let (prog, interner) = parse("class Foo()");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(0, class.props.len());
+        assert_eq!(Position::new(1, 1), class.pos);
+        assert_eq!("Foo", *interner.str(class.name));
+        assert!(class.ctor.is_none());
     }
 
     #[test]
@@ -1496,6 +1620,9 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(1, class.props.len());
+
+        let ctor = &class.ctor.as_ref().unwrap();
+        assert_eq!(1, ctor.params.len());
     }
 
     #[test]
