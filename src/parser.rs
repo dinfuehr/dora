@@ -158,6 +158,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), ParseError> {
+        if !self.token.is(TokenType::LBrace) {
+            return Ok(());
+        }
+
+        try!(self.read_token());
+
+        while !self.token.is(TokenType::RBrace) {
+            let fct = try!(self.parse_function());
+            cls.methods.push(fct);
+        }
+
+        try!(self.read_token());
         Ok(())
     }
 
@@ -1433,6 +1445,30 @@ mod tests {
 
         let ty2 = subtypes[1].to_basic().unwrap();
         assert_eq!("b", *interner.str(ty2.name));
+    }
+
+    #[test]
+    fn parse_method() {
+        let (prog, interner) = parse("class Foo {
+            fn zero() -> int { return 0; }
+            fn id(a: Str) -> Str { return a; }
+        }");
+
+        let cls = prog.elements[0].to_class().unwrap();
+        assert_eq!(0, cls.props.len());
+        assert_eq!(2, cls.methods.len());
+
+        let mtd1 = &cls.methods[0];
+        assert_eq!("zero", *interner.str(mtd1.name));
+        assert_eq!(0, mtd1.params.len());
+        let rt1 = mtd1.return_type.as_ref().unwrap().to_basic().unwrap().name;
+        assert_eq!("int", *interner.str(rt1));
+
+        let mtd2 = &cls.methods[1];
+        assert_eq!("id", *interner.str(mtd2.name));
+        assert_eq!(1, mtd2.params.len());
+        let rt2 = mtd2.return_type.as_ref().unwrap().to_basic().unwrap().name;
+        assert_eq!("Str", *interner.str(rt2));
     }
 
     #[test]
