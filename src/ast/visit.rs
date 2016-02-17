@@ -13,7 +13,7 @@ pub trait Visitor<'v> : Sized {
         walk_class(self, c);
     }
 
-    fn visit_prop(&mut self, p: &'v Param) {
+    fn visit_prop(&mut self, p: &'v Prop) {
         walk_prop(self, p);
     }
 
@@ -52,12 +52,12 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
 }
 
 pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
-    for p in &c.params {
+    for p in &c.props {
         v.visit_prop(p);
     }
 }
 
-pub fn walk_prop<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
+pub fn walk_prop<'v, V: Visitor<'v>>(v: &mut V, p: &'v Prop) {
     v.visit_type(&p.data_type);
 }
 

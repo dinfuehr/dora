@@ -61,14 +61,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
 
-        for p in &c.params {
+        for p in &c.props {
             self.visit_prop(p);
         }
 
         self.add_ctor();
     }
 
-    fn visit_prop(&mut self, p: &'ast ast::Param) {
+    fn visit_prop(&mut self, p: &'ast ast::Prop) {
         let ty = semck::read_type(self.ctxt, &p.data_type);
 
         for prop in &self.cls().props {

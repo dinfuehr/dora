@@ -207,7 +207,17 @@ pub struct Class {
     pub name: Name,
     pub pos: Position,
 
-    pub params: Vec<Param>,
+    pub props: Vec<Prop>,
+    pub methods: Vec<Function>,
+}
+
+#[derive(Debug)]
+pub struct Prop {
+    pub id: NodeId,
+    pub idx: u32,
+    pub name: Name,
+    pub pos: Position,
+    pub data_type: Type,
 }
 
 #[derive(Debug)]

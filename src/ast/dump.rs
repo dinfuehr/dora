@@ -54,15 +54,20 @@ impl<'a> AstDumper<'a> {
             dump!(d, "props");
 
             d.indent(|d| {
-                if cls.params.is_empty() {
+                if cls.props.is_empty() {
                     dump!(d, "no props");
                 } else {
-                    for param in &cls.params {
-                        d.dump_param(param);
+                    for prop in &cls.props {
+                        d.dump_prop(prop);
                     }
                 }
             });
         });
+    }
+
+    fn dump_prop(&mut self, prop: &Prop) {
+        dump!(self, "prop {} @ {} {}", self.str(prop.name), prop.pos, prop.id);
+        self.indent(|d| d.dump_type(&prop.data_type));
     }
 
     fn dump_fct(&mut self, fct: &Function) {

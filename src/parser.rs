@@ -21,6 +21,7 @@ pub struct Parser<'a, T: CodeReader> {
     token: Token,
     interner: &'a mut Interner,
     param_idx: u32,
+    prop_idx: u32,
 
     next_id: NodeId,
 }
@@ -51,6 +52,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             token: token,
             interner: interner,
             param_idx: 0,
+            prop_idx: 0,
             next_id: NodeId(1),
         };
 
@@ -106,18 +108,57 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = try!(self.expect_token(TokenType::Class)).position;
         let ident = try!(self.expect_identifier());
 
-        let params = if self.token.is(TokenType::LParen) {
-            try!(self.parse_function_params())
-        } else {
-            Vec::new()
-        };
-
-        Ok(Class {
+        let mut cls = Class {
             id: self.generate_id(),
             name: ident,
             pos: pos,
-            params: params,
+            props: Vec::new(),
+            methods: Vec::new()
+        };
+
+        try!(self.parse_primary_ctor(&mut cls));
+        try!(self.parse_class_body(&mut cls));
+
+        Ok(cls)
+    }
+
+    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<(), ParseError> {
+        if !self.token.is(TokenType::LParen) {
+            return Ok(());
+        }
+
+        try!(self.expect_token(TokenType::LParen));
+        self.prop_idx = 0;
+
+        let mut props = try!(self.parse_comma_list(TokenType::RParen, |p| {
+            p.prop_idx += 1;
+
+            p.parse_primary_ctor_param()
+        }));
+
+        cls.props.append(&mut props);
+
+        Ok(())
+    }
+
+    fn parse_primary_ctor_param(&mut self) -> Result<Prop, ParseError> {
+        let pos = self.token.position;
+        let name = try!(self.expect_identifier());
+
+        try!(self.expect_token(TokenType::Colon));
+        let data_type = try!(self.parse_type());
+
+        Ok(Prop {
+            id: self.generate_id(),
+            idx: self.prop_idx - 1,
+            name: name,
+            pos: pos,
+            data_type: data_type,
         })
+    }
+
+    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), ParseError> {
+        Ok(())
     }
 
     fn parse_function(&mut self) -> Result<Function, ParseError> {
@@ -1399,7 +1440,7 @@ mod tests {
         let (prog, interner) = parse("class Foo");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(0, class.params.len());
+        assert_eq!(0, class.props.len());
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
@@ -1409,7 +1450,7 @@ mod tests {
         let (prog, interner) = parse("class Foo(a: int)");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(1, class.params.len());
+        assert_eq!(1, class.props.len());
     }
 
     #[test]
@@ -1417,6 +1458,6 @@ mod tests {
         let (prog, interner) = parse("class Foo(a: int, b: int)");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(2, class.params.len());
+        assert_eq!(2, class.props.len());
     }
 }
