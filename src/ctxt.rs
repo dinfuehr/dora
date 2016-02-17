@@ -219,6 +219,22 @@ pub struct FctSrc<'ast> {
 }
 
 impl<'ast> FctSrc<'ast> {
+    pub fn new(ast: &'ast ast::Function) -> FctSrc<'ast> {
+        FctSrc {
+            ast: ast,
+            types: HashMap::new(),
+            calls: HashMap::new(),
+            defs: HashMap::new(),
+            tempsize: 0,
+            localsize: 0,
+            leaf: false,
+            vars: Vec::new(),
+            always_returns: false,
+            jit_fct: None,
+            stub: None
+        }
+    }
+
     pub fn jit_or_stub_ptr(&mut self) -> Ptr {
         if let Some(ref jit) = self.jit_fct { return jit.fct_ptr(); }
         if let Some(ref stub) = self.stub { return stub.ptr_start(); }

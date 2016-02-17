@@ -54,19 +54,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             return_type: BuiltinType::Unit,
             owner_class: None,
             ctor: false,
-            kind: FctKind::Source(FctSrc {
-                ast: f,
-                types: HashMap::new(),
-                calls: HashMap::new(),
-                defs: HashMap::new(),
-                tempsize: 0,
-                localsize: 0,
-                leaf: false,
-                vars: Vec::new(),
-                always_returns: false,
-                jit_fct: None,
-                stub: None,
-            }),
+            kind: FctKind::Source(FctSrc::new(f)),
         };
 
         if let Err(sym) = self.ctxt.add_fct_to_sym(fct) {
