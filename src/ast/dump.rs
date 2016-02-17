@@ -51,6 +51,20 @@ impl<'a> AstDumper<'a> {
         dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
 
         self.indent(|d| {
+            dump!(d, "methods");
+
+            d.indent(|d| {
+                if cls.methods.is_empty() {
+                    dump!(d, "no methods");
+                } else {
+                    for mtd in &cls.methods {
+                        d.dump_fct(mtd);
+                    }
+                }
+            });
+        });
+
+        self.indent(|d| {
             dump!(d, "props");
 
             d.indent(|d| {

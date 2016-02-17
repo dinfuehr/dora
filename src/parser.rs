@@ -22,6 +22,7 @@ pub struct Parser<'a, T: CodeReader> {
     interner: &'a mut Interner,
     param_idx: u32,
     prop_idx: u32,
+    in_class: bool,
 
     next_id: NodeId,
 }
@@ -53,6 +54,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             interner: interner,
             param_idx: 0,
             prop_idx: 0,
+            in_class: false,
             next_id: NodeId(1),
         };
 
@@ -116,8 +118,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             methods: Vec::new()
         };
 
+        self.in_class = true;
         try!(self.parse_primary_ctor(&mut cls));
         try!(self.parse_class_body(&mut cls));
+        self.in_class = false;
 
         Ok(cls)
     }
@@ -185,6 +189,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: self.generate_id(),
             name: ident,
             pos: pos,
+            method: self.in_class,
             params: params,
             return_type: return_type,
             block: block,
@@ -1281,10 +1286,12 @@ mod tests {
 
         let f = prog.elements[0].to_function().unwrap();
         assert_eq!("f", *interner.str(f.name));
+        assert_eq!(false, f.method);
         assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.elements[1].to_function().unwrap();
         assert_eq!("g", *interner.str(g.name));
+        assert_eq!(false, g.method);
         assert_eq!(Position::new(1, 12), g.pos);
     }
 
@@ -1461,12 +1468,14 @@ mod tests {
         let mtd1 = &cls.methods[0];
         assert_eq!("zero", *interner.str(mtd1.name));
         assert_eq!(0, mtd1.params.len());
+        assert_eq!(true, mtd1.method);
         let rt1 = mtd1.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("int", *interner.str(rt1));
 
         let mtd2 = &cls.methods[1];
         assert_eq!("id", *interner.str(mtd2.name));
         assert_eq!(1, mtd2.params.len());
+        assert_eq!(true, mtd2.method);
         let rt2 = mtd2.return_type.as_ref().unwrap().to_basic().unwrap().name;
         assert_eq!("Str", *interner.str(rt2));
     }

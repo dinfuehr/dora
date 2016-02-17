@@ -225,6 +225,7 @@ pub struct Function {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub method: bool,
 
     pub params: Vec<Param>,
 
