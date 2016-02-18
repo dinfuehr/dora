@@ -730,7 +730,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             let tok = try!(self.read_token());
             let ident = try!(self.expect_identifier());
 
-            left = Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident));
+            left = if self.token.is(TokenType::LParen) {
+                try!(self.parse_call(tok.position, Some(left), ident))
+
+            } else {
+                Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident))
+            };
         }
 
         Ok(left)
@@ -758,7 +763,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         // is this a function call?
         if self.token.is(TokenType::LParen) {
-            self.parse_call(pos, ident)
+            self.parse_call(pos, None, ident)
 
         // if not we have a simple variable
         } else {
@@ -766,14 +771,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_call(&mut self, pos: Position, ident: Name) -> ExprResult {
+    fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
         try!(self.expect_token(TokenType::LParen));
 
         let args = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_expression()
         }));
 
-        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, args)))
+        Ok(Box::new(Expr::create_call(self.generate_id(), pos, object, ident, args)))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1631,5 +1636,21 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(2, class.props.len());
+    }
+
+    #[test]
+    fn parse_method_invocation() {
+        let (expr, interner) = parse_expr("a.foo()");
+        let call = expr.to_call().unwrap();
+        assert!(call.object.is_some());
+        assert_eq!(0, call.args.len());
+
+        let (expr, interner) = parse_expr("a.foo(1)");
+        let call = expr.to_call().unwrap();
+        assert_eq!(1, call.args.len());
+
+        let (expr, interner) = parse_expr("a.foo(1,2)");
+        let call = expr.to_call().unwrap();
+        assert_eq!(2, call.args.len());
     }
 }
