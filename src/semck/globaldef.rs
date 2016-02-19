@@ -31,6 +31,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name: c.name,
             ctor: FctId(0),
             props: Vec::new(),
+            methods: Vec::new(),
             ast: Some(c),
             size: mem::ptr_width(),
         };
