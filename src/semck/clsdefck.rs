@@ -1,7 +1,7 @@
 use ast;
-use ast::visit::Visitor;
+use ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{Context, Fct, FctId, FctKind};
+use ctxt::{Context, Fct, FctId, FctKind, FctSrc};
 use error::msg::Msg;
 use lexer::position::Position;
 use mem;
@@ -61,9 +61,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
 
-        for p in &c.props {
-            self.visit_prop(p);
-        }
+        visit::walk_class(self, c);
 
         self.add_ctor();
     }
@@ -94,6 +92,22 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         class.size = offset + ty.size();
         class.props.push(prop);
+    }
+
+    fn visit_method(&mut self, f: &'ast ast::Function) {
+        let fct = Fct {
+            id: FctId(0),
+            name: f.name,
+            params_types: Vec::new(),
+            return_type: BuiltinType::Unit,
+            owner_class: Some(self.cls_id.unwrap()),
+            ctor: false,
+            kind: FctKind::Source(FctSrc::new(f)),
+        };
+
+        let fctid = self.ctxt.add_fct(fct);
+
+        self.cls_mut().methods.push(fctid);
     }
 }
 

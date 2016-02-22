@@ -203,6 +203,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
+        if e.object.is_some() {
+            self.check_method_call(e);
+            return;
+        }
+
         let callee_id = *self.fct.src().calls.get(&e.id).unwrap();
         let caller_id = self.fct.id;
 
@@ -238,6 +243,35 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_method_call(&mut self, e: &'ast ExprCallType) {
+        let object = e.object.as_ref().unwrap();
+        self.visit_expr(object);
+        let object_type = self.expr_type;
+        let caller_id = self.fct.id;
+
+        let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
+            self.visit_expr(arg);
+            self.expr_type
+        }).collect();
+
+        if let BuiltinType::Class(clsid) = object_type {
+            let cls = self.ctxt.cls_by_id(clsid);
+
+            for method in &cls.methods {
+                let fct = self.ctxt.fcts[method.0].clone();
+                let callee = &mut fct.lock().unwrap();
+
+                if callee.name == e.name && callee.params_types == call_types {
+                    assert!(self.fct.src_mut().calls.insert(e.id, callee.id).is_none());
+                    return;
+                }
+            }
+        }
+
+        let msg = Msg::Unimplemented;
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+    }
+
     fn check_expr_prop(&mut self, e: &'ast ExprPropType) {
         self.visit_expr(&e.object);
 
@@ -256,7 +290,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let prop_name = self.ctxt.interner.str(e.name).to_string();
         let msg = Msg::UnknownProp(prop_name, self.expr_type);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
-
         // we don't know the type of the property, just assume ()
         self.expr_type = BuiltinType::Unit;
     }
@@ -333,6 +366,15 @@ mod tests {
         err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
             pos(1, 38),
             Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Bool));
+    }
+
+    #[test]
+    fn type_method_call() {
+        ok("class Foo {
+                fn bar() {}
+            }
+
+            fn f(x: Foo) { x.bar(); }");
     }
 
     #[test]

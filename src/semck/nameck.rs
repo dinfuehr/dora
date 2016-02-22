@@ -93,6 +93,54 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         for stmt in &block.stmts { self.visit_stmt(stmt); }
         self.ctxt.sym.borrow_mut().pop_level();
     }
+
+    fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
+        if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
+            self.fct.src_mut().defs.insert(ident.id, id);
+        } else {
+            let name = str(self.ctxt, ident.name);
+            report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
+        }
+    }
+
+    fn check_expr_call(&mut self, call: &'ast ExprCallType) {
+        let mut found = false;
+
+        // do not check method calls yet
+        if let Some(ref object) = call.object {
+            self.visit_expr(object);
+
+            for arg in &call.args {
+                self.visit_expr(arg);
+            }
+
+            return;
+        }
+
+        if let Some(sym) = self.ctxt.sym.borrow().get(call.name) {
+            if sym.is_fct() {
+                self.fct.src_mut().calls.insert(call.id, sym.to_fct().unwrap());
+                found = true;
+
+            } else if sym.is_type() && sym.to_type().unwrap().is_cls() {
+                let clsid = sym.to_type().unwrap().cls();
+                let cls = self.ctxt.cls_by_id(clsid);
+
+                self.fct.src_mut().calls.insert(call.id, cls.ctor);
+                found = true;
+            }
+        }
+
+        if !found {
+            let name = str(self.ctxt, call.name);
+            report(self.ctxt, call.pos, Msg::UnknownFunction(name));
+        }
+
+        // also parse function arguments
+        for arg in &call.args {
+            self.visit_expr(arg);
+        }
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
@@ -131,42 +179,8 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprIdent(ref ident) => {
-                if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-                    self.fct.src_mut().defs.insert(ident.id, id);
-                } else {
-                    let name = str(self.ctxt, ident.name);
-                    report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
-                }
-            }
-
-            ExprCall(ref call) => {
-                let mut found = false;
-
-                if let Some(sym) = self.ctxt.sym.borrow().get(call.name) {
-                    if sym.is_fct() {
-                        self.fct.src_mut().calls.insert(call.id, sym.to_fct().unwrap());
-                        found = true;
-
-                    } else if sym.is_type() && sym.to_type().unwrap().is_cls() {
-                        let clsid = sym.to_type().unwrap().cls();
-                        let cls = self.ctxt.cls_by_id(clsid);
-
-                        self.fct.src_mut().calls.insert(call.id, cls.ctor);
-                        found = true;
-                    }
-                }
-
-                if !found {
-                    let name = str(self.ctxt, call.name);
-                    report(self.ctxt, call.pos, Msg::UnknownFunction(name));
-                }
-
-                // also parse function arguments
-                for arg in &call.args {
-                    self.visit_expr(arg);
-                }
-            }
+            ExprIdent(ref ident) => self.check_expr_ident(ident),
+            ExprCall(ref call) => self.check_expr_call(call),
 
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e)

@@ -285,6 +285,13 @@ impl<'a> AstDumper<'a> {
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
         dump!(self, "call {} @ {} {}", self.str(expr.name), expr.pos, expr.id);
 
+        if let Some(ref object) = expr.object {
+            self.indent(|d| {
+                dump!(d, "on object");
+                d.indent(|d| d.dump_expr(object));
+            });
+        }
+
         self.indent(|d| {
             for arg in &expr.args {
                 d.dump_expr(arg);

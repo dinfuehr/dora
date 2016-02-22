@@ -14,15 +14,9 @@ pub struct Class<'ast> {
     pub name: Name,
     pub ctor: FctId,
     pub props: Vec<Prop>,
-    pub methods: Vec<Method>,
+    pub methods: Vec<FctId>,
     pub size: i32,
     pub ast: Option<&'ast ast::Class>,
-}
-
-#[derive(Debug)]
-pub struct Method {
-    pub id: FctId,
-    pub name: Name,
 }
 
 #[derive(Debug)]
