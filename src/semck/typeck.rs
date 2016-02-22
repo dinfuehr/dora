@@ -262,6 +262,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let callee = &mut fct.lock().unwrap();
 
                 if callee.name == e.name && callee.params_types == call_types {
+                    self.expr_type = callee.return_type;
                     assert!(self.fct.src_mut().calls.insert(e.id, callee.id).is_none());
                     return;
                 }
@@ -372,9 +373,18 @@ mod tests {
     fn type_method_call() {
         ok("class Foo {
                 fn bar() {}
+                fn baz() -> int { return 1; }
             }
 
-            fn f(x: Foo) { x.bar(); }");
+            fn f(x: Foo) { x.bar(); }
+            fn g(x: Foo) -> int { return x.baz(); }");
+
+        err("class Foo {
+                 fn bar() -> int { return 0; }
+             }
+
+             fn f(x: Foo) -> Str { return x.bar(); }",
+             pos(5, 36), Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }
 
     #[test]
