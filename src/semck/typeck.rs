@@ -269,8 +269,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let msg = Msg::Unimplemented;
+        let msg = Msg::UnknownMethod(object_type, e.name, call_types);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_prop(&mut self, e: &'ast ExprPropType) {
@@ -385,6 +386,23 @@ mod tests {
 
              fn f(x: Foo) -> Str { return x.bar(); }",
              pos(5, 36), Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
+    }
+
+    #[test]
+    fn type_unknown_method() {
+        err("class Foo {
+                 fn bar(a: int) { }
+             }
+
+             fn f(x: Foo) { x.bar(); }",
+             pos(5, 30),
+             Msg::UnknownMethod(BuiltinType::Class(ClassId(0)), Name(1), Vec::new()));
+
+         err("class Foo { }
+              fn f(x: Foo) { x.bar(1); }",
+              pos(2, 31),
+              Msg::UnknownMethod(BuiltinType::Class(ClassId(0)),
+                Name(3), vec![BuiltinType::Int]));
     }
 
     #[test]
