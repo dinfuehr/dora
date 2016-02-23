@@ -61,11 +61,11 @@ impl Msg {
             ParamTypesIncompatible(ref name, ref def, ref expr) =>
                 format!("function types incompatible"),
             WhileCondType(ref ty) =>
-                format!("while expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
+                format!("`while` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
             IfCondType(ref ty) =>
-                format!("if expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
+                format!("`if` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
             ReturnType(ref def, ref expr) =>
-                format!("return expects value of type `{}` but got `{}`.",
+                format!("`return` expects value of type `{}` but got `{}`.",
                     def.name(ctxt), expr.name(ctxt)),
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref name, ref def, ref expr) =>
@@ -87,8 +87,8 @@ impl Msg {
                     op, &lhs.name(ctxt), op, &rhs.name(ctxt)),
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
-            MainNotFound => "no main function found in the program".into(),
-            WrongMainDefinition => "main function has wrong definition".into(),
+            MainNotFound => "no `main` function found in the program".into(),
+            WrongMainDefinition => "`main` function has wrong definition".into(),
             ThisInFunction => "`this` can only be used in methods not functions".into(),
         }
     }
