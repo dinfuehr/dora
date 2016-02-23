@@ -13,6 +13,7 @@ pub enum Msg {
     UnknownFunction(String),
     UnknownProp(String, BuiltinType),
     UnknownMethod(BuiltinType, Name, Vec<BuiltinType>),
+    MethodExists(BuiltinType, Name, Vec<BuiltinType>, Position),
     IdentifierExists(String),
     ShadowFunction(String),
     ShadowParam(String),
@@ -48,7 +49,16 @@ impl Msg {
                 let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
 
                 format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
-            }
+            },
+            MethodExists(cls, name, ref args, pos) => {
+                let name = ctxt.interner.str(name).to_string();
+                let cls = cls.name(ctxt);
+                let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+
+                format!(
+                    "method with definition `{}({})` already exists in class `{}` at line {}.",
+                    name, args, cls, pos)
+            },
             UnknownProp(ref prop, ref ty) =>
                 format!("unknown property `{}` for type `{}`", prop, ty.name(ctxt)),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),

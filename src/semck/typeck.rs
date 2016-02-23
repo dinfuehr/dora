@@ -400,28 +400,29 @@ mod tests {
              pos(5, 36), Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }
 
-    // #[test]
-    // fn type_method_defined_twice() {
-    //     err("class Foo {
-    //              fn bar() {}
-    //              fn bar() {}
-    //          }", pos(1, 1), Msg::Unimplemented);
-    //
-    //     err("class Foo {
-    //               fn bar() {}
-    //               fn bar() -> int {}
-    //          }", pos(1, 1), Msg::Unimplemented);
-    //
-    //     err("class Foo {
-    //                fn bar(a: int) {}
-    //                fn bar(a: int) -> int {}
-    //          }", pos(1, 1), Msg::Unimplemented);
-    //
-    //     ok("class Foo {
-    //             fn bar(a: int) {}
-    //             fn bar(a: Str) {}
-    //         }");
-    // }
+    #[test]
+    fn type_method_defined_twice() {
+        // err("class Foo {
+        //          fn bar() {}
+        //          fn bar() {}
+        //      }", pos(3, 18), Msg::Unimplemented);
+        //
+        // err("class Foo {
+        //          fn bar() {}
+        //          fn bar() -> int {}
+        //      }", pos(3, 18), Msg::Unimplemented);
+
+        err("class Foo {
+                 fn bar(a: int) {}
+                 fn bar(a: int) -> int {}
+             }", pos(3, 18), Msg::MethodExists(
+                 BuiltinType::Class(ClassId(0)), Name(1), vec![BuiltinType::Int], pos(2, 18)));
+
+        ok("class Foo {
+                fn bar(a: int) {}
+                fn bar(a: Str) {}
+            }");
+    }
 
     #[test]
     fn type_this() {

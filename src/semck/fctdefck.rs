@@ -2,6 +2,7 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 use ctxt::{Context, Fct};
+use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 
@@ -33,6 +34,25 @@ struct FctDefCheck<'a, 'ast: 'a> {
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
+
+        if let Some(clsid) = self.fct.owner_class {
+            let cls = self.ctxt.cls_by_id(clsid);
+
+            for method in &cls.methods {
+                if *method == self.fct.id { continue; }
+
+                let method = self.ctxt.fcts[method.0].clone();
+                let method = &mut method.lock().unwrap();
+
+                if method.name == self.fct.name && method.params_types == self.fct.params_types {
+                    let msg = Msg::MethodExists(
+                        BuiltinType::Class(clsid), method.name,
+                        method.params_types.clone(), method.src().ast.pos);
+                    self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
+                    return;
+                }
+            }
+        }
     }
 }
 
