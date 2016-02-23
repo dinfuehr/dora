@@ -12,6 +12,7 @@ pub enum TokenType {
 
     // Keywords
     Class,
+    This,
     Fn,
     Var,
     While,
