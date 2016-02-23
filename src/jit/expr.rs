@@ -50,6 +50,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprProp(_) => unreachable!(),
+            ExprThis(_) => unreachable!(),
         }
 
         dest
@@ -385,6 +386,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprAssign(_) => false,
         ExprCall(_) => false,
         ExprProp(_) => false,
+        ExprThis(_) => true,
     }
 }
 
@@ -400,5 +402,6 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
         ExprCall(ref val) => true,
         ExprProp(ref e) => contains_fct_call(&e.object),
+        ExprThis(_) => false,
     }
 }

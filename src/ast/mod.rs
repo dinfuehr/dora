@@ -650,6 +650,7 @@ pub enum Expr {
     ExprCall(ExprCallType),
     ExprAssign(ExprAssignType),
     ExprProp(ExprPropType),
+    ExprThis(ExprThisType),
 }
 
 impl Expr {
@@ -695,6 +696,13 @@ impl Expr {
             id: id,
             pos: pos,
             value: value,
+        })
+    }
+
+    pub fn create_this(id: NodeId, pos: Position) -> Expr {
+        Expr::ExprThis(ExprThisType {
+            id: id,
+            pos: pos,
         })
     }
 
@@ -856,6 +864,13 @@ impl Expr {
         }
     }
 
+    pub fn is_this(&self) -> bool {
+        match *self {
+            Expr::ExprThis(_) => true,
+            _ => false
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
@@ -867,6 +882,7 @@ impl Expr {
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
             Expr::ExprProp(ref val) => val.id,
+            Expr::ExprThis(ref val) => val.id,
         }
     }
 }
@@ -912,6 +928,12 @@ pub struct ExprLitBoolType {
     pub pos: Position,
 
     pub value: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprThisType {
+    pub id: NodeId,
+    pub pos: Position,
 }
 
 #[derive(Clone, Debug)]

@@ -240,8 +240,13 @@ impl<'a> AstDumper<'a> {
             ExprLitBool(ref lit) => self.dump_expr_lit_bool(lit),
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
-            ExprCall(ref call) => self.dump_expr_call(call)
+            ExprCall(ref call) => self.dump_expr_call(call),
+            ExprThis(ref this) => self.dump_expr_this(this),
         }
+    }
+
+    fn dump_expr_this(&mut self, this: &ExprThisType) {
+        dump!(self, "this @ {} {}", this.pos, this.id);
     }
 
     fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {
