@@ -31,7 +31,8 @@ pub enum Msg {
     OutsideLoop,
     NoReturnValue,
     MainNotFound,
-    WrongMainDefinition
+    WrongMainDefinition,
+    ThisInFunction
 }
 
 impl Msg {
@@ -79,7 +80,7 @@ impl Msg {
                         &expr.name(ctxt), cls_name, prop_name, &def.name(ctxt))
             },
             UnOpType(ref op, ref expr) =>
-                format!("unary unary `{}` can not handle value of type `{} {}`.", op, op,
+                format!("unary operator `{}` can not handle value of type `{} {}`.", op, op,
                     &expr.name(ctxt)),
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
@@ -88,6 +89,7 @@ impl Msg {
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no main function found in the program".into(),
             WrongMainDefinition => "main function has wrong definition".into(),
+            ThisInFunction => "`this` can only be used in methods not functions".into(),
         }
     }
 }

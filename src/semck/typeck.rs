@@ -295,6 +295,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         // we don't know the type of the property, just assume ()
         self.expr_type = BuiltinType::Unit;
     }
+
+    fn check_expr_this(&mut self, e: &'ast ExprThisType) {
+        if let Some(clsid) = self.fct.owner_class {
+            self.expr_type = BuiltinType::Class(clsid);
+
+        } else {
+            let msg = Msg::ThisInFunction;
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.expr_type = BuiltinType::Unit;
+        }
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -309,7 +320,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
             ExprProp(ref expr) => self.check_expr_prop(expr),
-            ExprThis(ref expr) => unreachable!("this not supported"),
+            ExprThis(ref expr) => self.check_expr_this(expr),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);
@@ -411,6 +422,13 @@ mod tests {
     //             fn bar(a: Str) {}
     //         }");
     // }
+
+    #[test]
+    fn type_this() {
+        ok("class Foo { fn me() -> Foo { return this; } }");
+        err("class Foo fn me() { return this; }",
+            pos(1, 28), Msg::ThisInFunction);
+    }
 
     #[test]
     fn type_unknown_method() {
