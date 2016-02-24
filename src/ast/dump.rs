@@ -50,6 +50,14 @@ impl<'a> AstDumper<'a> {
     fn dump_class(&mut self, cls: &Class) {
         dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
 
+        if let Some(ref ctor) = cls.ctor {
+            self.indent(|d| {
+                dump!(d, "ctor");
+
+                d.indent(|d| d.dump_fct(ctor));
+            })
+        }
+
         self.indent(|d| {
             dump!(d, "methods");
 

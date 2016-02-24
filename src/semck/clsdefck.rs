@@ -65,6 +65,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         visit::walk_class(self, c);
 
         self.add_ctor();
+        self.cls_id = None;
     }
 
     fn visit_prop(&mut self, p: &'ast ast::Prop) {
@@ -93,6 +94,24 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         class.size = offset + ty.size();
         class.props.push(prop);
+    }
+
+    fn visit_ctor(&mut self, f: &'ast ast::Function) {
+        let clsid = self.cls_id.unwrap();
+
+        let fct = Fct {
+            id: FctId(0),
+            name: f.name,
+            params_types: Vec::new(),
+            return_type: BuiltinType::Unit,
+            owner_class: Some(clsid),
+            ctor: true,
+            initialized: false,
+            kind: FctKind::Source(FctSrc::new(f)),
+        };
+
+        let fctid = self.ctxt.add_fct(fct);
+        self.cls_mut().ctor = fctid;
     }
 
     fn visit_method(&mut self, f: &'ast ast::Function) {

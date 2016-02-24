@@ -172,7 +172,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: cls.name,
             method: true,
             params: params,
-            return_type: Some(self.build_type(cls.name)),
+            return_type: None,
             block: self.build_block(assignments)
         }
     }
@@ -230,9 +230,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn build_this(&mut self) -> Box<Expr> {
-        let this = self.interner.intern("this");
+        let id = self.generate_id();
 
-        self.build_ident(this)
+        Box::new(Expr::ExprThis(ExprThisType {
+            id: id,
+            pos: Position::new(1, 1),
+        }))
     }
 
     fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
