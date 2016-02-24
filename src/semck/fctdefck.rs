@@ -35,6 +35,8 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
 
+        self.fct.initialized = true;
+
         if let Some(clsid) = self.fct.owner_class {
             let cls = self.ctxt.cls_by_id(clsid);
 
@@ -44,7 +46,9 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
                 let method = self.ctxt.fcts[method.0].clone();
                 let method = &mut method.lock().unwrap();
 
-                if method.name == self.fct.name && method.params_types == self.fct.params_types {
+                if method.initialized
+                   && method.name == self.fct.name
+                   && method.params_types == self.fct.params_types {
                     let msg = Msg::MethodExists(
                         BuiltinType::Class(clsid), method.name,
                         method.params_types.clone(), method.src().ast.pos);

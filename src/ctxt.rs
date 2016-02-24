@@ -137,6 +137,7 @@ pub struct Fct<'ast> {
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: bool,
+    pub initialized: bool,
 
     pub kind: FctKind<'ast>,
 }

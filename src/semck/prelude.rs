@@ -45,6 +45,7 @@ fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
         return_type: ret,
         owner_class: None,
         ctor: false,
+        initialized: true,
         kind: FctKind::Builtin(fct),
     };
 

@@ -48,6 +48,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
                 params_types: cls.props.iter().map(|p| p.ty).collect(),
                 return_type: BuiltinType::Class(cls.id),
                 ctor: true,
+                initialized: true,
                 kind: FctKind::Intrinsic,
             }
         };
@@ -102,6 +103,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             return_type: BuiltinType::Unit,
             owner_class: Some(self.cls_id.unwrap()),
             ctor: false,
+            initialized: false,
             kind: FctKind::Source(FctSrc::new(f)),
         };
 

@@ -402,15 +402,17 @@ mod tests {
 
     #[test]
     fn type_method_defined_twice() {
-        // err("class Foo {
-        //          fn bar() {}
-        //          fn bar() {}
-        //      }", pos(3, 18), Msg::Unimplemented);
-        //
-        // err("class Foo {
-        //          fn bar() {}
-        //          fn bar() -> int {}
-        //      }", pos(3, 18), Msg::Unimplemented);
+        err("class Foo {
+                 fn bar() {}
+                 fn bar() {}
+             }", pos(3, 18), Msg::MethodExists(
+                 BuiltinType::Class(ClassId(0)), Name(1), vec![], pos(2, 18)));
+
+        err("class Foo {
+                 fn bar() {}
+                 fn bar() -> int {}
+             }", pos(3, 18), Msg::MethodExists(
+                 BuiltinType::Class(ClassId(0)), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(a: int) {}
