@@ -258,6 +258,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.ctxt.cls_by_id(clsid);
 
             for method in &cls.methods {
+                let method = *method;
+
+                if self.fct.id == method {
+                    if self.fct.name == e.name && self.fct.params_types == call_types {
+                        self.expr_type = self.fct.return_type;
+                        assert!(self.fct.src_mut().calls.insert(e.id, method).is_none());
+                        return;
+                    } else {
+                        continue;
+                    }
+                }
+
                 let fct = self.ctxt.fcts[method.0].clone();
                 let callee = &mut fct.lock().unwrap();
 
@@ -431,6 +443,19 @@ mod tests {
         ok("class Foo { fn me() -> Foo { return this; } }");
         err("class Foo fn me() { return this; }",
             pos(1, 28), Msg::ThisInFunction);
+
+        ok("class Foo(a: int, b: int) {
+            fn bar() -> int { return this.a + this.b; }
+        }");
+
+        ok("class Foo {
+            fn zero() -> int { return 0; }
+            fn other() -> int { return this.zero(); }
+        }");
+
+        ok("class Foo {
+            fn bar() { this.bar(); }
+        }");
     }
 
     #[test]
