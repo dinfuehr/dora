@@ -289,22 +289,37 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         let fid = *self.fct.src().calls.get(&e.id).unwrap();
 
-        let ptr = if self.fct.id == fid {
+        let (ptr, ctor) = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.fct, self.ctxt)
+            (ensure_jit_or_stub_ptr(self.fct, self.ctxt), self.fct.ctor)
 
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
-                match fct.kind {
+                (match fct.kind {
                     FctKind::Source(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
                     FctKind::Builtin(ptr) => ptr,
                     FctKind::Intrinsic => unreachable!("intrinsic fct call"),
-                }
+                }, fct.ctor)
             })
         };
 
+        let used = if ctor || e.object.is_some() {
+            1
+        } else {
+            0
+        };
+
+        if ctor {
+            unreachable!("don't know how to invoke ctor");
+
+        } else if let Some(ref object) = e.object {
+            self.emit_expr(object, REG_PARAMS[0]);
+
+        }
+
         for (ind, arg) in e.args.iter().enumerate().rev() {
             assert!(!contains_fct_call(arg));
+            let ind = ind + used;
 
             if REG_PARAMS.len() > ind {
                 let dest = REG_PARAMS[ind];

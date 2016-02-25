@@ -122,6 +122,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         self.in_class = true;
         try!(self.parse_primary_ctor(&mut cls));
         try!(self.parse_class_body(&mut cls));
+
+        let ctor = self.generate_ctor(&mut cls);
+        cls.ctor = Some(ctor);
+
         self.in_class = false;
 
         Ok(cls)
@@ -142,11 +146,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }));
 
         cls.props.append(&mut props);
-
-        if !cls.props.is_empty() {
-            let ctor = self.generate_ctor(cls);
-            cls.ctor = Some(ctor);
-        }
 
         Ok(())
     }
@@ -1622,7 +1621,9 @@ mod tests {
         assert_eq!(0, class.props.len());
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
-        assert!(class.ctor.is_none());
+
+        let ctor = &class.ctor.as_ref().unwrap();
+        assert_eq!(0, ctor.params.len());
     }
 
     #[test]
@@ -1633,7 +1634,9 @@ mod tests {
         assert_eq!(0, class.props.len());
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
-        assert!(class.ctor.is_none());
+
+        let ctor = &class.ctor.as_ref().unwrap();
+        assert_eq!(0, ctor.params.len());
     }
 
     #[test]

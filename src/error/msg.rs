@@ -20,7 +20,7 @@ pub enum Msg {
     ShadowType(String),
     ShadowProp(String),
     VarNeedsTypeInfo(String),
-    ParamTypesIncompatible(String, Vec<BuiltinType>, Vec<BuiltinType>),
+    ParamTypesIncompatible(Name, Vec<BuiltinType>, Vec<BuiltinType>),
     WhileCondType(BuiltinType),
     IfCondType(BuiltinType),
     ReturnType(BuiltinType, BuiltinType),
@@ -68,8 +68,14 @@ impl Msg {
             ShadowProp(ref name) => format!("property with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
-            ParamTypesIncompatible(ref name, ref def, ref expr) =>
-                format!("function types incompatible"),
+            ParamTypesIncompatible(name, ref def, ref expr) => {
+                let name = ctxt.interner.str(name).to_string();
+                let def = def.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let expr = expr.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+
+                format!("function `{}({})` cannot be called as `{}({})`",
+                    name, def, name, expr)
+            },
             WhileCondType(ref ty) =>
                 format!("`while` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
             IfCondType(ref ty) =>

@@ -219,11 +219,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let callee_name;
         let callee_params;
         let callee_return;
+        let callee_ctor;
+        let callee_owner_class;
 
         if callee_id == caller_id {
             callee_name = self.fct.name;
             callee_params = self.fct.params_types.clone();
             callee_return = self.fct.return_type;
+            callee_ctor = self.fct.ctor;
+            callee_owner_class = self.fct.owner_class;
 
         } else {
             let fct = self.ctxt.fcts[callee_id.0].clone();
@@ -232,12 +236,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             callee_name = callee.name;
             callee_params = callee.params_types.clone();
             callee_return = callee.return_type;
+            callee_ctor = callee.ctor;
+            callee_owner_class = callee.owner_class;
         }
 
-        self.expr_type = callee_return;
+        if callee_ctor {
+            self.expr_type = BuiltinType::Class(callee_owner_class.unwrap());
+        } else {
+            self.expr_type = callee_return;
+        }
 
         if callee_params != call_types {
-            let callee_name = self.ctxt.interner.str(callee_name).to_string();
             let msg = Msg::ParamTypesIncompatible(callee_name, callee_params.clone(), call_types);
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
@@ -645,15 +654,15 @@ mod tests {
         ok("fn foo(a: int, b: bool) {}\nfn f() { foo(1, true); }");
 
         err("fn foo() {}\nfn f() { foo(1); }", pos(2, 10),
-            Msg::ParamTypesIncompatible("foo".into(),
+            Msg::ParamTypesIncompatible(Name(0),
                 vec![],
                 vec![BuiltinType::Int]));
         err("fn foo(a: int) {}\nfn f() { foo(true); }", pos(2, 10),
-            Msg::ParamTypesIncompatible("foo".into(),
+            Msg::ParamTypesIncompatible(Name(0),
                 vec![BuiltinType::Int],
                 vec![BuiltinType::Bool]));
         err("fn foo(a: int, b: bool) {}\nfn f() { foo(1, 2); }", pos(2, 10),
-            Msg::ParamTypesIncompatible("foo".into(),
+            Msg::ParamTypesIncompatible(Name(0),
                 vec![BuiltinType::Int, BuiltinType::Bool],
                 vec![BuiltinType::Int, BuiltinType::Int]));
     }

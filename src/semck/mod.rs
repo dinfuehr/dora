@@ -85,6 +85,11 @@ mod tests {
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
+
+            for e in errors {
+                println!("{}", e.message(ctxt));
+            }
+
             assert!(!ctxt.diag.borrow().has_errors());
         });
     }
@@ -95,6 +100,11 @@ mod tests {
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
+
+            for e in errors {
+                println!("{}", e.message(ctxt));
+            }
+
             assert!(!ctxt.diag.borrow().has_errors());
 
             f(ctxt)

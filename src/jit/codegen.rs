@@ -100,7 +100,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let params_len = self.ast.params.len();
+        let params_len = self.ast.params.len() +
+            if self.fct.owner_class.is_some() { 1 } else { 0 };
+
         if params_len == 0 { return; }
 
         for (reg, p) in REG_PARAMS.iter().zip(&self.ast.params) {

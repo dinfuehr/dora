@@ -36,26 +36,6 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     fn cls_mut(&mut self) -> &mut Class<'ast> {
         self.ctxt.cls_by_id_mut(self.cls_id.unwrap())
     }
-
-    fn add_ctor(&mut self) {
-        let fct = {
-            let cls = self.cls();
-
-            Fct {
-                id: FctId(0),
-                name: cls.name,
-                owner_class: Some(cls.id),
-                params_types: cls.props.iter().map(|p| p.ty).collect(),
-                return_type: BuiltinType::Class(cls.id),
-                ctor: true,
-                initialized: true,
-                kind: FctKind::Intrinsic,
-            }
-        };
-
-        let fctid = self.ctxt.add_fct(fct);
-        self.cls_mut().ctor = fctid;
-    }
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
@@ -64,7 +44,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         visit::walk_class(self, c);
 
-        self.add_ctor();
         self.cls_id = None;
     }
 
