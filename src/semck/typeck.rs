@@ -423,7 +423,7 @@ mod tests {
         ok("class Foo(a: int) { fn f() -> int { return a; } }");
         ok("class Foo(a: int) { fn set(x: int) { a = x; } }");
         err("class Foo(a: int) { fn set(x: int) { b = x; } }",
-            pos(1, 38), Msg::UnknownIdentifier("b".into()));
+            pos(1, 38), Msg::UnknownIdentifier(Name(5)));
     }
 
     #[test]

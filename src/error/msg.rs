@@ -9,7 +9,7 @@ use ty::BuiltinType;
 pub enum Msg {
     Unimplemented,
     UnknownType(String),
-    UnknownIdentifier(String),
+    UnknownIdentifier(Name),
     UnknownFunction(String),
     UnknownProp(String, BuiltinType),
     UnknownMethod(BuiltinType, Name, Vec<BuiltinType>),
@@ -41,7 +41,10 @@ impl Msg {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
             UnknownType(ref name) => format!("no type with name `{}` known.", name),
-            UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
+            UnknownIdentifier(name) => {
+                let name = ctxt.interner.str(name).to_string();
+                format!("unknown identifier `{}`.", name)
+            },
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
             UnknownMethod(cls, name, ref args) => {
                 let name = ctxt.interner.str(name).to_string();

@@ -110,8 +110,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
         }
 
-        let name = str(self.ctxt, ident.name);
-        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
+        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(ident.name));
     }
 
     fn check_expr_call(&mut self, call: &'ast ExprCallType) {
@@ -210,6 +209,7 @@ fn str(ctxt: &Context, name: Name) -> String {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
+    use interner::Name;
     use semck::tests::*;
 
     #[test]
@@ -266,8 +266,8 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fn f() { var b = a; }", pos(1, 18), Msg::UnknownIdentifier("a".into()));
-        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier("a".into()));
+        err("fn f() { var b = a; }", pos(1, 18), Msg::UnknownIdentifier(Name(2)));
+        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier(Name(1)));
     }
 
     #[test]
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn variable_outside_of_scope() {
         err("fn f() -> int { { var a = 1; } return a; }", pos(1, 39),
-            Msg::UnknownIdentifier("a".into()));
+            Msg::UnknownIdentifier(Name(2)));
 
         ok("fn f() -> int { var a = 1; { var a = 2; } return a; }");
     }
