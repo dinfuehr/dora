@@ -118,6 +118,7 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
+    use interner::Name;
     use mem;
     use semck::tests::*;
 
@@ -142,7 +143,7 @@ mod tests {
         ok("class Foo(a: int, b:int)");
         ok("class Foo(a: Foo)");
         ok("class Foo(a: Bar) class Bar");
-        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType("Unknown".to_string()));
+        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType(Name(2)));
         err("class Foo(a: int, a: int)", pos(1, 19), Msg::ShadowProp("a".to_string()));
     }
 }

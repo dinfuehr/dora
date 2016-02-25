@@ -8,7 +8,7 @@ use ty::BuiltinType;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {
     Unimplemented,
-    UnknownType(String),
+    UnknownType(Name),
     UnknownIdentifier(Name),
     UnknownFunction(String),
     UnknownProp(String, BuiltinType),
@@ -40,7 +40,10 @@ impl Msg {
     pub fn message(&self, ctxt: &Context) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
-            UnknownType(ref name) => format!("no type with name `{}` known.", name),
+            UnknownType(name) => {
+                let name = ctxt.interner.str(name).to_string();
+                format!("type `{}` does not exist.", name)
+            },
             UnknownIdentifier(name) => {
                 let name = ctxt.interner.str(name).to_string();
                 format!("unknown identifier `{}`.", name)

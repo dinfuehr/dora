@@ -60,8 +60,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
                 return builtin;
 
             } else {
-                let tyname = ctxt.interner.str(basic.name).to_string();
-                let msg = Msg::UnknownType(tyname);
+                let msg = Msg::UnknownType(basic.name);
                 ctxt.diag.borrow_mut().report(basic.pos, msg);
             }
         }
