@@ -97,10 +97,21 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
             self.fct.src_mut().defs.insert(ident.id, id);
-        } else {
-            let name = str(self.ctxt, ident.name);
-            report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
+            return;
         }
+
+        if let Some(clsid) = self.fct.owner_class {
+            let cls = self.ctxt.cls_by_id(clsid);
+
+            for prop in &cls.props {
+                if prop.name == ident.name {
+                    return;
+                }
+            }
+        }
+
+        let name = str(self.ctxt, ident.name);
+        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
     }
 
     fn check_expr_call(&mut self, call: &'ast ExprCallType) {

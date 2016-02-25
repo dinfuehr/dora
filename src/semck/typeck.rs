@@ -115,7 +115,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        self.expr_type = self.fct.var_by_node_id(e.id).data_type;
+        let is_var = self.fct.src().defs.get(&e.id).is_some();
+
+        if is_var {
+            self.expr_type = self.fct.var_by_node_id(e.id).data_type;
+        } else {
+            let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+
+            for prop in &cls.props {
+                if e.name == prop.name {
+                    self.expr_type = prop.ty;
+                    return;
+                }
+            }
+
+            unreachable!("property not found");
+        }
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
@@ -404,6 +419,14 @@ mod tests {
     }
 
     #[test]
+    fn type_object_prop_without_this() {
+        ok("class Foo(a: int) { fn f() -> int { return a; } }");
+        ok("class Foo(a: int) { fn set(x: int) { a = x; } }");
+        err("class Foo(a: int) { fn set(x: int) { b = x; } }",
+            pos(1, 38), Msg::UnknownIdentifier("b".into()));
+    }
+
+    #[test]
     fn type_method_call() {
         ok("class Foo {
                 fn bar() {}
@@ -455,6 +478,10 @@ mod tests {
 
         ok("class Foo(a: int, b: int) {
             fn bar() -> int { return this.a + this.b; }
+        }");
+
+        ok("class Foo(a: int) {
+            fn setA(a: int) { this.a = a; }
         }");
 
         ok("class Foo {
