@@ -19,8 +19,12 @@ pub struct Class<'ast> {
     pub ast: Option<&'ast ast::Class>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PropId(pub usize);
+
 #[derive(Debug)]
 pub struct Prop {
+    pub id: PropId,
     pub name: Name,
     pub ty: BuiltinType,
     pub offset: i32,

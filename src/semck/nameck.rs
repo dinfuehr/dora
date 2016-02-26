@@ -39,10 +39,32 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
+        if self.fct.owner_class.is_some() {
+            // add hidden this parameter for ctors and methods
+            self.add_hidden_parameter_this();
+        }
+
         for p in &self.ast.params { self.visit_param(p); }
         self.visit_stmt(&self.ast.block);
 
         self.ctxt.sym.borrow_mut().pop_level();
+    }
+
+    pub fn add_hidden_parameter_this(&mut self) {
+        let var_id = VarId(self.fct.src().vars.len());
+        let cls_id = self.fct.owner_class.unwrap();
+        let ast_id = self.fct.src().ast.id;
+        let name = self.ctxt.interner.intern("this");
+
+        let var = Var {
+            id: VarId(0),
+            name: name,
+            data_type: BuiltinType::Class(cls_id),
+            node_id: ast_id,
+            offset: 0
+        };
+
+        self.fct.src_mut().vars.push(var);
     }
 
     pub fn add_var<F>(&mut self, mut var: Var, replacable: F) ->
@@ -59,7 +81,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         if result.is_ok() {
             self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
-            assert!(self.fct.src_mut().defs.insert(var.node_id, var_id).is_none());
+            assert!(self.fct.src_mut().defs.insert(var.node_id, IdentType::Var(var_id)).is_none());
         }
 
         self.fct.src_mut().vars.push(var);
@@ -96,7 +118,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-            self.fct.src_mut().defs.insert(ident.id, id);
+            self.fct.src_mut().defs.insert(ident.id, IdentType::Var(id));
             return;
         }
 
@@ -105,6 +127,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             for prop in &cls.props {
                 if prop.name == ident.name {
+                    self.fct.src_mut().defs.insert(ident.id, IdentType::Prop(prop.id));
                     return;
                 }
             }

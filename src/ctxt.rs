@@ -8,7 +8,7 @@ use driver::cmd::Args;
 use error::diag::Diagnostic;
 
 use ast;
-use class::{Class, ClassId};
+use class::{Class, ClassId, PropId};
 use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
@@ -165,13 +165,23 @@ impl<'ast> Fct<'ast> {
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
         let varid = *self.src().defs.get(&id).unwrap();
 
-        &self.src().vars[varid.0]
+        &self.src().vars[varid.var_id().0]
     }
 
     pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Var {
         let varid = *self.src().defs.get(&id).unwrap();
 
-        &mut self.src_mut().vars[varid.0]
+        &mut self.src_mut().vars[varid.var_id().0]
+    }
+
+    pub fn hidden_this(&self) -> bool {
+        self.owner_class.is_some()
+    }
+
+    pub fn var_this(&mut self) -> &mut Var {
+        assert!(self.hidden_this());
+
+        &mut self.src_mut().vars[0]
     }
 }
 
@@ -208,7 +218,7 @@ pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
-    pub defs: HashMap<ast::NodeId, VarId>, // points to the definition of variable from its usage
+    pub defs: HashMap<ast::NodeId, IdentType>, // which definition does ident refer to
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool, // false if fct calls other functions
@@ -249,6 +259,27 @@ impl<'ast> FctSrc<'ast> {
 
     pub fn stacksize(&self) -> i32 {
         self.tempsize + self.localsize
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum IdentType {
+    Var(VarId), Prop(PropId)
+}
+
+impl IdentType {
+    fn var_id(&self) -> VarId {
+        match *self {
+            IdentType::Var(varid) => varid,
+            _ => unreachable!()
+        }
+    }
+
+    fn prop_id(&self) -> PropId {
+        match *self {
+            IdentType::Prop(propid) => propid,
+            _ => unreachable!()
+        }
     }
 }
 

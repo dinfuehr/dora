@@ -65,7 +65,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             class.size
         };
 
+        let id = PropId(class.props.len());
+
         let prop = Prop {
+            id: id,
             name: p.name,
             ty: ty,
             offset: offset,

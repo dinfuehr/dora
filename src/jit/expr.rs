@@ -49,11 +49,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprProp(_) => unreachable!(),
-            ExprThis(_) => unreachable!(),
+            ExprProp(ref expr) => self.emit_prop(expr, dest),
+            ExprThis(_) => self.emit_this(dest),
         }
 
         dest
+    }
+
+    fn emit_this(&mut self, dest: Reg) {
+        let var = self.fct.var_this();
+
+        emit::mov_local_reg(self.buf, var.data_type, var.offset, dest);
+    }
+
+    fn emit_prop(&mut self, expr: &'ast ExprPropType, dest: Reg) {
+        unreachable!("emit prop");
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {

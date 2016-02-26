@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, IdentType};
 use error::msg::Msg;
 
 use ast::*;
@@ -115,21 +115,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let is_var = self.fct.src().defs.get(&e.id).is_some();
+        let ident_type = *self.fct.src().defs.get(&e.id).unwrap();
 
-        if is_var {
-            self.expr_type = self.fct.var_by_node_id(e.id).data_type;
-        } else {
-            let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
-
-            for prop in &cls.props {
-                if e.name == prop.name {
-                    self.expr_type = prop.ty;
-                    return;
-                }
+        match ident_type {
+            IdentType::Var(varid) => {
+                self.expr_type = self.fct.var_by_node_id(e.id).data_type;
             }
 
-            unreachable!("property not found");
+            IdentType::Prop(propid) => {
+                let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+                let prop = &cls.props[propid.0];
+
+                self.expr_type = prop.ty;
+            }
         }
     }
 

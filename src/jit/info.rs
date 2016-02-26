@@ -5,7 +5,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu;
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, Var};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
@@ -44,6 +44,10 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
+        if self.fct.owner_class.is_some() {
+            self.reserve_stack_for_this();
+        }
+
         self.visit_fct(self.ast);
 
         let src = self.fct.src_mut();
@@ -52,7 +56,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         src.leaf = self.leaf;
     }
 
-    fn reserve_stack_for_var(&mut self, id: NodeId) {
+    fn reserve_stack_for_this(&mut self) {
+        let var = self.fct.var_this();
+
+        let ty_size = var.data_type.size();
+        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
+        var.offset = -self.localsize;
+    }
+
+    fn reserve_stack_for_node(&mut self, id: NodeId) {
         let var = self.fct.var_by_node_id_mut(id);
 
         let ty_size = var.data_type.size();
@@ -63,10 +75,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
+        let idx = (p.idx as usize) + if self.fct.owner_class.is_some() { 1 } else { 0 };
+
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
-        if (p.idx as usize) < cpu::REG_PARAMS.len() {
-            self.reserve_stack_for_var(p.id);
+        if idx < cpu::REG_PARAMS.len() {
+            self.reserve_stack_for_node(p.id);
 
         // the rest of the parameters are already stored on the stack
         // just use the current offset
@@ -81,7 +95,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            self.reserve_stack_for_var(var.id);
+            self.reserve_stack_for_node(var.id);
         }
 
         visit::walk_stmt(self, s);
