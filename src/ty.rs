@@ -7,6 +7,7 @@ pub enum BuiltinType {
     Unit,
     Int,
     Bool,
+    Ptr,
     Str,
     Class(ClassId),
 }
@@ -38,6 +39,7 @@ impl BuiltinType {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Bool => "bool".into(),
+            BuiltinType::Ptr => unreachable!("type Ptr only for internal use."),
             BuiltinType::Str => "str".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.cls_by_id(cid);
@@ -52,7 +54,9 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Int => 4,
-            BuiltinType::Str | BuiltinType::Class(_) => mem::ptr_width(),
+            BuiltinType::Str
+                | BuiltinType::Class(_)
+                | BuiltinType::Ptr => mem::ptr_width(),
         }
     }
 }

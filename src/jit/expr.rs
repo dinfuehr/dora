@@ -1,3 +1,5 @@
+use libc::c_void;
+
 use ast::*;
 use ast::Expr::*;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
@@ -7,8 +9,9 @@ use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond};
 use jit::stub::Stub;
-use object::Str;
 use mem::ptr::Ptr;
+use object::Str;
+use stdlib;
 use ty::BuiltinType;
 
 pub struct ExprGen<'a, 'ast: 'a> {
@@ -320,10 +323,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         };
 
         if ctor {
-            unreachable!("don't know how to invoke ctor");
+            // let cls = self.ctxt.cls_by_id()
+            // emit::movl_imm_reg(cls.size, REG_PARAMS[0]);
+            // let mptr = Ptr::new(stdlib::memalloc as *const c_void);
+            // self.emit_call_fptr(self.buf, mptr, stdlib:: BuiltinType::Ptr, REG_RESULT);
+            //
+            // let var_this = self.fct.var_this();
+            // emit::mov_local_reg(self.buf, var_this.data_type, var_this.offset, REG_PARAMS[0]);
 
+            unreachable!("don't know how to invoke ctor");
         } else if let Some(ref object) = e.object {
-            self.emit_expr(object, REG_PARAMS[0]);
+            self.emit_expr(object, REG_RESULT);
+            emit::movp_reg_reg(self.buf, REG_RESULT, REG_PARAMS[0]);
 
         }
 
@@ -340,6 +351,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
+        let return_type = *self.fct.src().types.get(&e.id).unwrap();
+        self.emit_call_fptr(ptr, return_type, dest);
+    }
+
+    fn emit_call_fptr(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 
@@ -347,8 +363,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
 
         if REG_RESULT != dest {
-            let return_type = *self.fct.src().types.get(&e.id).unwrap();
-            emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
+            emit::mov_reg_reg(self.buf, ty, REG_RESULT, dest);
         }
     }
 
@@ -359,16 +374,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         assert!(!contains_fct_call(&expr.rhs));
         self.emit_expr(&expr.rhs, REG_PARAMS[1]);
 
-        let disp = self.buf.add_addr(fct);
-        let pos = self.buf.pos() as i32;
-
-        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
-        emit::call(self.buf, REG_RESULT);
-
-        if REG_RESULT != dest {
-            let return_type = *self.fct.src().types.get(&expr.id).unwrap();
-            emit::mov_reg_reg(self.buf, return_type, REG_RESULT, dest);
-        }
+        let return_type = *self.fct.src().types.get(&expr.id).unwrap();
+        self.emit_call_fptr(fct, return_type, dest);
     }
 }
 

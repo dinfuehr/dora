@@ -4,6 +4,7 @@ use std::ffi::CStr;
 use std::io::{self, Write};
 use std::os::raw::c_char;
 use ctxt::get_ctxt;
+use mem::ptr::Ptr;
 use object::Str;
 
 pub extern "C" fn assert(val: bool) {
@@ -37,4 +38,11 @@ pub extern "C" fn strcat(lhs: Str, rhs: Str) -> Str {
     let mut gc = ctxt.gc.lock().unwrap();
 
     Str::concat(&mut gc, lhs, rhs)
+}
+
+pub extern "C" fn gc_alloc(size: usize) -> Ptr {
+    let ctxt = get_ctxt();
+    let mut gc = ctxt.gc.lock().unwrap();
+
+    gc.alloc(size)
 }
