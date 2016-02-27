@@ -300,7 +300,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let fid = *self.fct.src().calls.get(&e.id).unwrap();
+        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let fid = call_type.fct_id();
 
         let (ptr, ctor) = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now

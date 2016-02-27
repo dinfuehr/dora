@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct, IdentType};
+use ctxt::{CallType, Context, Fct, IdentType};
 use error::msg::Msg;
 
 use ast::*;
@@ -221,7 +221,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let callee_id = *self.fct.src().calls.get(&e.id).unwrap();
+        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let callee_id = call_type.fct_id();
         let caller_id = self.fct.id;
 
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
@@ -232,15 +233,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let callee_name;
         let callee_params;
         let callee_return;
-        let callee_ctor;
-        let callee_owner_class;
 
         if callee_id == caller_id {
             callee_name = self.fct.name;
             callee_params = self.fct.params_types.clone();
             callee_return = self.fct.return_type;
-            callee_ctor = self.fct.ctor;
-            callee_owner_class = self.fct.owner_class;
 
         } else {
             let fct = self.ctxt.fcts[callee_id.0].clone();
@@ -249,12 +246,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             callee_name = callee.name;
             callee_params = callee.params_types.clone();
             callee_return = callee.return_type;
-            callee_ctor = callee.ctor;
-            callee_owner_class = callee.owner_class;
         }
 
-        if callee_ctor {
-            self.expr_type = BuiltinType::Class(callee_owner_class.unwrap());
+        if call_type.is_ctor() {
+            self.expr_type = BuiltinType::Class(call_type.cls_id());
         } else {
             self.expr_type = callee_return;
         }
@@ -285,7 +280,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if self.fct.id == method {
                     if self.fct.name == e.name && self.fct.params_types == call_types {
                         self.expr_type = self.fct.return_type;
-                        assert!(self.fct.src_mut().calls.insert(e.id, method).is_none());
+
+                        let call_type = CallType::Method(clsid, method);
+                        assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
                         return;
                     } else {
                         continue;
@@ -297,7 +294,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if callee.name == e.name && callee.params_types == call_types {
                     self.expr_type = callee.return_type;
-                    assert!(self.fct.src_mut().calls.insert(e.id, callee.id).is_none());
+
+                    let call_type = CallType::Method(clsid, callee.id);
+                    assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
                     return;
                 }
             }

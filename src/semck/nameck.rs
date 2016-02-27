@@ -152,14 +152,16 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         if let Some(sym) = self.ctxt.sym.borrow().get(call.name) {
             if sym.is_fct() {
-                self.fct.src_mut().calls.insert(call.id, sym.to_fct().unwrap());
+                let call_type = CallType::Fct(sym.to_fct().unwrap());
+                self.fct.src_mut().calls.insert(call.id, call_type);
                 found = true;
 
             } else if sym.is_type() && sym.to_type().unwrap().is_cls() {
                 let clsid = sym.to_type().unwrap().cls();
                 let cls = self.ctxt.cls_by_id(clsid);
 
-                self.fct.src_mut().calls.insert(call.id, cls.ctor);
+                let call_type = CallType::Ctor(clsid, cls.ctor);
+                self.fct.src_mut().calls.insert(call.id, call_type);
                 found = true;
             }
         }

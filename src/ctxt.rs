@@ -217,7 +217,7 @@ impl<'ast> FctKind<'ast> {
 pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
-    pub calls: HashMap<ast::NodeId, FctId>, // maps function call to FctId
+    pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, IdentType>, // which definition does ident refer to
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -279,6 +279,36 @@ impl IdentType {
         match *self {
             IdentType::Prop(propid) => propid,
             _ => unreachable!()
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum CallType {
+    Fct(FctId), Method(ClassId, FctId), Ctor(ClassId, FctId)
+}
+
+impl CallType {
+    pub fn is_ctor(&self) -> bool {
+        match *self {
+            CallType::Ctor(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn cls_id(&self) -> ClassId {
+        match *self {
+            CallType::Method(clsid, _) => clsid,
+            CallType::Ctor(clsid, _) => clsid,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn fct_id(&self) -> FctId {
+        match *self {
+            CallType::Fct(fctid) => fctid,
+            CallType::Method(_, fctid) => fctid,
+            CallType::Ctor(_, fctid) => fctid,
         }
     }
 }
