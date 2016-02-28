@@ -35,9 +35,13 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                 let ctxt: &Context = get_ctxt();
 
                 let ptr = Ptr::new(es.pc as *mut c_void);
-                let code_map = ctxt.code_map.lock().unwrap();
+                let fct_id = {
+                    let code_map = ctxt.code_map.lock().unwrap();
 
-                if let Some(fct_id) = code_map.get(ptr) {
+                    code_map.get(ptr)
+                };
+
+                if let Some(fct_id) = fct_id {
                     let jit_fct = jit::generate(ctxt, fct_id);
                     cpu::trap::patch_fct_call(&mut es, jit_fct);
                     write_execstate(&es, ucontext as *mut c_void);
