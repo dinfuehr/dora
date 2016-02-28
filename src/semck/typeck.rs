@@ -663,6 +663,12 @@ mod tests {
         ok("fn f(a: int) { a|a; a&a; a^a; }");
         ok("fn f(a: bool) { a||a; a&&a; }");
 
+        err("class A class B fn f(a: A, b: B) { a === b; }", pos(1, 38),
+            Msg::BinOpType("===".into(),
+                BuiltinType::Class(ClassId(0)), BuiltinType::Class(ClassId(1))));
+        err("class A class B fn f(a: A, b: B) { b !== a; }", pos(1, 38),
+            Msg::BinOpType("!==".into(),
+                BuiltinType::Class(ClassId(1)), BuiltinType::Class(ClassId(0))));
         err("fn f(a: bool) { a+a; }", pos(1, 18),
             Msg::BinOpType("+".into(), BuiltinType::Bool, BuiltinType::Bool));
         err("fn f(a: bool) { a^a; }", pos(1, 18),
