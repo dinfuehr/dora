@@ -1,0 +1,8 @@
+fn main() {
+  var o1 = Foo();
+  var o2 = o1;
+
+  assert(o1 === o2);
+}
+
+class Foo
