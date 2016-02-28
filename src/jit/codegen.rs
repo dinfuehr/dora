@@ -100,12 +100,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let params_len = self.ast.params.len() +
-            if self.fct.owner_class.is_some() { 1 } else { 0 };
+        let this = if self.fct.owner_class.is_some() {
+            let var = self.fct.var_this();
+            emit::mov_reg_local(&mut self.buf, var.data_type, REG_PARAMS[0], var.offset);
 
-        if params_len == 0 { return; }
+            1
+        } else {
+            0
+        };
 
-        for (reg, p) in REG_PARAMS.iter().zip(&self.ast.params) {
+        for (reg, p) in REG_PARAMS.iter().skip(this).zip(&self.ast.params) {
             var_store(&mut self.buf, self.fct, *reg, p.id);
         }
     }
