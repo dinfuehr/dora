@@ -190,29 +190,63 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&e.rhs);
         let rhs_type = self.expr_type;
 
-        let expected_type = match e.op {
-            BinOp::Or | BinOp::And => BuiltinType::Bool,
-            BinOp::Cmp(CmpOp::Is) | BinOp::Cmp(CmpOp::IsNot) => BuiltinType::Str,
-            BinOp::Cmp(_) | BinOp::Add =>
-                if lhs_type == BuiltinType::Str {
-                    BuiltinType::Str
+        match e.op {
+            BinOp::Or | BinOp::And => self.check_expr_bin_bool(e, e.op, lhs_type, rhs_type),
+            BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
+            BinOp::Add => self.check_expr_bin_add(e, e.op, lhs_type, rhs_type),
+            _ => self.check_expr_bin_int(e, e.op, lhs_type, rhs_type),
+        }
+    }
+
+    fn check_expr_bin_bool(&mut self, e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
+                           rhs_type: BuiltinType) {
+        self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Bool);
+        self.expr_type = BuiltinType::Bool;
+    }
+
+    fn check_expr_bin_int(&mut self, e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
+                          rhs_type: BuiltinType) {
+        self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Int);
+        self.expr_type = BuiltinType::Int;
+    }
+
+    fn check_expr_bin_add(&mut self,  e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
+                          rhs_type: BuiltinType) {
+        if lhs_type == BuiltinType::Str {
+            self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Str);
+            self.expr_type = BuiltinType::Str;
+        } else {
+            self.check_expr_bin_int(e, op, lhs_type, rhs_type);
+        }
+    }
+
+    fn check_expr_bin_cmp(&mut self,  e: &'ast ExprBinType, cmp: CmpOp, lhs_type: BuiltinType,
+                          rhs_type: BuiltinType) {
+        let expected_type = match cmp {
+            CmpOp::Is | CmpOp::IsNot => match lhs_type {
+                BuiltinType::Str | BuiltinType::Class(_) => lhs_type,
+                _ => BuiltinType::Ptr,
+            },
+
+            _ => if lhs_type == BuiltinType::Str {
+                    lhs_type
                 } else {
                     BuiltinType::Int
-                },
-            _ => BuiltinType::Int
+                }
         };
 
+        self.check_type(e, BinOp::Cmp(cmp), lhs_type, rhs_type, expected_type);
+        self.expr_type = BuiltinType::Bool;
+    }
+
+    fn check_type(&mut self, e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
+                  rhs_type: BuiltinType, expected_type: BuiltinType) {
         if expected_type != lhs_type || expected_type != rhs_type {
-            let op = e.op.as_str().into();
+            let op = op.as_str().into();
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
-
-        self.expr_type = match e.op {
-            BinOp::Cmp(_) => BuiltinType::Bool,
-            _ => expected_type,
-        };
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
@@ -625,6 +659,7 @@ mod tests {
         ok("fn f(a: int) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
         ok("fn f(a: Str) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
         ok("fn f(a: Str) { a===a; a!==a; a+a; }");
+        ok("class Foo fn f(a: Foo) { a===a; a!==a; }");
         ok("fn f(a: int) { a|a; a&a; a^a; }");
         ok("fn f(a: bool) { a||a; a&&a; }");
 

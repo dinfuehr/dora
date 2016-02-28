@@ -172,30 +172,26 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
         let cmp_type = *self.fct.src().types.get(&e.lhs.id()).unwrap();
 
+        if op == CmpOp::Is || op == CmpOp::IsNot {
+            let op = if op == CmpOp::Is { CmpOp::Eq } else { CmpOp::Ne };
+
+            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, op, rhs, dest);
+
+                dest
+            });
+
+            return;
+        }
+
         if cmp_type == BuiltinType::Str {
-            if op == CmpOp::Is {
-                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Eq, rhs, dest);
+            use libc::c_void;
+            use stdlib;
 
-                    dest
-                });
-
-            } else if op == CmpOp::IsNot {
-                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                    emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, CmpOp::Ne, rhs, dest);
-
-                    dest
-                });
-
-            } else {
-                use libc::c_void;
-                use stdlib;
-
-                let fct = Ptr::new(stdlib::strcmp as *mut c_void);
-                self.emit_builtin_call(fct, e, REG_RESULT);
-                emit::movl_imm_reg(self.buf, 0, REG_TMP1);
-                emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
-            }
+            let fct = Ptr::new(stdlib::strcmp as *mut c_void);
+            self.emit_builtin_call(fct, e, REG_RESULT);
+            emit::movl_imm_reg(self.buf, 0, REG_TMP1);
+            emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
@@ -324,15 +320,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         };
 
         if ctor {
-            // let cls = self.ctxt.cls_by_id()
-            // emit::movl_imm_reg(cls.size, REG_PARAMS[0]);
-            // let mptr = Ptr::new(stdlib::memalloc as *const c_void);
-            // self.emit_call_fptr(self.buf, mptr, stdlib:: BuiltinType::Ptr, REG_RESULT);
-            //
-            // let var_this = self.fct.var_this();
-            // emit::mov_local_reg(self.buf, var_this.data_type, var_this.offset, REG_PARAMS[0]);
+            let cls = self.ctxt.cls_by_id(call_type.cls_id());
+            emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
-            unreachable!("don't know how to invoke ctor");
+            let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
+            self.emit_call_fptr(mptr, BuiltinType::Ptr, REG_RESULT);
+
+            emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
+
         } else if let Some(ref object) = e.object {
             self.emit_expr(object, REG_RESULT);
             emit::movp_reg_reg(self.buf, REG_RESULT, REG_PARAMS[0]);
