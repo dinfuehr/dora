@@ -151,7 +151,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn generate_ctor(&mut self, cls: &mut Class) -> Function {
-        let assignments = cls.props.iter().map(|prop| {
+        let mut assignments : Vec<_> = cls.props.iter().map(|prop| {
             let this = self.build_this();
             let lhs = self.build_prop(this, prop.name);
             let rhs = self.build_ident(prop.name);
@@ -159,6 +159,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             self.build_stmt_expr(ass)
         }).collect();
+
+        let this = self.build_this();
+        assignments.push(self.build_return(Some(this)));
 
         let params = cls.props.iter().map(|prop| {
             self.build_param(prop.name, prop.data_type.clone())
@@ -171,7 +174,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: cls.name,
             method: true,
             params: params,
-            return_type: None,
+            return_type: Some(self.build_type(cls.name)),
             block: self.build_block(assignments)
         }
     }
@@ -225,6 +228,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             pos: Position::new(1, 1),
             name: name
+        }))
+    }
+
+    fn build_return(&mut self, expr: Option<Box<Expr>>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtReturn(StmtReturnType {
+            id: id,
+            pos: Position::new(1, 1),
+            expr: expr,
         }))
     }
 
