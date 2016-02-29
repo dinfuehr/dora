@@ -14,7 +14,7 @@ use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
 use jit::stub::Stub;
-use mem::Ptr;
+use mem::{self, Ptr};
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -258,7 +258,7 @@ impl<'ast> FctSrc<'ast> {
     }
 
     pub fn stacksize(&self) -> i32 {
-        self.tempsize + self.localsize
+        mem::align_i32(self.tempsize + self.localsize, 16)
     }
 }
 

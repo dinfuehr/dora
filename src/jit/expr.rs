@@ -121,7 +121,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             IdentType::Prop(clsid, propid) => {
-                unreachable!("cannot assign to property");
+                let expr_prop = e.lhs.to_prop().unwrap();
+                let cls = self.ctxt.cls_by_id(clsid);
+                let prop = &cls.props[propid.0];
+
+                self.emit_expr(&e.rhs, REG_RESULT);
+                self.emit_expr(&expr_prop.object, REG_TMP1);
+
+                emit::mov_reg_mem(self.buf, prop.ty, REG_RESULT, REG_TMP1, prop.offset);
+
+                if REG_RESULT != dest {
+                    emit::mov_reg_reg(self.buf, prop.ty, REG_RESULT, dest);
+                }
             }
         }
     }
