@@ -1,0 +1,9 @@
+fn main() {
+  foo();
+}
+
+fn foo() -> Foo {
+  return Foo();
+}
+
+class Foo

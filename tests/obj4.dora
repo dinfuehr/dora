@@ -1,0 +1,9 @@
+fn main() {
+  var o1 = Foo();
+  var o2 = o1.me();
+  assert(o1 === o2);
+}
+
+class Foo {
+  fn me() -> Foo { return this; }
+}
