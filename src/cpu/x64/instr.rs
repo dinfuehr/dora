@@ -85,7 +85,7 @@ pub fn emit_movb_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
     if dest_msb != 0
         || src.msb() != 0
         || (src != RAX && src != RBX && src != RCX && src != RDX) {
-        emit_rex(buf, 0, dest_msb, 0, src.msb());
+        emit_rex(buf, 0, src.msb(), 0, dest.msb());
     }
 
     emit_op(buf, 0x88);
@@ -639,6 +639,11 @@ mod tests {
         assert_emit!(0x88, 0x5d, 0x01; emit_movb_reg_memq(RBX, RBP, 1));
         assert_emit!(0x88, 0x4d, 0x01; emit_movb_reg_memq(RCX, RBP, 1));
         assert_emit!(0x88, 0x55, 0x01; emit_movb_reg_memq(RDX, RBP, 1));
+
+        assert_emit!(0x44, 0x88, 0x42, 0x08; emit_movb_reg_memq(R8, RDX, 8));
+        assert_emit!(0x45, 0x88, 0x42, 0x08; emit_movb_reg_memq(R8, R10, 8));
+        assert_emit!(0x41, 0x88, 0x42, 0x08; emit_movb_reg_memq(RAX, R10, 8));
+        assert_emit!(0x88, 0x42, 0x08; emit_movb_reg_memq(RAX, RDX, 8));
     }
 
     #[test]
