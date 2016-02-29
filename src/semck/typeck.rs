@@ -122,8 +122,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = self.fct.var_by_node_id(e.id).data_type;
             }
 
-            IdentType::Prop(propid) => {
-                let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+            IdentType::Prop(clsid, propid) => {
+                let cls = self.ctxt.cls_by_id(clsid);
                 let prop = &cls.props[propid.0];
 
                 self.expr_type = prop.ty;
@@ -349,6 +349,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             for prop in &cls.props {
                 if prop.name == e.name {
+                    let ident_type = IdentType::Prop(classid, prop.id);
+                    assert!(self.fct.src_mut().defs.insert(e.id, ident_type).is_none());
+
                     self.expr_type = prop.ty;
                     return;
                 }

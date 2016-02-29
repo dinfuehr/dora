@@ -264,20 +264,27 @@ impl<'ast> FctSrc<'ast> {
 
 #[derive(Debug, Copy, Clone)]
 pub enum IdentType {
-    Var(VarId), Prop(PropId)
+    Var(VarId), Prop(ClassId, PropId)
 }
 
 impl IdentType {
-    fn var_id(&self) -> VarId {
+    pub fn var_id(&self) -> VarId {
         match *self {
             IdentType::Var(varid) => varid,
             _ => unreachable!()
         }
     }
 
-    fn prop_id(&self) -> PropId {
+    pub fn cls_id(&self) -> ClassId {
         match *self {
-            IdentType::Prop(propid) => propid,
+            IdentType::Prop(clsid, _) => clsid,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn prop_id(&self) -> PropId {
+        match *self {
+            IdentType::Prop(_, propid) => propid,
             _ => unreachable!()
         }
     }

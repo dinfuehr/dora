@@ -33,6 +33,10 @@ pub fn start() -> i32 {
         Err(code) => return code,
     };
 
+    if args.flag_emit_ast {
+        ast::dump::dump(&ast, &interner);
+    }
+
     let mut ctxt = Context::new(args, &ast, interner);
 
     semck::check(&mut ctxt);

@@ -66,7 +66,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_prop(&mut self, expr: &'ast ExprPropType, dest: Reg) {
-        unreachable!("emit prop");
+        let ident_type = *self.fct.src().defs.get(&expr.id).unwrap();
+
+        self.emit_expr(&expr.object, REG_RESULT);
+
+        let cls = self.ctxt.cls_by_id(ident_type.cls_id());
+        let prop = &cls.props[ident_type.prop_id().0];
+        emit::mov_mem_reg(self.buf, prop.ty, REG_RESULT, prop.offset, dest);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -106,9 +112,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
-        self.emit_expr(&e.rhs, dest);
+        let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
 
-        codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
+        match ident_type {
+            IdentType::Var(_) => {
+                self.emit_expr(&e.rhs, dest);
+                codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
+            }
+
+            IdentType::Prop(clsid, propid) => {
+                unreachable!("cannot assign to property");
+            }
+        }
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -116,8 +131,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::Add => self.emit_bin_add(e, dest),
             BinOp::Sub => self.emit_bin_sub(e, dest),
             BinOp::Mul => self.emit_bin_mul(e, dest),
-            BinOp::Div |
-            BinOp::Mod => self.emit_bin_divmod(e, dest),
+            BinOp::Div
+                | BinOp::Mod => self.emit_bin_divmod(e, dest),
             BinOp::Cmp(op) => self.emit_bin_cmp(e, dest, op),
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),

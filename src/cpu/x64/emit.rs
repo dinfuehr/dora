@@ -105,6 +105,28 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
+pub fn mov_mem_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32, dest: Reg) {
+    match ty {
+        BuiltinType::Bool => emit_movzbl_memq_reg(buf, src, offset, dest),
+        BuiltinType::Int => emit_movl_memq_reg(buf, src, offset, dest),
+        BuiltinType::Str
+            | BuiltinType::Class(_)
+            | BuiltinType::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
+        BuiltinType::Unit => {}
+    }
+}
+
+pub fn mov_reg_mem(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg, offset: i32) {
+    match ty {
+        BuiltinType::Bool => emit_movb_reg_memq(buf, src, dest, offset),
+        BuiltinType::Int => emit_movl_reg_memq(buf, src, dest, offset),
+        BuiltinType::Str
+            | BuiltinType::Class(_)
+            | BuiltinType::Ptr => emit_movq_reg_memq(buf, src, dest, offset),
+        BuiltinType::Unit => {}
+    }
+}
+
 pub fn mov_local_reg(buf: &mut Buffer, ty: BuiltinType, offset: i32, dest: Reg) {
     match ty {
         BuiltinType::Bool => emit_movzbl_memq_reg(buf, RBP, offset, dest),

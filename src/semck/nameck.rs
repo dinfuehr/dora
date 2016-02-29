@@ -127,7 +127,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             for prop in &cls.props {
                 if prop.name == ident.name {
-                    self.fct.src_mut().defs.insert(ident.id, IdentType::Prop(prop.id));
+                    let ident_type = IdentType::Prop(clsid, prop.id);
+                    assert!(self.fct.src_mut().defs.insert(ident.id, ident_type).is_none());
                     return;
                 }
             }
