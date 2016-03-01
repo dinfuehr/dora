@@ -219,7 +219,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
+    fn emit_stmt_let(&mut self, s: &'ast StmtLetType) {
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
 
@@ -245,7 +245,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
-            StmtVar(ref stmt) => self.emit_stmt_var(stmt),
+            StmtLet(ref stmt) => self.emit_stmt_let(stmt),
         }
     }
 
@@ -405,21 +405,21 @@ mod tests {
 
     #[test]
     fn test_ident_load_and_store() {
-        assert_eq!(4711, run("fn f() -> int { var a = 4711; return a; }"));
-        assert_eq!(true, run("fn f() -> bool { var a = true; return a; }"));
-        assert_eq!(false, run("fn f() -> bool { var a = false; return a; }"));
+        assert_eq!(4711, run("fn f() -> int { let a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool { let a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool { let a = false; return a; }"));
     }
 
     #[test]
     fn test_assign() {
-        assert_eq!(4711, run("fn f() -> int { var a: int; a = 4711; return a; }"));
-        assert_eq!(true, run("fn f() -> bool { var a: bool; a = true; return a; }"));
-        assert_eq!(false, run("fn f() -> bool { var a: bool; a = false; return a; }"));
+        assert_eq!(4711, run("fn f() -> int { let a: int; a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool { let a: bool; a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool { let a: bool; a = false; return a; }"));
     }
 
     #[test]
     fn test_add() {
-        assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a + b; }"));
+        assert_eq!(3, run("fn f() -> int { let a = 1; let b = 2; return a + b; }"));
     }
 
     #[test]
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        assert_eq!(-1, run("fn f() -> int { var a = 1; var b = 2; return a - b; }"));
+        assert_eq!(-1, run("fn f() -> int { let a = 1; let b = 2; return a - b; }"));
     }
 
     #[test]
@@ -438,8 +438,8 @@ mod tests {
         assert_eq!(3, run("fn f() -> int { return 2-(3-4); }"));
         assert_eq!(-2, run("fn f() -> int { return 1-(2-(3-4)); }"));
         assert_eq!(42, run("fn f() -> int {
-            var a = 7;
-            var b = 1+(2+3);
+            let a = 7;
+            let b = 1+(2+3);
 
             return a*b;
         }"))
@@ -447,27 +447,27 @@ mod tests {
 
     #[test]
     fn test_bit_or() {
-        assert_eq!(3, run("fn f() -> int { var a = 1; var b = 2; return a | b; }"));
+        assert_eq!(3, run("fn f() -> int { let a = 1; let b = 2; return a | b; }"));
     }
 
     #[test]
     fn test_bit_and() {
-        assert_eq!(1, run("fn f() -> int { var a = 1; var b = 3; return a & b; }"));
+        assert_eq!(1, run("fn f() -> int { let a = 1; let b = 3; return a & b; }"));
     }
 
     #[test]
     fn test_bit_xor() {
-        assert_eq!(1, run("fn f() -> int { var a = 3; var b = 2; return a ^ b; }"));
+        assert_eq!(1, run("fn f() -> int { let a = 3; let b = 2; return a ^ b; }"));
     }
 
     #[test]
     fn test_mul() {
-        assert_eq!(6, run("fn f() -> int { var a = 3; var b = 2; return a * b; }"));
+        assert_eq!(6, run("fn f() -> int { let a = 3; let b = 2; return a * b; }"));
     }
 
     #[test]
     fn test_div() {
-        let (mem, f) = fct1("fn f(a: int) -> int { var b = 3; return a / b; }");
+        let (mem, f) = fct1("fn f(a: int) -> int { let b = 3; return a / b; }");
         let b = 3;
 
         for a in 0..8 {
@@ -477,7 +477,7 @@ mod tests {
 
     #[test]
     fn test_mod() {
-        let (mem, f) = fct1("fn f(a: int) -> int { var b = 3; return a % b; }");
+        let (mem, f) = fct1("fn f(a: int) -> int { let b = 3; return a % b; }");
         let b = 3;
 
         for a in 0..8 {

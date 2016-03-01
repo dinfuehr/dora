@@ -37,7 +37,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_fct(self.ast);
     }
 
-    fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
+    fn check_stmt_let(&mut self, s: &'ast StmtLetType) {
         let expr_type = s.expr.as_ref().map(|expr| {
             self.visit_expr(&expr);
             self.expr_type
@@ -398,7 +398,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
@@ -567,25 +567,25 @@ mod tests {
 
     #[test]
     fn type_def_for_var() {
-        ok("fn a() { var a : int = 1; }");
-        err("fn a() { var a : test = 1; }", pos(1, 18), Msg::UnknownType(Name(1)));
+        ok("fn a() { let a : int = 1; }");
+        err("fn a() { let a : test = 1; }", pos(1, 18), Msg::UnknownType(Name(1)));
     }
 
     #[test]
     fn type_var_needs_expr_or_definition() {
-        err("fn a() { var a; }", pos(1, 10), Msg::VarNeedsTypeInfo("a".into()));
+        err("fn a() { let a; }", pos(1, 10), Msg::VarNeedsTypeInfo("a".into()));
     }
 
     #[test]
     fn type_var_wrong_type_defined() {
-        ok("fn f() { var a : int = 1; }");
-        ok("fn f() { var a : bool = false; }");
-        ok("fn f() { var a : Str = \"f\"; }");
+        ok("fn f() { let a : int = 1; }");
+        ok("fn f() { let a : bool = false; }");
+        ok("fn f() { let a : Str = \"f\"; }");
 
-        err("fn f() { var a : int = true; }",
+        err("fn f() { let a : int = true; }",
             pos(1, 10), Msg::AssignType(
                 "a".into(), BuiltinType::Int, BuiltinType::Bool));
-        err("fn f() { var b : bool = 2; }",
+        err("fn f() { let b : bool = 2; }",
             pos(1, 10), Msg::AssignType(
                 "b".into(), BuiltinType::Bool, BuiltinType::Int));
     }
@@ -613,7 +613,7 @@ mod tests {
 
     #[test]
     fn type_return() {
-        ok("fn f() -> int { var a = 1; return a; }");
+        ok("fn f() -> int { let a = 1; return a; }");
         ok("fn f() -> int { return 1; }");
         err("fn f() -> int { return; }", pos(1, 17),
             Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit));
@@ -627,7 +627,7 @@ mod tests {
 
     #[test]
     fn type_variable() {
-        ok("fn f(a: int) { var b: int = a; }");
+        ok("fn f(a: int) { let b: int = a; }");
     }
 
     #[test]
@@ -698,8 +698,8 @@ mod tests {
 
     #[test]
     fn type_function_return_type() {
-        ok("fn foo() -> int { return 1; }\nfn f() { var i: int = foo(); }");
-        err("fn foo() -> int { return 1; }\nfn f() { var i: bool = foo(); }",
+        ok("fn foo() -> int { return 1; }\nfn f() { let i: int = foo(); }");
+        err("fn foo() -> int { return 1; }\nfn f() { let i: bool = foo(); }",
             pos(2, 10),
             Msg::AssignType("i".into(),
                 BuiltinType::Bool, BuiltinType::Int));
@@ -707,7 +707,7 @@ mod tests {
 
     #[test]
     fn type_ident_in_function_params() {
-        ok("fn f(a: int) {}\nfn g() { var a = 1; f(a); }");
+        ok("fn f(a: int) {}\nfn g() { let a = 1; f(a); }");
     }
 
     #[test]

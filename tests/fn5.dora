@@ -1,5 +1,5 @@
 fn main() {
-  var result = 1 + zero();
+  let result = 1 + zero();
   assert(result == 1);
 }
 

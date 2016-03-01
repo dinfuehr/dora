@@ -1,6 +1,6 @@
 fn main() {
-  var o1 = Foo();
-  var o2 = o1;
+  let o1 = Foo();
+  let o2 = o1;
 
   assert(o1 === o2);
 }

@@ -1,6 +1,6 @@
 // error: 1
 
 fn main() {
-  var a = false;
+  let a = false;
   assert(a);
 }

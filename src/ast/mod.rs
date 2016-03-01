@@ -247,7 +247,7 @@ pub struct Param {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    StmtVar(StmtVarType),
+    StmtLet(StmtLetType),
     StmtWhile(StmtWhileType),
     StmtLoop(StmtLoopType),
     StmtIf(StmtIfType),
@@ -259,9 +259,9 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn create_var(id: NodeId, pos: Position, name: Name,
+    pub fn create_let(id: NodeId, pos: Position, name: Name,
                       data_type: Option<Type>, expr: Option<Box<Expr>>) -> Stmt {
-        Stmt::StmtVar(StmtVarType {
+        Stmt::StmtLet(StmtLetType {
             id: id,
             pos: pos,
             name: name,
@@ -339,7 +339,7 @@ impl Stmt {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Stmt::StmtVar(ref stmt) => stmt.id,
+            Stmt::StmtLet(ref stmt) => stmt.id,
             Stmt::StmtWhile(ref stmt) => stmt.id,
             Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtIf(ref stmt) => stmt.id,
@@ -353,7 +353,7 @@ impl Stmt {
 
     pub fn pos(&self) -> Position {
         match *self {
-            Stmt::StmtVar(ref stmt) => stmt.pos,
+            Stmt::StmtLet(ref stmt) => stmt.pos,
             Stmt::StmtWhile(ref stmt) => stmt.pos,
             Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtIf(ref stmt) => stmt.pos,
@@ -365,16 +365,16 @@ impl Stmt {
         }
     }
 
-    pub fn to_var(&self) -> Option<&StmtVarType> {
+    pub fn to_let(&self) -> Option<&StmtLetType> {
         match *self {
-            Stmt::StmtVar(ref val) => Some(val),
+            Stmt::StmtLet(ref val) => Some(val),
             _ => None
         }
     }
 
-    pub fn is_var(&self) -> bool {
+    pub fn is_let(&self) -> bool {
         match *self {
-            Stmt::StmtVar(_) => true,
+            Stmt::StmtLet(_) => true,
             _ => false
         }
     }
@@ -493,7 +493,7 @@ impl Stmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtVarType {
+pub struct StmtLetType {
     pub id: NodeId,
     pub pos: Position,
     pub name: Name,

@@ -94,7 +94,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        if let StmtVar(ref var) = *s {
+        if let StmtLet(ref var) = *s {
             self.reserve_stack_for_node(var.id);
         }
 
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_param_offset() {
-        info("fn f(a: bool, b: int) { var c = 1; }", |fct| {
+        info("fn f(a: bool, b: int) { let c = 1; }", |fct| {
             assert_eq!(12, fct.src().localsize);
 
             for (var, offset) in fct.src().vars.iter().zip(&[-1, -8, -12]) {
@@ -203,7 +203,7 @@ mod tests {
     fn test_params_over_6_offset() {
         info("fn f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int) {
-                  var i : int = 1;
+                  let i : int = 1;
               }", |fct| {
             assert_eq!(28, fct.src().localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_var_offset() {
-        info("fn f() { var a = true; var b = false; var c = 2; var d = \"abc\"; }", |fct| {
+        info("fn f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }", |fct| {
             assert_eq!(16, fct.src().localsize);
 
             for (var, offset) in fct.src().vars.iter().zip(&[-1, -2, -8, -16]) {

@@ -1,5 +1,5 @@
 fn main() {
-  var obj = Foo(1);
+  let obj = Foo(1);
   assert(obj.a == 1);
 }
 

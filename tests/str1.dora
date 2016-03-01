@@ -1,5 +1,5 @@
 fn main() {
-  var x = "hello";
+  let x = "hello";
   assert(x === x);
   assert(x == "hello");
   assert("a" == "a");
@@ -14,6 +14,6 @@ fn main() {
   assert("b" >= "b");
   assert("b" >= "a");
 
-  var y = "hel" + "lo";
+  let y = "hel" + "lo";
   assert(x == y);
 }

@@ -70,7 +70,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("class", TokenType::Class);
         keywords.insert("this", TokenType::This);
         keywords.insert("fn", TokenType::Fn);
-        keywords.insert("var", TokenType::Var);
+        keywords.insert("let", TokenType::Let);
         keywords.insert("while", TokenType::While);
         keywords.insert("if", TokenType::If);
         keywords.insert("else", TokenType::Else);
@@ -627,9 +627,9 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fn var while if else this class");
+        let mut reader = Lexer::from_str("fn let while if else this class");
         assert_tok(&mut reader, TokenType::Fn, "fn", 1, 1);
-        assert_tok(&mut reader, TokenType::Var, "var", 1, 4);
+        assert_tok(&mut reader, TokenType::Let, "let", 1, 4);
         assert_tok(&mut reader, TokenType::While, "while", 1, 8);
         assert_tok(&mut reader, TokenType::If, "if", 1, 14);
         assert_tok(&mut reader, TokenType::Else, "else", 1, 17);

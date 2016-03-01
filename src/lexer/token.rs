@@ -14,7 +14,7 @@ pub enum TokenType {
     Class,
     This,
     Fn,
-    Var,
+    Let,
     While,
     If,
     Else,

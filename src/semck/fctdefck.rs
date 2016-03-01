@@ -84,7 +84,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        if let StmtVar(ref var) = *s {
+        if let StmtLet(ref var) = *s {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
 

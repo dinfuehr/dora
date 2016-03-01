@@ -1,7 +1,7 @@
 fn main() {
-  var a = true;
+  let a = true;
   assert(a);
 
-  var b = false;
+  let b = false;
   assert(!b);
 }

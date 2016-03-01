@@ -4,6 +4,6 @@ fn main() {
     assert((0 + 2) == 2);
     assert((2 + 0) == 2);
 
-    var x = -5 + 4;
+    let x = -5 + 4;
     assert(-1 == x);
 }

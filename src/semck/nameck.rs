@@ -89,7 +89,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         result
     }
 
-    fn check_stmt_var(&mut self, var: &'ast StmtVarType) {
+    fn check_stmt_let(&mut self, var: &'ast StmtLetType) {
         let var_ctxt = Var {
             id: VarId(0),
             name: var.name,
@@ -205,7 +205,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtVar(ref stmt) => self.check_stmt_var(stmt),
+            StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtBlock(ref stmt) => self.check_stmt_block(stmt),
 
             // no need to handle rest of statements
@@ -263,20 +263,20 @@ mod tests {
 
     #[test]
     fn shadow_type_with_var() {
-        err("fn test() { var Str = 3; }", pos(1, 13),
+        err("fn test() { let Str = 3; }", pos(1, 13),
             Msg::ShadowType("Str".into()));
     }
 
     #[test]
     fn shadow_function() {
-        ok("fn f() { var f = 1; }");
-        err("fn f() { var f = 1; f(); }", pos(1, 21),
+        ok("fn f() { let f = 1; }");
+        err("fn f() { let f = 1; f(); }", pos(1, 21),
             Msg::UnknownFunction("f".into()));
     }
 
     #[test]
     fn shadow_var() {
-        ok("fn f() { var f = 1; var f = 2; }");
+        ok("fn f() { let f = 1; let f = 2; }");
     }
 
     #[test]
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fn f() { var b = a; }", pos(1, 18), Msg::UnknownIdentifier(Name(2)));
+        err("fn f() { let b = a; }", pos(1, 18), Msg::UnknownIdentifier(Name(2)));
         err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier(Name(1)));
     }
 
@@ -317,9 +317,9 @@ mod tests {
 
     #[test]
     fn variable_outside_of_scope() {
-        err("fn f() -> int { { var a = 1; } return a; }", pos(1, 39),
+        err("fn f() -> int { { let a = 1; } return a; }", pos(1, 39),
             Msg::UnknownIdentifier(Name(2)));
 
-        ok("fn f() -> int { var a = 1; { var a = 2; } return a; }");
+        ok("fn f() -> int { let a = 1; { let a = 2; } return a; }");
     }
 }
