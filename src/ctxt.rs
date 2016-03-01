@@ -328,6 +328,7 @@ pub struct Var {
     pub id: VarId,
     pub name: Name,
     pub data_type: BuiltinType,
+    pub mutable: bool,
     pub node_id: ast::NodeId,
     pub offset: i32,
 }

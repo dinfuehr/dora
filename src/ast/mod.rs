@@ -242,6 +242,7 @@ pub struct Param {
     pub idx: u32,
     pub name: Name,
     pub pos: Position,
+    pub mutable: bool,
     pub data_type: Type,
 }
 
@@ -259,12 +260,13 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn create_let(id: NodeId, pos: Position, name: Name,
+    pub fn create_let(id: NodeId, pos: Position, name: Name, mutable: bool,
                       data_type: Option<Type>, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtLet(StmtLetType {
             id: id,
             pos: pos,
             name: name,
+            mutable: mutable,
             data_type: data_type,
             expr: expr,
         })
@@ -497,6 +499,7 @@ pub struct StmtLetType {
     pub id: NodeId,
     pub pos: Position,
     pub name: Name,
+    pub mutable: bool,
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,

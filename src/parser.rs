@@ -196,6 +196,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             idx: 0,
             name: name,
+            mutable: false,
             pos: Position::new(1, 1),
             data_type: ty
         }
@@ -364,6 +365,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_function_param(&mut self) -> Result<Param, ParseError> {
         let pos = self.token.position;
+        let mutable = if self.token.is(TokenType::Mut) {
+            try!(self.read_token());
+            true
+        } else {
+            false
+        };
+
         let name = try!(self.expect_identifier());
 
         try!(self.expect_token(TokenType::Colon));
@@ -374,6 +382,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             idx: self.param_idx - 1,
             name: name,
             pos: pos,
+            mutable: mutable,
             data_type: data_type,
         })
     }
@@ -446,13 +455,21 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_let(&mut self) -> StmtResult {
         let pos = try!(self.expect_token(TokenType::Let)).position;
+        let mutable = if self.token.is(TokenType::Mut) {
+            try!(self.read_token());
+
+            true
+        } else {
+            false
+        };
+
         let ident = try!(self.expect_identifier());
         let data_type = try!(self.parse_var_type());
         let expr = try!(self.parse_var_assignment());
 
         try!(self.expect_semicolon());
 
-        Ok(Box::new(Stmt::create_let(self.generate_id(), pos, ident, data_type, expr)))
+        Ok(Box::new(Stmt::create_let(self.generate_id(), pos, ident, mutable, data_type, expr)))
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
@@ -1391,7 +1408,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_var_without_type() {
+    fn parse_let_without_type() {
         let stmt = parse_stmt("let a = 1;");
         let var = stmt.to_let().unwrap();
 
@@ -1400,7 +1417,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_var_with_type() {
+    fn parse_let_with_type() {
         let stmt = parse_stmt("let x : int = 1;");
         let var = stmt.to_let().unwrap();
 
@@ -1409,7 +1426,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_var_with_type_but_without_assignment() {
+    fn parse_let_with_type_but_without_assignment() {
         let stmt = parse_stmt("let x : int;");
         let var = stmt.to_let().unwrap();
 
@@ -1418,12 +1435,21 @@ mod tests {
     }
 
     #[test]
-    fn parse_var_without_type_and_assignment() {
+    fn parse_let_without_type_and_assignment() {
         let stmt = parse_stmt("let x;");
         let var = stmt.to_let().unwrap();
 
         assert!(var.data_type.is_none());
         assert!(var.expr.is_none());
+        assert_eq!(false, var.mutable);
+    }
+
+    #[test]
+    fn parse_let_mut() {
+        let stmt = parse_stmt("let mut x;");
+        let var = stmt.to_let().unwrap();
+
+        assert_eq!(true, var.mutable);
     }
 
     #[test]
