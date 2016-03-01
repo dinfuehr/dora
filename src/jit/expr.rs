@@ -69,10 +69,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let ident_type = *self.fct.src().defs.get(&expr.id).unwrap();
 
         self.emit_expr(&expr.object, REG_RESULT);
+        self.emit_prop_access(ident_type, REG_RESULT, dest);
+    }
 
+    fn emit_prop_access(&mut self, ident_type: IdentType, src: Reg, dest: Reg) {
         let cls = self.ctxt.cls_by_id(ident_type.cls_id());
         let prop = &cls.props[ident_type.prop_id().0];
-        emit::mov_mem_reg(self.buf, prop.ty, REG_RESULT, prop.offset, dest);
+        emit::mov_mem_reg(self.buf, prop.ty, src, prop.offset, dest);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -97,7 +100,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        codegen::var_load(self.buf, self.fct, e.id, dest);
+        let ident_type = *self.fct.src().defs.get(&e.id).unwrap();
+
+        match ident_type {
+            IdentType::Var(_) => {
+                codegen::var_load(self.buf, self.fct, e.id, dest)
+            }
+
+            IdentType::Prop(_, _) => {
+                self.emit_this(REG_RESULT);
+                self.emit_prop_access(ident_type, REG_RESULT, dest);
+            }
+        }
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
@@ -121,17 +135,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             IdentType::Prop(clsid, propid) => {
-                let expr_prop = e.lhs.to_prop().unwrap();
+                let object_reg = REG_TMP1;
+                let expr_reg = REG_RESULT;
                 let cls = self.ctxt.cls_by_id(clsid);
                 let prop = &cls.props[propid.0];
 
-                self.emit_expr(&e.rhs, REG_RESULT);
-                self.emit_expr(&expr_prop.object, REG_TMP1);
+                self.emit_expr(&e.rhs, expr_reg);
 
-                emit::mov_reg_mem(self.buf, prop.ty, REG_RESULT, REG_TMP1, prop.offset);
+                if let Some(expr_prop) = e.lhs.to_prop() {
+                    self.emit_expr(&expr_prop.object, object_reg);
+                } else {
+                    self.emit_this(object_reg);
+                }
+
+                emit::mov_reg_mem(self.buf, prop.ty, expr_reg, object_reg, prop.offset);
 
                 if REG_RESULT != dest {
-                    emit::mov_reg_reg(self.buf, prop.ty, REG_RESULT, dest);
+                    emit::mov_reg_reg(self.buf, prop.ty, expr_reg, dest);
                 }
             }
         }

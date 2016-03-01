@@ -1,0 +1,17 @@
+fn main() {
+  var f = Foo(12);
+  var a1 = f.a1();
+  var a2 = f.a2();
+  assert(a1 == a2);
+
+  f.setA(101);
+  a1 = f.a1();
+  assert(101 == a1);
+}
+
+class Foo(a: int) {
+  fn a1() -> int { return this.a; }
+  fn a2() -> int { return a; }
+
+  fn setA(_a: int) { a = _a; }
+}
