@@ -68,7 +68,7 @@ impl<T : CodeReader> Lexer<T> {
         // TODO: replace HashMap with phf when it is stable
         let mut keywords = HashMap::new();
         keywords.insert("class", TokenType::Class);
-        keywords.insert("this", TokenType::This);
+        keywords.insert("self", TokenType::This);
         keywords.insert("fn", TokenType::Fn);
         keywords.insert("let", TokenType::Let);
         keywords.insert("mut", TokenType::Mut);
@@ -628,13 +628,13 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fn let while if else this class");
+        let mut reader = Lexer::from_str("fn let while if else self class");
         assert_tok(&mut reader, TokenType::Fn, "fn", 1, 1);
         assert_tok(&mut reader, TokenType::Let, "let", 1, 4);
         assert_tok(&mut reader, TokenType::While, "while", 1, 8);
         assert_tok(&mut reader, TokenType::If, "if", 1, 14);
         assert_tok(&mut reader, TokenType::Else, "else", 1, 17);
-        assert_tok(&mut reader, TokenType::This, "this", 1, 22);
+        assert_tok(&mut reader, TokenType::This, "self", 1, 22);
         assert_tok(&mut reader, TokenType::Class, "class", 1, 27);
 
         let mut reader = Lexer::from_str("loop break continue return");

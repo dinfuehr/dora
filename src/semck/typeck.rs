@@ -505,26 +505,26 @@ mod tests {
     }
 
     #[test]
-    fn type_this() {
-        ok("class Foo { fn me() -> Foo { return this; } }");
-        err("class Foo fn me() { return this; }",
+    fn type_self() {
+        ok("class Foo { fn me() -> Foo { return self; } }");
+        err("class Foo fn me() { return self; }",
             pos(1, 28), Msg::ThisInFunction);
 
         ok("class Foo(a: int, b: int) {
-            fn bar() -> int { return this.a + this.b; }
+            fn bar() -> int { return self.a + self.b; }
         }");
 
         ok("class Foo(a: int) {
-            fn setA(a: int) { this.a = a; }
+            fn setA(a: int) { self.a = a; }
         }");
 
         ok("class Foo {
             fn zero() -> int { return 0; }
-            fn other() -> int { return this.zero(); }
+            fn other() -> int { return self.zero(); }
         }");
 
         ok("class Foo {
-            fn bar() { this.bar(); }
+            fn bar() { self.bar(); }
         }");
     }
 

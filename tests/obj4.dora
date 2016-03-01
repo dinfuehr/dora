@@ -5,5 +5,5 @@ fn main() {
 }
 
 class Foo {
-  fn me() -> Foo { return this; }
+  fn me() -> Foo { return self; }
 }

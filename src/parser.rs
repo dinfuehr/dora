@@ -781,7 +781,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Identifier => self.parse_identifier_or_call(),
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
-            TokenType::This => self.parse_this(),
+            TokenType::This => self.parse_self(),
             _ => Err(ParseError {
                 position: self.token.position,
                 code: ErrorCode::UnknownFactor,
@@ -848,7 +848,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(Box::new(Expr::create_lit_bool(self.generate_id(), tok.position, value)))
     }
 
-    fn parse_this(&mut self) -> ExprResult {
+    fn parse_self(&mut self) -> ExprResult {
         let tok = try!(self.read_token());
 
         Ok(Box::new(Expr::create_this(self.generate_id(), tok.position)))
@@ -1037,8 +1037,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_this() {
-        let (expr, _) = parse_expr("this");
+    fn parse_self() {
+        let (expr, _) = parse_expr("self");
 
         assert!(expr.is_this());
     }

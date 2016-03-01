@@ -10,7 +10,7 @@ fn main() {
 }
 
 class Foo(a: int) {
-  fn a1() -> int { return this.a; }
+  fn a1() -> int { return self.a; }
   fn a2() -> int { return a; }
 
   fn setA(_a: int) { a = _a; }
