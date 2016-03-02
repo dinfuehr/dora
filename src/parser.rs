@@ -807,11 +807,19 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
         try!(self.expect_token(TokenType::LParen));
 
-        let args = try!(self.parse_comma_list(TokenType::RParen, |p| {
+        let mut args = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_expression()
         }));
 
-        Ok(Box::new(Expr::create_call(self.generate_id(), pos, object, ident, args)))
+        let with_self = if let Some(this) = object {
+            args.insert(0, this);
+
+            true
+        } else {
+            false
+        };
+
+        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, with_self, args)))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1701,15 +1709,15 @@ mod tests {
     fn parse_method_invocation() {
         let (expr, interner) = parse_expr("a.foo()");
         let call = expr.to_call().unwrap();
-        assert!(call.object.is_some());
-        assert_eq!(0, call.args.len());
+        assert_eq!(true, call.with_self);
+        assert_eq!(1, call.args.len());
 
         let (expr, interner) = parse_expr("a.foo(1)");
         let call = expr.to_call().unwrap();
-        assert_eq!(1, call.args.len());
+        assert_eq!(2, call.args.len());
 
         let (expr, interner) = parse_expr("a.foo(1,2)");
         let call = expr.to_call().unwrap();
-        assert_eq!(2, call.args.len());
+        assert_eq!(3, call.args.len());
     }
 }

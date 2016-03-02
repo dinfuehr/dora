@@ -717,14 +717,14 @@ impl Expr {
         })
     }
 
-    pub fn create_call(id: NodeId, pos: Position, object: Option<Box<Expr>>,
-                       name: Name, args: Vec<Box<Expr>>) -> Expr {
+    pub fn create_call(id: NodeId, pos: Position, name: Name,
+                       with_self: bool, args: Vec<Box<Expr>>) -> Expr {
         Expr::ExprCall(ExprCallType {
             id: id,
             pos: pos,
-            object: object,
             name: name,
-            args: args
+            args: args,
+            with_self: with_self,
         })
     }
 
@@ -952,8 +952,8 @@ pub struct ExprCallType {
     pub id: NodeId,
     pub pos: Position,
 
-    pub object: Option<Box<Expr>>,
     pub name: Name,
+    pub with_self: bool,
     pub args: Vec<Box<Expr>>,
 }
 

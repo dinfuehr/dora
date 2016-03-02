@@ -250,7 +250,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        if e.object.is_some() {
+        if e.with_self {
             self.check_method_call(e);
             return;
         }
@@ -295,15 +295,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_method_call(&mut self, e: &'ast ExprCallType) {
-        let object = e.object.as_ref().unwrap();
-        self.visit_expr(object);
-        let object_type = self.expr_type;
         let caller_id = self.fct.id;
 
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
             self.visit_expr(arg);
             self.expr_type
         }).collect();
+
+        let object_type = call_types[0];
+        let call_types = &call_types[1..];
 
         if let BuiltinType::Class(clsid) = object_type {
             let cls = self.ctxt.cls_by_id(clsid);
@@ -336,6 +336,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
+        let call_types = call_types.iter().cloned().collect::<Vec<_>>();
         let msg = Msg::UnknownMethod(object_type, e.name, call_types);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         self.expr_type = BuiltinType::Unit;

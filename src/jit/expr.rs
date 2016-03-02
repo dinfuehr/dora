@@ -344,28 +344,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         let call_type = *self.fct.src().calls.get(&e.id).unwrap();
         let fid = call_type.fct_id();
+        let ctor = call_type.is_ctor();
 
-        let (ptr, ctor) = if self.fct.id == fid {
+        let ptr = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            (ensure_jit_or_stub_ptr(self.fct, self.ctxt), self.fct.ctor)
+            ensure_jit_or_stub_ptr(self.fct, self.ctxt)
 
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
-                (match fct.kind {
+                match fct.kind {
                     FctKind::Source(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
                     FctKind::Builtin(ptr) => ptr,
                     FctKind::Intrinsic => unreachable!("intrinsic fct call"),
-                }, fct.ctor)
+                }
             })
         };
 
-        let used = if ctor || e.object.is_some() {
-            1
-        } else {
-            0
-        };
-
-        if ctor {
+        let offset = if ctor {
             let cls = self.ctxt.cls_by_id(call_type.cls_id());
             emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
@@ -374,15 +369,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
 
-        } else if let Some(ref object) = e.object {
-            self.emit_expr(object, REG_RESULT);
-            emit::movp_reg_reg(self.buf, REG_RESULT, REG_PARAMS[0]);
-
-        }
+            1
+        } else {
+            0
+        };
 
         for (ind, arg) in e.args.iter().enumerate().rev() {
             assert!(!contains_fct_call(arg));
-            let ind = ind + used;
+            let ind = offset + ind;
 
             if REG_PARAMS.len() > ind {
                 let dest = REG_PARAMS[ind];

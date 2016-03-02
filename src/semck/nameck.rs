@@ -143,9 +143,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let mut found = false;
 
         // do not check method calls yet
-        if let Some(ref object) = call.object {
-            self.visit_expr(object);
-
+        if call.with_self {
             for arg in &call.args {
                 self.visit_expr(arg);
             }
