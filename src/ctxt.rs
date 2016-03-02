@@ -175,11 +175,11 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn hidden_self(&self) -> bool {
-        self.owner_class.is_some()
+        self.ctor
     }
 
     pub fn var_self(&mut self) -> &mut Var {
-        assert!(self.hidden_self());
+        assert!(self.owner_class.is_some());
 
         &mut self.src_mut().vars[0]
     }

@@ -1,0 +1,45 @@
+fn main() {
+  f(1, 2, 3, 4, 5, 6, 7, 8);
+  g("a", "b", "c", "d", "e", "f", "g", "h");
+
+  //let x = Foo1();
+  //x.f(1, 2, 3, 4, 5, 6, 7, 8);
+}
+
+fn f(a: int, b: int, c: int, d: int,
+     e: int, f: int, g: int, h: int) {
+     assert(a == 1);
+     assert(b == 2);
+     assert(c == 3);
+     assert(d == 4);
+     assert(e == 5);
+     assert(f == 6);
+     assert(g == 7);
+     assert(h == 8);
+}
+
+fn g(a: Str, b: Str, c: Str, d: Str,
+     e: Str, f: Str, g: Str, h: Str) {
+     assert(a == "a");
+     assert(b == "b");
+     assert(c == "c");
+     assert(d == "d");
+     assert(e == "e");
+     assert(f == "f");
+     assert(g == "g");
+     assert(h == "h");
+}
+
+class Foo1 {
+  fn f(a: int, b: int, c: int, d: int,
+       e: int, f: int, g: int, h: int) {
+    assert(a == 1);
+    assert(b == 2);
+    assert(c == 3);
+    assert(d == 4);
+    assert(e == 5);
+    assert(f == 6);
+    assert(g == 7);
+    assert(h == 8);
+  }
+}

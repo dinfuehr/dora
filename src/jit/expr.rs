@@ -374,6 +374,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             0
         };
 
+        let mut tempsize = self.tempsize;
+
         for (ind, arg) in e.args.iter().enumerate().rev() {
             assert!(!contains_fct_call(arg));
             let ind = offset + ind;
@@ -383,7 +385,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.emit_expr(arg, dest);
             } else {
                 self.emit_expr(arg, REG_RESULT);
-                emit::push_param(self.buf, REG_RESULT);
+
+                let ty = if self.fct.id == fid {
+                    self.fct.params_types[ind]
+                } else {
+                    self.ctxt.fct_by_id_mut(fid, |fct| { fct.params_types[ind] })
+                };
+
+                tempsize -= 8;
+                emit::mov_reg_local(self.buf, ty, REG_RESULT, tempsize);
             }
         }
 
