@@ -653,7 +653,7 @@ pub enum Expr {
     ExprCall(ExprCallType),
     ExprAssign(ExprAssignType),
     ExprProp(ExprPropType),
-    ExprThis(ExprThisType),
+    ExprSelf(ExprSelfType),
 }
 
 impl Expr {
@@ -703,7 +703,7 @@ impl Expr {
     }
 
     pub fn create_this(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprThis(ExprThisType {
+        Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: pos,
         })
@@ -869,7 +869,7 @@ impl Expr {
 
     pub fn is_this(&self) -> bool {
         match *self {
-            Expr::ExprThis(_) => true,
+            Expr::ExprSelf(_) => true,
             _ => false
         }
     }
@@ -885,7 +885,7 @@ impl Expr {
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
             Expr::ExprProp(ref val) => val.id,
-            Expr::ExprThis(ref val) => val.id,
+            Expr::ExprSelf(ref val) => val.id,
         }
     }
 }
@@ -934,7 +934,7 @@ pub struct ExprLitBoolType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprThisType {
+pub struct ExprSelfType {
     pub id: NodeId,
     pub pos: Position,
 }

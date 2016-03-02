@@ -100,8 +100,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let this = if self.fct.owner_class.is_some() {
-            let var = self.fct.var_this();
+        let has_class = if self.fct.owner_class.is_some() {
+            let var = self.fct.var_self();
             emit::mov_reg_local(&mut self.buf, var.data_type, REG_PARAMS[0], var.offset);
 
             1
@@ -109,7 +109,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             0
         };
 
-        for (reg, p) in REG_PARAMS.iter().skip(this).zip(&self.ast.params) {
+        for (reg, p) in REG_PARAMS.iter().skip(has_class).zip(&self.ast.params) {
             var_store(&mut self.buf, self.fct, *reg, p.id);
         }
     }

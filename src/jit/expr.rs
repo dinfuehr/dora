@@ -53,14 +53,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprProp(ref expr) => self.emit_prop(expr, dest),
-            ExprThis(_) => self.emit_this(dest),
+            ExprSelf(_) => self.emit_self(dest),
         }
 
         dest
     }
 
-    fn emit_this(&mut self, dest: Reg) {
-        let var = self.fct.var_this();
+    fn emit_self(&mut self, dest: Reg) {
+        let var = self.fct.var_self();
 
         emit::mov_local_reg(self.buf, var.data_type, var.offset, dest);
     }
@@ -108,7 +108,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             IdentType::Prop(_, _) => {
-                self.emit_this(REG_RESULT);
+                self.emit_self(REG_RESULT);
                 self.emit_prop_access(ident_type, REG_RESULT, dest);
             }
         }
@@ -145,7 +145,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 if let Some(expr_prop) = e.lhs.to_prop() {
                     self.emit_expr(&expr_prop.object, object_reg);
                 } else {
-                    self.emit_this(object_reg);
+                    self.emit_self(object_reg);
                 }
 
                 emit::mov_reg_mem(self.buf, prop.ty, expr_reg, object_reg, prop.offset);
@@ -454,7 +454,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprAssign(_) => false,
         ExprCall(_) => false,
         ExprProp(_) => false,
-        ExprThis(_) => true,
+        ExprSelf(_) => true,
     }
 }
 
@@ -470,6 +470,6 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
         ExprCall(ref val) => true,
         ExprProp(ref e) => contains_fct_call(&e.object),
-        ExprThis(_) => false,
+        ExprSelf(_) => false,
     }
 }

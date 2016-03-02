@@ -189,7 +189,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             v.visit_expr(&value.object);
         }
 
-        ExprThis(_) => {}
+        ExprSelf(_) => {}
         ExprLitInt(_) => {}
         ExprLitStr(_) => {}
         ExprLitBool(_) => {}

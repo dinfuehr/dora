@@ -174,12 +174,12 @@ impl<'ast> Fct<'ast> {
         &mut self.src_mut().vars[varid.var_id().0]
     }
 
-    pub fn hidden_this(&self) -> bool {
+    pub fn hidden_self(&self) -> bool {
         self.owner_class.is_some()
     }
 
-    pub fn var_this(&mut self) -> &mut Var {
-        assert!(self.hidden_this());
+    pub fn var_self(&mut self) -> &mut Var {
+        assert!(self.hidden_self());
 
         &mut self.src_mut().vars[0]
     }

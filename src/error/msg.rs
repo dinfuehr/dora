@@ -34,7 +34,7 @@ pub enum Msg {
     NoReturnValue,
     MainNotFound,
     WrongMainDefinition,
-    ThisInFunction
+    SelfUnavailable
 }
 
 impl Msg {
@@ -117,7 +117,7 @@ impl Msg {
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
-            ThisInFunction => "`this` can only be used in methods not functions".into(),
+            SelfUnavailable => "`self` can only be used in methods not functions".into(),
         }
     }
 }

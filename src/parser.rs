@@ -245,7 +245,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn build_this(&mut self) -> Box<Expr> {
         let id = self.generate_id();
 
-        Box::new(Expr::ExprThis(ExprThisType {
+        Box::new(Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: Position::new(1, 1),
         }))

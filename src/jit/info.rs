@@ -45,7 +45,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
         if self.fct.owner_class.is_some() {
-            self.reserve_stack_for_this();
+            self.reserve_stack_for_self();
         }
 
         self.visit_fct(self.ast);
@@ -56,8 +56,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         src.leaf = self.leaf;
     }
 
-    fn reserve_stack_for_this(&mut self) {
-        let var = self.fct.var_this();
+    fn reserve_stack_for_self(&mut self) {
+        let var = self.fct.var_self();
 
         let ty_size = var.data_type.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);

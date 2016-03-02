@@ -367,12 +367,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn check_expr_this(&mut self, e: &'ast ExprThisType) {
+    fn check_expr_self(&mut self, e: &'ast ExprSelfType) {
         if let Some(clsid) = self.fct.owner_class {
             self.expr_type = BuiltinType::Class(clsid);
 
         } else {
-            let msg = Msg::ThisInFunction;
+            let msg = Msg::SelfUnavailable;
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
             self.expr_type = BuiltinType::Unit;
         }
@@ -391,7 +391,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
             ExprProp(ref expr) => self.check_expr_prop(expr),
-            ExprThis(ref expr) => self.check_expr_this(expr),
+            ExprSelf(ref expr) => self.check_expr_self(expr),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);
@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn type_object_prop_without_this() {
+    fn type_object_prop_without_self() {
         ok("class Foo(a: int) { fn f() -> int { return a; } }");
         ok("class Foo(a: int) { fn set(x: int) { a = x; } }");
         err("class Foo(a: int) { fn set(x: int) { b = x; } }",
@@ -509,7 +509,7 @@ mod tests {
     fn type_self() {
         ok("class Foo { fn me() -> Foo { return self; } }");
         err("class Foo fn me() { return self; }",
-            pos(1, 28), Msg::ThisInFunction);
+            pos(1, 28), Msg::SelfUnavailable);
 
         ok("class Foo(a: int, b: int) {
             fn bar() -> int { return self.a + self.b; }
