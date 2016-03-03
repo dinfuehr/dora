@@ -24,6 +24,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
 
         param_offset: cpu::PARAM_OFFSET,
         leaf: true,
+        assignment: false,
     };
 
     ig.generate();
@@ -40,6 +41,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
     param_offset: i32,
     leaf: bool,
+    assignment: bool,
 }
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
@@ -116,6 +118,20 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                 // some function parameters are stored on stack,
                 // reservere space for them
                 self.cur_tempsize += cpu::reserve_stack_for_call(&expr.args);
+            }
+
+            ExprProp(ref expr) => {
+                if self.assignment {
+                    self.cur_tempsize += BuiltinType::Ptr.size();
+                }
+            }
+
+            ExprAssign(ref expr) => {
+                self.assignment = true;
+                self.visit_expr(&expr.lhs);
+                self.assignment = false;
+
+                self.visit_expr(&expr.rhs);
             }
 
             ExprBin(ref expr) => {

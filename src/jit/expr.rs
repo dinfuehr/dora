@@ -135,23 +135,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             IdentType::Prop(clsid, propid) => {
-                let object_reg = REG_TMP1;
-                let expr_reg = REG_RESULT;
                 let cls = self.ctxt.cls_by_id(clsid);
                 let prop = &cls.props[propid.0];
 
-                self.emit_expr(&e.rhs, expr_reg);
-
                 if let Some(expr_prop) = e.lhs.to_prop() {
-                    self.emit_expr(&expr_prop.object, object_reg);
+                    self.emit_expr(&expr_prop.object, REG_RESULT);
                 } else {
-                    self.emit_self(object_reg);
+                    self.emit_self(REG_RESULT);
                 }
 
-                emit::mov_reg_mem(self.buf, prop.ty, expr_reg, object_reg, prop.offset);
+                let temp_offset = self.add_temp_var(BuiltinType::Ptr);
+                emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, temp_offset);
+
+                self.emit_expr(&e.rhs, REG_RESULT);
+                emit::mov_local_reg(self.buf, BuiltinType::Ptr, temp_offset, REG_TMP1);
+
+                emit::mov_reg_mem(self.buf, prop.ty, REG_RESULT, REG_TMP1, prop.offset);
 
                 if REG_RESULT != dest {
-                    emit::mov_reg_reg(self.buf, prop.ty, expr_reg, dest);
+                    emit::mov_reg_reg(self.buf, prop.ty, REG_RESULT, dest);
                 }
             }
         }
