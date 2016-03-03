@@ -31,7 +31,7 @@ end
 def run_test(file)
   ec = expected_exit_code(file)
 
-  system("target/debug/dora #{file}")
+  system("target/debug/dora #{file} >/dev/null 2>&1")
   process = $?
 
   process.exitstatus == ec

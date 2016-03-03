@@ -163,8 +163,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let this = self.build_this();
         assignments.push(self.build_return(Some(this)));
 
-        let params = cls.props.iter().map(|prop| {
-            self.build_param(prop.name, prop.data_type.clone())
+        let params = cls.props.iter().enumerate().map(|(idx, prop)| {
+            self.build_param(idx as u32, prop.name, prop.data_type.clone())
         }).collect();
         let id = self.generate_id();
 
@@ -189,12 +189,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }))
     }
 
-    fn build_param(&mut self, name: Name, ty: Type) -> Param {
+    fn build_param(&mut self, idx: u32, name: Name, ty: Type) -> Param {
         let id = self.generate_id();
 
         Param {
             id: id,
-            idx: 0,
+            idx: idx,
             name: name,
             mutable: false,
             pos: Position::new(1, 1),

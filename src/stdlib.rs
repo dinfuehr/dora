@@ -10,7 +10,8 @@ use object::Str;
 pub extern "C" fn assert(val: bool) {
     if !val {
         unsafe {
-            libc::_exit(1);
+            println!("assert failed");
+            libc::_exit(101);
         }
     }
 }

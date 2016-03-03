@@ -4,6 +4,16 @@ fn main() {
 
   let x = Foo1();
   x.f(1, 2, 3, 4, 5, 6, 7, 8);
+
+  let x = Foo2(1,2,3,4,5,6,7,8);
+  assert(x.a == 1);
+  assert(x.b == 2);
+  assert(x.c == 3);
+  assert(x.d == 4);
+  assert(x.e == 5);
+  assert(x.f == 6);
+  assert(x.g == 7);
+  assert(x.h == 8);
 }
 
 fn f(a: int, b: int, c: int, d: int,
@@ -43,3 +53,6 @@ class Foo1 {
     assert(h == 8);
   }
 }
+
+class Foo2(a: int, b: int, c: int, d: int,
+           e: int, f: int, g: int, h: int)

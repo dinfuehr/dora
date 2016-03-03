@@ -1,4 +1,4 @@
-// error: 1
+// error: 101
 
 fn main() {
   let a = false;
