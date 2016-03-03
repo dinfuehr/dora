@@ -182,6 +182,10 @@ pub fn push_param(buf: &mut Buffer, reg: Reg) {
     emit_pushq_reg(buf, reg);
 }
 
+pub fn free_stack(buf: &mut Buffer, size: i32) {
+    emit_addq_imm_reg(buf, size, RSP);
+}
+
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC

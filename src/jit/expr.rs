@@ -375,7 +375,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             0
         };
 
-        let mut tempsize = self.tempsize;
+        let mut stacksize = 0;
 
         for (ind, arg) in e.args.iter().enumerate().rev() {
             assert!(!contains_fct_call(arg));
@@ -385,23 +385,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let dest = REG_PARAMS[ind];
                 self.emit_expr(arg, dest);
             } else {
+                stacksize += 8;
                 self.emit_expr(arg, REG_RESULT);
-
-                let minus = if method { 1 } else { 0 };
-
-                let ty = if self.fct.id == fid {
-                    self.fct.params_types[ind-minus]
-                } else {
-                    self.ctxt.fct_by_id_mut(fid, |fct| { fct.params_types[ind-minus] })
-                };
-
-                tempsize -= 8;
-                emit::mov_reg_local(self.buf, ty, REG_RESULT, tempsize);
+                emit::push_param(self.buf, REG_RESULT);
             }
         }
 
         let return_type = *self.fct.src().types.get(&e.id).unwrap();
         self.emit_call_fptr(ptr, return_type, dest);
+
+        if stacksize != 0 {
+            emit::free_stack(self.buf, stacksize);
+        }
     }
 
     fn emit_call_fptr(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
