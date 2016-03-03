@@ -345,6 +345,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let call_type = *self.fct.src().calls.get(&e.id).unwrap();
         let fid = call_type.fct_id();
         let ctor = call_type.is_ctor();
+        let method = call_type.is_method();
 
         let ptr = if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
@@ -386,10 +387,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             } else {
                 self.emit_expr(arg, REG_RESULT);
 
+                let minus = if method { 1 } else { 0 };
+
                 let ty = if self.fct.id == fid {
-                    self.fct.params_types[ind]
+                    self.fct.params_types[ind-minus]
                 } else {
-                    self.ctxt.fct_by_id_mut(fid, |fct| { fct.params_types[ind] })
+                    self.ctxt.fct_by_id_mut(fid, |fct| { fct.params_types[ind-minus] })
                 };
 
                 tempsize -= 8;

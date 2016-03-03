@@ -178,6 +178,10 @@ impl<'ast> Fct<'ast> {
         self.ctor
     }
 
+    pub fn has_self(&self) -> bool {
+        self.owner_class.is_some()
+    }
+
     pub fn var_self(&mut self) -> &mut Var {
         assert!(self.owner_class.is_some());
 
@@ -299,6 +303,13 @@ impl CallType {
     pub fn is_ctor(&self) -> bool {
         match *self {
             CallType::Ctor(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_method(&self) -> bool {
+        match *self {
+            CallType::Method(_, _) => true,
             _ => false,
         }
     }
