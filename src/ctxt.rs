@@ -250,6 +250,10 @@ impl<'ast> FctSrc<'ast> {
         }
     }
 
+    pub fn get_type(&self, id: ast::NodeId) -> BuiltinType {
+        *self.types.get(&id).unwrap()
+    }
+
     pub fn jit_or_stub_ptr(&mut self) -> Ptr {
         if let Some(ref jit) = self.jit_fct { return jit.fct_ptr(); }
         if let Some(ref stub) = self.stub { return stub.ptr_start(); }

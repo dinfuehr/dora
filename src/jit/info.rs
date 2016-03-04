@@ -77,6 +77,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stack_for_call(&mut self, expr: &'ast ExprCallType) {
         // function invokes another function
         self.leaf = false;
+
+        // check if we need temporary variables for arguments
+        let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
+
+        if on_stack {
+            // TODO: reserve stack for all arguments
+        }
+    }
+
+    fn reserve_temp_for_type(&mut self, ty: BuiltinType) {
+        let ty_size = ty.size();
+        self.cur_tempsize = mem::align_i32(self.cur_tempsize, ty_size) + ty_size;
     }
 }
 
@@ -122,7 +134,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             ExprProp(ref expr) => {
                 if self.assignment {
-                    self.cur_tempsize += BuiltinType::Ptr.size();
+                    self.reserve_temp_for_type(BuiltinType::Ptr);
                 }
             }
 
@@ -136,7 +148,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             ExprBin(ref expr) => {
                 if !is_leaf(&expr.rhs) {
-                    self.cur_tempsize += BuiltinType::Int.size();
+                    // FIXME: could also be Str or bool
+                    self.reserve_temp_for_type(BuiltinType::Int);
                 }
             }
 
