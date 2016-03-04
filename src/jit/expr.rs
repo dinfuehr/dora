@@ -237,7 +237,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             use stdlib;
 
             let fct = Ptr::new(stdlib::strcmp as *mut c_void);
-            self.emit_builtin_call(fct, e, REG_RESULT);
+            self.emit_call_builtin_binary(fct, e, REG_RESULT);
             emit::movl_imm_reg(self.buf, 0, REG_TMP1);
             emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
 
@@ -280,7 +280,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             use stdlib;
 
             let fct = Ptr::new(stdlib::strcat as *mut c_void);
-            self.emit_builtin_call(fct, e, dest);
+            self.emit_call_builtin_binary(fct, e, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
@@ -358,17 +358,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 match fct.kind {
                     FctKind::Source(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
                     FctKind::Builtin(ptr) => ptr,
-                    FctKind::Intrinsic => unreachable!("intrinsic fct call"),
+                    FctKind::Intrinsic => panic!("intrinsic fct call"),
                 }
             })
         };
+
+        if e.args.len() > 0 {
+            let arg = &e.args[0];
+            let store = self.fct.src().get_store(arg.id());
+
+            if let Store::Mem(_) = store {
+                self.emit_call_with_args_on_stack(ptr, e, dest);
+                return;
+            }
+        }
 
         let offset = if ctor {
             let cls = self.ctxt.cls_by_id(call_type.cls_id());
             emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
             let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-            self.emit_call_fptr(mptr, BuiltinType::Ptr, REG_RESULT);
+            self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
 
             emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
 
@@ -393,15 +403,67 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        let return_type = *self.fct.src().types.get(&e.id).unwrap();
-        self.emit_call_fptr(ptr, return_type, dest);
+        let return_type = self.fct.src().get_type(e.id);
+        self.emit_call_insn(ptr, return_type, dest);
 
         if stacksize != 0 {
             emit::free_stack(self.buf, stacksize);
         }
     }
 
-    fn emit_call_fptr(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
+    fn emit_call_with_args_on_stack(&mut self, ptr: Ptr, e: &'ast ExprCallType, dest: Reg) {
+        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let ctor = call_type.is_ctor();
+
+        let offset = if ctor {
+            let cls = self.ctxt.cls_by_id(call_type.cls_id());
+            emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
+
+            let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
+            self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
+
+            emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
+
+            1
+        } else {
+            0
+        };
+
+        for arg in &e.args {
+            self.emit_expr(arg, REG_RESULT);
+
+            let ty = self.fct.src().get_type(arg.id());
+            let offset = -(self.fct.src().localsize + self.fct.src().get_store(arg.id()).offset());
+            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
+        }
+
+        let mut stacksize = 0;
+
+        for (ind, arg) in e.args.iter().enumerate().rev() {
+            let ind = offset + ind;
+            let ty = self.fct.src().get_type(arg.id());
+            let offset = -(self.fct.src().localsize + self.fct.src().get_store(arg.id()).offset());
+
+            if REG_PARAMS.len() > ind {
+                emit::mov_local_reg(self.buf, ty, offset, REG_PARAMS[ind]);
+
+            } else {
+                stacksize += 8;
+
+                emit::mov_local_reg(self.buf, ty, offset, REG_RESULT);
+                emit::push_param(self.buf, REG_RESULT);
+            }
+        }
+
+        let return_type = self.fct.src().get_type(e.id);
+        self.emit_call_insn(ptr, return_type, dest);
+
+        if stacksize != 0 {
+            emit::free_stack(self.buf, stacksize);
+        }
+    }
+
+    fn emit_call_insn(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 
@@ -413,7 +475,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_builtin_call(&mut self, fct: Ptr, expr: &'ast ExprBinType, dest: Reg) {
+    fn emit_call_builtin_binary(&mut self, fct: Ptr, expr: &'ast ExprBinType, dest: Reg) {
         assert!(!contains_fct_call(&expr.lhs));
         self.emit_expr(&expr.lhs, REG_PARAMS[0]);
 
@@ -421,7 +483,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&expr.rhs, REG_PARAMS[1]);
 
         let return_type = *self.fct.src().types.get(&expr.id).unwrap();
-        self.emit_call_fptr(fct, return_type, dest);
+        self.emit_call_insn(fct, return_type, dest);
     }
 }
 

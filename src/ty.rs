@@ -30,7 +30,7 @@ impl BuiltinType {
     pub fn cls(&self) -> ClassId {
         match *self {
             BuiltinType::Class(clsid) => clsid,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 
@@ -39,7 +39,7 @@ impl BuiltinType {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Bool => "bool".into(),
-            BuiltinType::Ptr => unreachable!("type Ptr only for internal use."),
+            BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::Str => "str".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.cls_by_id(cid);

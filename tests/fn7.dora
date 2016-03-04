@@ -1,0 +1,7 @@
+fn main() {
+  assert(f(1) == 2);
+}
+
+fn f(a: int) -> int {
+  return a + 1;
+}

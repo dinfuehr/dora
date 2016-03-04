@@ -9,6 +9,7 @@ use error::diag::Diagnostic;
 
 use ast;
 use class::{Class, ClassId, PropId};
+use cpu::Reg;
 use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
@@ -205,14 +206,14 @@ impl<'ast> FctKind<'ast> {
     pub fn src(&self) -> &FctSrc<'ast> {
         match *self {
             FctKind::Source(ref ast_info) => ast_info,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 
     pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
         match *self {
             FctKind::Source(ref mut ast_info) => ast_info,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 }
@@ -223,6 +224,7 @@ pub struct FctSrc<'ast> {
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, IdentType>, // which definition does ident refer to
+    pub storage: HashMap<ast::NodeId, Store>,
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub leaf: bool, // false if fct calls other functions
@@ -240,6 +242,7 @@ impl<'ast> FctSrc<'ast> {
             types: HashMap::new(),
             calls: HashMap::new(),
             defs: HashMap::new(),
+            storage: HashMap::new(),
             tempsize: 0,
             localsize: 0,
             leaf: false,
@@ -252,6 +255,13 @@ impl<'ast> FctSrc<'ast> {
 
     pub fn get_type(&self, id: ast::NodeId) -> BuiltinType {
         *self.types.get(&id).unwrap()
+    }
+
+    pub fn get_store(&self, id: ast::NodeId) -> Store {
+        match self.storage.get(&id) {
+            Some(store) => *store,
+            None => Store::Reg,
+        }
     }
 
     pub fn jit_or_stub_ptr(&mut self) -> Ptr {
@@ -271,6 +281,20 @@ impl<'ast> FctSrc<'ast> {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum Store {
+    Reg, Mem(i32)
+}
+
+impl Store {
+    pub fn offset(&self) -> i32 {
+        match *self {
+            Store::Mem(offset) => offset,
+            Store::Reg => panic!()
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum IdentType {
     Var(VarId), Prop(ClassId, PropId)
 }
@@ -279,21 +303,21 @@ impl IdentType {
     pub fn var_id(&self) -> VarId {
         match *self {
             IdentType::Var(varid) => varid,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 
     pub fn cls_id(&self) -> ClassId {
         match *self {
             IdentType::Prop(clsid, _) => clsid,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 
     pub fn prop_id(&self) -> PropId {
         match *self {
             IdentType::Prop(_, propid) => propid,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 }
@@ -322,7 +346,7 @@ impl CallType {
         match *self {
             CallType::Method(clsid, _) => clsid,
             CallType::Ctor(clsid, _) => clsid,
-            _ => unreachable!()
+            _ => panic!()
         }
     }
 

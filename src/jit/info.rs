@@ -4,8 +4,8 @@ use ast::*;
 use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
-use cpu;
-use ctxt::{Context, Fct, Var};
+use cpu::{self, Reg};
+use ctxt::{Context, Fct, Store, Var};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
@@ -82,13 +82,22 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
 
         if on_stack {
-            // TODO: reserve stack for all arguments
+            for arg in &expr.args {
+                self.reserve_temp_for_node(arg.id());
+            }
         }
+    }
+
+    fn reserve_temp_for_node(&mut self, id: NodeId) {
+        let ty = self.fct.src().get_type(id);
+        self.reserve_temp_for_type(ty);
+
+        self.fct.src_mut().storage.insert(id, Store::Mem(self.cur_tempsize));
     }
 
     fn reserve_temp_for_type(&mut self, ty: BuiltinType) {
         let ty_size = ty.size();
-        self.cur_tempsize = mem::align_i32(self.cur_tempsize, ty_size) + ty_size;
+        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
     }
 }
 
@@ -134,7 +143,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             ExprProp(ref expr) => {
                 if self.assignment {
-                    self.reserve_temp_for_type(BuiltinType::Ptr);
+                    self.reserve_temp_for_node(expr.object.id());
                 }
             }
 
@@ -148,8 +157,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             ExprBin(ref expr) => {
                 if !is_leaf(&expr.rhs) {
-                    // FIXME: could also be Str or bool
-                    self.reserve_temp_for_type(BuiltinType::Int);
+                    self.reserve_temp_for_node(expr.lhs.id());
                 }
             }
 

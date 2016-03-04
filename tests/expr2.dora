@@ -1,0 +1,4 @@
+fn main() {
+  let val = to_string(101);
+  assert(val == "101");
+}
