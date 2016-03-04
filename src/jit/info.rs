@@ -73,6 +73,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
         var.offset = -self.localsize;
     }
+
+    fn reserve_stack_for_call(&mut self, expr: &'ast ExprCallType) {
+        // function invokes another function
+        self.leaf = false;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
@@ -112,12 +117,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => {
-                // function invokes another function
-                self.leaf = false;
-
-                // some function parameters are stored on stack,
-                // reservere space for them
-                self.cur_tempsize += cpu::reserve_stack_for_call(&expr.args);
+                self.reserve_stack_for_call(expr);
             }
 
             ExprProp(ref expr) => {
@@ -182,14 +182,14 @@ mod tests {
 
         info("fn f() { g(1,2,3,4,5,6,7,8); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
-            assert_eq!(16, fct.src().tempsize);
+            assert_eq!(0, fct.src().tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }", |fct| {
-            assert_eq!(20, fct.src().tempsize);
+            assert_eq!(4, fct.src().tempsize);
         });
     }
 
