@@ -367,7 +367,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let arg = &e.args[0];
             let store = self.fct.src().get_store(arg.id());
 
-            if let Store::Mem(_) = store {
+            if let Store::Temp(_) = store {
                 self.emit_call_with_args_on_stack(ptr, e, dest);
                 return;
             }
@@ -423,6 +423,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
 
             emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
+            // TODO: save reg on local stack
 
             1
         } else {
@@ -437,30 +438,28 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
         }
 
-        let mut stacksize = 0;
+        let mut arg_offset = -self.fct.src().stacksize();
 
-        for (ind, arg) in e.args.iter().enumerate().rev() {
+        for (ind, arg) in e.args.iter().enumerate() {
             let ind = offset + ind;
             let ty = self.fct.src().get_type(arg.id());
-            let offset = -(self.fct.src().localsize + self.fct.src().get_store(arg.id()).offset());
+
+            let temp_offset = self.fct.src().get_store(arg.id()).offset();
+            let offset = -(self.fct.src().localsize + temp_offset);
 
             if REG_PARAMS.len() > ind {
                 emit::mov_local_reg(self.buf, ty, offset, REG_PARAMS[ind]);
 
             } else {
-                stacksize += 8;
-
                 emit::mov_local_reg(self.buf, ty, offset, REG_RESULT);
-                emit::push_param(self.buf, REG_RESULT);
+                emit::mov_reg_local(self.buf, ty, REG_RESULT, arg_offset);
+
+                arg_offset += 8;
             }
         }
 
         let return_type = self.fct.src().get_type(e.id);
         self.emit_call_insn(ptr, return_type, dest);
-
-        if stacksize != 0 {
-            emit::free_stack(self.buf, stacksize);
-        }
     }
 
     fn emit_call_insn(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
@@ -482,7 +481,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         assert!(!contains_fct_call(&expr.rhs));
         self.emit_expr(&expr.rhs, REG_PARAMS[1]);
 
-        let return_type = *self.fct.src().types.get(&expr.id).unwrap();
+        let return_type = self.fct.src().get_type(expr.id);
         self.emit_call_insn(fct, return_type, dest);
     }
 }

@@ -21,6 +21,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
         localsize: 0,
         max_tempsize: 0,
         cur_tempsize: 0,
+        argsize: 0,
 
         param_offset: cpu::PARAM_OFFSET,
         leaf: true,
@@ -38,6 +39,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
     localsize: i32,
     max_tempsize: i32,
     cur_tempsize: i32,
+    argsize: i32,
 
     param_offset: i32,
     leaf: bool,
@@ -55,6 +57,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let src = self.fct.src_mut();
         src.localsize = self.localsize;
         src.tempsize = self.max_tempsize;
+        src.argsize = self.argsize;
         src.leaf = self.leaf;
     }
 
@@ -75,6 +78,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_call(&mut self, expr: &'ast ExprCallType) {
+        let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
+        let ctor = call_type.is_ctor();
+
         // function invokes another function
         self.leaf = false;
 
@@ -82,9 +88,21 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
 
         if on_stack {
+            if ctor {
+                self.reserve_temp_for_type(BuiltinType::Ptr);
+            }
+
             for arg in &expr.args {
                 self.reserve_temp_for_node(arg.id());
             }
+        }
+
+        // reserve stack for arguments
+        let no_args = if ctor { 1 } else { 0 } + expr.args.len() as i32;
+        let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
         }
     }
 
@@ -92,7 +110,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty = self.fct.src().get_type(id);
         self.reserve_temp_for_type(ty);
 
-        self.fct.src_mut().storage.insert(id, Store::Mem(self.cur_tempsize));
+        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
     }
 
     fn reserve_temp_for_type(&mut self, ty: BuiltinType) {

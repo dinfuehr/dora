@@ -227,6 +227,7 @@ pub struct FctSrc<'ast> {
     pub storage: HashMap<ast::NodeId, Store>,
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
+    pub argsize: i32, // size of arguments on stack (need to be on bottom)
     pub leaf: bool, // false if fct calls other functions
     pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
@@ -245,6 +246,7 @@ impl<'ast> FctSrc<'ast> {
             storage: HashMap::new(),
             tempsize: 0,
             localsize: 0,
+            argsize: 0,
             leaf: false,
             vars: Vec::new(),
             always_returns: false,
@@ -276,19 +278,19 @@ impl<'ast> FctSrc<'ast> {
     }
 
     pub fn stacksize(&self) -> i32 {
-        mem::align_i32(self.tempsize + self.localsize, 16)
+        mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Store {
-    Reg, Mem(i32)
+    Reg, Temp(i32)
 }
 
 impl Store {
     pub fn offset(&self) -> i32 {
         match *self {
-            Store::Mem(offset) => offset,
+            Store::Temp(offset) => offset,
             Store::Reg => panic!()
         }
     }
