@@ -2,6 +2,7 @@ use libc::c_void;
 
 use ast::*;
 use ast::Expr::*;
+use class::ClassId;
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
@@ -462,6 +463,43 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_call_insn(ptr, return_type, dest);
     }
 
+    fn emit_universal_call(&mut self, ptr: Ptr, args: Vec<Arg<'ast>>,
+                           return_type: BuiltinType, dest: Reg) {
+        for arg in &args {
+            match *arg {
+                Arg::Expr(expr) => {
+                    self.emit_expr(expr.ast, REG_RESULT);
+                }
+
+                Arg::Selfie(selfie) => {
+                    let cls = self.ctxt.cls_by_id(selfie.cls_id);
+                    emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
+
+                    let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
+                    self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
+                }
+            }
+
+            emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, arg.offset());
+        }
+
+        let mut arg_offset = -self.fct.src().stacksize();
+
+        for (ind, arg) in args.iter().enumerate() {
+            if ind < REG_PARAMS.len() {
+                emit::mov_local_reg(self.buf, arg.ty(), arg.offset(), REG_PARAMS[ind]);
+
+            } else {
+                emit::mov_local_reg(self.buf, arg.ty(), arg.offset(), REG_RESULT);
+                emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, arg_offset);
+
+                arg_offset += 8;
+            }
+        }
+
+        self.emit_call_insn(ptr, return_type, dest);
+    }
+
     fn emit_call_insn(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
@@ -484,6 +522,40 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let return_type = self.fct.src().get_type(expr.id);
         self.emit_call_insn(fct, return_type, dest);
     }
+}
+
+#[derive(Copy, Clone)]
+enum Arg<'ast> {
+    Expr(ArgExpr<'ast>), Selfie(ArgSelf)
+}
+
+impl<'ast> Arg<'ast> {
+    fn offset(&self) -> i32 {
+        match *self {
+            Arg::Expr(expr) => expr.offset,
+            Arg::Selfie(selfie) => selfie.offset,
+        }
+    }
+
+    fn ty(&self) -> BuiltinType {
+        match *self {
+            Arg::Expr(expr) => expr.ty,
+            Arg::Selfie(_) => BuiltinType::Ptr,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+struct ArgExpr<'ast> {
+    ast: &'ast Expr,
+    ty: BuiltinType,
+    offset: i32,
+}
+
+#[derive(Copy, Clone)]
+struct ArgSelf {
+    cls_id: ClassId,
+    offset: i32,
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
