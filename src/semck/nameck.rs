@@ -161,7 +161,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 let clsid = sym.to_type().unwrap().cls();
                 let cls = self.ctxt.cls_by_id(clsid);
 
-                let call_type = CallType::Ctor(clsid, cls.ctor);
+                let call_type = CallType::Ctor(clsid, cls.ctors[0]);
                 self.fct.src_mut().calls.insert(call.id, call_type);
                 found = true;
             }

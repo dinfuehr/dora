@@ -93,7 +93,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         };
 
         let fctid = self.ctxt.add_fct(fct);
-        self.cls_mut().ctor = fctid;
+        self.cls_mut().ctors.push(fctid);
     }
 
     fn visit_method(&mut self, f: &'ast ast::Function) {

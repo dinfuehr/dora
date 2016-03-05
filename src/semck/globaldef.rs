@@ -29,7 +29,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
-            ctor: FctId(0),
+            ctors: Vec::new(),
             props: Vec::new(),
             methods: Vec::new(),
             ast: Some(c),
