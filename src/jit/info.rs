@@ -89,7 +89,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         if on_stack {
             if ctor {
-                self.reserve_temp_for_type(BuiltinType::Ptr);
+                self.reserve_temp_for_ctor(expr.id);
             }
 
             for arg in &expr.args {
@@ -110,6 +110,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty = self.fct.src().get_type(id);
         self.reserve_temp_for_type(ty);
 
+        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
+    }
+
+    fn reserve_temp_for_ctor(&mut self, id: NodeId) {
+        self.reserve_temp_for_type(BuiltinType::Ptr);
         self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
     }
 

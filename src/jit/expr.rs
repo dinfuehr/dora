@@ -422,8 +422,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
             self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
 
-            emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
-            // TODO: save reg on local stack
+            let offset = -(self.fct.src().localsize + self.fct.src().get_store(e.id).offset());
+            emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset);
 
             1
         } else {
