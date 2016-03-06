@@ -13,6 +13,7 @@ pub enum Msg {
     UnknownFunction(String),
     UnknownProp(String, BuiltinType),
     UnknownMethod(BuiltinType, Name, Vec<BuiltinType>),
+    UnknownCtor(Name, Vec<BuiltinType>),
     MethodExists(BuiltinType, Name, Vec<BuiltinType>, Position),
     VarNotMutable(Name),
     IdentifierExists(String),
@@ -57,6 +58,12 @@ impl Msg {
 
                 format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
             },
+            UnknownCtor(name, ref args) => {
+                let name = ctxt.interner.str(name).to_string();
+                let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+
+                format!("no ctor with definition `{}({})`.", name, args)
+            }
             MethodExists(cls, name, ref args, pos) => {
                 let name = ctxt.interner.str(name).to_string();
                 let cls = cls.name(ctxt);

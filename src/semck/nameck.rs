@@ -5,6 +5,7 @@ use ast::*;
 use ast::Expr::*;
 use ast::Stmt::*;
 use ast::visit::*;
+use class::ClassId;
 use interner::Name;
 use lexer::position::Position;
 
@@ -152,18 +153,23 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         if let Some(sym) = self.ctxt.sym.borrow().get(call.name) {
-            if sym.is_fct() {
-                let call_type = CallType::Fct(sym.to_fct().unwrap());
-                self.fct.src_mut().calls.insert(call.id, call_type);
-                found = true;
+            match sym {
+                SymFct(fct_id) => {
+                    let call_type = CallType::Fct(fct_id);
+                    self.fct.src_mut().calls.insert(call.id, call_type);
+                    found = true;
+                }
 
-            } else if sym.is_type() && sym.to_type().unwrap().is_cls() {
-                let clsid = sym.to_type().unwrap().cls();
-                let cls = self.ctxt.cls_by_id(clsid);
+                SymType(ty) if ty.is_cls() => {
+                    let cls_id = ty.cls_id();
+                    let cls = self.ctxt.cls_by_id(cls_id);
 
-                let call_type = CallType::Ctor(clsid, cls.ctors[0]);
-                self.fct.src_mut().calls.insert(call.id, call_type);
-                found = true;
+                    let call_type = CallType::Ctor(cls_id, FctId(0));
+                    self.fct.src_mut().calls.insert(call.id, call_type);
+                    found = true;
+                }
+
+                _ => {}
             }
         }
 

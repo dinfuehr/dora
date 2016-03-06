@@ -27,9 +27,9 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls(&self) -> ClassId {
+    pub fn cls_id(&self) -> ClassId {
         match *self {
-            BuiltinType::Class(clsid) => clsid,
+            BuiltinType::Class(cls_id) => cls_id,
             _ => panic!()
         }
     }
