@@ -71,12 +71,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         // an expression
         self.fct.var_by_node_id_mut(s.id).data_type = defined_type;
 
-        if expr_type.is_some() && (defined_type != expr_type.unwrap()) {
-            let varname = self.ctxt.interner.str(s.name).to_string();
-            let expr_type = expr_type.unwrap();
-            let msg = Msg::AssignType(varname, defined_type, expr_type);
+        if let Some(expr_type) = expr_type {
+            if !defined_type.allows(expr_type) {
+                let msg = if expr_type.is_nil() {
+                    Msg::AssignNil(s.name, defined_type)
+                } else {
+                    Msg::AssignType(s.name, defined_type, expr_type)
+                };
 
-            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+                self.ctxt.diag.borrow_mut().report(s.pos, msg);
+            }
         }
     }
 
@@ -156,12 +160,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&e.rhs);
         let rhs_type = self.expr_type;
 
-        if lhs_type != rhs_type {
+        if !lhs_type.allows(rhs_type) {
             let msg = if e.lhs.is_ident() {
                 let ident = e.lhs.to_ident().unwrap();
-                let name = self.ctxt.interner.str(ident.name).to_string();
 
-                Msg::AssignType(name, lhs_type, rhs_type)
+                Msg::AssignType(ident.name, lhs_type, rhs_type)
             } else {
                 let prop = e.lhs.to_prop().unwrap();
                 let prop_type = self.fct.src().get_type(prop.object.id());
@@ -649,10 +652,10 @@ mod tests {
 
         err("fn f() { let a : int = true; }",
             pos(1, 10), Msg::AssignType(
-                "a".into(), BuiltinType::Int, BuiltinType::Bool));
+                Name(1), BuiltinType::Int, BuiltinType::Bool));
         err("fn f() { let b : bool = 2; }",
             pos(1, 10), Msg::AssignType(
-                "b".into(), BuiltinType::Bool, BuiltinType::Int));
+                Name(1), BuiltinType::Bool, BuiltinType::Int));
     }
 
     #[test]
@@ -699,7 +702,7 @@ mod tests {
     fn type_assign() {
         ok("fn f(mut a: int) { a = 1; }");
         err("fn f(mut a: int) { a = true; }", pos(1, 22),
-            Msg::AssignType("a".into(), BuiltinType::Int, BuiltinType::Bool));
+            Msg::AssignType(Name(1), BuiltinType::Int, BuiltinType::Bool));
     }
 
     #[test]
@@ -766,7 +769,7 @@ mod tests {
         ok("fn foo() -> int { return 1; }\nfn f() { let i: int = foo(); }");
         err("fn foo() -> int { return 1; }\nfn f() { let i: bool = foo(); }",
             pos(2, 10),
-            Msg::AssignType("i".into(),
+            Msg::AssignType(Name(3),
                 BuiltinType::Bool, BuiltinType::Int));
     }
 
@@ -818,5 +821,12 @@ mod tests {
         ok("class Foo(a: Str) fn test() { Foo(nil); }");
         err("class Foo(a: int) fn test() { Foo(nil); }",
             pos(1, 31), Msg::UnknownCtor(Name(0), vec![BuiltinType::Nil]));
+    }
+
+    #[test]
+    fn type_nil_for_local_variable() {
+        ok("fn f() { let x: Str = nil; }");
+        err("fn f() { let x: int = nil; }",
+            pos(1, 10), Msg::AssignNil(Name(1), BuiltinType::Int));
     }
 }

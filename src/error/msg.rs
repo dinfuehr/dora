@@ -28,7 +28,8 @@ pub enum Msg {
     IfCondType(BuiltinType),
     ReturnType(BuiltinType, BuiltinType),
     LvalueExpected,
-    AssignType(String, BuiltinType, BuiltinType),
+    AssignNil(Name, BuiltinType),
+    AssignType(Name, BuiltinType, BuiltinType),
     AssignProp(Name, ClassId, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
@@ -109,9 +110,19 @@ impl Msg {
                 format!("`return` expects value of type `{}` but got `{}`.",
                     def.name(ctxt), expr.name(ctxt)),
             LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(ref name, ref def, ref expr) =>
-                format!("cannot assign `{}` to variable `{}` of type `{}`.",
-                        &expr.name(ctxt), name, &def.name(ctxt)),
+            AssignType(name, def, expr) => {
+                let name = ctxt.interner.str(name).to_string();
+                let def = def.name(ctxt);
+                let expr = expr.name(ctxt);
+
+                format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
+            },
+            AssignNil(name, def) => {
+                let name = ctxt.interner.str(name).to_string();
+                let def = def.name(ctxt);
+
+                format!("cannot assign nil to variable `{}` of type `{}`.", name, def)
+            },
             AssignProp(name, clsid, ref def, ref expr) => {
                 let cls = ctxt.cls_by_id(clsid);
                 let cls_name = ctxt.interner.str(cls.name).to_string();
