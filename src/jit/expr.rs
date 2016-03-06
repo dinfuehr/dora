@@ -55,7 +55,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprProp(ref expr) => self.emit_prop(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
-            ExprNil(_) => panic!("not implemented"),
+            ExprNil(_) => self.emit_nil(dest),
         }
 
         dest
@@ -65,6 +65,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let var = self.fct.var_self();
 
         emit::mov_local_reg(self.buf, var.data_type, var.offset, dest);
+    }
+
+    fn emit_nil(&mut self, dest: Reg) {
+        emit::nil(self.buf, dest);
     }
 
     fn emit_prop(&mut self, expr: &'ast ExprPropType, dest: Reg) {

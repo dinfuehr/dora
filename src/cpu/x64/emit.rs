@@ -106,6 +106,10 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
+pub fn nil(buf: &mut Buffer, dest: Reg) {
+    emit_movl_imm_reg(buf, 0, dest);
+}
+
 pub fn mov_mem_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32, dest: Reg) {
     match ty {
         BuiltinType::Bool => emit_movzbl_memq_reg(buf, src, offset, dest),

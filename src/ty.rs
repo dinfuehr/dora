@@ -73,11 +73,19 @@ impl BuiltinType {
         match *self {
             BuiltinType::Unit
                 | BuiltinType::Bool
-                | BuiltinType::Int => *self == other,
-            BuiltinType::Nil
-                | BuiltinType::Ptr => panic!("nil and ptr do not allow any other types"),
+                | BuiltinType::Int
+                | BuiltinType::Nil => *self == other,
+            BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str
                 | BuiltinType::Class(_) => *self == other || other.is_nil()
+        }
+    }
+
+    pub fn if_nil(&self, other: BuiltinType) -> BuiltinType {
+        if self.is_nil() {
+            other
+        } else {
+            *self
         }
     }
 

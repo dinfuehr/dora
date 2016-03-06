@@ -230,14 +230,27 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_bin_cmp(&mut self,  e: &'ast ExprBinType, cmp: CmpOp, lhs_type: BuiltinType,
                           rhs_type: BuiltinType) {
+        let ty = lhs_type.if_nil(rhs_type);
+
         let expected_type = match cmp {
-            CmpOp::Is | CmpOp::IsNot => match lhs_type {
-                BuiltinType::Str | BuiltinType::Class(_) => lhs_type,
-                _ => BuiltinType::Ptr,
+            CmpOp::Is | CmpOp::IsNot => {
+                match ty {
+                    BuiltinType::Str
+                    | BuiltinType::Class(_)
+                    | BuiltinType::Nil => ty,
+                    _ => {
+                        let op = cmp.as_str().into();
+                        let msg = Msg::BinOpType(op, lhs_type, rhs_type);
+
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                        self.set_type(e.id, BuiltinType::Bool);
+                        return;
+                    }
+                }
             },
 
-            _ => if lhs_type == BuiltinType::Str {
-                    lhs_type
+            _ => if ty == BuiltinType::Str {
+                    ty
                 } else {
                     BuiltinType::Int
                 }
@@ -249,7 +262,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_type(&mut self, e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
                   rhs_type: BuiltinType, expected_type: BuiltinType) {
-        if expected_type != lhs_type || expected_type != rhs_type {
+        if !expected_type.allows(lhs_type) || !expected_type.allows(rhs_type) {
             let op = op.as_str().into();
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
