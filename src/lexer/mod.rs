@@ -81,6 +81,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("return", TokenType::Return);
         keywords.insert("true", TokenType::True);
         keywords.insert("false", TokenType::False);
+        keywords.insert("nil", TokenType::Nil);
         keywords.insert("enum", TokenType::Enum);
         keywords.insert("type", TokenType::Type);
         keywords.insert("alias", TokenType::Alias);
@@ -637,11 +638,12 @@ mod tests {
         assert_tok(&mut reader, TokenType::This, "self", 1, 22);
         assert_tok(&mut reader, TokenType::Class, "class", 1, 27);
 
-        let mut reader = Lexer::from_str("loop break continue return");
+        let mut reader = Lexer::from_str("loop break continue return nil");
         assert_tok(&mut reader, TokenType::Loop, "loop", 1, 1);
         assert_tok(&mut reader, TokenType::Break, "break", 1, 6);
         assert_tok(&mut reader, TokenType::Continue, "continue", 1, 12);
         assert_tok(&mut reader, TokenType::Return, "return", 1, 21);
+        assert_tok(&mut reader, TokenType::Nil, "nil", 1, 28);
 
         let mut reader = Lexer::from_str("type struct enum alias trait");
         assert_tok(&mut reader, TokenType::Type, "type", 1, 1);

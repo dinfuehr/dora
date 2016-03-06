@@ -25,6 +25,7 @@ pub enum TokenType {
     Return,
     True,
     False,
+    Nil,
 
     Enum,
     Type,
