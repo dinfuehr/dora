@@ -62,7 +62,7 @@ impl<'a, 'ast> Visitor<'ast> for MutCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprAssign(ref expr) => self.check_expr_assign(expr),
-            _ => {}
+            _ => visit::walk_expr(self, e)
         }
     }
 }
