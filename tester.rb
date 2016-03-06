@@ -9,7 +9,9 @@ $temp_err = Tempfile.new('runner_err')
 class TestExpectation
   attr_accessor :fail, :position, :code, :message
 
-  def initialize(fail: false)
+  def initialize(opts = {})
+    fail = opts.fetch(:fail, false)
+
     self.fail = fail
   end
 end
