@@ -4,11 +4,23 @@ use mem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BuiltinType {
+    // type with only one value: ()
     Unit,
-    Int,
-    Bool,
+
+    // value types
+    Int, Bool,
+
+    // type Nil, only used in typeck until final type is known
+    Nil,
+
+    // only used internally: shortcut to Str or some class
+    // just means size of pointer
     Ptr,
+
+    // String type
     Str,
+
+    // some class
     Class(ClassId),
 }
 
@@ -17,6 +29,13 @@ impl BuiltinType {
         match *self {
             BuiltinType::Unit => true,
             _ => false,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        match *self {
+            BuiltinType::Nil => true,
+            _ => false
         }
     }
 
@@ -39,6 +58,7 @@ impl BuiltinType {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Bool => "bool".into(),
+            BuiltinType::Nil => panic!("type Nil only for internal use."),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::Str => "str".into(),
             BuiltinType::Class(cid) => {
@@ -54,6 +74,7 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Int => 4,
+            BuiltinType::Nil => panic!("type Nil does not have size."),
             BuiltinType::Str
                 | BuiltinType::Class(_)
                 | BuiltinType::Ptr => mem::ptr_width(),
