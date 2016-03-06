@@ -1,0 +1,6 @@
+fn main() {
+  f(g());
+}
+
+fn f(a: int) { assert(a == 1); }
+fn g() -> int { return 1; }

@@ -1,0 +1,26 @@
+fn main() {
+  Bar(1).do();
+}
+
+class Bar(a: int) {
+  fn do() {
+    Foo(self.f()).a = self.g();
+    assert(a == 100);
+  }
+
+  fn f() -> int {
+    assert(a == 1);
+    a = 10;
+
+    return a;
+  }
+
+  fn g() -> int {
+    assert(a == 10);
+    a = 100;
+
+    return a;
+  }
+}
+
+class Foo(a: int)
