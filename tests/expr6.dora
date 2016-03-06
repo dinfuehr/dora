@@ -1,0 +1,23 @@
+fn main() {
+  let a = 1;
+  let b = 2;
+
+  // a + h() --> 4
+  // b * i() --> 10
+  // g(4, 10) --> 36
+  // j() --> 7
+  // f(36, 7) --> 288
+
+  assert(f(g(a + h(), b * i()), j()) == 288);
+}
+
+fn h() -> int { return 3; }
+fn i() -> int { return 5; }
+fn j() -> int { return 7; }
+
+fn f(x: int, y: int) -> int {
+  return x * (y+1);
+}
+fn g(x: int, y: int) -> int {
+  return x * (y-1);
+}
