@@ -357,8 +357,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = call_types[0];
         let call_types = &call_types[1..];
 
-        if let BuiltinType::Class(clsid) = object_type {
-            let cls = self.ctxt.cls_by_id(clsid);
+        if let BuiltinType::Class(cls_id) = object_type {
+            let cls = self.ctxt.cls_by_id(cls_id);
+            let mut candidates = Vec::new();
 
             for method in &cls.methods {
                 let method = *method;
@@ -366,29 +367,33 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if self.fct.id == method {
                     if self.fct.name == e.name
                         && args_compatible(&self.fct.params_types, &call_types) {
-
-                        let ty = self.fct.return_type;
-                        self.set_type(e.id, ty);
-
-                        let call_type = CallType::Method(clsid, method);
-                        assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
-                        return;
-
-                    } else {
-                        continue;
+                        candidates.push((method, self.fct.return_type));
                     }
+                } else {
+                    self.ctxt.fct_by_id(method, |callee| {
+                        if callee.name == e.name
+                            && args_compatible(&callee.params_types, &call_types) {
+                            candidates.push((method, callee.return_type));
+                        }
+                    });
                 }
+            }
 
-                let fct = self.ctxt.fcts[method.0].clone();
-                let callee = &mut fct.lock().unwrap();
+            if candidates.len() == 1 {
+                let candidate = candidates[0];
+                let fctid = candidate.0;
+                let return_type = candidate.1;
 
-                if callee.name == e.name && args_compatible(&callee.params_types, &call_types) {
-                    self.set_type(e.id, callee.return_type);
+                let call_type = CallType::Method(cls_id, fctid);
+                assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+                self.set_type(e.id, return_type);
+                return;
 
-                    let call_type = CallType::Method(clsid, callee.id);
-                    assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
-                    return;
-                }
+            } else if candidates.len() > 1 {
+                let msg = Msg::MultipleCandidates(object_type, e.name, call_types.to_vec());
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                self.set_type(e.id, BuiltinType::Unit);
+                return;
             }
         }
 
@@ -846,5 +851,28 @@ mod tests {
         ok("class Foo(a: Str) fn f() { Foo(nil).a = nil; }");
         err("class Foo(a: int) fn f() { Foo(1).a = nil; }",
             pos(1, 37), Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Nil));
+    }
+
+    #[test]
+    fn type_nil_method() {
+        err("fn f() { nil.test(); }", pos(1, 13),
+            Msg::UnknownMethod(BuiltinType::Nil, Name(1), Vec::new()));
+    }
+
+    #[test]
+    fn type_nil_as_method_argument() {
+        ok("class Foo {
+            fn f(a: Str) {}
+            fn f(a: int) {}
+        } fn f() { Foo().f(nil); }");
+        err("class Foo {
+                fn f(a: Str) {}
+                fn f(a: Foo) {}
+            }
+
+            fn f() {
+                Foo().f(nil);
+            }", pos(7, 22), Msg::MultipleCandidates(
+                BuiltinType::Class(ClassId(0)), Name(1), vec![BuiltinType::Nil]));
     }
 }

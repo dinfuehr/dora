@@ -36,7 +36,8 @@ pub enum Msg {
     NoReturnValue,
     MainNotFound,
     WrongMainDefinition,
-    SelfUnavailable
+    SelfUnavailable,
+    MultipleCandidates(BuiltinType, Name, Vec<BuiltinType>),
 }
 
 impl Msg {
@@ -137,6 +138,15 @@ impl Msg {
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             SelfUnavailable => "`self` can only be used in methods not functions".into(),
+            MultipleCandidates(cls, name, ref call_types) => {
+                let cls = cls.name(ctxt);
+                let name = ctxt.interner.str(name).to_string();
+                let call_types = call_types.iter()
+                    .map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+
+                format!("multiple candidates for invocation `{}({})` in class `{}`.",
+                    name, call_types, cls)
+            }
         }
     }
 }
