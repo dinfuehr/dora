@@ -58,7 +58,7 @@ impl BuiltinType {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Bool => "bool".into(),
-            BuiltinType::Nil => panic!("type Nil only for internal use."),
+            BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::Str => "str".into(),
             BuiltinType::Class(cid) => {

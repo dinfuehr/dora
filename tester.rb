@@ -1,6 +1,18 @@
 #!/usr/bin/ruby
 
 require 'pathname'
+require 'tempfile'
+
+$temp_out = Tempfile.new('runner_out')
+$temp_err = Tempfile.new('runner_err')
+
+class TestExpectation
+  attr_accessor :fail, :position, :code, :message
+
+  def initialize(fail: false)
+    self.fail = fail
+  end
+end
 
 def run_tests
   tests = 0
@@ -29,24 +41,73 @@ def run_tests
 end
 
 def run_test(file)
-  ec = expected_exit_code(file)
+  expectation = test_case_expectation(file)
 
-  system("target/debug/dora #{file} >/dev/null 2>&1")
+  system("target/debug/dora #{file} >#{$temp_out.path} 2>/dev/null")
   process = $?
+  exit_code = process.exitstatus
 
-  process.exitstatus == ec
+  if expectation.fail
+    return false if exit_code == 0
+    return false if expectation.code && exit_code != expectation.code
+
+    position, message = read_error_message($temp_out)
+    return false if
+      position && expectation.position && position != expectation.position
+    return false if
+      message && expectation.message && message != expectation.message
+
+    true
+  else
+    exit_code == 0
+
+  end
 end
 
-def expected_exit_code(file)
-  first_line = File.open(file, "r") do |f|
-    f.readline
+def read_error_message(file)
+  position = nil
+  message = nil
+
+  for line in File.read(file).lines
+    line = line.strip
+
+    if line == "1 error found."
+      return position, message
+
+    elsif (m = line.match(/^error at (\d+:\d+): (.+)$/)) != nil
+      position = m[1].to_s
+      message = m[2].to_s
+    end
   end
 
-  if (m = first_line.match(/^\/\/ error: (\d+)$/)) != nil
-    m[1].to_i
-  else
-    0
+  return nil, nil
+end
+
+def test_case_expectation(file)
+  exp = TestExpectation.new(fail: false)
+
+  for line in File.read(file).lines
+    line = line.strip
+
+    if line.start_with?("//=")
+      line = line[3..-1].strip
+
+      arguments = line.split(/\s+/)
+
+      if arguments[0] == "error"
+        exp.fail = true
+
+        case arguments[1]
+        when "at" then exp.position = arguments[2]
+        when "code" then exp.code = arguments[2].to_i
+        when "message" then exp.message = arguments[2].to_s
+        when "assert" then exp.code = 101
+        end
+      end
+    end
   end
+
+  exp
 end
 
 exit run_tests ? 0 : 1

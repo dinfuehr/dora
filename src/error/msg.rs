@@ -28,7 +28,6 @@ pub enum Msg {
     IfCondType(BuiltinType),
     ReturnType(BuiltinType, BuiltinType),
     LvalueExpected,
-    AssignNil(Name, BuiltinType),
     AssignType(Name, BuiltinType, BuiltinType),
     AssignProp(Name, ClassId, BuiltinType, BuiltinType),
     UnOpType(String, BuiltinType),
@@ -83,7 +82,7 @@ impl Msg {
             IncompatibleWithNil(ty) => {
                 let name = ty.name(ctxt);
 
-                format!("cannot assign nil to type `{}`.", name)
+                format!("cannot assign `nil` to type `{}`.", name)
             },
             UnknownProp(ref prop, ref ty) =>
                 format!("unknown property `{}` for type `{}`", prop, ty.name(ctxt)),
@@ -117,19 +116,15 @@ impl Msg {
 
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
-            AssignNil(name, def) => {
-                let name = ctxt.interner.str(name).to_string();
-                let def = def.name(ctxt);
-
-                format!("cannot assign nil to variable `{}` of type `{}`.", name, def)
-            },
-            AssignProp(name, clsid, ref def, ref expr) => {
+            AssignProp(name, clsid, def, expr) => {
                 let cls = ctxt.cls_by_id(clsid);
                 let cls_name = ctxt.interner.str(cls.name).to_string();
-                let prop_name = ctxt.interner.str(name).to_string();
+                let name = ctxt.interner.str(name).to_string();
+                let def = def.name(ctxt);
+                let expr = expr.name(ctxt);
 
                 format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
-                        &expr.name(ctxt), cls_name, prop_name, &def.name(ctxt))
+                        expr, cls_name, name, def)
             },
             UnOpType(ref op, ref expr) =>
                 format!("unary operator `{}` can not handle value of type `{} {}`.", op, op,

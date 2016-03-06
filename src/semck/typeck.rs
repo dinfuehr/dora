@@ -73,12 +73,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(expr_type) {
-                let msg = if expr_type.is_nil() {
-                    Msg::AssignNil(s.name, defined_type)
-                } else {
-                    Msg::AssignType(s.name, defined_type, expr_type)
-                };
-
+                let msg = Msg::AssignType(s.name, defined_type, expr_type);
                 self.ctxt.diag.borrow_mut().report(s.pos, msg);
             }
         }
@@ -817,7 +812,10 @@ mod tests {
         err("fn foo(a: int) {} fn test() { foo(nil); }",
             pos(1, 31), Msg::ParamTypesIncompatible(Name(0),
                 vec![BuiltinType::Int], vec![BuiltinType::Nil]));
+    }
 
+    #[test]
+    fn type_nil_for_ctor() {
         ok("class Foo(a: Str) fn test() { Foo(nil); }");
         err("class Foo(a: int) fn test() { Foo(nil); }",
             pos(1, 31), Msg::UnknownCtor(Name(0), vec![BuiltinType::Nil]));
@@ -827,6 +825,13 @@ mod tests {
     fn type_nil_for_local_variable() {
         ok("fn f() { let x: Str = nil; }");
         err("fn f() { let x: int = nil; }",
-            pos(1, 10), Msg::AssignNil(Name(1), BuiltinType::Int));
+            pos(1, 10), Msg::AssignType(Name(1), BuiltinType::Int, BuiltinType::Nil));
+    }
+
+    #[test]
+    fn type_nil_for_prop() {
+        ok("class Foo(a: Str) fn f() { Foo(nil).a = nil; }");
+        err("class Foo(a: int) fn f() { Foo(1).a = nil; }",
+            pos(1, 37), Msg::AssignProp(Name(1), ClassId(0), BuiltinType::Int, BuiltinType::Nil));
     }
 }

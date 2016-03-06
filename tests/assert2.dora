@@ -1,4 +1,4 @@
-// error: 101
+//= error assert
 
 fn main() {
   let a = false;
