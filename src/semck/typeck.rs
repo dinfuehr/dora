@@ -115,8 +115,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let fct_type = self.fct.return_type;
 
-        if expr_type != fct_type {
-            let msg = Msg::ReturnType(fct_type, expr_type);
+        if !fct_type.allows(expr_type) {
+            let msg = if expr_type.is_nil() {
+                Msg::IncompatibleWithNil(fct_type)
+            } else {
+                Msg::ReturnType(fct_type, expr_type)
+            };
+
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
     }
@@ -284,7 +289,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         self.ctxt.fct_by_id(ctor, |fct| fct.params_types.clone())
                     };
 
-                    if call_types == params_types {
+                    if args_compatible(&params_types, &call_types) {
                         let call_type = CallType::Ctor(cls_id, ctor);
                         assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_some());
 
@@ -320,7 +325,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 self.set_type(e.id, callee_return);
 
-                if callee_params != call_types {
+                if !args_compatible(&callee_params, &call_types) {
                     let msg = Msg::ParamTypesIncompatible(callee_name, callee_params.clone(), call_types);
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
@@ -348,13 +353,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let method = *method;
 
                 if self.fct.id == method {
-                    if self.fct.name == e.name && self.fct.params_types == call_types {
+                    if self.fct.name == e.name
+                        && args_compatible(&self.fct.params_types, &call_types) {
+
                         let ty = self.fct.return_type;
                         self.set_type(e.id, ty);
 
                         let call_type = CallType::Method(clsid, method);
                         assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
                         return;
+
                     } else {
                         continue;
                     }
@@ -363,7 +371,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fct = self.ctxt.fcts[method.0].clone();
                 let callee = &mut fct.lock().unwrap();
 
-                if callee.name == e.name && callee.params_types == call_types {
+                if callee.name == e.name && args_compatible(&callee.params_types, &call_types) {
                     self.set_type(e.id, callee.return_type);
 
                     let call_type = CallType::Method(clsid, callee.id);
@@ -414,6 +422,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.set_type(e.id, BuiltinType::Unit);
         }
     }
+
+    fn check_expr_nil(&mut self, e: &'ast ExprNilType) {
+        self.set_type(e.id, BuiltinType::Nil);
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -429,7 +441,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprCall(ref expr) => self.check_expr_call(expr),
             ExprProp(ref expr) => self.check_expr_prop(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
-            ExprNil(ref expr) => panic!("not implemented"),
+            ExprNil(ref expr) => self.check_expr_nil(expr),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);
@@ -450,6 +462,20 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtBlock(_) => visit::walk_stmt(self, s),
         }
     }
+}
+
+fn args_compatible(def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
+    if def.len() != expr.len() {
+        return false;
+    }
+
+    for (ind, arg) in def.iter().enumerate() {
+        if !arg.allows(expr[ind]) {
+            return false;
+        }
+    }
+
+    true
 }
 
 #[cfg(test)]
@@ -772,5 +798,25 @@ mod tests {
             Msg::ParamTypesIncompatible(Name(0),
                 vec![BuiltinType::Int, BuiltinType::Bool],
                 vec![BuiltinType::Int, BuiltinType::Int]));
+    }
+
+    #[test]
+    fn type_return_nil() {
+        ok("fn foo() -> Str { return nil; }");
+        ok("class Foo fn foo() -> Foo { return nil; }");
+        err("fn foo() -> int { return nil; }",
+            pos(1, 19), Msg::IncompatibleWithNil(BuiltinType::Int));
+    }
+
+    #[test]
+    fn type_nil_as_argument() {
+        ok("fn foo(a: Str) {} fn test() { foo(nil); }");
+        err("fn foo(a: int) {} fn test() { foo(nil); }",
+            pos(1, 31), Msg::ParamTypesIncompatible(Name(0),
+                vec![BuiltinType::Int], vec![BuiltinType::Nil]));
+
+        ok("class Foo(a: Str) fn test() { Foo(nil); }");
+        err("class Foo(a: int) fn test() { Foo(nil); }",
+            pos(1, 31), Msg::UnknownCtor(Name(0), vec![BuiltinType::Nil]));
     }
 }

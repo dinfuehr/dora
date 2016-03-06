@@ -69,6 +69,18 @@ impl BuiltinType {
         }
     }
 
+    pub fn allows(&self, other: BuiltinType) -> bool {
+        match *self {
+            BuiltinType::Unit
+                | BuiltinType::Bool
+                | BuiltinType::Int => *self == other,
+            BuiltinType::Nil
+                | BuiltinType::Ptr => panic!("nil and ptr do not allow any other types"),
+            BuiltinType::Str
+                | BuiltinType::Class(_) => *self == other || other.is_nil()
+        }
+    }
+
     pub fn size(&self) -> i32 {
         match *self {
             BuiltinType::Unit => 0,

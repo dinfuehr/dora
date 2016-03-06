@@ -16,6 +16,7 @@ pub enum Msg {
     UnknownCtor(Name, Vec<BuiltinType>),
     MethodExists(BuiltinType, Name, Vec<BuiltinType>, Position),
     VarNotMutable(Name),
+    IncompatibleWithNil(BuiltinType),
     IdentifierExists(String),
     ShadowFunction(String),
     ShadowParam(String),
@@ -77,7 +78,12 @@ impl Msg {
                 let name = ctxt.interner.str(name).to_string();
 
                 format!("var `{}` not mutable.", name)
-            }
+            },
+            IncompatibleWithNil(ty) => {
+                let name = ty.name(ctxt);
+
+                format!("cannot assign nil to type `{}`.", name)
+            },
             UnknownProp(ref prop, ref ty) =>
                 format!("unknown property `{}` for type `{}`", prop, ty.name(ctxt)),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
