@@ -429,6 +429,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprCall(ref expr) => self.check_expr_call(expr),
             ExprProp(ref expr) => self.check_expr_prop(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
+            ExprNil(ref expr) => panic!("not implemented"),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);

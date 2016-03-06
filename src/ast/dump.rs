@@ -250,11 +250,16 @@ impl<'a> AstDumper<'a> {
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
             ExprCall(ref call) => self.dump_expr_call(call),
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
+            ExprNil(ref nil) => self.dump_expr_nil(nil),
         }
     }
 
     fn dump_expr_self(&mut self, selfie: &ExprSelfType) {
         dump!(self, "self @ {} {}", selfie.pos, selfie.id);
+    }
+
+    fn dump_expr_nil(&mut self, nil: &ExprNilType) {
+        dump!(self, "nil @ {} {}", nil.pos, nil.id);
     }
 
     fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {

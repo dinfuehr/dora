@@ -781,6 +781,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Identifier => self.parse_identifier_or_call(),
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
+            TokenType::Nil => self.parse_nil(),
             TokenType::This => self.parse_self(),
             _ => Err(ParseError {
                 position: self.token.position,
@@ -860,6 +861,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = try!(self.read_token());
 
         Ok(Box::new(Expr::create_this(self.generate_id(), tok.position)))
+    }
+
+    fn parse_nil(&mut self) -> ExprResult {
+        let tok = try!(self.read_token());
+
+        Ok(Box::new(Expr::create_nil(self.generate_id(), tok.position)))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, ParseError> {
@@ -1049,6 +1056,13 @@ mod tests {
         let (expr, _) = parse_expr("self");
 
         assert!(expr.is_this());
+    }
+
+    #[test]
+    fn parse_nil() {
+        let (expr, _) = parse_expr("nil");
+
+        assert!(expr.is_nil());
     }
 
     #[test]
