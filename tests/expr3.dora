@@ -1,5 +1,5 @@
 fn main() {
-  let mut a = 1;
+  let a = 1;
 
   assert((Foo(a=10).x = a) == 10);
   assert(a == 10);

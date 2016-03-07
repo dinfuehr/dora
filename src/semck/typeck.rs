@@ -712,8 +712,8 @@ mod tests {
 
     #[test]
     fn type_assign() {
-        ok("fn f(mut a: int) { a = 1; }");
-        err("fn f(mut a: int) { a = true; }", pos(1, 22),
+        ok("fn f(a: int) { a = 1; }");
+        err("fn f(a: int) { a = true; }", pos(1, 18),
             Msg::AssignType(Name(1), BuiltinType::Int, BuiltinType::Bool));
     }
 

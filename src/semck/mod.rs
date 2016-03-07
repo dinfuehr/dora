@@ -8,7 +8,6 @@ mod clsdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
-mod mutck;
 mod nameck;
 mod prelude;
 mod typeck;
@@ -52,9 +51,6 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // checks if function has a return value
     returnck::check(ctxt);
-
-    // checks if variables are mutable
-    mutck::check(ctxt);
 }
 
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {

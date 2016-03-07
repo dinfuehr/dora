@@ -1,6 +1,0 @@
-//= error at 5:3
-
-fn main() {
-  let a = 10;
-  a = 20;
-}

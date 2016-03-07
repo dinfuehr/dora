@@ -61,7 +61,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             id: VarId(0),
             name: name,
             data_type: BuiltinType::Class(cls_id),
-            mutable: true,
             node_id: ast_id,
             offset: 0
         };
@@ -96,7 +95,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             id: VarId(0),
             name: var.name,
             data_type: BuiltinType::Unit,
-            mutable: var.mutable,
             node_id: var.id,
             offset: 0
         };
@@ -191,7 +189,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             id: VarId(0),
             name: p.name,
             data_type: BuiltinType::Unit,
-            mutable: p.mutable,
             node_id: p.id,
             offset: 0,
         };

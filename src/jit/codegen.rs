@@ -413,9 +413,9 @@ mod tests {
 
     #[test]
     fn test_assign() {
-        assert_eq!(4711, run("fn f() -> int { let mut a: int; a = 4711; return a; }"));
-        assert_eq!(true, run("fn f() -> bool { let mut a: bool; a = true; return a; }"));
-        assert_eq!(false, run("fn f() -> bool { let mut a: bool; a = false; return a; }"));
+        assert_eq!(4711, run("fn f() -> int { let a: int; a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool { let a: bool; a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool { let a: bool; a = false; return a; }"));
     }
 
     #[test]
