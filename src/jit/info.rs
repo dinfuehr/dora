@@ -126,7 +126,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let idx = (p.idx as usize) + if self.fct.owner_class.is_some() { 1 } else { 0 };
+        let idx = (p.idx as usize) + if self.fct.ctor { 1 } else { 0 };
 
         // only some parameters are passed in registers
         // these registers need to be stored into local variables

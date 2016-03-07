@@ -40,9 +40,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
-        if self.fct.owner_class.is_some() {
+        if self.fct.ctor {
             // add hidden this parameter for ctors and methods
-            self.add_hidden_parameter_this();
+            self.add_hidden_parameter_self();
         }
 
         for p in &self.ast.params { self.visit_param(p); }
@@ -51,17 +51,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         self.ctxt.sym.borrow_mut().pop_level();
     }
 
-    pub fn add_hidden_parameter_this(&mut self) {
+    pub fn add_hidden_parameter_self(&mut self) {
         let var_id = VarId(self.fct.src().vars.len());
         let cls_id = self.fct.owner_class.unwrap();
         let ast_id = self.fct.src().ast.id;
-        let name = self.ctxt.interner.intern("this");
+        let name = self.ctxt.interner.intern("self");
 
         let var = Var {
             id: VarId(0),
             name: name,
             data_type: BuiltinType::Class(cls_id),
-            mutable: false,
+            mutable: true,
             node_id: ast_id,
             offset: 0
         };

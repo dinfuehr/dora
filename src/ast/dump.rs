@@ -121,8 +121,12 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_param(&mut self, param: &Param) {
-        dump!(self, "param {} @ {} {}", self.str(param.name), param.pos, param.id);
-        self.indent(|d| d.dump_type(&param.data_type));
+        dump!(self, "param {} (mutable={}) @ {} {}",
+            self.str(param.name), param.mutable, param.pos, param.id);
+
+        if !param.data_type.is_self() {
+            self.indent(|d| d.dump_type(&param.data_type));
+        }
     }
 
     fn dump_type(&mut self, ty: &Type) {

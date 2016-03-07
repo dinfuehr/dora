@@ -95,6 +95,7 @@ pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
 
 pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
     match *t {
+        TypeSelf => { },
         TypeBasic(_) => { },
         TypeTuple(ref tuple) => {
             for ty in &tuple.subtypes {

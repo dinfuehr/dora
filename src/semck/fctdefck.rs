@@ -35,6 +35,10 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
 
+        if self.ctxt.diag.borrow().has_errors() {
+            return;
+        }
+
         self.fct.initialized = true;
 
         if let Some(clsid) = self.fct.owner_class {
@@ -49,9 +53,10 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
                 if method.initialized
                    && method.name == self.fct.name
                    && method.params_types == self.fct.params_types {
+
                     let msg = Msg::MethodExists(
                         BuiltinType::Class(clsid), method.name,
-                        method.params_types.clone(), method.src().ast.pos);
+                        method.params_types[1..].to_vec(), method.src().ast.pos);
                     self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
                     return;
                 }
@@ -75,7 +80,23 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
-        self.visit_type(&p.data_type);
+        if p.idx == 0 && self.fct.owner_class.is_some() && !self.fct.ctor {
+            if !p.data_type.is_self() {
+                self.ctxt.diag.borrow_mut().report(p.pos, Msg::SelfNeeded);
+                return;
+            }
+
+            let cls_id = self.fct.owner_class.unwrap();
+            self.current_type = BuiltinType::Class(cls_id);
+
+        } else {
+            if p.data_type.is_self() {
+                self.ctxt.diag.borrow_mut().report(p.pos, Msg::InvalidUseOfSelf);
+                return;
+            }
+
+            self.visit_type(&p.data_type);
+        }
 
         self.fct.params_types.push(self.current_type);
 

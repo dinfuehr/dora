@@ -173,6 +173,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             name: cls.name,
             method: true,
+            mutable: true,
             params: params,
             return_type: Some(self.build_type(cls.name)),
             block: self.build_block(assignments)
@@ -318,6 +319,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: ident,
             pos: pos,
             method: self.in_class,
+            mutable: true,
             params: params,
             return_type: return_type,
             block: block,
@@ -372,10 +374,21 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             false
         };
 
-        let name = try!(self.expect_identifier());
+        let name;
+        let data_type;
 
-        try!(self.expect_token(TokenType::Colon));
-        let data_type = try!(self.parse_type());
+        if self.token.is(TokenType::This) {
+            try!(self.read_token());
+
+            name = self.interner.intern("self");
+            data_type = Type::TypeSelf;
+
+        } else {
+            name = try!(self.expect_identifier());
+
+            try!(self.expect_token(TokenType::Colon));
+            data_type = try!(self.parse_type());
+        }
 
         Ok(Param {
             id: self.generate_id(),

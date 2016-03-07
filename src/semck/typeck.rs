@@ -355,7 +355,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }).collect();
 
         let object_type = call_types[0];
-        let call_types = &call_types[1..];
 
         if let BuiltinType::Class(cls_id) = object_type {
             let cls = self.ctxt.cls_by_id(cls_id);
@@ -390,7 +389,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
 
             } else if candidates.len() > 1 {
-                let msg = Msg::MultipleCandidates(object_type, e.name, call_types.to_vec());
+                let msg = Msg::MultipleCandidates(object_type, e.name, call_types[1..].to_vec());
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 self.set_type(e.id, BuiltinType::Unit);
                 return;
@@ -398,7 +397,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let call_types = call_types.iter().cloned().collect::<Vec<_>>();
-        let msg = Msg::UnknownMethod(object_type, e.name, call_types);
+        let msg = Msg::UnknownMethod(object_type, e.name, call_types[1..].to_vec());
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         self.set_type(e.id, BuiltinType::Unit);
     }
@@ -535,24 +534,24 @@ mod tests {
 
     #[test]
     fn type_object_prop_without_self() {
-        ok("class Foo(a: int) { fn f() -> int { return a; } }");
-        ok("class Foo(a: int) { fn set(x: int) { a = x; } }");
-        err("class Foo(a: int) { fn set(x: int) { b = x; } }",
-            pos(1, 38), Msg::UnknownIdentifier(Name(5)));
+        ok("class Foo(a: int) { fn f(self) -> int { return a; } }");
+        ok("class Foo(a: int) { fn set(self, x: int) { a = x; } }");
+        err("class Foo(a: int) { fn set(self, x: int) { b = x; } }",
+            pos(1, 44), Msg::UnknownIdentifier(Name(6)));
     }
 
     #[test]
     fn type_method_call() {
         ok("class Foo {
-                fn bar() {}
-                fn baz() -> int { return 1; }
+                fn bar(self) {}
+                fn baz(self) -> int { return 1; }
             }
 
             fn f(x: Foo) { x.bar(); }
             fn g(x: Foo) -> int { return x.baz(); }");
 
         err("class Foo {
-                 fn bar() -> int { return 0; }
+                 fn bar(self) -> int { return 0; }
              }
 
              fn f(x: Foo) -> Str { return x.bar(); }",
@@ -562,57 +561,57 @@ mod tests {
     #[test]
     fn type_method_defined_twice() {
         err("class Foo {
-                 fn bar() {}
-                 fn bar() {}
+                 fn bar(self) {}
+                 fn bar(self) {}
              }", pos(3, 18), Msg::MethodExists(
                  BuiltinType::Class(ClassId(0)), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
-                 fn bar() {}
-                 fn bar() -> int {}
+                 fn bar(self) {}
+                 fn bar(self) -> int {}
              }", pos(3, 18), Msg::MethodExists(
                  BuiltinType::Class(ClassId(0)), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
-                 fn bar(a: int) {}
-                 fn bar(a: int) -> int {}
+                 fn bar(self, a: int) {}
+                 fn bar(self, a: int) -> int {}
              }", pos(3, 18), Msg::MethodExists(
                  BuiltinType::Class(ClassId(0)), Name(1), vec![BuiltinType::Int], pos(2, 18)));
 
         ok("class Foo {
-                fn bar(a: int) {}
-                fn bar(a: Str) {}
+                fn bar(self, a: int) {}
+                fn bar(self, a: Str) {}
             }");
     }
 
     #[test]
     fn type_self() {
-        ok("class Foo { fn me() -> Foo { return self; } }");
+        ok("class Foo { fn me(self) -> Foo { return self; } }");
         err("class Foo fn me() { return self; }",
             pos(1, 28), Msg::SelfUnavailable);
 
         ok("class Foo(a: int, b: int) {
-            fn bar() -> int { return self.a + self.b; }
+            fn bar(self) -> int { return self.a + self.b; }
         }");
 
         ok("class Foo(a: int) {
-            fn setA(a: int) { self.a = a; }
+            fn setA(self, a: int) { self.a = a; }
         }");
 
         ok("class Foo {
-            fn zero() -> int { return 0; }
-            fn other() -> int { return self.zero(); }
+            fn zero(self) -> int { return 0; }
+            fn other(self) -> int { return self.zero(); }
         }");
 
         ok("class Foo {
-            fn bar() { self.bar(); }
+            fn bar(self) { self.bar(); }
         }");
     }
 
     #[test]
     fn type_unknown_method() {
         err("class Foo {
-                 fn bar(a: int) { }
+                 fn bar(self, a: int) { }
              }
 
              fn f(x: Foo) { x.bar(); }",
@@ -862,17 +861,17 @@ mod tests {
     #[test]
     fn type_nil_as_method_argument() {
         ok("class Foo {
-            fn f(a: Str) {}
-            fn f(a: int) {}
+            fn f(self, a: Str) {}
+            fn f(self, a: int) {}
         } fn f() { Foo().f(nil); }");
         err("class Foo {
-                fn f(a: Str) {}
-                fn f(a: Foo) {}
+                fn f(self, a: Str) {}
+                fn f(self, a: Foo) {}
             }
 
             fn f() {
                 Foo().f(nil);
-            }", pos(7, 22), Msg::MultipleCandidates(
-                BuiltinType::Class(ClassId(0)), Name(1), vec![BuiltinType::Nil]));
+            }", pos(7, 22), Msg::MultipleCandidates(BuiltinType::Class(ClassId(0)),
+                Name(1), vec![BuiltinType::Nil]));
     }
 }

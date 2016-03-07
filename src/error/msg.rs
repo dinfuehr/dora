@@ -38,6 +38,8 @@ pub enum Msg {
     WrongMainDefinition,
     SelfUnavailable,
     MultipleCandidates(BuiltinType, Name, Vec<BuiltinType>),
+    SelfNeeded,
+    InvalidUseOfSelf
 }
 
 impl Msg {
@@ -146,7 +148,9 @@ impl Msg {
 
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",
                     name, call_types, cls)
-            }
+            },
+            SelfNeeded => "`self` parameter needed for methods.".into(),
+            InvalidUseOfSelf => "`self` only allowed for first argument of methods.".into(),
         }
     }
 }

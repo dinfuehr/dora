@@ -67,10 +67,20 @@ impl Elem {
 
 #[derive(Clone, Debug)]
 pub enum Type {
+    TypeSelf,
     TypeBasic(TypeBasicType),
     TypeTuple(TypeTupleType),
     TypePtr(TypePtrType),
     TypeArray(TypeArrayType),
+}
+
+impl Type {
+    pub fn is_self(&self) -> bool {
+        match *self {
+            Type::TypeSelf => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -164,6 +174,10 @@ impl Type {
 
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
+            Type::TypeSelf => {
+                "Self".into()
+            }
+
             Type::TypeBasic(ref val) => {
                 format!("{}", *interner.str(val.name))
             }
@@ -186,6 +200,7 @@ impl Type {
 
     pub fn pos(&self) -> Position {
         match *self {
+            Type::TypeSelf => panic!("no position for Self"),
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
             Type::TypePtr(ref val) => val.pos,
@@ -195,6 +210,7 @@ impl Type {
 
     pub fn id(&self) -> NodeId {
         match *self {
+            Type::TypeSelf => panic!("no id for Self"),
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
             Type::TypePtr(ref val) => val.id,
@@ -229,6 +245,7 @@ pub struct Function {
     pub name: Name,
     pub pos: Position,
     pub method: bool,
+    pub mutable: bool,
 
     pub params: Vec<Param>,
 

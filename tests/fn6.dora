@@ -41,7 +41,7 @@ fn g(a: Str, b: Str, c: Str, d: Str,
 }
 
 class Foo1 {
-  fn f(a: int, b: int, c: int, d: int,
+  fn f(self, a: int, b: int, c: int, d: int,
        e: int, f: int, g: int, h: int) {
     assert(a == 1);
     assert(b == 2);
