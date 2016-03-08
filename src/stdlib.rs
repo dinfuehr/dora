@@ -2,6 +2,7 @@ use libc;
 
 use std::ffi::CStr;
 use std::io::{self, Write};
+use std::mem;
 use std::os::raw::c_char;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
@@ -57,12 +58,19 @@ pub extern "C" fn gc_alloc(size: usize) -> Ptr {
     gc.alloc(size)
 }
 
-pub extern "C" fn int_array_empty() -> Ptr {
+pub extern "C" fn int_array_empty(ptr: Ptr) -> Ptr {
+    let data = IntArray::empty();
+
+    unsafe { *(ptr.raw() as *mut IntArray) = data; }
+
+    ptr
+}
+
+pub extern "C" fn int_array_elem(ptr: Ptr, len: i32, value: i32) -> Ptr {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
 
-    let ptr = gc.alloc(1000);
-    let data = IntArray::empty();
+    let data = IntArray::with_element(&mut gc, len as usize, value as isize);
 
     unsafe { *(ptr.raw() as *mut IntArray) = data; }
 

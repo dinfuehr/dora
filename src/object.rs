@@ -1,3 +1,4 @@
+use std;
 use std::ptr;
 
 use gc::Gc;
@@ -91,22 +92,20 @@ impl IntArray {
         }
     }
 
-    pub fn new(gc: &mut Gc, length: i32, elem: i32) -> IntArray {
-        let length = length as usize;
-
+    pub fn with_element(gc: &mut Gc, length: usize, elem: isize) -> IntArray {
         if length < 0 {
             panic!("length needs to be greater or equal to 0.");
         }
 
-        let ptr = if length == 0 {
-            gc.alloc(4 * length).raw() as *mut i32
+        let ptr = if length > 0 {
+            gc.alloc(std::mem::size_of::<i32>() * length).raw() as *mut i32
         } else {
             ptr::null_mut()
         };
 
         for i in 0..length {
             unsafe {
-                *ptr.offset(i as isize) = elem;
+                *ptr.offset(i as isize) = elem as i32;
             }
         }
 
@@ -115,6 +114,10 @@ impl IntArray {
             length: length,
             capacity: length
         }
+    }
+
+    pub fn size() -> usize {
+        std::mem::size_of::<IntArray>()
     }
 
     pub fn len(&self) -> usize {
