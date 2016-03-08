@@ -3,16 +3,80 @@ use libc::c_void;
 use stdlib;
 
 use ctxt::*;
-use mem::Ptr;
+use class::*;
+use interner::Name;
+use mem::{self, Ptr};
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub fn init<'a, 'ast: 'a>(ctxt: &mut Context<'ast>) {
+pub fn init<'ast>(ctxt: &mut Context<'ast>) {
     add_builtin_types(ctxt);
     add_builtin_functions(ctxt);
+    add_builtin_classes(ctxt);
 }
 
-fn add_builtin_types<'a, 'ast: 'a>(ctxt: &mut Context<'ast>) {
+fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("IntArray");
+
+    let ctor_empty = add_ctor(ctxt, cls_id, cls_name,
+        Vec::new(), Ptr::new(stdlib::int_array_empty as *mut c_void));
+
+    let mtd_len = add_method(ctxt, cls_id, "len", Vec::new(), BuiltinType::Int,
+        Ptr::new(stdlib::int_array_len as *mut c_void));
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        ctors: vec![ctor_empty],
+        props: Vec::new(),
+        methods: vec![mtd_len],
+        size: 3 * mem::ptr_width(),
+        ast: None
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymType(BuiltinType::Class(cls_id));
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_ctor<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: Name,
+                  args: Vec<BuiltinType>, fct: Ptr) -> FctId {
+    let fct = Fct {
+        id: FctId(0),
+        name: name,
+        params_types: args,
+        return_type: BuiltinType::Class(cls_id),
+        owner_class: Some(cls_id),
+        ctor: true,
+        initialized: true,
+        kind: FctKind::Builtin(fct),
+    };
+
+    ctxt.add_fct(fct)
+}
+
+fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static str,
+                    mut args: Vec<BuiltinType>, return_type: BuiltinType, fct: Ptr) -> FctId {
+    let name = ctxt.interner.intern(name);
+    args.insert(0, BuiltinType::Class(cls_id));
+
+    let fct = Fct {
+        id: FctId(0),
+        name: name,
+        params_types: args,
+        return_type: return_type,
+        owner_class: Some(cls_id),
+        ctor: false,
+        initialized: true,
+        kind: FctKind::Builtin(fct),
+    };
+
+    ctxt.add_fct(fct)
+}
+
+fn add_builtin_types<'ast>(ctxt: &mut Context<'ast>) {
     builtin_type("int", BuiltinType::Int, ctxt);
     builtin_type("bool", BuiltinType::Bool, ctxt);
     builtin_type("Str", BuiltinType::Str, ctxt);

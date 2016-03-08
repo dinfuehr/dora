@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use std::os::raw::c_char;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::Str;
+use object::{IntArray, Str};
 
 pub extern "C" fn assert(val: bool) {
     if !val {
@@ -55,4 +55,22 @@ pub extern "C" fn gc_alloc(size: usize) -> Ptr {
     let mut gc = ctxt.gc.lock().unwrap();
 
     gc.alloc(size)
+}
+
+pub extern "C" fn int_array_empty() -> Ptr {
+    let ctxt = get_ctxt();
+    let mut gc = ctxt.gc.lock().unwrap();
+
+    let ptr = gc.alloc(1000);
+    let data = IntArray::empty();
+
+    unsafe { *(ptr.raw() as *mut IntArray) = data; }
+
+    ptr
+}
+
+pub extern "C" fn int_array_len(ptr: *const IntArray) -> i32 {
+    let array = unsafe { &*ptr };
+
+    array.len() as i32
 }

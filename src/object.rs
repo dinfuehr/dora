@@ -76,14 +76,14 @@ impl Str {
     }
 }
 
-struct IntArray {
+pub struct IntArray {
     ptr: *mut i32,
     length: usize,
     capacity: usize,
 }
 
 impl IntArray {
-    fn empty() -> IntArray {
+    pub fn empty() -> IntArray {
         IntArray {
             ptr: ptr::null_mut(),
             length: 0,
@@ -91,14 +91,18 @@ impl IntArray {
         }
     }
 
-    fn new(gc: &mut Gc, length: i32, elem: i32) -> IntArray {
+    pub fn new(gc: &mut Gc, length: i32, elem: i32) -> IntArray {
         let length = length as usize;
 
         if length < 0 {
             panic!("length needs to be greater or equal to 0.");
         }
 
-        let ptr = gc.alloc(4 * length).raw() as *mut i32;
+        let ptr = if length == 0 {
+            gc.alloc(4 * length).raw() as *mut i32
+        } else {
+            ptr::null_mut()
+        };
 
         for i in 0..length {
             unsafe {
@@ -111,6 +115,10 @@ impl IntArray {
             length: length,
             capacity: length
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.length
     }
 
     fn get(&self, ind: i32) -> i32 {
