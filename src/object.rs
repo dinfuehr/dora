@@ -76,6 +76,66 @@ impl Str {
     }
 }
 
+struct IntArray {
+    ptr: *mut i32,
+    length: usize,
+    capacity: usize,
+}
+
+impl IntArray {
+    fn empty() -> IntArray {
+        IntArray {
+            ptr: ptr::null_mut(),
+            length: 0,
+            capacity: 0,
+        }
+    }
+
+    fn new(gc: &mut Gc, length: i32, elem: i32) -> IntArray {
+        let length = length as usize;
+
+        if length < 0 {
+            panic!("length needs to be greater or equal to 0.");
+        }
+
+        let ptr = gc.alloc(4 * length).raw() as *mut i32;
+
+        for i in 0..length {
+            unsafe {
+                *ptr.offset(i as isize) = elem;
+            }
+        }
+
+        IntArray {
+            ptr: ptr,
+            length: length,
+            capacity: length
+        }
+    }
+
+    fn get(&self, ind: i32) -> i32 {
+        if ind < 0 || ind as usize >= self.length {
+            panic!("index out of bounds");
+        }
+
+        unsafe {
+            *self.ptr.offset(ind as isize)
+        }
+    }
+
+    fn set(&self, ind: i32, value: i32) -> i32 {
+        if ind < 0 || ind as usize >= self.length {
+            panic!("index out of bounds");
+        }
+
+        unsafe {
+            *self.ptr.offset(ind as isize) = value;
+        }
+
+        value
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
