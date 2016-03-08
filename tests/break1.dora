@@ -1,0 +1,13 @@
+fn main() {
+  let i = 0;
+  let sum = 0;
+
+  while i < 10 {
+    if i == 4 { break; }
+    i = i + 1;
+    sum = sum + i;
+  }
+
+  assert(i == 4);
+  assert(sum == 10);
+}
