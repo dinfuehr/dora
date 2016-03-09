@@ -441,6 +441,45 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_nil(&mut self, e: &'ast ExprNilType) {
         self.set_type(e.id, BuiltinType::Nil);
     }
+
+    fn check_expr_array(&mut self, e: &'ast ExprArrayType) {
+        self.visit_expr(&e.object);
+        let object_type = self.expr_type;
+
+        self.visit_expr(&e.index);
+        let index_type = self.expr_type;
+
+        let name = self.ctxt.interner.intern("get");
+
+        if let BuiltinType::Class(cls_id) = object_type {
+            let cls = self.ctxt.cls_by_id(cls_id);
+            let args = vec![object_type, index_type];
+
+            for method in &cls.methods {
+                let method = *method;
+
+                if method == self.fct.id {
+                    panic!("panic otherwise we would block forever");
+                }
+
+                let found = self.ctxt.fct_by_id(method, |method| {
+                    if method.name == name && args_compatible(&method.params_types, &args) {
+                        self.set_type(e.id, method.return_type);
+
+                        true
+                    } else {
+                        false
+                    }
+                });
+
+                if found { return };
+            }
+        }
+
+        let msg = Msg::UnknownMethod(object_type, name, vec![index_type]);
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        self.set_type(e.id, BuiltinType::Unit);
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -457,7 +496,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprProp(ref expr) => self.check_expr_prop(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
-            ExprArray(ref expr) => unreachable!("array not supported"),
+            ExprArray(ref expr) => self.check_expr_array(expr),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);
@@ -874,5 +913,12 @@ mod tests {
                 Foo().f(nil);
             }", pos(7, 22), Msg::MultipleCandidates(BuiltinType::Class(ClassId(1)),
                 Name(1), vec![BuiltinType::Nil]));
+    }
+
+    #[test]
+    fn type_array() {
+        ok("fn f(a: IntArray) -> int { return a[1]; }");
+        err("fn f(a: IntArray) -> Str { return a[1]; }", pos(1, 28),
+            Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }
 }

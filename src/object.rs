@@ -124,7 +124,7 @@ impl IntArray {
         self.length
     }
 
-    fn get(&self, ind: i32) -> i32 {
+    pub fn get(&self, ind: i32) -> i32 {
         if ind < 0 || ind as usize >= self.length {
             panic!("index out of bounds");
         }
@@ -134,7 +134,7 @@ impl IntArray {
         }
     }
 
-    fn set(&self, ind: i32, value: i32) -> i32 {
+    pub fn set(&self, ind: i32, value: i32) -> i32 {
         if ind < 0 || ind as usize >= self.length {
             panic!("index out of bounds");
         }
