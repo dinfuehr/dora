@@ -56,6 +56,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprProp(ref expr) => self.emit_prop(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
+            ExprArray(_) => unreachable!("array not supported"),
         }
 
         dest
@@ -604,6 +605,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprProp(_) => false,
         ExprSelf(_) => true,
         ExprNil(_) => true,
+        ExprArray(_) => false,
     }
 }
 
@@ -621,5 +623,6 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprProp(ref e) => contains_fct_call(&e.object),
         ExprSelf(_) => false,
         ExprNil(_) => false,
+        ExprArray(ref e) => contains_fct_call(&e.object) || contains_fct_call(&e.index),
     }
 }

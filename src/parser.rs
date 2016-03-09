@@ -752,15 +752,24 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_expression_l10(&mut self) -> ExprResult {
         let mut left = try!(self.parse_factor());
 
-        while self.token.is(TokenType::Dot) {
-            let tok = try!(self.read_token());
-            let ident = try!(self.expect_identifier());
+        while self.token.is(TokenType::Dot) || self.token.is(TokenType::LBracket) {
+            left = if self.token.is(TokenType::Dot) {
+                let tok = try!(self.read_token());
+                let ident = try!(self.expect_identifier());
 
-            left = if self.token.is(TokenType::LParen) {
-                try!(self.parse_call(tok.position, Some(left), ident))
+                if self.token.is(TokenType::LParen) {
+                    try!(self.parse_call(tok.position, Some(left), ident))
+
+                } else {
+                    Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident))
+                }
 
             } else {
-                Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident))
+                let tok = try!(self.read_token());
+                let index = try!(self.parse_expression());
+                try!(self.expect_token(TokenType::RBracket));
+
+                Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
             };
         }
 
@@ -1718,5 +1727,14 @@ mod tests {
         let (expr, interner) = parse_expr("a.foo(1,2)");
         let call = expr.to_call().unwrap();
         assert_eq!(3, call.args.len());
+    }
+
+
+    #[test]
+    fn parse_array_index() {
+        let (expr, interner) = parse_expr("a[b]");
+        let expr = expr.to_array().unwrap();
+        assert_eq!("a", *interner.str(expr.object.to_ident().unwrap().name));
+        assert_eq!("b", *interner.str(expr.index.to_ident().unwrap().name));
     }
 }

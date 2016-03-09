@@ -668,6 +668,7 @@ pub enum Expr {
     ExprProp(ExprPropType),
     ExprSelf(ExprSelfType),
     ExprNil(ExprNilType),
+    ExprArray(ExprArrayType),
 }
 
 impl Expr {
@@ -688,6 +689,16 @@ impl Expr {
             op: op,
             lhs: lhs,
             rhs: rhs,
+        })
+    }
+
+    pub fn create_array(id: NodeId, pos: Position,
+                        object: Box<Expr>, index: Box<Expr>) -> Expr {
+        Expr::ExprArray(ExprArrayType {
+            id: id,
+            pos: pos,
+            object: object,
+            index: index,
         })
     }
 
@@ -888,6 +899,13 @@ impl Expr {
         }
     }
 
+    pub fn to_array(&self) -> Option<&ExprArrayType> {
+        match *self {
+            Expr::ExprArray(ref val) => Some(val),
+            _ => None
+        }
+    }
+
     pub fn is_this(&self) -> bool {
         match *self {
             Expr::ExprSelf(_) => true,
@@ -915,6 +933,7 @@ impl Expr {
             Expr::ExprProp(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
+            Expr::ExprArray(ref val) => val.id,
         }
     }
 }
@@ -936,6 +955,15 @@ pub struct ExprBinType {
     pub op: BinOp,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprArrayType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub object: Box<Expr>,
+    pub index: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

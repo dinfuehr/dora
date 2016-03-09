@@ -457,6 +457,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprProp(ref expr) => self.check_expr_prop(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
+            ExprArray(ref expr) => unreachable!("array not supported"),
         }
 
         self.fct.src_mut().types.insert(e.id(), self.expr_type);
