@@ -163,6 +163,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
                                                                   object_type, name, &args) {
+                let call_type = CallType::Method(object_type.cls_id(), fct_id);
+                assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+
                 self.set_type(e.id, return_type);
             }
 
@@ -482,6 +485,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
                                                               object_type, name, &args) {
+            let call_type = CallType::Method(object_type.cls_id(), fct_id);
+            assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+
             self.set_type(e.id, return_type);
         }
     }

@@ -9,7 +9,6 @@ use cpu::emit;
 use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
 
-use jit::autogen;
 use jit::buffer::*;
 use jit::expr::*;
 use jit::fct::JitFct;

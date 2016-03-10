@@ -4,7 +4,6 @@ use ctxt::*;
 use jit::buffer::*;
 use mem::ptr::Ptr;
 
-pub mod autogen;
 pub mod buffer;
 pub mod codegen;
 pub mod expr;
