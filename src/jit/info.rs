@@ -77,6 +77,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         var.offset = -self.localsize;
     }
 
+    fn reserve_stack_for_array(&mut self, expr: &'ast ExprArrayType) {
+        self.reserve_temp_for_node(expr.object.id());
+        self.reserve_temp_for_node(expr.index.id());
+
+        // reserve stack for arguments
+        let argsize = 8 * 2;
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
+        }
+    }
+
     fn reserve_stack_for_call(&mut self, expr: &'ast ExprCallType) {
         let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
         let ctor = call_type.is_ctor();
@@ -162,6 +174,10 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         match *e {
             ExprCall(ref expr) => {
                 self.reserve_stack_for_call(expr);
+            }
+
+            ExprArray(ref expr) => {
+                self.reserve_stack_for_array(expr);
             }
 
             ExprProp(ref expr) => {

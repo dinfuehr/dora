@@ -56,10 +56,24 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprProp(ref expr) => self.emit_prop(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
-            ExprArray(_) => unreachable!("array not supported"),
+            ExprArray(ref expr) => self.emit_array(expr, dest),
         }
 
         dest
+    }
+
+    fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
+        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let fct_id = call_type.fct_id();
+        let ptr = self.ptr_for_fct_id(fct_id);
+
+        let args = vec![
+            Arg::Expr(&e.object),
+            Arg::Expr(&e.index),
+        ];
+
+        // FIXME: determine correct return type
+        self.emit_universal_call(ptr, args, BuiltinType::Int, dest);
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -350,13 +364,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         -(self.tempsize + self.fct.src().localsize)
     }
 
-    fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
-        let fid = call_type.fct_id();
-        let ctor = call_type.is_ctor();
-        let method = call_type.is_method();
-
-        let ptr = if self.fct.id == fid {
+    fn ptr_for_fct_id(&mut self, fid: FctId) -> Ptr {
+        if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
             ensure_jit_or_stub_ptr(self.fct, self.ctxt)
 
@@ -368,7 +377,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     FctKind::Intrinsic => panic!("intrinsic fct call"),
                 }
             })
-        };
+        }
+    }
+
+    fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let fid = call_type.fct_id();
+        let ctor = call_type.is_ctor();
+        let method = call_type.is_method();
+
+        let ptr = self.ptr_for_fct_id(fid);
 
         if e.args.len() > 0 {
             let arg = &e.args[0];
@@ -473,12 +491,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                            return_type: BuiltinType, dest: Reg) {
         for arg in &args {
             match *arg {
-                Arg::Expr(expr) => {
-                    self.emit_expr(expr.ast, REG_RESULT);
+                Arg::Expr(ast) => {
+                    self.emit_expr(ast, REG_RESULT);
                 }
 
-                Arg::Selfie(selfie) => {
-                    let cls = self.ctxt.cls_by_id(selfie.cls_id);
+                Arg::Selfie(cls_id, _) => {
+                    let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
@@ -486,18 +504,22 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
             }
 
-            emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, arg.offset());
+            let offset = -(self.fct.src().localsize + arg.offset(self.fct));
+            emit::mov_reg_local(self.buf, arg.ty(self.fct), REG_RESULT, offset);
         }
 
         let mut arg_offset = -self.fct.src().stacksize();
 
         for (ind, arg) in args.iter().enumerate() {
+            let ty = arg.ty(self.fct);
+            let offset = -(self.fct.src().localsize + arg.offset(self.fct));
+
             if ind < REG_PARAMS.len() {
-                emit::mov_local_reg(self.buf, arg.ty(), arg.offset(), REG_PARAMS[ind]);
+                emit::mov_local_reg(self.buf, ty, offset, REG_PARAMS[ind]);
 
             } else {
-                emit::mov_local_reg(self.buf, arg.ty(), arg.offset(), REG_RESULT);
-                emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, arg_offset);
+                emit::mov_local_reg(self.buf, ty, offset, REG_RESULT);
+                emit::mov_reg_local(self.buf, ty, REG_RESULT, arg_offset);
 
                 arg_offset += 8;
             }
@@ -532,36 +554,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
 #[derive(Copy, Clone)]
 enum Arg<'ast> {
-    Expr(ArgExpr<'ast>), Selfie(ArgSelf)
+    Expr(&'ast Expr), Selfie(ClassId, i32)
 }
 
 impl<'ast> Arg<'ast> {
-    fn offset(&self) -> i32 {
+    fn offset(&self, fct: &Fct) -> i32 {
         match *self {
-            Arg::Expr(expr) => expr.offset,
-            Arg::Selfie(selfie) => selfie.offset,
+            Arg::Expr(expr) => fct.src().get_store(expr.id()).offset(),
+            Arg::Selfie(_, offset) => offset,
         }
     }
 
-    fn ty(&self) -> BuiltinType {
+    fn ty(&self, fct: &Fct) -> BuiltinType {
         match *self {
-            Arg::Expr(expr) => expr.ty,
-            Arg::Selfie(_) => BuiltinType::Ptr,
+            Arg::Expr(expr) => fct.src().get_type(expr.id()),
+            Arg::Selfie(_, _) => BuiltinType::Ptr,
         }
     }
-}
-
-#[derive(Copy, Clone)]
-struct ArgExpr<'ast> {
-    ast: &'ast Expr,
-    ty: BuiltinType,
-    offset: i32,
-}
-
-#[derive(Copy, Clone)]
-struct ArgSelf {
-    cls_id: ClassId,
-    offset: i32,
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {

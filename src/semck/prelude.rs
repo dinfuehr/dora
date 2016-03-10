@@ -33,7 +33,7 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
         Ptr::new(stdlib::int_array_get as *mut c_void));
 
     let mtd_set = add_method(ctxt, cls_id, "set", vec![BuiltinType::Int, BuiltinType::Int],
-        BuiltinType::Int, Ptr::new(stdlib::int_array_set as *mut c_void));
+        BuiltinType::Unit, Ptr::new(stdlib::int_array_set as *mut c_void));
 
     let cls = Box::new(Class {
         id: cls_id,

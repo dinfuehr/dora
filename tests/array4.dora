@@ -1,0 +1,4 @@
+fn main() {
+  let array = IntArray(5, 2);
+  assert(2 == array[0]);
+}

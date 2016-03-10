@@ -134,7 +134,7 @@ impl IntArray {
         }
     }
 
-    pub fn set(&self, ind: i32, value: i32) -> i32 {
+    pub fn set(&self, ind: i32, value: i32) {
         if ind < 0 || ind as usize >= self.length {
             panic!("index out of bounds");
         }
@@ -142,8 +142,6 @@ impl IntArray {
         unsafe {
             *self.ptr.offset(ind as isize) = value;
         }
-
-        value
     }
 }
 

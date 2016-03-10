@@ -160,13 +160,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             let name = self.ctxt.interner.intern("set");
             let args = vec![object_type, index_type, value_type];
+            let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
-                                                                  object_type, name, &args) {
+            if let Some((fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
+                                                                  &args, ret_type) {
                 let call_type = CallType::Method(object_type.cls_id(), fct_id);
                 assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
 
-                self.set_type(e.id, return_type);
+                let index_type = if self.fct.id == fct_id {
+                    self.fct.params_types[1]
+                } else {
+                    self.ctxt.fct_by_id(fct_id, |fct| fct.params_types[1])
+                };
+
+                self.set_type(e.id, index_type);
             }
 
         } else if e.lhs.is_prop() || e.lhs.is_ident() {
@@ -200,7 +207,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn find_method(&mut self, id: NodeId, pos: Position, object_type: BuiltinType,
-                   name: Name, args: &[BuiltinType]) -> Option<(FctId, BuiltinType)> {
+                   name: Name, args: &[BuiltinType],
+                   return_type: Option<BuiltinType>) -> Option<(FctId, BuiltinType)> {
         if let BuiltinType::Class(cls_id) = object_type {
             let cls = self.ctxt.cls_by_id(cls_id);
             let mut candidates = Vec::new();
@@ -210,13 +218,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if self.fct.id == method {
                     if self.fct.name == name
-                        && args_compatible(&self.fct.params_types, args) {
+                        && args_compatible(&self.fct.params_types, args)
+                        && (return_type.is_none()
+                         || self.fct.return_type == return_type.unwrap()) {
                         candidates.push((method, self.fct.return_type));
                     }
                 } else {
                     self.ctxt.fct_by_id(method, |callee| {
                         if callee.name == name
-                            && args_compatible(&callee.params_types, args) {
+                            && args_compatible(&callee.params_types, args)
+                            && (return_type.is_none()
+                             || callee.return_type == return_type.unwrap()) {
                             candidates.push((method, callee.return_type));
                         }
                     });
@@ -425,8 +437,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let object_type = call_types[0];
 
-        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
-                                                              object_type, e.name, &call_types) {
+        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos, object_type, e.name,
+                                                              &call_types, None) {
             let call_type = CallType::Method(object_type.cls_id(), fct_id);
             assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
             self.set_type(e.id, return_type);
@@ -483,8 +495,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![object_type, index_type];
 
-        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
-                                                              object_type, name, &args) {
+        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos, object_type, name,
+                                                              &args, None) {
             let call_type = CallType::Method(object_type.cls_id(), fct_id);
             assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
 
