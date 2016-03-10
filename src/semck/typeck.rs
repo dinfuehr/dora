@@ -1,10 +1,12 @@
-use ctxt::{CallType, Context, Fct, IdentType};
+use ctxt::{CallType, Context, Fct, FctId, IdentType};
 use error::msg::Msg;
 
 use ast::*;
 use ast::Expr::*;
 use ast::Stmt::*;
 use ast::visit::Visitor;
+use interner::Name;
+use lexer::position::Position;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
@@ -144,33 +146,97 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_assign(&mut self, e: &'ast ExprAssignType) {
-        if !e.lhs.is_ident() && !e.lhs.is_prop() {
+        if e.lhs.is_array() {
+            let array = e.lhs.to_array().unwrap();
+
+            self.visit_expr(&array.object);
+            let object_type = self.expr_type;
+
+            self.visit_expr(&array.index);
+            let index_type = self.expr_type;
+
+            self.visit_expr(&e.rhs);
+            let value_type = self.expr_type;
+
+            let name = self.ctxt.interner.intern("set");
+            let args = vec![object_type, index_type, value_type];
+
+            if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
+                                                                  object_type, name, &args) {
+                self.set_type(e.id, return_type);
+            }
+
+        } else if e.lhs.is_prop() || e.lhs.is_ident() {
+            self.visit_expr(&e.lhs);
+            let lhs_type = self.expr_type;
+
+            self.visit_expr(&e.rhs);
+            let rhs_type = self.expr_type;
+
+            if !lhs_type.allows(rhs_type) {
+                let msg = if e.lhs.is_ident() {
+                    let ident = e.lhs.to_ident().unwrap();
+
+                    Msg::AssignType(ident.name, lhs_type, rhs_type)
+                } else {
+                    let prop = e.lhs.to_prop().unwrap();
+                    let prop_type = self.fct.src().get_type(prop.object.id());
+
+                    Msg::AssignProp(prop.name, prop_type.cls_id(), lhs_type, rhs_type)
+                };
+
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            }
+
+            self.set_type(e.id, lhs_type);
+
+        } else {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
-            return;
+            self.set_type(e.id, BuiltinType::Unit);
+        }
+    }
+
+    fn find_method(&mut self, id: NodeId, pos: Position, object_type: BuiltinType,
+                   name: Name, args: &[BuiltinType]) -> Option<(FctId, BuiltinType)> {
+        if let BuiltinType::Class(cls_id) = object_type {
+            let cls = self.ctxt.cls_by_id(cls_id);
+            let mut candidates = Vec::new();
+
+            for method in &cls.methods {
+                let method = *method;
+
+                if self.fct.id == method {
+                    if self.fct.name == name
+                        && args_compatible(&self.fct.params_types, args) {
+                        candidates.push((method, self.fct.return_type));
+                    }
+                } else {
+                    self.ctxt.fct_by_id(method, |callee| {
+                        if callee.name == name
+                            && args_compatible(&callee.params_types, args) {
+                            candidates.push((method, callee.return_type));
+                        }
+                    });
+                }
+            }
+
+            if candidates.len() == 1 {
+                let candidate = candidates[0];
+                return Some(candidate);
+
+            } else if candidates.len() > 1 {
+                let msg = Msg::MultipleCandidates(object_type, name, args[1..].to_vec());
+                self.ctxt.diag.borrow_mut().report(pos, msg);
+                self.set_type(id, BuiltinType::Unit);
+                return None;
+            }
         }
 
-        self.visit_expr(&e.lhs);
-        let lhs_type = self.expr_type;
+        let msg = Msg::UnknownMethod(object_type, name, args[1..].to_vec());
+        self.ctxt.diag.borrow_mut().report(pos, msg);
+        self.set_type(id, BuiltinType::Unit);
 
-        self.visit_expr(&e.rhs);
-        let rhs_type = self.expr_type;
-
-        if !lhs_type.allows(rhs_type) {
-            let msg = if e.lhs.is_ident() {
-                let ident = e.lhs.to_ident().unwrap();
-
-                Msg::AssignType(ident.name, lhs_type, rhs_type)
-            } else {
-                let prop = e.lhs.to_prop().unwrap();
-                let prop_type = self.fct.src().get_type(prop.object.id());
-
-                Msg::AssignProp(prop.name, prop_type.cls_id(), lhs_type, rhs_type)
-            };
-
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
-
-        self.set_type(e.id, lhs_type);
+        None
     }
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType) {
@@ -356,50 +422,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let object_type = call_types[0];
 
-        if let BuiltinType::Class(cls_id) = object_type {
-            let cls = self.ctxt.cls_by_id(cls_id);
-            let mut candidates = Vec::new();
-
-            for method in &cls.methods {
-                let method = *method;
-
-                if self.fct.id == method {
-                    if self.fct.name == e.name
-                        && args_compatible(&self.fct.params_types, &call_types) {
-                        candidates.push((method, self.fct.return_type));
-                    }
-                } else {
-                    self.ctxt.fct_by_id(method, |callee| {
-                        if callee.name == e.name
-                            && args_compatible(&callee.params_types, &call_types) {
-                            candidates.push((method, callee.return_type));
-                        }
-                    });
-                }
-            }
-
-            if candidates.len() == 1 {
-                let candidate = candidates[0];
-                let fctid = candidate.0;
-                let return_type = candidate.1;
-
-                let call_type = CallType::Method(cls_id, fctid);
-                assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
-                self.set_type(e.id, return_type);
-                return;
-
-            } else if candidates.len() > 1 {
-                let msg = Msg::MultipleCandidates(object_type, e.name, call_types[1..].to_vec());
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-                self.set_type(e.id, BuiltinType::Unit);
-                return;
-            }
+        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
+                                                              object_type, e.name, &call_types) {
+            let call_type = CallType::Method(object_type.cls_id(), fct_id);
+            assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+            self.set_type(e.id, return_type);
         }
-
-        let call_types = call_types.iter().cloned().collect::<Vec<_>>();
-        let msg = Msg::UnknownMethod(object_type, e.name, call_types[1..].to_vec());
-        self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        self.set_type(e.id, BuiltinType::Unit);
     }
 
     fn check_expr_prop(&mut self, e: &'ast ExprPropType) {
@@ -450,35 +478,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let index_type = self.expr_type;
 
         let name = self.ctxt.interner.intern("get");
+        let args = vec![object_type, index_type];
 
-        if let BuiltinType::Class(cls_id) = object_type {
-            let cls = self.ctxt.cls_by_id(cls_id);
-            let args = vec![object_type, index_type];
-
-            for method in &cls.methods {
-                let method = *method;
-
-                if method == self.fct.id {
-                    panic!("panic otherwise we would block forever");
-                }
-
-                let found = self.ctxt.fct_by_id(method, |method| {
-                    if method.name == name && args_compatible(&method.params_types, &args) {
-                        self.set_type(e.id, method.return_type);
-
-                        true
-                    } else {
-                        false
-                    }
-                });
-
-                if found { return };
-            }
+        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos,
+                                                              object_type, name, &args) {
+            self.set_type(e.id, return_type);
         }
-
-        let msg = Msg::UnknownMethod(object_type, name, vec![index_type]);
-        self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        self.set_type(e.id, BuiltinType::Unit);
     }
 }
 
@@ -919,6 +924,16 @@ mod tests {
     fn type_array() {
         ok("fn f(a: IntArray) -> int { return a[1]; }");
         err("fn f(a: IntArray) -> Str { return a[1]; }", pos(1, 28),
+            Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
+    }
+
+    #[test]
+    fn type_array_assign() {
+        let iarray = BuiltinType::Class(ClassId(0));
+        ok("fn f(a: IntArray) -> int { return a[3] = 4; }");
+        err("fn f(a: IntArray) { a[3] = \"b\"; }", pos(1, 26),
+            Msg::UnknownMethod(iarray, Name(12), vec![BuiltinType::Int, BuiltinType::Str]));
+        err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
             Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }
 }

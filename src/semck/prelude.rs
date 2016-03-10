@@ -32,12 +32,15 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
     let mtd_get = add_method(ctxt, cls_id, "get", vec![BuiltinType::Int], BuiltinType::Int,
         Ptr::new(stdlib::int_array_get as *mut c_void));
 
+    let mtd_set = add_method(ctxt, cls_id, "set", vec![BuiltinType::Int, BuiltinType::Int],
+        BuiltinType::Int, Ptr::new(stdlib::int_array_set as *mut c_void));
+
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
         ctors: vec![ctor_empty, ctor_elem],
         props: Vec::new(),
-        methods: vec![mtd_len, mtd_get],
+        methods: vec![mtd_len, mtd_get, mtd_set],
         size: IntArray::size() as i32,
         ast: None
     });

@@ -906,6 +906,13 @@ impl Expr {
         }
     }
 
+    pub fn is_array(&self) -> bool {
+        match *self {
+            Expr::ExprArray(_) => true,
+            _ => false
+        }
+    }
+
     pub fn is_this(&self) -> bool {
         match *self {
             Expr::ExprSelf(_) => true,

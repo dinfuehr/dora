@@ -88,3 +88,9 @@ pub extern "C" fn int_array_get(ptr: *const IntArray, ind: i32) -> i32 {
 
     array.get(ind)
 }
+
+pub extern "C" fn int_array_set(ptr: *const IntArray, ind: i32, value: i32) -> i32 {
+    let array = unsafe { &*ptr };
+
+    array.set(ind, value)
+}
