@@ -1,0 +1,19 @@
+fn main() {
+  assert(1 == A().get("hello"));
+  assert(1 == A()["hello"]);
+
+  assert(B()[true]);
+  assert(!B()[false]);
+}
+
+class A {
+  fn get(self, index: Str) -> int {
+    return 1;
+  }
+}
+
+class B {
+  fn get(self, index: bool) -> bool {
+    return index;
+  }
+}

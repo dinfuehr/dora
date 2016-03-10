@@ -72,8 +72,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Arg::Expr(&e.index),
         ];
 
-        // FIXME: determine correct return type
-        self.emit_universal_call(ptr, args, BuiltinType::Int, dest);
+        let return_type = if self.fct.id == fct_id {
+            self.fct.return_type
+        } else {
+            self.ctxt.fct_by_id(fct_id, |fct| fct.return_type)
+        };
+
+        self.emit_universal_call(ptr, args, return_type, dest);
     }
 
     fn emit_self(&mut self, dest: Reg) {

@@ -330,6 +330,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             },
 
+            CmpOp::Eq | CmpOp::Ne => {
+                match ty {
+                    BuiltinType::Str
+                    | BuiltinType::Bool => ty,
+                    _ => BuiltinType::Int
+                }
+            }
+
             _ => if ty == BuiltinType::Str {
                     ty
                 } else {
