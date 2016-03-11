@@ -225,6 +225,7 @@ pub struct FctSrc<'ast> {
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub defs: HashMap<ast::NodeId, IdentType>, // which definition does ident refer to
     pub storage: HashMap<ast::NodeId, Store>,
+    pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub argsize: i32, // size of arguments on stack (need to be on bottom)
@@ -244,6 +245,7 @@ impl<'ast> FctSrc<'ast> {
             calls: HashMap::new(),
             defs: HashMap::new(),
             storage: HashMap::new(),
+            call_sites: HashMap::new(),
             tempsize: 0,
             localsize: 0,
             argsize: 0,
@@ -370,9 +372,10 @@ impl CallType {
 
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
-    callee: FctId,
-    args: Vec<Arg<'ast>>,
-    return_type: BuiltinType,
+    pub callee: FctId,
+    pub args: Vec<Arg<'ast>>,
+    pub types: Vec<BuiltinType>,
+    pub return_type: BuiltinType,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -385,13 +388,6 @@ impl<'ast> Arg<'ast> {
         match *self {
             Arg::Expr(_, offset) => offset,
             Arg::Selfie(_, offset) => offset,
-        }
-    }
-
-    pub fn ty(&self, fct: &Fct) -> BuiltinType {
-        match *self {
-            Arg::Expr(expr, _) => fct.src().get_type(expr.id()),
-            Arg::Selfie(_, _) => BuiltinType::Ptr,
         }
     }
 }

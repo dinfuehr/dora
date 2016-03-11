@@ -78,7 +78,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             self.ctxt.fct_by_id(fct_id, |fct| fct.return_type)
         };
 
-        self.emit_universal_call(ptr, args, return_type, dest);
+        self.emit_universal_call(e.id, ptr, dest);
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -389,113 +389,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         let call_type = *self.fct.src().calls.get(&e.id).unwrap();
         let fid = call_type.fct_id();
-        let ctor = call_type.is_ctor();
-        let method = call_type.is_method();
-
         let ptr = self.ptr_for_fct_id(fid);
 
-        if e.args.len() > 0 {
-            let arg = &e.args[0];
-            let store = self.fct.src().get_store(arg.id());
-
-            if let Store::Temp(_) = store {
-                self.emit_call_with_args_on_stack(ptr, e, dest);
-                return;
-            }
-        }
-
-        let offset = if ctor {
-            let cls = self.ctxt.cls_by_id(call_type.cls_id());
-            emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
-
-            let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-            self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
-
-            emit::mov_reg_reg(self.buf, BuiltinType::Ptr, REG_RESULT, REG_PARAMS[0]);
-
-            1
-        } else {
-            0
-        };
-
-        let mut stacksize = 0;
-
-        for (ind, arg) in e.args.iter().enumerate().rev() {
-            assert!(!contains_fct_call(arg));
-            let ind = offset + ind;
-
-            if REG_PARAMS.len() > ind {
-                let dest = REG_PARAMS[ind];
-                self.emit_expr(arg, dest);
-            } else {
-                stacksize += 8;
-                self.emit_expr(arg, REG_RESULT);
-                emit::push_param(self.buf, REG_RESULT);
-            }
-        }
-
-        let return_type = self.fct.src().get_type(e.id);
-        self.emit_call_insn(ptr, return_type, dest);
-
-        if stacksize != 0 {
-            emit::free_stack(self.buf, stacksize);
-        }
+        self.emit_universal_call(e.id, ptr, dest);
     }
 
-    fn emit_call_with_args_on_stack(&mut self, ptr: Ptr, e: &'ast ExprCallType, dest: Reg) {
-        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
-        let ctor = call_type.is_ctor();
+    fn emit_universal_call(&mut self, id: NodeId, ptr: Ptr, dest: Reg) {
+        let csite = self.fct.src().call_sites.get(&id).unwrap().clone();
 
-        let offset = if ctor {
-            let cls = self.ctxt.cls_by_id(call_type.cls_id());
-            emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
-
-            let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-            self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
-
-            let offset = -(self.fct.src().localsize + self.fct.src().get_store(e.id).offset());
-            emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset);
-
-            1
-        } else {
-            0
-        };
-
-        for arg in &e.args {
-            self.emit_expr(arg, REG_RESULT);
-
-            let ty = self.fct.src().get_type(arg.id());
-            let offset = -(self.fct.src().localsize + self.fct.src().get_store(arg.id()).offset());
-            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
-        }
-
-        let mut arg_offset = -self.fct.src().stacksize();
-
-        for (ind, arg) in e.args.iter().enumerate() {
-            let ind = offset + ind;
-            let ty = self.fct.src().get_type(arg.id());
-
-            let temp_offset = self.fct.src().get_store(arg.id()).offset();
-            let offset = -(self.fct.src().localsize + temp_offset);
-
-            if REG_PARAMS.len() > ind {
-                emit::mov_local_reg(self.buf, ty, offset, REG_PARAMS[ind]);
-
-            } else {
-                emit::mov_local_reg(self.buf, ty, offset, REG_RESULT);
-                emit::mov_reg_local(self.buf, ty, REG_RESULT, arg_offset);
-
-                arg_offset += 8;
-            }
-        }
-
-        let return_type = self.fct.src().get_type(e.id);
-        self.emit_call_insn(ptr, return_type, dest);
-    }
-
-    fn emit_universal_call(&mut self, ptr: Ptr, args: Vec<Arg<'ast>>,
-                           return_type: BuiltinType, dest: Reg) {
-        for arg in &args {
+        for (ind, arg) in csite.args.iter().enumerate() {
             match *arg {
                 Arg::Expr(ast, _) => {
                     self.emit_expr(ast, REG_RESULT);
@@ -511,13 +413,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             let offset = -(self.fct.src().localsize + arg.offset());
-            emit::mov_reg_local(self.buf, arg.ty(self.fct), REG_RESULT, offset);
+            let ty = csite.types[ind];
+            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
         }
 
         let mut arg_offset = -self.fct.src().stacksize();
 
-        for (ind, arg) in args.iter().enumerate() {
-            let ty = arg.ty(self.fct);
+        for (ind, arg) in csite.args.iter().enumerate() {
+            let ty = csite.types[ind];
             let offset = -(self.fct.src().localsize + arg.offset());
 
             if ind < REG_PARAMS.len() {
@@ -531,7 +434,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        self.emit_call_insn(ptr, return_type, dest);
+        self.emit_call_insn(ptr, csite.return_type, dest);
     }
 
     fn emit_call_insn(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {

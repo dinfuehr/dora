@@ -5,7 +5,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Arg, Context, Fct, Store, Var};
+use ctxt::{Arg, CallSite, Context, Fct, Store, Var};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
@@ -128,73 +128,88 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.object);
         self.visit_expr(&expr.index);
 
-        self.reserve_temp_for_node(expr.object.id());
-        self.reserve_temp_for_node(expr.index.id());
+        let args = vec![
+            Arg::Expr(&expr.object, 0),
+            Arg::Expr(&expr.index, 0)
+        ];
 
-        // reserve stack for arguments
-        let argsize = 8 * 2;
-
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
+        self.universal_call(expr.id, args);
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
         let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
         let ctor = call_type.is_ctor();
 
-        // function invokes another function
-        self.leaf = false;
+        let mut args = expr.args.iter().map(|arg| Arg::Expr(arg, 0)).collect::<Vec<_>>();
 
-        for arg in &expr.args {
-            self.visit_expr(arg);
+        if ctor {
+            args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
         }
 
-        // check if we need temporary variables for arguments
-        let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
+        self.universal_call(expr.id, args);
+    }
 
-        if on_stack {
-            if ctor {
-                self.reserve_temp_for_ctor(expr.id);
-            }
+    fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>) {
+        // function invokes another function
+        self.leaf = false;
+        let mut with_ctor = false;
 
-            for arg in &expr.args {
-                self.reserve_temp_for_node(arg.id());
+        for arg in &args {
+            match *arg {
+                Arg::Expr(ast, _) => self.visit_expr(ast),
+                Arg::Selfie(_, _) => { with_ctor = true; }
             }
         }
 
         // reserve stack for arguments
-        let no_args = if ctor { 1 } else { 0 } + expr.args.len() as i32;
+        let no_args = args.len() as i32;
         let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
 
         if argsize > self.argsize {
             self.argsize = argsize;
         }
-    }
 
-    // fn universal_call(&mut self, expr: &'ast Expr, args: Vec<&'ast Expr>) {
-    //     // function invokes another function
-    //     self.leaf = false;
-    //
-    //     for arg in &args {
-    //         self.visit_expr(arg);
-    //     }
-    //
-    //     for arg in &expr.args {
-    //         match *arg {
-    //             Arg::Expr(ast) => self.reserve_temp_for_node(ast),
-    //             Arg::Selfie => self.reserve_temp_for_ctor(expr.id()),
-    //         }
-    //     }
-    //
-    //     // reserve stack for arguments
-    //     let no_args = args.len() as i32;
-    //     let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
-    //
-    //     if argsize > self.argsize {
-    //         self.argsize = argsize;
-    //     }
-    // }
+        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
+        let mut types = vec![];
+
+        let args = args.iter().enumerate().map(|(ind, arg)| {
+            match *arg {
+                Arg::Expr(ast, _) => {
+                    let ind = if with_ctor { ind-1 } else { ind };
+
+                    let ty = if self.fct.id == fid {
+                        self.fct.params_types[ind]
+                    } else {
+                        self.ctxt.fct_by_id(fid, |fct| fct.params_types[ind])
+                    };
+
+                    types.push(ty);
+                    Arg::Expr(ast, self.reserve_temp_for_node_with_type(ast.id(), ty))
+                }
+
+                Arg::Selfie(cid, _) => {
+                    types.push(BuiltinType::Class(cid));
+                    Arg::Selfie(cid, self.reserve_temp_for_ctor(id))
+                }
+            }
+        }).collect::<Vec<_>>();
+
+        let return_type = if self.fct.id == fid {
+            self.fct.return_type
+        } else {
+            self.ctxt.fct_by_id(fid, |fct| fct.return_type)
+        };
+
+        let csite = CallSite {
+            callee: fid,
+            args: args,
+            types: types,
+            return_type: return_type
+        };
+
+        // remember args
+        self.fct.src_mut().call_sites.insert(id, csite);
+    }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {
         if e.lhs.is_ident() {
@@ -226,21 +241,23 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
-    fn reserve_temp_for_node(&mut self, id: NodeId) {
+    fn reserve_temp_for_node(&mut self, id: NodeId) -> i32 {
         let ty = self.fct.src().get_type(id);
-        self.reserve_temp_for_node_with_type(id, ty);
+        self.reserve_temp_for_node_with_type(id, ty)
     }
 
-    fn reserve_temp_for_ctor(&mut self, id: NodeId) {
-        self.reserve_temp_for_node_with_type(id, BuiltinType::Ptr);
+    fn reserve_temp_for_ctor(&mut self, id: NodeId) -> i32 {
+        self.reserve_temp_for_node_with_type(id, BuiltinType::Ptr)
     }
 
-    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) {
+    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
         let ty_size = ty.size();
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
         self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
         // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
+
+        self.cur_tempsize
     }
 }
 
@@ -274,19 +291,19 @@ mod tests {
     fn test_tempsize_for_fct_call() {
         info("fn f() { g(1,2,3,4,5,6); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |fct| {
-            assert_eq!(0, fct.src().tempsize);
+            assert_eq!(24, fct.src().tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
-            assert_eq!(0, fct.src().tempsize);
+            assert_eq!(32, fct.src().tempsize);
         });
 
         info("fn f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fn g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }", |fct| {
-            assert_eq!(4, fct.src().tempsize);
+            assert_eq!(36, fct.src().tempsize);
         });
     }
 
