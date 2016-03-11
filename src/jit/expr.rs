@@ -68,8 +68,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let ptr = self.ptr_for_fct_id(fct_id);
 
         let args = vec![
-            Arg::Expr(&e.object),
-            Arg::Expr(&e.index),
+            Arg::Expr(&e.object, self.fct.src().get_store(e.object.id()).offset()),
+            Arg::Expr(&e.index, self.fct.src().get_store(e.index.id()).offset()),
         ];
 
         let return_type = if self.fct.id == fct_id {
@@ -497,7 +497,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                            return_type: BuiltinType, dest: Reg) {
         for arg in &args {
             match *arg {
-                Arg::Expr(ast) => {
+                Arg::Expr(ast, _) => {
                     self.emit_expr(ast, REG_RESULT);
                 }
 
@@ -510,7 +510,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
             }
 
-            let offset = -(self.fct.src().localsize + arg.offset(self.fct));
+            let offset = -(self.fct.src().localsize + arg.offset());
             emit::mov_reg_local(self.buf, arg.ty(self.fct), REG_RESULT, offset);
         }
 
@@ -518,7 +518,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         for (ind, arg) in args.iter().enumerate() {
             let ty = arg.ty(self.fct);
-            let offset = -(self.fct.src().localsize + arg.offset(self.fct));
+            let offset = -(self.fct.src().localsize + arg.offset());
 
             if ind < REG_PARAMS.len() {
                 emit::mov_local_reg(self.buf, ty, offset, REG_PARAMS[ind]);
@@ -555,27 +555,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let return_type = self.fct.src().get_type(expr.id);
         self.emit_call_insn(fct, return_type, dest);
-    }
-}
-
-#[derive(Copy, Clone)]
-enum Arg<'ast> {
-    Expr(&'ast Expr), Selfie(ClassId, i32)
-}
-
-impl<'ast> Arg<'ast> {
-    fn offset(&self, fct: &Fct) -> i32 {
-        match *self {
-            Arg::Expr(expr) => fct.src().get_store(expr.id()).offset(),
-            Arg::Selfie(_, offset) => offset,
-        }
-    }
-
-    fn ty(&self, fct: &Fct) -> BuiltinType {
-        match *self {
-            Arg::Expr(expr) => fct.src().get_type(expr.id()),
-            Arg::Selfie(_, _) => BuiltinType::Ptr,
-        }
     }
 }
 

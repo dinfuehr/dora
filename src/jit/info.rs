@@ -5,7 +5,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Context, Fct, Store, Var};
+use ctxt::{Arg, Context, Fct, Store, Var};
 use jit::expr::is_leaf;
 use mem;
 use ty::BuiltinType;
@@ -44,131 +44,6 @@ struct InfoGenerator<'a, 'ast: 'a> {
     leaf: bool,
 }
 
-impl<'a, 'ast> InfoGenerator<'a, 'ast> {
-    fn generate(&mut self) {
-        if self.fct.owner_class.is_some() {
-            self.reserve_stack_for_self();
-        }
-
-        self.visit_fct(self.ast);
-
-        let src = self.fct.src_mut();
-        src.localsize = self.localsize;
-        src.tempsize = self.max_tempsize;
-        src.argsize = self.argsize;
-        src.leaf = self.leaf;
-    }
-
-    fn reserve_stack_for_self(&mut self) {
-        let var = self.fct.var_self();
-
-        let ty_size = var.data_type.size();
-        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-        var.offset = -self.localsize;
-    }
-
-    fn reserve_stack_for_node(&mut self, id: NodeId) {
-        let var = self.fct.var_by_node_id_mut(id);
-
-        let ty_size = var.data_type.size();
-        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-        var.offset = -self.localsize;
-
-        // println!("local `{}` on {} with type {:?}", *self.ctxt.interner.str(var.name),
-        //     var.offset, var.data_type);
-    }
-
-    fn reserve_stack_for_array(&mut self, expr: &'ast ExprArrayType) {
-        self.visit_expr(&expr.object);
-        self.visit_expr(&expr.index);
-
-        self.reserve_temp_for_node(expr.object.id());
-        self.reserve_temp_for_node(expr.index.id());
-
-        // reserve stack for arguments
-        let argsize = 8 * 2;
-
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
-    }
-
-    fn reserve_stack_for_call(&mut self, expr: &'ast ExprCallType) {
-        let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
-        let ctor = call_type.is_ctor();
-
-        // function invokes another function
-        self.leaf = false;
-
-        for arg in &expr.args {
-            self.visit_expr(arg);
-        }
-
-        // check if we need temporary variables for arguments
-        let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
-
-        if on_stack {
-            if ctor {
-                self.reserve_temp_for_ctor(expr.id);
-            }
-
-            for arg in &expr.args {
-                self.reserve_temp_for_node(arg.id());
-            }
-        }
-
-        // reserve stack for arguments
-        let no_args = if ctor { 1 } else { 0 } + expr.args.len() as i32;
-        let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
-
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
-    }
-
-    fn reserve_stack_for_assign(&mut self, e: &'ast ExprAssignType) {
-        if e.lhs.is_ident() {
-            self.visit_expr(&e.rhs);
-
-            let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
-
-            if ident_type.is_prop() {
-                self.reserve_temp_for_node_with_type(e.lhs.id(), BuiltinType::Ptr);
-            }
-
-        } else {
-            assert!(e.lhs.is_prop());
-            let lhs = e.lhs.to_prop().unwrap();
-
-            self.visit_expr(&lhs.object);
-            self.visit_expr(&e.rhs);
-
-            self.reserve_temp_for_node(lhs.object.id());
-        }
-    }
-
-    fn reserve_temp_for_node(&mut self, id: NodeId) {
-        let ty = self.fct.src().get_type(id);
-        self.reserve_temp_for_node_with_type(id, ty);
-    }
-
-    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) {
-        self.reserve_temp_for_type(ty);
-        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
-        // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
-    }
-
-    fn reserve_temp_for_ctor(&mut self, id: NodeId) {
-        self.reserve_temp_for_type(BuiltinType::Ptr);
-        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
-    }
-
-    fn reserve_temp_for_type(&mut self, ty: BuiltinType) {
-        let ty_size = ty.size();
-        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
-    }
-}
-
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         let idx = (p.idx as usize) + if self.fct.ctor { 1 } else { 0 };
@@ -205,30 +80,167 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprCall(ref expr) => {
-                self.reserve_stack_for_call(expr);
-            }
-
-            ExprArray(ref expr) => {
-                self.reserve_stack_for_array(expr);
-            }
-
-            ExprAssign(ref expr) => {
-                self.reserve_stack_for_assign(expr);
-            }
-
-            ExprBin(ref expr) => {
-                self.visit_expr(&expr.lhs);
-                self.visit_expr(&expr.rhs);
-
-
-                if !is_leaf(&expr.rhs) {
-                    self.reserve_temp_for_node(expr.lhs.id());
-                }
-            }
+            ExprCall(ref expr) => self.expr_call(expr),
+            ExprArray(ref expr) => self.expr_array(expr),
+            ExprAssign(ref expr) => self.expr_assign(expr),
+            ExprBin(ref expr) => self.expr_bin(expr),
 
             _ => visit::walk_expr(self, e)
         }
+    }
+}
+
+impl<'a, 'ast> InfoGenerator<'a, 'ast> {
+    fn generate(&mut self) {
+        if self.fct.owner_class.is_some() {
+            self.reserve_stack_for_self();
+        }
+
+        self.visit_fct(self.ast);
+
+        let src = self.fct.src_mut();
+        src.localsize = self.localsize;
+        src.tempsize = self.max_tempsize;
+        src.argsize = self.argsize;
+        src.leaf = self.leaf;
+    }
+
+    fn reserve_stack_for_self(&mut self) {
+        let var = self.fct.var_self();
+
+        let ty_size = var.data_type.size();
+        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
+        var.offset = -self.localsize;
+    }
+
+    fn reserve_stack_for_node(&mut self, id: NodeId) {
+        let var = self.fct.var_by_node_id_mut(id);
+
+        let ty_size = var.data_type.size();
+        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
+        var.offset = -self.localsize;
+
+        // println!("local `{}` on {} with type {:?}", *self.ctxt.interner.str(var.name),
+        //     var.offset, var.data_type);
+    }
+
+    fn expr_array(&mut self, expr: &'ast ExprArrayType) {
+        self.visit_expr(&expr.object);
+        self.visit_expr(&expr.index);
+
+        self.reserve_temp_for_node(expr.object.id());
+        self.reserve_temp_for_node(expr.index.id());
+
+        // reserve stack for arguments
+        let argsize = 8 * 2;
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
+        }
+    }
+
+    fn expr_call(&mut self, expr: &'ast ExprCallType) {
+        let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
+        let ctor = call_type.is_ctor();
+
+        // function invokes another function
+        self.leaf = false;
+
+        for arg in &expr.args {
+            self.visit_expr(arg);
+        }
+
+        // check if we need temporary variables for arguments
+        let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
+
+        if on_stack {
+            if ctor {
+                self.reserve_temp_for_ctor(expr.id);
+            }
+
+            for arg in &expr.args {
+                self.reserve_temp_for_node(arg.id());
+            }
+        }
+
+        // reserve stack for arguments
+        let no_args = if ctor { 1 } else { 0 } + expr.args.len() as i32;
+        let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
+        }
+    }
+
+    // fn universal_call(&mut self, expr: &'ast Expr, args: Vec<&'ast Expr>) {
+    //     // function invokes another function
+    //     self.leaf = false;
+    //
+    //     for arg in &args {
+    //         self.visit_expr(arg);
+    //     }
+    //
+    //     for arg in &expr.args {
+    //         match *arg {
+    //             Arg::Expr(ast) => self.reserve_temp_for_node(ast),
+    //             Arg::Selfie => self.reserve_temp_for_ctor(expr.id()),
+    //         }
+    //     }
+    //
+    //     // reserve stack for arguments
+    //     let no_args = args.len() as i32;
+    //     let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
+    //
+    //     if argsize > self.argsize {
+    //         self.argsize = argsize;
+    //     }
+    // }
+
+    fn expr_assign(&mut self, e: &'ast ExprAssignType) {
+        if e.lhs.is_ident() {
+            self.visit_expr(&e.rhs);
+
+            let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
+
+            if ident_type.is_prop() {
+                self.reserve_temp_for_node_with_type(e.lhs.id(), BuiltinType::Ptr);
+            }
+
+        } else {
+            assert!(e.lhs.is_prop());
+            let lhs = e.lhs.to_prop().unwrap();
+
+            self.visit_expr(&lhs.object);
+            self.visit_expr(&e.rhs);
+
+            self.reserve_temp_for_node(lhs.object.id());
+        }
+    }
+
+    fn expr_bin(&mut self, expr: &'ast ExprBinType) {
+        self.visit_expr(&expr.lhs);
+        self.visit_expr(&expr.rhs);
+
+        if !is_leaf(&expr.rhs) {
+            self.reserve_temp_for_node(expr.lhs.id());
+        }
+    }
+
+    fn reserve_temp_for_node(&mut self, id: NodeId) {
+        let ty = self.fct.src().get_type(id);
+        self.reserve_temp_for_node_with_type(id, ty);
+    }
+
+    fn reserve_temp_for_ctor(&mut self, id: NodeId) {
+        self.reserve_temp_for_node_with_type(id, BuiltinType::Ptr);
+    }
+
+    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) {
+        let ty_size = ty.size();
+        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
+
+        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
+        // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
     }
 }
 
