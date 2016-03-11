@@ -1,3 +1,4 @@
+use libc::c_void;
 use std::cmp;
 
 use ast::*;
@@ -5,9 +6,11 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Arg, CallSite, Context, Fct, Store, Var};
+use ctxt::{Arg, Callee, CallSite, Context, Fct, Store, Var};
 use jit::expr::is_leaf;
 use mem;
+use mem::ptr::Ptr;
+use stdlib;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
@@ -129,34 +132,37 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.index);
 
         let args = vec![
-            Arg::Expr(&expr.object, 0),
-            Arg::Expr(&expr.index, 0)
+            Arg::Expr(&expr.object, BuiltinType::Unit, 0),
+            Arg::Expr(&expr.index, BuiltinType::Unit, 0)
         ];
 
-        self.universal_call(expr.id, args);
+        self.universal_call(expr.id, args, None);
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
         let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
         let ctor = call_type.is_ctor();
 
-        let mut args = expr.args.iter().map(|arg| Arg::Expr(arg, 0)).collect::<Vec<_>>();
+        let mut args = expr.args.iter().map(|arg| {
+            Arg::Expr(arg, BuiltinType::Unit, 0)
+        }).collect::<Vec<_>>();
 
         if ctor {
             args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
         }
 
-        self.universal_call(expr.id, args);
+        self.universal_call(expr.id, args, None);
     }
 
-    fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>) {
+    fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>,
+                      data: Option<(Ptr, BuiltinType)>) {
         // function invokes another function
         self.leaf = false;
         let mut with_ctor = false;
 
         for arg in &args {
             match *arg {
-                Arg::Expr(ast, _) => self.visit_expr(ast),
+                Arg::Expr(ast, _, _) => self.visit_expr(ast),
                 Arg::Selfie(_, _) => { with_ctor = true; }
             }
         }
@@ -169,41 +175,49 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.argsize = argsize;
         }
 
-        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
-        let mut types = vec![];
+        let fid = if data.is_none() {
+            Some(self.fct.src().calls.get(&id).unwrap().fct_id())
+        } else {
+            None
+        };
 
         let args = args.iter().enumerate().map(|(ind, arg)| {
             match *arg {
-                Arg::Expr(ast, _) => {
-                    let ind = if with_ctor { ind-1 } else { ind };
+                Arg::Expr(ast, mut ty, _) => {
+                    if let Some(fid) = fid {
+                        let ind = if with_ctor { ind-1 } else { ind };
 
-                    let ty = if self.fct.id == fid {
-                        self.fct.params_types[ind]
-                    } else {
-                        self.ctxt.fct_by_id(fid, |fct| fct.params_types[ind])
-                    };
+                        ty = if self.fct.id == fid {
+                            self.fct.params_types[ind]
+                        } else {
+                            self.ctxt.fct_by_id(fid, |fct| fct.params_types[ind])
+                        };
+                    }
 
-                    types.push(ty);
-                    Arg::Expr(ast, self.reserve_temp_for_node_with_type(ast.id(), ty))
+                    Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
                 }
 
                 Arg::Selfie(cid, _) => {
-                    types.push(BuiltinType::Class(cid));
                     Arg::Selfie(cid, self.reserve_temp_for_ctor(id))
                 }
             }
         }).collect::<Vec<_>>();
 
-        let return_type = if self.fct.id == fid {
-            self.fct.return_type
-        } else {
-            self.ctxt.fct_by_id(fid, |fct| fct.return_type)
-        };
+        let return_type = data.map(|d| d.1).unwrap_or_else(|| {
+            let fid = fid.unwrap();
+
+            if self.fct.id == fid {
+                self.fct.return_type
+            } else {
+                self.ctxt.fct_by_id(fid, |fct| fct.return_type)
+            }
+        });
+
+        let callee = data.map(|d| Callee::Ptr(d.0)).unwrap_or_else(|| Callee::Fct(fid.unwrap()));
 
         let csite = CallSite {
-            callee: fid,
+            callee: callee,
             args: args,
-            types: types,
             return_type: return_type
         };
 
@@ -238,12 +252,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             let args = vec![
-                Arg::Expr(&array.object, 0),
-                Arg::Expr(&array.index, 0),
-                Arg::Expr(&e.rhs, 0),
+                Arg::Expr(&array.object, BuiltinType::Unit, 0),
+                Arg::Expr(&array.index, BuiltinType::Unit, 0),
+                Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
             ];
 
-            self.universal_call(e.id, args);
+            self.universal_call(e.id, args, None);
         }
     }
 
@@ -253,11 +267,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         if expr.op == BinOp::Add && BuiltinType::Str == self.fct.src().get_type(expr.id) {
             let args = vec![
-                Arg::Expr(&expr.lhs, 0),
-                Arg::Expr(&expr.rhs, 0)
+                Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
+                Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
             ];
+            let ptr = Ptr::new(stdlib::strcat as *mut c_void);
 
-            self.universal_call(expr.id, args);
+            self.universal_call(expr.id, args,
+                Some((ptr, BuiltinType::Str)));
 
         } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(expr.lhs.id());

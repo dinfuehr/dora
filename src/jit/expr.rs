@@ -380,11 +380,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_universal_call(&mut self, id: NodeId, dest: Reg) {
         let csite = self.fct.src().call_sites.get(&id).unwrap().clone();
-        let ptr = self.ptr_for_fct_id(csite.callee);
+        let ptr = match csite.callee {
+            Callee::Fct(fid) => self.ptr_for_fct_id(fid),
+            Callee::Ptr(ptr) => ptr
+        };
 
         for (ind, arg) in csite.args.iter().enumerate() {
             match *arg {
-                Arg::Expr(ast, _) => {
+                Arg::Expr(ast, _, _) => {
                     self.emit_expr(ast, REG_RESULT);
                 }
 
@@ -398,14 +401,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             let offset = -(self.fct.src().localsize + arg.offset());
-            let ty = csite.types[ind];
-            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
+            emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, offset);
         }
 
         let mut arg_offset = -self.fct.src().stacksize();
 
         for (ind, arg) in csite.args.iter().enumerate() {
-            let ty = csite.types[ind];
+            let ty = arg.ty();
             let offset = -(self.fct.src().localsize + arg.offset());
 
             if ind < REG_PARAMS.len() {

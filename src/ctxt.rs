@@ -372,22 +372,33 @@ impl CallType {
 
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
-    pub callee: FctId,
+    pub callee: Callee,
     pub args: Vec<Arg<'ast>>,
-    pub types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
+}
+
+#[derive(Clone, Debug)]
+pub enum Callee {
+    Fct(FctId), Ptr(Ptr)
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum Arg<'ast> {
-    Expr(&'ast ast::Expr, i32), Selfie(ClassId, i32)
+    Expr(&'ast ast::Expr, BuiltinType, i32), Selfie(ClassId, i32)
 }
 
 impl<'ast> Arg<'ast> {
     pub fn offset(&self) -> i32 {
         match *self {
-            Arg::Expr(_, offset) => offset,
+            Arg::Expr(_, _, offset) => offset,
             Arg::Selfie(_, offset) => offset,
+        }
+    }
+
+    pub fn ty(&self) -> BuiltinType {
+        match *self {
+            Arg::Expr(_, ty, _) => ty,
+            Arg::Selfie(cid, _) => BuiltinType::Class(cid)
         }
     }
 }
