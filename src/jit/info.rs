@@ -25,7 +25,6 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
 
         param_offset: cpu::PARAM_OFFSET,
         leaf: true,
-        assignment: false,
     };
 
     ig.generate();
@@ -43,7 +42,6 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
     param_offset: i32,
     leaf: bool,
-    assignment: bool,
 }
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
@@ -128,12 +126,35 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
+    fn reserve_stack_for_assign(&mut self, e: &'ast ExprAssignType) {
+        if e.lhs.is_ident() {
+            self.visit_expr(&e.rhs);
+
+            let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
+
+            if ident_type.is_prop() {
+                self.reserve_temp_for_node_with_type(e.lhs.id(), BuiltinType::Ptr);
+            }
+
+        } else {
+            assert!(e.lhs.is_prop());
+            let lhs = e.lhs.to_prop().unwrap();
+
+            self.visit_expr(&lhs.object);
+            self.visit_expr(&e.rhs);
+
+            self.reserve_temp_for_node(lhs.object.id());
+        }
+    }
+
     fn reserve_temp_for_node(&mut self, id: NodeId) {
         let ty = self.fct.src().get_type(id);
+        self.reserve_temp_for_node_with_type(id, ty);
+    }
+
+    fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) {
         self.reserve_temp_for_type(ty);
-
         self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
-
         // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
     }
 
@@ -192,20 +213,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                 self.reserve_stack_for_array(expr);
             }
 
-            ExprProp(ref expr) => {
-                self.visit_expr(&expr.object);
-
-                if self.assignment {
-                    self.reserve_temp_for_node(expr.object.id());
-                }
-            }
-
             ExprAssign(ref expr) => {
-                self.assignment = true;
-                self.visit_expr(&expr.lhs);
-                self.assignment = false;
-
-                self.visit_expr(&expr.rhs);
+                self.reserve_stack_for_assign(expr);
             }
 
             ExprBin(ref expr) => {

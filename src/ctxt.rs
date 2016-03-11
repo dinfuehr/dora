@@ -316,6 +316,13 @@ impl IdentType {
         }
     }
 
+    pub fn is_prop(&self) -> bool {
+        match *self {
+            IdentType::Prop(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn prop_id(&self) -> PropId {
         match *self {
             IdentType::Prop(_, propid) => propid,

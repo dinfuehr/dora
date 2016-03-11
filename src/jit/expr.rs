@@ -164,13 +164,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let cls = self.ctxt.cls_by_id(clsid);
                 let prop = &cls.props[propid.0];
 
-                if let Some(expr_prop) = e.lhs.to_prop() {
+                let temp_offset = if let Some(expr_prop) = e.lhs.to_prop() {
                     self.emit_expr(&expr_prop.object, REG_RESULT);
+
+                    -(self.fct.src().localsize
+                      + self.fct.src().get_store(expr_prop.object.id()).offset())
+
                 } else {
                     self.emit_self(REG_RESULT);
-                }
 
-                let temp_offset = self.add_temp_var(BuiltinType::Ptr);
+                    -(self.fct.src().localsize
+                      + self.fct.src().get_store(e.lhs.id()).offset())
+                };
+
                 emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, temp_offset);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
@@ -362,12 +368,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
         if reg != dest_reg { emit::mov_reg_reg(self.buf, ty, reg, dest_reg); }
-    }
-
-    fn add_temp_var(&mut self, ty: BuiltinType) -> i32 {
-        self.tempsize += ty.size();
-
-        -(self.tempsize + self.fct.src().localsize)
     }
 
     fn ptr_for_fct_id(&mut self, fid: FctId) -> Ptr {
