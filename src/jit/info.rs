@@ -221,14 +221,29 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.reserve_temp_for_node_with_type(e.lhs.id(), BuiltinType::Ptr);
             }
 
-        } else {
-            assert!(e.lhs.is_prop());
+        } else if e.lhs.is_prop() {
             let lhs = e.lhs.to_prop().unwrap();
 
             self.visit_expr(&lhs.object);
             self.visit_expr(&e.rhs);
 
             self.reserve_temp_for_node(lhs.object.id());
+
+        } else {
+            assert!(e.lhs.is_array());
+            let array = e.lhs.to_array().unwrap();
+
+            self.visit_expr(&array.object);
+            self.visit_expr(&array.index);
+            self.visit_expr(&e.rhs);
+
+            let args = vec![
+                Arg::Expr(&array.object, 0),
+                Arg::Expr(&array.index, 0),
+                Arg::Expr(&e.rhs, 0),
+            ];
+
+            self.universal_call(e.id, args);
         }
     }
 
@@ -236,7 +251,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        if !is_leaf(&expr.rhs) {
+        if expr.op == BinOp::Add && BuiltinType::Str == self.fct.src().get_type(expr.id) {
+            let args = vec![
+                Arg::Expr(&expr.lhs, 0),
+                Arg::Expr(&expr.rhs, 0)
+            ];
+
+            self.universal_call(expr.id, args);
+
+        } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(expr.lhs.id());
         }
     }

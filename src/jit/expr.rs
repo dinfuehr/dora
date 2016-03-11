@@ -63,22 +63,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
-        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
-        let fct_id = call_type.fct_id();
-        let ptr = self.ptr_for_fct_id(fct_id);
-
-        let args = vec![
-            Arg::Expr(&e.object, self.fct.src().get_store(e.object.id()).offset()),
-            Arg::Expr(&e.index, self.fct.src().get_store(e.index.id()).offset()),
-        ];
-
-        let return_type = if self.fct.id == fct_id {
-            self.fct.return_type
-        } else {
-            self.ctxt.fct_by_id(fct_id, |fct| fct.return_type)
-        };
-
-        self.emit_universal_call(e.id, ptr, dest);
+        self.emit_universal_call(e.id, dest);
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -152,6 +137,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
+        if e.lhs.is_array() {
+            let prop = e.lhs.to_array().unwrap();
+
+            self.emit_universal_call(e.id, dest);
+            return;
+        }
+
         let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
 
         match ident_type {
@@ -308,11 +300,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let add_type = *self.fct.src().types.get(&e.id).unwrap();
 
         if add_type == BuiltinType::Str {
-            use libc::c_void;
-            use stdlib;
-
-            let fct = Ptr::new(stdlib::strcat as *mut c_void);
-            self.emit_call_builtin_binary(fct, e, dest);
+            self.emit_universal_call(e.id, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
@@ -387,15 +375,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
-        let fid = call_type.fct_id();
-        let ptr = self.ptr_for_fct_id(fid);
-
-        self.emit_universal_call(e.id, ptr, dest);
+        self.emit_universal_call(e.id, dest);
     }
 
-    fn emit_universal_call(&mut self, id: NodeId, ptr: Ptr, dest: Reg) {
+    fn emit_universal_call(&mut self, id: NodeId, dest: Reg) {
         let csite = self.fct.src().call_sites.get(&id).unwrap().clone();
+        let ptr = self.ptr_for_fct_id(csite.callee);
 
         for (ind, arg) in csite.args.iter().enumerate() {
             match *arg {
