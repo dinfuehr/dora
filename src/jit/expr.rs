@@ -350,7 +350,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let ty = *self.fct.src().types.get(&e.id).unwrap();
 
         if not_leaf {
-            temp_offset = self.add_temp_var(ty);
+            temp_offset = -(self.fct.src().localsize
+                + self.fct.src().get_store(e.lhs.id()).offset());
         }
 
         self.emit_expr(&e.lhs, lhs_reg);

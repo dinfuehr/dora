@@ -75,9 +75,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = var.data_type.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
         var.offset = -self.localsize;
+
+        // println!("local `{}` on {} with type {:?}", *self.ctxt.interner.str(var.name),
+        //     var.offset, var.data_type);
     }
 
     fn reserve_stack_for_array(&mut self, expr: &'ast ExprArrayType) {
+        self.visit_expr(&expr.object);
+        self.visit_expr(&expr.index);
+
         self.reserve_temp_for_node(expr.object.id());
         self.reserve_temp_for_node(expr.index.id());
 
@@ -95,6 +101,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         // function invokes another function
         self.leaf = false;
+
+        for arg in &expr.args {
+            self.visit_expr(arg);
+        }
 
         // check if we need temporary variables for arguments
         let on_stack = expr.args.iter().find(|e| !is_leaf(e)).is_some();
@@ -123,6 +133,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.reserve_temp_for_type(ty);
 
         self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
+
+        // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
     }
 
     fn reserve_temp_for_ctor(&mut self, id: NodeId) {
@@ -181,6 +193,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             }
 
             ExprProp(ref expr) => {
+                self.visit_expr(&expr.object);
+
                 if self.assignment {
                     self.reserve_temp_for_node(expr.object.id());
                 }
@@ -195,15 +209,17 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             }
 
             ExprBin(ref expr) => {
+                self.visit_expr(&expr.lhs);
+                self.visit_expr(&expr.rhs);
+
+
                 if !is_leaf(&expr.rhs) {
                     self.reserve_temp_for_node(expr.lhs.id());
                 }
             }
 
-            _ => {}
+            _ => visit::walk_expr(self, e)
         }
-
-        visit::walk_expr(self, e);
     }
 }
 
