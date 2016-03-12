@@ -12,6 +12,10 @@ impl Ptr {
         Ptr(ptr)
     }
 
+    pub fn null() -> Ptr {
+        Ptr(ptr::null_mut())
+    }
+
     pub fn offset(self, diff: isize) -> Ptr {
         Ptr(unsafe { self.0.offset(diff) })
     }

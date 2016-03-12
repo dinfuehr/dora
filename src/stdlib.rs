@@ -94,3 +94,32 @@ pub extern "C" fn int_array_set(ptr: *const IntArray, ind: i32, value: i32) {
 
     array.set(ind, value);
 }
+
+pub extern "C" fn argc() -> i32 {
+    let ctxt = get_ctxt();
+
+    if let Some(ref args) = ctxt.args.arg_argument {
+        args.len() as i32
+    } else {
+        0
+    }
+}
+
+pub extern "C" fn argv(ind: i32) -> Str {
+    let ctxt = get_ctxt();
+
+    if let Some(ref args) = ctxt.args.arg_argument {
+        if ind >= 0 && ind < args.len() as i32 {
+            let mut gc = ctxt.gc.lock().unwrap();
+            let value = &args[ind as usize];
+
+            Str::from_buffer(&mut gc, value.as_bytes())
+
+        } else {
+            Str::null()
+        }
+
+    } else {
+        Str::null()
+    }
+}

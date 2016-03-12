@@ -10,7 +10,7 @@ pub fn parse() -> Args {
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
-Usage: dora [options] <file>
+Usage: dora [options] <file> [--] [<argument>...]
        dora (--version | --help)
 
 Options:
@@ -26,6 +26,7 @@ Options:
 
 #[derive(Debug, RustcDecodable)]
 pub struct Args {
+    pub arg_argument: Option<Vec<String>>,
     pub arg_file: String,
     pub flag_emit_ast: bool,
     pub flag_emit_asm: bool,
@@ -38,6 +39,7 @@ pub struct Args {
 impl Default for Args {
     fn default() -> Args {
         Args {
+            arg_argument: None,
             arg_file: "".into(),
             flag_emit_ast: false,
             flag_emit_asm: false,

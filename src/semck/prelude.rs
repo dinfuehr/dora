@@ -109,6 +109,12 @@ fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     builtin_function("to_string", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
         Ptr::new(stdlib::to_string as *mut c_void));
+
+    builtin_function("argc", vec![], BuiltinType::Int, ctxt,
+        Ptr::new(stdlib::argc as *mut c_void));
+
+    builtin_function("argv", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
+        Ptr::new(stdlib::argv as *mut c_void));
 }
 
 fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,

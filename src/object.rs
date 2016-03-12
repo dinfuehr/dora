@@ -53,10 +53,16 @@ impl Str {
         string
     }
 
-    fn new(gc: &mut Gc, len: usize) -> Str {
+    pub fn new(gc: &mut Gc, len: usize) -> Str {
         let size = mem::ptr_width() as usize + len + 1;
 
         Str { ptr: gc.alloc(size) }
+    }
+
+    pub fn null() -> Str {
+        Str {
+            ptr: Ptr::null()
+        }
     }
 
     pub fn concat(gc: &mut Gc, lhs: Str, rhs: Str) -> Str {
