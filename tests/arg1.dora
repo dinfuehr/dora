@@ -1,0 +1,9 @@
+//= args 1 2 3
+
+fn main() {
+  let val = to_string(argc());
+  println(val);
+  println(argv(0));
+  println(argv(1));
+  println(argv(2));
+}

@@ -7,7 +7,11 @@ $temp_out = Tempfile.new('runner_out')
 $temp_err = Tempfile.new('runner_err')
 
 class TestExpectation
-  attr_accessor :fail, :position, :code, :message
+  attr_accessor :fail,
+                :position,
+                :code,
+                :message,
+                :args
 
   def initialize(opts = {})
     fail = opts.fetch(:fail, false)
@@ -45,7 +49,10 @@ end
 def run_test(file)
   expectation = test_case_expectation(file)
 
-  system("target/debug/dora #{file} >#{$temp_out.path} 2>/dev/null")
+  args = ""
+  args = expectation.args.join(" ") if expectation.args
+
+  system("target/debug/dora #{file} #{args} >#{$temp_out.path} 2>/dev/null")
   process = $?
   exit_code = process.exitstatus
 
@@ -96,7 +103,8 @@ def test_case_expectation(file)
 
       arguments = line.split(/\s+/)
 
-      if arguments[0] == "error"
+      case arguments[0]
+      when "error"
         exp.fail = true
 
         case arguments[1]
@@ -105,6 +113,10 @@ def test_case_expectation(file)
         when "message" then exp.message = arguments[2].to_s
         when "assert" then exp.code = 101
         end
+
+      when "args"
+        exp.args = arguments[1..-1]
+
       end
     end
   end
