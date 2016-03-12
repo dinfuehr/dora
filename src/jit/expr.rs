@@ -40,7 +40,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     pub fn generate(mut self, e: &'ast Expr) -> Reg {
-        self.emit_expr(e, REG_RESULT)
+        let reg = self.emit_expr(e, REG_RESULT);
+
+        reg
     }
 
     fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) -> Reg {
@@ -242,7 +244,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        let cmp_type = *self.fct.src().types.get(&e.lhs.id()).unwrap();
+        let lhs_type = *self.fct.src().types.get(&e.lhs.id()).unwrap();
+        let rhs_type = *self.fct.src().types.get(&e.rhs.id()).unwrap();
+
+        let cmp_type = lhs_type.if_nil(rhs_type);
 
         if op == CmpOp::Is || op == CmpOp::IsNot {
             let op = if op == CmpOp::Is { CmpOp::Eq } else { CmpOp::Ne };
@@ -257,11 +262,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         if cmp_type == BuiltinType::Str {
-            use libc::c_void;
-            use stdlib;
-
-            let fct = Ptr::new(stdlib::strcmp as *mut c_void);
-            self.emit_call_builtin_binary(fct, e, REG_RESULT);
+            self.emit_universal_call(e.id, dest);
             emit::movl_imm_reg(self.buf, 0, REG_TMP1);
             emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
 
@@ -297,9 +298,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        let add_type = *self.fct.src().types.get(&e.id).unwrap();
-
-        if add_type == BuiltinType::Str {
+        if self.has_call_site(e.id) {
             self.emit_universal_call(e.id, dest);
 
         } else {
@@ -338,22 +337,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
-        let not_leaf = !is_leaf(&e.rhs);
-        let mut temp_offset : i32 = 0;
+        if let Some(&Store::Temp(offset, ty)) = self.fct.src().storage.get(&e.lhs.id()) {
+            let offset = -(self.fct.src().localsize + offset);
 
-        let ty = *self.fct.src().types.get(&e.id).unwrap();
+            self.emit_expr(&e.lhs, REG_RESULT);
+            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
 
-        if not_leaf {
-            temp_offset = -(self.fct.src().localsize
-                + self.fct.src().get_store(e.lhs.id()).offset());
+            self.emit_expr(&e.rhs, rhs_reg);
+            emit::mov_local_reg(self.buf, ty, offset, lhs_reg);
+        } else {
+            self.emit_expr(&e.lhs, lhs_reg);
+            self.emit_expr(&e.rhs, rhs_reg);
         }
 
-        self.emit_expr(&e.lhs, lhs_reg);
-        if not_leaf { emit::mov_reg_local(self.buf, ty, lhs_reg, temp_offset); }
-
-        self.emit_expr(&e.rhs, rhs_reg);
-        if not_leaf { emit::mov_local_reg(self.buf, ty, temp_offset, lhs_reg); }
-
+        let ty = self.fct.src().get_type(e.id);
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
         if reg != dest_reg { emit::mov_reg_reg(self.buf, ty, reg, dest_reg); }
     }
@@ -376,6 +373,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_universal_call(e.id, dest);
+    }
+
+    fn has_call_site(&self, id: NodeId) -> bool {
+        self.fct.src().call_sites.get(&id).is_some()
     }
 
     fn emit_universal_call(&mut self, id: NodeId, dest: Reg) {

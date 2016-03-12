@@ -46,6 +46,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_str(&self) -> bool {
+        match *self {
+            BuiltinType::Str => true,
+            _ => false
+        }
+    }
+
     pub fn cls_id(&self) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,

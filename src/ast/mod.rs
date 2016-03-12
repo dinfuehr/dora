@@ -653,6 +653,13 @@ impl BinOp {
             BinOp::BitXor => "^"
         }
     }
+
+    pub fn is_compare(&self) -> bool {
+        match *self {
+            BinOp::Cmp(cmp) if cmp != CmpOp::Is && cmp != CmpOp::IsNot => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -275,6 +275,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.universal_call(expr.id, args,
                 Some((ptr, BuiltinType::Str)));
 
+        } else if expr.op.is_compare()
+                  && (self.fct.src().get_type(expr.lhs.id()).is_str()
+                      || self.fct.src().get_type(expr.rhs.id()).is_str()) {
+            let args = vec![
+                Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
+                Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
+            ];
+            let ptr = Ptr::new(stdlib::strcmp as *mut c_void);
+
+            self.universal_call(expr.id, args,
+                Some((ptr, BuiltinType::Bool)));
+
         } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(expr.lhs.id());
         }
@@ -293,7 +305,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = ty.size();
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize));
+        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize, ty));
         // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
 
         self.cur_tempsize

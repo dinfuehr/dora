@@ -1,0 +1,8 @@
+fn main() {
+  assert(eq("a"));
+  assert(!eq("aa"));
+}
+
+fn eq(a: Str) -> bool {
+  return "ab" == a + "b";
+}

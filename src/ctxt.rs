@@ -286,13 +286,13 @@ impl<'ast> FctSrc<'ast> {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Store {
-    Reg, Temp(i32)
+    Reg, Temp(i32, BuiltinType)
 }
 
 impl Store {
     pub fn offset(&self) -> i32 {
         match *self {
-            Store::Temp(offset) => offset,
+            Store::Temp(offset, _) => offset,
             Store::Reg => panic!()
         }
     }
