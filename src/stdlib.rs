@@ -4,6 +4,8 @@ use std::ffi::CStr;
 use std::io::{self, Write};
 use std::mem;
 use std::os::raw::c_char;
+use std::slice;
+use std::str;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
 use object::{IntArray, Str};
@@ -113,13 +115,16 @@ pub extern "C" fn argv(ind: i32) -> Str {
             let mut gc = ctxt.gc.lock().unwrap();
             let value = &args[ind as usize];
 
-            Str::from_buffer(&mut gc, value.as_bytes())
-
-        } else {
-            Str::null()
+            return Str::from_buffer(&mut gc, value.as_bytes());
         }
-
-    } else {
-        Str::null()
     }
+
+    panic!("argument does not exist");
+}
+
+pub extern "C" fn parse(val: Str) -> i32 {
+    let slice = unsafe { slice::from_raw_parts(val.data(), val.len()) };
+    let val = str::from_utf8(slice).unwrap();
+
+    val.parse::<i32>().unwrap_or(0)
 }

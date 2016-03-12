@@ -59,12 +59,6 @@ impl Str {
         Str { ptr: gc.alloc(size) }
     }
 
-    pub fn null() -> Str {
-        Str {
-            ptr: Ptr::null()
-        }
-    }
-
     pub fn concat(gc: &mut Gc, lhs: Str, rhs: Str) -> Str {
         let len = lhs.len() + rhs.len();
         let string = Str::new(gc, len);

@@ -958,7 +958,7 @@ mod tests {
         let iarray = BuiltinType::Class(ClassId(0));
         ok("fn f(a: IntArray) -> int { return a[3] = 4; }");
         err("fn f(a: IntArray) { a[3] = \"b\"; }", pos(1, 26),
-            Msg::UnknownMethod(iarray, Name(14), vec![BuiltinType::Int, BuiltinType::Str]));
+            Msg::UnknownMethod(iarray, Name(15), vec![BuiltinType::Int, BuiltinType::Str]));
         err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
             Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }
