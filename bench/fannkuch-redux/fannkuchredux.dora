@@ -1,0 +1,97 @@
+fn main() {
+  let n = 7;
+  if argc() > 0 { n = parse(argv(0)); }
+  println("Pfannkuchen ("+to_string(n)+") = " + to_string(fannkuch(n)));
+}
+
+fn fannkuch(n: int) -> int {
+  let perm = IntArray(n, 0);
+  let perm1 = IntArray(n, 0);
+  let count = IntArray(n, 0);
+  let maxFlipsCount = 0;
+  let permCount = 0;
+  let checksum = 0;
+
+  let i = 0;
+  while i < n {
+    perm1[i] = i;
+    i = i + 1;
+  }
+
+  let r = n;
+
+  while true {
+    while r != 1 {
+      count[r-1] = r;
+      r = r - 1;
+    }
+
+    let i = 0;
+    while i < n {
+      perm[i] = perm1[i];
+      i = i + 1;
+    }
+
+    let flipsCount = 0;
+    let k = 0;
+
+    while (k = perm[0]) != 0 {
+      let k2 = (k+1) / 2;
+
+      let i = 0;
+      while i < k2 {
+        let temp = perm[i];
+        perm[i] = perm[k-i];
+        perm[k-i] = temp;
+
+        i = i + 1;
+      }
+
+      flipsCount = flipsCount + 1;
+    }
+
+    maxFlipsCount = max(maxFlipsCount, flipsCount);
+
+    if permCount % 2 == 0 {
+      checksum = checksum + flipsCount;
+    } else {
+      checksum = checksum - flipsCount;
+    }
+
+    while true {
+      if r == n {
+        println(to_string(checksum));
+        return maxFlipsCount;
+      }
+
+      let perm0 = perm1[0];
+      let i = 0;
+
+      while i < r {
+        let j = i + 1;
+        perm1[i] = perm1[j];
+        i = j;
+      }
+
+      perm1[r] = perm0;
+
+      count[r] = count[r] - 1;
+
+      if count[r] > 0 { break; }
+
+      r = r + 1;
+    }
+
+    permCount = permCount + 1;
+  }
+
+  return -1;
+}
+
+fn max(a: int, b: int) -> int {
+  if a < b {
+    return b;
+  } else {
+    return a;
+  }
+}
