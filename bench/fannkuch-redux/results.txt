@@ -1,4 +1,0 @@
-java (open jdk 8): 42s
-cacao: 90s
-dora: 14m44s
-perl: 15m30s
