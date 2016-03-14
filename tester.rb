@@ -112,6 +112,7 @@ def test_case_expectation(file)
         when "code" then exp.code = arguments[2].to_i
         when "message" then exp.message = arguments[2].to_s
         when "assert" then exp.code = 101
+        when "array" then exp.code = 102
         end
 
       when "args"

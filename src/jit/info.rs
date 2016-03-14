@@ -268,6 +268,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             if self.is_intrinsic(e.id) {
                 self.reserve_temp_for_node_with_type(array.object.id(), BuiltinType::Ptr);
                 self.reserve_temp_for_node_with_type(array.index.id(), BuiltinType::Int);
+                self.reserve_temp_for_node_with_type(e.rhs.id(), BuiltinType::Int);
 
             } else {
                 let args = vec![

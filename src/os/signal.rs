@@ -53,12 +53,12 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
             ASSERT => {
                 println!("assert failed");
-                unsafe { _exit(199); }
+                unsafe { _exit(101); }
             }
 
-            _ =>  {
-                println!("error: trap {:?} not supported.", trap);
-                unsafe { _exit(200); }
+            INDEX_OUT_OF_BOUNDS => {
+                println!("array index out of bounds");
+                unsafe { _exit(102); }
             }
         }
 

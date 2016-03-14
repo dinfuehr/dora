@@ -106,6 +106,16 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
+pub fn check_index_out_of_bounds(buf: &mut Buffer, array: Reg, index: Reg, temp: Reg) {
+    emit_movq_memq_reg(buf, array, 8, temp);
+    emit_cmpq_reg_reg(buf, temp, index);
+
+    let lbl = buf.create_label();
+    emit_jult(buf, lbl);
+    trap::emit(buf, trap::INDEX_OUT_OF_BOUNDS);
+    buf.define_label(lbl);
+}
+
 pub fn nil(buf: &mut Buffer, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }

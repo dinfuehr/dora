@@ -1,0 +1,6 @@
+//= error array
+
+fn main() {
+  let array = IntArray();
+  array[0];
+}
