@@ -2,6 +2,7 @@ pub const REG_COUNT: usize = 16;
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
+pub const REG_TMP2: Reg = R11;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Reg(u8);

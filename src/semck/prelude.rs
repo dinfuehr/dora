@@ -27,13 +27,13 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
         Ptr::new(stdlib::int_array_elem as *mut c_void));
 
     let mtd_len = add_method(ctxt, cls_id, "len", Vec::new(), BuiltinType::Int,
-        Ptr::new(stdlib::int_array_len as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::int_array_len as *mut c_void)));
 
     let mtd_get = add_method(ctxt, cls_id, "get", vec![BuiltinType::Int], BuiltinType::Int,
-        Ptr::new(stdlib::int_array_get as *mut c_void));
+        FctKind::Intrinsic);
 
     let mtd_set = add_method(ctxt, cls_id, "set", vec![BuiltinType::Int, BuiltinType::Int],
-        BuiltinType::Unit, Ptr::new(stdlib::int_array_set as *mut c_void));
+        BuiltinType::Unit, FctKind::Intrinsic);
 
     let cls = Box::new(Class {
         id: cls_id,
@@ -68,7 +68,8 @@ fn add_ctor<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: Name,
 }
 
 fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static str,
-                    mut args: Vec<BuiltinType>, return_type: BuiltinType, fct: Ptr) -> FctId {
+                    mut args: Vec<BuiltinType>, return_type: BuiltinType,
+                    kind: FctKind<'ast>) -> FctId {
     let name = ctxt.interner.intern(name);
     args.insert(0, BuiltinType::Class(cls_id));
 
@@ -80,7 +81,7 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static st
         owner_class: Some(cls_id),
         ctor: false,
         initialized: true,
-        kind: FctKind::Builtin(fct),
+        kind: kind,
     };
 
     ctxt.add_fct(fct)

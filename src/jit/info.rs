@@ -6,7 +6,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Arg, Callee, CallSite, Context, Fct, Store, Var};
+use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, Store, Var};
 use jit::expr::is_leaf;
 use mem;
 use mem::ptr::Ptr;
@@ -131,12 +131,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.object);
         self.visit_expr(&expr.index);
 
-        let args = vec![
-            Arg::Expr(&expr.object, BuiltinType::Unit, 0),
-            Arg::Expr(&expr.index, BuiltinType::Unit, 0)
-        ];
+        if self.is_intrinsic(expr.id) {
+            self.reserve_temp_for_node(expr.object.id());
 
-        self.universal_call(expr.id, args, None);
+        } else {
+            let args = vec![
+                Arg::Expr(&expr.object, BuiltinType::Unit, 0),
+                Arg::Expr(&expr.index, BuiltinType::Unit, 0)
+            ];
+
+            self.universal_call(expr.id, args, None);
+        }
+    }
+
+    fn is_intrinsic(&self, id: NodeId) -> bool {
+        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
+
+        // the function we compile right now is never an intrinsic
+        if self.fct.id == fid { return false; }
+
+        self.ctxt.fct_by_id(fid, |fct| fct.kind.is_intrinsic())
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
@@ -251,13 +265,19 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&array.index);
             self.visit_expr(&e.rhs);
 
-            let args = vec![
-                Arg::Expr(&array.object, BuiltinType::Unit, 0),
-                Arg::Expr(&array.index, BuiltinType::Unit, 0),
-                Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
-            ];
+            if self.is_intrinsic(e.id) {
+                self.reserve_temp_for_node_with_type(array.object.id(), BuiltinType::Ptr);
+                self.reserve_temp_for_node_with_type(array.index.id(), BuiltinType::Int);
 
-            self.universal_call(e.id, args, None);
+            } else {
+                let args = vec![
+                    Arg::Expr(&array.object, BuiltinType::Unit, 0),
+                    Arg::Expr(&array.index, BuiltinType::Unit, 0),
+                    Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
+                ];
+
+                self.universal_call(e.id, args, None);
+            }
         }
     }
 

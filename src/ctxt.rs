@@ -216,6 +216,13 @@ impl<'ast> FctKind<'ast> {
             _ => panic!()
         }
     }
+
+    pub fn is_intrinsic(&self) -> bool {
+        match *self {
+            FctKind::Intrinsic => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Debug)]

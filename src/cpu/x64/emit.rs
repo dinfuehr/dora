@@ -177,6 +177,18 @@ pub fn mov_reg_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg) {
     }
 }
 
+pub fn addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_addq_reg_reg(buf, src, dest);
+}
+
+pub fn shiftlq_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    emit_shlq_reg(buf, imm, dest);
+}
+
+pub fn shiftll_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    emit_shll_reg(buf, imm, dest);
+}
+
 pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {
     // next instruction has 7 bytes
     let disp = -(disp + 7);

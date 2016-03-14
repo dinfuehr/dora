@@ -320,6 +320,13 @@ pub fn emit_addl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
+pub fn emit_addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
+    emit_rex(buf, 1, src.msb(), 0, dest.msb());
+
+    emit_op(buf, 0x01);
+    emit_modrm(buf, 0b11, src.and7(), dest.and7());
+}
+
 pub fn emit_subl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     if src.msb() != 0 || dest.msb() != 0 {
         emit_rex(buf, 0, src.msb(), 0, dest.msb());
@@ -425,6 +432,23 @@ pub fn emit_callq_reg(buf: &mut Buffer, dest: Reg) {
     emit_modrm(buf, 0b11, 0b10, dest.and7());
 }
 
+pub fn emit_shlq_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    emit_rex(buf, 1, 0, 0, dest.msb());
+    emit_op(buf, 0xC1);
+    emit_modrm(buf, 0b11, 0b100, dest.and7());
+    emit_u8(buf, imm);
+}
+
+pub fn emit_shll_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
+    if dest.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xC1);
+    emit_modrm(buf, 0b11, 0b100, dest.and7());
+    emit_u8(buf, imm);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -470,6 +494,18 @@ mod tests {
 
         assert!(!fits_i8(128));
         assert!(!fits_i8(-129));
+    }
+
+    #[test]
+    fn test_shlq_reg() {
+        assert_emit!(0x48, 0xC1, 0xE0, 0x02; emit_shlq_reg(2, RAX));
+        assert_emit!(0x49, 0xC1, 0xE4, 0x07; emit_shlq_reg(7, R12));
+    }
+
+    #[test]
+    fn test_shll_reg() {
+        assert_emit!(0xC1, 0xE0, 0x02; emit_shll_reg(2, RAX));
+        assert_emit!(0x41, 0xC1, 0xE4, 0x07; emit_shll_reg(7, R12));
     }
 
     #[test]
@@ -597,6 +633,7 @@ mod tests {
         assert_emit!(0x48, 0x8b, 0x05, 0xff, 0xff, 0xff, 0xff; emit_movq_memq_reg(RIP, -1, RAX));
         assert_emit!(0x48, 0x8b, 0x05, 0, 0, 0, 0; emit_movq_memq_reg(RIP, 0, RAX));
         assert_emit!(0x48, 0x8b, 0x05, 1, 0, 0, 0; emit_movq_memq_reg(RIP, 1, RAX));
+        assert_emit!(0x48, 0x8b, 0; emit_movq_memq_reg(RAX, 0, RAX));
     }
 
     #[test]
@@ -683,6 +720,14 @@ mod tests {
     fn test_addl_reg_reg() {
         assert_emit!(0x01, 0xd8; emit_addl_reg_reg(RBX, RAX));
         assert_emit!(0x44, 0x01, 0xf9; emit_addl_reg_reg(R15, RCX));
+    }
+
+    #[test]
+    fn test_addq_reg_reg() {
+        assert_emit!(0x48, 0x01, 0xD8; emit_addq_reg_reg(RBX, RAX));
+        assert_emit!(0x4C, 0x01, 0xE0; emit_addq_reg_reg(R12, RAX));
+        assert_emit!(0x49, 0x01, 0xC4; emit_addq_reg_reg(RAX, R12));
+        assert_emit!(0x49, 0x01, 0xE7; emit_addq_reg_reg(RSP, R15));
     }
 
     #[test]

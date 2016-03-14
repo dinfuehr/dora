@@ -3,7 +3,7 @@ use libc::c_void;
 use ast::*;
 use ast::Expr::*;
 use class::ClassId;
-use cpu::{Reg, REG_RESULT, REG_TMP1, REG_PARAMS};
+use cpu::{Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
@@ -65,7 +65,40 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
-        self.emit_universal_call(e.id, dest);
+        if self.is_intrinsic(e.id) {
+            self.emit_expr(&e.object, REG_RESULT);
+            let offset = self.offset(e.object.id());
+            emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset);
+
+            self.emit_expr(&e.index, REG_TMP1);
+            emit::shiftlq_imm_reg(self.buf, 2, REG_TMP1);
+            emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset, REG_RESULT);
+            emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_RESULT, 0, REG_RESULT);
+            emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+            emit::mov_mem_reg(self.buf, BuiltinType::Int, REG_RESULT, 0, REG_RESULT);
+
+            if dest != REG_RESULT {
+                emit::mov_reg_reg(self.buf, BuiltinType::Int, REG_RESULT, dest);
+            }
+
+        } else {
+            self.emit_universal_call(e.id, dest);
+        }
+    }
+
+    fn offset(&self, id: NodeId) -> i32 {
+        let offset = self.fct.src().get_store(id).offset();
+
+        -(self.fct.src().localsize + offset)
+    }
+
+    fn is_intrinsic(&self, id: NodeId) -> bool {
+        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
+
+        // the function we compile right now is never an intrinsic
+        if self.fct.id == fid { return false; }
+
+        self.ctxt.fct_by_id(fid, |fct| fct.kind.is_intrinsic())
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -140,9 +173,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         if e.lhs.is_array() {
-            let prop = e.lhs.to_array().unwrap();
+            if self.is_intrinsic(e.id) {
+                let array = e.lhs.to_array().unwrap();
+                self.emit_expr(&array.object, REG_RESULT);
+                let offset_object = self.offset(array.object.id());
+                emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset_object);
 
-            self.emit_universal_call(e.id, dest);
+                self.emit_expr(&array.index, REG_RESULT);
+                let offset_index = self.offset(array.index.id());
+                emit::mov_reg_local(self.buf, BuiltinType::Int, REG_RESULT, offset_index);
+
+                self.emit_expr(&e.rhs, REG_RESULT);
+                emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset_object, REG_TMP1);
+                emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_TMP1, 0, REG_TMP1);
+                emit::mov_local_reg(self.buf, BuiltinType::Int, offset_index, REG_TMP2);
+                emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
+                emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
+                emit::mov_reg_mem(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 0);
+            } else {
+                self.emit_universal_call(e.id, dest);
+            }
+
             return;
         }
 
@@ -435,17 +486,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty, REG_RESULT, dest);
         }
-    }
-
-    fn emit_call_builtin_binary(&mut self, fct: Ptr, expr: &'ast ExprBinType, dest: Reg) {
-        assert!(!contains_fct_call(&expr.lhs));
-        self.emit_expr(&expr.lhs, REG_PARAMS[0]);
-
-        assert!(!contains_fct_call(&expr.rhs));
-        self.emit_expr(&expr.rhs, REG_PARAMS[1]);
-
-        let return_type = self.fct.src().get_type(expr.id);
-        self.emit_call_insn(fct, return_type, dest);
     }
 }
 
