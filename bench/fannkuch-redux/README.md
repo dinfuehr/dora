@@ -8,5 +8,5 @@ Notebook Fedora
 PC Arch Linux
 =============
 * java (open jdk 8): 40s
-* dora: 2m15s (=135s) (mit Array index checks: 160s)
-* perl: 19m50s
+* dora: 160s (141s without array index checks)
+* perl: 1204s
