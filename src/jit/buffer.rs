@@ -1,4 +1,5 @@
 use byteorder::{LittleEndian, WriteBytesExt};
+use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use jit::fct::JitFct;
 use mem::Ptr;
@@ -8,6 +9,7 @@ pub struct Buffer {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
+    bailouts: Vec<(Label, TrapId)>,
     dseg: DSeg,
 }
 
@@ -17,20 +19,34 @@ impl Buffer {
             data: Vec::new(),
             labels: Vec::new(),
             jumps: Vec::new(),
+            bailouts: Vec::new(),
             dseg: DSeg::new(),
         }
     }
 
     pub fn jit(mut self) -> JitFct {
-        self.fix_forward_jumps();
+        self.finish();
 
         JitFct::new(&self.dseg, &self.data)
     }
 
     pub fn data(mut self) -> Vec<u8> {
-        self.fix_forward_jumps();
+        self.finish();
 
         self.data
+    }
+
+    fn finish(&mut self) {
+        let bailouts = self.bailouts.drain(0..).collect::<Vec<_>>();
+
+        for bailout in &bailouts {
+            let (lbl, trap) = *bailout;
+
+            self.define_label(lbl);
+            trap::emit(self, trap);
+        }
+
+        self.fix_forward_jumps();
     }
 
     pub fn add_addr(&mut self, ptr: Ptr) -> i32 {
@@ -63,6 +79,10 @@ impl Buffer {
 
         assert!(self.labels[lbl_idx].is_none());
         self.labels[lbl_idx] = Some(self.pos());
+    }
+
+    pub fn emit_bailout(&mut self, lbl: Label, trap: TrapId) {
+        self.bailouts.push((lbl, trap));
     }
 
     pub fn emit_label(&mut self, lbl: Label) {

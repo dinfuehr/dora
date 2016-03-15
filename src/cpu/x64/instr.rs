@@ -297,9 +297,9 @@ pub fn emit_jnz(buf: &mut Buffer, lbl: Label) {
     buf.emit_label(lbl);
 }
 
-pub fn emit_jult(buf: &mut Buffer, lbl: Label) {
+pub fn emit_juge(buf: &mut Buffer, lbl: Label) {
     emit_op(buf, 0x0f);
-    emit_op(buf, 0x82);
+    emit_op(buf, 0x83);
     buf.emit_label(lbl);
 }
 

@@ -111,9 +111,8 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, array: Reg, index: Reg, temp:
     emit_cmpq_reg_reg(buf, temp, index);
 
     let lbl = buf.create_label();
-    emit_jult(buf, lbl);
-    trap::emit(buf, trap::INDEX_OUT_OF_BOUNDS);
-    buf.define_label(lbl);
+    emit_juge(buf, lbl);
+    buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS);
 }
 
 pub fn nil(buf: &mut Buffer, dest: Reg) {
