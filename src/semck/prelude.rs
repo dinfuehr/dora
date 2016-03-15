@@ -21,10 +21,10 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
     let cls_name = ctxt.interner.intern("IntArray");
 
     let ctor_empty = add_ctor(ctxt, cls_id, cls_name,
-        Vec::new(), Ptr::new(stdlib::int_array_empty as *mut c_void));
+        Vec::new(), Ptr::new(stdlib::ctor_int_array_empty as *mut c_void));
     let ctor_elem = add_ctor(ctxt, cls_id, cls_name,
         vec![BuiltinType::Int, BuiltinType::Int],
-        Ptr::new(stdlib::int_array_elem as *mut c_void));
+        Ptr::new(stdlib::ctor_int_array_elem as *mut c_void));
 
     let mtd_len = add_method(ctxt, cls_id, "len", Vec::new(), BuiltinType::Int,
         FctKind::Builtin(Ptr::new(stdlib::int_array_len as *mut c_void)));

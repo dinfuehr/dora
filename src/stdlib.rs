@@ -60,7 +60,7 @@ pub extern "C" fn gc_alloc(size: usize) -> Ptr {
     gc.alloc(size)
 }
 
-pub extern "C" fn int_array_empty(ptr: Ptr) -> Ptr {
+pub extern "C" fn ctor_int_array_empty(ptr: Ptr) -> Ptr {
     let data = IntArray::empty();
 
     unsafe { *(ptr.raw() as *mut IntArray) = data; }
@@ -68,7 +68,7 @@ pub extern "C" fn int_array_empty(ptr: Ptr) -> Ptr {
     ptr
 }
 
-pub extern "C" fn int_array_elem(ptr: Ptr, len: i32, value: i32) -> Ptr {
+pub extern "C" fn ctor_int_array_elem(ptr: Ptr, len: i32, value: i32) -> Ptr {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
 
