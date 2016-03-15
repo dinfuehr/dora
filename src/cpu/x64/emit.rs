@@ -131,6 +131,32 @@ pub fn mov_mem_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32, des
     }
 }
 
+pub fn mov_array_reg(buf: &mut Buffer, ty: BuiltinType, base: Reg,
+                     index: Reg, scale: u8, dest: Reg) {
+    match ty {
+        BuiltinType::Bool
+            | BuiltinType::Nil => panic!("not supported"),
+        BuiltinType::Int => emit_movl_ar(buf, base, index, scale, dest),
+        BuiltinType::Str
+            | BuiltinType::Class(_)
+            | BuiltinType::Ptr => emit_movq_ar(buf, base, index, scale, dest),
+        BuiltinType::Unit => {}
+    }
+}
+
+pub fn mov_reg_array(buf: &mut Buffer, ty: BuiltinType, src: Reg, base: Reg,
+                     index: Reg, scale: u8) {
+    match ty {
+        BuiltinType::Bool
+            | BuiltinType::Nil => panic!("not supported"),
+        BuiltinType::Int => emit_movl_ra(buf, src, base, index, scale),
+        BuiltinType::Str
+            | BuiltinType::Class(_)
+            | BuiltinType::Ptr => emit_movq_ra(buf, src, base, index, scale),
+        BuiltinType::Unit => {}
+    }
+}
+
 pub fn mov_reg_mem(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg, offset: i32) {
     match ty {
         BuiltinType::Bool => emit_movb_reg_memq(buf, src, dest, offset),

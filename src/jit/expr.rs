@@ -74,10 +74,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset, REG_RESULT);
             emit::check_index_out_of_bounds(self.buf, REG_RESULT, REG_TMP1, REG_TMP2);
 
-            emit::shiftlq_imm_reg(self.buf, 2, REG_TMP1);
             emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_RESULT, 0, REG_RESULT);
-            emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
-            emit::mov_mem_reg(self.buf, BuiltinType::Int, REG_RESULT, 0, REG_RESULT);
+            emit::mov_array_reg(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 4, REG_RESULT);
 
             if dest != REG_RESULT {
                 emit::mov_reg_reg(self.buf, BuiltinType::Int, REG_RESULT, dest);

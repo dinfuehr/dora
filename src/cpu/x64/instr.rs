@@ -92,6 +92,42 @@ pub fn emit_movb_reg_memq(buf: &mut Buffer, src: Reg, dest: Reg, disp: i32) {
     emit_membase(buf, dest, disp, src);
 }
 
+pub fn emit_movq_ar(buf: &mut Buffer, base: Reg, index: Reg, scale: u8, dest: Reg) {
+    emit_mov_ar(buf, 1, 0x8b, base, index, scale, dest);
+}
+
+pub fn emit_movl_ar(buf: &mut Buffer, base: Reg, index: Reg, scale: u8, dest: Reg) {
+    emit_mov_ar(buf, 0, 0x8b, base, index, scale, dest);
+}
+
+pub fn emit_movq_ra(buf: &mut Buffer, src: Reg, base: Reg, index: Reg, scale: u8) {
+    emit_mov_ar(buf, 1, 0x89, base, index, scale, src);
+}
+
+pub fn emit_movl_ra(buf: &mut Buffer, src: Reg, base: Reg, index: Reg, scale: u8) {
+    emit_mov_ar(buf, 0, 0x89, base, index, scale, src);
+}
+
+fn emit_mov_ar(buf: &mut Buffer, x64: u8, opcode: u8, base: Reg, index: Reg,
+               scale: u8, dest: Reg) {
+    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+
+    if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
+        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
+    }
+
+    let scale = match scale {
+        8 => 3,
+        4 => 2,
+        2 => 1,
+        _ => 0,
+    };
+
+    emit_op(buf, opcode);
+    emit_modrm(buf, 0b00, dest.and7(), 0b100);
+    emit_sib(buf, scale, index.and7(), base.and7());
+}
+
 fn emit_mov_reg_memq(buf: &mut Buffer, opcode: u8, x64: u8, src: Reg, dest: Reg, disp: i32) {
     let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
@@ -833,5 +869,37 @@ mod tests {
     fn test_callq_reg() {
         assert_emit!(0xff, 0xd0; emit_callq_reg(RAX));
         assert_emit!(0x41, 0xff, 0xd7; emit_callq_reg(R15));
+    }
+
+    #[test]
+    fn test_movq_ar() {
+        assert_emit!(0x48, 0x8b, 0x0C, 0xD8; emit_movq_ar(RAX, RBX, 8, RCX));
+        assert_emit!(0x48, 0x8b, 0x1C, 0x81; emit_movq_ar(RCX, RAX, 4, RBX));
+        assert_emit!(0x48, 0x8b, 0x04, 0x4B; emit_movq_ar(RBX, RCX, 2, RAX));
+        assert_emit!(0x4D, 0x8b, 0x3C, 0x03; emit_movq_ar(R11, RAX, 1, R15));
+    }
+
+    #[test]
+    fn test_movl_ar() {
+        assert_emit!(0x8b, 0x0c, 0xd8; emit_movl_ar(RAX, RBX, 8, RCX));
+        assert_emit!(0x8b, 0x1C, 0x81; emit_movl_ar(RCX, RAX, 4, RBX));
+        assert_emit!(0x8b, 0x04, 0x4B; emit_movl_ar(RBX, RCX, 2, RAX));
+        assert_emit!(0x45, 0x8b, 0x3C, 0x03; emit_movl_ar(R11, RAX, 1, R15));
+    }
+
+    #[test]
+    fn test_movq_ra() {
+        assert_emit!(0x48, 0x89, 0x0C, 0xD8; emit_movq_ra(RCX, RAX, RBX, 8));
+        assert_emit!(0x48, 0x89, 0x1C, 0x81; emit_movq_ra(RBX, RCX, RAX, 4));
+        assert_emit!(0x48, 0x89, 0x04, 0x4B; emit_movq_ra(RAX, RBX, RCX, 2));
+        assert_emit!(0x4D, 0x89, 0x3C, 0x03; emit_movq_ra(R15, R11, RAX, 1));
+    }
+
+    #[test]
+    fn test_movl_ra() {
+        assert_emit!(0x89, 0x0c, 0xd8; emit_movl_ra(RCX, RAX, RBX, 8));
+        assert_emit!(0x89, 0x1C, 0x81; emit_movl_ra(RBX, RCX, RAX, 4));
+        assert_emit!(0x89, 0x04, 0x4B; emit_movl_ra(RAX, RBX, RCX, 2));
+        assert_emit!(0x45, 0x89, 0x3C, 0x03; emit_movl_ra(R15, R11, RAX, 1));
     }
 }
