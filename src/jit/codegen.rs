@@ -136,10 +136,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.buf.define_label(lbl_start);
 
-        // execute condition, when condition is false jump to
-        // end of while
-        let reg = self.emit_expr(&s.cond);
-        emit::jump_if(&mut self.buf, JumpCond::Zero, reg, lbl_end);
+        if !s.cond.is_lit_true() {
+            // execute condition, when condition is false jump to
+            // end of while
+            let reg = self.emit_expr(&s.cond);
+            emit::jump_if(&mut self.buf, JumpCond::Zero, reg, lbl_end);
+        }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition

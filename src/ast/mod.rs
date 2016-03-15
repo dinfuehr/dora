@@ -892,6 +892,13 @@ impl Expr {
         }
     }
 
+    pub fn is_lit_true(&self) -> bool {
+        match *self {
+            Expr::ExprLitBool(ref lit) if lit.value => true,
+            _ => false,
+        }
+    }
+
     pub fn to_prop(&self) -> Option<&ExprPropType> {
         match *self {
             Expr::ExprProp(ref val) => Some(val),
