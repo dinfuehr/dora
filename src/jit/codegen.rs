@@ -159,11 +159,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
+            emit::jump(&mut this.buf, lbl_start);
         });
 
         self.buf.define_label(lbl_end);
-
-        emit::jump(&mut self.buf, lbl_start);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
