@@ -85,18 +85,6 @@ pub extern "C" fn int_array_len(ptr: *const IntArray) -> i32 {
     array.len() as i32
 }
 
-pub extern "C" fn int_array_get(ptr: *const IntArray, ind: i32) -> i32 {
-    let array = unsafe { &*ptr };
-
-    array.get(ind)
-}
-
-pub extern "C" fn int_array_set(ptr: *const IntArray, ind: i32, value: i32) {
-    let array = unsafe { &*ptr };
-
-    array.set(ind, value);
-}
-
 pub extern "C" fn argc() -> i32 {
     let ctxt = get_ctxt();
 
