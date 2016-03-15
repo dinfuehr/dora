@@ -431,6 +431,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        if self.is_intrinsic(e.id) {
+            // only intrinsic: IntArray.len()
+            self.emit_expr(&e.args[0], REG_RESULT);
+            emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_RESULT, 8, dest);
+
+            return;
+        }
+
         self.emit_universal_call(e.id, dest);
     }
 

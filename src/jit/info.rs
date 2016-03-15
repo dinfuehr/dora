@@ -154,6 +154,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
+        if self.is_intrinsic(expr.id) {
+            for arg in &expr.args {
+                self.visit_expr(arg);
+            }
+
+            assert_eq!(1, expr.args.len());
+            assert!(expr.with_self);
+
+            self.reserve_temp_for_node_with_type(expr.args[0].id(), BuiltinType::Ptr);
+            return;
+        }
+
         let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
         let ctor = call_type.is_ctor();
 
