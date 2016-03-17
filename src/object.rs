@@ -80,7 +80,6 @@ impl Str {
 pub struct IntArray {
     ptr: *mut i32,
     length: usize,
-    capacity: usize,
 }
 
 impl IntArray {
@@ -88,7 +87,6 @@ impl IntArray {
         IntArray {
             ptr: ptr::null_mut(),
             length: 0,
-            capacity: 0,
         }
     }
 
@@ -112,7 +110,6 @@ impl IntArray {
         IntArray {
             ptr: ptr,
             length: length,
-            capacity: length
         }
     }
 
