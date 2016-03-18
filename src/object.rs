@@ -1,9 +1,14 @@
 use std;
 use std::ptr;
 
+use class::Class;
 use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
+
+pub struct Header {
+    class: *mut Class<'static>,
+}
 
 // String in Dora is immutable
 // length + string content is stored in one contiguous memory
