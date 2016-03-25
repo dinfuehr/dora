@@ -1,4 +1,5 @@
 use std;
+use std::ops::{Deref, DerefMut};
 use std::ops::Index;
 use std::ptr;
 
@@ -83,7 +84,26 @@ impl Str {
     }
 }
 
+pub struct Handle<T> {
+    ptr: *const T
+}
+
+impl<T> Deref for Handle<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        unsafe { &*self.ptr }
+    }
+}
+
+impl<T> DerefMut for Handle<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        unsafe { &mut *(self.ptr as *mut T) }
+    }
+}
+
 pub struct IntArray2 {
+    header: Header,
     length: usize,
     data: [i32; 1]
 }
@@ -97,7 +117,7 @@ impl IntArray2 {
 impl Index<usize> for IntArray2 {
     type Output = i32;
 
-    fn index<'a>(&'a self, ind: usize) -> &'a i32 {
+    fn index(&self, ind: usize) -> &i32 {
         if ind >= self.length {
             panic!("index out of bounds");
         }
