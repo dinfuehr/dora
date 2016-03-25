@@ -1,4 +1,5 @@
 use std;
+use std::ops::Index;
 use std::ptr;
 
 use class::Class;
@@ -79,6 +80,33 @@ impl Str {
         }
 
         string
+    }
+}
+
+pub struct IntArray2 {
+    length: usize,
+    data: [i32; 1]
+}
+
+impl IntArray2 {
+    fn len(&self) -> usize {
+        self.length
+    }
+}
+
+impl Index<usize> for IntArray2 {
+    type Output = i32;
+
+    fn index<'a>(&'a self, ind: usize) -> &'a i32 {
+        if ind >= self.length {
+            panic!("index out of bounds");
+        }
+
+        unsafe {
+            let ptr = self.data.as_ptr();
+
+            &*ptr.offset(ind as isize)
+        }
     }
 }
 
