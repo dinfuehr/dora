@@ -47,7 +47,9 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     use capstone::*;
 
     let buf: &[u8] = unsafe {
-        slice::from_raw_parts(jit_fct.fct_ptr().raw() as *const u8, jit_fct.fct_len())
+        slice::from_raw_parts(
+            jit_fct.fct_ptr().raw() as *const u8,
+            jit_fct.fct_len())
     };
 
     let asm_syntax = match asm_syntax {
@@ -55,15 +57,18 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
         AsmSyntax::Att => 2,
     };
 
-    let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
+    let engine = Engine::new(Arch::X86, MODE_64)
+                 .expect("cannot create capstone engine");
     engine.set_option(Opt::Syntax, asm_syntax);
 
     let instrs = engine.disasm(buf, jit_fct.fct_ptr().raw() as u64,
         jit_fct.fct_len()).expect("could not disassemble code");
 
     println!("fn {}", name);
+
     for instr in instrs {
-        println!("  {:#06x}: {}\t\t{}", instr.addr, instr.mnemonic, instr.op_str);
+        println!("  {:#06x}: {}\t\t{}",
+                 instr.addr, instr.mnemonic, instr.op_str);
     }
 }
 
@@ -101,7 +106,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.ctor {
             let var = self.fct.var_self();
-            emit::mov_reg_local(&mut self.buf, var.data_type, REG_PARAMS[0], var.offset);
+            emit::mov_reg_local(&mut self.buf, var.data_type,
+                                REG_PARAMS[0], var.offset);
 
             1
 
@@ -109,7 +115,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             0
         };
 
-        for (reg, p) in REG_PARAMS.iter().skip(hidden_self).zip(&self.ast.params) {
+        for (reg, p) in REG_PARAMS.iter().skip(hidden_self)
+                        .zip(&self.ast.params) {
             var_store(&mut self.buf, self.fct, *reg, p.id);
         }
     }
@@ -136,7 +143,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.buf.define_label(lbl_start);
 
-        if !s.cond.is_lit_true() {
+        if s.cond.is_lit_true() {
+            // always true => no condition evaluation
+
+        } else {
             // execute condition, when condition is false jump to
             // end of while
             let reg = self.emit_expr(&s.cond);
@@ -312,7 +322,9 @@ mod tests {
 
     fn run<T>(code: &'static str) -> T {
         let m = compile(code);
-        let compiled_fct : extern "C" fn() -> T = unsafe { mem::transmute(m.fct_ptr()) };
+        let compiled_fct : extern "C" fn() -> T = unsafe {
+            mem::transmute(m.fct_ptr())
+        };
 
         compiled_fct()
     }
@@ -398,10 +410,14 @@ mod tests {
 
     #[test]
     fn test_if() {
-        assert_eq!(1i32, run("fn f() -> int { if true { return 1; } else { return 2; } }"));
-        assert_eq!(1i32, run("fn f() -> int { if true { return 1; } return 2; }"));
-        assert_eq!(2i32, run("fn f() -> int { if false { return 1; } else { return 2; } }"));
-        assert_eq!(2i32, run("fn f() -> int { if false { return 1; } return 2; }"));
+        assert_eq!(1i32, run("fn f() -> int {
+                                if true { return 1; } else { return 2; } }"));
+        assert_eq!(1i32, run("fn f() -> int {
+                                if true { return 1; } return 2; }"));
+        assert_eq!(2i32, run("fn f() -> int {
+                                if false { return 1; } else { return 2; } }"));
+        assert_eq!(2i32, run("fn f() -> int {
+                                if false { return 1; } return 2; }"));
     }
 
     #[test]
@@ -413,14 +429,19 @@ mod tests {
 
     #[test]
     fn test_assign() {
-        assert_eq!(4711, run("fn f() -> int { let a: int; a = 4711; return a; }"));
-        assert_eq!(true, run("fn f() -> bool { let a: bool; a = true; return a; }"));
-        assert_eq!(false, run("fn f() -> bool { let a: bool; a = false; return a; }"));
+        assert_eq!(4711, run("fn f() -> int {
+                                let a: int; a = 4711; return a; }"));
+        assert_eq!(true, run("fn f() -> bool {
+                                let a: bool; a = true; return a; }"));
+        assert_eq!(false, run("fn f() -> bool {
+                                 let a: bool; a = false; return a; }"));
     }
 
     #[test]
     fn test_add() {
-        assert_eq!(3, run("fn f() -> int { let a = 1; let b = 2; return a + b; }"));
+        assert_eq!(3, run("fn f() -> int {
+                             let a = 1; let b = 2;
+                             return a + b; }"));
     }
 
     #[test]
@@ -430,7 +451,9 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        assert_eq!(-1, run("fn f() -> int { let a = 1; let b = 2; return a - b; }"));
+        assert_eq!(-1, run("fn f() -> int {
+                              let a = 1; let b = 2;
+                              return a - b; }"));
     }
 
     #[test]
@@ -448,27 +471,36 @@ mod tests {
 
     #[test]
     fn test_bit_or() {
-        assert_eq!(3, run("fn f() -> int { let a = 1; let b = 2; return a | b; }"));
+        assert_eq!(3, run("fn f() -> int {
+                             let a = 1; let b = 2;
+                             return a | b; }"));
     }
 
     #[test]
     fn test_bit_and() {
-        assert_eq!(1, run("fn f() -> int { let a = 1; let b = 3; return a & b; }"));
+        assert_eq!(1, run("fn f() -> int {
+                             let a = 1; let b = 3;
+                             return a & b; }"));
     }
 
     #[test]
     fn test_bit_xor() {
-        assert_eq!(1, run("fn f() -> int { let a = 3; let b = 2; return a ^ b; }"));
+        assert_eq!(1, run("fn f() -> int {
+                             let a = 3; let b = 2;
+                             return a ^ b; }"));
     }
 
     #[test]
     fn test_mul() {
-        assert_eq!(6, run("fn f() -> int { let a = 3; let b = 2; return a * b; }"));
+        assert_eq!(6, run("fn f() -> int {
+                             let a = 3; let b = 2;
+                             return a * b; }"));
     }
 
     #[test]
     fn test_div() {
-        let (mem, f) = fct1("fn f(a: int) -> int { let b = 3; return a / b; }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               let b = 3; return a / b; }");
         let b = 3;
 
         for a in 0..8 {
@@ -478,7 +510,8 @@ mod tests {
 
     #[test]
     fn test_mod() {
-        let (mem, f) = fct1("fn f(a: int) -> int { let b = 3; return a % b; }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               let b = 3; return a % b; }");
         let b = 3;
 
         for a in 0..8 {
@@ -488,7 +521,9 @@ mod tests {
 
     #[test]
     fn test_cmp_lt() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a < 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a < 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(1, f(-4));
         assert_eq!(1, f(-3));
@@ -500,7 +535,9 @@ mod tests {
 
     #[test]
     fn test_cmp_le() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a <= 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a <= 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(1, f(-4));
         assert_eq!(1, f(-3));
@@ -512,7 +549,9 @@ mod tests {
 
     #[test]
     fn test_cmp_gt() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a > 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a > 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(0, f(-4));
         assert_eq!(0, f(-3));
@@ -524,7 +563,9 @@ mod tests {
 
     #[test]
     fn test_cmp_ge() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a >= 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a >= 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(0, f(-4));
         assert_eq!(0, f(-3));
@@ -536,7 +577,9 @@ mod tests {
 
     #[test]
     fn test_cmp_eq() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a == 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a == 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(0, f(-4));
         assert_eq!(0, f(-3));
@@ -548,7 +591,9 @@ mod tests {
 
     #[test]
     fn test_cmp_ne() {
-        let (mem, f) = fct1("fn f(a: int) -> int { if a != 3 { return 1; } else { return 0; } }");
+        let (mem, f) = fct1("fn f(a: int) -> int {
+                               if a != 3 { return 1; }
+                               else { return 0; } }");
 
         assert_eq!(1, f(-4));
         assert_eq!(1, f(-3));
@@ -560,7 +605,8 @@ mod tests {
 
     #[test]
     fn test_or() {
-        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool { return a || b; }");
+        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool {
+                               return a || b; }");
 
         assert_eq!(true, f(true, true));
         assert_eq!(true, f(true, false));
@@ -570,7 +616,8 @@ mod tests {
 
     #[test]
     fn test_and() {
-        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool { return a && b; }");
+        let (mem, f) = fct2("fn f(a: bool, b: bool) -> bool {
+                               return a && b; }");
 
         assert_eq!(true, f(true, true));
         assert_eq!(false, f(true, false));
