@@ -28,7 +28,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let mut es = read_execstate(ucontext);
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        use cpu::trap::{ASSERT, COMPILER};
+        use cpu::trap::{ASSERT, COMPILER, INDEX_OUT_OF_BOUNDS, NIL};
 
         match trap {
             COMPILER => {
@@ -59,6 +59,16 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
             INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
                 unsafe { _exit(102); }
+            }
+
+            NIL => {
+                println!("nil");
+                unsafe { _exit(103); }
+            }
+
+            _ => {
+                println!("unknown trap");
+                unsafe { _exit(1); }
             }
         }
 

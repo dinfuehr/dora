@@ -353,6 +353,13 @@ pub fn emit_testl_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
     emit_modrm(buf, 0b11, op1.and7(), op2.and7());
 }
 
+pub fn emit_testq_reg_reg(buf: &mut Buffer, op1: Reg, op2: Reg) {
+    emit_rex(buf, 1, op1.msb(), 0, op2.msb());
+
+    emit_op(buf, 0x85);
+    emit_modrm(buf, 0b11, op1.and7(), op2.and7());
+}
+
 pub fn emit_addl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     if src.msb() != 0 || dest.msb() != 0 {
         emit_rex(buf, 0, src.msb(), 0, dest.msb());
@@ -613,6 +620,13 @@ mod tests {
         assert_emit!(0x85, 0xc0; emit_testl_reg_reg(RAX, RAX));
         assert_emit!(0x85, 0xc6; emit_testl_reg_reg(RAX, RSI));
         assert_emit!(0x41, 0x85, 0xc7; emit_testl_reg_reg(RAX, R15));
+    }
+
+    #[test]
+    fn test_emit_testq_reg_reg() {
+        assert_emit!(0x48, 0x85, 0xc0; emit_testq_reg_reg(RAX, RAX));
+        assert_emit!(0x48, 0x85, 0xc6; emit_testq_reg_reg(RAX, RSI));
+        assert_emit!(0x49, 0x85, 0xc7; emit_testq_reg_reg(RAX, R15));
     }
 
     #[test]

@@ -24,6 +24,14 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
+pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) {
+    emit_testq_reg_reg(buf, reg, reg);
+
+    let lbl = buf.create_label();
+    emit_jz(buf, lbl);
+    buf.emit_bailout(lbl, trap::NIL);
+}
+
 pub fn cmp_setl(buf: &mut Buffer, ty: BuiltinType, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
     match ty {
         BuiltinType::Bool

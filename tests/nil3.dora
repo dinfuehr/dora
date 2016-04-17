@@ -1,0 +1,10 @@
+//= error nil
+
+class Foo {
+  fn do(self) { }
+}
+
+fn main() {
+  let foo: Foo = nil;
+  foo.do();
+}
