@@ -480,10 +480,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let reg = REG_PARAMS[ind];
                 emit::mov_local_reg(self.buf, ty, offset, reg);
 
-                let call_type = self.fct.src().calls.get(&id);
+                if ind == 0 {
+                    let call_type = self.fct.src().calls.get(&id);
 
-                if ind == 0 && call_type.is_some() && call_type.unwrap().is_method() {
-                    emit::nil_ptr_check(self.buf, reg);
+                    if call_type.is_some() && call_type.unwrap().is_method() {
+                        emit::nil_ptr_check(self.buf, reg);
+                    }
                 }
 
             } else {
