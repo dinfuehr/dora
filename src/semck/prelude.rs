@@ -17,6 +17,76 @@ pub fn init<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
+    add_class_bool(ctxt);
+    add_class_int(ctxt);
+    add_class_str(ctxt);
+    add_class_int_array(ctxt);
+}
+
+fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("bool");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        builtin: BuiltinType::Bool,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Bool.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("int");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        builtin: BuiltinType::Int,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Int.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("Str");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        builtin: BuiltinType::Str,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Str.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls_id = ClassId(ctxt.classes.len());
     let cls_name = ctxt.interner.intern("IntArray");
 
@@ -38,6 +108,7 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
+        builtin: BuiltinType::Ptr,
         ctors: vec![ctor_empty, ctor_elem],
         props: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
