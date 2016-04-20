@@ -29,7 +29,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
-            ty: BuiltinType::Ptr,
+            ty: BuiltinType::Class(id),
             ctors: Vec::new(),
             props: Vec::new(),
             methods: Vec::new(),

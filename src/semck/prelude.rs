@@ -107,7 +107,7 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
-        ty: BuiltinType::Ptr,
+        ty: BuiltinType::Class(cls_id),
         ctors: vec![ctor_empty, ctor_elem],
         props: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
