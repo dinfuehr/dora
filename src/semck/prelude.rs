@@ -11,9 +11,8 @@ use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn init<'ast>(ctxt: &mut Context<'ast>) {
-    add_builtin_types(ctxt);
-    add_builtin_functions(ctxt);
     add_builtin_classes(ctxt);
+    add_builtin_functions(ctxt);
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
@@ -156,12 +155,6 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static st
     };
 
     ctxt.add_fct(fct)
-}
-
-fn add_builtin_types<'ast>(ctxt: &mut Context<'ast>) {
-    builtin_type("int", BuiltinType::Int, ctxt);
-    builtin_type("bool", BuiltinType::Bool, ctxt);
-    builtin_type("Str", BuiltinType::Str, ctxt);
 }
 
 fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'ast>) {
