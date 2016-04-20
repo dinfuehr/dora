@@ -12,7 +12,7 @@ pub struct ClassId(pub usize);
 pub struct Class<'ast> {
     pub id: ClassId,
     pub name: Name,
-    pub builtin: BuiltinType,
+    pub ty: BuiltinType,
     pub ctors: Vec<FctId>,
     pub props: Vec<Prop>,
     pub methods: Vec<FctId>,

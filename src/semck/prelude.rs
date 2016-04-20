@@ -29,7 +29,7 @@ fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
-        builtin: BuiltinType::Bool,
+        ty: BuiltinType::Bool,
         ctors: Vec::new(),
         props: Vec::new(),
         methods: Vec::new(),
@@ -50,7 +50,7 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
-        builtin: BuiltinType::Int,
+        ty: BuiltinType::Int,
         ctors: Vec::new(),
         props: Vec::new(),
         methods: Vec::new(),
@@ -71,7 +71,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
-        builtin: BuiltinType::Str,
+        ty: BuiltinType::Str,
         ctors: Vec::new(),
         props: Vec::new(),
         methods: Vec::new(),
@@ -107,7 +107,7 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
-        builtin: BuiltinType::Ptr,
+        ty: BuiltinType::Ptr,
         ctors: vec![ctor_empty, ctor_elem],
         props: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
