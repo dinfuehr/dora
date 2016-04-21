@@ -11,10 +11,10 @@ pub enum Msg {
     UnknownType(Name),
     UnknownIdentifier(Name),
     UnknownFunction(String),
-    UnknownProp(String, BuiltinType),
-    UnknownMethod(BuiltinType, Name, Vec<BuiltinType>),
+    UnknownProp(String, String),
+    UnknownMethod(String, Name, Vec<String>),
     UnknownCtor(Name, Vec<BuiltinType>),
-    MethodExists(BuiltinType, Name, Vec<BuiltinType>, Position),
+    MethodExists(String, Name, Vec<String>, Position),
     VarNotMutable(Name),
     IncompatibleWithNil(BuiltinType),
     IdentifierExists(String),
@@ -26,10 +26,10 @@ pub enum Msg {
     ParamTypesIncompatible(Name, Vec<BuiltinType>, Vec<BuiltinType>),
     WhileCondType(BuiltinType),
     IfCondType(BuiltinType),
-    ReturnType(BuiltinType, BuiltinType),
+    ReturnType(String, String),
     LvalueExpected,
     AssignType(Name, BuiltinType, BuiltinType),
-    AssignProp(Name, ClassId, BuiltinType, BuiltinType),
+    AssignProp(Name, ClassId, String, String),
     UnOpType(String, BuiltinType),
     BinOpType(String, BuiltinType, BuiltinType),
     OutsideLoop,
@@ -55,10 +55,9 @@ impl Msg {
                 format!("unknown identifier `{}`.", name)
             },
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
-            UnknownMethod(cls, name, ref args) => {
+            UnknownMethod(ref cls, name, ref args) => {
                 let name = ctxt.interner.str(name).to_string();
-                let cls = cls.name(ctxt);
-                let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let args = args.connect(", ");
 
                 format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
             },
@@ -68,10 +67,9 @@ impl Msg {
 
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            MethodExists(cls, name, ref args, pos) => {
+            MethodExists(ref cls, name, ref args, pos) => {
                 let name = ctxt.interner.str(name).to_string();
-                let cls = cls.name(ctxt);
-                let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let args = args.connect(", ");
 
                 format!(
                     "method with definition `{}({})` already exists in class `{}` at line {}.",
@@ -88,7 +86,7 @@ impl Msg {
                 format!("cannot assign `nil` to type `{}`.", name)
             },
             UnknownProp(ref prop, ref ty) =>
-                format!("unknown property `{}` for type `{}`", prop, ty.name(ctxt)),
+                format!("unknown property `{}` for type `{}`", prop, ty),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
@@ -110,7 +108,7 @@ impl Msg {
                 format!("`if` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
             ReturnType(ref def, ref expr) =>
                 format!("`return` expects value of type `{}` but got `{}`.",
-                    def.name(ctxt), expr.name(ctxt)),
+                    def, expr),
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(name, def, expr) => {
                 let name = ctxt.interner.str(name).to_string();
@@ -119,12 +117,10 @@ impl Msg {
 
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
-            AssignProp(name, clsid, def, expr) => {
+            AssignProp(name, clsid, ref def, ref expr) => {
                 let cls = ctxt.cls_by_id(clsid);
                 let cls_name = ctxt.interner.str(cls.name).to_string();
                 let name = ctxt.interner.str(name).to_string();
-                let def = def.name(ctxt);
-                let expr = expr.name(ctxt);
 
                 format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
                         expr, cls_name, name, def)

@@ -66,7 +66,7 @@ impl BuiltinType {
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
-            BuiltinType::Str => "str".into(),
+            BuiltinType::Str => "Str".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.cls_by_id(cid);
 

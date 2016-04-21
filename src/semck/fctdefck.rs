@@ -53,10 +53,13 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
                 if method.initialized
                    && method.name == self.fct.name
                    && method.params_types == self.fct.params_types {
+                    let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
+                    let param_names = method.params_types[1..].iter()
+                        .map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
 
                     let msg = Msg::MethodExists(
-                        BuiltinType::Class(clsid), method.name,
-                        method.params_types[1..].to_vec(), method.src().ast.pos);
+                        cls_name, method.name,
+                        param_names, method.src().ast.pos);
                     self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
                     return;
                 }

@@ -120,6 +120,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let msg = if expr_type.is_nil() {
                 Msg::IncompatibleWithNil(fct_type)
             } else {
+                let fct_type = fct_type.name(self.ctxt);
+                let expr_type = expr_type.name(self.ctxt);
+
                 Msg::ReturnType(fct_type, expr_type)
             };
 
@@ -191,6 +194,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 } else {
                     let prop = e.lhs.to_prop().unwrap();
                     let prop_type = self.fct.src().get_type(prop.object.id());
+                    let lhs_type = lhs_type.name(self.ctxt);
+                    let rhs_type = rhs_type.name(self.ctxt);
 
                     Msg::AssignProp(prop.name, prop_type.cls_id(), lhs_type, rhs_type)
                 };
@@ -247,7 +252,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let msg = Msg::UnknownMethod(object_type, name, args[1..].to_vec());
+        let type_name = object_type.name(self.ctxt);
+        let param_names = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+        let msg = Msg::UnknownMethod(type_name, name, param_names);
         self.ctxt.diag.borrow_mut().report(pos, msg);
         self.set_type(id, BuiltinType::Unit);
 
@@ -472,7 +479,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // property not found, report error
         let prop_name = self.ctxt.interner.str(e.name).to_string();
-        let msg = Msg::UnknownProp(prop_name, self.expr_type);
+        let expr_name = self.expr_type.name(self.ctxt);
+        let msg = Msg::UnknownProp(prop_name, expr_name);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         // we don't know the type of the property, just assume ()
         self.set_type(e.id, BuiltinType::Unit);
@@ -578,7 +586,7 @@ mod tests {
         ok("class Foo(a:int) fn f(x: Foo) -> int { return x.a; }");
         ok("class Foo(a:Str) fn f(x: Foo) -> Str { return x.a; }");
         err("class Foo(a:int) fn f(x: Foo) -> bool { return x.a; }",
-             pos(1, 41), Msg::ReturnType(BuiltinType::Bool, BuiltinType::Int));
+             pos(1, 41), Msg::ReturnType("bool".into(), "int".into()));
 
         parse_with_errors("class Foo(a:int) fn f(x: Foo) -> int { return x.b; }", |ctxt| {
             let diag = ctxt.diag.borrow();
@@ -587,11 +595,11 @@ mod tests {
 
             let err = &errors[0];
             assert_eq!(pos(1, 48), err.pos);
-            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(4))), err.msg);
+            assert_eq!(Msg::UnknownProp("b".into(), "Foo".into()), err.msg);
 
             let err = &errors[1];
             assert_eq!(pos(1, 40), err.pos);
-            assert_eq!(Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit), err.msg);
+            assert_eq!(Msg::ReturnType("int".into(), "()".into()), err.msg);
         });
     }
 
@@ -600,7 +608,7 @@ mod tests {
         ok("class Foo(a: int) fn f(x: Foo) { x.a = 1; }");
         err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
             pos(1, 38),
-            Msg::AssignProp(Name(1), ClassId(4), BuiltinType::Int, BuiltinType::Bool));
+            Msg::AssignProp(Name(1), ClassId(4), "int".into(), "bool".into()));
     }
 
     #[test]
@@ -626,7 +634,7 @@ mod tests {
              }
 
              fn f(x: Foo) -> Str { return x.bar(); }",
-             pos(5, 36), Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
+             pos(5, 36), Msg::ReturnType("Str".into(), "int".into()));
     }
 
     #[test]
@@ -635,19 +643,19 @@ mod tests {
                  fn bar(self) {}
                  fn bar(self) {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(4)), Name(1), vec![], pos(2, 18)));
+                 "Foo".into(), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self) {}
                  fn bar(self) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(4)), Name(1), vec![], pos(2, 18)));
+                 "Foo".into(), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self, a: int) {}
                  fn bar(self, a: int) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(4)), Name(1), vec![BuiltinType::Int], pos(2, 18)));
+                 "Foo".into(), Name(1), vec!["int".into()], pos(2, 18)));
 
         ok("class Foo {
                 fn bar(self, a: int) {}
@@ -687,13 +695,13 @@ mod tests {
 
              fn f(x: Foo) { x.bar(); }",
              pos(5, 30),
-             Msg::UnknownMethod(BuiltinType::Class(ClassId(4)), Name(1), Vec::new()));
+             Msg::UnknownMethod("Foo".into(), Name(1), Vec::new()));
 
          err("class Foo { }
               fn f(x: Foo) { x.bar(1); }",
               pos(2, 31),
-              Msg::UnknownMethod(BuiltinType::Class(ClassId(4)),
-                Name(3), vec![BuiltinType::Int]));
+              Msg::UnknownMethod("Foo".into(),
+                Name(3), vec!["int".into()]));
     }
 
     #[test]
@@ -701,7 +709,7 @@ mod tests {
         ok("class Foo fn f() -> Foo { return Foo(); }");
         ok("class Foo(a: int) fn f() -> Foo { return Foo(1); }");
         err("class Foo fn f() -> Foo { return 1; }", pos(1, 27),
-            Msg::ReturnType(BuiltinType::Class(ClassId(4)), BuiltinType::Int));
+            Msg::ReturnType("Foo".into(), "int".into()));
     }
 
     #[test]
@@ -759,7 +767,7 @@ mod tests {
     fn type_return_unit() {
         ok("fn f() { return; }");
         err("fn f() { return 1; }", pos(1, 10),
-            Msg::ReturnType(BuiltinType::Unit, BuiltinType::Int));
+            Msg::ReturnType("()".into(), "int".into()));
     }
 
     #[test]
@@ -767,13 +775,13 @@ mod tests {
         ok("fn f() -> int { let a = 1; return a; }");
         ok("fn f() -> int { return 1; }");
         err("fn f() -> int { return; }", pos(1, 17),
-            Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit));
+            Msg::ReturnType("int".into(), "()".into()));
 
         ok("fn f() -> int { return 0; }
             fn g() -> int { return f(); }");
         err("fn f() { }
              fn g() -> int { return f(); }", pos(2, 30),
-             Msg::ReturnType(BuiltinType::Int, BuiltinType::Unit));
+             Msg::ReturnType("int".into(), "()".into()));
     }
 
     #[test]
@@ -920,13 +928,13 @@ mod tests {
     fn type_nil_for_prop() {
         ok("class Foo(a: Str) fn f() { Foo(nil).a = nil; }");
         err("class Foo(a: int) fn f() { Foo(1).a = nil; }",
-            pos(1, 37), Msg::AssignProp(Name(1), ClassId(4), BuiltinType::Int, BuiltinType::Nil));
+            pos(1, 37), Msg::AssignProp(Name(1), ClassId(4), "int".into(), "nil".into()));
     }
 
     #[test]
     fn type_nil_method() {
         err("fn f() { nil.test(); }", pos(1, 13),
-            Msg::UnknownMethod(BuiltinType::Nil, Name(1), Vec::new()));
+            Msg::UnknownMethod("nil".into(), Name(1), Vec::new()));
     }
 
     #[test]
@@ -950,7 +958,7 @@ mod tests {
     fn type_array() {
         ok("fn f(a: IntArray) -> int { return a[1]; }");
         err("fn f(a: IntArray) -> Str { return a[1]; }", pos(1, 28),
-            Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
+            Msg::ReturnType("Str".into(), "int".into()));
     }
 
     #[test]
@@ -958,8 +966,9 @@ mod tests {
         let iarray = BuiltinType::Class(ClassId(3));
         ok("fn f(a: IntArray) -> int { return a[3] = 4; }");
         err("fn f(a: IntArray) { a[3] = \"b\"; }", pos(1, 26),
-            Msg::UnknownMethod(iarray, Name(8), vec![BuiltinType::Int, BuiltinType::Str]));
+            Msg::UnknownMethod("IntArray".into(), Name(8),
+                vec!["int".into(), "Str".into()]));
         err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
-            Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
+            Msg::ReturnType("Str".into(), "int".into()));
     }
 }
