@@ -103,7 +103,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         // and functions can be replaced
         if let Err(_) = self.add_var(var_ctxt, |sym| !sym.is_class()) {
             let name = str(self.ctxt, var.name);
-            report(self.ctxt, var.pos, Msg::ShadowType(name));
+            report(self.ctxt, var.pos, Msg::ShadowClass(name));
         }
 
         if let Some(ref expr) = var.expr {
@@ -197,7 +197,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_fct()) {
             let name = str(self.ctxt, p.name);
             let msg = if sym.is_class() {
-                Msg::ShadowType(name)
+                Msg::ShadowClass(name)
             } else {
                 Msg::ShadowParam(name)
             };
@@ -255,19 +255,19 @@ mod tests {
     #[test]
     fn shadow_type_with_function() {
         err("fn int() {}", pos(1, 1),
-            Msg::ShadowType("int".into()));
+            Msg::ShadowClass("int".into()));
     }
 
     #[test]
     fn shadow_type_with_param() {
         err("fn test(bool: Str) {}", pos(1, 9),
-            Msg::ShadowType("bool".into()));
+            Msg::ShadowClass("bool".into()));
     }
 
     #[test]
     fn shadow_type_with_var() {
         err("fn test() { let Str = 3; }", pos(1, 13),
-            Msg::ShadowType("Str".into()));
+            Msg::ShadowClass("Str".into()));
     }
 
     #[test]

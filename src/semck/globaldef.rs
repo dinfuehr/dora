@@ -69,7 +69,7 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
     let name = ctxt.interner.str(name).to_string();
 
     let msg = if sym.is_class() {
-        Msg::ShadowType(name)
+        Msg::ShadowClass(name)
     } else {
         Msg::ShadowFunction(name)
     };

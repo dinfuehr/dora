@@ -20,7 +20,7 @@ pub enum Msg {
     IdentifierExists(String),
     ShadowFunction(String),
     ShadowParam(String),
-    ShadowType(String),
+    ShadowClass(String),
     ShadowProp(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(Name, Vec<BuiltinType>, Vec<BuiltinType>),
@@ -92,7 +92,7 @@ impl Msg {
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
-            ShadowType(ref name) => format!("can not shadow type `{}`.", name),
+            ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
             ShadowProp(ref name) => format!("property with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
