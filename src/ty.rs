@@ -13,8 +13,7 @@ pub enum BuiltinType {
     // type Nil, only used in typeck until final type is known
     Nil,
 
-    // only used internally: shortcut to Str or some class
-    // just means size of pointer
+    // pointer to object, only used internally
     Ptr,
 
     // String type

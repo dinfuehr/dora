@@ -8,7 +8,7 @@ use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
 use mem;
-use sym::Sym::{self, SymType};
+use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
@@ -29,6 +29,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
+            ty: BuiltinType::Class(id),
             ctors: Vec::new(),
             props: Vec::new(),
             methods: Vec::new(),
@@ -37,8 +38,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         };
 
         self.ctxt.classes.push(Box::new(cls));
-        let ty = BuiltinType::Class(id);
-        let sym = SymType(ty);
+        let sym = SymClass(id);
 
         assert!(self.ctxt.cls_defs.insert(c.id, id).is_none());
 
@@ -68,7 +68,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
     let name = ctxt.interner.str(name).to_string();
 
-    let msg = if sym.is_type() {
+    let msg = if sym.is_class() {
         Msg::ShadowType(name)
     } else {
         Msg::ShadowFunction(name)

@@ -587,7 +587,7 @@ mod tests {
 
             let err = &errors[0];
             assert_eq!(pos(1, 48), err.pos);
-            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(1))), err.msg);
+            assert_eq!(Msg::UnknownProp("b".into(), BuiltinType::Class(ClassId(4))), err.msg);
 
             let err = &errors[1];
             assert_eq!(pos(1, 40), err.pos);
@@ -600,7 +600,7 @@ mod tests {
         ok("class Foo(a: int) fn f(x: Foo) { x.a = 1; }");
         err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
             pos(1, 38),
-            Msg::AssignProp(Name(1), ClassId(1), BuiltinType::Int, BuiltinType::Bool));
+            Msg::AssignProp(Name(1), ClassId(4), BuiltinType::Int, BuiltinType::Bool));
     }
 
     #[test]
@@ -635,19 +635,19 @@ mod tests {
                  fn bar(self) {}
                  fn bar(self) {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(1)), Name(1), vec![], pos(2, 18)));
+                 BuiltinType::Class(ClassId(4)), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self) {}
                  fn bar(self) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(1)), Name(1), vec![], pos(2, 18)));
+                 BuiltinType::Class(ClassId(4)), Name(1), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self, a: int) {}
                  fn bar(self, a: int) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 BuiltinType::Class(ClassId(1)), Name(1), vec![BuiltinType::Int], pos(2, 18)));
+                 BuiltinType::Class(ClassId(4)), Name(1), vec![BuiltinType::Int], pos(2, 18)));
 
         ok("class Foo {
                 fn bar(self, a: int) {}
@@ -687,12 +687,12 @@ mod tests {
 
              fn f(x: Foo) { x.bar(); }",
              pos(5, 30),
-             Msg::UnknownMethod(BuiltinType::Class(ClassId(1)), Name(1), Vec::new()));
+             Msg::UnknownMethod(BuiltinType::Class(ClassId(4)), Name(1), Vec::new()));
 
          err("class Foo { }
               fn f(x: Foo) { x.bar(1); }",
               pos(2, 31),
-              Msg::UnknownMethod(BuiltinType::Class(ClassId(1)),
+              Msg::UnknownMethod(BuiltinType::Class(ClassId(4)),
                 Name(3), vec![BuiltinType::Int]));
     }
 
@@ -701,7 +701,7 @@ mod tests {
         ok("class Foo fn f() -> Foo { return Foo(); }");
         ok("class Foo(a: int) fn f() -> Foo { return Foo(1); }");
         err("class Foo fn f() -> Foo { return 1; }", pos(1, 27),
-            Msg::ReturnType(BuiltinType::Class(ClassId(1)), BuiltinType::Int));
+            Msg::ReturnType(BuiltinType::Class(ClassId(4)), BuiltinType::Int));
     }
 
     #[test]
@@ -819,10 +819,10 @@ mod tests {
 
         err("class A class B fn f(a: A, b: B) { a === b; }", pos(1, 38),
             Msg::BinOpType("===".into(),
-                BuiltinType::Class(ClassId(1)), BuiltinType::Class(ClassId(2))));
+                BuiltinType::Class(ClassId(4)), BuiltinType::Class(ClassId(5))));
         err("class A class B fn f(a: A, b: B) { b !== a; }", pos(1, 38),
             Msg::BinOpType("!==".into(),
-                BuiltinType::Class(ClassId(2)), BuiltinType::Class(ClassId(1))));
+                BuiltinType::Class(ClassId(5)), BuiltinType::Class(ClassId(4))));
         err("fn f(a: bool) { a+a; }", pos(1, 18),
             Msg::BinOpType("+".into(), BuiltinType::Bool, BuiltinType::Bool));
         err("fn f(a: bool) { a^a; }", pos(1, 18),
@@ -920,7 +920,7 @@ mod tests {
     fn type_nil_for_prop() {
         ok("class Foo(a: Str) fn f() { Foo(nil).a = nil; }");
         err("class Foo(a: int) fn f() { Foo(1).a = nil; }",
-            pos(1, 37), Msg::AssignProp(Name(1), ClassId(1), BuiltinType::Int, BuiltinType::Nil));
+            pos(1, 37), Msg::AssignProp(Name(1), ClassId(4), BuiltinType::Int, BuiltinType::Nil));
     }
 
     #[test]
@@ -942,7 +942,7 @@ mod tests {
 
             fn f() {
                 Foo().f(nil);
-            }", pos(7, 22), Msg::MultipleCandidates(BuiltinType::Class(ClassId(1)),
+            }", pos(7, 22), Msg::MultipleCandidates(BuiltinType::Class(ClassId(4)),
                 Name(1), vec![BuiltinType::Nil]));
     }
 
@@ -955,10 +955,10 @@ mod tests {
 
     #[test]
     fn type_array_assign() {
-        let iarray = BuiltinType::Class(ClassId(0));
+        let iarray = BuiltinType::Class(ClassId(3));
         ok("fn f(a: IntArray) -> int { return a[3] = 4; }");
         err("fn f(a: IntArray) { a[3] = \"b\"; }", pos(1, 26),
-            Msg::UnknownMethod(iarray, Name(15), vec![BuiltinType::Int, BuiltinType::Str]));
+            Msg::UnknownMethod(iarray, Name(8), vec![BuiltinType::Int, BuiltinType::Str]));
         err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
             Msg::ReturnType(BuiltinType::Str, BuiltinType::Int));
     }

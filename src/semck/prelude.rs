@@ -11,12 +11,81 @@ use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn init<'ast>(ctxt: &mut Context<'ast>) {
-    add_builtin_types(ctxt);
-    add_builtin_functions(ctxt);
     add_builtin_classes(ctxt);
+    add_builtin_functions(ctxt);
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
+    add_class_bool(ctxt);
+    add_class_int(ctxt);
+    add_class_str(ctxt);
+    add_class_int_array(ctxt);
+}
+
+fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("bool");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        ty: BuiltinType::Bool,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Bool.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("int");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        ty: BuiltinType::Int,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Int.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
+    let cls_id = ClassId(ctxt.classes.len());
+    let cls_name = ctxt.interner.intern("Str");
+
+    let cls = Box::new(Class {
+        id: cls_id,
+        name: cls_name,
+        ty: BuiltinType::Str,
+        ctors: Vec::new(),
+        props: Vec::new(),
+        methods: Vec::new(),
+        size: BuiltinType::Str.size(),
+        ast: None,
+    });
+
+    ctxt.classes.push(cls);
+
+    let sym = SymClass(cls_id);
+    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
+}
+
+fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls_id = ClassId(ctxt.classes.len());
     let cls_name = ctxt.interner.intern("IntArray");
 
@@ -38,6 +107,7 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
+        ty: BuiltinType::Class(cls_id),
         ctors: vec![ctor_empty, ctor_elem],
         props: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
@@ -47,7 +117,7 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
 
     ctxt.classes.push(cls);
 
-    let sym = SymType(BuiltinType::Class(cls_id));
+    let sym = SymClass(cls_id);
     assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
 }
 
@@ -85,17 +155,6 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static st
     };
 
     ctxt.add_fct(fct)
-}
-
-fn add_builtin_types<'ast>(ctxt: &mut Context<'ast>) {
-    builtin_type("int", BuiltinType::Int, ctxt);
-    builtin_type("bool", BuiltinType::Bool, ctxt);
-    builtin_type("Str", BuiltinType::Str, ctxt);
-}
-
-fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'ast>) {
-    let name = ctxt.interner.intern(name.into());
-    assert!(ctxt.sym.borrow_mut().insert(name, SymType(ty)).is_none());
 }
 
 fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
