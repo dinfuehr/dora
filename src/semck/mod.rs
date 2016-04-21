@@ -56,8 +56,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
     match *t {
         TypeBasic(ref basic) => {
-            if let Some(builtin) = ctxt.sym.borrow().get_type(basic.name) {
-                return builtin;
+            if let Some(cls_id) = ctxt.sym.borrow().get_class(basic.name) {
+                let cls = ctxt.cls_by_id(cls_id);
+
+                return cls.ty;
 
             } else {
                 let msg = Msg::UnknownType(basic.name);

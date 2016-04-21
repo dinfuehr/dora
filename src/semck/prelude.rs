@@ -117,7 +117,7 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
 
     ctxt.classes.push(cls);
 
-    let sym = SymType(BuiltinType::Class(cls_id));
+    let sym = SymClass(cls_id);
     assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
 }
 
@@ -155,11 +155,6 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: &'static st
     };
 
     ctxt.add_fct(fct)
-}
-
-fn builtin_type<'a, 'ast: 'a>(name: &str, ty: BuiltinType, ctxt: &mut Context<'ast>) {
-    let name = ctxt.interner.intern(name.into());
-    assert!(ctxt.sym.borrow_mut().insert(name, SymType(ty)).is_none());
 }
 
 fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {

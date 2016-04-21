@@ -101,7 +101,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(_) = self.add_var(var_ctxt, |sym| !sym.is_type()) {
+        if let Err(_) = self.add_var(var_ctxt, |sym| !sym.is_class()) {
             let name = str(self.ctxt, var.name);
             report(self.ctxt, var.pos, Msg::ShadowType(name));
         }
@@ -158,8 +158,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     found = true;
                 }
 
-                SymType(ty) if ty.is_cls() => {
-                    let cls_id = ty.cls_id();
+                SymClass(cls_id) => {
                     let cls = self.ctxt.cls_by_id(cls_id);
 
                     let call_type = CallType::Ctor(cls_id, FctId(0));
@@ -197,7 +196,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         // types and vars cannot be replaced
         if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_fct()) {
             let name = str(self.ctxt, p.name);
-            let msg = if sym.is_type() {
+            let msg = if sym.is_class() {
                 Msg::ShadowType(name)
             } else {
                 Msg::ShadowParam(name)

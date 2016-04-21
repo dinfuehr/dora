@@ -43,8 +43,8 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_var())
     }
 
-    pub fn get_type(&self, name: Name) -> Option<BuiltinType> {
-        self.get(name).and_then(|n| n.to_type())
+    pub fn get_class(&self, name: Name) -> Option<ClassId> {
+        self.get(name).and_then(|n| n.to_class())
     }
 
     pub fn get_fct(&self, name: Name) -> Option<FctId> {
@@ -81,27 +81,12 @@ impl SymLevel {
 
 #[derive(Debug, Clone)]
 pub enum Sym {
-    SymType(BuiltinType),
     SymFct(FctId),
     SymVar(VarId),
     SymClass(ClassId),
 }
 
 impl Sym {
-    pub fn is_type(&self) -> bool {
-        match *self {
-            SymType(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn to_type(&self) -> Option<BuiltinType> {
-        match *self {
-            SymType(builtin) => Some(builtin),
-            _ => None
-        }
-    }
-
     pub fn is_fct(&self) -> bool {
         match *self {
             SymFct(_) => true,
