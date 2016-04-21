@@ -127,7 +127,7 @@ mod tests {
 
     fn class_size(code: &'static str) -> i32 {
         ok_with_test(code, |ctxt| {
-            ctxt.classes[1].size
+            ctxt.classes[4].size
         })
     }
 
