@@ -23,12 +23,12 @@ pub enum Msg {
     ShadowClass(String),
     ShadowProp(String),
     VarNeedsTypeInfo(String),
-    ParamTypesIncompatible(Name, Vec<BuiltinType>, Vec<BuiltinType>),
+    ParamTypesIncompatible(Name, Vec<String>, Vec<String>),
     WhileCondType(BuiltinType),
     IfCondType(BuiltinType),
     ReturnType(String, String),
     LvalueExpected,
-    AssignType(Name, BuiltinType, BuiltinType),
+    AssignType(Name, String, String),
     AssignProp(Name, ClassId, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
@@ -37,7 +37,7 @@ pub enum Msg {
     MainNotFound,
     WrongMainDefinition,
     SelfUnavailable,
-    MultipleCandidates(BuiltinType, Name, Vec<BuiltinType>),
+    MultipleCandidates(String, Name, Vec<String>),
     SelfNeeded,
     InvalidUseOfSelf
 }
@@ -96,8 +96,8 @@ impl Msg {
                 format!("variable `{}` needs either type declaration or expression.", name),
             ParamTypesIncompatible(name, ref def, ref expr) => {
                 let name = ctxt.interner.str(name).to_string();
-                let def = def.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
-                let expr = expr.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let def = def.connect(", ");
+                let expr = expr.connect(", ");
 
                 format!("function `{}({})` cannot be called as `{}({})`",
                     name, def, name, expr)
@@ -110,11 +110,8 @@ impl Msg {
                 format!("`return` expects value of type `{}` but got `{}`.",
                     def, expr),
             LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(name, def, expr) => {
+            AssignType(name, ref def, ref expr) => {
                 let name = ctxt.interner.str(name).to_string();
-                let def = def.name(ctxt);
-                let expr = expr.name(ctxt);
-
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
             AssignProp(name, clsid, ref def, ref expr) => {
@@ -136,11 +133,9 @@ impl Msg {
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             SelfUnavailable => "`self` can only be used in methods not functions".into(),
-            MultipleCandidates(cls, name, ref call_types) => {
-                let cls = cls.name(ctxt);
+            MultipleCandidates(ref cls, name, ref call_types) => {
                 let name = ctxt.interner.str(name).to_string();
-                let call_types = call_types.iter()
-                    .map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let call_types = call_types.connect(", ");
 
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",
                     name, call_types, cls)

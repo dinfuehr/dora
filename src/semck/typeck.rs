@@ -75,6 +75,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(expr_type) {
+                let defined_type = defined_type.name(self.ctxt);
+                let expr_type = expr_type.name(self.ctxt);
                 let msg = Msg::AssignType(s.name, defined_type, expr_type);
                 self.ctxt.diag.borrow_mut().report(s.pos, msg);
             }
@@ -189,6 +191,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if !lhs_type.allows(rhs_type) {
                 let msg = if e.lhs.is_ident() {
                     let ident = e.lhs.to_ident().unwrap();
+                    let lhs_type = lhs_type.name(self.ctxt);
+                    let rhs_type = rhs_type.name(self.ctxt);
 
                     Msg::AssignType(ident.name, lhs_type, rhs_type)
                 } else {
@@ -245,7 +249,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return Some(candidate);
 
             } else if candidates.len() > 1 {
-                let msg = Msg::MultipleCandidates(object_type, name, args[1..].to_vec());
+                let object_type = object_type.name(self.ctxt);
+                let args = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+                let msg = Msg::MultipleCandidates(object_type, name, args);
                 self.ctxt.diag.borrow_mut().report(pos, msg);
                 self.set_type(id, BuiltinType::Unit);
                 return None;
@@ -438,7 +444,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.set_type(e.id, callee_return);
 
                 if !args_compatible(&callee_params, &call_types) {
-                    let msg = Msg::ParamTypesIncompatible(callee_name, callee_params.clone(), call_types);
+                    let callee_params = callee_params.iter()
+                        .map(|a| a.name(self.ctxt))
+                        .collect::<Vec<_>>();
+                    let call_types = call_types.iter()
+                        .map(|a| a.name(self.ctxt))
+                        .collect::<Vec<_>>();
+                    let msg = Msg::ParamTypesIncompatible(callee_name, callee_params, call_types);
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
             }
@@ -748,10 +760,10 @@ mod tests {
 
         err("fn f() { let a : int = true; }",
             pos(1, 10), Msg::AssignType(
-                Name(1), BuiltinType::Int, BuiltinType::Bool));
+                Name(1), "int".into(), "bool".into()));
         err("fn f() { let b : bool = 2; }",
             pos(1, 10), Msg::AssignType(
-                Name(1), BuiltinType::Bool, BuiltinType::Int));
+                Name(1), "bool".into(), "int".into()));
     }
 
     #[test]
@@ -798,7 +810,7 @@ mod tests {
     fn type_assign() {
         ok("fn f(a: int) { a = 1; }");
         err("fn f(a: int) { a = true; }", pos(1, 18),
-            Msg::AssignType(Name(1), BuiltinType::Int, BuiltinType::Bool));
+            Msg::AssignType(Name(1), "int".into(), "bool".into()));
     }
 
     #[test]
@@ -866,7 +878,7 @@ mod tests {
         err("fn foo() -> int { return 1; }\nfn f() { let i: bool = foo(); }",
             pos(2, 10),
             Msg::AssignType(Name(3),
-                BuiltinType::Bool, BuiltinType::Int));
+                "bool".into(), "int".into()));
     }
 
     #[test]
@@ -888,15 +900,15 @@ mod tests {
         err("fn foo() {}\nfn f() { foo(1); }", pos(2, 10),
             Msg::ParamTypesIncompatible(Name(0),
                 vec![],
-                vec![BuiltinType::Int]));
+                vec!["int".into()]));
         err("fn foo(a: int) {}\nfn f() { foo(true); }", pos(2, 10),
             Msg::ParamTypesIncompatible(Name(0),
-                vec![BuiltinType::Int],
-                vec![BuiltinType::Bool]));
+                vec!["int".into()],
+                vec!["bool".into()]));
         err("fn foo(a: int, b: bool) {}\nfn f() { foo(1, 2); }", pos(2, 10),
             Msg::ParamTypesIncompatible(Name(0),
-                vec![BuiltinType::Int, BuiltinType::Bool],
-                vec![BuiltinType::Int, BuiltinType::Int]));
+                vec!["int".into(), "bool".into()],
+                vec!["int".into(), "int".into()]));
     }
 
     #[test]
@@ -912,7 +924,7 @@ mod tests {
         ok("fn foo(a: Str) {} fn test() { foo(nil); }");
         err("fn foo(a: int) {} fn test() { foo(nil); }",
             pos(1, 31), Msg::ParamTypesIncompatible(Name(0),
-                vec![BuiltinType::Int], vec![BuiltinType::Nil]));
+                vec!["int".into()], vec!["nil".into()]));
     }
 
     #[test]
@@ -926,7 +938,7 @@ mod tests {
     fn type_nil_for_local_variable() {
         ok("fn f() { let x: Str = nil; }");
         err("fn f() { let x: int = nil; }",
-            pos(1, 10), Msg::AssignType(Name(1), BuiltinType::Int, BuiltinType::Nil));
+            pos(1, 10), Msg::AssignType(Name(1), "int".into(), "nil".into()));
     }
 
     #[test]
@@ -955,8 +967,8 @@ mod tests {
 
             fn f() {
                 Foo().f(nil);
-            }", pos(7, 22), Msg::MultipleCandidates(BuiltinType::Class(ClassId(4)),
-                Name(1), vec![BuiltinType::Nil]));
+            }", pos(7, 22), Msg::MultipleCandidates("Foo".into(),
+                Name(1), vec!["nil".into()]));
     }
 
     #[test]
