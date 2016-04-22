@@ -87,7 +87,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.cond);
 
         if self.expr_type != BuiltinType::Bool {
-            let msg = Msg::WhileCondType(self.expr_type);
+            let expr_type = self.expr_type.name(self.ctxt);
+            let msg = Msg::WhileCondType(expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
 
@@ -98,7 +99,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.cond);
 
         if self.expr_type != BuiltinType::Bool {
-            let msg = Msg::IfCondType(self.expr_type);
+            let expr_type = self.expr_type.name(self.ctxt);
+            let msg = Msg::IfCondType(expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
         }
 
@@ -120,6 +122,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !fct_type.allows(expr_type) {
             let msg = if expr_type.is_nil() {
+                let fct_type = fct_type.name(self.ctxt);
+
                 Msg::IncompatibleWithNil(fct_type)
             } else {
                 let fct_type = fct_type.name(self.ctxt);
@@ -417,7 +421,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 if !found {
-                    let msg = Msg::UnknownCtor(cls.name, call_types.clone());
+                    let call_types = call_types.iter()
+                        .map(|a| a.name(self.ctxt))
+                        .collect::<Vec<_>>();
+                    let msg = Msg::UnknownCtor(cls.name, call_types);
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
             }
@@ -770,14 +777,14 @@ mod tests {
     fn type_while() {
         ok("fn x() { while true { } }");
         ok("fn x() { while false { } }");
-        err("fn x() { while 2 { } }", pos(1, 10), Msg::WhileCondType(BuiltinType::Int));
+        err("fn x() { while 2 { } }", pos(1, 10), Msg::WhileCondType("int".into()));
     }
 
     #[test]
     fn type_if() {
         ok("fn x() { if true { } }");
         ok("fn x() { if false { } }");
-        err("fn x() { if 4 { } }", pos(1, 10), Msg::IfCondType(BuiltinType::Int));
+        err("fn x() { if 4 { } }", pos(1, 10), Msg::IfCondType("int".into()));
     }
 
     #[test]
@@ -916,7 +923,7 @@ mod tests {
         ok("fn foo() -> Str { return nil; }");
         ok("class Foo fn foo() -> Foo { return nil; }");
         err("fn foo() -> int { return nil; }",
-            pos(1, 19), Msg::IncompatibleWithNil(BuiltinType::Int));
+            pos(1, 19), Msg::IncompatibleWithNil("int".into()));
     }
 
     #[test]
@@ -931,7 +938,7 @@ mod tests {
     fn type_nil_for_ctor() {
         ok("class Foo(a: Str) fn test() { Foo(nil); }");
         err("class Foo(a: int) fn test() { Foo(nil); }",
-            pos(1, 31), Msg::UnknownCtor(Name(0), vec![BuiltinType::Nil]));
+            pos(1, 31), Msg::UnknownCtor(Name(0), vec!["nil".into()]));
     }
 
     #[test]

@@ -3,7 +3,6 @@ use class::ClassId;
 use ctxt::Context;
 use interner::Name;
 use lexer::position::Position;
-use ty::BuiltinType;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {
@@ -13,10 +12,10 @@ pub enum Msg {
     UnknownFunction(String),
     UnknownProp(String, String),
     UnknownMethod(String, Name, Vec<String>),
-    UnknownCtor(Name, Vec<BuiltinType>),
+    UnknownCtor(Name, Vec<String>),
     MethodExists(String, Name, Vec<String>, Position),
     VarNotMutable(Name),
-    IncompatibleWithNil(BuiltinType),
+    IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
     ShadowParam(String),
@@ -24,8 +23,8 @@ pub enum Msg {
     ShadowProp(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(Name, Vec<String>, Vec<String>),
-    WhileCondType(BuiltinType),
-    IfCondType(BuiltinType),
+    WhileCondType(String),
+    IfCondType(String),
     ReturnType(String, String),
     LvalueExpected,
     AssignType(Name, String, String),
@@ -63,7 +62,7 @@ impl Msg {
             },
             UnknownCtor(name, ref args) => {
                 let name = ctxt.interner.str(name).to_string();
-                let args = args.iter().map(|a| a.name(ctxt)).collect::<Vec<String>>().connect(", ");
+                let args = args.connect(", ");
 
                 format!("no ctor with definition `{}({})`.", name, args)
             }
@@ -80,11 +79,7 @@ impl Msg {
 
                 format!("var `{}` not mutable.", name)
             },
-            IncompatibleWithNil(ty) => {
-                let name = ty.name(ctxt);
-
-                format!("cannot assign `nil` to type `{}`.", name)
-            },
+            IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
             UnknownProp(ref prop, ref ty) =>
                 format!("unknown property `{}` for type `{}`", prop, ty),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
@@ -103,9 +98,9 @@ impl Msg {
                     name, def, name, expr)
             },
             WhileCondType(ref ty) =>
-                format!("`while` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
+                format!("`while` expects condition of type `bool` but got `{}`.", ty),
             IfCondType(ref ty) =>
-                format!("`if` expects condition of type `bool` but got `{}`.", ty.name(ctxt)),
+                format!("`if` expects condition of type `bool` but got `{}`.", ty),
             ReturnType(ref def, ref expr) =>
                 format!("`return` expects value of type `{}` but got `{}`.",
                     def, expr),
