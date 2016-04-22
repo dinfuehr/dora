@@ -34,7 +34,7 @@ pub enum Msg {
     MainNotFound,
     WrongMainDefinition,
     SelfUnavailable,
-    MultipleCandidates(String, Name, Vec<String>),
+    MultipleCandidates(String, String, Vec<String>),
     SelfNeeded,
     InvalidUseOfSelf
 }
@@ -104,8 +104,7 @@ impl Msg {
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             SelfUnavailable => "`self` can only be used in methods not functions".into(),
-            MultipleCandidates(ref cls, name, ref call_types) => {
-                let name = ctxt.interner.str(name).to_string();
+            MultipleCandidates(ref cls, ref name, ref call_types) => {
                 let call_types = call_types.connect(", ");
 
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",

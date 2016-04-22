@@ -261,6 +261,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
                 let args = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+                let name = self.ctxt.interner.str(name).to_string();
                 let msg = Msg::MultipleCandidates(object_type, name, args);
                 self.ctxt.diag.borrow_mut().report(pos, msg);
                 self.set_type(id, BuiltinType::Unit);
@@ -984,7 +985,7 @@ mod tests {
             fn f() {
                 Foo().f(nil);
             }", pos(7, 22), Msg::MultipleCandidates("Foo".into(),
-                Name(1), vec!["nil".into()]));
+                "f".into(), vec!["nil".into()]));
     }
 
     #[test]
