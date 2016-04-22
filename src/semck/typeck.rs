@@ -202,10 +202,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 } else {
                     let prop = e.lhs.to_prop().unwrap();
                     let prop_type = self.fct.src().get_type(prop.object.id());
+                    let prop_type = prop_type.name(self.ctxt);
+
                     let lhs_type = lhs_type.name(self.ctxt);
                     let rhs_type = rhs_type.name(self.ctxt);
 
-                    Msg::AssignProp(prop.name, prop_type.cls_id(), lhs_type, rhs_type)
+                    Msg::AssignProp(prop.name, prop_type, lhs_type, rhs_type)
                 };
 
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
@@ -632,7 +634,7 @@ mod tests {
         ok("class Foo(a: int) fn f(x: Foo) { x.a = 1; }");
         err("class Foo(a: int) fn f(x: Foo) { x.a = false; }",
             pos(1, 38),
-            Msg::AssignProp(Name(1), ClassId(4), "int".into(), "bool".into()));
+            Msg::AssignProp(Name(1), "Foo".into(), "int".into(), "bool".into()));
     }
 
     #[test]
@@ -952,7 +954,7 @@ mod tests {
     fn type_nil_for_prop() {
         ok("class Foo(a: Str) fn f() { Foo(nil).a = nil; }");
         err("class Foo(a: int) fn f() { Foo(1).a = nil; }",
-            pos(1, 37), Msg::AssignProp(Name(1), ClassId(4), "int".into(), "nil".into()));
+            pos(1, 37), Msg::AssignProp(Name(1), "Foo".into(), "int".into(), "nil".into()));
     }
 
     #[test]

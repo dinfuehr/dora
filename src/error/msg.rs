@@ -1,5 +1,4 @@
 use self::Msg::*;
-use class::ClassId;
 use ctxt::Context;
 use interner::Name;
 use lexer::position::Position;
@@ -28,7 +27,7 @@ pub enum Msg {
     ReturnType(String, String),
     LvalueExpected,
     AssignType(Name, String, String),
-    AssignProp(Name, ClassId, String, String),
+    AssignProp(Name, String, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
     OutsideLoop,
@@ -109,13 +108,11 @@ impl Msg {
                 let name = ctxt.interner.str(name).to_string();
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
-            AssignProp(name, clsid, ref def, ref expr) => {
-                let cls = ctxt.cls_by_id(clsid);
-                let cls_name = ctxt.interner.str(cls.name).to_string();
+            AssignProp(name, ref cls, ref def, ref expr) => {
                 let name = ctxt.interner.str(name).to_string();
 
                 format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
-                        expr, cls_name, name, def)
+                        expr, cls, name, def)
             },
             UnOpType(ref op, ref expr) =>
                 format!("unary operator `{}` can not handle value of type `{} {}`.", op, op,
