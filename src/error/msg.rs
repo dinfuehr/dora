@@ -30,8 +30,8 @@ pub enum Msg {
     LvalueExpected,
     AssignType(Name, BuiltinType, BuiltinType),
     AssignProp(Name, ClassId, String, String),
-    UnOpType(String, BuiltinType),
-    BinOpType(String, BuiltinType, BuiltinType),
+    UnOpType(String, String),
+    BinOpType(String, String, String),
     OutsideLoop,
     NoReturnValue,
     MainNotFound,
@@ -127,10 +127,10 @@ impl Msg {
             },
             UnOpType(ref op, ref expr) =>
                 format!("unary operator `{}` can not handle value of type `{} {}`.", op, op,
-                    &expr.name(ctxt)),
+                    expr),
             BinOpType(ref op, ref lhs, ref rhs) =>
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
-                    op, &lhs.name(ctxt), op, &rhs.name(ctxt)),
+                    op, lhs, op, rhs),
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no `main` function found in the program".into(),
