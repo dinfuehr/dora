@@ -135,7 +135,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
         }
 
-        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(ident.name));
+        let name = self.ctxt.interner.str(ident.name).to_string();
+        report(self.ctxt, ident.pos, Msg::UnknownIdentifier(name));
     }
 
     fn check_expr_call(&mut self, call: &'ast ExprCallType) {
@@ -295,8 +296,8 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fn f() { let b = a; }", pos(1, 18), Msg::UnknownIdentifier(Name(2)));
-        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier(Name(1)));
+        err("fn f() { let b = a; }", pos(1, 18), Msg::UnknownIdentifier("a".into()));
+        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]
@@ -321,7 +322,7 @@ mod tests {
     #[test]
     fn variable_outside_of_scope() {
         err("fn f() -> int { { let a = 1; } return a; }", pos(1, 39),
-            Msg::UnknownIdentifier(Name(2)));
+            Msg::UnknownIdentifier("a".into()));
 
         ok("fn f() -> int { let a = 1; { let a = 2; } return a; }");
     }

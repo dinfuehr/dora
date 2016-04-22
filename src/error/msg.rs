@@ -6,14 +6,13 @@ use lexer::position::Position;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {
     Unimplemented,
-    UnknownType(Name),
-    UnknownIdentifier(Name),
+    UnknownType(String),
+    UnknownIdentifier(String),
     UnknownFunction(String),
     UnknownProp(String, String),
-    UnknownMethod(String, Name, Vec<String>),
-    UnknownCtor(Name, Vec<String>),
-    MethodExists(String, Name, Vec<String>, Position),
-    VarNotMutable(Name),
+    UnknownMethod(String, String, Vec<String>),
+    UnknownCtor(String, Vec<String>),
+    MethodExists(String, String, Vec<String>, Position),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
@@ -21,7 +20,7 @@ pub enum Msg {
     ShadowClass(String),
     ShadowProp(String),
     VarNeedsTypeInfo(String),
-    ParamTypesIncompatible(Name, Vec<String>, Vec<String>),
+    ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
     IfCondType(String),
     ReturnType(String, String),
@@ -44,39 +43,23 @@ impl Msg {
     pub fn message(&self, ctxt: &Context) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
-            UnknownType(name) => {
-                let name = ctxt.interner.str(name).to_string();
-                format!("type `{}` does not exist.", name)
-            },
-            UnknownIdentifier(name) => {
-                let name = ctxt.interner.str(name).to_string();
-                format!("unknown identifier `{}`.", name)
-            },
+            UnknownType(ref name) => format!("type `{}` does not exist.", name),
+            UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
-            UnknownMethod(ref cls, name, ref args) => {
-                let name = ctxt.interner.str(name).to_string();
+            UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.connect(", ");
-
                 format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
             },
-            UnknownCtor(name, ref args) => {
-                let name = ctxt.interner.str(name).to_string();
+            UnknownCtor(ref name, ref args) => {
                 let args = args.connect(", ");
-
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            MethodExists(ref cls, name, ref args, pos) => {
-                let name = ctxt.interner.str(name).to_string();
+            MethodExists(ref cls, ref name, ref args, pos) => {
                 let args = args.connect(", ");
 
                 format!(
                     "method with definition `{}({})` already exists in class `{}` at line {}.",
                     name, args, cls, pos)
-            },
-            VarNotMutable(name) => {
-                let name = ctxt.interner.str(name).to_string();
-
-                format!("var `{}` not mutable.", name)
             },
             IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
             UnknownProp(ref prop, ref ty) =>
@@ -88,8 +71,7 @@ impl Msg {
             ShadowProp(ref name) => format!("property with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
-            ParamTypesIncompatible(name, ref def, ref expr) => {
-                let name = ctxt.interner.str(name).to_string();
+            ParamTypesIncompatible(ref name, ref def, ref expr) => {
                 let def = def.connect(", ");
                 let expr = expr.connect(", ");
 

@@ -265,6 +265,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let type_name = object_type.name(self.ctxt);
+        let name = self.ctxt.interner.str(name).to_string();
         let param_names = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
         let msg = Msg::UnknownMethod(type_name, name, param_names);
         self.ctxt.diag.borrow_mut().report(pos, msg);
@@ -426,7 +427,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let call_types = call_types.iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<_>>();
-                    let msg = Msg::UnknownCtor(cls.name, call_types);
+                    let name = self.ctxt.interner.str(cls.name).to_string();
+                    let msg = Msg::UnknownCtor(name, call_types);
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
             }
@@ -453,6 +455,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.set_type(e.id, callee_return);
 
                 if !args_compatible(&callee_params, &call_types) {
+                    let callee_name = self.ctxt.interner.str(callee_name).to_string();
                     let callee_params = callee_params.iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<_>>();
@@ -642,7 +645,7 @@ mod tests {
         ok("class Foo(a: int) { fn f(self) -> int { return a; } }");
         ok("class Foo(a: int) { fn set(self, x: int) { a = x; } }");
         err("class Foo(a: int) { fn set(self, x: int) { b = x; } }",
-            pos(1, 44), Msg::UnknownIdentifier(Name(6)));
+            pos(1, 44), Msg::UnknownIdentifier("b".into()));
     }
 
     #[test]
@@ -669,19 +672,19 @@ mod tests {
                  fn bar(self) {}
                  fn bar(self) {}
              }", pos(3, 18), Msg::MethodExists(
-                 "Foo".into(), Name(1), vec![], pos(2, 18)));
+                 "Foo".into(), "bar".into(), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self) {}
                  fn bar(self) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 "Foo".into(), Name(1), vec![], pos(2, 18)));
+                 "Foo".into(), "bar".into(), vec![], pos(2, 18)));
 
         err("class Foo {
                  fn bar(self, a: int) {}
                  fn bar(self, a: int) -> int {}
              }", pos(3, 18), Msg::MethodExists(
-                 "Foo".into(), Name(1), vec!["int".into()], pos(2, 18)));
+                 "Foo".into(), "bar".into(), vec!["int".into()], pos(2, 18)));
 
         ok("class Foo {
                 fn bar(self, a: int) {}
@@ -721,13 +724,13 @@ mod tests {
 
              fn f(x: Foo) { x.bar(); }",
              pos(5, 30),
-             Msg::UnknownMethod("Foo".into(), Name(1), Vec::new()));
+             Msg::UnknownMethod("Foo".into(), "bar".into(), Vec::new()));
 
          err("class Foo { }
               fn f(x: Foo) { x.bar(1); }",
               pos(2, 31),
               Msg::UnknownMethod("Foo".into(),
-                Name(3), vec!["int".into()]));
+                "bar".into(), vec!["int".into()]));
     }
 
     #[test]
@@ -741,19 +744,19 @@ mod tests {
     #[test]
     fn type_def_for_return_type() {
         ok("fn a() -> int { return 1; }");
-        err("fn a() -> unknown {}", pos(1, 11), Msg::UnknownType(Name(1)));
+        err("fn a() -> unknown {}", pos(1, 11), Msg::UnknownType("unknown".into()));
     }
 
     #[test]
     fn type_def_for_param() {
         ok("fn a(b: int) {}");
-        err("fn a(b: foo) {}", pos(1, 9), Msg::UnknownType(Name(2)));
+        err("fn a(b: foo) {}", pos(1, 9), Msg::UnknownType("foo".into()));
     }
 
     #[test]
     fn type_def_for_var() {
         ok("fn a() { let a : int = 1; }");
-        err("fn a() { let a : test = 1; }", pos(1, 18), Msg::UnknownType(Name(1)));
+        err("fn a() { let a : test = 1; }", pos(1, 18), Msg::UnknownType("test".into()));
     }
 
     #[test]
@@ -907,15 +910,15 @@ mod tests {
         ok("fn foo(a: int, b: bool) {}\nfn f() { foo(1, true); }");
 
         err("fn foo() {}\nfn f() { foo(1); }", pos(2, 10),
-            Msg::ParamTypesIncompatible(Name(0),
+            Msg::ParamTypesIncompatible("foo".into(),
                 vec![],
                 vec!["int".into()]));
         err("fn foo(a: int) {}\nfn f() { foo(true); }", pos(2, 10),
-            Msg::ParamTypesIncompatible(Name(0),
+            Msg::ParamTypesIncompatible("foo".into(),
                 vec!["int".into()],
                 vec!["bool".into()]));
         err("fn foo(a: int, b: bool) {}\nfn f() { foo(1, 2); }", pos(2, 10),
-            Msg::ParamTypesIncompatible(Name(0),
+            Msg::ParamTypesIncompatible("foo".into(),
                 vec!["int".into(), "bool".into()],
                 vec!["int".into(), "int".into()]));
     }
@@ -932,7 +935,7 @@ mod tests {
     fn type_nil_as_argument() {
         ok("fn foo(a: Str) {} fn test() { foo(nil); }");
         err("fn foo(a: int) {} fn test() { foo(nil); }",
-            pos(1, 31), Msg::ParamTypesIncompatible(Name(0),
+            pos(1, 31), Msg::ParamTypesIncompatible("foo".into(),
                 vec!["int".into()], vec!["nil".into()]));
     }
 
@@ -940,7 +943,7 @@ mod tests {
     fn type_nil_for_ctor() {
         ok("class Foo(a: Str) fn test() { Foo(nil); }");
         err("class Foo(a: int) fn test() { Foo(nil); }",
-            pos(1, 31), Msg::UnknownCtor(Name(0), vec!["nil".into()]));
+            pos(1, 31), Msg::UnknownCtor("Foo".into(), vec!["nil".into()]));
     }
 
     #[test]
@@ -960,7 +963,7 @@ mod tests {
     #[test]
     fn type_nil_method() {
         err("fn f() { nil.test(); }", pos(1, 13),
-            Msg::UnknownMethod("nil".into(), Name(1), Vec::new()));
+            Msg::UnknownMethod("nil".into(), "test".into(), Vec::new()));
     }
 
     #[test]
@@ -992,7 +995,7 @@ mod tests {
         let iarray = BuiltinType::Class(ClassId(3));
         ok("fn f(a: IntArray) -> int { return a[3] = 4; }");
         err("fn f(a: IntArray) { a[3] = \"b\"; }", pos(1, 26),
-            Msg::UnknownMethod("IntArray".into(), Name(8),
+            Msg::UnknownMethod("IntArray".into(), "set".into(),
                 vec!["int".into(), "Str".into()]));
         err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
             Msg::ReturnType("Str".into(), "int".into()));

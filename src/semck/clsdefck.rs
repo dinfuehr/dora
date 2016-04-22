@@ -157,7 +157,7 @@ mod tests {
         ok("class Foo(a: int, b:int)");
         ok("class Foo(a: Foo)");
         ok("class Foo(a: Bar) class Bar");
-        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType(Name(2)));
+        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType("Unknown".into()));
         err("class Foo(a: int, a: int)", pos(1, 19), Msg::ShadowProp("a".to_string()));
     }
 }
