@@ -25,8 +25,8 @@ pub enum Msg {
     IfCondType(String),
     ReturnType(String, String),
     LvalueExpected,
-    AssignType(Name, String, String),
-    AssignProp(Name, String, String, String),
+    AssignType(String, String, String),
+    AssignProp(String, String, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
     OutsideLoop,
@@ -86,13 +86,10 @@ impl Msg {
                 format!("`return` expects value of type `{}` but got `{}`.",
                     def, expr),
             LvalueExpected => format!("lvalue expected for assignment"),
-            AssignType(name, ref def, ref expr) => {
-                let name = ctxt.interner.str(name).to_string();
+            AssignType(ref name, ref def, ref expr) => {
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
-            AssignProp(name, ref cls, ref def, ref expr) => {
-                let name = ctxt.interner.str(name).to_string();
-
+            AssignProp(ref name, ref cls, ref def, ref expr) => {
                 format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
                         expr, cls, name, def)
             },
