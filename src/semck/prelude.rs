@@ -38,6 +38,7 @@ fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
     });
 
     ctxt.classes.push(cls);
+    ctxt.primitive_classes.bool_class = cls_id;
 
     let sym = SymClass(cls_id);
     assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
@@ -59,6 +60,7 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
     });
 
     ctxt.classes.push(cls);
+    ctxt.primitive_classes.int_class = cls_id;
 
     let sym = SymClass(cls_id);
     assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
@@ -80,6 +82,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
     });
 
     ctxt.classes.push(cls);
+    ctxt.primitive_classes.str_class = cls_id;
 
     let sym = SymClass(cls_id);
     assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());

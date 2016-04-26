@@ -34,6 +34,7 @@ pub struct Context<'ast> {
     pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
+    pub primitive_classes: PrimitiveClasses,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
@@ -50,6 +51,11 @@ impl<'ast> Context<'ast> {
             classes: Vec::new(),
             cls_defs: HashMap::new(),
             interner: interner,
+            primitive_classes: PrimitiveClasses {
+                int_class: ClassId(0),
+                str_class: ClassId(0),
+                bool_class: ClassId(0)
+            },
             gc: Mutex::new(Gc::new()),
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
@@ -124,6 +130,24 @@ impl<'ast> Context<'ast> {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
         self.fct_by_id(fct_id, f)
+    }
+}
+
+#[derive(Debug)]
+pub struct PrimitiveClasses {
+    pub int_class: ClassId,
+    pub str_class: ClassId,
+    pub bool_class: ClassId,
+}
+
+impl PrimitiveClasses {
+    pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
+        match ty {
+            BuiltinType::Int => Some(self.int_class),
+            BuiltinType::Str => Some(self.str_class),
+            BuiltinType::Bool => Some(self.bool_class),
+            _ => None
+        }
     }
 }
 
