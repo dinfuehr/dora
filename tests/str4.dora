@@ -1,0 +1,6 @@
+fn main() {
+  assert("abc".len() == 3);
+
+  let x = "abcdef";
+  assert(x.len() == 6);
+}

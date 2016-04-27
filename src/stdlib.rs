@@ -85,6 +85,10 @@ pub extern "C" fn int_array_len(ptr: *const IntArray) -> i32 {
     array.len() as i32
 }
 
+pub extern "C" fn str_array_len(s: Str) -> i32 {
+    s.len() as i32
+}
+
 pub extern "C" fn argc() -> i32 {
     let ctxt = get_ctxt();
 

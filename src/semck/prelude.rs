@@ -71,7 +71,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
     let cls_name = ctxt.interner.intern("Str");
 
     let mtd_len = add_method(ctxt, cls_id, BuiltinType::Str, "len", Vec::new(), BuiltinType::Int,
-        FctKind::Builtin(Ptr::new(stdlib::int_array_len as *mut c_void)));
+        FctKind::Builtin(Ptr::new(stdlib::str_array_len as *mut c_void)));
 
     let cls = Box::new(Class {
         id: cls_id,
