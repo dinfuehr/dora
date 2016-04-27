@@ -74,8 +74,13 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
     let cls_id = ClassId(ctxt.classes.len());
     let cls_name = ctxt.interner.intern("Str");
 
-    let mtd_len = add_method(ctxt, cls_id, BuiltinType::Str, "len", Vec::new(), BuiltinType::Int,
+    let mtd_len = add_method(ctxt, cls_id, BuiltinType::Str, "len", Vec::new(),
+        BuiltinType::Int,
         FctKind::Builtin(Ptr::new(stdlib::str_array_len as *mut c_void)));
+
+    let mtd_parse = add_method(ctxt, cls_id, BuiltinType::Str, "parseInt", Vec::new(),
+        BuiltinType::Int,
+        FctKind::Builtin(Ptr::new(stdlib::parse as *mut c_void)));
 
     let cls = Box::new(Class {
         id: cls_id,
@@ -83,7 +88,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
         ty: BuiltinType::Str,
         ctors: Vec::new(),
         props: Vec::new(),
-        methods: vec![mtd_len],
+        methods: vec![mtd_len, mtd_parse],
         size: BuiltinType::Str.size(),
         ast: None,
     });
@@ -183,9 +188,6 @@ fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     builtin_function("argv", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
         Ptr::new(stdlib::argv as *mut c_void));
-
-    builtin_function("parse", vec![BuiltinType::Str], BuiltinType::Int, ctxt,
-        Ptr::new(stdlib::parse as *mut c_void));
 }
 
 fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,

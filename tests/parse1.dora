@@ -1,6 +1,6 @@
 fn main() {
-  assert(parse("1") == 1);
-  assert(parse("100") == 100);
-  assert(parse("789") == 789);
-  assert(parse("bla") == 0);
+  assert("1".parseInt() == 1);
+  assert("100".parseInt() == 100);
+  assert("789".parseInt() == 789);
+  assert("bla".parseInt() == 0);
 }
