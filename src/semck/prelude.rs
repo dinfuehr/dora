@@ -48,13 +48,17 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
     let cls_id = ClassId(ctxt.classes.len());
     let cls_name = ctxt.interner.intern("int");
 
+    let mtd_tos = add_method(ctxt, cls_id, BuiltinType::Int, "toString", Vec::new(),
+        BuiltinType::Str,
+        FctKind::Builtin(Ptr::new(stdlib::to_string as *mut c_void)));
+
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
         ty: BuiltinType::Int,
         ctors: Vec::new(),
         props: Vec::new(),
-        methods: Vec::new(),
+        methods: vec![mtd_tos],
         size: BuiltinType::Int.size(),
         ast: None,
     });
@@ -173,9 +177,6 @@ fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
         Ptr::new(stdlib::println as *mut c_void));
-
-    builtin_function("to_string", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
-        Ptr::new(stdlib::to_string as *mut c_void));
 
     builtin_function("argc", vec![], BuiltinType::Int, ctxt,
         Ptr::new(stdlib::argc as *mut c_void));

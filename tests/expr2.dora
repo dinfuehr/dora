@@ -1,4 +1,4 @@
 fn main() {
-  let val = to_string(101);
+  let val = 101.toString();
   assert(val == "101");
 }
