@@ -1,4 +1,5 @@
 use ctxt::{CallType, Context, Fct, FctId, IdentType};
+use class::ClassId;
 use error::msg::Msg;
 
 use ast::*;
@@ -172,9 +173,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![object_type, index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
+            if let Some((cls_id, fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
                                                                   &args, ret_type) {
-                let call_type = CallType::Method(object_type.cls_id(), fct_id);
+                let call_type = CallType::Method(cls_id, fct_id);
                 assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
 
                 let index_type = if self.fct.id == fct_id {
@@ -227,8 +228,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn find_method(&mut self, id: NodeId, pos: Position, object_type: BuiltinType,
                    name: Name, args: &[BuiltinType],
-                   return_type: Option<BuiltinType>) -> Option<(FctId, BuiltinType)> {
-        if let BuiltinType::Class(cls_id) = object_type {
+                   return_type: Option<BuiltinType>) -> Option<(ClassId, FctId, BuiltinType)> {
+        let cls_id = match object_type {
+            BuiltinType::Class(cls_id) => Some(cls_id),
+            _ => self.ctxt.primitive_classes.find_class(object_type)
+        };
+
+        if let Some(cls_id) = cls_id {
             let cls = self.ctxt.cls_by_id(cls_id);
             let mut candidates = Vec::new();
 
@@ -240,7 +246,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         && args_compatible(&self.fct.params_types, args)
                         && (return_type.is_none()
                          || self.fct.return_type == return_type.unwrap()) {
-                        candidates.push((method, self.fct.return_type));
+                        candidates.push((cls_id, method, self.fct.return_type));
                     }
                 } else {
                     self.ctxt.fct_by_id(method, |callee| {
@@ -248,7 +254,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             && args_compatible(&callee.params_types, args)
                             && (return_type.is_none()
                              || callee.return_type == return_type.unwrap()) {
-                            candidates.push((method, callee.return_type));
+                            candidates.push((cls_id, method, callee.return_type));
                         }
                     });
                 }
@@ -486,9 +492,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let object_type = call_types[0];
 
-        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos, object_type, e.name,
-                                                              &call_types, None) {
-            let call_type = CallType::Method(object_type.cls_id(), fct_id);
+        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
+                                                            e.name, &call_types, None) {
+            let call_type = CallType::Method(cls_id, fct_id);
             assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
             self.set_type(e.id, return_type);
         }
@@ -545,9 +551,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![object_type, index_type];
 
-        if let Some((fct_id, return_type)) = self.find_method(e.id, e.pos, object_type, name,
-                                                              &args, None) {
-            let call_type = CallType::Method(object_type.cls_id(), fct_id);
+        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
+                                                            name, &args, None) {
+            let call_type = CallType::Method(cls_id, fct_id);
             assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
 
             self.set_type(e.id, return_type);
@@ -614,6 +620,12 @@ mod tests {
     use semck::tests::*;
     use test::parse_with_errors;
     use ty::BuiltinType;
+
+    #[test]
+    fn type_method_len() {
+        ok("fn f(a: Str) -> int { return a.len(); }");
+        ok("fn f(a: Str) -> int { return \"abc\".len(); }");
+    }
 
     #[test]
     fn type_object_prop() {
