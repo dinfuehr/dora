@@ -26,6 +26,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
             fct: fct,
             ast: ast,
             buf: Buffer::new(),
+            scopes: Scopes::new(),
 
             lbl_break: None,
             lbl_continue: None
@@ -77,6 +78,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: Buffer,
+    scopes: Scopes,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -225,9 +227,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
+        self.scopes.push_scope();
+
         for stmt in &s.stmts {
             self.visit_stmt(stmt);
         }
+
+        self.scopes.pop_scope();
     }
 
     fn emit_stmt_let(&mut self, s: &'ast StmtLetType) {
@@ -282,6 +288,38 @@ pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: NodeId, dest: Reg) {
     emit::mov_local_reg(buf, var.data_type, var.offset, dest);
 }
 
+pub struct Scopes {
+    scopes: Vec<Scope>,
+}
+
+impl Scopes {
+    pub fn new() -> Scopes {
+        Scopes {
+            scopes: Vec::new()
+        }
+    }
+
+    pub fn push_scope(&mut self) {
+        self.scopes.push(Scope::new())
+    }
+
+    pub fn pop_scope(&mut self) {
+        assert!(self.scopes.pop().is_some());
+    }
+}
+
+pub struct Scope {
+    vars: Vec<VarId>,
+}
+
+impl Scope {
+    pub fn new() -> Scope {
+        Scope {
+            vars: Vec::new()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::mem;
@@ -290,7 +328,7 @@ mod tests {
     use driver::cmd::AsmSyntax;
     use jit;
     use jit::buffer::Buffer;
-    use jit::codegen::CodeGen;
+    use jit::codegen::{CodeGen, Scopes};
     use jit::fct::JitFct;
     use mem::ptr::Ptr;
     use test;
@@ -310,6 +348,7 @@ mod tests {
                     fct: fct,
                     ast: ast,
                     buf: Buffer::new(),
+                    scopes: Scopes::new(),
 
                     lbl_break: None,
                     lbl_continue: None
