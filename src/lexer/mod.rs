@@ -20,9 +20,14 @@ pub struct Lexer<T : CodeReader> {
     position: Position,
     eof_reached: bool,
     tabwidth: u32,
+    state: State,
     keywords: HashMap<&'static str, TokenType>,
 
     buffer: VecDeque<Result<CharPos, ParseError>>
+}
+
+enum State {
+    Initial, String
 }
 
 #[cfg(test)]
@@ -93,6 +98,7 @@ impl<T : CodeReader> Lexer<T> {
             tabwidth: tabwidth,
             eof_reached: false,
             keywords: keywords,
+            state: State::Initial,
 
             buffer: VecDeque::with_capacity(10)
         };

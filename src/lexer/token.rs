@@ -10,6 +10,9 @@ pub enum TokenType {
     Identifier,
     End,
 
+    LQuote,
+    RQuote,
+
     // Keywords
     Class,
     This,
