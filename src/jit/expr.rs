@@ -483,7 +483,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 if ind == 0 {
                     let call_type = self.fct.src().calls.get(&id);
 
-                    if call_type.is_some() && call_type.unwrap().is_method() {
+                    if call_type.is_some() && call_type.unwrap().is_method()
+                        && check_for_nil(ty) {
                         emit::nil_ptr_check(self.buf, reg);
                     }
                 }
@@ -509,6 +510,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty, REG_RESULT, dest);
         }
+    }
+}
+
+fn check_for_nil(ty: BuiltinType) -> bool {
+    match ty {
+        BuiltinType::Unit => false,
+        BuiltinType::Str => true,
+        BuiltinType::Int | BuiltinType::Bool => false,
+        BuiltinType::Nil | BuiltinType::Ptr => true,
+        BuiltinType::Class(_) => true
     }
 }
 

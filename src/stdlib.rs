@@ -19,13 +19,25 @@ pub extern "C" fn assert(val: bool) {
     }
 }
 
-pub extern "C" fn to_string(val: i32) -> Str {
+pub extern "C" fn int_to_string(val: i32) -> Str {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
     let buffer = val.to_string();
 
     Str::from_buffer(&mut gc, buffer.as_bytes())
+}
 
+pub extern "C" fn bool_to_string(val: bool) -> Str {
+    let ctxt = get_ctxt();
+    let mut gc = ctxt.gc.lock().unwrap();
+
+    let val = if val {
+        "true"
+    } else {
+        "false"
+    };
+
+    Str::from_buffer(&mut gc, val.as_bytes())
 }
 
 pub extern "C" fn print(val: Str) {

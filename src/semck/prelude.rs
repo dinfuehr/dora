@@ -26,13 +26,17 @@ fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
     let cls_id = ClassId(ctxt.classes.len());
     let cls_name = ctxt.interner.intern("bool");
 
+    let mtd_tos = add_method(ctxt, cls_id, BuiltinType::Bool, "toString", Vec::new(),
+        BuiltinType::Str,
+        FctKind::Builtin(Ptr::new(stdlib::bool_to_string as *mut c_void)));
+
     let cls = Box::new(Class {
         id: cls_id,
         name: cls_name,
         ty: BuiltinType::Bool,
         ctors: Vec::new(),
         props: Vec::new(),
-        methods: Vec::new(),
+        methods: vec![mtd_tos],
         size: BuiltinType::Bool.size(),
         ast: None,
     });
@@ -50,7 +54,7 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
 
     let mtd_tos = add_method(ctxt, cls_id, BuiltinType::Int, "toString", Vec::new(),
         BuiltinType::Str,
-        FctKind::Builtin(Ptr::new(stdlib::to_string as *mut c_void)));
+        FctKind::Builtin(Ptr::new(stdlib::int_to_string as *mut c_void)));
 
     let cls = Box::new(Class {
         id: cls_id,

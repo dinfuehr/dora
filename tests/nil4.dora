@@ -1,0 +1,6 @@
+//= error nil
+
+fn main() {
+  let x: Str = nil;
+  assert(x.len() == 0);
+}
