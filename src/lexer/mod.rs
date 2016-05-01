@@ -131,7 +131,7 @@ impl<T : CodeReader> Lexer<T> {
             } else if self.is_identifier_start() {
                 return self.read_identifier();
 
-            } else if self.is_string() {
+            } else if self.is_quote() {
                 return self.read_string();
 
             } else if self.is_operator() {
@@ -208,12 +208,12 @@ impl<T : CodeReader> Lexer<T> {
 
         self.read_char();
 
-        while !self.is_eof() && !self.is_newline() && !self.is_string() {
+        while !self.is_eof() && !self.is_newline() && !self.is_quote() {
             let ch = try!(self.read_char().unwrap()).value;
             tok.value.push(ch);
         }
 
-        if self.is_string() {
+        if self.is_quote() {
             self.read_char();
 
             Ok(tok)
@@ -477,7 +477,7 @@ impl<T : CodeReader> Lexer<T> {
         top.is_some() && top.unwrap().value == '\n'
     }
 
-    fn is_string(&self) -> bool {
+    fn is_quote(&self) -> bool {
         let top = self.top();
 
         top.is_some() && top.unwrap().value == '\"'
