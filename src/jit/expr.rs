@@ -8,7 +8,7 @@ use cpu::emit;
 use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
-use jit::codegen::{self, JumpCond};
+use jit::codegen::{self, JumpCond, Scopes};
 use jit::stub::Stub;
 use mem::ptr::Ptr;
 use object::Str;
@@ -20,6 +20,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct: &'a mut Fct<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
+    scopes: &'a mut Scopes,
     tempsize: i32,
 }
 
@@ -29,6 +30,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         fct: &'a mut Fct<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,
+        scopes: &'a mut Scopes,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -36,6 +38,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ast: ast,
             buf: buf,
             tempsize: 0,
+            scopes: scopes,
         }
     }
 
@@ -208,6 +211,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         match ident_type {
             IdentType::Var(_) => {
                 self.emit_expr(&e.rhs, dest);
+
+                {
+                    let var = self.fct.var_by_node_id(e.lhs.id());
+                    self.scopes.initialize(var.id);
+                }
+
                 codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
             }
 

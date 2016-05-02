@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::slice;
 
 use ast::*;
@@ -237,15 +239,22 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_let(&mut self, s: &'ast StmtLetType) {
+        let mut initialized = false;
+
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
+            initialized = true;
 
             var_store(&mut self.buf, self.fct, reg, s.id);
         }
+
+        let var = self.fct.var_by_node_id(s.id);
+        self.scopes.add_var(var.id, initialized);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast, &mut self.buf);
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast,
+                                    &mut self.buf, &mut self.scopes);
 
         expr_gen.generate(e)
     }
@@ -295,7 +304,7 @@ pub struct Scopes {
 impl Scopes {
     pub fn new() -> Scopes {
         Scopes {
-            scopes: Vec::new()
+            scopes: vec![Scope::new()]
         }
     }
 
@@ -305,17 +314,34 @@ impl Scopes {
 
     pub fn pop_scope(&mut self) {
         assert!(self.scopes.pop().is_some());
+        assert!(self.scopes.len() >= 1);
+    }
+
+    pub fn add_var(&mut self, id: VarId, initialized: bool) {
+        let scope = self.scopes.last_mut().unwrap();
+        assert!(scope.vars.insert(id, initialized).is_none());
+    }
+
+    pub fn initialize(&mut self, id: VarId) {
+        for scope in self.scopes.iter_mut().rev() {
+            if let Entry::Occupied(ref mut e) = scope.vars.entry(id) {
+                e.insert(true);
+                return;
+            }
+        }
+
+        panic!("initialization of var {:?} not in scope", id)
     }
 }
 
-pub struct Scope {
-    vars: Vec<VarId>,
+struct Scope {
+    vars: HashMap<VarId, bool>,
 }
 
 impl Scope {
     pub fn new() -> Scope {
         Scope {
-            vars: Vec::new()
+            vars: HashMap::new()
         }
     }
 }

@@ -1,5 +1,6 @@
 use libc::*;
 
+use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
@@ -14,6 +15,8 @@ pub struct JitFct {
 
     // machine code length in bytes
     fct_len: usize,
+
+    safepoints: Safepoints,
 }
 
 impl JitFct {
@@ -34,6 +37,7 @@ impl JitFct {
 
         JitFct {
             code: code,
+            safepoints: Safepoints::new(),
             fct_start: fct_start,
             fct_len: buffer.len(),
         }
@@ -64,5 +68,29 @@ impl fmt::Debug for JitFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "JitFct {{ start: {:?}, end: {:?} }}",
             self.ptr_start(), self.ptr_end())
+    }
+}
+
+pub struct Safepoints {
+    points: HashMap<i32, Safepoint>
+}
+
+impl Safepoints {
+    pub fn new() -> Safepoints {
+        Safepoints {
+            points: HashMap::new()
+        }
+    }
+}
+
+pub struct Safepoint {
+    offsets: Vec<i32>
+}
+
+impl Safepoint {
+    pub fn new() -> Safepoint {
+        Safepoint {
+            offsets: Vec::new()
+        }
     }
 }
