@@ -71,17 +71,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if self.is_intrinsic(e.id) {
             self.emit_expr(&e.object, REG_RESULT);
             let offset = self.offset(e.object.id());
-            emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset);
+            emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset);
 
             self.emit_expr(&e.index, REG_TMP1);
-            emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset, REG_RESULT);
+            emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, REG_RESULT);
             emit::check_index_out_of_bounds(self.buf, REG_RESULT, REG_TMP1, REG_TMP2);
 
             emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, 0, REG_RESULT);
-            emit::mov_array_reg(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 4, REG_RESULT);
+            emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
 
             if dest != REG_RESULT {
-                emit::mov_reg_reg(self.buf, BuiltinType::Int, REG_RESULT, dest);
+                emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
             }
 
         } else {
@@ -107,7 +107,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_self(&mut self, dest: Reg) {
         let var = self.fct.var_self();
 
-        emit::mov_local_reg(self.buf, var.data_type, var.offset, dest);
+        emit::mov_local_reg(self.buf, var.data_type.mode(), var.offset, dest);
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -180,25 +180,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let array = e.lhs.to_array().unwrap();
                 self.emit_expr(&array.object, REG_RESULT);
                 let offset_object = self.offset(array.object.id());
-                emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, offset_object);
+                emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset_object);
 
                 self.emit_expr(&array.index, REG_RESULT);
                 let offset_index = self.offset(array.index.id());
-                emit::mov_reg_local(self.buf, BuiltinType::Int, REG_RESULT, offset_index);
+                emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_index);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
                 let offset_value = self.offset(e.rhs.id());
-                emit::mov_reg_local(self.buf, BuiltinType::Int, REG_RESULT, offset_value);
+                emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_value);
 
-                emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset_object, REG_TMP1);
-                emit::mov_local_reg(self.buf, BuiltinType::Int, offset_index, REG_TMP2);
+                emit::mov_local_reg(self.buf, MachineMode::Ptr, offset_object, REG_TMP1);
+                emit::mov_local_reg(self.buf, MachineMode::Int32, offset_index, REG_TMP2);
                 emit::check_index_out_of_bounds(self.buf, REG_TMP1, REG_TMP2, REG_RESULT);
 
-                emit::mov_local_reg(self.buf, BuiltinType::Int, offset_value, REG_RESULT);
+                emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1, 0, REG_TMP1);
                 emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
                 emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
-                emit::mov_reg_mem(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 0);
+                emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);
             } else {
                 self.emit_universal_call(e.id, dest);
             }
@@ -237,15 +237,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                       + self.fct.src().get_store(e.lhs.id()).offset())
                 };
 
-                emit::mov_reg_local(self.buf, BuiltinType::Ptr, REG_RESULT, temp_offset);
+                emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, temp_offset);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
-                emit::mov_local_reg(self.buf, BuiltinType::Ptr, temp_offset, REG_TMP1);
+                emit::mov_local_reg(self.buf, MachineMode::Ptr, temp_offset, REG_TMP1);
 
-                emit::mov_reg_mem(self.buf, prop.ty, REG_RESULT, REG_TMP1, prop.offset);
+                emit::mov_reg_mem(self.buf, prop.ty.mode(), REG_RESULT, REG_TMP1, prop.offset);
 
                 if REG_RESULT != dest {
-                    emit::mov_reg_reg(self.buf, prop.ty, REG_RESULT, dest);
+                    emit::mov_reg_reg(self.buf, prop.ty.mode(), REG_RESULT, dest);
                 }
             }
         }
@@ -319,7 +319,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let op = if op == CmpOp::Is { CmpOp::Eq } else { CmpOp::Ne };
 
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_setl(eg.buf, BuiltinType::Str, lhs, op, rhs, dest);
+                emit::cmp_setl(eg.buf, MachineMode::Ptr, lhs, op, rhs, dest);
 
                 dest
             });
@@ -330,11 +330,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, dest);
             emit::movl_imm_reg(self.buf, 0, REG_TMP1);
-            emit::cmp_setl(self.buf, BuiltinType::Int, REG_RESULT, op, REG_TMP1, dest);
+            emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT, op, REG_TMP1, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_setl(eg.buf, BuiltinType::Int, lhs, op, rhs, dest);
+                emit::cmp_setl(eg.buf, MachineMode::Int32, lhs, op, rhs, dest);
 
                 dest
             });
@@ -407,10 +407,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let offset = -(self.fct.src().localsize + offset);
 
             self.emit_expr(&e.lhs, REG_RESULT);
-            emit::mov_reg_local(self.buf, ty, REG_RESULT, offset);
+            emit::mov_reg_local(self.buf, ty.mode(), REG_RESULT, offset);
 
             self.emit_expr(&e.rhs, rhs_reg);
-            emit::mov_local_reg(self.buf, ty, offset, lhs_reg);
+            emit::mov_local_reg(self.buf, ty.mode(), offset, lhs_reg);
         } else {
             self.emit_expr(&e.lhs, lhs_reg);
             self.emit_expr(&e.rhs, rhs_reg);
@@ -418,7 +418,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let ty = self.fct.src().get_type(e.id);
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg { emit::mov_reg_reg(self.buf, ty, reg, dest_reg); }
+        if reg != dest_reg { emit::mov_reg_reg(self.buf, ty.mode(), reg, dest_reg); }
     }
 
     fn ptr_for_fct_id(&mut self, fid: FctId) -> Ptr {
@@ -476,7 +476,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             let offset = -(self.fct.src().localsize + arg.offset());
-            emit::mov_reg_local(self.buf, arg.ty(), REG_RESULT, offset);
+            emit::mov_reg_local(self.buf, arg.ty().mode(), REG_RESULT, offset);
         }
 
         let mut arg_offset = -self.fct.src().stacksize();
@@ -487,7 +487,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             if ind < REG_PARAMS.len() {
                 let reg = REG_PARAMS[ind];
-                emit::mov_local_reg(self.buf, ty, offset, reg);
+                emit::mov_local_reg(self.buf, ty.mode(), offset, reg);
 
                 if ind == 0 {
                     let call_type = self.fct.src().calls.get(&id);
@@ -499,8 +499,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
             } else {
-                emit::mov_local_reg(self.buf, ty, offset, REG_RESULT);
-                emit::mov_reg_local(self.buf, ty, REG_RESULT, arg_offset);
+                emit::mov_local_reg(self.buf, ty.mode(), offset, REG_RESULT);
+                emit::mov_reg_local(self.buf, ty.mode(), REG_RESULT, arg_offset);
 
                 arg_offset += 8;
             }
@@ -517,7 +517,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
 
         if REG_RESULT != dest {
-            emit::mov_reg_reg(self.buf, ty, REG_RESULT, dest);
+            emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
         }
     }
 }

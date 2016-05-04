@@ -4,7 +4,7 @@ use cpu::*;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
-use ty::{BuiltinType, MachineMode};
+use ty::MachineMode;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     emit_pushq_reg(buf, RBP);
@@ -32,16 +32,11 @@ pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) {
     buf.emit_bailout(lbl, trap::NIL);
 }
 
-pub fn cmp_setl(buf: &mut Buffer, ty: BuiltinType, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
-    match ty {
-        BuiltinType::Bool
-            | BuiltinType::Int => emit_cmpl_reg_reg(buf, rhs, lhs),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_cmpq_reg_reg(buf, rhs, lhs),
-        BuiltinType::Unit => unreachable!(),
+pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
+    match mode {
+        MachineMode::Int8
+            | MachineMode::Int32 => emit_cmpl_reg_reg(buf, rhs, lhs),
+        MachineMode::Ptr => emit_cmpq_reg_reg(buf, rhs, lhs),
     }
 
     emit_setb_reg(buf, op, dest);
@@ -136,70 +131,45 @@ pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, d
     }
 }
 
-pub fn mov_array_reg(buf: &mut Buffer, ty: BuiltinType, base: Reg,
+pub fn mov_array_reg(buf: &mut Buffer, mode: MachineMode, base: Reg,
                      index: Reg, scale: u8, dest: Reg) {
-    match ty {
-        BuiltinType::Bool
-            | BuiltinType::Nil => panic!("not supported"),
-        BuiltinType::Int => emit_movl_ar(buf, base, index, scale, dest),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_ar(buf, base, index, scale, dest),
-        BuiltinType::Unit => {}
+    match mode {
+        MachineMode::Int8 => panic!("not supported"),
+        MachineMode::Int32 => emit_movl_ar(buf, base, index, scale, dest),
+        MachineMode::Ptr => emit_movq_ar(buf, base, index, scale, dest),
     }
 }
 
-pub fn mov_reg_array(buf: &mut Buffer, ty: BuiltinType, src: Reg, base: Reg,
+pub fn mov_reg_array(buf: &mut Buffer, mode: MachineMode, src: Reg, base: Reg,
                      index: Reg, scale: u8) {
-    match ty {
-        BuiltinType::Bool
-            | BuiltinType::Nil => panic!("not supported"),
-        BuiltinType::Int => emit_movl_ra(buf, src, base, index, scale),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_ra(buf, src, base, index, scale),
-        BuiltinType::Unit => {}
+    match mode {
+        MachineMode::Int8 => panic!("not supported"),
+        MachineMode::Int32 => emit_movl_ra(buf, src, base, index, scale),
+        MachineMode::Ptr => emit_movq_ra(buf, src, base, index, scale),
     }
 }
 
-pub fn mov_reg_mem(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg, offset: i32) {
-    match ty {
-        BuiltinType::Bool => emit_movb_reg_memq(buf, src, dest, offset),
-        BuiltinType::Int => emit_movl_reg_memq(buf, src, dest, offset),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_reg_memq(buf, src, dest, offset),
-        BuiltinType::Unit => {}
+pub fn mov_reg_mem(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg, offset: i32) {
+    match mode {
+        MachineMode::Int8 => emit_movb_reg_memq(buf, src, dest, offset),
+        MachineMode::Int32 => emit_movl_reg_memq(buf, src, dest, offset),
+        MachineMode::Ptr => emit_movq_reg_memq(buf, src, dest, offset),
     }
 }
 
-pub fn mov_local_reg(buf: &mut Buffer, ty: BuiltinType, offset: i32, dest: Reg) {
-    match ty {
-        BuiltinType::Bool => emit_movzbl_memq_reg(buf, RBP, offset, dest),
-        BuiltinType::Int => emit_movl_memq_reg(buf, RBP, offset, dest),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_memq_reg(buf, RBP, offset, dest),
-        BuiltinType::Unit => {},
+pub fn mov_local_reg(buf: &mut Buffer, mode: MachineMode, offset: i32, dest: Reg) {
+    match mode {
+        MachineMode::Int8 => emit_movzbl_memq_reg(buf, RBP, offset, dest),
+        MachineMode::Int32 => emit_movl_memq_reg(buf, RBP, offset, dest),
+        MachineMode::Ptr => emit_movq_memq_reg(buf, RBP, offset, dest),
     }
 }
 
-pub fn mov_reg_local(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32) {
-    match ty {
-        BuiltinType::Bool => emit_movb_reg_memq(buf, src, RBP, offset),
-        BuiltinType::Int => emit_movl_reg_memq(buf, src, RBP, offset),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_reg_memq(buf, src, RBP, offset),
-        BuiltinType::Unit => {},
+pub fn mov_reg_local(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32) {
+    match mode {
+        MachineMode::Int8 => emit_movb_reg_memq(buf, src, RBP, offset),
+        MachineMode::Int32 => emit_movl_reg_memq(buf, src, RBP, offset),
+        MachineMode::Ptr => emit_movq_reg_memq(buf, src, RBP, offset),
     }
 }
 
@@ -211,15 +181,10 @@ pub fn movp_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_movq_reg_reg(buf, src, dest);
 }
 
-pub fn mov_reg_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg) {
-    match ty {
-        BuiltinType::Unit => unreachable!(),
-        BuiltinType::Int | BuiltinType::Bool => emit_movl_reg_reg(buf, src, dest),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_reg_reg(buf, src, dest),
+pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
+    match mode {
+        MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
+        MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
     }
 }
 
