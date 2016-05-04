@@ -4,7 +4,7 @@ use cpu::*;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
-use ty::BuiltinType;
+use ty::{BuiltinType, MachineMode};
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     emit_pushq_reg(buf, RBP);
@@ -128,16 +128,11 @@ pub fn nil(buf: &mut Buffer, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }
 
-pub fn mov_mem_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32, dest: Reg) {
-    match ty {
-        BuiltinType::Bool => emit_movzbl_memq_reg(buf, src, offset, dest),
-        BuiltinType::Int => emit_movl_memq_reg(buf, src, offset, dest),
-        BuiltinType::Nil => panic!("nil not supported"),
-        BuiltinType::Str
-            | BuiltinType::IntArray
-            | BuiltinType::Class(_)
-            | BuiltinType::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
-        BuiltinType::Unit => {}
+pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, dest: Reg) {
+    match mode {
+        MachineMode::Int8 => emit_movzbl_memq_reg(buf, src, offset, dest),
+        MachineMode::Int32 => emit_movl_memq_reg(buf, src, offset, dest),
+        MachineMode::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
     }
 }
 

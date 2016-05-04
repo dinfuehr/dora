@@ -13,7 +13,7 @@ use jit::stub::Stub;
 use mem::ptr::Ptr;
 use object::Str;
 use stdlib;
-use ty::BuiltinType;
+use ty::{BuiltinType, MachineMode};
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
@@ -77,7 +77,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::mov_local_reg(self.buf, BuiltinType::Ptr, offset, REG_RESULT);
             emit::check_index_out_of_bounds(self.buf, REG_RESULT, REG_TMP1, REG_TMP2);
 
-            emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_RESULT, 0, REG_RESULT);
+            emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, 0, REG_RESULT);
             emit::mov_array_reg(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 4, REG_RESULT);
 
             if dest != REG_RESULT {
@@ -124,7 +124,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_prop_access(&mut self, ident_type: IdentType, src: Reg, dest: Reg) {
         let cls = self.ctxt.cls_by_id(ident_type.cls_id());
         let prop = &cls.props[ident_type.prop_id().0];
-        emit::mov_mem_reg(self.buf, prop.ty, src, prop.offset, dest);
+        emit::mov_mem_reg(self.buf, prop.ty.mode(), src, prop.offset, dest);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -195,7 +195,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::check_index_out_of_bounds(self.buf, REG_TMP1, REG_TMP2, REG_RESULT);
 
                 emit::mov_local_reg(self.buf, BuiltinType::Int, offset_value, REG_RESULT);
-                emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_TMP1, 0, REG_TMP1);
+                emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1, 0, REG_TMP1);
                 emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
                 emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
                 emit::mov_reg_mem(self.buf, BuiltinType::Int, REG_RESULT, REG_TMP1, 0);
@@ -441,7 +441,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if self.is_intrinsic(e.id) {
             // only intrinsic: IntArray.len()
             self.emit_expr(&e.args[0], REG_RESULT);
-            emit::mov_mem_reg(self.buf, BuiltinType::Ptr, REG_RESULT, 8, dest);
+            emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, 8, dest);
 
             return;
         }
