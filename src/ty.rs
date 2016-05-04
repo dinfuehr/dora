@@ -19,6 +19,9 @@ pub enum BuiltinType {
     // String type
     Str,
 
+    // Array types
+    IntArray,
+
     // some class
     Class(ClassId),
 }
@@ -67,6 +70,7 @@ impl BuiltinType {
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::Str => "Str".into(),
+            BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.cls_by_id(cid);
 
@@ -83,6 +87,7 @@ impl BuiltinType {
                 | BuiltinType::Nil => *self == other,
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str
+                | BuiltinType::IntArray
                 | BuiltinType::Class(_) => *self == other || other.is_nil()
         }
     }
@@ -102,6 +107,7 @@ impl BuiltinType {
             BuiltinType::Int => 4,
             BuiltinType::Nil => panic!("type Nil does not have size."),
             BuiltinType::Str
+                | BuiltinType::IntArray
                 | BuiltinType::Class(_)
                 | BuiltinType::Ptr => mem::ptr_width(),
         }

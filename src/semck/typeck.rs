@@ -411,9 +411,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match call_type {
             CallType::Ctor(cls_id, _) => {
-                self.set_type(e.id, BuiltinType::Class(cls_id));
-
                 let cls = self.ctxt.cls_by_id(cls_id);
+                self.set_type(e.id, cls.ty);
                 let mut found = false;
 
                 for ctor in &cls.ctors {

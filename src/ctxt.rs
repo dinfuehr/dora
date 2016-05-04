@@ -54,7 +54,8 @@ impl<'ast> Context<'ast> {
             primitive_classes: PrimitiveClasses {
                 int_class: ClassId(0),
                 str_class: ClassId(0),
-                bool_class: ClassId(0)
+                bool_class: ClassId(0),
+                int_array: ClassId(0),
             },
             gc: Mutex::new(Gc::new()),
             ast: ast,
@@ -138,6 +139,7 @@ pub struct PrimitiveClasses {
     pub int_class: ClassId,
     pub str_class: ClassId,
     pub bool_class: ClassId,
+    pub int_array: ClassId,
 }
 
 impl PrimitiveClasses {
@@ -146,6 +148,7 @@ impl PrimitiveClasses {
             BuiltinType::Int => Some(self.int_class),
             BuiltinType::Str => Some(self.str_class),
             BuiltinType::Bool => Some(self.bool_class),
+            BuiltinType::IntArray => Some(self.int_array),
             _ => None
         }
     }

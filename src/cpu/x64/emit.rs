@@ -38,6 +38,7 @@ pub fn cmp_setl(buf: &mut Buffer, ty: BuiltinType, lhs: Reg, op: CmpOp, rhs: Reg
             | BuiltinType::Int => emit_cmpl_reg_reg(buf, rhs, lhs),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_cmpq_reg_reg(buf, rhs, lhs),
         BuiltinType::Unit => unreachable!(),
@@ -133,6 +134,7 @@ pub fn mov_mem_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32, des
         BuiltinType::Int => emit_movl_memq_reg(buf, src, offset, dest),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
         BuiltinType::Unit => {}
@@ -146,6 +148,7 @@ pub fn mov_array_reg(buf: &mut Buffer, ty: BuiltinType, base: Reg,
             | BuiltinType::Nil => panic!("not supported"),
         BuiltinType::Int => emit_movl_ar(buf, base, index, scale, dest),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_ar(buf, base, index, scale, dest),
         BuiltinType::Unit => {}
@@ -159,6 +162,7 @@ pub fn mov_reg_array(buf: &mut Buffer, ty: BuiltinType, src: Reg, base: Reg,
             | BuiltinType::Nil => panic!("not supported"),
         BuiltinType::Int => emit_movl_ra(buf, src, base, index, scale),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_ra(buf, src, base, index, scale),
         BuiltinType::Unit => {}
@@ -171,6 +175,7 @@ pub fn mov_reg_mem(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg, offse
         BuiltinType::Int => emit_movl_reg_memq(buf, src, dest, offset),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_reg_memq(buf, src, dest, offset),
         BuiltinType::Unit => {}
@@ -183,6 +188,7 @@ pub fn mov_local_reg(buf: &mut Buffer, ty: BuiltinType, offset: i32, dest: Reg) 
         BuiltinType::Int => emit_movl_memq_reg(buf, RBP, offset, dest),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_memq_reg(buf, RBP, offset, dest),
         BuiltinType::Unit => {},
@@ -195,6 +201,7 @@ pub fn mov_reg_local(buf: &mut Buffer, ty: BuiltinType, src: Reg, offset: i32) {
         BuiltinType::Int => emit_movl_reg_memq(buf, src, RBP, offset),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_reg_memq(buf, src, RBP, offset),
         BuiltinType::Unit => {},
@@ -215,6 +222,7 @@ pub fn mov_reg_reg(buf: &mut Buffer, ty: BuiltinType, src: Reg, dest: Reg) {
         BuiltinType::Int | BuiltinType::Bool => emit_movl_reg_reg(buf, src, dest),
         BuiltinType::Nil => panic!("nil not supported"),
         BuiltinType::Str
+            | BuiltinType::IntArray
             | BuiltinType::Class(_)
             | BuiltinType::Ptr => emit_movq_reg_reg(buf, src, dest),
     }

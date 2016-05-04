@@ -527,7 +527,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Unit => false,
         BuiltinType::Str => true,
         BuiltinType::Int | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr => true,
+        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::IntArray => true,
         BuiltinType::Class(_) => true
     }
 }
