@@ -105,11 +105,39 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Int => 4,
-            BuiltinType::Nil => panic!("type Nil does not have size."),
+            BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str
                 | BuiltinType::IntArray
                 | BuiltinType::Class(_)
                 | BuiltinType::Ptr => mem::ptr_width(),
+        }
+    }
+
+    pub fn mode(&self) -> MachineMode {
+        match *self {
+            BuiltinType::Unit => panic!("no machine mode for ()."),
+            BuiltinType::Bool => MachineMode::Int8,
+            BuiltinType::Int => MachineMode::Int32,
+            BuiltinType::Nil => panic!("no machine mode for nil."),
+            BuiltinType::Str
+                | BuiltinType::IntArray
+                | BuiltinType::Class(_)
+                | BuiltinType::Ptr => MachineMode::Ptr,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum MachineMode {
+    Int8, Int32, Ptr
+}
+
+impl MachineMode {
+    pub fn size(self) -> i32 {
+        match self {
+            MachineMode::Int8 => 1,
+            MachineMode::Int32 => 4,
+            MachineMode::Ptr => mem::ptr_width()
         }
     }
 }
@@ -120,10 +148,30 @@ mod tests {
     use mem;
 
     #[test]
-    fn type_size() {
-        assert_eq!(0, BuiltinType::Unit.size());
-        assert_eq!(1, BuiltinType::Bool.size());
-        assert_eq!(4, BuiltinType::Int.size());
-        assert_eq!(mem::ptr_width(), BuiltinType::Str.size());
+    fn mode_size() {
+        assert_eq!(1, MachineMode::Int8.size());
+        assert_eq!(4, MachineMode::Int32.size());
+        assert_eq!(mem::ptr_width(), MachineMode::Ptr.size());
+    }
+
+    #[test]
+    fn mode_for_types() {
+        assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
+        assert_eq!(MachineMode::Int32, BuiltinType::Int.mode());
+        assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
+        assert_eq!(MachineMode::Ptr, BuiltinType::IntArray.mode());
+        assert_eq!(MachineMode::Ptr, BuiltinType::Str.mode());
+    }
+
+    #[test]
+    #[should_panic]
+    fn mode_for_nil() {
+        assert_eq!(MachineMode::Ptr, BuiltinType::Nil.mode());
+    }
+
+    #[test]
+    #[should_panic]
+    fn mode_for_unit() {
+        assert_eq!(MachineMode::Ptr, BuiltinType::Unit.mode());
     }
 }
