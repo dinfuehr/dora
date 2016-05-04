@@ -20,7 +20,7 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn new(dseg: &DSeg, buffer: &[u8]) -> JitFct {
+    pub fn new(dseg: &DSeg, buffer: &[u8], safepoints: Safepoints) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -37,7 +37,7 @@ impl JitFct {
 
         JitFct {
             code: code,
-            safepoints: Safepoints::new(),
+            safepoints: safepoints,
             fct_start: fct_start,
             fct_len: buffer.len(),
         }

@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::JitFct;
+use jit::fct::{JitFct, Safepoints};
 use mem::Ptr;
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl Buffer {
     pub fn jit(mut self) -> JitFct {
         self.finish();
 
-        JitFct::new(&self.dseg, &self.data)
+        JitFct::new(&self.dseg, &self.data, Safepoints::new())
     }
 
     pub fn data(mut self) -> Vec<u8> {
