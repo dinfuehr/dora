@@ -40,6 +40,10 @@ pub extern "C" fn bool_to_string(val: bool) -> Str {
     Str::from_buffer(&mut gc, val.as_bytes())
 }
 
+pub extern "C" fn bool_to_int(val: bool) -> i32 {
+    if val { 1 } else { 0 }
+}
+
 pub extern "C" fn print(val: Str) {
     unsafe {
         let buf = CStr::from_ptr(val.data() as *const c_char);

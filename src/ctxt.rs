@@ -39,6 +39,7 @@ pub struct Context<'ast> {
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
                                                  // node id to FctId
+    pub fct_decls: Vec<FctDecl>,
     pub fcts: Vec<Arc<Mutex<Fct<'ast>>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
@@ -62,6 +63,7 @@ impl<'ast> Context<'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fct_defs: HashMap::new(),
+            fct_decls: Vec::new(),
             fcts: Vec::new(),
             code_map: Mutex::new(CodeMap::new()),
         }
@@ -152,6 +154,15 @@ impl PrimitiveClasses {
             _ => None
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct FctDecl {
+    pub id: FctId,
+    pub name: Name,
+    pub owner_class: Option<ClassId>,
+    pub params_types: Vec<BuiltinType>,
+    pub ctor: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
