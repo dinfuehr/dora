@@ -11,6 +11,7 @@ mod globaldef;
 mod nameck;
 mod prelude;
 mod typeck;
+mod usertypes;
 mod returnck;
 
 macro_rules! return_on_error {
@@ -22,6 +23,10 @@ macro_rules! return_on_error {
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // add builtin fcts and types to ctxt
     prelude::init(ctxt);
+
+    // add all available user-defined types
+    usertypes::check(ctxt);
+    return_on_error!(ctxt);
 
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies

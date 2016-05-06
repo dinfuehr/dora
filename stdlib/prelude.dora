@@ -1,0 +1,7 @@
+fn abs(val: int) -> int {
+  if val >= 0 {
+    return val;
+  } else {
+    return -val;
+  }
+}
