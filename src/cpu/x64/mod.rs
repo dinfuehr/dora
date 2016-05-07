@@ -3,6 +3,7 @@ use libc;
 use ctxt::{Context, FctId, FctKind, get_ctxt};
 use execstate::ExecState;
 use mem::ptr::Ptr;
+use stack::Stacktrace;
 
 pub use self::param::*;
 pub use self::reg::*;
@@ -13,26 +14,25 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-pub fn unwind(es: &ExecState) {
-    let ctxt = get_ctxt();
-    let mut stacktrace : Vec<Option<(FctId, u32)>> = Vec::new();
+pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
+    let mut stacktrace = Stacktrace::new();
 
     let mut pc = es.pc;
-    stacktrace.push(determine_stack_entry(ctxt, Ptr::new(es.pc as *mut libc::c_void)));
+    determine_stack_entry(&mut stacktrace, ctxt, Ptr::new(es.pc as *mut libc::c_void));
 
     let mut rbp = es.regs[reg::RBP.int() as usize];
 
     while rbp != 0 {
         let ra = unsafe { *((rbp + 8) as *const usize) };
-        stacktrace.push(determine_stack_entry(ctxt, Ptr::new(ra as *mut libc::c_void)));
+        determine_stack_entry(&mut stacktrace, ctxt, Ptr::new(ra as *mut libc::c_void));
 
         rbp = unsafe { *(rbp as *const usize) };
     }
 
-    println!("stacktrace = {:?}", stacktrace);
+    return stacktrace;
 }
 
-fn determine_stack_entry(ctxt: &Context, ra: Ptr) -> Option<(FctId, u32)> {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: Ptr) {
     let code_map = ctxt.code_map.lock().unwrap();
     let fct_id = code_map.get(ra);
 
@@ -49,8 +49,6 @@ fn determine_stack_entry(ctxt: &Context, ra: Ptr) -> Option<(FctId, u32)> {
 
         });
 
-        Some((fct_id, lineno))
-    } else {
-        None
+        stacktrace.push_entry(fct_id, lineno);
     }
 }

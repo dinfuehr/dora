@@ -25,8 +25,10 @@ pub fn register_signals(ctxt: &Context) {
     }
 }
 
+// signal handler function
 fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let mut es = read_execstate(ucontext);
+    let ctxt = get_ctxt();
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
         use cpu::trap::{ASSERT, COMPILER, INDEX_OUT_OF_BOUNDS, NIL};
@@ -64,7 +66,8 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
             NIL => {
                 println!("nil");
-                cpu::unwind(&es);
+                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
                 unsafe { _exit(103); }
             }
 
