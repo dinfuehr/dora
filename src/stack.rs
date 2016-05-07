@@ -19,11 +19,14 @@ impl Stacktrace {
     }
 
     pub fn dump(&self, ctxt: &Context) {
-        for elem in self.elems.iter().rev() {
+        for (ind, elem) in self.elems.iter().rev().enumerate() {
+            let name = ctxt.fct_by_id(elem.fct_id, |fct| fct.name(ctxt));
+            print!("  {}: {}:", ind, name);
+
             if elem.lineno == 0 {
-                println!("fct {}:?", elem.fct_id.0);
+                println!("?");
             } else {
-                println!("fct {}:{}", elem.fct_id.0, elem.lineno);
+                println!("{}", elem.lineno);
             }
         }
     }

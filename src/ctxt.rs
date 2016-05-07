@@ -186,6 +186,10 @@ impl<'ast> Fct<'ast> {
         self.src().ast
     }
 
+    pub fn name(&self, ctxt: &Context) -> String {
+        ctxt.interner.str(self.name).to_string()
+    }
+
     pub fn is_src(&self) -> bool {
         match self.kind {
             FctKind::Source(_) => true,
