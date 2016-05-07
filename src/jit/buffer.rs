@@ -1,4 +1,5 @@
 use byteorder::{LittleEndian, WriteBytesExt};
+use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use jit::fct::{JitFct, Safepoints};
@@ -24,10 +25,10 @@ impl Buffer {
         }
     }
 
-    pub fn jit(mut self) -> JitFct {
+    pub fn jit(mut self, id: FctId) -> JitFct {
         self.finish();
 
-        JitFct::new(&self.dseg, &self.data, Safepoints::new())
+        JitFct::new(id, &self.dseg, &self.data, Safepoints::new())
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -138,6 +139,7 @@ impl Label {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ctxt::FctId;
 
     #[test]
     fn test_label() {
@@ -206,6 +208,6 @@ mod tests {
         let lbl = buf.create_label();
 
         buf.emit_label(lbl);
-        buf.jit();
+        buf.jit(FctId(1));
     }
 }

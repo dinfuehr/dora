@@ -2,6 +2,7 @@ use std::fmt;
 
 use cpu::emit;
 use cpu::trap;
+use ctxt::FctId;
 use mem::code::CodeMemory;
 use mem::Ptr;
 use jit::buffer::Buffer;
@@ -11,10 +12,10 @@ pub struct Stub {
 }
 
 impl Stub {
-    pub fn new() -> Stub {
+    pub fn new(fct_id: FctId) -> Stub {
         let mut buf = Buffer::new();
         trap::emit(&mut buf, trap::COMPILER);
-        let code = buf.jit().code();
+        let code = buf.jit(fct_id).code();
 
         Stub {
             mem: code

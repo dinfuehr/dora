@@ -67,7 +67,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     let instrs = engine.disasm(buf, jit_fct.fct_ptr().raw() as u64,
         jit_fct.fct_len()).expect("could not disassemble code");
 
-    println!("fn {}", name);
+    println!("fn {} (id {})", name, jit_fct.fct_id().0);
 
     for instr in instrs {
         println!("  {:#06x}: {}\t\t{}",
@@ -104,7 +104,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_epilog();
         }
 
-        self.buf.jit()
+        let jit_fct = self.buf.jit(self.fct.id);
+
+        let mut code_map = self.ctxt.code_map.lock().unwrap();
+        code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), jit_fct.fct_id());
+
+        jit_fct
     }
 
     fn store_register_params_on_stack(&mut self) {

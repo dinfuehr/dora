@@ -540,7 +540,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
         if let Some(ref stub) = src.stub { return stub.ptr_start(); }
     }
 
-    let stub = Stub::new();
+    let stub = Stub::new(fct.id);
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();

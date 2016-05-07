@@ -4,11 +4,14 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
+use ctxt::FctId;
 use dseg::DSeg;
 use mem::{CodeMemory, Ptr};
 
 pub struct JitFct {
     code: CodeMemory,
+
+    fct_id: FctId,
 
     // pointer to beginning of function
     fct_start: Ptr,
@@ -20,7 +23,7 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn new(dseg: &DSeg, buffer: &[u8], safepoints: Safepoints) -> JitFct {
+    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], safepoints: Safepoints) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -36,6 +39,7 @@ impl JitFct {
         }
 
         JitFct {
+            fct_id: fct_id,
             code: code,
             safepoints: safepoints,
             fct_start: fct_start,
@@ -53,6 +57,10 @@ impl JitFct {
 
     pub fn ptr_end(&self) -> Ptr {
         self.code.ptr_end()
+    }
+
+    pub fn fct_id(&self) -> FctId {
+        self.fct_id
     }
 
     pub fn fct_ptr(&self) -> Ptr {

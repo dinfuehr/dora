@@ -3,6 +3,7 @@ use libc::*;
 
 use cpu;
 use ctxt::{Context, ctxt_ptr, get_ctxt};
+use execstate::ExecState;
 use jit;
 use mem::ptr::Ptr;
 use os_cpu::*;
@@ -63,6 +64,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
             NIL => {
                 println!("nil");
+                cpu::unwind(&es);
                 unsafe { _exit(103); }
             }
 

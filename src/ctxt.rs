@@ -313,17 +313,6 @@ impl<'ast> FctSrc<'ast> {
         }
     }
 
-    pub fn jit_or_stub_ptr(&mut self) -> Ptr {
-        if let Some(ref jit) = self.jit_fct { return jit.fct_ptr(); }
-        if let Some(ref stub) = self.stub { return stub.ptr_start(); }
-
-        let stub = Stub::new();
-        let ptr = stub.ptr_start();
-        self.stub = Some(stub);
-
-        ptr
-    }
-
     pub fn stacksize(&self) -> i32 {
         mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
     }

@@ -15,6 +15,16 @@ impl CodeMap {
         }
     }
 
+    pub fn dump(&self) {
+        println!("CodeMap {{");
+
+        for (key, fctid) in &self.tree {
+            println!("  {:?} => {:?}", key, fctid);
+        }
+
+        println!("}}");
+    }
+
     pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctId) {
         let span = PtrSpan::new(start, end);
         assert!(self.tree.insert(span, fct).is_none());
@@ -27,7 +37,7 @@ impl CodeMap {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct PtrSpan {
     start: Ptr,
     end: Ptr,
