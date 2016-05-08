@@ -4,6 +4,7 @@ use cpu::*;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
+use lexer::position::Position;
 use ty::MachineMode;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
@@ -24,12 +25,12 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
-pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) {
+pub fn nil_ptr_check(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
     emit_jz(buf, lbl);
-    buf.emit_bailout(lbl, trap::NIL);
+    buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
 pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
@@ -110,13 +111,14 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     lhs
 }
 
-pub fn check_index_out_of_bounds(buf: &mut Buffer, array: Reg, index: Reg, temp: Reg) {
+pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
+                                 index: Reg, temp: Reg) {
     emit_movq_memq_reg(buf, array, 8, temp);
     emit_cmpq_reg_reg(buf, temp, index);
 
     let lbl = buf.create_label();
     emit_juge(buf, lbl);
-    buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS);
+    buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 
 pub fn nil(buf: &mut Buffer, dest: Reg) {

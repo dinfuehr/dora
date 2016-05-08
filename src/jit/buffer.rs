@@ -3,6 +3,7 @@ use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use jit::fct::{JitFct, Safepoints, LineNumberTable};
+use lexer::position::Position;
 use mem::Ptr;
 
 #[derive(Debug)]
@@ -10,7 +11,7 @@ pub struct Buffer {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
-    bailouts: Vec<(Label, TrapId)>,
+    bailouts: Vec<(Label, TrapId, Position)>,
     dseg: DSeg,
     safepoints: Safepoints,
     linenos: LineNumberTable,
@@ -45,9 +46,10 @@ impl Buffer {
         let bailouts = self.bailouts.drain(0..).collect::<Vec<_>>();
 
         for bailout in &bailouts {
-            let (lbl, trap) = *bailout;
+            let (lbl, trap, pos) = *bailout;
 
             self.define_label(lbl);
+            self.set_lineno(pos.line as i32);
             trap::emit(self, trap);
         }
 
@@ -91,8 +93,8 @@ impl Buffer {
         self.labels[lbl_idx] = Some(self.pos());
     }
 
-    pub fn emit_bailout(&mut self, lbl: Label, trap: TrapId) {
-        self.bailouts.push((lbl, trap));
+    pub fn emit_bailout(&mut self, lbl: Label, trap: TrapId, pos: Position) {
+        self.bailouts.push((lbl, trap, pos));
     }
 
     pub fn emit_label(&mut self, lbl: Label) {

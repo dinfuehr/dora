@@ -76,7 +76,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             self.emit_expr(&e.index, REG_TMP1);
             emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, REG_RESULT);
-            emit::check_index_out_of_bounds(self.buf, REG_RESULT, REG_TMP1, REG_TMP2);
+            emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
 
             emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, 0, REG_RESULT);
             emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
@@ -193,7 +193,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 emit::mov_local_reg(self.buf, MachineMode::Ptr, offset_object, REG_TMP1);
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_index, REG_TMP2);
-                emit::check_index_out_of_bounds(self.buf, REG_TMP1, REG_TMP2, REG_RESULT);
+                emit::check_index_out_of_bounds(self.buf, e.pos, REG_TMP1, REG_TMP2, REG_RESULT);
 
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1, 0, REG_TMP1);
@@ -495,7 +495,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                     if call_type.is_some() && call_type.unwrap().is_method()
                         && check_for_nil(ty) {
-                        emit::nil_ptr_check(self.buf, reg);
+                        emit::nil_ptr_check(self.buf, pos, reg);
                     }
                 }
 
