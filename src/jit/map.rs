@@ -30,7 +30,8 @@ impl CodeMap {
         assert!(self.tree.insert(span, fct).is_none());
     }
 
-    pub fn get(&self, ptr: Ptr) -> Option<FctId> {
+    pub fn get<T>(&self, ptr: T) -> Option<FctId> where T: Into<Ptr> {
+        let ptr = ptr.into();
         let span = PtrSpan::new(ptr, ptr.offset(1));
 
         self.tree.get(&span).map(|el| { *el })

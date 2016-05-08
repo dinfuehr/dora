@@ -18,13 +18,13 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
 
     let mut pc = es.pc;
-    determine_stack_entry(&mut stacktrace, ctxt, Ptr::new(es.pc as *mut libc::c_void));
+    determine_stack_entry(&mut stacktrace, ctxt, es.pc.into());
 
     let mut rbp = es.regs[reg::RBP.int() as usize];
 
     while rbp != 0 {
         let ra = unsafe { *((rbp + 8) as *const usize) };
-        determine_stack_entry(&mut stacktrace, ctxt, Ptr::new(ra as *mut libc::c_void));
+        determine_stack_entry(&mut stacktrace, ctxt, ra.into());
 
         rbp = unsafe { *(rbp as *const usize) };
     }

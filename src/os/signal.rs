@@ -34,25 +34,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
         use cpu::trap::{ASSERT, COMPILER, INDEX_OUT_OF_BOUNDS, NIL};
 
         match trap {
-            COMPILER => {
-                let ctxt: &Context = get_ctxt();
-
-                let ptr = Ptr::new(es.pc as *mut c_void);
-                let fct_id = {
-                    let code_map = ctxt.code_map.lock().unwrap();
-
-                    code_map.get(ptr)
-                };
-
-                if let Some(fct_id) = fct_id {
-                    let jit_fct = jit::generate(ctxt, fct_id);
-                    cpu::trap::patch_fct_call(&mut es, jit_fct);
-                    write_execstate(&es, ucontext as *mut c_void);
-                } else {
-                    println!("error: code not found for address {:x}", ptr.raw() as u64);
-                    unsafe { _exit(200); }
-                }
-            }
+            COMPILER => compile_request(ctxt, &mut es, ucontext),
 
             ASSERT => {
                 println!("assert failed");
@@ -81,5 +63,21 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     } else {
         println!("error: trap not detected (signal {}).", signo);
         unsafe { _exit(1); }
+    }
+}
+
+fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) {
+    let fct_id = {
+        let code_map = ctxt.code_map.lock().unwrap();
+        code_map.get(es.pc)
+    };
+
+    if let Some(fct_id) = fct_id {
+        let jit_fct = jit::generate(ctxt, fct_id);
+        cpu::trap::patch_fct_call(es, jit_fct);
+        write_execstate(es, ucontext as *mut c_void);
+    } else {
+        println!("error: code not found for address {:x}", es.pc);
+        unsafe { _exit(200); }
     }
 }

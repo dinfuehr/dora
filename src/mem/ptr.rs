@@ -1,4 +1,5 @@
 use std::fmt;
+use std::convert::Into;
 use std::ptr;
 use libc;
 
@@ -22,6 +23,12 @@ impl Ptr {
 
     pub fn raw(self) -> *mut libc::c_void {
         self.0
+    }
+}
+
+impl Into<Ptr> for usize {
+    fn into(self) -> Ptr {
+        Ptr::new(self as *mut libc::c_void)
     }
 }
 
