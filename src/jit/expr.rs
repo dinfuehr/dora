@@ -10,6 +10,7 @@ use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond, Scopes};
 use jit::stub::Stub;
+use lexer::position::Position;
 use mem::ptr::Ptr;
 use object::Str;
 use stdlib;
@@ -85,7 +86,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
         } else {
-            self.emit_universal_call(e.id, dest);
+            self.emit_universal_call(e.id, e.pos, dest);
         }
     }
 
@@ -200,7 +201,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
                 emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);
             } else {
-                self.emit_universal_call(e.id, dest);
+                self.emit_universal_call(e.id, e.pos, dest);
             }
 
             return;
@@ -328,7 +329,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         if cmp_type == BuiltinType::Str {
-            self.emit_universal_call(e.id, dest);
+            self.emit_universal_call(e.id, e.pos, dest);
             emit::movl_imm_reg(self.buf, 0, REG_TMP1);
             emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT, op, REG_TMP1, dest);
 
@@ -365,7 +366,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
         if self.has_call_site(e.id) {
-            self.emit_universal_call(e.id, dest);
+            self.emit_universal_call(e.id, e.pos, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
@@ -446,14 +447,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             return;
         }
 
-        self.emit_universal_call(e.id, dest);
+        self.emit_universal_call(e.id, e.pos, dest);
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
         self.fct.src().call_sites.get(&id).is_some()
     }
 
-    fn emit_universal_call(&mut self, id: NodeId, dest: Reg) {
+    fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
         let csite = self.fct.src().call_sites.get(&id).unwrap().clone();
         let ptr = match csite.callee {
             Callee::Fct(fid) => self.ptr_for_fct_id(fid),
@@ -471,7 +472,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-                    self.emit_call_insn(mptr, BuiltinType::Ptr, REG_RESULT);
+                    self.emit_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
                 }
             }
 
@@ -506,15 +507,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        self.emit_call_insn(ptr, csite.return_type, dest);
+        self.emit_call_insn(pos, ptr, csite.return_type, dest);
     }
 
-    fn emit_call_insn(&mut self, ptr: Ptr, ty: BuiltinType, dest: Reg) {
+    fn emit_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
+        let lineno = pos.line as i32;
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
         emit::call(self.buf, REG_RESULT);
+        self.buf.set_lineno(lineno);
 
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
