@@ -24,7 +24,7 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
 
     while rbp != 0 {
         let ra = unsafe { *((rbp + 8) as *const usize) };
-        determine_stack_entry(&mut stacktrace, ctxt, ra.into());
+        determine_stack_entry(&mut stacktrace, ctxt, ra);
 
         rbp = unsafe { *(rbp as *const usize) };
     }
@@ -32,7 +32,7 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     return stacktrace;
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: Ptr) {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: usize) {
     let code_map = ctxt.code_map.lock().unwrap();
     let fct_id = code_map.get(ra);
 
@@ -42,8 +42,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: Ptr) {
         ctxt.fct_by_id(fct_id, |fct| {
             if let FctKind::Source(ref src) = fct.kind {
                 if let Some(ref jit_fct) = src.jit_fct {
-                    // TODO: access line info table as soon as it is available
-                    lineno = 1;
+                    let offset = ra - (jit_fct.fct_ptr().raw() as usize);
+                    lineno = jit_fct.lineno_for_offset(offset as i32);
                 }
             }
 

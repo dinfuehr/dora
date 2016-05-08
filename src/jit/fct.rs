@@ -51,6 +51,10 @@ impl JitFct {
         }
     }
 
+    pub fn lineno_for_offset(&self, lineno: i32) -> i32 {
+        self.linenos.get(lineno)
+    }
+
     pub fn code(self) -> CodeMemory {
         self.code
     }
