@@ -186,8 +186,35 @@ impl<'ast> Fct<'ast> {
         self.src().ast
     }
 
-    pub fn name(&self, ctxt: &Context) -> String {
-        ctxt.interner.str(self.name).to_string()
+    pub fn full_name(&self, ctxt: &Context) -> String {
+        let mut repr = String::new();
+
+        if let Some(class_id) = self.owner_class {
+            let name = ctxt.cls_by_id(class_id).name;
+            repr.push_str(&ctxt.interner.str(name));
+            repr.push_str(".");
+        }
+
+        repr.push_str(&ctxt.interner.str(self.name));
+        repr.push_str("(");
+
+        for (ind, ty) in self.params_types.iter().enumerate() {
+            if ind > 0 { repr.push_str(", "); }
+
+            let name = ty.name(ctxt);
+            repr.push_str(&name);
+        }
+
+        repr.push_str(")");
+
+        if self.return_type != BuiltinType::Unit {
+            repr.push_str(" -> ");
+
+            let name = self.return_type.name(ctxt);
+            repr.push_str(&name);
+        }
+
+        repr
     }
 
     pub fn is_src(&self) -> bool {
