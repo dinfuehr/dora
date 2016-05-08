@@ -11,7 +11,7 @@ impl Stacktrace {
         }
     }
 
-    pub fn push_entry(&mut self, fct_id: FctId, lineno: u32) {
+    pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
         self.elems.push(StackElem {
             fct_id: fct_id,
             lineno: lineno
@@ -34,5 +34,5 @@ impl Stacktrace {
 
 struct StackElem {
     fct_id: FctId,
-    lineno: u32
+    lineno: i32
 }

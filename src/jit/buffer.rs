@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{JitFct, Safepoints};
+use jit::fct::{JitFct, Safepoints, LineNumberTable};
 use mem::Ptr;
 
 #[derive(Debug)]
@@ -12,6 +12,8 @@ pub struct Buffer {
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, TrapId)>,
     dseg: DSeg,
+    safepoints: Safepoints,
+    linenos: LineNumberTable,
 }
 
 impl Buffer {
@@ -22,13 +24,15 @@ impl Buffer {
             jumps: Vec::new(),
             bailouts: Vec::new(),
             dseg: DSeg::new(),
+            safepoints: Safepoints::new(),
+            linenos: LineNumberTable::new(),
         }
     }
 
     pub fn jit(mut self, id: FctId) -> JitFct {
         self.finish();
 
-        JitFct::new(id, &self.dseg, &self.data, Safepoints::new())
+        JitFct::new(id, &self.dseg, &self.data, self.safepoints, self.linenos)
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -56,6 +60,11 @@ impl Buffer {
 
     pub fn pos(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn set_lineno(&mut self, lineno: i32) {
+        let pos = self.pos() as i32;
+        self.linenos.insert(pos, lineno);
     }
 
     fn fix_forward_jumps(&mut self) {

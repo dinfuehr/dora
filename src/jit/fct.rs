@@ -20,10 +20,13 @@ pub struct JitFct {
     fct_len: usize,
 
     safepoints: Safepoints,
+
+    linenos: LineNumberTable,
 }
 
 impl JitFct {
-    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], safepoints: Safepoints) -> JitFct {
+    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], safepoints: Safepoints,
+               linenos: LineNumberTable) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -44,6 +47,7 @@ impl JitFct {
             safepoints: safepoints,
             fct_start: fct_start,
             fct_len: buffer.len(),
+            linenos: linenos
         }
     }
 
@@ -79,6 +83,7 @@ impl fmt::Debug for JitFct {
     }
 }
 
+#[derive(Debug)]
 pub struct Safepoints {
     points: HashMap<i32, Safepoint>
 }
@@ -91,6 +96,7 @@ impl Safepoints {
     }
 }
 
+#[derive(Debug)]
 pub struct Safepoint {
     offsets: Vec<i32>
 }
@@ -99,6 +105,31 @@ impl Safepoint {
     pub fn new() -> Safepoint {
         Safepoint {
             offsets: Vec::new()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LineNumberTable {
+    map: HashMap<i32, i32>,
+}
+
+impl LineNumberTable {
+    pub fn new() -> LineNumberTable {
+        LineNumberTable {
+            map: HashMap::new()
+        }
+    }
+
+    pub fn insert(&mut self, offset: i32, lineno: i32) {
+        assert!(self.map.insert(offset, lineno).is_none());
+    }
+
+    pub fn get(&self, offset: i32) -> i32 {
+        if let Some(value) = self.map.get(&offset) {
+            *value
+        } else {
+            0
         }
     }
 }
