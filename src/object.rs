@@ -8,8 +8,35 @@ use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
 
-pub struct Header {
-    class: *mut Class<'static>,
+pub struct Header<'a, 'ast: 'a> {
+    // ptr to class
+    class: &'a Class<'ast>,
+
+    // additional information (e.g. gc marked flag)
+    word: usize,
+}
+
+impl<'a, 'ast> Header<'a, 'ast> {
+    pub fn unmark(&mut self) {
+        self.word = self.word & (~1);
+    }
+
+    pub fn mark(&mut self) {
+        self.word = self.word | 1;
+    }
+
+    pub fn is_marked(&self) -> bool {
+        if (self.word & 1) != 0 {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+// is used to reference any object
+pub struct Obj<'a, 'ast: 'a> {
+    header: Header<'a, 'ast>,
 }
 
 // String in Dora is immutable
@@ -99,34 +126,6 @@ impl<T> Deref for Handle<T> {
 impl<T> DerefMut for Handle<T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *(self.ptr as *mut T) }
-    }
-}
-
-pub struct IntArray2 {
-    header: Header,
-    length: usize,
-    data: [i32; 1]
-}
-
-impl IntArray2 {
-    fn len(&self) -> usize {
-        self.length
-    }
-}
-
-impl Index<usize> for IntArray2 {
-    type Output = i32;
-
-    fn index(&self, ind: usize) -> &i32 {
-        if ind >= self.length {
-            panic!("index out of bounds");
-        }
-
-        unsafe {
-            let ptr = self.data.as_ptr();
-
-            &*ptr.offset(ind as isize)
-        }
     }
 }
 

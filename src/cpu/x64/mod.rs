@@ -14,6 +14,11 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
+pub fn get_rootset(ctxt: &Context) -> Vec<Ptr> {
+    // determine_root_set(&mut root_set, )
+    Vec::new()
+}
+
 pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
 

@@ -43,11 +43,13 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
             INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
+                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
                 unsafe { _exit(102); }
             }
 
             NIL => {
-                println!("nil");
+                println!("nil check failed");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(103); }

@@ -4,12 +4,14 @@ use mem::ptr::Ptr;
 
 pub struct Gc {
     memory: Vec<Ptr>,
+    allocated: usize,
 }
 
 impl Gc {
     pub fn new() -> Gc {
         Gc {
-            memory: Vec::new()
+            memory: Vec::new(),
+            allocated: 0
         }
     }
 
@@ -17,7 +19,10 @@ impl Gc {
         let ptr = unsafe { libc::malloc(size) };
         let ptr = Ptr::new(ptr);
 
+        println!("allocated = {} bytes ({} objects)", self.allocated, self.memory.len());
+
         self.memory.push(ptr);
+        self.allocated += size;
 
         ptr
     }

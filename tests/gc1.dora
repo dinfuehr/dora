@@ -1,0 +1,6 @@
+fn main() {
+  Foo();
+  Foo();
+}
+
+class Foo
