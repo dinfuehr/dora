@@ -13,20 +13,20 @@ pub struct Header<'a, 'ast: 'a> {
     class: &'a Class<'ast>,
 
     // additional information (e.g. gc marked flag)
-    word: usize,
+    info: usize,
 }
 
 impl<'a, 'ast> Header<'a, 'ast> {
     pub fn unmark(&mut self) {
-        self.word = self.word & (~1);
+        self.info = self.info & (!1);
     }
 
     pub fn mark(&mut self) {
-        self.word = self.word | 1;
+        self.info = self.info | 1;
     }
 
     pub fn is_marked(&self) -> bool {
-        if (self.word & 1) != 0 {
+        if (self.info & 1) != 0 {
             true
         } else {
             false
