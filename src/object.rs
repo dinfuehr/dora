@@ -8,15 +8,16 @@ use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
 
-pub struct Header<'a, 'ast: 'a> {
+pub struct Header {
     // ptr to class
-    class: &'a Class<'ast>,
+    class: *const Class<'static>,
 
-    // additional information (e.g. gc marked flag)
+    // additional information>
+    // bit 0 - marked flag
     info: usize,
 }
 
-impl<'a, 'ast> Header<'a, 'ast> {
+impl Header {
     pub fn unmark(&mut self) {
         self.info = self.info & (!1);
     }
@@ -35,8 +36,15 @@ impl<'a, 'ast> Header<'a, 'ast> {
 }
 
 // is used to reference any object
-pub struct Obj<'a, 'ast: 'a> {
-    header: Header<'a, 'ast>,
+pub struct Obj {
+    pub header: Header,
+    data: u8
+}
+
+impl Obj {
+    pub fn data(&self) -> *const u8 {
+        &self.data as *const u8
+    }
 }
 
 // String in Dora is immutable

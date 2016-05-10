@@ -19,10 +19,11 @@ impl Gc {
         let ptr = unsafe { libc::malloc(size) };
         let ptr = Ptr::new(ptr);
 
-        println!("allocated = {} bytes ({} objects)", self.allocated, self.memory.len());
-
         self.memory.push(ptr);
         self.allocated += size;
+
+        println!("malloc with size {} -> {:x}", size, ptr.raw() as usize);
+        println!("allocated = {} bytes ({} objects)", self.allocated, self.memory.len());
 
         ptr
     }
