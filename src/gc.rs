@@ -23,7 +23,7 @@ impl Gc {
 
         if ctxt.args.flag_gc_extreme {
             let rootset = get_rootset(ctxt);
-            dump_rootset(&rootset);
+            // dump_rootset(&rootset);
 
             for &ptr in &self.memory {
                 let obj = unsafe { &mut *(ptr.raw() as *mut Header) };
@@ -33,7 +33,7 @@ impl Gc {
             }
 
             let rootset = get_rootset(ctxt);
-            dump_rootset(&rootset);
+            // dump_rootset(&rootset);
 
             mark(&rootset);
             sweep(&mut self.memory, ctxt.args.flag_gc_dump);

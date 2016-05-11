@@ -54,7 +54,7 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
                             let addr = (fp as isize + *offset as isize) as usize;
                             let obj = unsafe { *(addr as *const usize) };
 
-                            println!("addr={:x} obj={:x}", addr, obj);
+                            println!("  addr={:x} obj={:x}", addr, obj);
                             rootset.push(obj);
                         }
 
