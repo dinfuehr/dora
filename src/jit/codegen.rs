@@ -254,7 +254,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
 
         let var = self.fct.var_by_node_id(s.id);
-        self.scopes.add_var(var.id, initialized);
+        self.scopes.add_var(var.id, initialized, var.offset);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
@@ -322,15 +322,15 @@ impl Scopes {
         assert!(self.scopes.len() >= 1);
     }
 
-    pub fn add_var(&mut self, id: VarId, initialized: bool) {
+    pub fn add_var(&mut self, id: VarId, initialized: bool, offset: i32) {
         let scope = self.scopes.last_mut().unwrap();
-        assert!(scope.vars.insert(id, initialized).is_none());
+        assert!(scope.vars.insert(id, (initialized, offset)).is_none());
     }
 
     pub fn initialize(&mut self, id: VarId) {
         for scope in self.scopes.iter_mut().rev() {
             if let Entry::Occupied(ref mut e) = scope.vars.entry(id) {
-                e.insert(true);
+                e.get_mut().0 = true;
                 return;
             }
         }
@@ -339,12 +339,24 @@ impl Scopes {
     }
 
     pub fn create_gcpoint(&self) -> GcPoint {
-        GcPoint::new()
+        let mut offsets = Vec::new();
+
+        for scope in &self.scopes {
+            for (var, value) in &scope.vars {
+                let &(initialized, offset) = value;
+
+                if initialized {
+                    offsets.push(offset);
+                }
+            }
+        }
+
+        GcPoint::from_offsets(offsets)
     }
 }
 
 struct Scope {
-    vars: HashMap<VarId, bool>,
+    vars: HashMap<VarId, (bool, i32)>,
 }
 
 impl Scope {

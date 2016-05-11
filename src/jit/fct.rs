@@ -123,6 +123,12 @@ impl GcPoint {
             offsets: Vec::new()
         }
     }
+
+    pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
+        GcPoint {
+            offsets: offsets
+        }
+    }
 }
 
 #[derive(Debug)]

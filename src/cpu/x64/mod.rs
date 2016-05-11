@@ -50,7 +50,7 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, pc: usize) {
                     let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
                     if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
-                        println!("gcpoint found");
+                        println!("gcpoint found = {:?}", gcpoint);
                     } else {
                         println!("no gcpoint");
                     }

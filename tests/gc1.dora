@@ -1,5 +1,6 @@
 fn main() {
   Foo();
+  let a = Foo();
   f();
 }
 
