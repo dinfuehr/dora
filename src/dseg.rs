@@ -38,6 +38,12 @@ impl DSeg {
     }
 
     pub fn add_addr(&mut self, ptr: Ptr) -> i32 {
+        for entry in &self.entries {
+            if entry.value == ptr {
+                return entry.disp;
+            }
+        }
+
         self.size = mem::align_i32(self.size + mem::ptr_width(), mem::ptr_width());
 
         let entry = Entry { disp: self.size, value: ptr };

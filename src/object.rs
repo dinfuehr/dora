@@ -18,6 +18,10 @@ pub struct Header {
 }
 
 impl Header {
+    pub fn size() -> i32 {
+        std::mem::size_of::<Header>() as i32
+    }
+
     pub fn unmark(&mut self) {
         self.info = self.info & (!1);
     }

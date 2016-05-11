@@ -114,7 +114,7 @@ impl GcPoints {
 
 #[derive(Debug)]
 pub struct GcPoint {
-    offsets: Vec<i32>
+    pub offsets: Vec<i32>
 }
 
 impl GcPoint {

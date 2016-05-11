@@ -123,6 +123,7 @@ mod tests {
     use error::msg::Msg;
     use interner::Name;
     use mem;
+    use object::Header;
     use semck::tests::*;
 
     fn class_size(code: &'static str) -> i32 {
@@ -133,9 +134,9 @@ mod tests {
 
     #[test]
     fn test_class_size() {
-        assert_eq!(mem::ptr_width(), class_size("class Foo"));
-        assert_eq!(mem::ptr_width() + 4, class_size("class Foo(a: int)"));
-        assert_eq!(2 * mem::ptr_width(), class_size("class Foo(a: Str)"));
+        assert_eq!(Header::size(), class_size("class Foo"));
+        assert_eq!(Header::size() + 4, class_size("class Foo(a: int)"));
+        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(a: Str)"));
     }
 
     #[test]

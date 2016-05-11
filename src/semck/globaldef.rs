@@ -8,6 +8,7 @@ use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
 use mem;
+use object::Header;
 use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 
@@ -34,7 +35,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             props: Vec::new(),
             methods: Vec::new(),
             ast: Some(c),
-            size: mem::ptr_width(),
+            size: Header::size(),
         };
 
         self.ctxt.classes.push(Box::new(cls));

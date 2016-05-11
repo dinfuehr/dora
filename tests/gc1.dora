@@ -1,12 +1,8 @@
 fn main() {
-  Foo();
-  let a = Foo();
-  f();
+  let x = Foo(1);
+  Foo(2);
+  Foo(3);
+  assert(x.a == 1);
 }
 
-fn f() {
-  Foo();
-  Foo();
-}
-
-class Foo
+class Foo(a: int)

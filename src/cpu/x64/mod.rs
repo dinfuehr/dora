@@ -18,25 +18,23 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut rootset = Vec::new();
     let mut pc : usize = 0;
     unsafe { asm!("lea (%rip), $0": "=r"(pc)) }
-    println!("  pc = {:x}", pc);
 
-    let mut rbp : usize = 0;
-    unsafe { asm!("mov %rbp, $0": "=r"(rbp)) }
-    println!("  rbp = {:x}", rbp);
+    let mut fp : usize = 0;
+    unsafe { asm!("mov %rbp, $0": "=r"(fp)) }
 
-    determine_rootset(&mut rootset, ctxt, pc);
+    determine_rootset(&mut rootset, ctxt, fp, pc);
 
-    while rbp != 0 {
-        pc = unsafe { *((rbp + 8) as *const usize) };
-        determine_rootset(&mut rootset, ctxt, pc);
+    while fp != 0 {
+        pc = unsafe { *((fp + 8) as *const usize) };
+        determine_rootset(&mut rootset, ctxt, fp, pc);
 
-        rbp = unsafe { *(rbp as *const usize) };
+        fp = unsafe { *(fp as *const usize) };
     }
 
     rootset
 }
 
-fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, pc: usize) {
+fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) {
     let code_map = ctxt.code_map.lock().unwrap();
     let fct_id = code_map.get(pc);
 
@@ -50,9 +48,18 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, pc: usize) {
                     let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
                     if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
-                        println!("gcpoint found = {:?}", gcpoint);
+                        println!("gcpoint = {:?}", gcpoint);
+
+                        for offset in &gcpoint.offsets {
+                            let addr = (fp as isize + *offset as isize) as usize;
+                            let obj = unsafe { *(addr as *const usize) };
+
+                            println!("addr={:x} obj={:x}", addr, obj);
+                            rootset.push(obj);
+                        }
+
                     } else {
-                        println!("no gcpoint");
+                        panic!("no gc point found");
                     }
                 }
             }

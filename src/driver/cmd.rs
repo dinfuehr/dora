@@ -22,6 +22,8 @@ Options:
     --emit-debug        Emits debug instruction at beginning of functions
     --asm-syntax TYPE   Emits assembly with Intel or AT&T syntax
                         Allowed values: intel, att
+    --gc-extreme        Collects all garbage at every allocation
+    --gc-dump           Dump GC actions
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -34,6 +36,8 @@ pub struct Args {
     pub flag_version: bool,
     pub flag_emit_debug: bool,
     pub flag_asm_syntax: Option<AsmSyntax>,
+    pub flag_gc_extreme: bool,
+    pub flag_gc_dump: bool,
 }
 
 impl Default for Args {
@@ -46,7 +50,9 @@ impl Default for Args {
             flag_emit_stubs: false,
             flag_emit_debug: false,
             flag_version: false,
-            flag_asm_syntax: None
+            flag_asm_syntax: None,
+            flag_gc_extreme: false,
+            flag_gc_dump: false,
         }
     }
 }
