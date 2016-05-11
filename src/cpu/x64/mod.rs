@@ -14,43 +14,51 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-// pub fn get_rootset(ctxt: &Context, e) -> Vec<usize> {
-//     let mut root_set = Vec::new();
-//     let pc : usize = 0;
-//     determine_root_set(&mut root_set, ctxt, pc);
-//
-//     let mut rbp = es.regs[reg::RBP.int() as usize];
-//
-//     while rbp != 0 {
-//         let ra = unsafe { *((rbp + 8) as *const usize) };
-//         determine_root_set(&mut stacktrace, ctxt, ra);
-//
-//         rbp = unsafe { *(rbp as *const usize) };
-//     }
-//
-//     return stacktrace;
-// }
+pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
+    let mut rootset = Vec::new();
+    let mut pc : usize = 0;
+    unsafe { asm!("lea (%rip), $0": "=r"(pc)) }
+    println!("  pc = {:x}", pc);
 
-// fn determine_root_set(root_set: Vec<usize>, ctxt: &Context, ra: usize) {
-//     let code_map = ctxt.code_map.lock().unwrap();
-//     let fct_id = code_map.get(ra);
-//
-//     if let Some(fct_id) = fct_id {
-//         let mut lineno = 0;
-//
-//         ctxt.fct_by_id(fct_id, |fct| {
-//             if let FctKind::Source(ref src) = fct.kind {
-//                 if let Some(ref jit_fct) = src.jit_fct {
-//                     let offset = ra - (jit_fct.fct_ptr().raw() as usize);
-//                     lineno = jit_fct.safepoint_for_offset(offset as i32);
-//                 }
-//             }
-//
-//         });
-//
-//         root_set.push(fct_id, lineno);
-//     }
-// }
+    let mut rbp : usize = 0;
+    unsafe { asm!("mov %rbp, $0": "=r"(rbp)) }
+    println!("  rbp = {:x}", rbp);
+
+    determine_rootset(&mut rootset, ctxt, pc);
+
+    while rbp != 0 {
+        pc = unsafe { *((rbp + 8) as *const usize) };
+        determine_rootset(&mut rootset, ctxt, pc);
+
+        rbp = unsafe { *(rbp as *const usize) };
+    }
+
+    rootset
+}
+
+fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, pc: usize) {
+    let code_map = ctxt.code_map.lock().unwrap();
+    let fct_id = code_map.get(pc);
+
+    if let Some(fct_id) = fct_id {
+        let mut lineno = 0;
+
+        ctxt.fct_by_id(fct_id, |fct| {
+            if let FctKind::Source(ref src) = fct.kind {
+                if let Some(ref jit_fct) = src.jit_fct {
+                    let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+                    let safepoint = jit_fct.safepoint_for_offset(offset as i32);
+
+                    if let Some(safepoint) = jit_fct.safepoint_for_offset(offset as i32) {
+                        println!("safepoint found");
+                    } else {
+                        println!("no safepoint");
+                    }
+                }
+            }
+        });
+    }
+}
 
 pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
@@ -68,9 +76,9 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     return stacktrace;
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: usize) {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) {
     let code_map = ctxt.code_map.lock().unwrap();
-    let fct_id = code_map.get(ra);
+    let fct_id = code_map.get(pc);
 
     if let Some(fct_id) = fct_id {
         let mut lineno = 0;
@@ -78,7 +86,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, ra: usize)
         ctxt.fct_by_id(fct_id, |fct| {
             if let FctKind::Source(ref src) = fct.kind {
                 let jit_fct = src.jit_fct.as_ref().unwrap();
-                let offset = ra - (jit_fct.fct_ptr().raw() as usize);
+                let offset = pc - (jit_fct.fct_ptr().raw() as usize);
                 lineno = jit_fct.lineno_for_offset(offset as i32);
 
                 if lineno == 0 {

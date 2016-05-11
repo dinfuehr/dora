@@ -1,3 +1,5 @@
+#![feature(asm)]
+
 extern crate byteorder;
 extern crate libc;
 extern crate rustc_serialize;

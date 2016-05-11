@@ -51,8 +51,12 @@ impl JitFct {
         }
     }
 
-    pub fn lineno_for_offset(&self, lineno: i32) -> i32 {
-        self.linenos.get(lineno)
+    pub fn lineno_for_offset(&self, offset: i32) -> i32 {
+        self.linenos.get(offset)
+    }
+
+    pub fn safepoint_for_offset(&self, offset: i32) -> Option<&Safepoint> {
+        self.safepoints.get(offset)
     }
 
     pub fn code(self) -> CodeMemory {
@@ -97,6 +101,10 @@ impl Safepoints {
         Safepoints {
             points: HashMap::new()
         }
+    }
+
+    pub fn get(&self, offset: i32) -> Option<&Safepoint> {
+        self.points.get(&offset)
     }
 }
 

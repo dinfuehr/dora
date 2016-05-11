@@ -1,5 +1,10 @@
 fn main() {
   Foo();
+  f();
+}
+
+fn f() {
+  Foo();
   Foo();
 }
 

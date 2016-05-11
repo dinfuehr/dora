@@ -1,5 +1,7 @@
 use libc;
 
+use cpu::get_rootset;
+use ctxt::get_ctxt;
 use mem::ptr::Ptr;
 
 pub struct Gc {
@@ -22,8 +24,11 @@ impl Gc {
         self.memory.push(ptr);
         self.allocated += size;
 
-        println!("malloc with size {} -> {:x}", size, ptr.raw() as usize);
-        println!("allocated = {} bytes ({} objects)", self.allocated, self.memory.len());
+        println!("allocate {} bytes: {:x} (total: {} bytes, {} objects)", size,
+            ptr.raw() as usize, self.allocated, self.memory.len());
+
+        let ctxt = get_ctxt();
+        println!("rootset = {:?}", get_rootset(ctxt));
 
         ptr
     }

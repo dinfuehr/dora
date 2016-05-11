@@ -201,25 +201,3 @@ impl IntArray {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use gc::Gc;
-    use libc;
-
-    #[test]
-    pub fn test_create_string() {
-        let mut gc = Gc::new();
-        let string = Str::from_buffer(&mut gc, "hello world!".as_bytes());
-
-        unsafe {
-            assert_eq!(12, string.len());
-
-            let expected = "hello world!".as_ptr() as *const i8;
-            let value = string.data() as *const i8;
-            assert_eq!(0, libc::strncmp(expected, value, string.len()));
-        }
-    }
-}
