@@ -49,7 +49,7 @@ impl Buffer {
             let (lbl, trap, pos) = *bailout;
 
             self.define_label(lbl);
-            self.set_lineno(pos.line as i32);
+            self.emit_lineno(pos.line as i32);
             trap::emit(self, trap);
         }
 
@@ -64,7 +64,7 @@ impl Buffer {
         self.data.len()
     }
 
-    pub fn set_lineno(&mut self, lineno: i32) {
+    pub fn emit_lineno(&mut self, lineno: i32) {
         let pos = self.pos() as i32;
         self.linenos.insert(pos, lineno);
     }

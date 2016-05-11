@@ -517,7 +517,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
         emit::call(self.buf, REG_RESULT);
-        self.buf.set_lineno(lineno);
+        self.buf.emit_lineno(lineno);
 
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
