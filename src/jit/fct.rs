@@ -106,6 +106,10 @@ impl Safepoints {
     pub fn get(&self, offset: i32) -> Option<&Safepoint> {
         self.points.get(&offset)
     }
+
+    pub fn insert(&mut self, offset: i32, safepoint: Safepoint) {
+        assert!(self.points.insert(offset, safepoint).is_none());
+    }
 }
 
 #[derive(Debug)]

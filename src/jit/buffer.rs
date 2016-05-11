@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{JitFct, Safepoints, LineNumberTable};
+use jit::fct::{JitFct, LineNumberTable, Safepoints, Safepoint};
 use lexer::position::Position;
 use mem::Ptr;
 
@@ -67,6 +67,11 @@ impl Buffer {
     pub fn emit_lineno(&mut self, lineno: i32) {
         let pos = self.pos() as i32;
         self.linenos.insert(pos, lineno);
+    }
+
+    pub fn emit_safepoint(&mut self, safepoint: Safepoint) {
+        let pos = self.pos() as i32;
+        self.safepoints.insert(pos, safepoint);
     }
 
     fn fix_forward_jumps(&mut self) {
