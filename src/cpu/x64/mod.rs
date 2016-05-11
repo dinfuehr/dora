@@ -26,9 +26,9 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
 
     while fp != 0 {
         pc = unsafe { *((fp + 8) as *const usize) };
-        determine_rootset(&mut rootset, ctxt, fp, pc);
-
         fp = unsafe { *(fp as *const usize) };
+
+        determine_rootset(&mut rootset, ctxt, fp, pc);
     }
 
     rootset
@@ -48,13 +48,10 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
                     let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
                     if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
-                        println!("gcpoint = {:?}", gcpoint);
-
-                        for offset in &gcpoint.offsets {
-                            let addr = (fp as isize + *offset as isize) as usize;
+                        for &offset in &gcpoint.offsets {
+                            let addr = (fp as isize + offset as isize) as usize;
                             let obj = unsafe { *(addr as *const usize) };
 
-                            println!("  addr={:x} obj={:x}", addr, obj);
                             rootset.push(obj);
                         }
 

@@ -32,11 +32,11 @@ impl Gc {
                 println!("unmark {:x}", ptr.raw() as usize);
             }
 
-            let rootset = get_rootset(ctxt);
-            // dump_rootset(&rootset);
-
             mark(&rootset);
             sweep(&mut self.memory, ctxt.args.flag_gc_dump);
+
+            let rootset = get_rootset(ctxt);
+            // dump_rootset(&rootset);
         }
 
         let ptr = unsafe { libc::malloc(size) };
