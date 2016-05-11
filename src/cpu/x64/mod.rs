@@ -47,12 +47,12 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, pc: usize) {
             if let FctKind::Source(ref src) = fct.kind {
                 if let Some(ref jit_fct) = src.jit_fct {
                     let offset = pc - (jit_fct.fct_ptr().raw() as usize);
-                    let safepoint = jit_fct.safepoint_for_offset(offset as i32);
+                    let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
-                    if let Some(safepoint) = jit_fct.safepoint_for_offset(offset as i32) {
-                        println!("safepoint found");
+                    if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
+                        println!("gcpoint found");
                     } else {
-                        println!("no safepoint");
+                        println!("no gcpoint");
                     }
                 }
             }

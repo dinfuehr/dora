@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{JitFct, LineNumberTable, Safepoints, Safepoint};
+use jit::fct::{JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 use mem::Ptr;
 
@@ -13,7 +13,7 @@ pub struct Buffer {
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, TrapId, Position)>,
     dseg: DSeg,
-    safepoints: Safepoints,
+    gcpoints: GcPoints,
     linenos: LineNumberTable,
 }
 
@@ -25,7 +25,7 @@ impl Buffer {
             jumps: Vec::new(),
             bailouts: Vec::new(),
             dseg: DSeg::new(),
-            safepoints: Safepoints::new(),
+            gcpoints: GcPoints::new(),
             linenos: LineNumberTable::new(),
         }
     }
@@ -33,7 +33,7 @@ impl Buffer {
     pub fn jit(mut self, id: FctId) -> JitFct {
         self.finish();
 
-        JitFct::new(id, &self.dseg, &self.data, self.safepoints, self.linenos)
+        JitFct::new(id, &self.dseg, &self.data, self.gcpoints, self.linenos)
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -69,9 +69,9 @@ impl Buffer {
         self.linenos.insert(pos, lineno);
     }
 
-    pub fn emit_safepoint(&mut self, safepoint: Safepoint) {
+    pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
         let pos = self.pos() as i32;
-        self.safepoints.insert(pos, safepoint);
+        self.gcpoints.insert(pos, gcpoint);
     }
 
     fn fix_forward_jumps(&mut self) {

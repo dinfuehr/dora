@@ -19,13 +19,13 @@ pub struct JitFct {
     // machine code length in bytes
     fct_len: usize,
 
-    safepoints: Safepoints,
+    gcpoints: GcPoints,
 
     linenos: LineNumberTable,
 }
 
 impl JitFct {
-    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], safepoints: Safepoints,
+    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
                linenos: LineNumberTable) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
@@ -44,7 +44,7 @@ impl JitFct {
         JitFct {
             fct_id: fct_id,
             code: code,
-            safepoints: safepoints,
+            gcpoints: gcpoints,
             fct_start: fct_start,
             fct_len: buffer.len(),
             linenos: linenos
@@ -55,8 +55,8 @@ impl JitFct {
         self.linenos.get(offset)
     }
 
-    pub fn safepoint_for_offset(&self, offset: i32) -> Option<&Safepoint> {
-        self.safepoints.get(offset)
+    pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
+        self.gcpoints.get(offset)
     }
 
     pub fn code(self) -> CodeMemory {
@@ -92,34 +92,34 @@ impl fmt::Debug for JitFct {
 }
 
 #[derive(Debug)]
-pub struct Safepoints {
-    points: HashMap<i32, Safepoint>
+pub struct GcPoints {
+    points: HashMap<i32, GcPoint>
 }
 
-impl Safepoints {
-    pub fn new() -> Safepoints {
-        Safepoints {
+impl GcPoints {
+    pub fn new() -> GcPoints {
+        GcPoints {
             points: HashMap::new()
         }
     }
 
-    pub fn get(&self, offset: i32) -> Option<&Safepoint> {
+    pub fn get(&self, offset: i32) -> Option<&GcPoint> {
         self.points.get(&offset)
     }
 
-    pub fn insert(&mut self, offset: i32, safepoint: Safepoint) {
-        assert!(self.points.insert(offset, safepoint).is_none());
+    pub fn insert(&mut self, offset: i32, gcpoint: GcPoint) {
+        assert!(self.points.insert(offset, gcpoint).is_none());
     }
 }
 
 #[derive(Debug)]
-pub struct Safepoint {
+pub struct GcPoint {
     offsets: Vec<i32>
 }
 
-impl Safepoint {
-    pub fn new() -> Safepoint {
-        Safepoint {
+impl GcPoint {
+    pub fn new() -> GcPoint {
+        GcPoint {
             offsets: Vec::new()
         }
     }

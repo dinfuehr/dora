@@ -519,8 +519,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
         self.buf.emit_lineno(lineno);
 
-        let safepoint = self.scopes.create_safepoint();
-        self.buf.emit_safepoint(safepoint);
+        let gcpoint = self.scopes.create_gcpoint();
+        self.buf.emit_gcpoint(gcpoint);
 
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);

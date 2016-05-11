@@ -13,7 +13,7 @@ use driver::cmd::AsmSyntax;
 
 use jit::buffer::*;
 use jit::expr::*;
-use jit::fct::{JitFct, Safepoint};
+use jit::fct::{JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
 
@@ -338,8 +338,8 @@ impl Scopes {
         panic!("initialization of var {:?} not in scope", id)
     }
 
-    pub fn create_safepoint(&self) -> Safepoint {
-        Safepoint::new()
+    pub fn create_gcpoint(&self) -> GcPoint {
+        GcPoint::new()
     }
 }
 
