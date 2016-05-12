@@ -1,0 +1,17 @@
+fn main() {
+  let a = nested();
+  let b = Foo(4, nil);
+  let c = Foo(5, nil);
+
+  assert(a.next.next.value == 3);
+}
+
+fn nested() -> Foo {
+  let x = Foo(3, nil);
+  let y = Foo(2, x);
+  let z = Foo(1, y);
+
+  return z;
+}
+
+class Foo(value: int, next: Foo)

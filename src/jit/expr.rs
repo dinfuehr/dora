@@ -2,7 +2,7 @@ use libc::c_void;
 
 use ast::*;
 use ast::Expr::*;
-use class::ClassId;
+use class::{self, ClassId};
 use cpu::{Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
@@ -471,11 +471,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 Arg::Selfie(cls_id, _) => {
+                    // allocate storage for object
                     let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
                     self.emit_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
+
+                    // store classptr in object
+                    let cptr = (&*cls) as *const class::Class as usize;
+                    let disp = self.buf.add_addr(cptr.into());
+                    let pos = self.buf.pos() as i32;
+
+                    emit::movq_addr_reg(self.buf, disp + pos, REG_TMP1);
+                    emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_TMP1, REG_RESULT, 0);
                 }
             }
 
