@@ -51,6 +51,48 @@ impl Obj {
     }
 }
 
+pub struct Handle<T> {
+    ptr: *const T
+}
+
+impl<T> Deref for Handle<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        unsafe { &*self.ptr }
+    }
+}
+
+impl<T> DerefMut for Handle<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        unsafe { &mut *(self.ptr as *mut T) }
+    }
+}
+
+pub struct Str2 {
+    header: Header,
+    length: usize,
+    data: u8
+}
+
+impl Str2 {
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+
+    pub fn header_mut(&mut self) -> &mut Header {
+        &mut self.header
+    }
+
+    pub fn len(&self) -> usize {
+        self.length
+    }
+
+    pub fn data(&self) -> *const u8 {
+        &self.data as *const u8
+    }
+}
+
 // String in Dora is immutable
 // length + string content is stored in one contiguous memory
 pub struct Str {
@@ -100,7 +142,9 @@ impl Str {
     }
 
     pub fn new(gc: &mut Gc, len: usize) -> Str {
-        let size = mem::ptr_width() as usize + len + 1;
+        let size = Header::size() as usize     // Object header
+                   + mem::ptr_width() as usize // length field
+                   + len + 1;                  // string content
 
         Str { ptr: gc.alloc(size) }
     }
@@ -120,24 +164,6 @@ impl Str {
         }
 
         string
-    }
-}
-
-pub struct Handle<T> {
-    ptr: *const T
-}
-
-impl<T> Deref for Handle<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        unsafe { &*self.ptr }
-    }
-}
-
-impl<T> DerefMut for Handle<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        unsafe { &mut *(self.ptr as *mut T) }
     }
 }
 

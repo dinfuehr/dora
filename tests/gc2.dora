@@ -1,0 +1,11 @@
+fn main() {
+  str();
+  Foo();
+}
+
+fn str() {
+  let x = "abc";
+  let y = "def";
+}
+
+class Foo

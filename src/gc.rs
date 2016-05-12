@@ -50,8 +50,6 @@ impl Gc {
                 ptr.raw() as usize, self.allocated, self.memory.len());
         }
 
-        println!("-------------\n");
-
         ptr
     }
 }
