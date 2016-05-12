@@ -254,7 +254,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
 
         let var = self.fct.var_by_node_id(s.id);
-        self.scopes.add_var(var.id, initialized, var.offset);
+
+        if var.data_type.reference_type() {
+            self.scopes.add_var(var.id, initialized, var.offset);
+        }
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {

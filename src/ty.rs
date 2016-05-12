@@ -62,6 +62,19 @@ impl BuiltinType {
         }
     }
 
+    pub fn reference_type(&self) -> bool {
+        !self.value_type()
+    }
+
+    pub fn value_type(&self) -> bool {
+        match *self {
+            BuiltinType::Unit
+                | BuiltinType::Bool
+                | BuiltinType::Int => true,
+            _ => false
+        }
+    }
+
     pub fn name(&self, ctxt: &Context) -> String {
         match *self {
             BuiltinType::Unit => "()".into(),
