@@ -108,7 +108,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_self(&mut self, dest: Reg) {
         let var = self.fct.var_self();
 
-        emit::mov_local_reg(self.buf, var.data_type.mode(), var.offset, dest);
+        emit::mov_local_reg(self.buf, var.ty.mode(), var.offset, dest);
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -215,7 +215,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 {
                     let var = self.fct.var_by_node_id(e.lhs.id());
-                    self.scopes.initialize(var.id);
+
+                    if var.ty.reference_type() {
+                        self.scopes.initialize(var.id);
+                    }
                 }
 
                 codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());

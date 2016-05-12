@@ -115,7 +115,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.ctor {
             let var = self.fct.var_self();
-            emit::mov_reg_local(&mut self.buf, var.data_type.mode(),
+            emit::mov_reg_local(&mut self.buf, var.ty.mode(),
                                 REG_PARAMS[0], var.offset);
 
             1
@@ -255,7 +255,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         let var = self.fct.var_by_node_id(s.id);
 
-        if var.data_type.reference_type() {
+        if var.ty.reference_type() {
             self.scopes.add_var(var.id, initialized, var.offset);
         }
     }
@@ -296,13 +296,13 @@ pub enum JumpCond {
 pub fn var_store(buf: &mut Buffer, fct: &Fct, src: Reg, var_id: NodeId) {
     let var = fct.var_by_node_id(var_id);
 
-    emit::mov_reg_local(buf, var.data_type.mode(), src, var.offset);
+    emit::mov_reg_local(buf, var.ty.mode(), src, var.offset);
 }
 
 pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: NodeId, dest: Reg) {
     let var = fct.var_by_node_id(var_id);
 
-    emit::mov_local_reg(buf, var.data_type.mode(), var.offset, dest);
+    emit::mov_local_reg(buf, var.ty.mode(), var.offset, dest);
 }
 
 pub struct Scopes {

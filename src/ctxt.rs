@@ -475,7 +475,7 @@ pub struct VarId(pub usize);
 pub struct Var {
     pub id: VarId,
     pub name: Name,
-    pub data_type: BuiltinType,
+    pub ty: BuiltinType,
     pub node_id: ast::NodeId,
     pub offset: i32,
 }

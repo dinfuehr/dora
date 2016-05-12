@@ -63,7 +63,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             var.offset = self.param_offset;
 
             // determine next `param_offset`
-            self.param_offset = cpu::next_param_offset(self.param_offset, var.data_type);
+            self.param_offset = cpu::next_param_offset(self.param_offset, var.ty);
         }
     }
 
@@ -111,7 +111,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stack_for_self(&mut self) {
         let var = self.fct.var_self();
 
-        let ty_size = var.data_type.size();
+        let ty_size = var.ty.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
         var.offset = -self.localsize;
     }
@@ -119,12 +119,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_stack_for_node(&mut self, id: NodeId) {
         let var = self.fct.var_by_node_id_mut(id);
 
-        let ty_size = var.data_type.size();
+        let ty_size = var.ty.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
         var.offset = -self.localsize;
 
         // println!("local `{}` on {} with type {:?}", *self.ctxt.interner.str(var.name),
-        //     var.offset, var.data_type);
+        //     var.offset, var.ty);
     }
 
     fn expr_array(&mut self, expr: &'ast ExprArrayType) {

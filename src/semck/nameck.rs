@@ -60,7 +60,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let var = Var {
             id: VarId(0),
             name: name,
-            data_type: BuiltinType::Class(cls_id),
+            ty: BuiltinType::Class(cls_id),
             node_id: ast_id,
             offset: 0
         };
@@ -94,7 +94,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let var_ctxt = Var {
             id: VarId(0),
             name: var.name,
-            data_type: BuiltinType::Unit,
+            ty: BuiltinType::Unit,
             node_id: var.id,
             offset: 0
         };
@@ -188,7 +188,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         let var_ctxt = Var {
             id: VarId(0),
             name: p.name,
-            data_type: BuiltinType::Unit,
+            ty: BuiltinType::Unit,
             node_id: p.id,
             offset: 0,
         };
