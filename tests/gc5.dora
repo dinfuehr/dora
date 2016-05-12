@@ -1,7 +1,7 @@
 fn main() {
   let a = nested();
-  let b = Foo(4, nil);
-  let c = Foo(5, nil);
+  Foo(4, nil);
+  Foo(5, nil);
 
   assert(a.next.next.value == 3);
 }

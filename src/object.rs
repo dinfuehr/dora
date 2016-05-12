@@ -22,6 +22,14 @@ impl Header {
         std::mem::size_of::<Header>() as i32
     }
 
+    pub fn classptr(&self) -> usize {
+        self.class as usize
+    }
+
+    pub fn class(&self) -> &Class {
+        unsafe { &(*self.class) }
+    }
+
     pub fn unmark(&mut self) {
         self.info = self.info & (!1);
     }
@@ -41,11 +49,19 @@ impl Header {
 
 // is used to reference any object
 pub struct Obj {
-    pub header: Header,
+    header: Header,
     data: u8
 }
 
 impl Obj {
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+
+    pub fn header_mut(&mut self) -> &mut Header {
+        &mut self.header
+    }
+
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
     }

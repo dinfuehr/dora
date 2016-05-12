@@ -1,9 +1,11 @@
 use libc;
+use std::ptr::write_bytes;
 
+use class::Class;
 use cpu::get_rootset;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::Header;
+use object::Obj;
 
 pub struct Gc {
     memory: Vec<Ptr>,
@@ -26,8 +28,8 @@ impl Gc {
             // dump_rootset(&rootset);
 
             for &ptr in &self.memory {
-                let obj = unsafe { &mut *(ptr.raw() as *mut Header) };
-                obj.unmark();
+                let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
+                obj.header_mut().unmark();
 
                 println!("unmark {:x}", ptr.raw() as usize);
             }
@@ -40,6 +42,7 @@ impl Gc {
         }
 
         let ptr = unsafe { libc::malloc(size) };
+        unsafe { write_bytes(ptr, 0, size); }
         let ptr = Ptr::new(ptr);
 
         self.memory.push(ptr);
@@ -75,10 +78,27 @@ fn mark(rootset: &Vec<usize>) {
 }
 
 fn mark_recursive(ptr: usize) {
-    println!("mark {:x}", ptr);
-    let mem = unsafe { &mut *(ptr as *mut Header) };
+    if ptr == 0 { return; }
+    let obj = unsafe { &mut *(ptr as *mut Obj) };
 
-    mem.mark();
+    if !obj.header().is_marked() {
+        println!("mark {:x}", ptr);
+
+        obj.header_mut().mark();
+        let class = obj.header().class();
+
+        for prop in &class.props {
+            if prop.ty.reference_type() {
+                let addr = ptr as isize + prop.offset as isize;
+                let obj = unsafe { *(addr as *const usize) };
+
+                if obj == 0 { return; }
+                mark_recursive(obj);
+            }
+        }
+    } else {
+        println!("already marked {:x}", ptr);
+    }
 }
 
 fn sweep(memory: &mut Vec<Ptr>, dump: bool) {
@@ -86,9 +106,9 @@ fn sweep(memory: &mut Vec<Ptr>, dump: bool) {
 
     while i < memory.len() {
         let ptr = memory[i];
-        let obj = unsafe { &mut *(ptr.raw() as *mut Header) };
+        let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
 
-        if !obj.is_marked() {
+        if !obj.header().is_marked() {
             if dump {
                 println!("sweep {:x}", ptr.raw() as usize);
             }
