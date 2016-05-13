@@ -55,8 +55,10 @@ impl<'ast> Context<'ast> {
             primitive_classes: PrimitiveClasses {
                 int_class: ClassId(0),
                 str_class: ClassId(0),
+                str_classptr: 0,
                 bool_class: ClassId(0),
                 int_array: ClassId(0),
+                int_array_classptr: 0
             },
             gc: Mutex::new(Gc::new()),
             ast: ast,
@@ -140,8 +142,10 @@ impl<'ast> Context<'ast> {
 pub struct PrimitiveClasses {
     pub int_class: ClassId,
     pub str_class: ClassId,
+    pub str_classptr: usize,
     pub bool_class: ClassId,
     pub int_array: ClassId,
+    pub int_array_classptr: usize,
 }
 
 impl PrimitiveClasses {

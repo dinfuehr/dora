@@ -4,6 +4,7 @@ use std::ops::Index;
 use std::ptr;
 
 use class::Class;
+use ctxt::get_ctxt;
 use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
@@ -85,6 +86,14 @@ impl<T> DerefMut for Handle<T> {
     }
 }
 
+impl<T> Into<Handle<T>> for usize {
+    fn into(self) -> Handle<T> {
+        Handle {
+            ptr: self as *const T
+        }
+    }
+}
+
 pub struct Str2 {
     header: Header,
     length: usize,
@@ -116,6 +125,21 @@ pub struct Str {
 }
 
 impl Str {
+    pub fn alloc(len: usize) -> Handle<Str> {
+        let size = Header::size() as usize     // Object header
+                   + mem::ptr_width() as usize // length field
+                   + len + 1;                  // string content
+
+        let ctxt = get_ctxt();
+        let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
+
+        let cls = ctxt.primitive_classes.str_classptr;
+
+        unsafe { *(ptr as *mut usize) = cls; }
+
+        ptr.into()
+    }
+
     pub fn len(&self) -> usize {
         unsafe {
             *(self.ptr.raw() as *const usize)

@@ -57,18 +57,14 @@ impl Gc {
     }
 }
 
-fn dump_rootset(rootset: &Vec<usize>) {
-    print!("rootset = [");
-
-    for (ind, &ptr) in rootset.iter().enumerate() {
-        if ind > 0 {
-            print!(", ");
+impl Drop for Gc {
+    fn drop(&mut self) {
+        for mem in &self.memory {
+            unsafe {
+                libc::free(mem.raw());
+            }
         }
-
-        print!("{:x}", ptr);
     }
-
-    println!("]");
 }
 
 fn mark(rootset: &Vec<usize>) {
@@ -122,15 +118,5 @@ fn sweep(gc: &mut Gc, dump: bool) {
         }
 
         i += 1;
-    }
-}
-
-impl Drop for Gc {
-    fn drop(&mut self) {
-        for mem in &self.memory {
-            unsafe {
-                libc::free(mem.raw());
-            }
-        }
     }
 }
