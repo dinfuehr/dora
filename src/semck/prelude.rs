@@ -6,7 +6,7 @@ use ctxt::*;
 use class::*;
 use interner::Name;
 use mem::{self, Ptr};
-use object::{Header, IntArray};
+use object::{Header, IntArray2};
 use sym::Sym::*;
 use ty::BuiltinType;
 
@@ -97,7 +97,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
         ctors: Vec::new(),
         props: Vec::new(),
         methods: vec![mtd_len, mtd_parse],
-        size: BuiltinType::Str.size(),
+        size: 0,
         ast: None,
     });
 
@@ -114,12 +114,6 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls_name = ctxt.interner.intern("IntArray");
     let cls_type = BuiltinType::IntArray;
 
-    let ctor_empty = add_ctor(ctxt, cls_id, cls_name,
-        Vec::new(), Ptr::new(stdlib::ctor_int_array_empty as *mut c_void));
-    let ctor_elem = add_ctor(ctxt, cls_id, cls_name,
-        vec![BuiltinType::Int, BuiltinType::Int],
-        Ptr::new(stdlib::ctor_int_array_elem as *mut c_void));
-
     let mtd_len = add_method(ctxt, cls_id, cls_type, "len", Vec::new(), BuiltinType::Int,
         FctKind::Builtin(Ptr::new(stdlib::int_array_len as *mut c_void)));
 
@@ -133,10 +127,10 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
         id: cls_id,
         name: cls_name,
         ty: BuiltinType::IntArray,
-        ctors: vec![ctor_empty, ctor_elem],
+        ctors: Vec::new(),
         props: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
-        size: IntArray::size() as i32,
+        size: 0,
         ast: None
     });
 
@@ -202,6 +196,13 @@ fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     builtin_function("forceCollect", vec![], BuiltinType::Unit, ctxt,
         Ptr::new(stdlib::gc_collect as *mut c_void));
+
+    builtin_function("intArrayWith", vec![BuiltinType::Int, BuiltinType::Int],
+        BuiltinType::IntArray, ctxt,
+        Ptr::new(stdlib::ctor_int_array_elem as *mut c_void));
+
+    builtin_function("emptyIntArray", vec![], BuiltinType::IntArray, ctxt,
+        Ptr::new(stdlib::ctor_int_array_empty as *mut c_void));
 }
 
 fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,

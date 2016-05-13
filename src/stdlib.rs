@@ -8,7 +8,7 @@ use std::slice;
 use std::str;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::{Handle, IntArray, Str};
+use object::{Handle, IntArray2, Str};
 
 pub extern "C" fn assert(val: bool) {
     if !val {
@@ -74,28 +74,15 @@ pub extern "C" fn gc_collect() {
     gc.collect();
 }
 
-pub extern "C" fn ctor_int_array_empty(ptr: Ptr) -> Ptr {
-    let data = IntArray::empty();
-
-    unsafe { *(ptr.raw() as *mut IntArray) = data; }
-
-    ptr
+pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray2> {
+    IntArray2::alloc_with_elem(0, 0)
 }
 
-pub extern "C" fn ctor_int_array_elem(ptr: Ptr, len: i32, value: i32) -> Ptr {
-    let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
-
-    let data = IntArray::with_element(&mut gc, len as usize, value as isize);
-
-    unsafe { *(ptr.raw() as *mut IntArray) = data; }
-
-    ptr
+pub extern "C" fn ctor_int_array_elem(len: i32, value: i32) -> Handle<IntArray2> {
+    IntArray2::alloc_with_elem(len as usize, value)
 }
 
-pub extern "C" fn int_array_len(ptr: *const IntArray) -> i32 {
-    let array = unsafe { &*ptr };
-
+pub extern "C" fn int_array_len(array: Handle<IntArray2>) -> i32 {
     array.len() as i32
 }
 

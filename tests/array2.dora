@@ -1,5 +1,5 @@
 fn main() {
-  assert(0 == len(IntArray()));
+  assert(0 == len(emptyIntArray()));
 }
 
 fn len(a: IntArray) -> int { return a.len(); }

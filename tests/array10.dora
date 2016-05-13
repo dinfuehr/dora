@@ -1,6 +1,6 @@
 //= error array
 
 fn main() {
-  let array = IntArray();
+  let array = emptyIntArray();
   array[-1];
 }

@@ -175,67 +175,62 @@ impl Str {
     }
 }
 
-pub struct IntArray {
-    ptr: *mut i32,
+pub struct IntArray2 {
+    header: Header,
     length: usize,
+    data: u8
 }
 
-impl IntArray {
-    pub fn empty() -> IntArray {
-        IntArray {
-            ptr: ptr::null_mut(),
-            length: 0,
-        }
+impl IntArray2 {
+    pub fn header(&self) -> &Header {
+        &self.header
     }
 
-    pub fn with_element(gc: &mut Gc, length: usize, elem: isize) -> IntArray {
-        if length < 0 {
-            panic!("length needs to be greater or equal to 0.");
-        }
-
-        let ptr = if length > 0 {
-            gc.alloc(std::mem::size_of::<i32>() * length).raw() as *mut i32
-        } else {
-            ptr::null_mut()
-        };
-
-        for i in 0..length {
-            unsafe {
-                *ptr.offset(i as isize) = elem as i32;
-            }
-        }
-
-        IntArray {
-            ptr: ptr,
-            length: length,
-        }
-    }
-
-    pub fn size() -> usize {
-        std::mem::size_of::<IntArray>()
+    pub fn header_mut(&mut self) -> &mut Header {
+        &mut self.header
     }
 
     pub fn len(&self) -> usize {
         self.length
     }
 
-    pub fn get(&self, ind: i32) -> i32 {
-        if ind < 0 || ind as usize >= self.length {
-            panic!("index out of bounds");
-        }
-
-        unsafe {
-            *self.ptr.offset(ind as isize)
-        }
+    pub fn data(&self) -> *const i32 {
+        &self.data as *const u8 as *const i32
     }
 
-    pub fn set(&self, ind: i32, value: i32) {
-        if ind < 0 || ind as usize >= self.length {
-            panic!("index out of bounds");
+    pub fn data_mut(&mut self) -> *mut i32 {
+        &self.data as *const u8 as *mut i32
+    }
+
+    pub fn alloc_empty() -> Handle<IntArray2> {
+        IntArray2::alloc_with_elem(0, 0)
+    }
+
+    pub fn alloc_with_elem(len: usize, elem: i32) -> Handle<IntArray2> {
+        let size = Header::size() as usize        // Object header
+                   + mem::ptr_width() as usize    // length field
+                   + len * std::mem::size_of::<i32>(); // array content
+
+        let ctxt = get_ctxt();
+        let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
+
+        let cls = ctxt.primitive_classes.int_array_classptr;
+        let mut handle : Handle<IntArray2> = ptr.into();
+        handle.header_mut().class = cls as *const Class;
+        handle.length = len;
+
+        for i in 0..handle.len() {
+            unsafe { *handle.data_mut().offset(i as isize) = elem; }
         }
 
-        unsafe {
-            *self.ptr.offset(ind as isize) = value;
-        }
+        handle
+    }
+
+    pub fn offset_of_length() -> i32 {
+        Header::size()
+    }
+
+    pub fn offset_of_data() -> i32 {
+        Header::size() + mem::ptr_width()
     }
 }
