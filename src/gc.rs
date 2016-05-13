@@ -23,9 +23,7 @@ impl Gc {
     pub fn alloc(&mut self, size: usize) -> Ptr {
         let ctxt = get_ctxt();
 
-        if ctxt.args.flag_gc_extreme {
-            self.collect();
-        }
+        // TODO: invoke collect() if it is necessary
 
         let ptr = unsafe { libc::malloc(size) };
         unsafe { write_bytes(ptr, 0, size); }
