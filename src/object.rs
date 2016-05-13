@@ -102,13 +102,13 @@ impl<T> Into<Ptr> for Handle<T> {
     }
 }
 
-pub struct Str2 {
+pub struct Str {
     header: Header,
     length: usize,
     data: u8
 }
 
-impl Str2 {
+impl Str {
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -125,7 +125,7 @@ impl Str2 {
         &self.data as *const u8
     }
 
-    pub fn alloc(len: usize) -> Handle<Str2> {
+    pub fn alloc(len: usize) -> Handle<Str> {
         let size = Header::size() as usize     // Object header
                    + mem::ptr_width() as usize // length field
                    + len + 1;                  // string content
@@ -134,14 +134,14 @@ impl Str2 {
         let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
 
         let cls = ctxt.primitive_classes.str_classptr;
-        let mut handle : Handle<Str2> = ptr.into();
+        let mut handle : Handle<Str> = ptr.into();
         handle.header_mut().class = cls as *const Class;
 
         handle
     }
 
-    pub fn from(buf: &[u8]) -> Handle<Str2> {
-        let mut handle = Str2::alloc(buf.len());
+    pub fn from(buf: &[u8]) -> Handle<Str> {
+        let mut handle = Str::alloc(buf.len());
         handle.length = buf.len();
 
         unsafe {
@@ -157,9 +157,9 @@ impl Str2 {
         handle
     }
 
-    pub fn concat(lhs: Handle<Str2>, rhs: Handle<Str2>) -> Handle<Str2> {
+    pub fn concat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = Str2::alloc(len);
+        let mut handle = Str::alloc(len);
 
         unsafe {
             handle.length = len;
