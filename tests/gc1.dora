@@ -1,7 +1,6 @@
 fn main() {
   let x = Foo(1);
-  Foo(2);
-  Foo(3);
+  forceCollect();
   assert(x.a == 1);
 }
 

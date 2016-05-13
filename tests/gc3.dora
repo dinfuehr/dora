@@ -1,4 +1,6 @@
 fn main() {
-  "hello";
-  "world";
+  let x = "hello";
+  let y = "world";
+
+  // forceCollect();
 }

@@ -4,7 +4,5 @@ fn main() {
   let c = true;
   let d = false;
 
-  Foo();
+  forceCollect();
 }
-
-class Foo

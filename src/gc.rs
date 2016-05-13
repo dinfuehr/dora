@@ -9,14 +9,14 @@ use object::Obj;
 
 pub struct Gc {
     memory: Vec<Ptr>,
-    allocated: usize,
+    bytes_allocated: usize,
 }
 
 impl Gc {
     pub fn new() -> Gc {
         Gc {
             memory: Vec::new(),
-            allocated: 0
+            bytes_allocated: 0
         }
     }
 
@@ -24,21 +24,7 @@ impl Gc {
         let ctxt = get_ctxt();
 
         if ctxt.args.flag_gc_extreme {
-            let rootset = get_rootset(ctxt);
-            // dump_rootset(&rootset);
-
-            for &ptr in &self.memory {
-                let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
-                obj.header_mut().unmark();
-
-                println!("unmark {:x}", ptr.raw() as usize);
-            }
-
-            mark(&rootset);
-            sweep(&mut self.memory, ctxt.args.flag_gc_dump);
-
-            let rootset = get_rootset(ctxt);
-            // dump_rootset(&rootset);
+            self.collect();
         }
 
         let ptr = unsafe { libc::malloc(size) };
@@ -46,14 +32,30 @@ impl Gc {
         let ptr = Ptr::new(ptr);
 
         self.memory.push(ptr);
-        self.allocated += size;
+        self.bytes_allocated += size;
 
         if ctxt.args.flag_gc_dump {
             println!("allocate {} bytes: {:x} (total: {} bytes, {} objects)", size,
-                ptr.raw() as usize, self.allocated, self.memory.len());
+                ptr.raw() as usize, self.bytes_allocated, self.memory.len());
         }
 
         ptr
+    }
+
+    pub fn collect(&mut self) {
+        let ctxt = get_ctxt();
+        let rootset = get_rootset(ctxt);
+        // dump_rootset(&rootset);
+
+        for &ptr in &self.memory {
+            let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
+            obj.header_mut().unmark();
+
+            println!("unmark {:x}", ptr.raw() as usize);
+        }
+
+        mark(&rootset);
+        sweep(self, ctxt.args.flag_gc_dump);
     }
 }
 
@@ -101,11 +103,11 @@ fn mark_recursive(ptr: usize) {
     }
 }
 
-fn sweep(memory: &mut Vec<Ptr>, dump: bool) {
+fn sweep(gc: &mut Gc, dump: bool) {
     let mut i = 0;
 
-    while i < memory.len() {
-        let ptr = memory[i];
+    while i < gc.memory.len() {
+        let ptr = gc.memory[i];
         let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
 
         if !obj.header().is_marked() {
@@ -114,7 +116,10 @@ fn sweep(memory: &mut Vec<Ptr>, dump: bool) {
             }
 
             unsafe { libc::free(ptr.raw()) };
-            memory.remove(i);
+
+            let size = obj.header().class().size as usize;
+            gc.bytes_allocated -= size;
+            gc.memory.remove(i);
             continue;
         }
 

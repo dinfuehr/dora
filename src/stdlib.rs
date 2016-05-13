@@ -76,6 +76,13 @@ pub extern "C" fn gc_alloc(size: usize) -> Ptr {
     gc.alloc(size)
 }
 
+pub extern "C" fn gc_collect() {
+    let ctxt = get_ctxt();
+    let mut gc = ctxt.gc.lock().unwrap();
+
+    gc.collect();
+}
+
 pub extern "C" fn ctor_int_array_empty(ptr: Ptr) -> Ptr {
     let data = IntArray::empty();
 

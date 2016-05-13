@@ -1,7 +1,6 @@
 fn main() {
   let a = nested();
-  Foo(4, nil);
-  Foo(5, nil);
+  forceCollect();
 
   assert(a.next.next.value == 3);
 }

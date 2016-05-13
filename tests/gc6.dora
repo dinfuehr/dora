@@ -5,7 +5,7 @@ fn main() {
     x = Foo();
   }
 
-  Foo();
+  forceCollect();
 }
 
 class Foo
