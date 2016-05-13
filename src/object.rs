@@ -1,3 +1,5 @@
+use libc;
+
 use std;
 use std::ops::{Deref, DerefMut};
 use std::ops::Index;
@@ -94,6 +96,12 @@ impl<T> Into<Handle<T>> for usize {
     }
 }
 
+impl<T> Into<Ptr> for Handle<T> {
+    fn into(self) -> Ptr {
+        Ptr::new(self.ptr as *mut libc::c_void)
+    }
+}
+
 pub struct Str2 {
     header: Header,
     length: usize,
@@ -116,16 +124,8 @@ impl Str2 {
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
     }
-}
 
-// String in Dora is immutable
-// length + string content is stored in one contiguous memory
-pub struct Str {
-    ptr: Ptr
-}
-
-impl Str {
-    pub fn alloc(len: usize) -> Handle<Str> {
+    pub fn alloc(len: usize) -> Handle<Str2> {
         let size = Header::size() as usize     // Object header
                    + mem::ptr_width() as usize // length field
                    + len + 1;                  // string content
@@ -134,76 +134,44 @@ impl Str {
         let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
 
         let cls = ctxt.primitive_classes.str_classptr;
+        let mut handle : Handle<Str2> = ptr.into();
+        handle.header_mut().class = cls as *const Class;
 
-        unsafe { *(ptr as *mut usize) = cls; }
-
-        ptr.into()
+        handle
     }
 
-    pub fn len(&self) -> usize {
-        unsafe {
-            *(self.ptr.raw() as *const usize)
-        }
-    }
-
-    pub fn ptr(&self) -> Ptr {
-        self.ptr
-    }
-
-    pub fn set_len(&self, len: usize) {
-        unsafe {
-            *(self.ptr.raw() as *mut usize) = len;
-        }
-    }
-
-    pub fn data(&self) -> *mut u8 {
-        unsafe {
-            self.ptr.raw().offset(mem::ptr_width() as isize) as *mut u8
-        }
-    }
-}
-
-impl Str {
-    pub fn from_buffer(gc: &mut Gc, buf: &[u8]) -> Str {
-        let string = Str::new(gc, buf.len());
+    pub fn from(buf: &[u8]) -> Handle<Str2> {
+        let mut handle = Str2::alloc(buf.len());
+        handle.length = buf.len();
 
         unsafe {
-            // write len of Str (excluding 0 at end)
-            string.set_len(buf.len());
+            let data = handle.data() as *mut u8;
 
             // copy buffer content into Str
-            ptr::copy_nonoverlapping(buf.as_ptr(), string.data(), buf.len());
+            ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
 
             // string should end with 0 for C compatibility
-            *(string.data().offset(buf.len() as isize)) = 0;
+            *(data.offset(buf.len() as isize)) = 0;
         }
 
-        string
+        handle
     }
 
-    pub fn new(gc: &mut Gc, len: usize) -> Str {
-        let size = Header::size() as usize     // Object header
-                   + mem::ptr_width() as usize // length field
-                   + len + 1;                  // string content
-
-        Str { ptr: gc.alloc(size) }
-    }
-
-    pub fn concat(gc: &mut Gc, lhs: Str, rhs: Str) -> Str {
+    pub fn concat(lhs: Handle<Str2>, rhs: Handle<Str2>) -> Handle<Str2> {
         let len = lhs.len() + rhs.len();
-        let string = Str::new(gc, len);
+        let mut handle = Str2::alloc(len);
 
         unsafe {
-            string.set_len(len);
+            handle.length = len;
 
-            ptr::copy_nonoverlapping(lhs.data(), string.data(), lhs.len());
+            ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
             ptr::copy_nonoverlapping(rhs.data(),
-                string.data().offset(lhs.len() as isize), rhs.len());
+                handle.data().offset(lhs.len() as isize) as *mut u8, rhs.len());
 
-            *(string.data().offset(len as isize)) = 0;
+            *(handle.data().offset(len as isize) as *mut u8) = 0;
         }
 
-        string
+        handle
     }
 }
 

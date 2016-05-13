@@ -12,7 +12,7 @@ use jit::codegen::{self, JumpCond, Scopes};
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
-use object::Str;
+use object::Str2;
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 
@@ -138,12 +138,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
-        let string = {
-            let mut gc = self.ctxt.gc.lock().unwrap();
-            Str::from_buffer(&mut gc, lit.value.as_bytes())
-        };
+        let handle = Str2::from(lit.value.as_bytes());
 
-        let disp = self.buf.add_addr(string.ptr());
+        let disp = self.buf.add_addr(handle.into());
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, dest);

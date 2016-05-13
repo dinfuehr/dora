@@ -8,7 +8,7 @@ use std::slice;
 use std::str;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::{IntArray, Str};
+use object::{Handle, IntArray, Str2};
 
 pub extern "C" fn assert(val: bool) {
     if !val {
@@ -19,54 +19,45 @@ pub extern "C" fn assert(val: bool) {
     }
 }
 
-pub extern "C" fn int_to_string(val: i32) -> Str {
-    let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
+pub extern "C" fn int_to_string(val: i32) -> Handle<Str2> {
     let buffer = val.to_string();
-
-    Str::from_buffer(&mut gc, buffer.as_bytes())
+    Str2::from(buffer.as_bytes())
 }
 
-pub extern "C" fn bool_to_string(val: bool) -> Str {
-    let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
-
+pub extern "C" fn bool_to_string(val: bool) -> Handle<Str2> {
     let val = if val {
         "true"
     } else {
         "false"
     };
 
-    Str::from_buffer(&mut gc, val.as_bytes())
+    Str2::from(val.as_bytes())
 }
 
 pub extern "C" fn bool_to_int(val: bool) -> i32 {
     if val { 1 } else { 0 }
 }
 
-pub extern "C" fn print(val: Str) {
+pub extern "C" fn print(val: Handle<Str2>) {
     unsafe {
         let buf = CStr::from_ptr(val.data() as *const c_char);
         io::stdout().write(buf.to_bytes()).unwrap();
     };
 }
 
-pub extern "C" fn println(val: Str) {
+pub extern "C" fn println(val: Handle<Str2>) {
     print(val);
     println!("");
 }
 
-pub extern "C" fn strcmp(lhs: Str, rhs: Str) -> i32 {
+pub extern "C" fn strcmp(lhs: Handle<Str2>, rhs: Handle<Str2>) -> i32 {
     unsafe {
         libc::strcmp(lhs.data() as *const i8, rhs.data() as *const i8)
     }
 }
 
-pub extern "C" fn strcat(lhs: Str, rhs: Str) -> Str {
-    let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
-
-    Str::concat(&mut gc, lhs, rhs)
+pub extern "C" fn strcat(lhs: Handle<Str2>, rhs: Handle<Str2>) -> Handle<Str2> {
+    Str2::concat(lhs, rhs)
 }
 
 pub extern "C" fn gc_alloc(size: usize) -> Ptr {
@@ -108,7 +99,7 @@ pub extern "C" fn int_array_len(ptr: *const IntArray) -> i32 {
     array.len() as i32
 }
 
-pub extern "C" fn str_array_len(s: Str) -> i32 {
+pub extern "C" fn str_array_len(s: Handle<Str2>) -> i32 {
     s.len() as i32
 }
 
@@ -122,22 +113,21 @@ pub extern "C" fn argc() -> i32 {
     }
 }
 
-pub extern "C" fn argv(ind: i32) -> Str {
+pub extern "C" fn argv(ind: i32) -> Handle<Str2> {
     let ctxt = get_ctxt();
 
     if let Some(ref args) = ctxt.args.arg_argument {
         if ind >= 0 && ind < args.len() as i32 {
-            let mut gc = ctxt.gc.lock().unwrap();
             let value = &args[ind as usize];
 
-            return Str::from_buffer(&mut gc, value.as_bytes());
+            return Str2::from(value.as_bytes());
         }
     }
 
     panic!("argument does not exist");
 }
 
-pub extern "C" fn parse(val: Str) -> i32 {
+pub extern "C" fn parse(val: Handle<Str2>) -> i32 {
     let slice = unsafe { slice::from_raw_parts(val.data(), val.len()) };
     let val = str::from_utf8(slice).unwrap();
 
