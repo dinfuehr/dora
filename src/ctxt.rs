@@ -16,6 +16,7 @@ use jit::fct::JitFct;
 use jit::map::CodeMap;
 use jit::stub::Stub;
 use mem::{self, Ptr};
+use object::{Handle, Str};
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -43,6 +44,7 @@ pub struct Context<'ast> {
     pub fcts: Vec<Arc<Mutex<Fct<'ast>>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
+    pub literals: Mutex<Vec<Handle<Str>>>, // string literals
 }
 
 impl<'ast> Context<'ast> {
@@ -61,6 +63,7 @@ impl<'ast> Context<'ast> {
                 int_array_classptr: 0
             },
             gc: Mutex::new(Gc::new()),
+            literals: Mutex::new(Vec::new()),
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),

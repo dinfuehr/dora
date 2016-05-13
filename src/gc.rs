@@ -43,17 +43,20 @@ impl Gc {
     pub fn collect(&mut self) {
         let ctxt = get_ctxt();
         let rootset = get_rootset(ctxt);
-        // dump_rootset(&rootset);
+        let dump = ctxt.args.flag_gc_dump;
 
         for &ptr in &self.memory {
             let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
             obj.header_mut().unmark();
 
-            println!("unmark {:x}", ptr.raw() as usize);
+            if ctxt.args.flag_gc_dump {
+                println!("unmark {:x}", ptr.raw() as usize);
+            }
         }
 
-        mark(&rootset);
-        sweep(self, ctxt.args.flag_gc_dump);
+        mark_literals(dump);
+        mark_rootset(&rootset, dump);
+        sweep(self, dump);
     }
 }
 
@@ -67,18 +70,27 @@ impl Drop for Gc {
     }
 }
 
-fn mark(rootset: &Vec<usize>) {
-    for &root in rootset {
-        mark_recursive(root);
+fn mark_literals(dump: bool) {
+    let ctxt = get_ctxt();
+    let literals = ctxt.literals.lock().unwrap();
+
+    for lit in literals.iter() {
+        mark_recursive(lit.raw() as usize, dump);
     }
 }
 
-fn mark_recursive(ptr: usize) {
+fn mark_rootset(rootset: &Vec<usize>, dump: bool) {
+    for &root in rootset {
+        mark_recursive(root, dump);
+    }
+}
+
+fn mark_recursive(ptr: usize, dump: bool) {
     if ptr == 0 { return; }
     let obj = unsafe { &mut *(ptr as *mut Obj) };
 
     if !obj.header().is_marked() {
-        println!("mark {:x}", ptr);
+        if dump { println!("mark {:x}", ptr); }
 
         obj.header_mut().mark();
         let class = obj.header().class();
@@ -89,7 +101,7 @@ fn mark_recursive(ptr: usize) {
                 let obj = unsafe { *(addr as *const usize) };
 
                 if obj == 0 { return; }
-                mark_recursive(obj);
+                mark_recursive(obj, dump);
             }
         }
     } else {
@@ -109,9 +121,14 @@ fn sweep(gc: &mut Gc, dump: bool) {
                 println!("sweep {:x}", ptr.raw() as usize);
             }
 
-            unsafe { libc::free(ptr.raw()) };
+            let size = obj.size();
 
-            let size = obj.header().class().size as usize;
+            unsafe {
+                // TODO: make me optional
+                write_bytes(ptr.raw() as *mut u8, 0xcc, size);
+                libc::free(ptr.raw())
+            };
+
             gc.bytes_allocated -= size;
             gc.memory.remove(i);
             continue;

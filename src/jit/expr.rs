@@ -139,6 +139,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
         let handle = Str::from(lit.value.as_bytes());
+        self.ctxt.literals.lock().unwrap().push(handle);
 
         let disp = self.buf.add_addr(handle.into());
         let pos = self.buf.pos() as i32;

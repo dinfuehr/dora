@@ -10,6 +10,7 @@ use ctxt::get_ctxt;
 use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
+use ty::BuiltinType;
 
 pub struct Header {
     // ptr to class
@@ -68,10 +69,50 @@ impl Obj {
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
     }
+
+    pub fn size(&self) -> usize {
+        let size = self.header().class().size;
+        if size > 0 { return size as usize; }
+
+        let ty = self.header().class().ty;
+
+        match ty {
+            BuiltinType::Str => {
+                let handle: Handle<Str> = Handle {
+                    ptr: self as *const Obj as *const Str
+                };
+                handle.size()
+            }
+
+            BuiltinType::IntArray => {
+                let handle: Handle<IntArray> = Handle {
+                    ptr: self as *const Obj as *const IntArray
+                };
+                handle.size()
+            }
+
+            _ => panic!("size unknown")
+        }
+    }
 }
 
 pub struct Handle<T> {
     ptr: *const T
+}
+
+impl<T> Handle<T> {
+    pub fn raw(&self) -> *const T {
+        self.ptr
+    }
+}
+
+// known limitation of #[derive(Copy, Clone)]
+// traits need to be implemented manually
+impl<T> Copy for Handle<T> {}
+impl<T> Clone for Handle<T> {
+    fn clone(&self) -> Handle<T> {
+        *self
+    }
 }
 
 impl<T> Deref for Handle<T> {
@@ -123,6 +164,12 @@ impl Str {
 
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
+    }
+
+    pub fn size(&self) -> usize {
+        Header::size() as usize         // Object header
+            + mem::ptr_width() as usize // length field
+            + self.len() + 1   // string content
     }
 
     pub fn alloc(len: usize) -> Handle<Str> {
@@ -200,6 +247,12 @@ impl IntArray {
 
     pub fn data_mut(&mut self) -> *mut i32 {
         &self.data as *const u8 as *mut i32
+    }
+
+    pub fn size(&self) -> usize {
+        Header::size() as usize         // Object header
+            + mem::ptr_width() as usize // length field
+            + self.len() * std::mem::size_of::<i32>() // array content
     }
 
     pub fn alloc_empty() -> Handle<IntArray> {
