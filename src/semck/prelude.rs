@@ -6,7 +6,7 @@ use ctxt::*;
 use class::*;
 use interner::Name;
 use mem::{self, Ptr};
-use object::{Header, IntArray2};
+use object::{Header, IntArray};
 use sym::Sym::*;
 use ty::BuiltinType;
 

@@ -5,7 +5,7 @@ use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
 use lexer::position::Position;
-use object::IntArray2;
+use object::IntArray;
 use ty::MachineMode;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
@@ -114,7 +114,7 @@ pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
 
 pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
                                  index: Reg, temp: Reg) {
-    emit_movq_memq_reg(buf, array, IntArray2::offset_of_length(), temp);
+    emit_movq_memq_reg(buf, array, IntArray::offset_of_length(), temp);
     emit_cmpq_reg_reg(buf, temp, index);
 
     let lbl = buf.create_label();

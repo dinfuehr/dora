@@ -12,7 +12,7 @@ use jit::codegen::{self, JumpCond, Scopes};
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
-use object::{IntArray2, Str};
+use object::{IntArray, Str};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 
@@ -78,7 +78,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, REG_RESULT);
             emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
 
-            cpu::instr::emit_addq_imm_reg(self.buf, IntArray2::offset_of_data(), REG_RESULT);
+            cpu::instr::emit_addq_imm_reg(self.buf, IntArray::offset_of_data(), REG_RESULT);
             emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
 
             if dest != REG_RESULT {
@@ -193,7 +193,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::check_index_out_of_bounds(self.buf, e.pos, REG_TMP1, REG_TMP2, REG_RESULT);
 
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
-                cpu::instr::emit_addq_imm_reg(self.buf, IntArray2::offset_of_data(), REG_TMP1);
+                cpu::instr::emit_addq_imm_reg(self.buf, IntArray::offset_of_data(), REG_TMP1);
                 emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
                 emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
                 emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);

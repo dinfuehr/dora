@@ -175,13 +175,13 @@ impl Str {
     }
 }
 
-pub struct IntArray2 {
+pub struct IntArray {
     header: Header,
     length: usize,
     data: u8
 }
 
-impl IntArray2 {
+impl IntArray {
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -202,11 +202,11 @@ impl IntArray2 {
         &self.data as *const u8 as *mut i32
     }
 
-    pub fn alloc_empty() -> Handle<IntArray2> {
-        IntArray2::alloc_with_elem(0, 0)
+    pub fn alloc_empty() -> Handle<IntArray> {
+        IntArray::alloc_with_elem(0, 0)
     }
 
-    pub fn alloc_with_elem(len: usize, elem: i32) -> Handle<IntArray2> {
+    pub fn alloc_with_elem(len: usize, elem: i32) -> Handle<IntArray> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<i32>(); // array content
@@ -215,7 +215,7 @@ impl IntArray2 {
         let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
 
         let cls = ctxt.primitive_classes.int_array_classptr;
-        let mut handle : Handle<IntArray2> = ptr.into();
+        let mut handle : Handle<IntArray> = ptr.into();
         handle.header_mut().class = cls as *const Class;
         handle.length = len;
 
