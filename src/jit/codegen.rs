@@ -6,7 +6,7 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use cpu::{Reg, REG_PARAMS};
+use cpu::{Reg, REG_PARAMS, REG_RESULT};
 use cpu::emit;
 use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
@@ -253,10 +253,21 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             var_store(&mut self.buf, self.fct, reg, s.id);
         }
 
-        let var = self.fct.var_by_node_id(s.id);
+        let reference_type = {
+            let var = self.fct.var_by_node_id(s.id);
 
-        if var.ty.reference_type() {
-            self.scopes.add_var(var.id, initialized, var.offset);
+            if var.ty.reference_type() {
+                self.scopes.add_var(var.id, var.offset);
+            }
+
+            var.ty.reference_type()
+        };
+
+        // uninitialized variables which reference objects need to be initialized to null
+        // otherwise the GC  can't know if the stored value is a valid pointer
+        if reference_type && !initialized {
+            emit::nil(&mut self.buf, REG_RESULT);
+            var_store(&mut self.buf, self.fct, REG_RESULT, s.id);
         }
     }
 
@@ -325,32 +336,17 @@ impl Scopes {
         assert!(self.scopes.len() >= 1);
     }
 
-    pub fn add_var(&mut self, id: VarId, initialized: bool, offset: i32) {
+    pub fn add_var(&mut self, id: VarId, offset: i32) {
         let scope = self.scopes.last_mut().unwrap();
-        assert!(scope.vars.insert(id, (initialized, offset)).is_none());
-    }
-
-    pub fn initialize(&mut self, id: VarId) {
-        for scope in self.scopes.iter_mut().rev() {
-            if let Entry::Occupied(ref mut e) = scope.vars.entry(id) {
-                e.get_mut().0 = true;
-                return;
-            }
-        }
-
-        panic!("initialization of var {:?} not in scope", id)
+        assert!(scope.vars.insert(id, offset).is_none());
     }
 
     pub fn create_gcpoint(&self) -> GcPoint {
         let mut offsets = Vec::new();
 
         for scope in &self.scopes {
-            for (var, value) in &scope.vars {
-                let &(initialized, offset) = value;
-
-                if initialized {
-                    offsets.push(offset);
-                }
+            for (var, &offset) in &scope.vars {
+                offsets.push(offset);
             }
         }
 
@@ -359,7 +355,7 @@ impl Scopes {
 }
 
 struct Scope {
-    vars: HashMap<VarId, (bool, i32)>,
+    vars: HashMap<VarId, i32>,
 }
 
 impl Scope {

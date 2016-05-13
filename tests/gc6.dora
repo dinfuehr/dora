@@ -1,0 +1,11 @@
+fn main() {
+  let x : Foo;
+
+  if false {
+    x = Foo();
+  }
+
+  Foo();
+}
+
+class Foo

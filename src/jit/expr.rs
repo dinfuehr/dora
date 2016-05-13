@@ -212,15 +212,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         match ident_type {
             IdentType::Var(_) => {
                 self.emit_expr(&e.rhs, dest);
-
-                {
-                    let var = self.fct.var_by_node_id(e.lhs.id());
-
-                    if var.ty.reference_type() {
-                        self.scopes.initialize(var.id);
-                    }
-                }
-
                 codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
             }
 
