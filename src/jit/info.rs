@@ -255,10 +255,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if e.lhs.is_ident() {
             self.visit_expr(&e.rhs);
 
-            let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
+            let lhs = e.lhs.to_ident().unwrap();
+            let ident_type = lhs.ident_type();
 
             if ident_type.is_prop() {
-                self.reserve_temp_for_node_with_type(e.lhs.id(), BuiltinType::Ptr);
+                self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
             }
 
         } else if e.lhs.is_prop() {

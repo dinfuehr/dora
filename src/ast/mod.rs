@@ -1083,15 +1083,11 @@ pub struct ExprPropType {
 }
 
 impl ExprPropType {
-    fn cls(&self) -> ClassId {
-        self.info.borrow().unwrap().0
+    pub fn cls_and_field(&self) -> (ClassId, PropId) {
+        self.info.borrow().unwrap()
     }
 
-    fn set(&self, class: ClassId, field: PropId) {
+    pub fn set_cls_and_field(&self, class: ClassId, field: PropId) {
         *self.info.borrow_mut() = Some((class, field));
-    }
-
-    fn field(&self) -> PropId {
-        self.info.borrow().unwrap().1
     }
 }

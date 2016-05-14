@@ -2,7 +2,7 @@ use libc::c_void;
 
 use ast::*;
 use ast::Expr::*;
-use class::{self, ClassId};
+use class::{self, ClassId, PropId};
 use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
@@ -156,15 +156,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_prop(&mut self, expr: &'ast ExprPropType, dest: Reg) {
-        let ident_type = *self.fct.src().defs.get(&expr.id).unwrap();
+        let (cls, field) = expr.cls_and_field();
 
         self.emit_expr(&expr.object, REG_RESULT);
-        self.emit_prop_access(ident_type, REG_RESULT, dest);
+        self.emit_prop_access(cls, field, REG_RESULT, dest);
     }
 
-    fn emit_prop_access(&mut self, ident_type: IdentType, src: Reg, dest: Reg) {
-        let cls = self.ctxt.cls_by_id(ident_type.cls_id());
-        let prop = &cls.props[ident_type.prop_id().0];
+    fn emit_prop_access(&mut self, cls: ClassId, field: PropId, src: Reg, dest: Reg) {
+        let cls = self.ctxt.cls_by_id(cls);
+        let prop = &cls.props[field];
         emit::mov_mem_reg(self.buf, prop.ty.mode(), src, prop.offset, dest);
     }
 
@@ -188,16 +188,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        let ident_type = e.ident_type();
-
-        match ident_type {
+        match e.ident_type() {
             IdentType::Var(_) => {
                 codegen::var_load(self.buf, self.fct, e.id, dest)
             }
 
-            IdentType::Prop(_, _) => {
+            IdentType::Prop(cls, field) => {
                 self.emit_self(REG_RESULT);
-                self.emit_prop_access(ident_type, REG_RESULT, dest);
+                self.emit_prop_access(cls, field, REG_RESULT, dest);
             }
         }
     }
@@ -249,7 +247,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             return;
         }
 
-        let ident_type = *self.fct.src().defs.get(&e.lhs.id()).unwrap();
+        let ident_type = if e.lhs.is_ident() {
+            e.lhs.to_ident().unwrap().ident_type()
+
+        } else if e.lhs.is_prop() {
+            let (cls, field) = e.lhs.to_prop().unwrap().cls_and_field();
+
+            IdentType::Prop(cls, field)
+
+        } else {
+            unreachable!();
+        };
 
         match ident_type {
             IdentType::Var(_) => {

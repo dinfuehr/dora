@@ -505,6 +505,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             for prop in &cls.props {
                 if prop.name == e.name {
+                    e.set_cls_and_field(classid, prop.id);
                     let ident_type = IdentType::Prop(classid, prop.id);
                     assert!(self.fct.src_mut().defs.insert(e.id, ident_type).is_none());
 

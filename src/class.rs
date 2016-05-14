@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::Index;
 
 use ast;
 use ctxt::FctId;
@@ -29,4 +30,12 @@ pub struct Prop {
     pub name: Name,
     pub ty: BuiltinType,
     pub offset: i32,
+}
+
+impl Index<PropId> for Vec<Prop> {
+    type Output = Prop;
+
+    fn index(&self, index: PropId) -> &Prop {
+        &self[index.0]
+    }
 }
