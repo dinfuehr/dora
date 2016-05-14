@@ -1,0 +1,11 @@
+fn main() {
+  let list: Foo = nil;
+  let i = 0;
+
+  while i < 10000 {
+    list = Foo(i, list);
+    i = i + 1;
+  }
+}
+
+class Foo(a: int, next: Foo)
