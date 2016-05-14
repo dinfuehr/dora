@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashSet;
 use std::slice;
 
 use ast::*;
@@ -340,18 +341,6 @@ impl Scopes {
         let scope = self.scopes.last_mut().unwrap();
         assert!(scope.vars.insert(id, offset).is_none());
     }
-
-    pub fn create_gcpoint(&self) -> GcPoint {
-        let mut offsets = Vec::new();
-
-        for scope in &self.scopes {
-            for (var, &offset) in &scope.vars {
-                offsets.push(offset);
-            }
-        }
-
-        GcPoint::from_offsets(offsets)
-    }
 }
 
 struct Scope {
@@ -364,6 +353,46 @@ impl Scope {
             vars: HashMap::new()
         }
     }
+}
+
+pub struct TempOffsets {
+    offsets: HashSet<i32>,
+}
+
+impl TempOffsets {
+    pub fn new() -> TempOffsets {
+        TempOffsets {
+            offsets: HashSet::new()
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.offsets.is_empty()
+    }
+
+    pub fn insert(&mut self, offset: i32) {
+        assert!(self.offsets.insert(offset));
+    }
+
+    pub fn remove(&mut self, offset: i32) {
+        assert!(self.offsets.remove(&offset));
+    }
+}
+
+pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
+    let mut offsets = Vec::new();
+
+    for scope in &vars.scopes {
+        for (var, &offset) in &scope.vars {
+            offsets.push(offset);
+        }
+    }
+
+    for &offset in &temps.offsets {
+        offsets.push(offset);
+    }
+
+    GcPoint::from_offsets(offsets)
 }
 
 #[cfg(test)]

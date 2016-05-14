@@ -8,7 +8,7 @@ use cpu::emit;
 use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
-use jit::codegen::{self, JumpCond, Scopes};
+use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
@@ -23,6 +23,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     buf: &'a mut Buffer,
     scopes: &'a mut Scopes,
     tempsize: i32,
+    temps: TempOffsets,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
@@ -40,11 +41,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             buf: buf,
             tempsize: 0,
             scopes: scopes,
+            temps: TempOffsets::new()
         }
     }
 
     pub fn generate(mut self, e: &'ast Expr) -> Reg {
         let reg = self.emit_expr(e, REG_RESULT);
+
+        if !self.temps.is_empty() {
+            panic!("temporary variables are not fully freed!");
+        }
 
         reg
     }
@@ -71,7 +77,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
         if self.is_intrinsic(e.id) {
             self.emit_expr(&e.object, REG_RESULT);
-            let offset = self.offset(e.object.id());
+            let offset = self.reserve_temp_for_node(e.object.id());
             emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset);
 
             self.emit_expr(&e.index, REG_TMP1);
@@ -80,6 +86,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             cpu::instr::emit_addq_imm_reg(self.buf, IntArray::offset_of_data(), REG_RESULT);
             emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
+
+            self.free_temp_for_node(e.object.id(), offset);
 
             if dest != REG_RESULT {
                 emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
@@ -90,10 +98,42 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn offset(&self, id: NodeId) -> i32 {
+    fn reserve_temp_for_node(&mut self, id: NodeId) -> i32 {
         let offset = self.fct.src().get_store(id).offset();
+        let ty = self.fct.src().get_type(id);
 
-        -(self.fct.src().localsize + offset)
+        let offset = -(self.fct.src().localsize + offset);
+
+        if ty.reference_type() {
+            self.temps.insert(offset);
+        }
+
+        offset
+    }
+
+    fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {
+        let offset = -(self.fct.src().localsize + arg.offset());
+        let ty = arg.ty();
+
+        if ty.reference_type() {
+            self.temps.insert(offset);
+        }
+
+        offset
+    }
+
+    fn free_temp_for_node(&mut self, id: NodeId, offset: i32) {
+        let ty = self.fct.src().get_type(id);
+
+        if ty.reference_type() {
+            self.temps.remove(offset);
+        }
+    }
+
+    fn free_temp_with_type(&mut self, ty: BuiltinType, offset: i32) {
+        if ty.reference_type() {
+            self.temps.remove(offset);
+        }
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
@@ -178,15 +218,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             if self.is_intrinsic(e.id) {
                 let array = e.lhs.to_array().unwrap();
                 self.emit_expr(&array.object, REG_RESULT);
-                let offset_object = self.offset(array.object.id());
+                let offset_object = self.reserve_temp_for_node(array.object.id());
                 emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset_object);
 
                 self.emit_expr(&array.index, REG_RESULT);
-                let offset_index = self.offset(array.index.id());
+                let offset_index = self.reserve_temp_for_node(array.index.id());
                 emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_index);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
-                let offset_value = self.offset(e.rhs.id());
+                let offset_value = self.reserve_temp_for_node(e.rhs.id());
                 emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_value);
 
                 emit::mov_local_reg(self.buf, MachineMode::Ptr, offset_object, REG_TMP1);
@@ -198,6 +238,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
                 emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
                 emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);
+
+                self.free_temp_for_node(array.object.id(), offset_object);
+                self.free_temp_for_node(array.index.id(), offset_index);
+                self.free_temp_for_node(e.rhs.id(), offset_value);
             } else {
                 self.emit_universal_call(e.id, e.pos, dest);
             }
@@ -217,25 +261,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let cls = self.ctxt.cls_by_id(clsid);
                 let prop = &cls.props[propid.0];
 
-                let temp_offset = if let Some(expr_prop) = e.lhs.to_prop() {
+                let temp_id = if let Some(expr_prop) = e.lhs.to_prop() {
                     self.emit_expr(&expr_prop.object, REG_RESULT);
 
-                    -(self.fct.src().localsize
-                      + self.fct.src().get_store(expr_prop.object.id()).offset())
+                    expr_prop.object.id()
 
                 } else {
                     self.emit_self(REG_RESULT);
 
-                    -(self.fct.src().localsize
-                      + self.fct.src().get_store(e.lhs.id()).offset())
+                    e.lhs.id()
                 };
 
+                let temp_offset = self.reserve_temp_for_node(temp_id);
                 emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, temp_offset);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
                 emit::mov_local_reg(self.buf, MachineMode::Ptr, temp_offset, REG_TMP1);
 
                 emit::mov_reg_mem(self.buf, prop.ty.mode(), REG_RESULT, REG_TMP1, prop.offset);
+                self.free_temp_for_node(temp_id, temp_offset);
 
                 if REG_RESULT != dest {
                     emit::mov_reg_reg(self.buf, prop.ty.mode(), REG_RESULT, dest);
@@ -396,14 +440,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
-        if let Some(&Store::Temp(offset, ty)) = self.fct.src().storage.get(&e.lhs.id()) {
-            let offset = -(self.fct.src().localsize + offset);
+        if let Some(&Store::Temp(_, _)) = self.fct.src().storage.get(&e.lhs.id()) {
+            let offset = self.reserve_temp_for_node(e.lhs.id());
+            let ty = self.fct.src().get_type(e.lhs.id());
 
             self.emit_expr(&e.lhs, REG_RESULT);
             emit::mov_reg_local(self.buf, ty.mode(), REG_RESULT, offset);
 
             self.emit_expr(&e.rhs, rhs_reg);
             emit::mov_local_reg(self.buf, ty.mode(), offset, lhs_reg);
+
+            self.free_temp_for_node(e.lhs.id(), offset);
         } else {
             self.emit_expr(&e.lhs, lhs_reg);
             self.emit_expr(&e.rhs, rhs_reg);
@@ -452,6 +499,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Callee::Fct(fid) => self.ptr_for_fct_id(fid),
             Callee::Ptr(ptr) => ptr
         };
+        let mut temps : Vec<(BuiltinType, i32)> = Vec::new();
 
         for (ind, arg) in csite.args.iter().enumerate() {
             match *arg {
@@ -477,15 +525,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
             }
 
-            let offset = -(self.fct.src().localsize + arg.offset());
+            let offset = self.reserve_temp_for_arg(arg);
             emit::mov_reg_local(self.buf, arg.ty().mode(), REG_RESULT, offset);
+            temps.push((arg.ty(), offset));
         }
 
         let mut arg_offset = -self.fct.src().stacksize();
 
         for (ind, arg) in csite.args.iter().enumerate() {
             let ty = arg.ty();
-            let offset = -(self.fct.src().localsize + arg.offset());
+            let offset = temps[ind].1;
 
             if ind < REG_PARAMS.len() {
                 let reg = REG_PARAMS[ind];
@@ -509,6 +558,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         self.emit_call_insn(pos, ptr, csite.return_type, dest);
+
+        for temp in temps.into_iter() {
+            self.free_temp_with_type(temp.0, temp.1);
+        }
     }
 
     fn emit_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
@@ -520,7 +573,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::call(self.buf, REG_RESULT);
         self.buf.emit_lineno(lineno);
 
-        let gcpoint = self.scopes.create_gcpoint();
+        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.buf.emit_gcpoint(gcpoint);
 
         if REG_RESULT != dest {
