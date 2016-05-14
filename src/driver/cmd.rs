@@ -23,6 +23,7 @@ Options:
     --asm-syntax TYPE   Emits assembly with Intel or AT&T syntax
                         Allowed values: intel, att
     --gc-dump           Dump GC actions
+    --gc-stress         Collect garbage at every allocation
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -36,6 +37,7 @@ pub struct Args {
     pub flag_emit_debug: bool,
     pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_dump: bool,
+    pub flag_gc_stress: bool,
 }
 
 impl Default for Args {
@@ -50,6 +52,7 @@ impl Default for Args {
             flag_version: false,
             flag_asm_syntax: None,
             flag_gc_dump: false,
+            flag_gc_stress: false,
         }
     }
 }

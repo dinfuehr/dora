@@ -28,9 +28,18 @@ impl Gc {
     pub fn alloc(&mut self, size: usize) -> Ptr {
         let ctxt = get_ctxt();
 
-        if self.bytes_allocated + size > self.threshold {
+        if ctxt.args.flag_gc_stress {
+            // with --gc-stress collect garbage at every allocation
+            // useful for testing
             self.collect();
 
+        // do we pass threshold with this allocation?
+        } else if self.bytes_allocated + size > self.threshold {
+            // collect garbage
+            self.collect();
+
+            // if still more memory than USED_RATIO % of the threshold,
+            // we need to increase the threshold
             if (self.bytes_allocated + size) as f64 > self.threshold as f64 * USED_RATIO {
                 let saved_threshold = self.threshold;
                 self.threshold = (self.threshold as f64 / USED_RATIO) as usize;
@@ -133,8 +142,9 @@ fn sweep(gc: &mut Gc, dump: bool) {
             let size = obj.size();
 
             unsafe {
-                // TODO: make me optional
+                // TODO: make overwriting memory optional
                 write_bytes(ptr.raw() as *mut u8, 0xcc, size);
+
                 libc::free(ptr.raw())
             };
 
