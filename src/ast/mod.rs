@@ -1,7 +1,10 @@
+use std::cell::RefCell;
 use std::fmt;
 use std::hash::*;
 
 use ast::Elem::*;
+use class::{ClassId, PropId};
+use ctxt::{IdentType, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
 
@@ -753,6 +756,7 @@ impl Expr {
             id: id,
             pos: pos,
             name: name,
+            info: RefCell::new(None)
         })
     }
 
@@ -783,7 +787,8 @@ impl Expr {
             id: id,
             pos: pos,
             object: object,
-            name: name
+            name: name,
+            info: RefCell::new(None),
         })
     }
 
@@ -1029,6 +1034,23 @@ pub struct ExprIdentType {
     pub pos: Position,
 
     pub name: Name,
+    pub info: RefCell<Option<IdentType>>,
+}
+
+impl ExprIdentType {
+    pub fn ident_type(&self) -> IdentType {
+        self.info.borrow().unwrap()
+    }
+
+    pub fn set_prop(&self, cls: ClassId, field: PropId) {
+        let info = IdentType::Prop(cls, field);
+        *self.info.borrow_mut() = Some(info);
+    }
+
+    pub fn set_var(&self, var: VarId) {
+        let info = IdentType::Var(var);
+        *self.info.borrow_mut() = Some(info);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1057,4 +1079,19 @@ pub struct ExprPropType {
 
     pub object: Box<Expr>,
     pub name: Name,
+    pub info: RefCell<Option<(ClassId, PropId)>>,
+}
+
+impl ExprPropType {
+    fn cls(&self) -> ClassId {
+        self.info.borrow().unwrap().0
+    }
+
+    fn set(&self, class: ClassId, field: PropId) {
+        *self.info.borrow_mut() = Some((class, field));
+    }
+
+    fn field(&self) -> PropId {
+        self.info.borrow().unwrap().1
+    }
 }

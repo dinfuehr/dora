@@ -139,9 +139,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let ident_type = *self.fct.src().defs.get(&e.id).unwrap();
-
-        match ident_type {
+        match e.ident_type() {
             IdentType::Var(varid) => {
                 let ty = self.fct.var_by_node_id(e.id).ty;
                 self.set_type(e.id, ty);

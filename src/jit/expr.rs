@@ -188,7 +188,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        let ident_type = *self.fct.src().defs.get(&e.id).unwrap();
+        let ident_type = e.ident_type();
 
         match ident_type {
             IdentType::Var(_) => {

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::mem;
 use std::io::Error;
 
@@ -227,7 +228,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Box::new(Expr::ExprIdent(ExprIdentType {
             id: id,
             pos: Position::new(1, 1),
-            name: name
+            name: name,
+            info: RefCell::new(None),
         }))
     }
 
@@ -268,7 +270,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             pos: Position::new(1, 1),
             object: object,
-            name: name
+            name: name,
+            info: RefCell::new(None),
         }))
     }
 
