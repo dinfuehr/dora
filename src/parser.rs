@@ -198,7 +198,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             idx: idx,
             name: name,
             pos: Position::new(1, 1),
-            data_type: ty
+            data_type: ty,
+            info: RefCell::new(None),
         }
     }
 
@@ -389,6 +390,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: name,
             pos: pos,
             data_type: data_type,
+            info: RefCell::new(None),
         })
     }
 

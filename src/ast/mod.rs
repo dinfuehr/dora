@@ -262,6 +262,17 @@ pub struct Param {
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
+    pub info: RefCell<Option<VarId>>,
+}
+
+impl Param {
+    pub fn var(&self) -> VarId {
+        self.info.borrow().unwrap()
+    }
+
+    pub fn set_var(&self, var: VarId) {
+        *self.info.borrow_mut() = Some(var);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -286,6 +297,7 @@ impl Stmt {
             name: name,
             data_type: data_type,
             expr: expr,
+            info: RefCell::new(None),
         })
     }
 
@@ -519,6 +531,17 @@ pub struct StmtLetType {
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
+    pub info: RefCell<Option<VarId>>,
+}
+
+impl StmtLetType {
+    pub fn var(&self) -> VarId {
+        self.info.borrow().unwrap()
+    }
+
+    pub fn set_var(&self, var: VarId) {
+        *self.info.borrow_mut() = Some(var);
+    }
 }
 
 #[derive(Clone, Debug)]

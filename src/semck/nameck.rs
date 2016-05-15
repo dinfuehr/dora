@@ -101,9 +101,15 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
-        if let Err(_) = self.add_var(var_ctxt, |sym| !sym.is_class()) {
-            let name = str(self.ctxt, var.name);
-            report(self.ctxt, var.pos, Msg::ShadowClass(name));
+        match self.add_var(var_ctxt, |sym| !sym.is_class()) {
+            Ok(var_id) => {
+                var.set_var(var_id);
+            }
+
+            Err(_) => {
+                let name = str(self.ctxt, var.name);
+                report(self.ctxt, var.pos, Msg::ShadowClass(name));
+            }
         }
 
         if let Some(ref expr) = var.expr {
@@ -130,9 +136,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             for prop in &cls.props {
                 if prop.name == ident.name {
                     ident.set_prop(clsid, prop.id);
-
-                    let ident_type = IdentType::Prop(clsid, prop.id);
-                    assert!(self.fct.src_mut().defs.insert(ident.id, ident_type).is_none());
                     return;
                 }
             }
@@ -198,15 +201,21 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
         // params are only allowed to replace functions,
         // types and vars cannot be replaced
-        if let Err(sym) = self.add_var(var_ctxt, |sym| sym.is_fct()) {
-            let name = str(self.ctxt, p.name);
-            let msg = if sym.is_class() {
-                Msg::ShadowClass(name)
-            } else {
-                Msg::ShadowParam(name)
-            };
+        match self.add_var(var_ctxt, |sym| sym.is_fct()) {
+            Ok(var_id) => {
+                p.set_var(var_id);
+            }
 
-            report(self.ctxt, p.pos, msg);
+            Err(sym) => {
+                let name = str(self.ctxt, p.name);
+                let msg = if sym.is_class() {
+                    Msg::ShadowClass(name)
+                } else {
+                    Msg::ShadowParam(name)
+                };
+
+                report(self.ctxt, p.pos, msg);
+            }
         }
     }
 
