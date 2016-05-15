@@ -248,18 +248,6 @@ impl<'ast> Fct<'ast> {
         &mut self.src_mut().vars[id]
     }
 
-    pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
-        let varid = *self.src().defs.get(&id).unwrap();
-
-        &self.src().vars[varid.var_id().0]
-    }
-
-    pub fn var_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Var {
-        let varid = *self.src().defs.get(&id).unwrap();
-
-        &mut self.src_mut().vars[varid.var_id().0]
-    }
-
     pub fn hidden_self(&self) -> bool {
         self.ctor
     }

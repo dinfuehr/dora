@@ -6,7 +6,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, Store, Var};
+use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, Store, Var, VarId};
 use jit::expr::is_leaf;
 use mem;
 use mem::ptr::Ptr;
@@ -54,12 +54,12 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
         if idx < cpu::REG_PARAMS.len() {
-            self.reserve_stack_for_node(p.id);
+            self.reserve_stack_for_node(p.var());
 
         // the rest of the parameters are already stored on the stack
         // just use the current offset
         } else {
-            let var = self.fct.var_by_node_id_mut(p.id);
+            let var = self.fct.var_mut(p.var());
             var.offset = self.param_offset;
 
             // determine next `param_offset`
@@ -69,7 +69,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtLet(ref var) = *s {
-            self.reserve_stack_for_node(var.id);
+            self.reserve_stack_for_node(var.var());
         }
 
         visit::walk_stmt(self, s);
@@ -116,8 +116,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         var.offset = -self.localsize;
     }
 
-    fn reserve_stack_for_node(&mut self, id: NodeId) {
-        let var = self.fct.var_by_node_id_mut(id);
+    fn reserve_stack_for_node(&mut self, id: VarId) {
+        let var = self.fct.var_mut(id);
 
         let ty_size = var.ty.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
