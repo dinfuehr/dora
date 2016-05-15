@@ -1074,6 +1074,13 @@ impl ExprIdentType {
         let info = IdentType::Var(var);
         *self.info.borrow_mut() = Some(info);
     }
+
+    pub fn var(&self) -> VarId {
+        match self.ident_type() {
+            IdentType::Var(var_id) => var_id,
+            _ => unreachable!("var expected")
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

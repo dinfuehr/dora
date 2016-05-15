@@ -54,7 +54,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         let defined_type = if let Some(_) = s.data_type {
-            let ty = self.fct.var_by_node_id(s.id).ty;
+            let ty = self.fct.var(s.var()).ty;
             if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
             expr_type
@@ -72,7 +72,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.fct.var_by_node_id_mut(s.id).ty = defined_type;
+        self.fct.var_mut(s.var()).ty = defined_type;
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(expr_type) {

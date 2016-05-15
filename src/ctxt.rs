@@ -2,6 +2,7 @@ use libc::c_void;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::{Index, IndexMut};
 use std::sync::{Arc, Mutex};
 
 use driver::cmd::Args;
@@ -237,6 +238,14 @@ impl<'ast> Fct<'ast> {
 
     pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
         self.kind.src_mut()
+    }
+
+    pub fn var(&self, id: VarId) -> &Var {
+        &self.src().vars[id]
+    }
+
+    pub fn var_mut(&mut self, id: VarId) -> &mut Var {
+        &mut self.src_mut().vars[id]
     }
 
     pub fn var_by_node_id(&self, id: ast::NodeId) -> &Var {
@@ -485,4 +494,18 @@ pub struct Var {
     pub ty: BuiltinType,
     pub node_id: ast::NodeId,
     pub offset: i32,
+}
+
+impl Index<VarId> for Vec<Var> {
+    type Output = Var;
+
+    fn index(&self, index: VarId) -> &Var {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<VarId> for Vec<Var> {
+    fn index_mut(&mut self, index: VarId) -> &mut Var {
+        &mut self[index.0]
+    }
 }

@@ -125,9 +125,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             0
         };
 
-        for (reg, p) in REG_PARAMS.iter().skip(hidden_self)
+        for (&reg, p) in REG_PARAMS.iter().skip(hidden_self)
                         .zip(&self.ast.params) {
-            var_store(&mut self.buf, self.fct, *reg, p.id);
+            var_store(&mut self.buf, self.fct, reg, p.var());
         }
     }
 
@@ -251,11 +251,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let reg = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.buf, self.fct, reg, s.id);
+            var_store(&mut self.buf, self.fct, reg, s.var());
         }
 
         let reference_type = {
-            let var = self.fct.var_by_node_id(s.id);
+            let var = self.fct.var(s.var());
 
             if var.ty.reference_type() {
                 self.scopes.add_var(var.id, var.offset);
@@ -268,7 +268,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             emit::nil(&mut self.buf, REG_RESULT);
-            var_store(&mut self.buf, self.fct, REG_RESULT, s.id);
+            var_store(&mut self.buf, self.fct, REG_RESULT, s.var());
         }
     }
 
@@ -305,15 +305,13 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, fct: &Fct, src: Reg, var_id: NodeId) {
-    let var = fct.var_by_node_id(var_id);
-
+pub fn var_store(buf: &mut Buffer, fct: &Fct, src: Reg, var_id: VarId) {
+    let var = fct.var(var_id);
     emit::mov_reg_local(buf, var.ty.mode(), src, var.offset);
 }
 
-pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: NodeId, dest: Reg) {
-    let var = fct.var_by_node_id(var_id);
-
+pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: VarId, dest: Reg) {
+    let var = fct.var(var_id);
     emit::mov_local_reg(buf, var.ty.mode(), var.offset, dest);
 }
 

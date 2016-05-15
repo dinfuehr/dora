@@ -190,7 +190,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
         match e.ident_type() {
             IdentType::Var(_) => {
-                codegen::var_load(self.buf, self.fct, e.id, dest)
+                codegen::var_load(self.buf, self.fct, e.var(), dest)
             }
 
             IdentType::Prop(cls, field) => {
@@ -262,7 +262,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         match ident_type {
             IdentType::Var(_) => {
                 self.emit_expr(&e.rhs, dest);
-                codegen::var_store(&mut self.buf, self.fct, dest, e.lhs.id());
+                let lhs = e.lhs.to_ident().unwrap();
+                codegen::var_store(&mut self.buf, self.fct, dest, lhs.var());
             }
 
             IdentType::Prop(clsid, propid) => {
