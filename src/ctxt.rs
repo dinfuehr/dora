@@ -303,7 +303,6 @@ pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
     pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
-    pub defs: HashMap<ast::NodeId, IdentType>, // which definition does ident refer to
     pub storage: HashMap<ast::NodeId, Store>,
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
     pub tempsize: i32, // size of temporary variables on stack
@@ -323,7 +322,6 @@ impl<'ast> FctSrc<'ast> {
             ast: ast,
             types: HashMap::new(),
             calls: HashMap::new(),
-            defs: HashMap::new(),
             storage: HashMap::new(),
             call_sites: HashMap::new(),
             tempsize: 0,

@@ -82,7 +82,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         if result.is_ok() {
             self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
-            assert!(self.fct.src_mut().defs.insert(var.node_id, IdentType::Var(var_id)).is_none());
         }
 
         self.fct.src_mut().vars.push(var);
@@ -125,7 +124,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-            self.fct.src_mut().defs.insert(ident.id, IdentType::Var(id));
             ident.set_var(id);
             return;
         }

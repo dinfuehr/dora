@@ -7,6 +7,7 @@ use class::{ClassId, PropId};
 use ctxt::{IdentType, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
+use ty::BuiltinType;
 
 pub mod visit;
 pub mod dump;
@@ -711,6 +712,7 @@ impl Expr {
             pos: pos,
             op: op,
             opnd: opnd,
+            ty: RefCell::new(None),
         })
     }
 
@@ -722,6 +724,7 @@ impl Expr {
             op: op,
             lhs: lhs,
             rhs: rhs,
+            ty: RefCell::new(None),
         })
     }
 
@@ -732,6 +735,7 @@ impl Expr {
             pos: pos,
             object: object,
             index: index,
+            ty: RefCell::new(None),
         })
     }
 
@@ -985,6 +989,23 @@ impl Expr {
             Expr::ExprArray(ref val) => val.id,
         }
     }
+
+    // pub fn ty(&self) -> BuiltinType {
+    //     match *self {
+    //         Expr::ExprUn(ref val) => val.id,
+    //         Expr::ExprBin(ref val) => val.id,
+    //         Expr::ExprLitInt(ref val) => val.id,
+    //         Expr::ExprLitStr(ref val) => val.id,
+    //         Expr::ExprLitBool(ref val) => val.id,
+    //         Expr::ExprIdent(ref val) => val.id,
+    //         Expr::ExprAssign(ref val) => val.id,
+    //         Expr::ExprCall(ref val) => val.id,
+    //         Expr::ExprProp(ref val) => val.id,
+    //         Expr::ExprSelf(ref val) => val.id,
+    //         Expr::ExprNil(ref val) => val.id,
+    //         Expr::ExprArray(ref val) => val.id,
+    //     }
+    // }
 }
 
 #[derive(Clone, Debug)]
@@ -994,6 +1015,17 @@ pub struct ExprUnType {
 
     pub op: UnOp,
     pub opnd: Box<Expr>,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprUnType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1004,6 +1036,17 @@ pub struct ExprBinType {
     pub op: BinOp,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprBinType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1013,6 +1056,17 @@ pub struct ExprArrayType {
 
     pub object: Box<Expr>,
     pub index: Box<Expr>,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprArrayType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
