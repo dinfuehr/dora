@@ -132,7 +132,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.index);
 
         if self.is_intrinsic(expr.id) {
-            self.reserve_temp_for_node(expr.object.id());
+            self.reserve_temp_for_node(&expr.object);
 
         } else {
             let args = vec![
@@ -268,7 +268,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&lhs.object);
             self.visit_expr(&e.rhs);
 
-            self.reserve_temp_for_node(lhs.object.id());
+            self.reserve_temp_for_node(&lhs.object);
 
         } else {
             assert!(e.lhs.is_array());
@@ -299,7 +299,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        if expr.op == BinOp::Add && BuiltinType::Str == self.fct.src().get_type(expr.id) {
+        if expr.op == BinOp::Add && BuiltinType::Str == expr.ty() {
             let args = vec![
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
@@ -310,8 +310,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Some((ptr, BuiltinType::Str)));
 
         } else if expr.op.is_compare()
-                  && (self.fct.src().get_type(expr.lhs.id()).is_str()
-                      || self.fct.src().get_type(expr.rhs.id()).is_str()) {
+                  && (expr.lhs.ty().is_str()
+                      || expr.rhs.ty().is_str()) {
             let args = vec![
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
@@ -322,13 +322,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Some((ptr, BuiltinType::Bool)));
 
         } else if !is_leaf(&expr.rhs) {
-            self.reserve_temp_for_node(expr.lhs.id());
+            self.reserve_temp_for_node(&expr.lhs);
         }
     }
 
-    fn reserve_temp_for_node(&mut self, id: NodeId) -> i32 {
-        let ty = self.fct.src().get_type(id);
-        self.reserve_temp_for_node_with_type(id, ty)
+    fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
+        self.reserve_temp_for_node_with_type(expr.id(), expr.ty())
     }
 
     fn reserve_temp_for_ctor(&mut self, id: NodeId) -> i32 {

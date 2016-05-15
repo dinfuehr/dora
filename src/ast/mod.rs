@@ -1042,11 +1042,11 @@ pub struct ExprUnType {
 }
 
 impl ExprUnType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1063,11 +1063,11 @@ pub struct ExprBinType {
 }
 
 impl ExprBinType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1083,11 +1083,11 @@ pub struct ExprArrayType {
 }
 
 impl ExprArrayType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1124,11 +1124,11 @@ pub struct ExprSelfType {
 }
 
 impl ExprSelfType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1141,11 +1141,11 @@ pub struct ExprNilType {
 }
 
 impl ExprNilType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1161,11 +1161,11 @@ pub struct ExprIdentType {
 }
 
 impl ExprIdentType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 
@@ -1203,11 +1203,11 @@ pub struct ExprCallType {
 }
 
 impl ExprCallType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1223,11 +1223,11 @@ pub struct ExprAssignType {
 }
 
 impl ExprAssignType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 }
@@ -1244,11 +1244,11 @@ pub struct ExprPropType {
 }
 
 impl ExprPropType {
-    fn ty(&self) -> BuiltinType {
+    pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
 
-    fn set_ty(&self, ty: BuiltinType) {
+    pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
     }
 

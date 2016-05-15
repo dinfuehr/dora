@@ -301,7 +301,6 @@ impl<'ast> FctKind<'ast> {
 #[derive(Debug)]
 pub struct FctSrc<'ast> {
     pub ast: &'ast ast::Function,
-    pub types: HashMap<ast::NodeId, BuiltinType>, // maps expression to type
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub storage: HashMap<ast::NodeId, Store>,
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
@@ -320,7 +319,6 @@ impl<'ast> FctSrc<'ast> {
     pub fn new(ast: &'ast ast::Function) -> FctSrc<'ast> {
         FctSrc {
             ast: ast,
-            types: HashMap::new(),
             calls: HashMap::new(),
             storage: HashMap::new(),
             call_sites: HashMap::new(),
@@ -333,10 +331,6 @@ impl<'ast> FctSrc<'ast> {
             jit_fct: None,
             stub: None
         }
-    }
-
-    pub fn get_type(&self, id: ast::NodeId) -> BuiltinType {
-        *self.types.get(&id).unwrap()
     }
 
     pub fn get_store(&self, id: ast::NodeId) -> Store {
