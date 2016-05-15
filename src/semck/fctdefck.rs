@@ -103,9 +103,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
         }
 
         self.fct.params_types.push(self.current_type);
-
-        let var = self.fct.var_by_node_id_mut(p.id);
-        var.ty = self.current_type;
+        self.fct.var_mut(p.var()).ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -113,8 +111,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
             if let Some(ref data_type) = var.data_type {
                 self.visit_type(data_type);
 
-                let var = self.fct.var_by_node_id_mut(var.id);
-                var.ty = self.current_type;
+                let var = s.to_let().unwrap().var();
+                self.fct.var_mut(var).ty = self.current_type;
             }
 
             if let Some(ref expr) = var.expr {
