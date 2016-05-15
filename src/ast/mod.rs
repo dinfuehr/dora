@@ -768,6 +768,7 @@ impl Expr {
         Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: pos,
+            ty: RefCell::new(None),
         })
     }
 
@@ -775,6 +776,7 @@ impl Expr {
         Expr::ExprNil(ExprNilType {
             id: id,
             pos: pos,
+            ty: RefCell::new(None),
         })
     }
 
@@ -783,7 +785,8 @@ impl Expr {
             id: id,
             pos: pos,
             name: name,
-            info: RefCell::new(None)
+            info: RefCell::new(None),
+            ty: RefCell::new(None),
         })
     }
 
@@ -990,22 +993,22 @@ impl Expr {
         }
     }
 
-    // pub fn ty(&self) -> BuiltinType {
-    //     match *self {
-    //         Expr::ExprUn(ref val) => val.id,
-    //         Expr::ExprBin(ref val) => val.id,
-    //         Expr::ExprLitInt(ref val) => val.id,
-    //         Expr::ExprLitStr(ref val) => val.id,
-    //         Expr::ExprLitBool(ref val) => val.id,
-    //         Expr::ExprIdent(ref val) => val.id,
-    //         Expr::ExprAssign(ref val) => val.id,
-    //         Expr::ExprCall(ref val) => val.id,
-    //         Expr::ExprProp(ref val) => val.id,
-    //         Expr::ExprSelf(ref val) => val.id,
-    //         Expr::ExprNil(ref val) => val.id,
-    //         Expr::ExprArray(ref val) => val.id,
-    //     }
-    // }
+    pub fn ty(&self) -> BuiltinType {
+        match *self {
+            Expr::ExprUn(ref val) => val.ty(),
+            Expr::ExprBin(ref val) => val.ty(),
+            Expr::ExprLitInt(ref val) => BuiltinType::Int,
+            Expr::ExprLitStr(ref val) => BuiltinType::Str,
+            Expr::ExprLitBool(ref val) => BuiltinType::Bool,
+            Expr::ExprIdent(ref val) => val.ty(),
+            Expr::ExprAssign(ref val) => panic!("unimplemented"),
+            Expr::ExprCall(ref val) => panic!("unimplemented"),
+            Expr::ExprProp(ref val) => panic!("unimplemented"),
+            Expr::ExprSelf(ref val) => val.ty(),
+            Expr::ExprNil(ref val) => val.ty(),
+            Expr::ExprArray(ref val) => panic!("unimplemented"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1097,12 +1100,34 @@ pub struct ExprLitBoolType {
 pub struct ExprSelfType {
     pub id: NodeId,
     pub pos: Position,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprSelfType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprNilType {
     pub id: NodeId,
     pub pos: Position,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprNilType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1112,9 +1137,18 @@ pub struct ExprIdentType {
 
     pub name: Name,
     pub info: RefCell<Option<IdentType>>,
+    pub ty: RefCell<Option<BuiltinType>>,
 }
 
 impl ExprIdentType {
+    fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
+
     pub fn ident_type(&self) -> IdentType {
         self.info.borrow().unwrap()
     }
