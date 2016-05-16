@@ -29,6 +29,7 @@ pub enum TokenType {
     False,
     Nil,
     Throws,
+    Throw,
 
     Enum,
     Type,

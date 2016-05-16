@@ -159,6 +159,10 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
         }
 
+        StmtThrow(ref value) => {
+            v.visit_expr_top(&value.expr);
+        }
+
         StmtBreak(_) => { }
         StmtContinue(_) => { }
     }

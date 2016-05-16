@@ -70,6 +70,7 @@ fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtContinue(ref stmt) => Err(stmt.pos),
         StmtLet(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => Err(stmt.pos),
+        StmtThrow(ref stmt) => Ok(()),
     }
 }
 
@@ -123,6 +124,7 @@ mod tests {
         test_always_returns("fn f() {}", false);
         test_always_returns("fn f() { return; }", true);
         test_always_returns("fn f() -> int { return 1; }", true);
+        test_always_returns("fn f() -> int { throw \"abc\"; }", true);
     }
 
     #[test]
@@ -134,5 +136,6 @@ mod tests {
         ok("fn f() -> int { loop { return 1; } }");
         ok("fn f() -> int { if true { return 1; } else { return 2; } }");
         ok("fn f() -> int { return 1; 1+2; }");
+        ok("fn f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
     }
 }

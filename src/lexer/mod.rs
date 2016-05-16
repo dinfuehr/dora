@@ -92,6 +92,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("struct", TokenType::Struct);
         keywords.insert("trait", TokenType::Trait);
         keywords.insert("throws", TokenType::Throws);
+        keywords.insert("throw", TokenType::Throw);
 
         let mut lexer = Lexer::<T> {
             reader: reader,

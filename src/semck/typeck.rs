@@ -131,6 +131,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_stmt_throw(&mut self, s: &'ast StmtThrowType) {
+        self.visit_expr(&s.expr);
+        let ty = self.expr_type;
+
+        if !ty.reference_type() {
+            let tyname = ty.name(self.ctxt);
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowRefExpected(tyname));
+        }
+    }
+
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
         match e.ident_type() {
             IdentType::Var(varid) => {
@@ -301,6 +311,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             e.set_ty(BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
+
         } else {
             e.set_ty(expected_type);
             self.expr_type = expected_type;
@@ -606,6 +617,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
+            StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
@@ -1035,5 +1047,12 @@ mod tests {
                 vec!["int".into(), "Str".into()]));
         err("fn f(a: IntArray) -> Str { return a[3] = 4; }", pos(1, 28),
             Msg::ReturnType("Str".into(), "int".into()));
+    }
+
+    #[test]
+    fn type_throw() {
+        ok("fn f() { throw \"abc\"; }");
+        ok("fn f() { throw emptyIntArray(); }");
+        err("fn f() { throw 1; }", pos(1, 10), Msg::ThrowRefExpected("int".into()));
     }
 }

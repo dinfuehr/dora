@@ -473,8 +473,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 code: ErrorCode::MisplacedElse,
                 message: "misplaced else".to_string()
             }),
+            TokenType::Throw => self.parse_throw(),
             _ => self.parse_expression_statement()
         }
+    }
+
+    fn parse_throw(&mut self) -> StmtResult {
+        let pos = try!(self.expect_token(TokenType::Throw)).position;
+        let expr = try!(self.parse_expression());
+
+        try!(self.expect_semicolon());
+
+        Ok(Box::new(Stmt::create_throw(self.generate_id(), pos, expr)))
     }
 
     fn parse_let(&mut self) -> StmtResult {
@@ -1779,5 +1789,13 @@ mod tests {
         let (prog, interner) = parse("fn f(a: int) throws -> int { return 0; }");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(fct.throws);
+    }
+
+    #[test]
+    fn parse_throw() {
+        let stmt = parse_stmt("throw 1;");
+        let throw = stmt.to_throw().unwrap();
+
+        assert!(throw.expr.is_lit_int());
     }
 }

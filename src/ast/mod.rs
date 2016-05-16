@@ -288,6 +288,7 @@ pub enum Stmt {
     StmtBreak(StmtBreakType),
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
+    StmtThrow(StmtThrowType),
 }
 
 impl Stmt {
@@ -370,6 +371,14 @@ impl Stmt {
         })
     }
 
+    pub fn create_throw(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+        Stmt::StmtThrow(StmtThrowType {
+            id: id,
+            pos: pos,
+            expr: expr,
+        })
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Stmt::StmtLet(ref stmt) => stmt.id,
@@ -381,6 +390,7 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.id,
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
+            Stmt::StmtThrow(ref stmt) => stmt.id,
         }
     }
 
@@ -395,6 +405,21 @@ impl Stmt {
             Stmt::StmtBreak(ref stmt) => stmt.pos,
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
+            Stmt::StmtThrow(ref stmt) => stmt.pos,
+        }
+    }
+
+    pub fn to_throw(&self) -> Option<&StmtThrowType> {
+        match *self {
+            Stmt::StmtThrow(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_throw(&self) -> bool {
+        match *self {
+            Stmt::StmtThrow(_) => true,
+            _ => false
         }
     }
 
@@ -602,6 +627,13 @@ pub struct StmtBreakType {
 pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
+}
+
+#[derive(Clone, Debug)]
+pub struct StmtThrowType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub expr: Box<Expr>,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

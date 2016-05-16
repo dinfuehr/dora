@@ -36,7 +36,8 @@ pub enum Msg {
     SelfUnavailable,
     MultipleCandidates(String, String, Vec<String>),
     SelfNeeded,
-    InvalidUseOfSelf
+    InvalidUseOfSelf,
+    ThrowRefExpected(String),
 }
 
 impl Msg {
@@ -112,6 +113,9 @@ impl Msg {
             },
             SelfNeeded => "`self` parameter needed for methods.".into(),
             InvalidUseOfSelf => "`self` only allowed for first argument of methods.".into(),
+            ThrowRefExpected(ref name) => {
+                format!("`{}` is not a reference type.", name)
+            }
         }
     }
 }
