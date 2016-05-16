@@ -20,7 +20,7 @@ pub extern "C" fn assert(val: bool) {
 }
 
 pub extern "C" fn throw_exception(obj: Handle<Obj>) {
-    unsafe { libc::_exit(105); }
+    unsafe { libc::_exit(104); }
 }
 
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
