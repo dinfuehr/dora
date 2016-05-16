@@ -135,7 +135,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
         let ty = self.expr_type;
 
-        if !ty.reference_type() {
+        if ty.is_nil() {
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowNil);
+
+
+        } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
             self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowRefExpected(tyname));
         }
@@ -1054,5 +1058,6 @@ mod tests {
         ok("fn f() { throw \"abc\"; }");
         ok("fn f() { throw emptyIntArray(); }");
         err("fn f() { throw 1; }", pos(1, 10), Msg::ThrowRefExpected("int".into()));
+        err("fn f() { throw nil; }", pos(1, 10), Msg::ThrowNil);
     }
 }

@@ -38,6 +38,7 @@ pub enum Msg {
     SelfNeeded,
     InvalidUseOfSelf,
     ThrowRefExpected(String),
+    ThrowNil,
 }
 
 impl Msg {
@@ -116,6 +117,7 @@ impl Msg {
             ThrowRefExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
+            ThrowNil => "throwing `nil` is not allowed.".into()
         }
     }
 }
