@@ -175,6 +175,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: cls.name,
             method: true,
             params: params,
+            throws: false,
             return_type: Some(self.build_type(cls.name)),
             block: self.build_block(assignments)
         }
@@ -317,6 +318,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let ident = try!(self.expect_identifier());
 
         let params = try!(self.parse_function_params());
+        let throws = try!(self.parse_throws());
         let return_type = try!(self.parse_function_type());
         let block = try!(self.parse_block());
 
@@ -326,9 +328,20 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: pos,
             method: self.in_class,
             params: params,
+            throws: throws,
             return_type: return_type,
             block: block,
         })
+    }
+
+    fn parse_throws(&mut self) -> Result<bool, ParseError> {
+        if self.token.is(TokenType::Throws) {
+            try!(self.read_token());
+
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<Param>,ParseError> {
@@ -1745,5 +1758,26 @@ mod tests {
         let expr = expr.to_array().unwrap();
         assert_eq!("a", *interner.str(expr.object.to_ident().unwrap().name));
         assert_eq!("b", *interner.str(expr.index.to_ident().unwrap().name));
+    }
+
+    #[test]
+    fn parse_function_without_throws() {
+        let (prog, interner) = parse("fn f(a: int) {}");
+        let fct = prog.elements[0].to_function().unwrap();
+        assert!(!fct.throws);
+    }
+
+    #[test]
+    fn parse_function_throws() {
+        let (prog, interner) = parse("fn f(a: int) throws {}");
+        let fct = prog.elements[0].to_function().unwrap();
+        assert!(fct.throws);
+    }
+
+    #[test]
+    fn parse_function_throws_with_return_type() {
+        let (prog, interner) = parse("fn f(a: int) throws -> int { return 0; }");
+        let fct = prog.elements[0].to_function().unwrap();
+        assert!(fct.throws);
     }
 }
