@@ -3,6 +3,8 @@ use std::collections::hash_map::Entry;
 use std::collections::HashSet;
 use std::slice;
 
+use libc;
+
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
@@ -17,6 +19,9 @@ use jit::expr::*;
 use jit::fct::{JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
+use object::Obj;
+use stdlib;
+use ty::MachineMode;
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
@@ -272,6 +277,19 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
+    fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
+        let reg = self.emit_expr(&s.expr);
+        emit::nil_ptr_check(&mut self.buf, s.pos, reg);
+        emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, reg, REG_PARAMS[0]);
+
+        let ptr = Ptr::new(stdlib::throw_exception as *mut libc::c_void);
+        let disp = self.buf.add_addr(ptr);
+        let pos = self.buf.pos() as i32;
+
+        emit::movq_addr_reg(&mut self.buf, disp + pos, REG_RESULT);
+        emit::call(&mut self.buf, REG_RESULT);
+    }
+
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast,
                                     &mut self.buf, &mut self.scopes);
@@ -292,7 +310,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtLet(ref stmt) => self.emit_stmt_let(stmt),
-            StmtThrow(ref stmt) => panic!("TODO"),
+            StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
         }
     }
 

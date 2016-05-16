@@ -8,7 +8,7 @@ use std::slice;
 use std::str;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::{Handle, IntArray, Str};
+use object::{Handle, IntArray, Obj, Str};
 
 pub extern "C" fn assert(val: bool) {
     if !val {
@@ -17,6 +17,10 @@ pub extern "C" fn assert(val: bool) {
             libc::_exit(101);
         }
     }
+}
+
+pub extern "C" fn throw_exception(obj: Handle<Obj>) {
+    unsafe { libc::_exit(105); }
 }
 
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
