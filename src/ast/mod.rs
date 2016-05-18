@@ -676,8 +676,40 @@ pub struct StmtTryType {
 #[derive(Clone, Debug)]
 pub struct CatchBlock {
     pub name: Name,
+    pub pos: Position,
     pub data_type: Type,
+    pub ty: RefCell<Option<BuiltinType>>,
+    pub var: RefCell<Option<VarId>>,
     pub block: Box<Stmt>,
+}
+
+impl CatchBlock {
+    pub fn new(name: Name, pos: Position, data_type: Type, block: Box<Stmt>) -> CatchBlock {
+        CatchBlock {
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            ty: RefCell::new(None),
+            var: RefCell::new(None),
+            block: block
+        }
+    }
+
+    pub fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    pub fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
+
+    pub fn set_var(&self, var: VarId) {
+        *self.var.borrow_mut() = Some(var);
+    }
+
+    pub fn var(&self) -> VarId {
+        self.var.borrow().unwrap()
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

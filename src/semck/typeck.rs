@@ -141,7 +141,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowRefExpected(tyname));
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ReferenceTypeExpected(tyname));
+        }
+    }
+
+    fn check_stmt_try(&mut self, s: &'ast StmtTryType) {
+        self.visit_stmt(&s.try_block);
+
+        for catch in &s.catch_blocks {
+            self.visit_stmt(&catch.block);
+        }
+
+        if let Some(ref finally_block) = s.finally_block {
+            self.visit_stmt(finally_block);
         }
     }
 
@@ -622,7 +634,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
-            StmtTry(ref stmt) => panic!("unimplemented"),
+            StmtTry(ref stmt) => self.check_stmt_try(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
@@ -1058,7 +1070,36 @@ mod tests {
     fn type_throw() {
         ok("fn f() { throw \"abc\"; }");
         ok("fn f() { throw emptyIntArray(); }");
-        err("fn f() { throw 1; }", pos(1, 10), Msg::ThrowRefExpected("int".into()));
+        err("fn f() { throw 1; }", pos(1, 10), Msg::ReferenceTypeExpected("int".into()));
         err("fn f() { throw nil; }", pos(1, 10), Msg::ThrowNil);
+    }
+
+    #[test]
+    fn type_catch_variable() {
+        ok("fn f() { try {} catch a: Str { print(a); } }");
+        ok("fn f() { let x = 0; try {} catch a: IntArray { x=a.len(); } }");
+    }
+
+    #[test]
+    fn try_value_type() {
+        err("fn f() { try {} catch a: int {} }", pos(1, 26),
+            Msg::ReferenceTypeExpected("int".into()));
+    }
+
+    #[test]
+    fn try_missing_catch() {
+        err("fn f() { try {} }", pos(1, 10), Msg::CatchExpected);
+    }
+
+    #[test]
+    fn try_check_blocks() {
+        err("fn f() { try {} catch a: IntArray {} a.len(); }", pos(1, 38),
+            Msg::UnknownIdentifier("a".into()));
+        err("fn f() { try {} catch a: IntArray {} finally { a.len(); } }", pos(1, 48),
+            Msg::UnknownIdentifier("a".into()));
+        err("fn f() { try { return a; } catch a: IntArray {} }", pos(1, 23),
+            Msg::UnknownIdentifier("a".into()));
+        err("fn f() { try { } catch a: IntArray { return a; } }", pos(1, 38),
+            Msg::ReturnType("()".into(), "IntArray".into()));
     }
 }

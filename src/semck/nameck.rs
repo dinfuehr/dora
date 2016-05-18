@@ -116,6 +116,42 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
+    fn check_stmt_try(&mut self, try: &'ast StmtTryType) {
+        self.visit_stmt(&try.try_block);
+
+        for catch in &try.catch_blocks {
+            self.ctxt.sym.borrow_mut().push_level();
+
+            let var_ctxt = Var {
+                id: VarId(0),
+                name: catch.name,
+                ty: BuiltinType::Unit,
+                node_id: try.id,
+                offset: 0
+            };
+
+            // variables are not allowed to replace types, other variables
+            // and functions can be replaced
+            match self.add_var(var_ctxt, |sym| !sym.is_class()) {
+                Ok(var_id) => {
+                    catch.set_var(var_id);
+                }
+
+                Err(_) => {
+                    let name = str(self.ctxt, catch.name);
+                    report(self.ctxt, catch.pos, Msg::ShadowClass(name));
+                }
+            }
+
+            self.visit_stmt(&catch.block);
+            self.ctxt.sym.borrow_mut().pop_level();
+        }
+
+        if let Some(ref finally_block) = try.finally_block {
+            self.visit_stmt(finally_block);
+        }
+    }
+
     fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
         self.ctxt.sym.borrow_mut().push_level();
         for stmt in &block.stmts { self.visit_stmt(stmt); }
@@ -221,6 +257,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *s {
             StmtLet(ref stmt) => self.check_stmt_let(stmt),
             StmtBlock(ref stmt) => self.check_stmt_block(stmt),
+            StmtTry(ref stmt) => self.check_stmt_try(stmt),
 
             // no need to handle rest of statements
             _ => visit::walk_stmt(self, s)

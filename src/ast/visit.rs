@@ -167,6 +167,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_stmt(&value.try_block);
 
             for catch in &value.catch_blocks {
+                v.visit_type(&catch.data_type);
                 v.visit_stmt(&catch.block);
             }
 

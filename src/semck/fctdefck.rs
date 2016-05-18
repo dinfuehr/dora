@@ -107,20 +107,42 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        if let StmtLet(ref var) = *s {
-            if let Some(ref data_type) = var.data_type {
-                self.visit_type(data_type);
+        match *s {
+            StmtLet(ref var) => {
+                if let Some(ref data_type) = var.data_type {
+                    self.visit_type(data_type);
 
-                let var = s.to_let().unwrap().var();
-                self.fct.var_mut(var).ty = self.current_type;
+                    let var = s.to_let().unwrap().var();
+                    self.fct.var_mut(var).ty = self.current_type;
+                }
+
+                if let Some(ref expr) = var.expr {
+                    visit::walk_expr(self, expr);
+                }
+
             }
 
-            if let Some(ref expr) = var.expr {
-                visit::walk_expr(self, expr);
+            StmtTry(ref try) => {
+                for catch in &try.catch_blocks {
+                    self.visit_type(&catch.data_type);
+                    catch.set_ty(self.current_type);
+                    self.fct.var_mut(catch.var()).ty = self.current_type;
+
+                    if !self.current_type.reference_type() {
+                        let ty = self.current_type.name(self.ctxt);
+                        self.ctxt.diag.borrow_mut().report(catch.data_type.pos(),
+                            Msg::ReferenceTypeExpected(ty));
+                    }
+                }
+
+                if try.catch_blocks.is_empty() {
+                    self.ctxt.diag.borrow_mut().report(try.pos, Msg::CatchExpected);
+                }
+
+                visit::walk_stmt(self, s);
             }
 
-        } else {
-            visit::walk_stmt(self, s);
+            _ => visit::walk_stmt(self, s)
         }
     }
 

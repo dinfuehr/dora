@@ -37,8 +37,9 @@ pub enum Msg {
     MultipleCandidates(String, String, Vec<String>),
     SelfNeeded,
     InvalidUseOfSelf,
-    ThrowRefExpected(String),
+    ReferenceTypeExpected(String),
     ThrowNil,
+    CatchExpected,
 }
 
 impl Msg {
@@ -114,10 +115,11 @@ impl Msg {
             },
             SelfNeeded => "`self` parameter needed for methods.".into(),
             InvalidUseOfSelf => "`self` only allowed for first argument of methods.".into(),
-            ThrowRefExpected(ref name) => {
+            ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }
-            ThrowNil => "throwing `nil` is not allowed.".into()
+            ThrowNil => "throwing `nil` is not allowed.".into(),
+            CatchExpected => "`try` needs at least one `catch` block.".into(),
         }
     }
 }
