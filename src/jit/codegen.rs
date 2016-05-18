@@ -290,6 +290,14 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         emit::call(&mut self.buf, REG_RESULT);
     }
 
+    fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
+        self.visit_stmt(&s.try_block);
+
+        if let Some(ref finally_block) = s.finally_block {
+            self.visit_stmt(finally_block);
+        }
+    }
+
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast,
                                     &mut self.buf, &mut self.scopes);
@@ -311,7 +319,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtLet(ref stmt) => self.emit_stmt_let(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
-            StmtTry(ref stmt) => panic!("unimplemented"),
+            StmtTry(ref stmt) => self.emit_stmt_try(stmt),
         }
     }
 

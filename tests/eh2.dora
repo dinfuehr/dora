@@ -1,0 +1,13 @@
+fn main() {
+  let a = 1;
+
+  try {
+    a = 2;
+  } catch x: Str {
+    a = 3;
+  } finally {
+    a = 4;
+  }
+
+  assert(a == 4);
+}
