@@ -289,6 +289,7 @@ pub enum Stmt {
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
     StmtThrow(StmtThrowType),
+    StmtTry(StmtTryType),
 }
 
 impl Stmt {
@@ -391,6 +392,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
             Stmt::StmtThrow(ref stmt) => stmt.id,
+            Stmt::StmtTry(ref stmt) => stmt.id,
         }
     }
 
@@ -406,6 +408,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
             Stmt::StmtThrow(ref stmt) => stmt.pos,
+            Stmt::StmtTry(ref stmt) => stmt.pos,
         }
     }
 
@@ -634,6 +637,22 @@ pub struct StmtThrowType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StmtTryType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub try_block: Box<Stmt>,
+    pub catch_blocks: Vec<CatchBlock>,
+    pub finally_block: Option<Box<Stmt>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct CatchBlock {
+    pub name: Name,
+    pub data_type: Type,
+    pub block: Box<Stmt>,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

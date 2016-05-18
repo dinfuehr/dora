@@ -71,6 +71,7 @@ fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtLet(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => Err(stmt.pos),
         StmtThrow(ref stmt) => Ok(()),
+        StmtTry(ref stmt) => panic!("unimplemented"),
     }
 }
 

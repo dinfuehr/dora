@@ -311,6 +311,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtLet(ref stmt) => self.emit_stmt_let(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
+            StmtTry(ref stmt) => panic!("unimplemented"),
         }
     }
 

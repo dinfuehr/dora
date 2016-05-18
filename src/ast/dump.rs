@@ -145,6 +145,7 @@ impl<'a> AstDumper<'a> {
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
+            StmtTry(ref stmt) => self.dump_stmt_try(stmt),
         }
     }
 
@@ -246,6 +247,24 @@ impl<'a> AstDumper<'a> {
     fn dump_stmt_throw(&mut self, stmt: &StmtThrowType) {
         dump!(self, "throw @ {} {}", stmt.pos, stmt.id);
         self.indent(|d| d.dump_expr(&stmt.expr));
+    }
+
+    fn dump_stmt_try(&mut self, stmt: &StmtTryType) {
+        dump!(self, "try @ {} {}", stmt.pos, stmt.id);
+        self.indent(|d| d.dump_stmt(&stmt.try_block));
+
+        for catch in &stmt.catch_blocks {
+            dump!(self, "catch (var={})", self.str(catch.name));
+            self.indent(|d| {
+                d.dump_type(&catch.data_type);
+                d.dump_stmt(&catch.block);
+            });
+        }
+
+        if let Some(ref finally_block) = stmt.finally_block {
+            dump!(self, "finally");
+            self.dump_stmt(finally_block);
+        }
     }
 
     fn dump_expr(&mut self, expr: &Expr) {

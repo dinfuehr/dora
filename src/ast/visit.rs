@@ -163,6 +163,18 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_expr_top(&value.expr);
         }
 
+        StmtTry(ref value) => {
+            v.visit_stmt(&value.try_block);
+
+            for catch in &value.catch_blocks {
+                v.visit_stmt(&catch.block);
+            }
+
+            if let Some(ref finally_block) = value.finally_block {
+                v.visit_stmt(finally_block);
+            }
+        }
+
         StmtBreak(_) => { }
         StmtContinue(_) => { }
     }
