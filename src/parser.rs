@@ -474,6 +474,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 message: "misplaced else".to_string()
             }),
             TokenType::Throw => self.parse_throw(),
+            TokenType::Try => self.parse_try(),
             _ => self.parse_expression_statement()
         }
     }
@@ -485,6 +486,45 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.expect_semicolon());
 
         Ok(Box::new(Stmt::create_throw(self.generate_id(), pos, expr)))
+    }
+
+    fn parse_try(&mut self) -> StmtResult {
+        let pos = try!(self.expect_token(TokenType::Try)).position;
+        let try_block = try!(self.parse_block());
+        let mut catch_blocks = Vec::new();
+
+        while self.token.is(TokenType::Catch) {
+            catch_blocks.push(try!(self.parse_catch()));
+        }
+
+        let finally_block = if self.token.is(TokenType::Finally) {
+            Some(try!(self.parse_finally()))
+        } else {
+            None
+        };
+
+        Ok(Box::new(Stmt::create_try(self.generate_id(), pos,
+            try_block, catch_blocks, finally_block)))
+    }
+
+    fn parse_catch(&mut self) -> Result<CatchBlock, ParseError> {
+        try!(self.expect_token(TokenType::Catch));
+        let name = try!(self.expect_identifier());
+        try!(self.expect_token(TokenType::Colon));
+        let data_type = try!(self.parse_type());
+        let block = try!(self.parse_block());
+
+        Ok(CatchBlock {
+            name: name,
+            data_type: data_type,
+            block: block,
+        })
+    }
+
+    fn parse_finally(&mut self) -> StmtResult {
+        try!(self.expect_token(TokenType::Finally));
+
+        self.parse_block()
     }
 
     fn parse_let(&mut self) -> StmtResult {
@@ -1797,5 +1837,24 @@ mod tests {
         let throw = stmt.to_throw().unwrap();
 
         assert!(throw.expr.is_lit_int());
+    }
+
+    #[test]
+    fn parse_try() {
+        let stmt = parse_stmt("try { 1; } catch e: Str { 2; }
+                                          catch e: IntArray { 3; } finally { 4; }");
+        let try = stmt.to_try().unwrap();
+
+        assert_eq!(2, try.catch_blocks.len());
+        assert!(try.finally_block.is_some());
+    }
+
+    #[test]
+    fn parse_try_without_catch() {
+        let stmt = parse_stmt("try { 1; }");
+        let try = stmt.to_try().unwrap();
+
+        assert_eq!(0, try.catch_blocks.len());
+        assert!(try.finally_block.is_none());
     }
 }

@@ -30,6 +30,9 @@ pub enum TokenType {
     Nil,
     Throws,
     Throw,
+    Try,
+    Catch,
+    Finally,
 
     Enum,
     Type,

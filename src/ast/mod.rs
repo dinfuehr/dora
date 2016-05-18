@@ -380,6 +380,17 @@ impl Stmt {
         })
     }
 
+    pub fn create_try(id: NodeId, pos: Position, try_block: Box<Stmt>,
+                      catch_blocks: Vec<CatchBlock>, finally_block: Option<Box<Stmt>>) -> Stmt {
+        Stmt::StmtTry(StmtTryType {
+            id: id,
+            pos: pos,
+            try_block: try_block,
+            catch_blocks: catch_blocks,
+            finally_block: finally_block,
+        })
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Stmt::StmtLet(ref stmt) => stmt.id,
@@ -422,6 +433,20 @@ impl Stmt {
     pub fn is_throw(&self) -> bool {
         match *self {
             Stmt::StmtThrow(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_try(&self) -> Option<&StmtTryType> {
+        match *self {
+            Stmt::StmtTry(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_try(&self) -> bool {
+        match *self {
+            Stmt::StmtTry(_) => true,
             _ => false
         }
     }
