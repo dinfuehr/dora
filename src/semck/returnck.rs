@@ -71,7 +71,7 @@ fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtLet(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => Err(stmt.pos),
         StmtThrow(ref stmt) => Ok(()),
-        StmtTry(ref stmt) => Ok(()),
+        StmtTry(ref stmt) => try_returns_value(stmt),
     }
 }
 
@@ -95,6 +95,27 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
     }
 
     Err(pos)
+}
+
+fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
+    println!("/ try_returns_value");
+    // return in finally-block is good enough
+    if let Some(ref finally_block) = s.finally_block {
+        if returns_value(finally_block).is_ok() {
+            return Ok(());
+        }
+    }
+
+    // if no finally block given or finally does not return,
+    // try and all catch-blocks need to return
+    try!(returns_value(&s.try_block));
+
+    for catch in &s.catch_blocks {
+        try!(returns_value(&catch.block));
+    }
+
+    println!("/ try_returns_value");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -138,5 +159,18 @@ mod tests {
         ok("fn f() -> int { if true { return 1; } else { return 2; } }");
         ok("fn f() -> int { return 1; 1+2; }");
         ok("fn f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
+    }
+
+    #[test]
+    fn try_returns() {
+        ok("fn f() -> int { try { return 1; } catch x: Str { return 2; } }");
+        ok("fn f() -> int { try { } catch x: Str { return 2; } return 1; }");
+        ok("fn f() -> int { try { return 2; } catch x: Str { } return 1; }");
+        ok("fn f() -> int { try { } catch x: Str { } return 1; }");
+        ok("fn f() -> int { try { } catch x: Str { } finally { return 1; } }");
+        err("fn f() -> int { try { return 1; } catch x: Str { } }",
+            pos(1, 48), Msg::NoReturnValue);
+        err("fn f() -> int { try { } catch x: Str { return 1; } }",
+            pos(1, 21), Msg::NoReturnValue);
     }
 }
