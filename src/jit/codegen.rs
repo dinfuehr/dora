@@ -292,8 +292,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
         let lbl_finally = self.buf.create_label();
+
+        let try_start = self.buf.pos();
         self.visit_stmt(&s.try_block);
         emit::jump(&mut self.buf, lbl_finally);
+        let try_end = self.buf.pos();
 
         for catch in &s.catch_blocks {
             // TODO: check class of exception object
@@ -307,6 +310,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if let Some(ref finally_block) = s.finally_block {
             self.visit_stmt(finally_block);
         }
+
+        // stores offsets of try- and catch-block in buffer
+        self.buf.add_exception_handler(try_start, try_end, try_end);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {

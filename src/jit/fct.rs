@@ -22,11 +22,13 @@ pub struct JitFct {
     gcpoints: GcPoints,
 
     linenos: LineNumberTable,
+
+    exception_handlers: Vec<ExHandler>,
 }
 
 impl JitFct {
-    pub fn new(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
-               linenos: LineNumberTable) -> JitFct {
+    pub fn from_buffer(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
+               linenos: LineNumberTable, mut exception_handlers: Vec<ExHandler>) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -41,13 +43,24 @@ impl JitFct {
             ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.raw() as *mut u8, buffer.len());
         }
 
+        exception_handlers.iter_mut().map(|e| {
+            let fct_start: usize = fct_start.raw() as usize;
+
+            ExHandler {
+                try_start: fct_start + e.try_start,
+                try_end: fct_start + e.try_end,
+                catch: fct_start + e.catch
+            }
+        });
+
         JitFct {
             fct_id: fct_id,
             code: code,
             gcpoints: gcpoints,
             fct_start: fct_start,
             fct_len: buffer.len(),
-            linenos: linenos
+            linenos: linenos,
+            exception_handlers: exception_handlers,
         }
     }
 
@@ -154,4 +167,11 @@ impl LineNumberTable {
             0
         }
     }
+}
+
+#[derive(Debug)]
+pub struct ExHandler {
+    pub try_start: usize,
+    pub try_end: usize,
+    pub catch: usize,
 }

@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{JitFct, LineNumberTable, GcPoints, GcPoint};
+use jit::fct::{ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 use mem::Ptr;
 
@@ -15,6 +15,7 @@ pub struct Buffer {
     dseg: DSeg,
     gcpoints: GcPoints,
     linenos: LineNumberTable,
+    exception_handlers: Vec<ExHandler>,
 }
 
 impl Buffer {
@@ -27,13 +28,15 @@ impl Buffer {
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
             linenos: LineNumberTable::new(),
+            exception_handlers: Vec::new(),
         }
     }
 
     pub fn jit(mut self, id: FctId) -> JitFct {
         self.finish();
 
-        JitFct::new(id, &self.dseg, &self.data, self.gcpoints, self.linenos)
+        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints,
+                            self.linenos, self.exception_handlers)
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -100,6 +103,14 @@ impl Buffer {
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: TrapId, pos: Position) {
         self.bailouts.push((lbl, trap, pos));
+    }
+
+    pub fn add_exception_handler(&mut self, start: usize, end: usize, catch: usize) {
+        self.exception_handlers.push(ExHandler {
+            try_start: start,
+            try_end: end,
+            catch: catch
+        });
     }
 
     pub fn emit_label(&mut self, lbl: Label) {
