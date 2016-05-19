@@ -312,7 +312,9 @@ pub struct FctSrc<'ast> {
     pub always_returns: bool, // true if function is always exited via return statement
                               // false if function execution could reach the closing } of this function
     pub jit_fct: Option<JitFct>, // compile function
-    pub stub: Option<Stub> // compiler stub
+    pub stub: Option<Stub>, // compiler stub
+    pub eh_return_value: Option<i32>, // stack slot for return value storage
+    pub eh_status: Option<i32>, // stack slot for exception handler status
 }
 
 impl<'ast> FctSrc<'ast> {
@@ -329,7 +331,9 @@ impl<'ast> FctSrc<'ast> {
             vars: Vec::new(),
             always_returns: false,
             jit_fct: None,
-            stub: None
+            stub: None,
+            eh_return_value: None,
+            eh_status: None,
         }
     }
 

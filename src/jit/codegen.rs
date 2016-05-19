@@ -37,7 +37,8 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
             scopes: Scopes::new(),
 
             lbl_break: None,
-            lbl_continue: None
+            lbl_continue: None,
+            lbl_finally: None,
         }.generate();
 
         if ctxt.args.flag_emit_asm {
@@ -90,6 +91,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
+    lbl_finally: Option<Label>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
@@ -149,7 +151,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_expr(expr);
         }
 
-        self.emit_epilog();
+        // finally block is currently active, plain return is not allowed, finally block
+        // needs to be executed
+        if let Some(lbl_finally) = self.lbl_finally {
+            emit::jump(&mut self.buf, lbl_finally);
+
+        // if no finally-block currently active just exit from the current function
+        } else {
+            self.emit_epilog();
+        }
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -469,7 +479,8 @@ mod tests {
                     scopes: Scopes::new(),
 
                     lbl_break: None,
-                    lbl_continue: None
+                    lbl_continue: None,
+                    lbl_finally: None,
                 };
 
                 cg.generate()

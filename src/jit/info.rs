@@ -1,4 +1,4 @@
-use libc::c_void;
+    use libc::c_void;
 use std::cmp;
 
 use ast::*;
@@ -28,6 +28,8 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
 
         param_offset: cpu::PARAM_OFFSET,
         leaf: true,
+        eh_return_value: None,
+        eh_status: None,
     };
 
     ig.generate();
@@ -43,6 +45,8 @@ struct InfoGenerator<'a, 'ast: 'a> {
     cur_tempsize: i32,
     argsize: i32,
 
+    eh_return_value: Option<i32>,
+    eh_status: Option<i32>,
     param_offset: i32,
     leaf: bool,
 }
@@ -70,6 +74,16 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtLet(ref var) = *s {
             self.reserve_stack_for_node(var.var());
+        }
+
+        if let StmtTry(ref try) = *s {
+            if self.eh_return_value.is_none() {
+                self.eh_return_value = Some(self.reserve_stack_for_type(BuiltinType::Ptr));
+            }
+
+            if self.eh_status.is_none() {
+                self.eh_status = Some(self.reserve_stack_for_type(BuiltinType::Int));
+            }
         }
 
         visit::walk_stmt(self, s);
@@ -106,25 +120,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         src.tempsize = self.max_tempsize;
         src.argsize = self.argsize;
         src.leaf = self.leaf;
+        src.eh_return_value = self.eh_return_value;
+        src.eh_status = self.eh_status;
     }
 
     fn reserve_stack_for_self(&mut self) {
-        let var = self.fct.var_self();
-
-        let ty_size = var.ty.size();
-        self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-        var.offset = -self.localsize;
+        let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+        self.fct.var_self().offset = offset;
     }
 
     fn reserve_stack_for_node(&mut self, id: VarId) {
-        let var = self.fct.var_mut(id);
+        let ty = self.fct.var(id).ty;
+        let offset = self.reserve_stack_for_type(ty);
+        self.fct.var_mut(id).offset = offset;
+    }
 
-        let ty_size = var.ty.size();
+    fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
+        let ty_size = ty.size();
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
-        var.offset = -self.localsize;
 
-        // println!("local `{}` on {} with type {:?}", *self.ctxt.interner.str(var.name),
-        //     var.offset, var.ty);
+        -self.localsize
     }
 
     fn expr_array(&mut self, expr: &'ast ExprArrayType) {

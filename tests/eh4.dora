@@ -1,0 +1,16 @@
+//= error assert
+// FIXME
+
+fn main() {
+  assert(f() == 1);
+}
+
+fn f() -> int {
+  try {
+    return 6;
+  } catch e: IntArray {
+    return 4;
+  } finally {
+    return 1;
+  }
+}
