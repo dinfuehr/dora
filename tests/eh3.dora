@@ -1,0 +1,11 @@
+fn main() {
+  assert(f() == 6);
+}
+
+fn f() -> int {
+  try {
+    return 6;
+  } catch e: IntArray {
+    return 4;
+  }
+}

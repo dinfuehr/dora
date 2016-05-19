@@ -98,7 +98,6 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
 }
 
 fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
-    println!("/ try_returns_value");
     // return in finally-block is good enough
     if let Some(ref finally_block) = s.finally_block {
         if returns_value(finally_block).is_ok() {
@@ -114,7 +113,6 @@ fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
         try!(returns_value(&catch.block));
     }
 
-    println!("/ try_returns_value");
     Ok(())
 }
 
