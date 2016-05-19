@@ -1,15 +1,16 @@
-//= error assert
+//= output "hello world!"
 
 fn main() {
-  assert(f() == 1);
+  assert(f() == 6);
 }
 
 fn f() -> int {
   try {
+    print("hello ");
     return 6;
   } catch e: IntArray {
     return 4;
   } finally {
-    return 1;
+    println("world!");
   }
 }

@@ -77,13 +77,16 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         }
 
         if let StmtTry(ref try) = *s {
-            if self.eh_return_value.is_none() {
-                self.eh_return_value = Some(self.reserve_stack_for_type(BuiltinType::Ptr));
+            let ret = self.fct.return_type;
+
+            if !ret.is_unit() {
+                self.eh_return_value = Some(self.eh_return_value.unwrap_or_else(
+                    || self.reserve_stack_for_type(ret)));
             }
 
-            if self.eh_status.is_none() {
-                self.eh_status = Some(self.reserve_stack_for_type(BuiltinType::Int));
-            }
+            let int = BuiltinType::Int;
+            self.eh_status = Some(self.eh_status.unwrap_or_else(
+                || self.reserve_stack_for_type(int)));
         }
 
         visit::walk_stmt(self, s);

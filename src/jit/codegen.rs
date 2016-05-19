@@ -9,9 +9,9 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use cpu::{Reg, REG_PARAMS, REG_RESULT};
+use cpu::{Reg, REG_PARAMS, REG_RESULT, REG_TMP1};
 use cpu::emit;
-use ctxt::{Context, Fct, FctId, VarId};
+use ctxt::{Context, Fct, FctId, TryStatus, VarId};
 use driver::cmd::AsmSyntax;
 
 use jit::buffer::*;
@@ -154,6 +154,19 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // finally block is currently active, plain return is not allowed, finally block
         // needs to be executed
         if let Some(lbl_finally) = self.lbl_finally {
+            // store return value if available
+            let status: TryStatus = if s.expr.is_some() {
+                emit::mov_reg_local(&mut self.buf, self.fct.return_type.mode(),
+                                    REG_RESULT, self.fct.src().eh_return_value.unwrap());
+
+                TryStatus::ReturnValue
+            } else {
+                TryStatus::Return
+            };
+
+            emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
+            emit::mov_reg_local(&mut self.buf, MachineMode::Int32,
+                                REG_RESULT, self.fct.src().eh_status.unwrap());
             emit::jump(&mut self.buf, lbl_finally);
 
         // if no finally-block currently active just exit from the current function
@@ -301,10 +314,21 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
+        let saved_lbl_finally = self.lbl_finally;
         let lbl_finally = self.buf.create_label();
+
+        // if finally block given then use label as current finally
+        // otherwise lbl_finally is just used at label after all catch blocks
+        if s.finally_block.is_some() {
+            self.lbl_finally = Some(lbl_finally);
+        }
 
         let try_start = self.buf.pos();
         self.visit_stmt(&s.try_block);
+
+        emit::movl_imm_reg(&mut self.buf, TryStatus::Finished.code(), REG_RESULT);
+        emit::mov_reg_local(&mut self.buf, MachineMode::Int32,
+                            REG_RESULT, self.fct.src().eh_status.unwrap());
         emit::jump(&mut self.buf, lbl_finally);
         let try_end = self.buf.pos();
 
@@ -316,13 +340,43 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
 
         self.buf.define_label(lbl_finally);
+        self.lbl_finally = saved_lbl_finally;
 
         if let Some(ref finally_block) = s.finally_block {
             self.visit_stmt(finally_block);
+
+            // check TryStatus::Return
+            self.emit_try_return_check(false);
+
+            // check TryStatus::ReturnValue
+            self.emit_try_return_check(true);
+
+            // check TryStatus::NoMatchingCatch
+            // TODO
         }
 
         // stores offsets of try- and catch-block in buffer
         self.buf.add_exception_handler(try_start, try_end, try_end);
+    }
+
+    fn emit_try_return_check(&mut self, with_value: bool) {
+        let lbl_after = self.buf.create_label();
+        let status = if with_value { TryStatus::ReturnValue } else { TryStatus::Return };
+
+        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
+        emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
+                            self.fct.src().eh_status.unwrap(), REG_TMP1);
+        emit::cmp_setl(&mut self.buf, MachineMode::Ptr, REG_RESULT,
+                       CmpOp::Eq, REG_TMP1, REG_RESULT);
+        emit::jump_if(&mut self.buf, JumpCond::Zero, REG_RESULT, lbl_after);
+
+        if with_value {
+            emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
+                                self.fct.src().eh_return_value.unwrap(), REG_RESULT);
+        }
+
+        self.emit_epilog();
+        self.buf.define_label(lbl_after);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {

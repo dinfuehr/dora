@@ -317,6 +317,25 @@ pub struct FctSrc<'ast> {
     pub eh_status: Option<i32>, // stack slot for exception handler status
 }
 
+#[derive(Copy, Clone)]
+pub enum TryStatus {
+    Finished, // when try-block was finished normally (no return)
+    Return, // when try/catch/finally return (but no value)
+    ReturnValue, // when try/catch/finally return with value
+    NoMatchingCatch, // when no matching catch-block was found for exception
+}
+
+impl TryStatus {
+    pub fn code(self) -> u32 {
+        match self {
+            TryStatus::Finished => 0,
+            TryStatus::Return => 1,
+            TryStatus::ReturnValue => 2,
+            TryStatus::NoMatchingCatch => 3,
+        }
+    }
+}
+
 impl<'ast> FctSrc<'ast> {
     pub fn new(ast: &'ast ast::Function) -> FctSrc<'ast> {
         FctSrc {
