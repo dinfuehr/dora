@@ -348,8 +348,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             // check TryStatus::Return
             self.emit_try_return_check(false);
 
-            // check TryStatus::ReturnValue
-            self.emit_try_return_check(true);
+            if !self.fct.return_type.is_unit() {
+                // check TryStatus::ReturnValue
+                self.emit_try_return_check(true);
+            }
 
             // check TryStatus::NoMatchingCatch
             // TODO
