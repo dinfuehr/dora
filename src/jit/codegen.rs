@@ -20,6 +20,7 @@ use jit::fct::{JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
 use object::Obj;
+use semck::always_returns;
 use stdlib;
 use ty::MachineMode;
 
@@ -155,16 +156,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // needs to be executed
         if let Some(lbl_finally) = self.lbl_finally {
             // store return value if available
-            let status: TryStatus = if s.expr.is_some() {
+            if s.expr.is_some() {
                 emit::mov_reg_local(&mut self.buf, self.fct.return_type.mode(),
                                     REG_RESULT, self.fct.src().eh_return_value.unwrap());
+            }
 
-                TryStatus::ReturnValue
-            } else {
-                TryStatus::Return
-            };
-
-            emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
+            emit::movl_imm_reg(&mut self.buf, TryStatus::Return.code(), REG_RESULT);
             emit::mov_reg_local(&mut self.buf, MachineMode::Int32,
                                 REG_RESULT, self.fct.src().eh_status.unwrap());
             emit::jump(&mut self.buf, lbl_finally);
@@ -326,17 +323,24 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let try_start = self.buf.pos();
         self.visit_stmt(&s.try_block);
 
-        emit::movl_imm_reg(&mut self.buf, TryStatus::Finished.code(), REG_RESULT);
-        emit::mov_reg_local(&mut self.buf, MachineMode::Int32,
-                            REG_RESULT, self.fct.src().eh_status.unwrap());
-        emit::jump(&mut self.buf, lbl_finally);
+        if !always_returns(&s.try_block) {
+            self.emit_store_eh_status(TryStatus::Finished);
+            emit::jump(&mut self.buf, lbl_finally);
+        }
+
         let try_end = self.buf.pos();
 
         for catch in &s.catch_blocks {
-            // TODO: check class of exception object
+            let lbl_next = self.buf.create_label();
 
             self.visit_stmt(&catch.block);
-            emit::jump(&mut self.buf, lbl_finally);
+
+            if !always_returns(&catch.block) {
+                self.emit_store_eh_status(TryStatus::Finished);
+                emit::jump(&mut self.buf, lbl_finally);
+            }
+
+            self.buf.define_label(lbl_next);
         }
 
         self.buf.define_label(lbl_finally);
@@ -346,12 +350,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.visit_stmt(finally_block);
 
             // check TryStatus::Return
-            self.emit_try_return_check(false);
-
-            if !self.fct.return_type.is_unit() {
-                // check TryStatus::ReturnValue
-                self.emit_try_return_check(true);
-            }
+            self.emit_try_return_check();
 
             // check TryStatus::NoMatchingCatch
             // TODO
@@ -361,24 +360,29 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.buf.add_exception_handler(try_start, try_end, try_end);
     }
 
-    fn emit_try_return_check(&mut self, with_value: bool) {
+    fn emit_try_return_check(&mut self) {
         let lbl_after = self.buf.create_label();
-        let status = if with_value { TryStatus::ReturnValue } else { TryStatus::Return };
 
-        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
+        emit::movl_imm_reg(&mut self.buf, TryStatus::Return.code(), REG_RESULT);
         emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
                             self.fct.src().eh_status.unwrap(), REG_TMP1);
         emit::cmp_setl(&mut self.buf, MachineMode::Ptr, REG_RESULT,
                        CmpOp::Eq, REG_TMP1, REG_RESULT);
         emit::jump_if(&mut self.buf, JumpCond::Zero, REG_RESULT, lbl_after);
 
-        if with_value {
+        if !self.fct.return_type.is_unit() {
             emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
                                 self.fct.src().eh_return_value.unwrap(), REG_RESULT);
         }
 
         self.emit_epilog();
         self.buf.define_label(lbl_after);
+    }
+
+    fn emit_store_eh_status(&mut self, status: TryStatus) {
+        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
+        emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
+                            self.fct.src().eh_status.unwrap(), REG_TMP1);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {

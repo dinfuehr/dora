@@ -1,4 +1,4 @@
-use ast::Type;
+use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
 use ctxt::Context;
 use error::msg::Msg;
@@ -77,6 +77,13 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
     }
 
     BuiltinType::Unit
+}
+
+pub fn always_returns(s: &Stmt) -> bool {
+    match returnck::returns_value(s) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
 }
 
 #[cfg(test)]

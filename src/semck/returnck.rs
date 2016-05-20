@@ -58,7 +58,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     }
 }
 
-fn returns_value(s: &Stmt) -> Result<(), Position> {
+pub fn returns_value(s: &Stmt) -> Result<(), Position> {
     match *s {
         StmtReturn(_) => Ok(()),
         StmtBlock(ref stmt) => block_returns_value(stmt),

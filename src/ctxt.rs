@@ -320,8 +320,7 @@ pub struct FctSrc<'ast> {
 #[derive(Copy, Clone)]
 pub enum TryStatus {
     Finished, // when try-block was finished normally (no return)
-    Return, // when try/catch/finally return (but no value)
-    ReturnValue, // when try/catch/finally return with value
+    Return, // when try/catch/finally return
     NoMatchingCatch, // when no matching catch-block was found for exception
 }
 
@@ -330,8 +329,7 @@ impl TryStatus {
         match self {
             TryStatus::Finished => 0,
             TryStatus::Return => 1,
-            TryStatus::ReturnValue => 2,
-            TryStatus::NoMatchingCatch => 3,
+            TryStatus::NoMatchingCatch => 2,
         }
     }
 }
