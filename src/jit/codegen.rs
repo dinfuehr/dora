@@ -331,16 +331,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let try_end = self.buf.pos();
 
         for catch in &s.catch_blocks {
-            let lbl_next = self.buf.create_label();
-
-            self.visit_stmt(&catch.block);
-
-            if !always_returns(&catch.block) {
-                self.emit_store_eh_status(TryStatus::Finished);
-                emit::jump(&mut self.buf, lbl_finally);
-            }
-
-            self.buf.define_label(lbl_next);
+            self.emit_try_catch_block(catch, lbl_finally);
         }
 
         self.buf.define_label(lbl_finally);
@@ -353,29 +344,55 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_try_return_check();
 
             // check TryStatus::NoMatchingCatch
-            // TODO
+            self.emit_try_catch_check();
         }
 
         // stores offsets of try- and catch-block in buffer
         self.buf.add_exception_handler(try_start, try_end, try_end);
     }
 
+    fn emit_try_catch_block(&mut self, catch: &'ast CatchBlock, lbl_finally: Label) {
+        let lbl_next = self.buf.create_label();
+
+        self.visit_stmt(&catch.block);
+
+        if !always_returns(&catch.block) {
+            self.emit_store_eh_status(TryStatus::Finished);
+            emit::jump(&mut self.buf, lbl_finally);
+        }
+
+        self.buf.define_label(lbl_next);
+    }
+
     fn emit_try_return_check(&mut self) {
+        self.emit_status_check(TryStatus::Return, |cg| {
+            if !cg.fct.return_type.is_unit() {
+                emit::mov_local_reg(&mut cg.buf, cg.fct.return_type.mode(),
+                                    cg.fct.src().eh_return_value.unwrap(), REG_RESULT);
+            }
+
+            cg.emit_epilog();
+        });
+    }
+
+    fn emit_try_catch_check(&mut self) {
+        self.emit_status_check(TryStatus::NoMatchingCatch, |codegen| {
+            // TODO: invoke resume_unwind()
+        });
+    }
+
+    fn emit_status_check<F>(&mut self, status: TryStatus, f: F) where F: FnOnce(&mut CodeGen) {
         let lbl_after = self.buf.create_label();
 
-        emit::movl_imm_reg(&mut self.buf, TryStatus::Return.code(), REG_RESULT);
+        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
         emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
                             self.fct.src().eh_status.unwrap(), REG_TMP1);
         emit::cmp_setl(&mut self.buf, MachineMode::Ptr, REG_RESULT,
                        CmpOp::Eq, REG_TMP1, REG_RESULT);
         emit::jump_if(&mut self.buf, JumpCond::Zero, REG_RESULT, lbl_after);
 
-        if !self.fct.return_type.is_unit() {
-            emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
-                                self.fct.src().eh_return_value.unwrap(), REG_RESULT);
-        }
+        f(self);
 
-        self.emit_epilog();
         self.buf.define_label(lbl_after);
     }
 
