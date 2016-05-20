@@ -23,6 +23,10 @@ pub extern "C" fn throw_exception(obj: Handle<Obj>) {
     unsafe { libc::_exit(104); }
 }
 
+pub extern "C" fn resume_exception() {
+    unsafe { libc::_exit(104); }
+}
+
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
     let buffer = val.to_string();
     Str::from(buffer.as_bytes())

@@ -376,8 +376,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_try_catch_check(&mut self) {
-        self.emit_status_check(TryStatus::NoMatchingCatch, |codegen| {
-            // TODO: invoke resume_unwind()
+        self.emit_status_check(TryStatus::NoMatchingCatch, |cg| {
+            let ptr = Ptr::new(stdlib::resume_exception as *mut libc::c_void);
+            let disp = cg.buf.add_addr(ptr);
+            let pos = cg.buf.pos() as i32;
+
+            emit::movq_addr_reg(&mut cg.buf, disp + pos, REG_RESULT);
+            emit::call(&mut cg.buf, REG_RESULT);
         });
     }
 
