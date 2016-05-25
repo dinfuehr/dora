@@ -392,6 +392,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let finally_pos = self.buf.pos();
         self.visit_stmt(finally_block);
 
+        let ptr = Ptr::new(stdlib::resume_exception as *mut libc::c_void);
+        let disp = self.buf.add_addr(ptr);
+        let pos = self.buf.pos() as i32;
+
+        emit::movq_addr_reg(&mut self.buf, disp + pos, REG_RESULT);
+        emit::call(&mut self.buf, REG_RESULT);
+
         Some(finally_pos)
     }
 
