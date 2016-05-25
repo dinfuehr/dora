@@ -146,8 +146,8 @@ mod tests {
 
     #[test]
     fn test_class_and_function() {
-        err("fn Foo() {} class Foo", pos(1, 13), Msg::ShadowFunction("Foo".into()));
-        err("class Foo fn Foo() {}", pos(1, 11), Msg::ShadowClass("Foo".into()));
+        err("fun Foo() {} class Foo", pos(1, 14), Msg::ShadowFunction("Foo".into()));
+        err("class Foo fun Foo() {}", pos(1, 11), Msg::ShadowClass("Foo".into()));
     }
 
     #[test]

@@ -291,86 +291,86 @@ mod tests {
 
     #[test]
     fn multiple_functions() {
-        ok("fn f() {}\nfn g() {}");
+        ok("fun f() {}\nfun g() {}");
     }
 
     #[test]
     fn redefine_function() {
-        err("fn f() {}\nfn f() {}", pos(2, 1),
+        err("fun f() {}\nfun f() {}", pos(2, 1),
             Msg::ShadowFunction("f".into()));
     }
 
     #[test]
     fn shadow_type_with_function() {
-        err("fn int() {}", pos(1, 1),
+        err("fun int() {}", pos(1, 1),
             Msg::ShadowClass("int".into()));
     }
 
     #[test]
     fn shadow_type_with_param() {
-        err("fn test(bool: Str) {}", pos(1, 9),
+        err("fun test(bool: Str) {}", pos(1, 10),
             Msg::ShadowClass("bool".into()));
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err("fn test() { let Str = 3; }", pos(1, 13),
+        err("fun test() { let Str = 3; }", pos(1, 14),
             Msg::ShadowClass("Str".into()));
     }
 
     #[test]
     fn shadow_function() {
-        ok("fn f() { let f = 1; }");
-        err("fn f() { let f = 1; f(); }", pos(1, 21),
+        ok("fun f() { let f = 1; }");
+        err("fun f() { let f = 1; f(); }", pos(1, 22),
             Msg::UnknownFunction("f".into()));
     }
 
     #[test]
     fn shadow_var() {
-        ok("fn f() { let f = 1; let f = 2; }");
+        ok("fun f() { let f = 1; let f = 2; }");
     }
 
     #[test]
     fn shadow_param() {
-        err("fn f(a: int, b: int, a: Str) {}", pos(1, 22),
+        err("fun f(a: int, b: int, a: Str) {}", pos(1, 23),
             Msg::ShadowParam("a".into()));
     }
 
     #[test]
     fn multiple_params() {
-        ok("fn f(a: int, b: int, c:Str) {}");
+        ok("fun f(a: int, b: int, c:Str) {}");
     }
 
     #[test]
     fn undefined_variable() {
-        err("fn f() { let b = a; }", pos(1, 18), Msg::UnknownIdentifier("a".into()));
-        err("fn f() { a; }", pos(1, 10), Msg::UnknownIdentifier("a".into()));
+        err("fun f() { let b = a; }", pos(1, 19), Msg::UnknownIdentifier("a".into()));
+        err("fun f() { a; }", pos(1, 11), Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]
     fn undefined_function() {
-        err("fn f() { foo(); }", pos(1, 10),
+        err("fun f() { foo(); }", pos(1, 11),
             Msg::UnknownFunction("foo".into()));
     }
 
     #[test]
     fn recursive_function_call() {
-        ok("fn f() { f(); }");
+        ok("fun f() { f(); }");
     }
 
     #[test]
     fn function_call() {
-        ok("fn a() {}\nfn b() { a(); }");
+        ok("fun a() {}\nfun b() { a(); }");
 
         // non-forward definition of functions
-        ok("fn a() { b(); }\nfn b() {}");
+        ok("fun a() { b(); }\nfun b() {}");
     }
 
     #[test]
     fn variable_outside_of_scope() {
-        err("fn f() -> int { { let a = 1; } return a; }", pos(1, 39),
+        err("fun f() -> int { { let a = 1; } return a; }", pos(1, 40),
             Msg::UnknownIdentifier("a".into()));
 
-        ok("fn f() -> int { let a = 1; { let a = 2; } return a; }");
+        ok("fun f() -> int { let a = 1; { let a = 2; } return a; }");
     }
 }

@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let o1 = Foo();
   let o2 = o1;
 

@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   assert("abc".len() == 3);
 
   let x = "abcdef";

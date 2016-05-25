@@ -71,25 +71,25 @@ mod tests {
 
     #[test]
     fn flowck_break() {
-        ok("fn a() { while true { break; } }");
-        ok("fn a() { while true { if true { break; } } }");
-        ok("fn a() { loop { break; } }");
-        ok("fn a() { loop { if true { break; } } }");
-        err("fn a() { break; }", pos(1, 10), Msg::OutsideLoop);
-        err("fn a() { loop { } break; }", pos(1, 19), Msg::OutsideLoop);
-        err("fn a() { while true { } break; }", pos(1, 25), Msg::OutsideLoop);
-        err("fn a() { if true { } break; }", pos(1, 22), Msg::OutsideLoop);
+        ok("fun a() { while true { break; } }");
+        ok("fun a() { while true { if true { break; } } }");
+        ok("fun a() { loop { break; } }");
+        ok("fun a() { loop { if true { break; } } }");
+        err("fun a() { break; }", pos(1, 11), Msg::OutsideLoop);
+        err("fun a() { loop { } break; }", pos(1, 20), Msg::OutsideLoop);
+        err("fun a() { while true { } break; }", pos(1, 26), Msg::OutsideLoop);
+        err("fun a() { if true { } break; }", pos(1, 23), Msg::OutsideLoop);
     }
 
     #[test]
     fn flowck_continue() {
-        ok("fn a() { while true { continue; } }");
-        ok("fn a() { while true { if true { continue; } } }");
-        ok("fn a() { loop { continue; } }");
-        ok("fn a() { loop { if true { continue; } } }");
-        err("fn a() { continue; }", pos(1, 10), Msg::OutsideLoop);
-        err("fn a() { loop { } continue; }", pos(1, 19), Msg::OutsideLoop);
-        err("fn a() { while true { } continue; }", pos(1, 25), Msg::OutsideLoop);
-        err("fn a() { if true { } continue; }", pos(1, 22), Msg::OutsideLoop);
+        ok("fun a() { while true { continue; } }");
+        ok("fun a() { while true { if true { continue; } } }");
+        ok("fun a() { loop { continue; } }");
+        ok("fun a() { loop { if true { continue; } } }");
+        err("fun a() { continue; }", pos(1, 11), Msg::OutsideLoop);
+        err("fun a() { loop { } continue; }", pos(1, 20), Msg::OutsideLoop);
+        err("fun a() { while true { } continue; }", pos(1, 26), Msg::OutsideLoop);
+        err("fun a() { if true { } continue; }", pos(1, 23), Msg::OutsideLoop);
     }
 }

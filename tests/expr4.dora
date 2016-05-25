@@ -1,6 +1,6 @@
-fn main() {
+fun main() {
   f(g());
 }
 
-fn f(a: int) { assert(a == 1); }
-fn g() -> int { return 1; }
+fun f(a: int) { assert(a == 1); }
+fun g() -> int { return 1; }

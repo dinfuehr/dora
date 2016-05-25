@@ -229,8 +229,8 @@ mod tests {
 
     #[test]
     fn builtin_functions() {
-        ok("fn f() { assert(true); }");
-        ok("fn f() { print(\"test\"); }");
-        ok("fn f() { println(\"test\"); }");
+        ok("fun f() { assert(true); }");
+        ok("fun f() { print(\"test\"); }");
+        ok("fun f() { println(\"test\"); }");
     }
 }

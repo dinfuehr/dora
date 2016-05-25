@@ -1,5 +1,5 @@
 //= error exception
 
-fn main() {
+fun main() {
   throw "error";
 }

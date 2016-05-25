@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let i = 0;
   let sum = 0;
 

@@ -1,13 +1,13 @@
-fn main() {
+fun main() {
   let n = 7;
-  if argc() > 0 { n = parse(argv(0)); }
-  println("Pfannkuchen ("+to_string(n)+") = " + to_string(fannkuch(n)));
+  if argc() > 0 { n = argv(0).parseInt(); }
+  println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
 
-fn fannkuch(n: int) -> int {
-  let perm = IntArray(n, 0);
-  let perm1 = IntArray(n, 0);
-  let count = IntArray(n, 0);
+fun fannkuch(n: int) -> int {
+  let perm = intArrayWith(n, 0);
+  let perm1 = intArrayWith(n, 0);
+  let count = intArrayWith(n, 0);
   let maxFlipsCount = 0;
   let permCount = 0;
   let checksum = 0;
@@ -60,7 +60,7 @@ fn fannkuch(n: int) -> int {
 
     while true {
       if r == n {
-        println(to_string(checksum));
+        println(checksum.toString());
         return maxFlipsCount;
       }
 
@@ -88,7 +88,7 @@ fn fannkuch(n: int) -> int {
   return -1;
 }
 
-fn max(a: int, b: int) -> int {
+fun max(a: int, b: int) -> int {
   if a < b {
     return b;
   } else {

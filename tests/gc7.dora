@@ -1,10 +1,10 @@
-fn main() {
+fun main() {
   foo();
   forceCollect();
   foo();
 }
 
-fn foo() {
+fun foo() {
   let x = "abc";
   assert(x.len() == 3);
   println(x);

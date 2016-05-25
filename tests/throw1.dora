@@ -1,6 +1,6 @@
 //= error nil
 
-fn main() {
+fun main() {
   let x: Str = nil;
   throw x;
 }

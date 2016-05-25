@@ -1,15 +1,15 @@
 //= error nil
 
 class Foo {
-  fn do(self) { }
+  fun do(self) { }
 }
 
-fn main() { f(); }
-fn f() { g(); }
-fn g() { h(); }
-fn h() { i(); }
+fun main() { f(); }
+fun f() { g(); }
+fun g() { h(); }
+fun h() { i(); }
 
-fn i() {
+fun i() {
   let foo: Foo = nil;
   foo.do();
 }

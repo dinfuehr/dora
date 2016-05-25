@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let array = intArrayWith(5, 1);
   array[0] = 2;
   assert(array[0] == 2);

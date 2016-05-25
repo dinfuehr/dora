@@ -1,8 +1,8 @@
-fn main() {
+fun main() {
   foo();
 }
 
-fn foo() -> Foo {
+fun foo() -> Foo {
   return Foo();
 }
 

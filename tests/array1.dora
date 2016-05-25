@@ -1,5 +1,5 @@
-fn main() {
+fun main() {
   foo(nil);
 }
 
-fn foo(a: IntArray) {}
+fun foo(a: IntArray) {}

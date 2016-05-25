@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   assert("1".parseInt() == 1);
   assert("100".parseInt() == 100);
   assert("789".parseInt() == 789);

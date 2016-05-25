@@ -1,10 +1,10 @@
 //= output "hello world!"
 
-fn main() {
+fun main() {
   assert(f() == 6);
 }
 
-fn f() -> int {
+fun f() -> int {
   try {
     print("hello ");
     return 6;

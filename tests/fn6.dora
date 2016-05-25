@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   f(1, 2, 3, 4, 5, 6, 7, 8);
   g("a", "b", "c", "d", "e", "f", "g", "h");
 
@@ -16,7 +16,7 @@ fn main() {
   assert(x.h == 8);
 }
 
-fn f(a: int, b: int, c: int, d: int,
+fun f(a: int, b: int, c: int, d: int,
      e: int, f: int, g: int, h: int) {
    assert(a == 1);
    assert(b == 2);
@@ -28,7 +28,7 @@ fn f(a: int, b: int, c: int, d: int,
    assert(h == 8);
 }
 
-fn g(a: Str, b: Str, c: Str, d: Str,
+fun g(a: Str, b: Str, c: Str, d: Str,
      e: Str, f: Str, g: Str, h: Str) {
    assert(a == "a");
    assert(b == "b");
@@ -41,7 +41,7 @@ fn g(a: Str, b: Str, c: Str, d: Str,
 }
 
 class Foo1 {
-  fn f(self, a: int, b: int, c: int, d: int,
+  fun f(self, a: int, b: int, c: int, d: int,
        e: int, f: int, g: int, h: int) {
     assert(a == 1);
     assert(b == 2);

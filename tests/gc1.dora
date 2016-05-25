@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x = Foo(1);
   forceCollect();
   assert(x.a == 1);

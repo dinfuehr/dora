@@ -1,5 +1,5 @@
 //= error at 4:3
 
-fn main() {
+fun main() {
   let x: int = nil;
 }

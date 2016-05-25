@@ -89,7 +89,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
         match self.token.token_type {
-            TokenType::Fn => {
+            TokenType::Fun => {
                 let fct = try!(self.parse_function());
                 Ok(ElemFunction(fct))
             }
@@ -314,7 +314,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_function(&mut self) -> Result<Function, ParseError> {
-        let pos = try!(self.expect_token(TokenType::Fn)).position;
+        let pos = try!(self.expect_token(TokenType::Fun)).position;
         let ident = try!(self.expect_identifier());
 
         let params = try!(self.parse_function_params());
@@ -1444,7 +1444,7 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let (prog, interner) = parse("fn b() { }");
+        let (prog, interner) = parse("fun b() { }");
         let fct = prog.elements[0].to_function().unwrap();
 
         assert_eq!("b", *interner.str(fct.name));
@@ -1455,10 +1455,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_single_param() {
-        let (p1, interner1) = parse("fn f(a:int) { }");
+        let (p1, interner1) = parse("fun f(a:int) { }");
         let f1 = p1.elements[0].to_function().unwrap();
 
-        let (p2, interner2) = parse("fn f(a:int,) { }");
+        let (p2, interner2) = parse("fun f(a:int,) { }");
         let f2 = p2.elements[0].to_function().unwrap();
 
         let p1 = &f1.params[0];
@@ -1476,10 +1476,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let (p1, interner1) = parse("fn f(a:int, b:str) { }");
+        let (p1, interner1) = parse("fun f(a:int, b:str) { }");
         let f1 = p1.elements[0].to_function().unwrap();
 
-        let (p2, interner2) = parse("fn f(a:int, b:str,) { }");
+        let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
         let f2 = p2.elements[0].to_function().unwrap();
 
         let p1a = &f1.params[0];
@@ -1538,7 +1538,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let (prog, interner) = parse("fn f() { } fn g() { }");
+        let (prog, interner) = parse("fun f() { } fun g() { }");
 
         let f = prog.elements[0].to_function().unwrap();
         assert_eq!("f", *interner.str(f.name));
@@ -1548,7 +1548,7 @@ mod tests {
         let g = prog.elements[1].to_function().unwrap();
         assert_eq!("g", *interner.str(g.name));
         assert_eq!(false, g.method);
-        assert_eq!(Position::new(1, 12), g.pos);
+        assert_eq!(Position::new(1, 13), g.pos);
     }
 
     #[test]
@@ -1713,8 +1713,8 @@ mod tests {
     #[test]
     fn parse_method() {
         let (prog, interner) = parse("class Foo {
-            fn zero() -> int { return 0; }
-            fn id(a: Str) -> Str { return a; }
+            fun zero() -> int { return 0; }
+            fun id(a: Str) -> Str { return a; }
         }");
 
         let cls = prog.elements[0].to_class().unwrap();
@@ -1808,21 +1808,21 @@ mod tests {
 
     #[test]
     fn parse_function_without_throws() {
-        let (prog, interner) = parse("fn f(a: int) {}");
+        let (prog, interner) = parse("fun f(a: int) {}");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(!fct.throws);
     }
 
     #[test]
     fn parse_function_throws() {
-        let (prog, interner) = parse("fn f(a: int) throws {}");
+        let (prog, interner) = parse("fun f(a: int) throws {}");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(fct.throws);
     }
 
     #[test]
     fn parse_function_throws_with_return_type() {
-        let (prog, interner) = parse("fn f(a: int) throws -> int { return 0; }");
+        let (prog, interner) = parse("fun f(a: int) throws -> int { return 0; }");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(fct.throws);
     }

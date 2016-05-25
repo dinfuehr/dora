@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x: Str = nil;
 
   assert(x === nil);

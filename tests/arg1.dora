@@ -1,6 +1,6 @@
 //= args 1 2 3
 
-fn main() {
+fun main() {
   let val = argc().toString();
   println(val);
   println(argv(0));

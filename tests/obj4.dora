@@ -1,9 +1,9 @@
-fn main() {
+fun main() {
   let o1 = Foo();
   let o2 = o1.me();
   assert(o1 === o2);
 }
 
 class Foo {
-  fn me(self) -> Foo { return self; }
+  fun me(self) -> Foo { return self; }
 }

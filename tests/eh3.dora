@@ -1,8 +1,8 @@
-fn main() {
+fun main() {
   assert(f() == 6);
 }
 
-fn f() -> int {
+fun f() -> int {
   try {
     return 6;
   } catch e: IntArray {

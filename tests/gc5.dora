@@ -1,11 +1,11 @@
-fn main() {
+fun main() {
   let a = nested();
   forceCollect();
 
   assert(a.next.next.value == 3);
 }
 
-fn nested() -> Foo {
+fun nested() -> Foo {
   let x = Foo(3, nil);
   let y = Foo(2, x);
   let z = Foo(1, y);

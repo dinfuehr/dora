@@ -1,9 +1,9 @@
-fn main() {
+fun main() {
   str();
-  // TODO: forceCollect();
+  forceCollect();
 }
 
-fn str() {
+fun str() {
   let x = "abc";
   let y = "def";
 }

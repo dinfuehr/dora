@@ -133,42 +133,42 @@ mod tests {
 
     #[test]
     fn returns_unit() {
-        ok("fn f() {}");
-        ok("fn f() { if true { return; } }");
-        ok("fn f() { while true { return; } }");
-        ok("fn f() { loop { return; } }");
+        ok("fun f() {}");
+        ok("fun f() { if true { return; } }");
+        ok("fun f() { while true { return; } }");
+        ok("fun f() { loop { return; } }");
     }
 
     #[test]
     fn always_returns() {
-        test_always_returns("fn f() {}", false);
-        test_always_returns("fn f() { return; }", true);
-        test_always_returns("fn f() -> int { return 1; }", true);
-        test_always_returns("fn f() -> int { throw \"abc\"; }", true);
+        test_always_returns("fun f() {}", false);
+        test_always_returns("fun f() { return; }", true);
+        test_always_returns("fun f() -> int { return 1; }", true);
+        test_always_returns("fun f() -> int { throw \"abc\"; }", true);
     }
 
     #[test]
     fn returns_int() {
-        err("fn f() -> int { }", pos(1, 15), Msg::NoReturnValue);
-        err("fn f() -> int { if true { return 1; } }", pos(1, 17), Msg::NoReturnValue);
-        err("fn f() -> int { if true { } else { return 1; } }", pos(1, 25), Msg::NoReturnValue);
-        err("fn f() -> int { while true { return 1; } }", pos(1, 17), Msg::NoReturnValue);
-        ok("fn f() -> int { loop { return 1; } }");
-        ok("fn f() -> int { if true { return 1; } else { return 2; } }");
-        ok("fn f() -> int { return 1; 1+2; }");
-        ok("fn f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
+        err("fun f() -> int { }", pos(1, 16), Msg::NoReturnValue);
+        err("fun f() -> int { if true { return 1; } }", pos(1, 18), Msg::NoReturnValue);
+        err("fun f() -> int { if true { } else { return 1; } }", pos(1, 26), Msg::NoReturnValue);
+        err("fun f() -> int { while true { return 1; } }", pos(1, 18), Msg::NoReturnValue);
+        ok("fun f() -> int { loop { return 1; } }");
+        ok("fun f() -> int { if true { return 1; } else { return 2; } }");
+        ok("fun f() -> int { return 1; 1+2; }");
+        ok("fun f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
     }
 
     #[test]
     fn try_returns() {
-        ok("fn f() -> int { try { return 1; } catch x: Str { return 2; } }");
-        ok("fn f() -> int { try { } catch x: Str { return 2; } return 1; }");
-        ok("fn f() -> int { try { return 2; } catch x: Str { } return 1; }");
-        ok("fn f() -> int { try { } catch x: Str { } return 1; }");
-        ok("fn f() -> int { try { } catch x: Str { } finally { return 1; } }");
-        err("fn f() -> int { try { return 1; } catch x: Str { } }",
-            pos(1, 48), Msg::NoReturnValue);
-        err("fn f() -> int { try { } catch x: Str { return 1; } }",
-            pos(1, 21), Msg::NoReturnValue);
+        ok("fun f() -> int { try { return 1; } catch x: Str { return 2; } }");
+        ok("fun f() -> int { try { } catch x: Str { return 2; } return 1; }");
+        ok("fun f() -> int { try { return 2; } catch x: Str { } return 1; }");
+        ok("fun f() -> int { try { } catch x: Str { } return 1; }");
+        ok("fun f() -> int { try { } catch x: Str { } finally { return 1; } }");
+        err("fun f() -> int { try { return 1; } catch x: Str { } }",
+            pos(1, 49), Msg::NoReturnValue);
+        err("fun f() -> int { try { } catch x: Str { return 1; } }",
+            pos(1, 22), Msg::NoReturnValue);
     }
 }

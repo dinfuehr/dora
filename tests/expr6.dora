@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let a = 1;
   let b = 2;
 
@@ -11,13 +11,13 @@ fn main() {
   assert(f(g(a + h(), b * i()), j()) == 288);
 }
 
-fn h() -> int { return 3; }
-fn i() -> int { return 5; }
-fn j() -> int { return 7; }
+fun h() -> int { return 3; }
+fun i() -> int { return 5; }
+fun j() -> int { return 7; }
 
-fn f(x: int, y: int) -> int {
+fun f(x: int, y: int) -> int {
   return x * (y+1);
 }
-fn g(x: int, y: int) -> int {
+fun g(x: int, y: int) -> int {
   return x * (y-1);
 }

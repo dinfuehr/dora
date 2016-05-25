@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let f = Foo(12);
   let a1 = f.a1();
   let a2 = f.a2();
@@ -10,8 +10,8 @@ fn main() {
 }
 
 class Foo(a: int) {
-  fn a1(self) -> int { return self.a; }
-  fn a2(self) -> int { return a; }
+  fun a1(self) -> int { return self.a; }
+  fun a2(self) -> int { return a; }
 
-  fn setA(self, _a: int) { a = _a; }
+  fun setA(self, _a: int) { a = _a; }
 }

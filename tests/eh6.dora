@@ -1,10 +1,10 @@
 //= output "hello world!"
 
-fn main() {
+fun main() {
   assert(f() == 3);
 }
 
-fn f() -> int {
+fun f() -> int {
   try {
     print("hello ");
   } catch e: IntArray {
