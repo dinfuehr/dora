@@ -11,7 +11,7 @@ use ast::visit::*;
 
 use cpu::{Reg, REG_PARAMS, REG_RESULT, REG_TMP1};
 use cpu::emit;
-use ctxt::{Context, Fct, FctId, TryStatus, VarId};
+use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
 
 use jit::buffer::*;
@@ -393,49 +393,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.visit_stmt(finally_block);
 
         Some(finally_pos)
-    }
-
-    fn emit_try_return_check(&mut self) {
-        self.emit_status_check(TryStatus::Return, |cg| {
-            if !cg.fct.return_type.is_unit() {
-                emit::mov_local_reg(&mut cg.buf, cg.fct.return_type.mode(),
-                                    cg.fct.src().eh_return_value.unwrap(), REG_RESULT);
-            }
-
-            cg.emit_epilog();
-        });
-    }
-
-    fn emit_try_catch_check(&mut self) {
-        self.emit_status_check(TryStatus::NoMatchingCatch, |cg| {
-            let ptr = Ptr::new(stdlib::resume_exception as *mut libc::c_void);
-            let disp = cg.buf.add_addr(ptr);
-            let pos = cg.buf.pos() as i32;
-
-            emit::movq_addr_reg(&mut cg.buf, disp + pos, REG_RESULT);
-            emit::call(&mut cg.buf, REG_RESULT);
-        });
-    }
-
-    fn emit_status_check<F>(&mut self, status: TryStatus, f: F) where F: FnOnce(&mut CodeGen) {
-        let lbl_after = self.buf.create_label();
-
-        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
-        emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
-                            self.fct.src().eh_status.unwrap(), REG_TMP1);
-        emit::cmp_setl(&mut self.buf, MachineMode::Ptr, REG_RESULT,
-                       CmpOp::Eq, REG_TMP1, REG_RESULT);
-        emit::jump_if(&mut self.buf, JumpCond::Zero, REG_RESULT, lbl_after);
-
-        f(self);
-
-        self.buf.define_label(lbl_after);
-    }
-
-    fn emit_store_eh_status(&mut self, status: TryStatus) {
-        emit::movl_imm_reg(&mut self.buf, status.code(), REG_RESULT);
-        emit::mov_local_reg(&mut self.buf, MachineMode::Int32,
-                            self.fct.src().eh_status.unwrap(), REG_TMP1);
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {

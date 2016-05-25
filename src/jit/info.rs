@@ -124,7 +124,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         src.argsize = self.argsize;
         src.leaf = self.leaf;
         src.eh_return_value = self.eh_return_value;
-        src.eh_status = self.eh_status;
     }
 
     fn reserve_stack_for_self(&mut self) {

@@ -314,24 +314,6 @@ pub struct FctSrc<'ast> {
     pub jit_fct: Option<JitFct>, // compile function
     pub stub: Option<Stub>, // compiler stub
     pub eh_return_value: Option<i32>, // stack slot for return value storage
-    pub eh_status: Option<i32>, // stack slot for exception handler status
-}
-
-#[derive(Copy, Clone)]
-pub enum TryStatus {
-    Finished, // when try-block was finished normally (no return)
-    Return, // when try/catch/finally return
-    NoMatchingCatch, // when no matching catch-block was found for exception
-}
-
-impl TryStatus {
-    pub fn code(self) -> u32 {
-        match self {
-            TryStatus::Finished => 0,
-            TryStatus::Return => 1,
-            TryStatus::NoMatchingCatch => 2,
-        }
-    }
 }
 
 impl<'ast> FctSrc<'ast> {
@@ -350,7 +332,6 @@ impl<'ast> FctSrc<'ast> {
             jit_fct: None,
             stub: None,
             eh_return_value: None,
-            eh_status: None,
         }
     }
 
