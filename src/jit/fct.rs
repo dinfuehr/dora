@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
+use class::ClassId;
 use ctxt::FctId;
 use dseg::DSeg;
 use mem::{CodeMemory, Ptr};
@@ -49,7 +50,8 @@ impl JitFct {
             ExHandler {
                 try_start: fct_start + e.try_start,
                 try_end: fct_start + e.try_end,
-                catch: fct_start + e.catch
+                catch: fct_start + e.catch,
+                catch_type: e.catch_type,
             }
         });
 
@@ -174,4 +176,10 @@ pub struct ExHandler {
     pub try_start: usize,
     pub try_end: usize,
     pub catch: usize,
+    pub catch_type: CatchType,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CatchType {
+    Any, Class(ClassId),
 }

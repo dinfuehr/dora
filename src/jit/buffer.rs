@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
+use jit::fct::{CatchType, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 use mem::Ptr;
 
@@ -105,11 +105,12 @@ impl Buffer {
         self.bailouts.push((lbl, trap, pos));
     }
 
-    pub fn add_exception_handler(&mut self, start: usize, end: usize, catch: usize) {
+    pub fn add_exception_handler(&mut self, span: (usize, usize), catch: usize, catch_type: CatchType) {
         self.exception_handlers.push(ExHandler {
-            try_start: start,
-            try_end: end,
-            catch: catch
+            try_start: span.0,
+            try_end: span.1,
+            catch: catch,
+            catch_type: catch_type
         });
     }
 

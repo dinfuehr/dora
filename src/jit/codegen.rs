@@ -16,7 +16,7 @@ use driver::cmd::AsmSyntax;
 
 use jit::buffer::*;
 use jit::expr::*;
-use jit::fct::{JitFct, GcPoint};
+use jit::fct::{CatchType, JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
 use object::Obj;
@@ -150,20 +150,29 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
         if let Some(ref expr) = s.expr {
             self.emit_expr(expr);
-        }
 
-        // finally block is currently active, plain return is not allowed, finally block
-        // needs to be executed
-        if let Some(lbl_finally) = self.lbl_finally {
-            // store return value if available
-            if s.expr.is_some() {
+            if self.lbl_finally.is_some() {
                 emit::mov_reg_local(&mut self.buf, self.fct.return_type.mode(),
                                     REG_RESULT, self.fct.src().eh_return_value.unwrap());
             }
+        }
 
-            emit::movl_imm_reg(&mut self.buf, TryStatus::Return.code(), REG_RESULT);
-            emit::mov_reg_local(&mut self.buf, MachineMode::Int32,
-                                REG_RESULT, self.fct.src().eh_status.unwrap());
+        self.emit_return();
+    }
+
+    fn emit_return_with_value(&mut self) {
+        if !self.fct.return_type.is_unit() {
+            emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
+                                self.fct.src().eh_return_value.unwrap(), REG_RESULT);
+        }
+
+        self.emit_return();
+    }
+
+    fn emit_return(&mut self) {
+        // finally block is currently active, plain return is not allowed, finally block
+        // needs to be executed
+        if let Some(lbl_finally) = self.lbl_finally {
             emit::jump(&mut self.buf, lbl_finally);
 
         // if no finally-block currently active just exit from the current function
@@ -311,6 +320,41 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
+        let lbl_after = self.buf.create_label();
+
+        let try_span = self.stmt_with_finally(s, &s.try_block, lbl_after);
+        let catch_spans = self.emit_try_catch_blocks(s, try_span, lbl_after);
+        let finally_start = self.emit_try_finally_block(s, lbl_after);
+
+        self.buf.define_label(lbl_after);
+
+        if let Some(finally_start) = finally_start {
+            self.buf.add_exception_handler(try_span, finally_start, CatchType::Any);
+
+            for &catch_span in &catch_spans {
+                self.buf.add_exception_handler(catch_span, finally_start, CatchType::Any);
+            }
+        }
+    }
+
+    fn emit_try_catch_blocks(&mut self, s: &'ast StmtTryType, try_span: (usize, usize),
+                             lbl_after: Label) -> Vec<(usize, usize)> {
+        let mut ret = Vec::new();
+
+        for catch in &s.catch_blocks {
+            let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
+
+            let catch_type = CatchType::Class(catch.ty().cls_id());
+            self.buf.add_exception_handler(try_span, catch_span.0, catch_type);
+
+            ret.push(catch_span);
+        }
+
+        ret
+    }
+
+    fn stmt_with_finally(&mut self, s: &'ast StmtTryType, stmt: &'ast Stmt,
+                            lbl_after: Label) -> (usize, usize) {
         let saved_lbl_finally = self.lbl_finally;
         let lbl_finally = self.buf.create_label();
 
@@ -320,48 +364,35 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.lbl_finally = Some(lbl_finally);
         }
 
-        let try_start = self.buf.pos();
-        self.visit_stmt(&s.try_block);
-
-        if !always_returns(&s.try_block) {
-            self.emit_store_eh_status(TryStatus::Finished);
-            emit::jump(&mut self.buf, lbl_finally);
-        }
-
-        let try_end = self.buf.pos();
-
-        for catch in &s.catch_blocks {
-            self.emit_try_catch_block(catch, lbl_finally);
-        }
+        let start = self.buf.pos();
+        self.visit_stmt(stmt);
+        let end = self.buf.pos();
 
         self.buf.define_label(lbl_finally);
         self.lbl_finally = saved_lbl_finally;
 
         if let Some(ref finally_block) = s.finally_block {
             self.visit_stmt(finally_block);
-
-            // check TryStatus::Return
-            self.emit_try_return_check();
-
-            // check TryStatus::NoMatchingCatch
-            self.emit_try_catch_check();
         }
 
-        // stores offsets of try- and catch-block in buffer
-        self.buf.add_exception_handler(try_start, try_end, try_end);
+        if always_returns(stmt) {
+            self.emit_return_with_value();
+        } else {
+            emit::jump(&mut self.buf, lbl_after);
+        }
+
+        (start, end)
     }
 
-    fn emit_try_catch_block(&mut self, catch: &'ast CatchBlock, lbl_finally: Label) {
-        let lbl_next = self.buf.create_label();
+    fn emit_try_finally_block(&mut self, s: &'ast StmtTryType, lbl_after: Label)
+                              -> Option<usize> {
+        if s.finally_block.is_none() { return None; }
+        let finally_block = s.finally_block.as_ref().unwrap();
 
-        self.visit_stmt(&catch.block);
+        let finally_pos = self.buf.pos();
+        self.visit_stmt(finally_block);
 
-        if !always_returns(&catch.block) {
-            self.emit_store_eh_status(TryStatus::Finished);
-            emit::jump(&mut self.buf, lbl_finally);
-        }
-
-        self.buf.define_label(lbl_next);
+        Some(finally_pos)
     }
 
     fn emit_try_return_check(&mut self) {
@@ -528,6 +559,11 @@ pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
     }
 
     GcPoint::from_offsets(offsets)
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Next {
+    Flow(Label), Return
 }
 
 #[cfg(test)]

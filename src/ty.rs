@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::Context;
+use ctxt::{Context, get_ctxt};
 use mem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -58,6 +58,9 @@ impl BuiltinType {
     pub fn cls_id(&self) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
+            BuiltinType::Str => get_ctxt().primitive_classes.str_class,
+            BuiltinType::IntArray => get_ctxt().primitive_classes.int_array,
+
             _ => panic!()
         }
     }
