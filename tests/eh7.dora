@@ -1,0 +1,12 @@
+fun main() {
+  let a = 0;
+
+  try {
+    throw "abc";
+    a = 1;
+  } catch x: Str {
+    a = 2;
+  }
+
+  assert(a == 2);
+}

@@ -24,7 +24,7 @@ pub struct JitFct {
 
     linenos: LineNumberTable,
 
-    exception_handlers: Vec<ExHandler>,
+    pub exception_handlers: Vec<ExHandler>,
 }
 
 impl JitFct {
@@ -179,7 +179,7 @@ pub struct ExHandler {
     pub catch_type: CatchType,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CatchType {
     Any, Class(ClassId),
 }

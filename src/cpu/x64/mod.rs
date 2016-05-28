@@ -2,7 +2,9 @@ use libc;
 
 use ctxt::{Context, FctId, FctKind, get_ctxt};
 use execstate::ExecState;
+use jit::fct::CatchType;
 use mem::ptr::Ptr;
+use object::{Handle, Obj};
 use stack::Stacktrace;
 
 pub use self::param::*;
@@ -13,6 +15,74 @@ pub mod instr;
 pub mod param;
 pub mod reg;
 pub mod trap;
+
+pub fn handle_exception(exception: Handle<Obj>) {
+    let mut pc : usize = 0;
+    unsafe { asm!("lea (%rip), $0": "=r"(pc)); }
+
+    let mut fp : usize = 0;
+    unsafe { asm!("mov %rbp, $0": "=r"(fp)); }
+
+    while fp != 0 {
+        pc = unsafe { *((fp + 8) as *const usize) };
+        fp = unsafe { *(fp as *const usize) };
+
+        find_handler(exception, pc, fp);
+    }
+
+    println!("uncaught exception");
+    unsafe { libc::_exit(104); }
+}
+
+fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
+    let ctxt = get_ctxt();
+    let fct_id = {
+        let code_map = ctxt.code_map.lock().unwrap();
+
+        code_map.get(pc)
+    };
+
+    let mut catch: usize = 0;
+    let mut sp: usize = 0;
+
+    // println!("------------");
+    // println!("find {:x}", pc);
+
+    if let Some(fct_id) = fct_id {
+        ctxt.fct_by_id(fct_id, |fct| {
+            if let FctKind::Source(ref src) = fct.kind {
+                if let Some(ref jit_fct) = src.jit_fct {
+                    let cls_id = exception.header().class().id;
+
+                    for entry in &jit_fct.exception_handlers {
+                        let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+                        // println!("entry = {:x} to {:x} for {:?}",
+                        //          entry.try_start, entry.try_end, entry.catch_type);
+
+                        if entry.try_start <= offset && offset < entry.try_end
+                            && (entry.catch_type == CatchType::Any
+                                || entry.catch_type == CatchType::Class(cls_id)) {
+                            // println!("found handler");
+                            catch = (jit_fct.fct_ptr().raw() as usize) + entry.catch;
+                            sp = fp - src.stacksize() as usize;
+
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if catch != 0 {
+        unsafe {
+            asm!("mov $0, %rbp
+                  mov $1, %rsp
+                  jmp *$2"::"r"(fp), "r"(sp), "r"(catch):
+                    "~rbp" ,"~rsp":"volatile");
+        }
+    }
+}
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut rootset = Vec::new();

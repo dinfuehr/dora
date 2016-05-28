@@ -6,6 +6,8 @@ use std::mem;
 use std::os::raw::c_char;
 use std::slice;
 use std::str;
+
+use cpu;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
 use object::{Handle, IntArray, Obj, Str};
@@ -20,7 +22,7 @@ pub extern "C" fn assert(val: bool) {
 }
 
 pub extern "C" fn throw_exception(obj: Handle<Obj>) {
-    unsafe { libc::_exit(104); }
+    cpu::handle_exception(obj);
 }
 
 pub extern "C" fn resume_exception() {
