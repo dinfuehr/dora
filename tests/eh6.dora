@@ -1,4 +1,4 @@
-//= output "hello world!"
+//= output "hello world!\n"
 
 fun main() {
   assert(f() == 3);

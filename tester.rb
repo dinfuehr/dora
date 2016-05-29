@@ -11,7 +11,8 @@ class TestExpectation
                 :position,
                 :code,
                 :message,
-                :args
+                :args,
+                :output
 
   def initialize(opts = {})
     fail = opts.fetch(:fail, false)
@@ -20,22 +21,34 @@ class TestExpectation
   end
 end
 
+def test_files
+  if ARGV.length > 0
+    ARGV
+  else
+    Dir["tests/**/*.dora"]
+  end
+end
+
 def run_tests
   tests = 0
   passed = 0
   failed = 0
 
-  for file in Dir["tests/**/*.dora"]
+  for file in test_files
     file = Pathname.new(file)
     tests += 1
 
     print "test #{file} ... "
 
-    if run_test(file)
+    res = run_test(file)
+    if res == true
       puts "ok"
       passed += 1
     else
-      puts "failed"
+      print "failed"
+      print " (#{res})" if res != false
+      puts
+
       failed += 1
     end
   end
@@ -56,14 +69,17 @@ def run_test(file)
   process = $?
   exit_code = process.exitstatus
 
+  return "output does not match" if
+    expectation.output && expectation.output != IO.read($temp_out.path)
+
   if expectation.fail
     return false if exit_code == 0
     return false if expectation.code && exit_code != expectation.code
 
     position, message = read_error_message($temp_out)
-    return false if
+    return "position does not match" if
       position && expectation.position && position != expectation.position
-    return false if
+    return "message does not match" if
       message && expectation.message && message != expectation.message
 
     true
@@ -92,6 +108,63 @@ def read_error_message(file)
   return nil, nil
 end
 
+def read_cmdline(text)
+  args = []
+  in_quote = false
+  escaped = false
+  arg = ""
+
+  for char in text.chars
+    if escaped
+      arg +=  case char
+              when "n" then "\n"
+              else
+                return "unknown escape sequence \\#{char}"
+              end
+
+      escaped = false
+      next
+    end
+
+    case char
+    when " "
+      if in_quote
+        arg += " "
+      else
+        args.push(arg) unless arg.empty?
+        arg = ""
+      end
+
+    when "\""
+      if in_quote
+        args.push(arg)
+        arg = ""
+
+      elsif arg.empty?
+        in_quote = true
+
+      else
+        arg += "\""
+
+      end
+    when "\\"
+      if in_quote
+        escaped = true
+      else
+        arg += "\\"
+      end
+
+    else
+      arg += char
+
+    end
+  end
+
+  args.push(arg) unless arg.empty?
+
+  args
+end
+
 def test_case_expectation(file)
   exp = TestExpectation.new(fail: false)
 
@@ -101,7 +174,7 @@ def test_case_expectation(file)
     if line.start_with?("//=")
       line = line[3..-1].strip
 
-      arguments = line.split(/\s+/)
+      arguments = read_cmdline(line)
 
       case arguments[0]
       when "error"
@@ -116,6 +189,9 @@ def test_case_expectation(file)
         when "nil" then exp.code = 103
         when "exception" then exp.code = 104
         end
+
+      when "output"
+        exp.output = arguments[1]
 
       when "args"
         exp.args = arguments[1..-1]

@@ -1,0 +1,5 @@
+//= output "Hello, world!\n"
+
+fun main() {
+  println("Hello, world!");
+}
