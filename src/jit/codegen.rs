@@ -399,7 +399,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let finally_block = s.finally_block.as_ref().unwrap();
 
         let finally_pos = self.buf.pos();
+
+        self.scopes.push_scope();
+        self.scopes.add_var_offset(finally_block.offset());
+
         self.visit_stmt(&finally_block.block);
+
+        self.scopes.pop_scope();
 
         emit::mov_local_reg(&mut self.buf, MachineMode::Ptr,
                             finally_block.offset(), REG_PARAMS[0]);
@@ -483,16 +489,23 @@ impl Scopes {
         let scope = self.scopes.last_mut().unwrap();
         assert!(scope.vars.insert(id, offset).is_none());
     }
+
+    pub fn add_var_offset(&mut self, offset: i32) {
+        let scope = self.scopes.last_mut().unwrap();
+        scope.offsets.push(offset);
+    }
 }
 
 struct Scope {
     vars: HashMap<VarId, i32>,
+    offsets: Vec<i32>,
 }
 
 impl Scope {
     pub fn new() -> Scope {
         Scope {
-            vars: HashMap::new()
+            vars: HashMap::new(),
+            offsets: Vec::new(),
         }
     }
 }
@@ -528,6 +541,8 @@ pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
         for (var, &offset) in &scope.vars {
             offsets.push(offset);
         }
+
+        offsets.extend_from_slice(&scope.offsets);
     }
 
     for &offset in &temps.offsets {

@@ -1,0 +1,18 @@
+//= output "DONE\n"
+
+fun main() {
+  try {
+    foo();
+  } catch x: IntArray {
+    assert(x.len() == 5);
+    println("DONE");
+  }
+}
+
+fun foo() throws {
+  try {
+    throw intArrayWith(5, 1);
+  } finally {
+    forceCollect();
+  }
+}
