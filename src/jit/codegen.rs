@@ -329,10 +329,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.buf.define_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            self.buf.add_exception_handler(try_span, finally_start, CatchType::Any);
+            self.buf.emit_exception_handler(try_span, finally_start, CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.buf.add_exception_handler(catch_span, finally_start, CatchType::Any);
+                self.buf.emit_exception_handler(catch_span, finally_start, CatchType::Any);
             }
         }
     }
@@ -345,7 +345,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
             let catch_type = CatchType::Class(catch.ty().cls_id());
-            self.buf.add_exception_handler(try_span, catch_span.0, catch_type);
+            self.buf.emit_exception_handler(try_span, catch_span.0, catch_type);
 
             ret.push(catch_span);
         }

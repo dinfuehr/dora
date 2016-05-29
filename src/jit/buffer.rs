@@ -105,7 +105,7 @@ impl Buffer {
         self.bailouts.push((lbl, trap, pos));
     }
 
-    pub fn add_exception_handler(&mut self, span: (usize, usize), catch: usize, catch_type: CatchType) {
+    pub fn emit_exception_handler(&mut self, span: (usize, usize), catch: usize, catch_type: CatchType) {
         self.exception_handlers.push(ExHandler {
             try_start: span.0,
             try_end: span.1,
