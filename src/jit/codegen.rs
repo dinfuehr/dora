@@ -405,8 +405,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.visit_stmt(&finally_block.block);
 
-        self.scopes.pop_scope();
-
         emit::mov_local_reg(&mut self.buf, MachineMode::Ptr,
                             finally_block.offset(), REG_PARAMS[0]);
 
@@ -416,6 +414,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         emit::movq_addr_reg(&mut self.buf, disp + pos, REG_RESULT);
         emit::call(&mut self.buf, REG_RESULT);
+
+        self.scopes.pop_scope();
 
         Some(finally_pos)
     }
