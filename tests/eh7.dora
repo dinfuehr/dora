@@ -2,11 +2,15 @@ fun main() {
   let a = 0;
 
   try {
+    a = 3;
     throw "abc";
-    a = 1;
+  } catch y: IntArray {
+    println("I should not be reached.");
+    a = 4;
+
   } catch x: Str {
-    a = 2;
+    a = 5;
   }
 
-  assert(a == 2);
+  assert(a == 5);
 }

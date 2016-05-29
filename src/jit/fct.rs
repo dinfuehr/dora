@@ -44,16 +44,13 @@ impl JitFct {
             ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.raw() as *mut u8, buffer.len());
         }
 
-        exception_handlers.iter_mut().map(|e| {
+        for handler in &mut exception_handlers {
             let fct_start: usize = fct_start.raw() as usize;
 
-            ExHandler {
-                try_start: fct_start + e.try_start,
-                try_end: fct_start + e.try_end,
-                catch: fct_start + e.catch,
-                catch_type: e.catch_type,
-            }
-        });
+            handler.try_start = fct_start + handler.try_start;
+            handler.try_end = fct_start + handler.try_end;
+            handler.catch = fct_start + handler.catch;
+        }
 
         JitFct {
             fct_id: fct_id,

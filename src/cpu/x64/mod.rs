@@ -55,16 +55,20 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
                     let cls_id = exception.header().class().id;
 
                     for entry in &jit_fct.exception_handlers {
-                        let offset = pc - (jit_fct.fct_ptr().raw() as usize);
                         // println!("entry = {:x} to {:x} for {:?}",
                         //          entry.try_start, entry.try_end, entry.catch_type);
 
-                        if entry.try_start <= offset && offset < entry.try_end
+                        if entry.try_start < pc && pc <= entry.try_end
                             && (entry.catch_type == CatchType::Any
                                 || entry.catch_type == CatchType::Class(cls_id)) {
                             // println!("found handler");
-                            catch = (jit_fct.fct_ptr().raw() as usize) + entry.catch;
+                            catch = entry.catch;
                             sp = fp - src.stacksize() as usize;
+
+                            break;
+                        } else if pc > entry.try_end {
+                            // exception handlers are sorted, no more possible handlers
+                            // in this function
 
                             break;
                         }
