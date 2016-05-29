@@ -27,14 +27,18 @@ pub fn handle_exception(exception: Handle<Obj>) {
         pc = unsafe { *((fp + 8) as *const usize) };
         fp = unsafe { *(fp as *const usize) };
 
-        find_handler(exception, pc, fp);
+        let bubble_up = find_handler(exception, pc, fp);
+
+        if !bubble_up {
+            break;
+        }
     }
 
     println!("uncaught exception");
     unsafe { libc::_exit(104); }
 }
 
-fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
+fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) -> bool {
     let ctxt = get_ctxt();
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
@@ -44,6 +48,7 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
 
     let mut catch: usize = 0;
     let mut sp: usize = 0;
+    let mut bubble_up = true;
 
     // println!("------------");
     // println!("find {:x}", pc);
@@ -80,6 +85,10 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
                         }
                     }
                 }
+
+                // exception can only bubble up in stacktrace if current function
+                // is allowed to throw exceptions
+                bubble_up = src.ast.throws;
             }
         });
     }
@@ -92,6 +101,8 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
                     "~rbp" ,"~rsp":"volatile");
         }
     }
+
+    bubble_up
 }
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {

@@ -1,0 +1,13 @@
+//= error exception
+
+fun main() {
+  try {
+    foo();
+  } catch x: Str {
+    println(x);
+  }
+}
+
+fun foo() {
+  throw "catch me";
+}

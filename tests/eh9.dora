@@ -1,0 +1,13 @@
+//= output "catch me\n"
+
+fun main() {
+  try {
+    foo();
+  } catch x: Str {
+    println(x);
+  }
+}
+
+fun foo() throws {
+  throw "catch me";
+}
