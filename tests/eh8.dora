@@ -1,0 +1,9 @@
+fun main() {
+  try {
+    throw intArrayWith(5, 1);
+
+  } catch x: IntArray {
+    forceCollect();
+    assert(x.len() == 5);
+  }
+}

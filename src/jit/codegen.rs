@@ -342,9 +342,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let mut ret = Vec::new();
 
         for catch in &s.catch_blocks {
+            let varid = catch.var();
+            let offset = self.fct.var(varid).offset;
+
+            self.scopes.push_scope();
+            self.scopes.add_var(varid, offset);
+
             let catch_span = self.stmt_with_finally(s, &catch.block, lbl_after);
 
-            let offset = self.fct.var(catch.var()).offset;
+            self.scopes.pop_scope();
+
             let catch_type = CatchType::Class(catch.ty().cls_id());
             self.buf.emit_exception_handler(try_span, catch_span.0, offset, catch_type);
 

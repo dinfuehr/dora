@@ -6,8 +6,9 @@ fun main() {
   try {
     a = 3;
     throw "abc";
+
   } catch y: IntArray {
-    println("I should not be reached.");
+    println("unreachable");
     a = 4;
 
   } catch x: Str {
