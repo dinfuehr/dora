@@ -100,7 +100,7 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
 fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
     // return in finally-block is good enough
     if let Some(ref finally_block) = s.finally_block {
-        if returns_value(finally_block).is_ok() {
+        if returns_value(&finally_block.block).is_ok() {
             return Ok(());
         }
     }

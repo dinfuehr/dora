@@ -148,7 +148,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         if let Some(ref finally_block) = try.finally_block {
-            self.visit_stmt(finally_block);
+            self.visit_stmt(&finally_block.block);
         }
     }
 

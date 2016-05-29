@@ -172,7 +172,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
 
             if let Some(ref finally_block) = value.finally_block {
-                v.visit_stmt(finally_block);
+                v.visit_stmt(&finally_block.block);
             }
         }
 

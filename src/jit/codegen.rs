@@ -329,10 +329,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.buf.define_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            self.buf.emit_exception_handler(try_span, finally_start, 0, CatchType::Any);
+            let offset = s.finally_block.as_ref().unwrap().offset();
+            self.buf.emit_exception_handler(try_span, finally_start, offset, CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.buf.emit_exception_handler(catch_span, finally_start, 0, CatchType::Any);
+                self.buf.emit_exception_handler(catch_span, finally_start, offset, CatchType::Any);
             }
         }
     }
@@ -380,7 +381,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.lbl_finally = saved_lbl_finally;
 
         if let Some(ref finally_block) = s.finally_block {
-            self.visit_stmt(finally_block);
+            self.visit_stmt(&finally_block.block);
         }
 
         if always_returns(stmt) {
@@ -398,9 +399,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let finally_block = s.finally_block.as_ref().unwrap();
 
         let finally_pos = self.buf.pos();
-        self.visit_stmt(finally_block);
+        self.visit_stmt(&finally_block.block);
 
-        let ptr = Ptr::new(stdlib::resume_exception as *mut libc::c_void);
+        emit::mov_local_reg(&mut self.buf, MachineMode::Ptr,
+                            finally_block.offset(), REG_PARAMS[0]);
+
+        let ptr = Ptr::new(stdlib::throw_exception as *mut libc::c_void);
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 

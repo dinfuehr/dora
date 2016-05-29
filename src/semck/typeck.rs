@@ -153,7 +153,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         if let Some(ref finally_block) = s.finally_block {
-            self.visit_stmt(finally_block);
+            self.visit_stmt(&finally_block.block);
         }
     }
 
@@ -1088,7 +1088,7 @@ mod tests {
 
     #[test]
     fn try_missing_catch() {
-        err("fun f() { try {} }", pos(1, 11), Msg::CatchExpected);
+        err("fun f() { try {} }", pos(1, 11), Msg::CatchOrFinallyExpected);
     }
 
     #[test]

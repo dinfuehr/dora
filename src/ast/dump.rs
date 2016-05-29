@@ -263,7 +263,7 @@ impl<'a> AstDumper<'a> {
 
         if let Some(ref finally_block) = stmt.finally_block {
             dump!(self, "finally");
-            self.dump_stmt(finally_block);
+            self.dump_stmt(&finally_block.block);
         }
     }
 

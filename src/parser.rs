@@ -517,10 +517,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(CatchBlock::new(name, pos, data_type, block))
     }
 
-    fn parse_finally(&mut self) -> StmtResult {
+    fn parse_finally(&mut self) -> Result<FinallyBlock, ParseError> {
         try!(self.expect_token(TokenType::Finally));
+        let block = try!(self.parse_block());
 
-        self.parse_block()
+        Ok(FinallyBlock::new(block))
     }
 
     fn parse_let(&mut self) -> StmtResult {

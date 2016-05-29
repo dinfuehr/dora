@@ -135,8 +135,8 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     }
                 }
 
-                if try.catch_blocks.is_empty() {
-                    self.ctxt.diag.borrow_mut().report(try.pos, Msg::CatchExpected);
+                if try.catch_blocks.is_empty() && try.finally_block.is_none() {
+                    self.ctxt.diag.borrow_mut().report(try.pos, Msg::CatchOrFinallyExpected);
                 }
 
                 visit::walk_stmt(self, s);

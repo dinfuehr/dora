@@ -381,7 +381,8 @@ impl Stmt {
     }
 
     pub fn create_try(id: NodeId, pos: Position, try_block: Box<Stmt>,
-                      catch_blocks: Vec<CatchBlock>, finally_block: Option<Box<Stmt>>) -> Stmt {
+                      catch_blocks: Vec<CatchBlock>,
+                      finally_block: Option<FinallyBlock>) -> Stmt {
         Stmt::StmtTry(StmtTryType {
             id: id,
             pos: pos,
@@ -670,7 +671,7 @@ pub struct StmtTryType {
     pub pos: Position,
     pub try_block: Box<Stmt>,
     pub catch_blocks: Vec<CatchBlock>,
-    pub finally_block: Option<Box<Stmt>>,
+    pub finally_block: Option<FinallyBlock>,
 }
 
 #[derive(Clone, Debug)]
@@ -709,6 +710,29 @@ impl CatchBlock {
 
     pub fn var(&self) -> VarId {
         self.var.borrow().unwrap()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FinallyBlock {
+    pub block: Box<Stmt>,
+    pub offset: RefCell<Option<i32>>,
+}
+
+impl FinallyBlock {
+    pub fn new(block: Box<Stmt>) -> FinallyBlock {
+        FinallyBlock {
+            block: block,
+            offset: RefCell::new(None),
+        }
+    }
+
+    pub fn offset(&self) -> i32 {
+        self.offset.borrow().unwrap()
+    }
+
+    pub fn set_offset(&self, offset: i32) {
+        *self.offset.borrow_mut() = Some(offset);
     }
 }
 

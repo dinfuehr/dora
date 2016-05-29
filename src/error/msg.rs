@@ -39,7 +39,7 @@ pub enum Msg {
     InvalidUseOfSelf,
     ReferenceTypeExpected(String),
     ThrowNil,
-    CatchExpected,
+    CatchOrFinallyExpected,
 }
 
 impl Msg {
@@ -119,7 +119,7 @@ impl Msg {
                 format!("`{}` is not a reference type.", name)
             }
             ThrowNil => "throwing `nil` is not allowed.".into(),
-            CatchExpected => "`try` needs at least one `catch` block.".into(),
+            CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
         }
     }
 }

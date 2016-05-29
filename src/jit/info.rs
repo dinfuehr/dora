@@ -88,6 +88,11 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             for catch in &try.catch_blocks {
                 self.reserve_stack_for_node(catch.var());
             }
+
+            if let Some(ref finally_block) = try.finally_block {
+                let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+                finally_block.set_offset(offset);
+            }
         }
 
         visit::walk_stmt(self, s);

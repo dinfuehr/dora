@@ -1,0 +1,17 @@
+//= output "finally in foo\ncatch me\n"
+
+fun main() {
+  try {
+    foo();
+  } catch x: Str {
+    println(x);
+  }
+}
+
+fun foo() throws {
+  try {
+    throw "catch me";
+  } finally {
+    println("finally in foo");
+  }
+}
