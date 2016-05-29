@@ -61,6 +61,12 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) {
                         if entry.try_start < pc && pc <= entry.try_end
                             && (entry.catch_type == CatchType::Any
                                 || entry.catch_type == CatchType::Class(cls_id)) {
+                            let arg = (fp as isize + entry.offset as isize) as usize;
+
+                            unsafe {
+                                *(arg as *mut usize) = exception.raw() as usize;
+                            }
+
                             // println!("found handler");
                             catch = entry.catch;
                             sp = fp - src.stacksize() as usize;

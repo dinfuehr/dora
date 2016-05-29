@@ -84,9 +84,10 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                     || self.reserve_stack_for_type(ret)));
             }
 
-            let int = BuiltinType::Int;
-            self.eh_status = Some(self.eh_status.unwrap_or_else(
-                || self.reserve_stack_for_type(int)));
+            // we also need space for catch block parameters
+            for catch in &try.catch_blocks {
+                self.reserve_stack_for_node(catch.var());
+            }
         }
 
         visit::walk_stmt(self, s);

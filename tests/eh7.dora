@@ -1,3 +1,5 @@
+//= output "abc\n"
+
 fun main() {
   let a = 0;
 
@@ -10,6 +12,7 @@ fun main() {
 
   } catch x: Str {
     a = 5;
+    println(x);
   }
 
   assert(a == 5);
