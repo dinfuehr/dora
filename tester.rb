@@ -3,6 +3,9 @@
 require 'pathname'
 require 'tempfile'
 
+$ARGS = ARGV.clone
+$release = $ARGS.delete("--release") != nil
+
 $temp_out = Tempfile.new('runner_out')
 $temp_err = Tempfile.new('runner_err')
 
@@ -22,8 +25,8 @@ class TestExpectation
 end
 
 def test_files
-  if ARGV.length > 0
-    ARGV
+  if $ARGS.length > 0
+    $ARGS
   else
     Dir["tests/**/*.dora"]
   end
@@ -65,16 +68,16 @@ def run_test(file)
   args = ""
   args = expectation.args.join(" ") if expectation.args
 
-  system("target/debug/dora #{file} #{args} >#{$temp_out.path} 2>/dev/null")
+  target = $release ? "release" : "debug"
+
+  system("target/#{target}/dora #{file} #{args} >#{$temp_out.path} 2>/dev/null")
   process = $?
   exit_code = process.exitstatus
 
-  return "output does not match" if
-    expectation.output && expectation.output != IO.read($temp_out.path)
-
   if expectation.fail
-    return false if exit_code == 0
-    return false if expectation.code && exit_code != expectation.code
+    return "expected failure" if exit_code == 0
+    return "expected failure #{expectation.code} but was #{exit_code}" if
+      expectation.code && exit_code != expectation.code
 
     position, message = read_error_message($temp_out)
     return "position does not match" if
@@ -82,11 +85,15 @@ def run_test(file)
     return "message does not match" if
       message && expectation.message && message != expectation.message
 
-    true
-  else
-    exit_code == 0
+  elsif exit_code != 0
+    return "expected success but was #{exit_code}"
 
   end
+
+  return "output does not match" if
+    expectation.output && expectation.output != IO.read($temp_out.path)
+
+  true
 end
 
 def read_error_message(file)

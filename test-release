@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cargo build --release && cargo test --release && ruby tester.rb --release $@
