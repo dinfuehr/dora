@@ -24,7 +24,7 @@ mod os;
 mod os_cpu;
 mod parser;
 mod semck;
-mod stack;
+mod stacktrace;
 mod stdlib;
 mod sym;
 mod ty;

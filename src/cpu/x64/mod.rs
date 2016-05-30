@@ -5,7 +5,7 @@ use execstate::ExecState;
 use jit::fct::CatchType;
 use mem::ptr::Ptr;
 use object::{Handle, Obj};
-use stack::Stacktrace;
+use stacktrace::Stacktrace;
 
 pub use self::param::*;
 pub use self::reg::*;
