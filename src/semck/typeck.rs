@@ -221,6 +221,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.visit_expr(&e.rhs);
             let rhs_type = self.expr_type;
 
+            // check if variable is reassignable
+            if e.lhs.is_ident() {
+                let ident = e.lhs.to_ident().unwrap();
+                let ident_type = ident.ident_type();
+
+                if let IdentType::Var(varid) = ident_type {
+                    if !self.fct.var(varid).reassignable {
+                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                    }
+                }
+            }
+
             if !lhs_type.allows(rhs_type) {
                 let msg = if e.lhs.is_ident() {
                     let ident = e.lhs.to_ident().unwrap();
@@ -888,13 +900,6 @@ mod tests {
     }
 
     #[test]
-    fn type_assign() {
-        ok("fun f(a: int) { a = 1; }");
-        err("fun f(a: int) { a = true; }", pos(1, 19),
-            Msg::AssignType("a".into(), "int".into(), "bool".into()));
-    }
-
-    #[test]
     fn type_assign_lvalue() {
         err("fun f() { 1 = 3; }", pos(1, 13), Msg::LvalueExpected);
     }
@@ -1081,7 +1086,7 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { try {} catch a: Str { print(a); } }");
-        ok("fun f() { let x = 0; try {} catch a: IntArray { x=a.len(); } }");
+        ok("fun f() { var x = 0; try {} catch a: IntArray { x=a.len(); } }");
     }
 
     #[test]
@@ -1116,5 +1121,38 @@ mod tests {
     #[test]
     fn var_without_initialization() {
         ok("fun f() { var x: int; }");
+    }
+
+    #[test]
+    fn reassign_param() {
+        err("fun f(a: int) { a = 1; }", pos(1, 19), Msg::LetReassigned);
+    }
+
+    #[test]
+    fn reassign_catch() {
+        err("fun f() {
+               try {
+                 throw \"test\";
+               } catch x: IntArray {
+                 x = emptyIntArray();
+               }
+             }", pos(5, 20), Msg::LetReassigned);
+    }
+
+    #[test]
+    fn reassign_var() {
+        ok("fun f() { var a=1; a=2; }");
+    }
+
+    #[test]
+    fn reassign_let() {
+        err("fun f() { let a=1; a=2; }", pos(1, 21), Msg::LetReassigned);
+    }
+
+    #[test]
+    fn reassign_self() {
+        err("class Foo {
+            fun f(self) { self = Foo(); }
+        }", pos(2, 32), Msg::LvalueExpected);
     }
 }

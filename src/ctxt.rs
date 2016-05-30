@@ -381,6 +381,13 @@ impl IdentType {
         }
     }
 
+    pub fn is_var(&self) -> bool {
+        match *self {
+            IdentType::Var(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_prop(&self) -> bool {
         match *self {
             IdentType::Prop(_, _) => true,
@@ -474,6 +481,7 @@ pub struct Var {
     pub id: VarId,
     pub name: Name,
     pub ty: BuiltinType,
+    pub reassignable: bool,
     pub node_id: ast::NodeId,
     pub offset: i32,
 }

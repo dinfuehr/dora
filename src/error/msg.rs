@@ -41,6 +41,7 @@ pub enum Msg {
     ThrowNil,
     CatchOrFinallyExpected,
     LetMissingInitialization,
+    LetReassigned,
 }
 
 impl Msg {
@@ -122,6 +123,7 @@ impl Msg {
             ThrowNil => "throwing `nil` is not allowed.".into(),
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             LetMissingInitialization => "`let` binding is missing initialization.".into(),
+            LetReassigned => "`let` binding cannot be reassigned.".into(),
         }
     }
 }

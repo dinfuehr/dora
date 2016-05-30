@@ -1,6 +1,6 @@
 fun main() {
-  let i = 0;
-  let sum = 0;
+  var i = 0;
+  var sum = 0;
 
   while i < 10 {
     if i == 4 { break; }

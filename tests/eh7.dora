@@ -1,7 +1,7 @@
 //= output "abc\n"
 
 fun main() {
-  let a = 0;
+  var a = 0;
 
   try {
     a = 3;

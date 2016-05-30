@@ -61,6 +61,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             id: VarId(0),
             name: name,
             ty: BuiltinType::Class(cls_id),
+            reassignable: false,
             node_id: ast_id,
             offset: 0
         };
@@ -93,6 +94,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let var_ctxt = Var {
             id: VarId(0),
             name: var.name,
+            reassignable: var.reassignable,
             ty: BuiltinType::Unit,
             node_id: var.id,
             offset: 0
@@ -126,6 +128,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 id: VarId(0),
                 name: catch.name,
                 ty: BuiltinType::Unit,
+                reassignable: false,
                 node_id: try.id,
                 offset: 0
             };
@@ -228,6 +231,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         let var_ctxt = Var {
             id: VarId(0),
             name: p.name,
+            reassignable: false,
             ty: BuiltinType::Unit,
             node_id: p.id,
             offset: 0,
