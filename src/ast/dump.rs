@@ -141,7 +141,7 @@ impl<'a> AstDumper<'a> {
             StmtContinue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtExpr(ref expr) => self.dump_stmt_expr(expr),
             StmtIf(ref stmt) => self.dump_stmt_if(stmt),
-            StmtLet(ref stmt) => self.dump_stmt_let(stmt),
+            StmtVar(ref stmt) => self.dump_stmt_var(stmt),
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
@@ -149,7 +149,7 @@ impl<'a> AstDumper<'a> {
         }
     }
 
-    fn dump_stmt_let(&mut self, stmt: &StmtLetType) {
+    fn dump_stmt_var(&mut self, stmt: &StmtVarType) {
         dump!(self, "let {} @ {} {}", self.str(stmt.name), stmt.pos, stmt.id);
 
         self.indent(|d| {

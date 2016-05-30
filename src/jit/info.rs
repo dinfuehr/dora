@@ -72,7 +72,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        if let StmtLet(ref var) = *s {
+        if let StmtVar(ref var) = *s {
             self.reserve_stack_for_node(var.var());
         }
 

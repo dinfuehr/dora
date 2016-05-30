@@ -108,12 +108,12 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtLet(ref var) => {
+            StmtVar(ref var) => {
                 if let Some(ref data_type) = var.data_type {
                     self.visit_type(data_type);
 
-                    let var = s.to_let().unwrap().var();
-                    self.fct.var_mut(var).ty = self.current_type;
+                    let varid = var.var();
+                    self.fct.var_mut(varid).ty = self.current_type;
                 }
 
                 if let Some(ref expr) = var.expr {

@@ -278,7 +278,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.scopes.pop_scope();
     }
 
-    fn emit_stmt_let(&mut self, s: &'ast StmtLetType) {
+    fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
 
         if let Some(ref expr) = s.expr {
@@ -439,7 +439,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
-            StmtLet(ref stmt) => self.emit_stmt_let(stmt),
+            StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
             StmtTry(ref stmt) => self.emit_stmt_try(stmt),
         }

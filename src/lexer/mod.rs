@@ -76,6 +76,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("self", TokenType::This);
         keywords.insert("fun", TokenType::Fun);
         keywords.insert("let", TokenType::Let);
+        keywords.insert("var", TokenType::Var);
         keywords.insert("while", TokenType::While);
         keywords.insert("if", TokenType::If);
         keywords.insert("else", TokenType::Else);

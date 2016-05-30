@@ -18,6 +18,7 @@ pub enum TokenType {
     This,
     Fun,
     Let,
+    Var,
     While,
     If,
     Else,

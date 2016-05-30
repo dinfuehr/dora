@@ -279,7 +279,7 @@ impl Param {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    StmtLet(StmtLetType),
+    StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
     StmtLoop(StmtLoopType),
     StmtIf(StmtIfType),
@@ -293,12 +293,13 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn create_let(id: NodeId, pos: Position, name: Name,
+    pub fn create_var(id: NodeId, pos: Position, name: Name, reassignable: bool,
                       data_type: Option<Type>, expr: Option<Box<Expr>>) -> Stmt {
-        Stmt::StmtLet(StmtLetType {
+        Stmt::StmtVar(StmtVarType {
             id: id,
             pos: pos,
             name: name,
+            reassignable: reassignable,
             data_type: data_type,
             expr: expr,
             info: RefCell::new(None),
@@ -394,7 +395,7 @@ impl Stmt {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Stmt::StmtLet(ref stmt) => stmt.id,
+            Stmt::StmtVar(ref stmt) => stmt.id,
             Stmt::StmtWhile(ref stmt) => stmt.id,
             Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtIf(ref stmt) => stmt.id,
@@ -410,7 +411,7 @@ impl Stmt {
 
     pub fn pos(&self) -> Position {
         match *self {
-            Stmt::StmtLet(ref stmt) => stmt.pos,
+            Stmt::StmtVar(ref stmt) => stmt.pos,
             Stmt::StmtWhile(ref stmt) => stmt.pos,
             Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtIf(ref stmt) => stmt.pos,
@@ -452,16 +453,16 @@ impl Stmt {
         }
     }
 
-    pub fn to_let(&self) -> Option<&StmtLetType> {
+    pub fn to_var(&self) -> Option<&StmtVarType> {
         match *self {
-            Stmt::StmtLet(ref val) => Some(val),
+            Stmt::StmtVar(ref val) => Some(val),
             _ => None
         }
     }
 
-    pub fn is_let(&self) -> bool {
+    pub fn is_var(&self) -> bool {
         match *self {
-            Stmt::StmtLet(_) => true,
+            Stmt::StmtVar(_) => true,
             _ => false
         }
     }
@@ -580,17 +581,18 @@ impl Stmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtLetType {
+pub struct StmtVarType {
     pub id: NodeId,
     pub pos: Position,
     pub name: Name,
+    pub reassignable: bool,
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
     pub info: RefCell<Option<VarId>>,
 }
 
-impl StmtLetType {
+impl StmtVarType {
     pub fn var(&self) -> VarId {
         self.info.borrow().unwrap()
     }

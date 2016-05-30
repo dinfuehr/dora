@@ -40,7 +40,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_fct(self.ast);
     }
 
-    fn check_stmt_let(&mut self, s: &'ast StmtLetType) {
+    fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let expr_type = s.expr.as_ref().map(|expr| {
             self.visit_expr(&expr);
             self.expr_type
@@ -629,7 +629,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         match *s {
-            StmtLet(ref stmt) => self.check_stmt_let(stmt),
+            StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
