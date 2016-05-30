@@ -1106,4 +1106,15 @@ mod tests {
         err("fun f() { try { } catch a: IntArray { return a; } }", pos(1, 39),
             Msg::ReturnType("()".into(), "IntArray".into()));
     }
+
+    #[test]
+    fn let_without_initialization() {
+        err("fun f() { let x: int; }", pos(1, 11),
+            Msg::LetMissingInitialization);
+    }
+
+    #[test]
+    fn var_without_initialization() {
+        ok("fun f() { var x: int; }");
+    }
 }
