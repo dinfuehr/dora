@@ -75,6 +75,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let msg = Msg::AssignType(name, defined_type, expr_type);
                 self.ctxt.diag.borrow_mut().report(s.pos, msg);
             }
+
+        // let variable binding needs to be assigned
+        } else if !s.reassignable {
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::LetMissingInitialization);
         }
     }
 

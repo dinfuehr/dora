@@ -40,6 +40,7 @@ pub enum Msg {
     ReferenceTypeExpected(String),
     ThrowNil,
     CatchOrFinallyExpected,
+    LetMissingInitialization,
 }
 
 impl Msg {
@@ -120,6 +121,7 @@ impl Msg {
             }
             ThrowNil => "throwing `nil` is not allowed.".into(),
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
+            LetMissingInitialization => "`let` binding is missing initialization.".into(),
         }
     }
 }

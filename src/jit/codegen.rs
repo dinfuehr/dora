@@ -707,11 +707,11 @@ mod tests {
     #[test]
     fn test_assign() {
         assert_eq!(4711, run("fun f() -> int {
-                                let a: int; a = 4711; return a; }"));
+                                var a: int; a = 4711; return a; }"));
         assert_eq!(true, run("fun f() -> bool {
-                                let a: bool; a = true; return a; }"));
+                                var a: bool; a = true; return a; }"));
         assert_eq!(false, run("fun f() -> bool {
-                                 let a: bool; a = false; return a; }"));
+                                 var a: bool; a = false; return a; }"));
     }
 
     #[test]
