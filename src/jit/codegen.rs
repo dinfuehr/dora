@@ -9,8 +9,7 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use cpu::{Reg, REG_PARAMS, REG_RESULT, REG_TMP1};
-use cpu::emit;
+use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, REG_TMP1, trap};
 use ctxt::{Context, Fct, FctId, VarId};
 use driver::cmd::AsmSyntax;
 
@@ -309,14 +308,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         let reg = self.emit_expr(&s.expr);
         emit::nil_ptr_check(&mut self.buf, s.pos, reg);
-        emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, reg, REG_PARAMS[0]);
 
-        let ptr = Ptr::new(stdlib::throw_exception as *mut libc::c_void);
-        let disp = self.buf.add_addr(ptr);
-        let pos = self.buf.pos() as i32;
+        if reg != REG_RESULT {
+            emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, reg, REG_RESULT);
+        }
 
-        emit::movq_addr_reg(&mut self.buf, disp + pos, REG_RESULT);
-        emit::call(&mut self.buf, REG_RESULT);
+        trap::emit(&mut self.buf, trap::THROW);
     }
 
     fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
@@ -406,14 +403,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.visit_stmt(&finally_block.block);
 
         emit::mov_local_reg(&mut self.buf, MachineMode::Ptr,
-                            finally_block.offset(), REG_PARAMS[0]);
-
-        let ptr = Ptr::new(stdlib::throw_exception as *mut libc::c_void);
-        let disp = self.buf.add_addr(ptr);
-        let pos = self.buf.pos() as i32;
-
-        emit::movq_addr_reg(&mut self.buf, disp + pos, REG_RESULT);
-        emit::call(&mut self.buf, REG_RESULT);
+                            finally_block.offset(), REG_RESULT);
+        trap::emit(&mut self.buf, trap::THROW);
 
         self.scopes.pop_scope();
 

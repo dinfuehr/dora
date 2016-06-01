@@ -16,42 +16,40 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-pub fn handle_exception(exception: Handle<Obj>) {
-    let mut pc : usize = 0;
-    unsafe { asm!("lea (%rip), $0": "=r"(pc)); }
+pub fn handle_exception(exception: Handle<Obj>, es: &mut ExecState) -> bool {
+    let mut pc : usize = es.pc;
+    let mut fp : usize = es.regs[RBP.int() as usize];
 
-    let mut fp : usize = 0;
-    unsafe { asm!("mov %rbp, $0": "=r"(fp)); }
+    loop {
+        let found = find_handler(exception, es, pc, fp);
 
-    while fp != 0 {
+        match found {
+            HandlerFound::Yes => { return true; }
+            HandlerFound::Stop => { return false; }
+            HandlerFound::No => {
+                if fp == 0 { return false; }
+            }
+        }
+
         pc = unsafe { *((fp + 8) as *const usize) };
         fp = unsafe { *(fp as *const usize) };
-
-        let bubble_up = find_handler(exception, pc, fp);
-
-        if !bubble_up {
-            break;
-        }
     }
-
-    println!("uncaught exception");
-    unsafe { libc::_exit(104); }
 }
 
-fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) -> bool {
+#[derive(PartialEq, Eq, Debug)]
+enum HandlerFound { Yes, No, Stop }
+
+fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize) -> HandlerFound {
     let ctxt = get_ctxt();
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
-
         code_map.get(pc)
     };
 
-    let mut catch: usize = 0;
-    let mut sp: usize = 0;
-    let mut bubble_up = true;
-
     // println!("------------");
     // println!("find {:x}", pc);
+
+    let mut result = HandlerFound::No;
 
     if let Some(fct_id) = fct_id {
         ctxt.fct_by_id(fct_id, |fct| {
@@ -72,37 +70,33 @@ fn find_handler(exception: Handle<Obj>, pc: usize, fp: usize) -> bool {
                                 *(arg as *mut usize) = exception.raw() as usize;
                             }
 
-                            // println!("found handler");
-                            catch = entry.catch;
-                            sp = fp - src.stacksize() as usize;
+                            es.regs[RSP.int() as usize] = fp - src.stacksize() as usize;
+                            es.regs[RBP.int() as usize] = fp;
+                            es.pc = entry.catch;
 
-                            break;
+                            result = HandlerFound::Yes;
+                            return;
+
                         } else if pc > entry.try_end {
                             // exception handlers are sorted, no more possible handlers
                             // in this function
 
-                            break;
+                            return;
                         }
                     }
                 }
 
                 // exception can only bubble up in stacktrace if current function
                 // is allowed to throw exceptions
-                bubble_up = src.ast.throws;
+                if !src.ast.throws {
+                    result = HandlerFound::Stop;
+                    return;
+                }
             }
         });
     }
 
-    if catch != 0 {
-        unsafe {
-            asm!("mov $0, %rbp
-                  mov $1, %rsp
-                  jmp *$2"::"r"(fp), "r"(sp), "r"(catch):
-                    "~rbp" ,"~rsp":"volatile");
-        }
-    }
-
-    bubble_up
+    result
 }
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
