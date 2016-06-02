@@ -1125,6 +1125,7 @@ mod tests {
 
     #[test]
     fn reassign_param() {
+        ok("fun f(var a: int) { a = 1; }");
         err("fun f(a: int) { a = 1; }", pos(1, 19), Msg::LetReassigned);
     }
 

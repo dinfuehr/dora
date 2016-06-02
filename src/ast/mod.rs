@@ -311,6 +311,7 @@ pub struct Function {
 pub struct Param {
     pub id: NodeId,
     pub idx: u32,
+    pub reassignable: bool,
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,

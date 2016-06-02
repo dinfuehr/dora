@@ -231,7 +231,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         let var_ctxt = Var {
             id: VarId(0),
             name: p.name,
-            reassignable: false,
+            reassignable: p.reassignable,
             ty: BuiltinType::Unit,
             node_id: p.id,
             offset: 0,

@@ -287,6 +287,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = self.token.position;
         let name;
         let data_type;
+        let mut reassignable = false;
 
         if self.token.is(TokenType::This) {
             try!(self.read_token());
@@ -295,6 +296,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             data_type = Type::TypeSelf;
 
         } else {
+            if self.token.is(TokenType::Var) {
+                reassignable = true;
+
+                try!(self.read_token());
+            }
+
             name = try!(self.expect_identifier());
 
             try!(self.expect_token(TokenType::Colon));
@@ -304,6 +311,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(Param {
             id: self.generate_id(),
             idx: self.param_idx - 1,
+            reassignable: reassignable,
             name: name,
             pos: pos,
             data_type: data_type,
@@ -940,6 +948,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             idx: idx,
             name: name,
+            reassignable: false,
             pos: Position::new(1, 1),
             data_type: ty,
             info: RefCell::new(None),
