@@ -6,6 +6,7 @@ use lexer::position::Position;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Msg {
     Unimplemented,
+    UnknownClass(String),
     UnknownType(String),
     UnknownIdentifier(String),
     UnknownFunction(String),
@@ -42,12 +43,14 @@ pub enum Msg {
     CatchOrFinallyExpected,
     LetMissingInitialization,
     LetReassigned,
+    UnderivableType(String),
 }
 
 impl Msg {
     pub fn message(&self, ctxt: &Context) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
+            UnknownClass(ref name) => format!("class `{}` does not exist.", name),
             UnknownType(ref name) => format!("type `{}` does not exist.", name),
             UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
@@ -124,6 +127,9 @@ impl Msg {
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             LetMissingInitialization => "`let` binding is missing initialization.".into(),
             LetReassigned => "`let` binding cannot be reassigned.".into(),
+            UnderivableType(ref name) => {
+                format!("type `{}` cannot be used as super class.", name)
+            }
         }
     }
 }

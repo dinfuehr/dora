@@ -31,6 +31,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             id: id,
             name: c.name,
             ty: BuiltinType::Class(id),
+            parent_class: None,
+            derivable: c.derivable,
             ctors: Vec::new(),
             props: Vec::new(),
             methods: Vec::new(),

@@ -228,10 +228,37 @@ pub struct Class {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,
+    pub parent_class: Option<ParentClass>,
+    pub derivable: bool,
 
     pub ctor: Option<Function>,
     pub props: Vec<Prop>,
     pub methods: Vec<Function>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ParentClass {
+    pub name: Name,
+    pub pos: Position,
+    pub cls: RefCell<Option<ClassId>>,
+}
+
+impl ParentClass {
+    pub fn new(name: Name, pos: Position) -> ParentClass {
+        ParentClass {
+            name: name,
+            pos: pos,
+            cls: RefCell::new(None),
+        }
+    }
+
+    pub fn set_cls(&self, cls: ClassId) {
+        *self.cls.borrow_mut() = Some(cls);
+    }
+
+    pub fn cls(&self) -> ClassId {
+        self.cls.borrow().unwrap()
+    }
 }
 
 #[derive(Clone, Debug)]

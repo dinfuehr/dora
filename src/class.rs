@@ -14,6 +14,8 @@ pub struct Class<'ast> {
     pub id: ClassId,
     pub name: Name,
     pub ty: BuiltinType,
+    pub parent_class: Option<ClassId>,
+    pub derivable: bool,
     pub ctors: Vec<FctId>,
     pub props: Vec<Prop>,
     pub methods: Vec<FctId>,

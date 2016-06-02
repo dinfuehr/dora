@@ -6,6 +6,7 @@ use error::msg::Msg;
 use lexer::position::Position;
 use mem;
 use semck;
+use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
@@ -43,6 +44,30 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
 
         visit::walk_class(self, c);
+
+        if let Some(ref parent_class) = c.parent_class {
+            let name = self.ctxt.interner.str(parent_class.name).to_string();
+            let sym = self.ctxt.sym.borrow().get(parent_class.name);
+
+            match sym {
+                Some(Sym::SymClass(clsid)) => {
+                    parent_class.set_cls(clsid);
+                    let derivable = self.ctxt.cls_by_id(clsid).derivable;
+
+                    if derivable {
+                        self.cls_mut().parent_class = Some(clsid);
+                    } else {
+                        let msg = Msg::UnderivableType(name);
+                        self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
+                    }
+                }
+
+                _ => {
+                    let msg = Msg::UnknownClass(name);
+                    self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
+                }
+            };
+        }
 
         self.cls_id = None;
     }
@@ -160,5 +185,19 @@ mod tests {
         ok("class Foo(a: Bar) class Bar");
         err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType("Unknown".into()));
         err("class Foo(a: int, a: int)", pos(1, 19), Msg::ShadowProp("a".to_string()));
+    }
+
+    #[test]
+    fn class_with_unknown_super_class() {
+        err("class B : A {}", pos(1, 11), Msg::UnknownClass("A".into()));
+        err("open class B : A {}", pos(1, 16), Msg::UnknownClass("A".into()));
+        err("class B : int {}", pos(1, 11), Msg::UnderivableType("int".into()));
+    }
+
+    #[test]
+    fn class_with_open_modifier() {
+        ok("open class A {}");
+        ok("open class A {} class B : A {}");
+        err("class A {} class B : A {}", pos(1, 22), Msg::UnderivableType("A".into()));
     }
 }

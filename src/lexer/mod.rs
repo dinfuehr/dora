@@ -97,6 +97,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("try", TokenType::Try);
         keywords.insert("catch", TokenType::Catch);
         keywords.insert("finally", TokenType::Finally);
+        keywords.insert("open", TokenType::Open);
 
         let mut lexer = Lexer::<T> {
             reader: reader,

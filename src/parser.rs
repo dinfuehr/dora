@@ -94,7 +94,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 Ok(ElemFunction(fct))
             }
 
-            TokenType::Class => {
+            TokenType::Class
+            | TokenType::Open => {
                 let class = try!(self.parse_class());
                 Ok(ElemClass(class))
             }
@@ -108,6 +109,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_class(&mut self) -> Result<Class, ParseError> {
+        let derivable = if self.token.is(TokenType::Open) {
+            try!(self.read_token());
+
+            true
+        } else {
+            false
+        };
+
         let pos = try!(self.expect_token(TokenType::Class)).position;
         let ident = try!(self.expect_identifier());
 
@@ -115,13 +124,30 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: self.generate_id(),
             name: ident,
             pos: pos,
+            derivable: derivable,
+            parent_class: None,
             ctor: None,
             props: Vec::new(),
             methods: Vec::new()
         };
 
         self.in_class = true;
+
         try!(self.parse_primary_ctor(&mut cls));
+
+        cls.parent_class = if self.token.is(TokenType::Colon) {
+            try!(self.read_token());
+
+            let pos = self.token.position;
+            let name = try!(self.expect_identifier());
+
+            println!("pos = {}", pos);
+
+            Some(ParentClass::new(name, pos))
+        } else {
+            None
+        };
+
         try!(self.parse_class_body(&mut cls));
 
         let ctor = self.generate_ctor(&mut cls);
@@ -1797,6 +1823,7 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.props.len());
+        assert_eq!(false, class.derivable);
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
 
@@ -1834,6 +1861,22 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(2, class.props.len());
+    }
+
+    #[test]
+    fn parse_class_with_parent_class() {
+        let (prog, interner) = parse("class Foo : Bar {}");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!("Bar", interner.str(class.parent_class.as_ref().unwrap().name).to_string());
+    }
+
+    #[test]
+    fn parse_class_with_open() {
+        let (prog, interner) = parse("open class Foo");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(true, class.derivable);
     }
 
     #[test]

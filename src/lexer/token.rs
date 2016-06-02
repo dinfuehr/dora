@@ -41,6 +41,9 @@ pub enum TokenType {
     Struct,
     Trait,
 
+    // Modifiers
+    Open,
+
     // Operators
     Add,
     Sub,
