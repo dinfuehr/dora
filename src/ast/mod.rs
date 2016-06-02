@@ -230,10 +230,31 @@ pub struct Class {
     pub pos: Position,
     pub parent_class: Option<ParentClass>,
     pub derivable: bool,
+    pub ctor_params: Vec<PrimaryCtorParam>,
 
     pub ctor: Option<Function>,
-    pub props: Vec<Prop>,
+    pub fields: Vec<Field>,
     pub methods: Vec<Function>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PrimaryCtorParam {
+    pub name: Name,
+    pub pos: Position,
+    pub data_type: Type,
+    pub field: bool,
+    pub reassignable: bool,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl PrimaryCtorParam {
+    pub fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    pub fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -262,12 +283,14 @@ impl ParentClass {
 }
 
 #[derive(Clone, Debug)]
-pub struct Prop {
+pub struct Field {
     pub id: NodeId,
     pub idx: u32,
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
+    pub expr: Option<Box<Expr>>,
+    pub reassignable: bool,
 }
 
 #[derive(Clone, Debug)]

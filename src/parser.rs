@@ -127,12 +127,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             derivable: derivable,
             parent_class: None,
             ctor: None,
-            props: Vec::new(),
+            ctor_params: Vec::new(),
+            fields: Vec::new(),
             methods: Vec::new()
         };
 
         self.in_class = true;
-
         try!(self.parse_primary_ctor(&mut cls));
 
         cls.parent_class = if self.token.is(TokenType::Colon) {
@@ -140,8 +140,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             let pos = self.token.position;
             let name = try!(self.expect_identifier());
-
-            println!("pos = {}", pos);
 
             Some(ParentClass::new(name, pos))
         } else {
@@ -164,162 +162,38 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
 
         try!(self.expect_token(TokenType::LParen));
-        self.prop_idx = 0;
 
-        let mut props = try!(self.parse_comma_list(TokenType::RParen, |p| {
-            p.prop_idx += 1;
-
+        let mut params = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_primary_ctor_param()
         }));
 
-        cls.props.append(&mut props);
+        cls.ctor_params = params;
 
         Ok(())
     }
 
-    fn generate_ctor(&mut self, cls: &mut Class) -> Function {
-        let mut assignments : Vec<_> = cls.props.iter().map(|prop| {
-            let this = self.build_this();
-            let lhs = self.build_prop(this, prop.name);
-            let rhs = self.build_ident(prop.name);
-            let ass = self.build_assign(lhs, rhs);
+    fn parse_primary_ctor_param(&mut self) -> Result<PrimaryCtorParam, ParseError> {
+        let field = self.token.is(TokenType::Var) || self.token.is(TokenType::Let);
+        let reassignable = self.token.is(TokenType::Var);
 
-            self.build_stmt_expr(ass)
-        }).collect();
-
-        let this = self.build_this();
-        assignments.push(self.build_return(Some(this)));
-
-        let params = cls.props.iter().enumerate().map(|(idx, prop)| {
-            self.build_param(idx as u32, prop.name, prop.data_type.clone())
-        }).collect();
-        let id = self.generate_id();
-
-        Function {
-            id: id,
-            pos: Position::new(1, 1),
-            name: cls.name,
-            method: true,
-            params: params,
-            throws: false,
-            return_type: Some(self.build_type(cls.name)),
-            block: self.build_block(assignments)
+        // consume var and let
+        if field {
+            try!(self.read_token());
         }
-    }
 
-    fn build_stmt_expr(&mut self, expr: Box<Expr>) -> Box<Stmt> {
-        let id = self.generate_id();
-
-        Box::new(Stmt::StmtExpr(StmtExprType {
-            id: id,
-            pos: Position::new(1, 1),
-            expr: expr
-        }))
-    }
-
-    fn build_param(&mut self, idx: u32, name: Name, ty: Type) -> Param {
-        let id = self.generate_id();
-
-        Param {
-            id: id,
-            idx: idx,
-            name: name,
-            pos: Position::new(1, 1),
-            data_type: ty,
-            info: RefCell::new(None),
-        }
-    }
-
-    fn build_block(&mut self, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
-        let id = self.generate_id();
-
-        Box::new(Stmt::StmtBlock(StmtBlockType {
-            id: id,
-            pos: Position::new(1, 1),
-            stmts: stmts
-        }))
-    }
-
-    fn build_type(&mut self, name: Name) -> Type {
-        let id = self.generate_id();
-
-        Type::TypeBasic(TypeBasicType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name
-        })
-    }
-
-    fn build_ident(&mut self, name: Name) -> Box<Expr> {
-        let id = self.generate_id();
-
-        Box::new(Expr::ExprIdent(ExprIdentType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name,
-            info: RefCell::new(None),
-            ty: RefCell::new(None),
-        }))
-    }
-
-    fn build_return(&mut self, expr: Option<Box<Expr>>) -> Box<Stmt> {
-        let id = self.generate_id();
-
-        Box::new(Stmt::StmtReturn(StmtReturnType {
-            id: id,
-            pos: Position::new(1, 1),
-            expr: expr,
-        }))
-    }
-
-    fn build_this(&mut self) -> Box<Expr> {
-        let id = self.generate_id();
-
-        Box::new(Expr::ExprSelf(ExprSelfType {
-            id: id,
-            pos: Position::new(1, 1),
-            ty: RefCell::new(None),
-        }))
-    }
-
-    fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        let id = self.generate_id();
-
-        Box::new(Expr::ExprAssign(ExprAssignType {
-            id: id,
-            pos: Position::new(1, 1),
-            lhs: lhs,
-            rhs: rhs,
-            ty: RefCell::new(None),
-        }))
-    }
-
-    fn build_prop(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
-        let id = self.generate_id();
-
-        Box::new(Expr::ExprProp(ExprPropType {
-            id: id,
-            pos: Position::new(1, 1),
-            object: object,
-            name: name,
-            info: RefCell::new(None),
-            ty: RefCell::new(None),
-        }))
-    }
-
-    fn parse_primary_ctor_param(&mut self) -> Result<Prop, ParseError> {
         let pos = self.token.position;
         let name = try!(self.expect_identifier());
 
         try!(self.expect_token(TokenType::Colon));
         let data_type = try!(self.parse_type());
 
-        Ok(Prop {
-            id: self.generate_id(),
-            idx: self.prop_idx - 1,
+        Ok(PrimaryCtorParam {
             name: name,
             pos: pos,
             data_type: data_type,
+            field: field,
+            reassignable: reassignable,
+            ty: RefCell::new(None),
         })
     }
 
@@ -1015,6 +889,138 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = try!(self.lexer.read_token());
 
         Ok(mem::replace(&mut self.token, tok))
+    }
+
+    fn generate_ctor(&mut self, cls: &mut Class) -> Function {
+        let mut assignments : Vec<_> = cls.ctor_params.iter()
+                                                      .filter(|param| param.field)
+                                                      .map(|param| {
+            let this = self.build_this();
+            let lhs = self.build_prop(this, param.name);
+            let rhs = self.build_ident(param.name);
+            let ass = self.build_assign(lhs, rhs);
+
+            self.build_stmt_expr(ass)
+        }).collect();
+
+        let this = self.build_this();
+        assignments.push(self.build_return(Some(this)));
+
+        let params = cls.ctor_params.iter().enumerate().map(|(idx, prop)| {
+            self.build_param(idx as u32, prop.name, prop.data_type.clone())
+        }).collect();
+        let id = self.generate_id();
+
+        Function {
+            id: id,
+            pos: Position::new(1, 1),
+            name: cls.name,
+            method: true,
+            params: params,
+            throws: false,
+            return_type: Some(self.build_type(cls.name)),
+            block: self.build_block(assignments)
+        }
+    }
+
+    fn build_stmt_expr(&mut self, expr: Box<Expr>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtExpr(StmtExprType {
+            id: id,
+            pos: Position::new(1, 1),
+            expr: expr
+        }))
+    }
+
+    fn build_param(&mut self, idx: u32, name: Name, ty: Type) -> Param {
+        let id = self.generate_id();
+
+        Param {
+            id: id,
+            idx: idx,
+            name: name,
+            pos: Position::new(1, 1),
+            data_type: ty,
+            info: RefCell::new(None),
+        }
+    }
+
+    fn build_block(&mut self, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtBlock(StmtBlockType {
+            id: id,
+            pos: Position::new(1, 1),
+            stmts: stmts
+        }))
+    }
+
+    fn build_type(&mut self, name: Name) -> Type {
+        let id = self.generate_id();
+
+        Type::TypeBasic(TypeBasicType {
+            id: id,
+            pos: Position::new(1, 1),
+            name: name
+        })
+    }
+
+    fn build_ident(&mut self, name: Name) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprIdent(ExprIdentType {
+            id: id,
+            pos: Position::new(1, 1),
+            name: name,
+            info: RefCell::new(None),
+            ty: RefCell::new(None),
+        }))
+    }
+
+    fn build_return(&mut self, expr: Option<Box<Expr>>) -> Box<Stmt> {
+        let id = self.generate_id();
+
+        Box::new(Stmt::StmtReturn(StmtReturnType {
+            id: id,
+            pos: Position::new(1, 1),
+            expr: expr,
+        }))
+    }
+
+    fn build_this(&mut self) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprSelf(ExprSelfType {
+            id: id,
+            pos: Position::new(1, 1),
+            ty: RefCell::new(None),
+        }))
+    }
+
+    fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprAssign(ExprAssignType {
+            id: id,
+            pos: Position::new(1, 1),
+            lhs: lhs,
+            rhs: rhs,
+            ty: RefCell::new(None),
+        }))
+    }
+
+    fn build_prop(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
+        let id = self.generate_id();
+
+        Box::new(Expr::ExprProp(ExprPropType {
+            id: id,
+            pos: Position::new(1, 1),
+            object: object,
+            name: name,
+            info: RefCell::new(None),
+            ty: RefCell::new(None),
+        }))
     }
 }
 
@@ -1799,7 +1805,7 @@ mod tests {
         }");
 
         let cls = prog.elements[0].to_class().unwrap();
-        assert_eq!(0, cls.props.len());
+        assert_eq!(0, cls.fields.len());
         assert_eq!(2, cls.methods.len());
 
         let mtd1 = &cls.methods[0];
@@ -1822,26 +1828,21 @@ mod tests {
         let (prog, interner) = parse("class Foo");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(0, class.props.len());
+        assert_eq!(0, class.fields.len());
         assert_eq!(false, class.derivable);
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
-
-        let ctor = &class.ctor.as_ref().unwrap();
-        assert_eq!(0, ctor.params.len());
     }
 
     #[test]
     fn parse_class_with_parens_but_no_params() {
-        let (prog, interner) = parse("class Foo()");
+        let (prog, interner) = parse("open class Foo()");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(0, class.props.len());
-        assert_eq!(Position::new(1, 1), class.pos);
+        assert_eq!(0, class.fields.len());
+        assert_eq!(true, class.derivable);
+        assert_eq!(Position::new(1, 6), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
-
-        let ctor = &class.ctor.as_ref().unwrap();
-        assert_eq!(0, ctor.params.len());
     }
 
     #[test]
@@ -1849,10 +1850,31 @@ mod tests {
         let (prog, interner) = parse("class Foo(a: int)");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(1, class.props.len());
+        assert_eq!(0, class.fields.len());
+        assert_eq!(1, class.ctor_params.len());
+        assert_eq!(false, class.ctor_params[0].field);
+    }
 
-        let ctor = &class.ctor.as_ref().unwrap();
-        assert_eq!(1, ctor.params.len());
+    #[test]
+    fn parse_class_with_param_var() {
+        let (prog, interner) = parse("class Foo(var a: int)");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(0, class.fields.len());
+        assert_eq!(1, class.ctor_params.len());
+        assert_eq!(true, class.ctor_params[0].field);
+        assert_eq!(true, class.ctor_params[0].reassignable);
+    }
+
+    #[test]
+    fn parse_class_with_param_let() {
+        let (prog, interner) = parse("class Foo(let a: int)");
+        let class = prog.elements[0].to_class().unwrap();
+
+        assert_eq!(0, class.fields.len());
+        assert_eq!(1, class.ctor_params.len());
+        assert_eq!(true, class.ctor_params[0].field);
+        assert_eq!(false, class.ctor_params[0].reassignable);
     }
 
     #[test]
@@ -1860,12 +1882,13 @@ mod tests {
         let (prog, interner) = parse("class Foo(a: int, b: int)");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(2, class.props.len());
+        assert_eq!(0, class.fields.len());
+        assert_eq!(2, class.ctor_params.len());
     }
 
     #[test]
     fn parse_class_with_parent_class() {
-        let (prog, interner) = parse("class Foo : Bar {}");
+        let (prog, interner) = parse("class Foo : Bar");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!("Bar", interner.str(class.parent_class.as_ref().unwrap().name).to_string());

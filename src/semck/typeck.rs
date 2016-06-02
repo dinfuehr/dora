@@ -693,40 +693,40 @@ mod tests {
 
     #[test]
     fn type_object_prop() {
-        ok("class Foo(a:int) fun f(x: Foo) -> int { return x.a; }");
-        ok("class Foo(a:Str) fun f(x: Foo) -> Str { return x.a; }");
-        err("class Foo(a:int) fun f(x: Foo) -> bool { return x.a; }",
-             pos(1, 42), Msg::ReturnType("bool".into(), "int".into()));
+        ok("class Foo(let a:int) fun f(x: Foo) -> int { return x.a; }");
+        ok("class Foo(let a:Str) fun f(x: Foo) -> Str { return x.a; }");
+        err("class Foo(let a:int) fun f(x: Foo) -> bool { return x.a; }",
+             pos(1, 46), Msg::ReturnType("bool".into(), "int".into()));
 
-        parse_with_errors("class Foo(a:int) fun f(x: Foo) -> int { return x.b; }", |ctxt| {
+        parse_with_errors("class Foo(let a:int) fun f(x: Foo) -> int { return x.b; }", |ctxt| {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();
             assert_eq!(2, errors.len());
 
             let err = &errors[0];
-            assert_eq!(pos(1, 49), err.pos);
+            assert_eq!(pos(1, 53), err.pos);
             assert_eq!(Msg::UnknownProp("b".into(), "Foo".into()), err.msg);
 
             let err = &errors[1];
-            assert_eq!(pos(1, 41), err.pos);
+            assert_eq!(pos(1, 45), err.pos);
             assert_eq!(Msg::ReturnType("int".into(), "()".into()), err.msg);
         });
     }
 
     #[test]
-    fn type_object_set_prop() {
-        ok("class Foo(a: int) fun f(x: Foo) { x.a = 1; }");
-        err("class Foo(a: int) fun f(x: Foo) { x.a = false; }",
-            pos(1, 39),
+    fn type_object_set_field() {
+        ok("class Foo(let a: int) fun f(x: Foo) { x.a = 1; }");
+        err("class Foo(let a: int) fun f(x: Foo) { x.a = false; }",
+            pos(1, 43),
             Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "bool".into()));
     }
 
     #[test]
     fn type_object_prop_without_self() {
-        ok("class Foo(a: int) { fun f(self) -> int { return a; } }");
-        ok("class Foo(a: int) { fun set(self, x: int) { a = x; } }");
-        err("class Foo(a: int) { fun set(self, x: int) { b = x; } }",
-            pos(1, 45), Msg::UnknownIdentifier("b".into()));
+        ok("class Foo(let a: int) { fun f(self) -> int { return a; } }");
+        ok("class Foo(let a: int) { fun set(self, x: int) { a = x; } }");
+        err("class Foo(let a: int) { fun set(self, x: int) { b = x; } }",
+            pos(1, 49), Msg::UnknownIdentifier("b".into()));
     }
 
     #[test]
@@ -779,11 +779,11 @@ mod tests {
         err("class Foo fun me() { return self; }",
             pos(1, 29), Msg::SelfUnavailable);
 
-        ok("class Foo(a: int, b: int) {
+        ok("class Foo(let a: int, let b: int) {
             fun bar(self) -> int { return self.a + self.b; }
         }");
 
-        ok("class Foo(a: int) {
+        ok("class Foo(let a: int) {
             fun setA(self, a: int) { self.a = a; }
         }");
 
@@ -817,7 +817,7 @@ mod tests {
     #[test]
     fn type_ctor() {
         ok("class Foo fun f() -> Foo { return Foo(); }");
-        ok("class Foo(a: int) fun f() -> Foo { return Foo(1); }");
+        ok("class Foo(let a: int) fun f() -> Foo { return Foo(1); }");
         err("class Foo fun f() -> Foo { return 1; }", pos(1, 28),
             Msg::ReturnType("Foo".into(), "int".into()));
     }
@@ -1015,9 +1015,9 @@ mod tests {
 
     #[test]
     fn type_nil_for_ctor() {
-        ok("class Foo(a: Str) fun test() { Foo(nil); }");
-        err("class Foo(a: int) fun test() { Foo(nil); }",
-            pos(1, 32), Msg::UnknownCtor("Foo".into(), vec!["nil".into()]));
+        ok("class Foo(let a: Str) fun test() { Foo(nil); }");
+        err("class Foo(let a: int) fun test() { Foo(nil); }",
+            pos(1, 36), Msg::UnknownCtor("Foo".into(), vec!["nil".into()]));
     }
 
     #[test]
@@ -1028,10 +1028,10 @@ mod tests {
     }
 
     #[test]
-    fn type_nil_for_prop() {
-        ok("class Foo(a: Str) fun f() { Foo(nil).a = nil; }");
-        err("class Foo(a: int) fun f() { Foo(1).a = nil; }",
-            pos(1, 38), Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "nil".into()));
+    fn type_nil_for_field() {
+        ok("class Foo(let a: Str) fun f() { Foo(nil).a = nil; }");
+        err("class Foo(let a: int) fun f() { Foo(1).a = nil; }",
+            pos(1, 42), Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "nil".into()));
     }
 
     #[test]

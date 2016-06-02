@@ -3,4 +3,4 @@ fun main() {
   assert(Foo(a+1).a == 2);
 }
 
-class Foo(a: int)
+class Foo(let a: int)

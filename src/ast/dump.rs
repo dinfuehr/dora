@@ -79,23 +79,23 @@ impl<'a> AstDumper<'a> {
         });
 
         self.indent(|d| {
-            dump!(d, "props");
+            dump!(d, "fields");
 
             d.indent(|d| {
-                if cls.props.is_empty() {
-                    dump!(d, "no props");
+                if cls.fields.is_empty() {
+                    dump!(d, "no fields");
                 } else {
-                    for prop in &cls.props {
-                        d.dump_prop(prop);
+                    for field in &cls.fields {
+                        d.dump_field(field);
                     }
                 }
             });
         });
     }
 
-    fn dump_prop(&mut self, prop: &Prop) {
-        dump!(self, "prop {} @ {} {}", self.str(prop.name), prop.pos, prop.id);
-        self.indent(|d| d.dump_type(&prop.data_type));
+    fn dump_field(&mut self, field: &Field) {
+        dump!(self, "field {} @ {} {}", self.str(field.name), field.pos, field.id);
+        self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_fct(&mut self, fct: &Function) {

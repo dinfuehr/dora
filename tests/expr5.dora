@@ -2,7 +2,7 @@ fun main() {
   Bar(1).do();
 }
 
-class Bar(a: int) {
+class Bar(let a: int) {
   fun do(self) {
     Foo(self.f()).a = self.g();
     assert(a == 100);
@@ -23,4 +23,4 @@ class Bar(a: int) {
   }
 }
 
-class Foo(a: int)
+class Foo(let a: int)

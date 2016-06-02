@@ -5,4 +5,4 @@ fun main() {
   assert(a == 10);
 }
 
-class Foo(x: int)
+class Foo(let x: int)

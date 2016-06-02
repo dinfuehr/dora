@@ -5,4 +5,4 @@ fun main() {
   assert(node.rhs.value == 11);
 }
 
-class Node(value: int, lhs: Node, rhs: Node)
+class Node(let value: int, let lhs: Node, let rhs: Node)

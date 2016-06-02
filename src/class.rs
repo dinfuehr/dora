@@ -32,6 +32,7 @@ pub struct Prop {
     pub name: Name,
     pub ty: BuiltinType,
     pub offset: i32,
+    pub reassignable: bool,
 }
 
 impl Index<PropId> for Vec<Prop> {

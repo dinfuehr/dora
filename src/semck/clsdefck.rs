@@ -3,6 +3,7 @@ use ast::visit::{self, Visitor};
 use class::*;
 use ctxt::{Context, Fct, FctId, FctKind, FctSrc};
 use error::msg::Msg;
+use interner::Name;
 use lexer::position::Position;
 use mem;
 use semck;
@@ -37,11 +38,56 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     fn cls_mut(&mut self) -> &mut Class<'ast> {
         self.ctxt.cls_by_id_mut(self.cls_id.unwrap())
     }
+
+    fn visit_primary_ctor_param(&mut self, param: &'ast ast::PrimaryCtorParam) {
+        let ty = semck::read_type(self.ctxt, &param.data_type);
+        param.set_ty(ty);
+
+        if param.field {
+            self.add_field(param.pos, param.name, ty, param.reassignable);
+        } else {
+            report(self.ctxt, param.pos, Msg::Unimplemented);
+        }
+    }
+
+    fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
+        for prop in &self.cls().props {
+            if prop.name == name {
+                let name = self.ctxt.interner.str(name).to_string();
+                report(self.ctxt, pos, Msg::ShadowProp(name));
+            }
+        }
+
+        let mut class = self.cls_mut();
+
+        let offset = if ty.size() > 0 {
+            mem::align_i32(class.size, ty.size())
+        } else {
+            class.size
+        };
+
+        let id = PropId(class.props.len());
+
+        let prop = Prop {
+            id: id,
+            name: name,
+            ty: ty,
+            offset: offset,
+            reassignable: reassignable,
+        };
+
+        class.size = offset + ty.size();
+        class.props.push(prop);
+    }
 }
 
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
+
+        for param in &c.ctor_params {
+            self.visit_primary_ctor_param(param);
+        }
 
         visit::walk_class(self, c);
 
@@ -72,35 +118,9 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         self.cls_id = None;
     }
 
-    fn visit_prop(&mut self, p: &'ast ast::Prop) {
-        let ty = semck::read_type(self.ctxt, &p.data_type);
-
-        for prop in &self.cls().props {
-            if prop.name == p.name {
-                let name = self.ctxt.interner.str(p.name).to_string();
-                report(self.ctxt, p.pos, Msg::ShadowProp(name));
-            }
-        }
-
-        let mut class = self.cls_mut();
-
-        let offset = if ty.size() > 0 {
-            mem::align_i32(class.size, ty.size())
-        } else {
-            class.size
-        };
-
-        let id = PropId(class.props.len());
-
-        let prop = Prop {
-            id: id,
-            name: p.name,
-            ty: ty,
-            offset: offset,
-        };
-
-        class.size = offset + ty.size();
-        class.props.push(prop);
+    fn visit_field(&mut self, f: &'ast ast::Field) {
+        let ty = semck::read_type(self.ctxt, &f.data_type);
+        self.add_field(f.pos, f.name, ty, f.reassignable);
     }
 
     fn visit_ctor(&mut self, f: &'ast ast::Function) {
@@ -160,8 +180,8 @@ mod tests {
     #[test]
     fn test_class_size() {
         assert_eq!(Header::size(), class_size("class Foo"));
-        assert_eq!(Header::size() + 4, class_size("class Foo(a: int)"));
-        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(a: Str)"));
+        assert_eq!(Header::size() + 4, class_size("class Foo(let a: int)"));
+        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: Str)"));
     }
 
     #[test]
@@ -179,12 +199,12 @@ mod tests {
     fn test_class_definition() {
         ok("class Foo");
         ok("class Foo()");
-        ok("class Foo(a: int)");
-        ok("class Foo(a: int, b:int)");
-        ok("class Foo(a: Foo)");
-        ok("class Foo(a: Bar) class Bar");
-        err("class Foo(a: Unknown)", pos(1, 14), Msg::UnknownType("Unknown".into()));
-        err("class Foo(a: int, a: int)", pos(1, 19), Msg::ShadowProp("a".to_string()));
+        ok("class Foo(let a: int)");
+        ok("class Foo(let a: int, let b:int)");
+        ok("class Foo(let a: Foo)");
+        ok("class Foo(let a: Bar) class Bar");
+        err("class Foo(let a: Unknown)", pos(1, 18), Msg::UnknownType("Unknown".into()));
+        err("class Foo(let a: int, let a: int)", pos(1, 27), Msg::ShadowProp("a".to_string()));
     }
 
     #[test]

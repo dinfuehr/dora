@@ -54,5 +54,5 @@ class Foo1 {
   }
 }
 
-class Foo2(a: int, b: int, c: int, d: int,
-           e: int, f: int, g: int, h: int)
+class Foo2(let a: int, let b: int, let c: int, let d: int,
+           let e: int, let f: int, let g: int, let h: int)
