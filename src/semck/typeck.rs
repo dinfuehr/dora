@@ -231,6 +231,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
                 }
+
+            // check if field is reassignable, assignment only allowed in primary ctor
+            } else if !self.fct.ctor {
+                let lhs = e.lhs.to_prop().unwrap();
+                let (cls, fieldid) = lhs.cls_and_field();
+
+                if !self.ctxt.cls_by_id(cls).props[fieldid.0].reassignable {
+                    self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                }
+
             }
 
             if !lhs_type.allows(rhs_type) {
@@ -715,8 +725,8 @@ mod tests {
 
     #[test]
     fn type_object_set_field() {
-        ok("class Foo(let a: int) fun f(x: Foo) { x.a = 1; }");
-        err("class Foo(let a: int) fun f(x: Foo) { x.a = false; }",
+        ok("class Foo(var a: int) fun f(x: Foo) { x.a = 1; }");
+        err("class Foo(var a: int) fun f(x: Foo) { x.a = false; }",
             pos(1, 43),
             Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "bool".into()));
     }
@@ -783,7 +793,7 @@ mod tests {
             fun bar(self) -> int { return self.a + self.b; }
         }");
 
-        ok("class Foo(let a: int) {
+        ok("class Foo(var a: int) {
             fun setA(self, a: int) { self.a = a; }
         }");
 
@@ -1029,8 +1039,8 @@ mod tests {
 
     #[test]
     fn type_nil_for_field() {
-        ok("class Foo(let a: Str) fun f() { Foo(nil).a = nil; }");
-        err("class Foo(let a: int) fun f() { Foo(1).a = nil; }",
+        ok("class Foo(var a: Str) fun f() { Foo(nil).a = nil; }");
+        err("class Foo(var a: int) fun f() { Foo(1).a = nil; }",
             pos(1, 42), Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "nil".into()));
     }
 
@@ -1127,6 +1137,13 @@ mod tests {
     fn reassign_param() {
         ok("fun f(var a: int) { a = 1; }");
         err("fun f(a: int) { a = 1; }", pos(1, 19), Msg::LetReassigned);
+    }
+
+    #[test]
+    fn reassign_prop() {
+        ok("class Foo(var x: int) fun foo(var f: Foo) { f.x = 1; }");
+        err("class Foo(let x: int) fun foo(var f: Foo) { f.x = 1; }",
+            pos(1, 49), Msg::LetReassigned);
     }
 
     #[test]
