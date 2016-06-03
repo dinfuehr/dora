@@ -1438,6 +1438,10 @@ impl ExprPropType {
         *self.ty.borrow_mut() = Some(ty);
     }
 
+    pub fn has_cls_and_field(&self) -> bool {
+        self.info.borrow().is_some()
+    }
+
     pub fn cls_and_field(&self) -> (ClassId, PropId) {
         self.info.borrow().unwrap()
     }

@@ -1862,6 +1862,7 @@ mod tests {
         assert_eq!(0, class.fields.len());
         assert_eq!(1, class.ctor_params.len());
         assert_eq!(false, class.ctor_params[0].field);
+        assert_eq!(false, class.ctor_params[0].reassignable);
     }
 
     #[test]

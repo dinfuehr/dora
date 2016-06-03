@@ -45,8 +45,6 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
         if param.field {
             self.add_field(param.pos, param.name, ty, param.reassignable);
-        } else {
-            report(self.ctxt, param.pos, Msg::Unimplemented);
         }
     }
 
@@ -219,5 +217,19 @@ mod tests {
         ok("open class A {}");
         ok("open class A {} class B : A {}");
         err("class A {} class B : A {}", pos(1, 22), Msg::UnderivableType("A".into()));
+    }
+
+    #[test]
+    fn non_field_ctor_arguments() {
+        ok("class Foo(a: int, b: int)");
+        ok("class Foo(let a: int, b: int)");
+        ok("class Foo(a: int, var b: int)");
+        err("class Foo(a: int, a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
+        err("class Foo(a: int, let a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
+        err("class Foo(let a: int, a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
+        err("class Foo(a: int) fun f(x: Foo) { x.a = 1; }", pos(1, 36),
+            Msg::UnknownProp("a".into(), "Foo".into()));
+
+        ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
     }
 }

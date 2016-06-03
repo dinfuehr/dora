@@ -1,0 +1,8 @@
+fun main() {
+  let f1 = Foo1(1);
+  let f2 = Foo2(1, 2);
+  assert(f2.a == 1);
+}
+
+class Foo1(a: int)
+class Foo2(let a: int, b: int)

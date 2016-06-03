@@ -235,12 +235,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             // check if field is reassignable, assignment only allowed in primary ctor
             } else if !self.fct.ctor {
                 let lhs = e.lhs.to_prop().unwrap();
-                let (cls, fieldid) = lhs.cls_and_field();
 
-                if !self.ctxt.cls_by_id(cls).props[fieldid.0].reassignable {
-                    self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                if lhs.has_cls_and_field() {
+                    let (cls, fieldid) = lhs.cls_and_field();
+
+                    if !self.ctxt.cls_by_id(cls).props[fieldid.0].reassignable {
+                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                    }
+                } else {
+                    return;
                 }
-
             }
 
             if !lhs_type.allows(rhs_type) {
@@ -571,7 +575,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let BuiltinType::Class(classid) = self.expr_type {
             let cls = self.ctxt.cls_by_id(classid);
-
             for prop in &cls.props {
                 if prop.name == e.name {
                     e.set_cls_and_field(classid, prop.id);
