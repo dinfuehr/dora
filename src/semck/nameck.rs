@@ -167,13 +167,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             return;
         }
 
-        if let Some(clsid) = self.fct.owner_class {
-            let cls = self.ctxt.cls_by_id(clsid);
+        // don't expand <var> to self.<var> in primary ctors
+        // otherwise `let b: int = b;` would be possible
+        if !self.fct.ctor {
+            if let Some(clsid) = self.fct.owner_class {
+                let cls = self.ctxt.cls_by_id(clsid);
 
-            for field in &cls.fields {
-                if field.name == ident.name {
-                    ident.set_field(clsid, field.id);
-                    return;
+                for field in &cls.fields {
+                    if field.name == ident.name {
+                        ident.set_field(clsid, field.id);
+                        return;
+                    }
                 }
             }
         }

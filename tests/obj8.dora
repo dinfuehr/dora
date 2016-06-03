@@ -1,0 +1,10 @@
+fun main() {
+  let f = Foo(1, 2);
+
+  assert(1 == f.a);
+  assert(2 == f.b);
+}
+
+class Foo(let a: int, x: int) {
+  let b: int = x;
+}

@@ -954,7 +954,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn generate_ctor(&mut self, cls: &mut Class) -> Function {
-        let mut assignments : Vec<_> = cls.ctor_params.iter()
+        let param_assignments: Vec<Box<Stmt>> = cls.ctor_params.iter()
                                                       .filter(|param| param.field)
                                                       .map(|param| {
             let this = self.build_this();
@@ -965,16 +965,29 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             self.build_stmt_expr(ass)
         }).collect();
 
+        let field_assignments: Vec<Box<Stmt>> = cls.fields.iter()
+                  .filter(|field| field.expr.is_some())
+                  .map(|field| {
+            let this = self.build_this();
+            let lhs = self.build_field(this, field.name);
+            let ass = self.build_assign(lhs, field.expr.as_ref().unwrap().clone());
+
+            self.build_stmt_expr(ass)
+        }).collect();
+
         let this = self.build_this();
-        assignments.push(self.build_return(Some(this)));
+        let ret = vec![self.build_return(Some(this))];
+
+        let assignments : Vec<Box<Stmt>> = param_assignments.into_iter()
+                                                    .chain(field_assignments.into_iter())
+                                                    .chain(ret.into_iter()).collect();
 
         let params = cls.ctor_params.iter().enumerate().map(|(idx, field)| {
             self.build_param(idx as u32, field.name, field.data_type.clone())
         }).collect();
-        let id = self.generate_id();
 
         Function {
-            id: id,
+            id: self.generate_id(),
             pos: Position::new(1, 1),
             name: cls.name,
             method: true,

@@ -119,6 +119,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_field(&mut self, f: &'ast ast::Field) {
         let ty = semck::read_type(self.ctxt, &f.data_type);
         self.add_field(f.pos, f.name, ty, f.reassignable);
+
+        if !f.reassignable && f.expr.is_none() {
+            self.ctxt.diag.borrow_mut().report(f.pos, Msg::LetMissingInitialization);
+        }
     }
 
     fn visit_ctor(&mut self, f: &'ast ast::Function) {
@@ -231,5 +235,23 @@ mod tests {
             Msg::UnknownField("a".into(), "Foo".into()));
 
         ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
+    }
+
+    #[test]
+    fn field_defined_twice() {
+        err("class Foo { var a: int; var a: int; }", pos(1, 25), Msg::ShadowField("a".into()));
+        err("class Foo(let a: int) { var a: int; }", pos(1, 25), Msg::ShadowField("a".into()));
+
+    }
+
+    #[test]
+    fn let_field_without_initialization() {
+        err("class Foo { let a: int; }", pos(1, 13), Msg::LetMissingInitialization);
+    }
+
+    #[test]
+    fn field_self_assignment() {
+        err("class Foo(a: int) { var b: int = b; }",
+            pos(1, 34), Msg::UnknownIdentifier("b".into()));
     }
 }
