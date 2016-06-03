@@ -5,7 +5,7 @@ use std::slice::Iter;
 
 use ast::Elem::*;
 use class::{ClassId, FieldId};
-use ctxt::{IdentType, VarId};
+use ctxt::{CtorType, IdentType, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -300,6 +300,7 @@ pub struct Function {
     pub pos: Position,
     pub method: bool,
     pub overridable: bool,
+    pub ctor: Option<CtorType>,
 
     pub params: Vec<Param>,
     pub throws: bool,

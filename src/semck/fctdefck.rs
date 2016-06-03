@@ -84,7 +84,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
-        if p.idx == 0 && self.fct.owner_class.is_some() && !self.fct.ctor {
+        if p.idx == 0 && self.fct.owner_class.is_some() && !self.fct.is_ctor() {
             if !p.data_type.is_self() {
                 self.ctxt.diag.borrow_mut().report(p.pos, Msg::SelfNeeded);
                 return;

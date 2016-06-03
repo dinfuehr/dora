@@ -233,7 +233,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
             // check if field is reassignable, assignment only allowed in primary ctor
-            } else if !self.fct.ctor {
+            } else if !self.fct.is_primary_ctor() {
                 let lhs = e.lhs.to_field().unwrap();
 
                 if lhs.has_cls_and_field() {

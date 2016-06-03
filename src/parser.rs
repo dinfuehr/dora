@@ -4,7 +4,7 @@ use std::io::Error;
 
 use ast::*;
 use ast::Elem::*;
-
+use ctxt::CtorType;
 use error::*;
 
 use interner::*;
@@ -332,6 +332,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: pos,
             method: self.in_class,
             overridable: modifiers.contains(Modifier::Open),
+            ctor: None,
             params: params,
             throws: throws,
             return_type: return_type,
@@ -1043,6 +1044,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: cls.name,
             method: true,
             overridable: false,
+            ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
             return_type: Some(self.build_type(cls.name)),

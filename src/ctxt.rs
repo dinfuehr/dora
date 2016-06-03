@@ -173,6 +173,11 @@ pub struct FctDecl {
     pub ctor: bool,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum CtorType {
+    Primary, Secondary
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct FctId(pub usize);
 
@@ -183,13 +188,33 @@ pub struct Fct<'ast> {
     pub owner_class: Option<ClassId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
-    pub ctor: bool,
+    pub ctor: Option<CtorType>,
     pub initialized: bool,
 
     pub kind: FctKind<'ast>,
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn is_ctor(&self) -> bool {
+        self.ctor.is_some()
+    }
+
+    pub fn is_primary_ctor(&self) -> bool {
+        if let Some(ctor) = self.ctor {
+            ctor == CtorType::Primary
+        } else {
+            false
+        }
+    }
+
+    pub fn is_secondary_ctor(&self) -> bool {
+        if let Some(ctor) = self.ctor {
+            ctor == CtorType::Secondary
+        } else {
+            false
+        }
+    }
+
     pub fn ast(&self) -> &'ast ast::Function {
         self.src().ast
     }
@@ -249,7 +274,7 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn hidden_self(&self) -> bool {
-        self.ctor
+        self.is_ctor()
     }
 
     pub fn has_self(&self) -> bool {

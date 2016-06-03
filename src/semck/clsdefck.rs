@@ -134,7 +134,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             owner_class: Some(clsid),
-            ctor: true,
+            ctor: f.ctor,
             initialized: false,
             kind: FctKind::Source(FctSrc::new(f)),
         };
@@ -150,7 +150,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             owner_class: Some(self.cls_id.unwrap()),
-            ctor: false,
+            ctor: None,
             initialized: false,
             kind: FctKind::Source(FctSrc::new(f)),
         };

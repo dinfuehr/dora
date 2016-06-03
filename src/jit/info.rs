@@ -53,7 +53,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let idx = (p.idx as usize) + if self.fct.ctor { 1 } else { 0 };
+        let idx = (p.idx as usize) + if self.fct.is_ctor() { 1 } else { 0 };
 
         // only some parameters are passed in registers
         // these registers need to be stored into local variables

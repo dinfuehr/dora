@@ -57,7 +57,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             owner_class: None,
-            ctor: false,
+            ctor: None,
             initialized: false,
             kind: FctKind::Source(FctSrc::new(f)),
         };

@@ -40,7 +40,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
-        if self.fct.ctor {
+        if self.fct.is_ctor() {
             // add hidden this parameter for ctors and methods
             self.add_hidden_parameter_self();
         }
@@ -169,7 +169,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // don't expand <var> to self.<var> in primary ctors
         // otherwise `let b: int = b;` would be possible
-        if !self.fct.ctor {
+        if !self.fct.is_primary_ctor() {
             if let Some(clsid) = self.fct.owner_class {
                 let cls = self.ctxt.cls_by_id(clsid);
 
