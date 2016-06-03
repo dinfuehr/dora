@@ -300,6 +300,7 @@ pub struct Function {
     pub pos: Position,
     pub method: bool,
     pub overridable: bool,
+    pub overrides: bool,
     pub ctor: Option<CtorType>,
 
     pub params: Vec<Param>,

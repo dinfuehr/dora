@@ -332,6 +332,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: pos,
             method: self.in_class,
             overridable: modifiers.contains(Modifier::Open),
+            overrides: modifiers.contains(Modifier::Override),
             ctor: None,
             params: params,
             throws: throws,
@@ -1044,6 +1045,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: cls.name,
             method: true,
             overridable: false,
+            overrides: false,
             ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
@@ -2130,5 +2132,17 @@ mod tests {
 
         let m2 = &cls.methods[1];
         assert_eq!(false, m2.overridable);
+    }
+
+    #[test]
+    fn parse_override_method() {
+        let (prog, interner) = parse("class A { fun f() {} override fun g() {} }");
+        let cls = prog.elements[0].to_class().unwrap();
+
+        let m1 = &cls.methods[0];
+        assert_eq!(false, m1.overrides);
+
+        let m2 = &cls.methods[1];
+        assert_eq!(true, m2.overrides);
     }
 }
