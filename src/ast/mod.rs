@@ -233,7 +233,7 @@ pub struct Class {
     pub derivable: bool,
     pub ctor_params: Vec<PrimaryCtorParam>,
 
-    pub ctor: Option<Function>,
+    pub ctors: Vec<Function>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
 }

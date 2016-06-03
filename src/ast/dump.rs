@@ -56,7 +56,7 @@ impl<'a> AstDumper<'a> {
             });
         }
 
-        if let Some(ref ctor) = cls.ctor {
+        for ctor in &cls.ctors {
             self.indent(|d| {
                 dump!(d, "ctor");
 

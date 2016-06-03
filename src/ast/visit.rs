@@ -64,7 +64,7 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
         v.visit_field(f);
     }
 
-    if let Some(ref ctor) = c.ctor {
+    for ctor in &c.ctors {
         v.visit_ctor(ctor);
     }
 

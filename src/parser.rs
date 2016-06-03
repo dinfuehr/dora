@@ -126,7 +126,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: pos,
             derivable: derivable,
             parent_class: None,
-            ctor: None,
+            ctors: Vec::new(),
             ctor_params: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new()
@@ -149,7 +149,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.parse_class_body(&mut cls));
 
         let ctor = self.generate_ctor(&mut cls);
-        cls.ctor = Some(ctor);
+        cls.ctors.push(ctor);
 
         self.in_class = false;
 
