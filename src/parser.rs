@@ -205,12 +205,66 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.read_token());
 
         while !self.token.is(TokenType::RBrace) {
-            let fct = try!(self.parse_function());
-            cls.methods.push(fct);
+            match self.token.token_type {
+                TokenType::Fun => {
+                    let fct = try!(self.parse_function());
+                    cls.methods.push(fct);
+                }
+
+                TokenType::Var
+                | TokenType::Let => {
+                    let field = try!(self.parse_field());
+                    cls.fields.push(field);
+                }
+
+                _ => {
+                    return Err(ParseError {
+                        position: self.token.position,
+                        code: ErrorCode::ExpectedClassElement,
+                        message: "field or method expected".to_string()
+                    })
+                }
+            }
         }
 
         try!(self.read_token());
         Ok(())
+    }
+
+    fn parse_field(&mut self) -> Result<Field, ParseError> {
+        let pos = self.token.position;
+        let reassignable = if self.token.is(TokenType::Var) {
+            try!(self.expect_token(TokenType::Var));
+
+            true
+        } else {
+            try!(self.expect_token(TokenType::Let));
+
+            false
+        };
+
+        let name = try!(self.expect_identifier());
+        try!(self.expect_token(TokenType::Colon));
+        let data_type = try!(self.parse_type());
+
+        let expr = if self.token.is(TokenType::Eq) {
+            try!(self.expect_token(TokenType::Eq));
+            Some(try!(self.parse_expression()))
+
+        } else {
+            None
+        };
+
+        try!(self.expect_semicolon());
+
+        Ok(Field {
+            id: self.generate_id(),
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            expr: expr,
+            reassignable: reassignable,
+        })
     }
 
     fn parse_function(&mut self) -> Result<Function, ParseError> {
@@ -1150,7 +1204,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_field() {
+    fn parse_field_access() {
         use ast::dump::dump_expr;
 
         let (expr, interner) = parse_expr("obj.field");
@@ -1983,5 +2037,19 @@ mod tests {
 
         assert_eq!(0, try.catch_blocks.len());
         assert!(try.finally_block.is_none());
+    }
+
+    #[test]
+    fn parse_field() {
+        let (prog, interner) = parse("class A { var f1: int; let f2: int = 0; }");
+        let cls = prog.elements[0].to_class().unwrap();
+
+        let f1 = &cls.fields[0];
+        assert_eq!("f1", &interner.str(f1.name).to_string());
+        assert_eq!(true, f1.reassignable);
+
+        let f2 = &cls.fields[1];
+        assert_eq!("f2", &interner.str(f2.name).to_string());
+        assert_eq!(false, f2.reassignable);
     }
 }
