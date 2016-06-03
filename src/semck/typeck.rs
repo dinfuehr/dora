@@ -169,12 +169,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = ty;
             }
 
-            IdentType::Prop(clsid, propid) => {
+            IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.cls_by_id(clsid);
-                let prop = &cls.props[propid.0];
+                let field = &cls.fields[fieldid.0];
 
-                e.set_ty(prop.ty);
-                self.expr_type = prop.ty;
+                e.set_ty(field.ty);
+                self.expr_type = field.ty;
             }
         }
     }
@@ -214,7 +214,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = BuiltinType::Unit;
             }
 
-        } else if e.lhs.is_prop() || e.lhs.is_ident() {
+        } else if e.lhs.is_field() || e.lhs.is_ident() {
             self.visit_expr(&e.lhs);
             let lhs_type = self.expr_type;
 
@@ -234,12 +234,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             // check if field is reassignable, assignment only allowed in primary ctor
             } else if !self.fct.ctor {
-                let lhs = e.lhs.to_prop().unwrap();
+                let lhs = e.lhs.to_field().unwrap();
 
                 if lhs.has_cls_and_field() {
                     let (cls, fieldid) = lhs.cls_and_field();
 
-                    if !self.ctxt.cls_by_id(cls).props[fieldid.0].reassignable {
+                    if !self.ctxt.cls_by_id(cls).fields[fieldid.0].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
                 } else {
@@ -256,16 +256,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     Msg::AssignType(name, lhs_type, rhs_type)
                 } else {
-                    let prop = e.lhs.to_prop().unwrap();
-                    let name = self.ctxt.interner.str(prop.name).to_string();
+                    let field = e.lhs.to_field().unwrap();
+                    let name = self.ctxt.interner.str(field.name).to_string();
 
-                    let prop_type = prop.object.ty();
-                    let prop_type = prop_type.name(self.ctxt);
+                    let field_type = field.object.ty();
+                    let field_type = field_type.name(self.ctxt);
 
                     let lhs_type = lhs_type.name(self.ctxt);
                     let rhs_type = rhs_type.name(self.ctxt);
 
-                    Msg::AssignProp(name, prop_type, lhs_type, rhs_type)
+                    Msg::AssignField(name, field_type, lhs_type, rhs_type)
                 };
 
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
@@ -570,27 +570,27 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_prop(&mut self, e: &'ast ExprPropType) {
+    fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
         self.visit_expr(&e.object);
 
         if let BuiltinType::Class(classid) = self.expr_type {
             let cls = self.ctxt.cls_by_id(classid);
-            for prop in &cls.props {
-                if prop.name == e.name {
-                    e.set_cls_and_field(classid, prop.id);
-                    e.set_ty(prop.ty);
-                    self.expr_type = prop.ty;
+            for field in &cls.fields {
+                if field.name == e.name {
+                    e.set_cls_and_field(classid, field.id);
+                    e.set_ty(field.ty);
+                    self.expr_type = field.ty;
                     return;
                 }
             }
         }
 
-        // property not found, report error
-        let prop_name = self.ctxt.interner.str(e.name).to_string();
+        // field not found, report error
+        let field_name = self.ctxt.interner.str(e.name).to_string();
         let expr_name = self.expr_type.name(self.ctxt);
-        let msg = Msg::UnknownProp(prop_name, expr_name);
+        let msg = Msg::UnknownField(field_name, expr_name);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        // we don't know the type of the property, just assume ()
+        // we don't know the type of the field, just assume ()
         e.set_ty(BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
     }
@@ -649,7 +649,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
-            ExprProp(ref expr) => self.check_expr_prop(expr),
+            ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
@@ -705,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn type_object_prop() {
+    fn type_object_field() {
         ok("class Foo(let a:int) fun f(x: Foo) -> int { return x.a; }");
         ok("class Foo(let a:Str) fun f(x: Foo) -> Str { return x.a; }");
         err("class Foo(let a:int) fun f(x: Foo) -> bool { return x.a; }",
@@ -718,7 +718,7 @@ mod tests {
 
             let err = &errors[0];
             assert_eq!(pos(1, 53), err.pos);
-            assert_eq!(Msg::UnknownProp("b".into(), "Foo".into()), err.msg);
+            assert_eq!(Msg::UnknownField("b".into(), "Foo".into()), err.msg);
 
             let err = &errors[1];
             assert_eq!(pos(1, 45), err.pos);
@@ -731,11 +731,11 @@ mod tests {
         ok("class Foo(var a: int) fun f(x: Foo) { x.a = 1; }");
         err("class Foo(var a: int) fun f(x: Foo) { x.a = false; }",
             pos(1, 43),
-            Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "bool".into()));
+            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()));
     }
 
     #[test]
-    fn type_object_prop_without_self() {
+    fn type_object_field_without_self() {
         ok("class Foo(let a: int) { fun f(self) -> int { return a; } }");
         ok("class Foo(let a: int) { fun set(self, x: int) { a = x; } }");
         err("class Foo(let a: int) { fun set(self, x: int) { b = x; } }",
@@ -1044,7 +1044,7 @@ mod tests {
     fn type_nil_for_field() {
         ok("class Foo(var a: Str) fun f() { Foo(nil).a = nil; }");
         err("class Foo(var a: int) fun f() { Foo(1).a = nil; }",
-            pos(1, 42), Msg::AssignProp("a".into(), "Foo".into(), "int".into(), "nil".into()));
+            pos(1, 42), Msg::AssignField("a".into(), "Foo".into(), "int".into(), "nil".into()));
     }
 
     #[test]
@@ -1143,7 +1143,7 @@ mod tests {
     }
 
     #[test]
-    fn reassign_prop() {
+    fn reassign_field() {
         ok("class Foo(var x: int) fun foo(var f: Foo) { f.x = 1; }");
         err("class Foo(let x: int) fun foo(var f: Foo) { f.x = 1; }",
             pos(1, 49), Msg::LetReassigned);

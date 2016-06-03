@@ -170,9 +170,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         if let Some(clsid) = self.fct.owner_class {
             let cls = self.ctxt.cls_by_id(clsid);
 
-            for prop in &cls.props {
-                if prop.name == ident.name {
-                    ident.set_prop(clsid, prop.id);
+            for field in &cls.fields {
+                if field.name == ident.name {
+                    ident.set_field(clsid, field.id);
                     return;
                 }
             }

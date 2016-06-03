@@ -3,7 +3,7 @@ use std::fmt;
 use std::hash::*;
 
 use ast::Elem::*;
-use class::{ClassId, PropId};
+use class::{ClassId, FieldId};
 use ctxt::{IdentType, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
@@ -885,7 +885,7 @@ pub enum Expr {
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
     ExprAssign(ExprAssignType),
-    ExprProp(ExprPropType),
+    ExprField(ExprFieldType),
     ExprSelf(ExprSelfType),
     ExprNil(ExprNilType),
     ExprArray(ExprArrayType),
@@ -999,9 +999,9 @@ impl Expr {
         })
     }
 
-    pub fn create_prop(id: NodeId, pos: Position,
+    pub fn create_field(id: NodeId, pos: Position,
                        object: Box<Expr>, name: Name) -> Expr {
-        Expr::ExprProp(ExprPropType {
+        Expr::ExprField(ExprFieldType {
             id: id,
             pos: pos,
             object: object,
@@ -1123,16 +1123,16 @@ impl Expr {
         }
     }
 
-    pub fn to_prop(&self) -> Option<&ExprPropType> {
+    pub fn to_field(&self) -> Option<&ExprFieldType> {
         match *self {
-            Expr::ExprProp(ref val) => Some(val),
+            Expr::ExprField(ref val) => Some(val),
             _ => None
         }
     }
 
-    pub fn is_prop(&self) -> bool {
+    pub fn is_field(&self) -> bool {
         match *self {
-            Expr::ExprProp(_) => true,
+            Expr::ExprField(_) => true,
             _ => false
         }
     }
@@ -1175,7 +1175,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
-            Expr::ExprProp(ref val) => val.id,
+            Expr::ExprField(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprArray(ref val) => val.id,
@@ -1192,7 +1192,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.ty(),
             Expr::ExprAssign(ref val) => val.ty(),
             Expr::ExprCall(ref val) => val.ty(),
-            Expr::ExprProp(ref val) => val.ty(),
+            Expr::ExprField(ref val) => val.ty(),
             Expr::ExprSelf(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
@@ -1209,7 +1209,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.set_ty(ty),
             Expr::ExprAssign(ref val) => val.set_ty(ty),
             Expr::ExprCall(ref val) => val.set_ty(ty),
-            Expr::ExprProp(ref val) => val.set_ty(ty),
+            Expr::ExprField(ref val) => val.set_ty(ty),
             Expr::ExprSelf(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
@@ -1359,8 +1359,8 @@ impl ExprIdentType {
         self.info.borrow().unwrap()
     }
 
-    pub fn set_prop(&self, cls: ClassId, field: PropId) {
-        let info = IdentType::Prop(cls, field);
+    pub fn set_field(&self, cls: ClassId, field: FieldId) {
+        let info = IdentType::Field(cls, field);
         *self.info.borrow_mut() = Some(info);
     }
 
@@ -1419,17 +1419,17 @@ impl ExprAssignType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprPropType {
+pub struct ExprFieldType {
     pub id: NodeId,
     pub pos: Position,
 
     pub object: Box<Expr>,
     pub name: Name,
-    pub info: RefCell<Option<(ClassId, PropId)>>,
+    pub info: RefCell<Option<(ClassId, FieldId)>>,
     pub ty: RefCell<Option<BuiltinType>>,
 }
 
-impl ExprPropType {
+impl ExprFieldType {
     pub fn ty(&self) -> BuiltinType {
         self.ty.borrow().unwrap()
     }
@@ -1442,11 +1442,11 @@ impl ExprPropType {
         self.info.borrow().is_some()
     }
 
-    pub fn cls_and_field(&self) -> (ClassId, PropId) {
+    pub fn cls_and_field(&self) -> (ClassId, FieldId) {
         self.info.borrow().unwrap()
     }
 
-    pub fn set_cls_and_field(&self, class: ClassId, field: PropId) {
+    pub fn set_cls_and_field(&self, class: ClassId, field: FieldId) {
         *self.info.borrow_mut() = Some((class, field));
     }
 }

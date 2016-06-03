@@ -34,7 +34,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             parent_class: None,
             derivable: c.derivable,
             ctors: Vec::new(),
-            props: Vec::new(),
+            fields: Vec::new(),
             methods: Vec::new(),
             ast: Some(c),
             size: Header::size(),

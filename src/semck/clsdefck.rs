@@ -49,10 +49,10 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
-        for prop in &self.cls().props {
-            if prop.name == name {
+        for field in &self.cls().fields {
+            if field.name == name {
                 let name = self.ctxt.interner.str(name).to_string();
-                report(self.ctxt, pos, Msg::ShadowProp(name));
+                report(self.ctxt, pos, Msg::ShadowField(name));
             }
         }
 
@@ -64,9 +64,9 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             class.size
         };
 
-        let id = PropId(class.props.len());
+        let id = FieldId(class.fields.len());
 
-        let prop = Prop {
+        let field = Field {
             id: id,
             name: name,
             ty: ty,
@@ -75,7 +75,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         };
 
         class.size = offset + ty.size();
-        class.props.push(prop);
+        class.fields.push(field);
     }
 }
 
@@ -202,7 +202,7 @@ mod tests {
         ok("class Foo(let a: Foo)");
         ok("class Foo(let a: Bar) class Bar");
         err("class Foo(let a: Unknown)", pos(1, 18), Msg::UnknownType("Unknown".into()));
-        err("class Foo(let a: int, let a: int)", pos(1, 27), Msg::ShadowProp("a".to_string()));
+        err("class Foo(let a: int, let a: int)", pos(1, 27), Msg::ShadowField("a".to_string()));
     }
 
     #[test]
@@ -228,7 +228,7 @@ mod tests {
         err("class Foo(a: int, let a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
         err("class Foo(let a: int, a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
         err("class Foo(a: int) fun f(x: Foo) { x.a = 1; }", pos(1, 36),
-            Msg::UnknownProp("a".into(), "Foo".into()));
+            Msg::UnknownField("a".into(), "Foo".into()));
 
         ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
     }

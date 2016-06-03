@@ -277,7 +277,7 @@ impl<'a> AstDumper<'a> {
         match *expr {
             ExprUn(ref un) => self.dump_expr_un(un),
             ExprBin(ref bin) => self.dump_expr_bin(bin),
-            ExprProp(ref prop) => self.dump_expr_prop(prop),
+            ExprField(ref field) => self.dump_expr_field(field),
             ExprArray(ref array) => self.dump_expr_array(array),
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
@@ -331,9 +331,9 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.index));
     }
 
-    fn dump_expr_prop(&mut self, prop: &ExprPropType) {
-        dump!(self, "prop {} @ {} {}", self.str(prop.name), prop.pos, prop.id);
-        self.indent(|d| d.dump_expr(&prop.object));
+    fn dump_expr_field(&mut self, field: &ExprFieldType) {
+        dump!(self, "field {} @ {} {}", self.str(field.name), field.pos, field.id);
+        self.indent(|d| d.dump_expr(&field.object));
     }
 
     fn dump_expr_assign(&mut self, expr: &ExprAssignType) {

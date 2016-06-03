@@ -281,12 +281,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let lhs = e.lhs.to_ident().unwrap();
             let ident_type = lhs.ident_type();
 
-            if ident_type.is_prop() {
+            if ident_type.is_field() {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
             }
 
-        } else if e.lhs.is_prop() {
-            let lhs = e.lhs.to_prop().unwrap();
+        } else if e.lhs.is_field() {
+            let lhs = e.lhs.to_field().unwrap();
 
             self.visit_expr(&lhs.object);
             self.visit_expr(&e.rhs);

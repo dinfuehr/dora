@@ -119,9 +119,9 @@ fn mark_recursive(ptr: usize) {
         obj.header_mut().mark();
         let class = obj.header().class();
 
-        for prop in &class.props {
-            if prop.ty.reference_type() {
-                let addr = ptr as isize + prop.offset as isize;
+        for field in &class.fields {
+            if field.ty.reference_type() {
+                let addr = ptr as isize + field.offset as isize;
                 let obj = unsafe { *(addr as *const usize) };
 
                 if obj == 0 { return; }

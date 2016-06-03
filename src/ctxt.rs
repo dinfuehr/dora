@@ -9,7 +9,7 @@ use driver::cmd::Args;
 use error::diag::Diagnostic;
 
 use ast;
-use class::{Class, ClassId, PropId};
+use class::{Class, ClassId, FieldId};
 use cpu::Reg;
 use gc::Gc;
 use interner::*;
@@ -363,7 +363,7 @@ impl Store {
 
 #[derive(Debug, Copy, Clone)]
 pub enum IdentType {
-    Var(VarId), Prop(ClassId, PropId)
+    Var(VarId), Field(ClassId, FieldId)
 }
 
 impl IdentType {
@@ -376,7 +376,7 @@ impl IdentType {
 
     pub fn cls_id(&self) -> ClassId {
         match *self {
-            IdentType::Prop(clsid, _) => clsid,
+            IdentType::Field(clsid, _) => clsid,
             _ => panic!()
         }
     }
@@ -388,16 +388,16 @@ impl IdentType {
         }
     }
 
-    pub fn is_prop(&self) -> bool {
+    pub fn is_field(&self) -> bool {
         match *self {
-            IdentType::Prop(_, _) => true,
+            IdentType::Field(_, _) => true,
             _ => false,
         }
     }
 
-    pub fn prop_id(&self) -> PropId {
+    pub fn field_id(&self) -> FieldId {
         match *self {
-            IdentType::Prop(_, propid) => propid,
+            IdentType::Field(_, fieldid) => fieldid,
             _ => panic!()
         }
     }

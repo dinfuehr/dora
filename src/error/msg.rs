@@ -10,7 +10,7 @@ pub enum Msg {
     UnknownType(String),
     UnknownIdentifier(String),
     UnknownFunction(String),
-    UnknownProp(String, String),
+    UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
     MethodExists(String, String, Vec<String>, Position),
@@ -19,7 +19,7 @@ pub enum Msg {
     ShadowFunction(String),
     ShadowParam(String),
     ShadowClass(String),
-    ShadowProp(String),
+    ShadowField(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -27,7 +27,7 @@ pub enum Msg {
     ReturnType(String, String),
     LvalueExpected,
     AssignType(String, String, String),
-    AssignProp(String, String, String, String),
+    AssignField(String, String, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
     OutsideLoop,
@@ -70,13 +70,13 @@ impl Msg {
                     name, args, cls, pos)
             },
             IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
-            UnknownProp(ref prop, ref ty) =>
-                format!("unknown property `{}` for type `{}`", prop, ty),
+            UnknownField(ref field, ref ty) =>
+                format!("unknown field `{}` for type `{}`", field, ty),
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
-            ShadowProp(ref name) => format!("property with name `{}` already exists.", name),
+            ShadowField(ref name) => format!("field with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
             ParamTypesIncompatible(ref name, ref def, ref expr) => {
@@ -97,8 +97,8 @@ impl Msg {
             AssignType(ref name, ref def, ref expr) => {
                 format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
             },
-            AssignProp(ref name, ref cls, ref def, ref expr) => {
-                format!("cannot assign `{}` to property `{}`.`{}` of type `{}`.",
+            AssignField(ref name, ref cls, ref def, ref expr) => {
+                format!("cannot assign `{}` to field `{}`.`{}` of type `{}`.",
                         expr, cls, name, def)
             },
             UnOpType(ref op, ref expr) =>

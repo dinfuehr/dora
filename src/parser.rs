@@ -22,7 +22,7 @@ pub struct Parser<'a, T: CodeReader> {
     token: Token,
     interner: &'a mut Interner,
     param_idx: u32,
-    prop_idx: u32,
+    field_idx: u32,
     in_class: bool,
 
     next_id: NodeId,
@@ -54,7 +54,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             token: token,
             interner: interner,
             param_idx: 0,
-            prop_idx: 0,
+            field_idx: 0,
             in_class: false,
             next_id: NodeId(1),
         };
@@ -748,7 +748,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                     try!(self.parse_call(tok.position, Some(left), ident))
 
                 } else {
-                    Box::new(Expr::create_prop(self.generate_id(), tok.position, left, ident))
+                    Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
                 }
 
             } else {
@@ -904,7 +904,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                                                       .filter(|param| param.field)
                                                       .map(|param| {
             let this = self.build_this();
-            let lhs = self.build_prop(this, param.name);
+            let lhs = self.build_field(this, param.name);
             let rhs = self.build_ident(param.name);
             let ass = self.build_assign(lhs, rhs);
 
@@ -914,8 +914,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let this = self.build_this();
         assignments.push(self.build_return(Some(this)));
 
-        let params = cls.ctor_params.iter().enumerate().map(|(idx, prop)| {
-            self.build_param(idx as u32, prop.name, prop.data_type.clone())
+        let params = cls.ctor_params.iter().enumerate().map(|(idx, field)| {
+            self.build_param(idx as u32, field.name, field.data_type.clone())
         }).collect();
         let id = self.generate_id();
 
@@ -1019,10 +1019,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }))
     }
 
-    fn build_prop(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
+    fn build_field(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
         let id = self.generate_id();
 
-        Box::new(Expr::ExprProp(ExprPropType {
+        Box::new(Expr::ExprField(ExprFieldType {
             id: id,
             pos: Position::new(1, 1),
             object: object,
@@ -1150,27 +1150,27 @@ mod tests {
     }
 
     #[test]
-    fn parse_prop() {
+    fn parse_field() {
         use ast::dump::dump_expr;
 
-        let (expr, interner) = parse_expr("obj.prop");
-        let prop = expr.to_prop().unwrap();
+        let (expr, interner) = parse_expr("obj.field");
+        let field = expr.to_field().unwrap();
 
-        let ident = prop.object.to_ident().unwrap();
+        let ident = field.object.to_ident().unwrap();
         assert_eq!("obj", *interner.str(ident.name));
-        assert_eq!("prop", *interner.str(prop.name));
+        assert_eq!("field", *interner.str(field.name));
     }
 
     #[test]
-    fn parse_prop_negated() {
+    fn parse_field_negated() {
         use ast::dump::dump_expr;
 
-        let (expr, interner) = parse_expr("-obj.prop");
-        assert!(expr.to_un().unwrap().opnd.is_prop());
+        let (expr, interner) = parse_expr("-obj.field");
+        assert!(expr.to_un().unwrap().opnd.is_field());
     }
 
     #[test]
-    fn parse_prop_non_ident() {
+    fn parse_field_non_ident() {
         err_expr("obj.12", ErrorCode::ExpectedIdentifier, 1, 5);
     }
 

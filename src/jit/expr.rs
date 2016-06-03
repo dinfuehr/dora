@@ -2,7 +2,7 @@ use libc::c_void;
 
 use ast::*;
 use ast::Expr::*;
-use class::{self, ClassId, PropId};
+use class::{self, ClassId, FieldId};
 use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
@@ -65,7 +65,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprProp(ref expr) => self.emit_prop(expr, dest),
+            ExprField(ref expr) => self.emit_field(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
             ExprArray(ref expr) => self.emit_array(expr, dest),
@@ -154,17 +154,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::nil(self.buf, dest);
     }
 
-    fn emit_prop(&mut self, expr: &'ast ExprPropType, dest: Reg) {
+    fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: Reg) {
         let (cls, field) = expr.cls_and_field();
 
         self.emit_expr(&expr.object, REG_RESULT);
-        self.emit_prop_access(cls, field, REG_RESULT, dest);
+        self.emit_field_access(cls, field, REG_RESULT, dest);
     }
 
-    fn emit_prop_access(&mut self, cls: ClassId, field: PropId, src: Reg, dest: Reg) {
+    fn emit_field_access(&mut self, cls: ClassId, field: FieldId, src: Reg, dest: Reg) {
         let cls = self.ctxt.cls_by_id(cls);
-        let prop = &cls.props[field];
-        emit::mov_mem_reg(self.buf, prop.ty.mode(), src, prop.offset, dest);
+        let field = &cls.fields[field];
+        emit::mov_mem_reg(self.buf, field.ty.mode(), src, field.offset, dest);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -192,9 +192,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 codegen::var_load(self.buf, self.fct, e.var(), dest)
             }
 
-            IdentType::Prop(cls, field) => {
+            IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
-                self.emit_prop_access(cls, field, REG_RESULT, dest);
+                self.emit_field_access(cls, field, REG_RESULT, dest);
             }
         }
     }
@@ -249,10 +249,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let ident_type = if e.lhs.is_ident() {
             e.lhs.to_ident().unwrap().ident_type()
 
-        } else if e.lhs.is_prop() {
-            let (cls, field) = e.lhs.to_prop().unwrap().cls_and_field();
+        } else if e.lhs.is_field() {
+            let (cls, field) = e.lhs.to_field().unwrap().cls_and_field();
 
-            IdentType::Prop(cls, field)
+            IdentType::Field(cls, field)
 
         } else {
             unreachable!();
@@ -265,14 +265,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 codegen::var_store(&mut self.buf, self.fct, dest, lhs.var());
             }
 
-            IdentType::Prop(clsid, propid) => {
+            IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.cls_by_id(clsid);
-                let prop = &cls.props[propid.0];
+                let field = &cls.fields[fieldid.0];
 
-                let temp = if let Some(expr_prop) = e.lhs.to_prop() {
-                    self.emit_expr(&expr_prop.object, REG_RESULT);
+                let temp = if let Some(expr_field) = e.lhs.to_field() {
+                    self.emit_expr(&expr_field.object, REG_RESULT);
 
-                    &expr_prop.object
+                    &expr_field.object
 
                 } else {
                     self.emit_self(REG_RESULT);
@@ -286,11 +286,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.emit_expr(&e.rhs, REG_RESULT);
                 emit::mov_local_reg(self.buf, MachineMode::Ptr, temp_offset, REG_TMP1);
 
-                emit::mov_reg_mem(self.buf, prop.ty.mode(), REG_RESULT, REG_TMP1, prop.offset);
+                emit::mov_reg_mem(self.buf, field.ty.mode(), REG_RESULT, REG_TMP1, field.offset);
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest {
-                    emit::mov_reg_reg(self.buf, prop.ty.mode(), REG_RESULT, dest);
+                    emit::mov_reg_reg(self.buf, field.ty.mode(), REG_RESULT, dest);
                 }
             }
         }
@@ -638,7 +638,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprIdent(_) => true,
         ExprAssign(_) => false,
         ExprCall(_) => false,
-        ExprProp(_) => false,
+        ExprField(_) => false,
         ExprSelf(_) => true,
         ExprNil(_) => true,
         ExprArray(_) => false,
@@ -656,7 +656,7 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprIdent(_) => false,
         ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
         ExprCall(ref val) => true,
-        ExprProp(ref e) => contains_fct_call(&e.object),
+        ExprField(ref e) => contains_fct_call(&e.object),
         ExprSelf(_) => false,
         ExprNil(_) => false,
         ExprArray(ref e) => contains_fct_call(&e.object) || contains_fct_call(&e.index),

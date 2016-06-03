@@ -208,7 +208,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
-        ExprProp(ref value) => {
+        ExprField(ref value) => {
             v.visit_expr(&value.object);
         }
 
