@@ -43,6 +43,7 @@ pub enum TokenType {
 
     // Modifiers
     Open,
+    Override,
 
     // Operators
     Add,

@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::fmt;
 use std::hash::*;
+use std::slice::Iter;
 
 use ast::Elem::*;
 use class::{ClassId, FieldId};
@@ -298,12 +299,55 @@ pub struct Function {
     pub name: Name,
     pub pos: Position,
     pub method: bool,
+    pub overridable: bool,
 
     pub params: Vec<Param>,
     pub throws: bool,
 
     pub return_type: Option<Type>,
     pub block: Box<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Modifiers(Vec<ModifierElement>);
+
+impl Modifiers {
+    pub fn new() -> Modifiers {
+        Modifiers(Vec::new())
+    }
+
+    pub fn contains(&self, modifier: Modifier) -> bool {
+        self.0.iter().find(|el| el.value == modifier).is_some()
+    }
+
+    pub fn add(&mut self, modifier: Modifier, pos: Position) {
+        self.0.push(ModifierElement {
+            value: modifier,
+            pos: pos
+        });
+    }
+
+    pub fn iter(&self) -> Iter<ModifierElement> {
+        self.0.iter()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ModifierElement {
+    pub value: Modifier,
+    pub pos: Position,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Modifier { Override, Open }
+
+impl Modifier {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            Modifier::Open => "open",
+            Modifier::Override => "override",
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

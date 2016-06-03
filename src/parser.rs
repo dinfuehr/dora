@@ -90,7 +90,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
         match self.token.token_type {
             TokenType::Fun => {
-                let fct = try!(self.parse_function());
+                let fct = try!(self.parse_function(&Modifiers::new()));
                 Ok(ElemFunction(fct))
             }
 
@@ -205,14 +205,20 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.read_token());
 
         while !self.token.is(TokenType::RBrace) {
+            let modifiers = try!(self.parse_modifiers());
+
             match self.token.token_type {
                 TokenType::Fun => {
-                    let fct = try!(self.parse_function());
+                    self.restrict_modifiers(&modifiers, &[Modifier::Open]);
+
+                    let fct = try!(self.parse_function(&modifiers));
                     cls.methods.push(fct);
                 }
 
                 TokenType::Var
                 | TokenType::Let => {
+                    self.ban_modifiers(&modifiers);
+
                     let field = try!(self.parse_field());
                     cls.fields.push(field);
                 }
@@ -228,6 +234,50 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
 
         try!(self.read_token());
+        Ok(())
+    }
+
+    fn parse_modifiers(&mut self) -> Result<Modifiers, ParseError> {
+        let mut modifiers = Modifiers::new();
+
+        loop {
+            let modifier = match self.token.token_type {
+                TokenType::Open => Modifier::Open,
+                TokenType::Override => Modifier::Override,
+                _ => { break; }
+            };
+
+            if modifiers.contains(modifier) {
+                return Err(ParseError {
+                    position: self.token.position,
+                    code: ErrorCode::RedundantModifier,
+                    message: format!("redundant modifier `{}`", self.token.value.clone())
+                });
+            }
+
+            let pos = try!(self.read_token()).position;
+            modifiers.add(modifier, pos);
+        }
+
+        Ok(modifiers)
+    }
+
+    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), ParseError> {
+        self.restrict_modifiers(modifiers, &[])
+    }
+
+    fn restrict_modifiers(&mut self, modifiers: &Modifiers,
+                                     restrict: &[Modifier]) -> Result<(), ParseError> {
+        for modifier in modifiers.iter() {
+            if !restrict.contains(&modifier.value) {
+                return Err(ParseError {
+                    position: modifier.pos,
+                    code: ErrorCode::MisplacedModifier,
+                    message: format!("misplaced modifier `{}`", modifier.value.name())
+                });
+            }
+        }
+
         Ok(())
     }
 
@@ -267,7 +317,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         })
     }
 
-    fn parse_function(&mut self) -> Result<Function, ParseError> {
+    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseError> {
         let pos = try!(self.expect_token(TokenType::Fun)).position;
         let ident = try!(self.expect_identifier());
 
@@ -281,6 +331,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: ident,
             pos: pos,
             method: self.in_class,
+            overridable: modifiers.contains(Modifier::Open),
             params: params,
             throws: throws,
             return_type: return_type,
@@ -991,6 +1042,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             name: cls.name,
             method: true,
+            overridable: false,
             params: params,
             throws: false,
             return_type: Some(self.build_type(cls.name)),
@@ -2064,5 +2116,17 @@ mod tests {
         let f2 = &cls.fields[1];
         assert_eq!("f2", &interner.str(f2.name).to_string());
         assert_eq!(false, f2.reassignable);
+    }
+
+    #[test]
+    fn parse_open_method() {
+        let (prog, interner) = parse("class A { open fun f() {} fun g() {} }");
+        let cls = prog.elements[0].to_class().unwrap();
+
+        let m1 = &cls.methods[0];
+        assert_eq!(true, m1.overridable);
+
+        let m2 = &cls.methods[1];
+        assert_eq!(false, m2.overridable);
     }
 }
