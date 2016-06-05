@@ -137,7 +137,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             let pos = self.token.position;
             let name = try!(self.expect_identifier());
-            let params = Vec::new();
+            let params = try!(self.parse_parent_class_params());
 
             Some(ParentClass::new(name, pos, params))
         } else {
@@ -154,6 +154,20 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(cls)
     }
 
+    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, ParseError> {
+        if !self.token.is(TokenType::LParen) {
+            return Ok(Vec::new());
+        }
+
+        try!(self.expect_token(TokenType::LParen));
+
+        let params = try!(self.parse_comma_list(TokenType::RParen, |p| {
+            p.parse_expression()
+        }));
+
+        Ok(params)
+    }
+
     fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<(), ParseError> {
         if !self.token.is(TokenType::LParen) {
             return Ok(());
@@ -161,7 +175,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.expect_token(TokenType::LParen));
 
-        let mut params = try!(self.parse_comma_list(TokenType::RParen, |p| {
+        let params = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_primary_ctor_param()
         }));
 
@@ -2142,5 +2156,14 @@ mod tests {
 
         let m2 = &cls.methods[1];
         assert_eq!(true, m2.overrides);
+    }
+
+    #[test]
+    fn parse_parent_class_params() {
+        let (prog, interner) = parse("class A: B(1, 2)");
+        let cls = prog.elements[0].to_class().unwrap();
+
+        let parent_class = cls.parent_class.as_ref().unwrap();
+        assert_eq!(2, parent_class.params.len());
     }
 }
