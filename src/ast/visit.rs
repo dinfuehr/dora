@@ -208,6 +208,12 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprSuperCall(ref call) => {
+            for arg in &call.args {
+                v.visit_expr(arg);
+            }
+        }
+
         ExprField(ref value) => {
             v.visit_expr(&value.object);
         }

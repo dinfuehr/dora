@@ -5,7 +5,7 @@ use std::slice::Iter;
 
 use ast::Elem::*;
 use class::{ClassId, FieldId};
-use ctxt::{CtorType, IdentType, VarId};
+use ctxt::{CtorType, FctId, IdentType, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -931,6 +931,7 @@ pub enum Expr {
     ExprLitBool(ExprLitBoolType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
+    ExprSuperCall(ExprSuperCallType),
     ExprAssign(ExprAssignType),
     ExprField(ExprFieldType),
     ExprSelf(ExprSelfType),
@@ -1032,6 +1033,15 @@ impl Expr {
             args: args,
             with_self: with_self,
             ty: RefCell::new(None),
+        })
+    }
+
+    pub fn create_super_call(id: NodeId, pos: Position, args: Vec<Box<Expr>>) -> Expr {
+        Expr::ExprSuperCall(ExprSuperCallType {
+            id: id,
+            pos: pos,
+            args: args,
+            fct_id: RefCell::new(None),
         })
     }
 
@@ -1222,6 +1232,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
+            Expr::ExprSuperCall(ref val) => val.id,
             Expr::ExprField(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
@@ -1239,6 +1250,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.ty(),
             Expr::ExprAssign(ref val) => val.ty(),
             Expr::ExprCall(ref val) => val.ty(),
+            Expr::ExprSuperCall(ref val) => BuiltinType::Unit,
             Expr::ExprField(ref val) => val.ty(),
             Expr::ExprSelf(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
@@ -1256,11 +1268,30 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.set_ty(ty),
             Expr::ExprAssign(ref val) => val.set_ty(ty),
             Expr::ExprCall(ref val) => val.set_ty(ty),
+            Expr::ExprSuperCall(ref val) => panic!("unimplemented"),
             Expr::ExprField(ref val) => val.set_ty(ty),
             Expr::ExprSelf(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprSuperCallType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub args: Vec<Box<Expr>>,
+    pub fct_id: RefCell<Option<FctId>>,
+}
+
+impl ExprSuperCallType {
+    pub fn fct_id(&self) -> FctId {
+        self.fct_id.borrow().unwrap()
+    }
+
+    pub fn set_fct_id(&self, id: FctId) {
+        *self.fct_id.borrow_mut() = Some(id);
     }
 }
 

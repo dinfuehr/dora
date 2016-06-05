@@ -1019,6 +1019,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn generate_ctor(&mut self, cls: &mut Class) -> Function {
+        let super_ctor = if let Some(ref parent_class) = cls.parent_class {
+            let expr = Expr::create_super_call(
+                self.generate_id(),
+                parent_class.pos,
+                parent_class.params.clone()
+            );
+
+            vec![self.build_stmt_expr(Box::new(expr))]
+        } else {
+            Vec::new()
+        };
+
         let param_assignments: Vec<Box<Stmt>> = cls.ctor_params.iter()
                                                       .filter(|param| param.field)
                                                       .map(|param| {
@@ -1043,9 +1055,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let this = self.build_this();
         let ret = vec![self.build_return(Some(this))];
 
-        let assignments : Vec<Box<Stmt>> = param_assignments.into_iter()
-                                                    .chain(field_assignments.into_iter())
-                                                    .chain(ret.into_iter()).collect();
+        let assignments = super_ctor.into_iter()
+                            .chain(param_assignments.into_iter())
+                            .chain(field_assignments.into_iter())
+                            .chain(ret.into_iter()).collect();
 
         let params = cls.ctor_params.iter().enumerate().map(|(idx, field)| {
             self.build_param(idx as u32, field.name, field.data_type.clone())

@@ -548,6 +548,35 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_expr_super_call(&mut self, e: &'ast ExprSuperCallType) {
+        let arg_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
+            self.visit_expr(arg);
+            self.expr_type
+        }).collect();
+
+        let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+        let cls = self.ctxt.cls_by_id(cls.parent_class.unwrap());
+
+        for &ctor_id in &cls.ctors {
+            let compatible = self.ctxt.fct_by_id(ctor_id, |ctor| {
+                if args_compatible(&ctor.params_types, &arg_types) {
+                    e.set_fct_id(ctor_id);
+
+                    true
+                } else {
+                    false
+                }
+            });
+
+            if compatible { return; }
+        }
+
+        let name = self.ctxt.interner.str(cls.name).to_string();
+        let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
+        let msg = Msg::UnknownCtor(name, arg_types);
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+    }
+
     fn check_method_call(&mut self, e: &'ast ExprCallType) {
         let caller_id = self.fct.id;
 
@@ -649,6 +678,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
+            ExprSuperCall(ref expr) => self.check_expr_super_call(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
@@ -1175,5 +1205,14 @@ mod tests {
         err("class Foo {
             fun f(self) { self = Foo(); }
         }", pos(2, 32), Msg::LvalueExpected);
+    }
+
+    #[test]
+    fn super_class() {
+        ok("open class A class B: A");
+        ok("open class A class B: A()");
+        ok("open class A(a: int) class B: A(1)");
+        err("open class A(a: int) class B: A(true)", pos(1, 31),
+            Msg::UnknownCtor("A".into(), vec!["bool".into()]));
     }
 }
