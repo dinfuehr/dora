@@ -262,15 +262,17 @@ impl PrimaryCtorParam {
 pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
+    pub params: Vec<Box<Expr>>,
     pub cls: RefCell<Option<ClassId>>,
 }
 
 impl ParentClass {
-    pub fn new(name: Name, pos: Position) -> ParentClass {
+    pub fn new(name: Name, pos: Position, params: Vec<Box<Expr>>) -> ParentClass {
         ParentClass {
             name: name,
             pos: pos,
             cls: RefCell::new(None),
+            params: params,
         }
     }
 

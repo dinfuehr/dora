@@ -88,15 +88,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
+        let modifiers = try!(self.parse_modifiers());
+
         match self.token.token_type {
             TokenType::Fun => {
-                let fct = try!(self.parse_function(&Modifiers::new()));
+                self.ban_modifiers(&modifiers);
+                let fct = try!(self.parse_function(&modifiers));
                 Ok(ElemFunction(fct))
             }
 
-            TokenType::Class
-            | TokenType::Open => {
-                let class = try!(self.parse_class());
+            TokenType::Class => {
+                self.restrict_modifiers(&modifiers, &[Modifier::Open]);
+                let class = try!(self.parse_class(&modifiers));
                 Ok(ElemClass(class))
             }
 
@@ -108,14 +111,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_class(&mut self) -> Result<Class, ParseError> {
-        let derivable = if self.token.is(TokenType::Open) {
-            try!(self.read_token());
-
-            true
-        } else {
-            false
-        };
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseError> {
+        let derivable = modifiers.contains(Modifier::Open);
 
         let pos = try!(self.expect_token(TokenType::Class)).position;
         let ident = try!(self.expect_identifier());
@@ -140,8 +137,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             let pos = self.token.position;
             let name = try!(self.expect_identifier());
+            let params = Vec::new();
 
-            Some(ParentClass::new(name, pos))
+            Some(ParentClass::new(name, pos, params))
         } else {
             None
         };
