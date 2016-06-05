@@ -9,7 +9,7 @@ use driver::cmd::Args;
 use error::diag::Diagnostic;
 
 use ast;
-use class::{Class, ClassId, FieldId};
+use class::{Class, ClassId, Field, FieldId};
 use cpu::Reg;
 use gc::Gc;
 use interner::*;
@@ -118,6 +118,10 @@ impl<'ast> Context<'ast> {
         let mut fctxt = fct.lock().unwrap();
 
         f(&mut fctxt)
+    }
+
+    pub fn field(&self, cid: ClassId, fid: FieldId) -> &Field {
+        &self.classes[cid.0].fields[fid.0]
     }
 
     pub fn cls_by_id(&self, id: ClassId) -> &Class<'ast> {

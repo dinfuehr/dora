@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ops::Index;
 
 use ast;
-use ctxt::FctId;
+use ctxt::{Context, FctId};
 use interner::Name;
 use ty::BuiltinType;
 
@@ -21,6 +21,29 @@ pub struct Class<'ast> {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub ast: Option<&'ast ast::Class>,
+}
+
+impl<'ast> Class<'ast> {
+    pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
+        let mut classid = self.id;
+
+        loop {
+            let cls = ctxt.cls_by_id(classid);
+
+            for field in &cls.fields {
+                if field.name == name {
+                    return Some((classid, field.id));
+                }
+            }
+
+            if let Some(parent_class) = cls.parent_class {
+                classid = parent_class;
+
+            } else {
+                return None;
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

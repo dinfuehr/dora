@@ -602,15 +602,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
         self.visit_expr(&e.object);
 
-        if let BuiltinType::Class(classid) = self.expr_type {
-            let cls = self.ctxt.cls_by_id(classid);
-            for field in &cls.fields {
-                if field.name == e.name {
-                    e.set_cls_and_field(classid, field.id);
-                    e.set_ty(field.ty);
-                    self.expr_type = field.ty;
-                    return;
-                }
+        if let BuiltinType::Class(class_id) = self.expr_type {
+            let cls = self.ctxt.cls_by_id(class_id);
+
+            if let Some((class_id, field_id)) = cls.find_field(self.ctxt, e.name) {
+                e.set_cls_and_field(class_id, field_id);
+
+                let field = self.ctxt.field(class_id, field_id);
+                e.set_ty(field.ty);
+                self.expr_type = field.ty;
+                return;
             }
         }
 
@@ -1214,5 +1215,11 @@ mod tests {
         ok("open class A(a: int) class B: A(1)");
         err("open class A(a: int) class B: A(true)", pos(1, 31),
             Msg::UnknownCtor("A".into(), vec!["bool".into()]));
+    }
+
+    #[test]
+    fn access_super_class_field() {
+        ok("open class A(var a: int) class B(x: int): A(x*2)
+            fun foo(b: B) { b.a = b.a + 10; }");
     }
 }
