@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use ast;
 use ast::visit::{self, Visitor};
 use class::*;
@@ -136,7 +138,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             owner_class: Some(clsid),
             ctor: f.ctor,
             initialized: false,
-            kind: FctKind::Source(FctSrc::new(f)),
+            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
         };
 
         let fctid = self.ctxt.add_fct(fct);
@@ -152,7 +154,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             owner_class: Some(self.cls_id.unwrap()),
             ctor: None,
             initialized: false,
-            kind: FctKind::Source(FctSrc::new(f)),
+            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
         };
 
         let fctid = self.ctxt.add_fct(fct);

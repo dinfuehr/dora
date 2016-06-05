@@ -19,6 +19,7 @@ use ty::{BuiltinType, MachineMode};
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
     scopes: &'a mut Scopes,
@@ -30,6 +31,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
         ctxt: &'a Context<'ast>,
         fct: &'a mut Fct<'ast>,
+        src: &'a mut FctSrc<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,
         scopes: &'a mut Scopes,
@@ -37,6 +39,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
+            src: src,
             ast: ast,
             buf: buf,
             tempsize: 0,
@@ -102,7 +105,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
         let ty = expr.ty();
-        let offset = -(self.fct.src().localsize + self.fct.src().get_store(id).offset());
+        let offset = -(self.src.localsize + self.src.get_store(id).offset());
 
         if ty.reference_type() {
             self.temps.insert(offset);
@@ -112,7 +115,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {
-        let offset = -(self.fct.src().localsize + arg.offset());
+        let offset = -(self.src.localsize + arg.offset());
         let ty = arg.ty();
 
         if ty.reference_type() {
@@ -137,7 +140,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
-        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
+        let fid = self.src.calls.get(&id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid { return false; }
@@ -146,7 +149,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_self(&mut self, dest: Reg) {
-        let var = self.fct.var_self();
+        let var = self.src.var_self();
 
         emit::mov_local_reg(self.buf, var.ty.mode(), var.offset, dest);
     }
@@ -190,7 +193,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
         match e.ident_type() {
             IdentType::Var(_) => {
-                codegen::var_load(self.buf, self.fct, e.var(), dest)
+                codegen::var_load(self.buf, self.src, e.var(), dest)
             }
 
             IdentType::Field(cls, field) => {
@@ -263,7 +266,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             IdentType::Var(_) => {
                 self.emit_expr(&e.rhs, dest);
                 let lhs = e.lhs.to_ident().unwrap();
-                codegen::var_store(&mut self.buf, self.fct, dest, lhs.var());
+                codegen::var_store(&mut self.buf, self.src, dest, lhs.var());
             }
 
             IdentType::Field(clsid, fieldid) => {
@@ -449,7 +452,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
-        if let Some(&Store::Temp(_, _)) = self.fct.src().storage.get(&e.lhs.id()) {
+        if let Some(&Store::Temp(_, _)) = self.src.storage.get(&e.lhs.id()) {
             let offset = self.reserve_temp_for_node(&e.lhs);
             let ty = e.lhs.ty();
 
@@ -473,12 +476,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn ptr_for_fct_id(&mut self, fid: FctId) -> Ptr {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.fct, self.ctxt)
+            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
 
         } else {
             self.ctxt.fct_by_id_mut(fid, |fct| {
+
                 match fct.kind {
-                    FctKind::Source(_) => ensure_jit_or_stub_ptr(fct, self.ctxt),
+                    FctKind::Source(ref src) => {
+                        let src = fct.src();
+                        let mut src = src.lock().unwrap();
+
+                        ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
+                    },
                     FctKind::Builtin(ptr) => ptr,
                     FctKind::Intrinsic => panic!("intrinsic fct call"),
                 }
@@ -499,11 +508,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
-        self.fct.src().call_sites.get(&id).is_some()
+        self.src.call_sites.get(&id).is_some()
     }
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
-        let csite = self.fct.src().call_sites.get(&id).unwrap().clone();
+        let csite = self.src.call_sites.get(&id).unwrap().clone();
         let ptr = match csite.callee {
             Callee::Fct(fid) => self.ptr_for_fct_id(fid),
             Callee::Ptr(ptr) => ptr
@@ -539,7 +548,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             temps.push((arg.ty(), offset));
         }
 
-        let mut arg_offset = -self.fct.src().stacksize();
+        let mut arg_offset = -self.src.stacksize();
 
         for (ind, arg) in csite.args.iter().enumerate() {
             let ty = arg.ty();
@@ -550,7 +559,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::mov_local_reg(self.buf, ty.mode(), offset, reg);
 
                 if ind == 0 {
-                    let call_type = self.fct.src().calls.get(&id);
+                    let call_type = self.src.calls.get(&id);
 
                     if call_type.is_some() && call_type.unwrap().is_method()
                         && check_for_nil(ty) {
@@ -601,19 +610,15 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
-    {
-        let src = fct.src();
+fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> Ptr {
+    if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
+    if let Some(ref stub) = src.stub { return stub.ptr_start(); }
 
-        if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
-        if let Some(ref stub) = src.stub { return stub.ptr_start(); }
-    }
-
-    let stub = Stub::new(fct.id);
+    let stub = Stub::new(fid);
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fct.id);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
     }
 
     if ctxt.args.flag_emit_stubs {
@@ -622,7 +627,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fct: &mut Fct<'ast>, ctxt: &Context) -> Ptr {
 
     let ptr = stub.ptr_start();
 
-    fct.src_mut().stub = Some(stub);
+    src.stub = Some(stub);
 
     ptr
 }

@@ -1,4 +1,6 @@
-use ctxt::{CallType, Context, Fct, FctId, IdentType};
+use std::sync::MutexGuard;
+
+use ctxt::{CallType, Context, Fct, FctKind, FctId, FctSrc, IdentType};
 use class::ClassId;
 use error::msg::Msg;
 
@@ -14,23 +16,28 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if fct.kind.is_src() {
-            let ast = fct.ast();
-            let mut typeck = TypeCheck {
-                ctxt: ctxt,
-                fct: &mut fct,
-                ast: ast,
-                expr_type: BuiltinType::Unit,
-            };
+        if !fct.is_src() { continue; }
 
-            typeck.check();
-        }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        let ast = src.ast;
+
+        let mut typeck = TypeCheck {
+            ctxt: ctxt,
+            fct: &mut fct,
+            src: &mut src,
+            ast: ast,
+            expr_type: BuiltinType::Unit,
+        };
+
+        typeck.check();
     }
 }
 
 struct TypeCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     expr_type: BuiltinType,
 }
@@ -47,7 +54,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         });
 
         let defined_type = if let Some(_) = s.data_type {
-            let ty = self.fct.var(s.var()).ty;
+            let ty = self.src.vars[s.var()].ty;
             if ty == BuiltinType::Unit { None } else { Some(ty) }
         } else {
             expr_type
@@ -65,7 +72,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.fct.var_mut(s.var()).ty = defined_type;
+        self.src.vars[s.var()].ty = defined_type;
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(expr_type) {
@@ -164,7 +171,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
         match e.ident_type() {
             IdentType::Var(varid) => {
-                let ty = self.fct.var(varid).ty;
+                let ty = self.src.vars[varid].ty;
                 e.set_ty(ty);
                 self.expr_type = ty;
             }
@@ -199,7 +206,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if let Some((cls_id, fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
                                                                   &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
-                assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+                assert!(self.src.calls.insert(e.id, call_type).is_none());
 
                 let index_type = if self.fct.id == fct_id {
                     self.fct.params_types[1]
@@ -227,7 +234,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let ident_type = ident.ident_type();
 
                 if let IdentType::Var(varid) = ident_type {
-                    if !self.fct.var(varid).reassignable {
+                    if !self.src.vars[varid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
                 }
@@ -466,7 +473,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.fct.src().calls.get(&e.id).unwrap();
+        let call_type = *self.src.calls.get(&e.id).unwrap();
         let caller_id = self.fct.id;
 
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
@@ -492,7 +499,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if args_compatible(&params_types, &call_types) {
                         let call_type = CallType::Ctor(cls_id, ctor);
-                        assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_some());
+                        assert!(self.src.calls.insert(e.id, call_type).is_some());
 
                         found = true;
                         break;
@@ -590,7 +597,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
                                                             e.name, &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+            assert!(self.src.calls.insert(e.id, call_type).is_none());
             e.set_ty(return_type);
             self.expr_type = return_type;
         } else {
@@ -657,7 +664,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
                                                             name, &args, None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            assert!(self.fct.src_mut().calls.insert(e.id, call_type).is_none());
+            assert!(self.src.calls.insert(e.id, call_type).is_none());
 
             e.set_ty(return_type);
             self.expr_type = return_type;

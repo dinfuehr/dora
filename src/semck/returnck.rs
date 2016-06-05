@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, FctKind, FctSrc};
 use error::msg::Msg;
 
 use ast::*;
@@ -11,22 +11,27 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if fct.kind.is_src() {
-            let ast = fct.ast();
-            let mut returnck = ReturnCheck {
-                ctxt: ctxt,
-                fct: &mut fct,
-                ast: ast,
-            };
+        if !fct.is_src() { continue; }
 
-            returnck.check();
-        }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        let ast = src.ast;
+
+        let mut returnck = ReturnCheck {
+            ctxt: ctxt,
+            fct: &mut fct,
+            src: &mut src,
+            ast: ast,
+        };
+
+        returnck.check();
     }
 }
 
 struct ReturnCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
 }
 
@@ -53,7 +58,7 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
             // save this information for the function, this information is useful
             // for code generation
 
-            self.fct.src_mut().always_returns = true;
+            self.src.always_returns = true;
         }
     }
 }
@@ -127,7 +132,12 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
 
-            assert_eq!(value, ctxt.fct_by_id(fct_id, |fct| fct.src().always_returns));
+            assert_eq!(value, ctxt.fct_by_id(fct_id, |fct| {
+                let src = fct.src();
+                let src = src.lock().unwrap();
+
+                src.always_returns
+            }));
         });
     }
 

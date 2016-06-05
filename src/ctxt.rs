@@ -3,7 +3,7 @@ use libc::c_void;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use driver::cmd::Args;
 use error::diag::Diagnostic;
@@ -82,7 +82,7 @@ impl<'ast> Context<'ast> {
         fct.id = fctid;
 
         if fct.kind.is_src() {
-            assert!(self.fct_defs.insert(fct.ast().id, fctid).is_none());
+            assert!(self.fct_defs.insert(fct.kind.src().ast.id, fctid).is_none());
         }
 
         self.fcts.push(Arc::new(Mutex::new(fct)));
@@ -174,7 +174,7 @@ pub struct FctDecl {
     pub name: Name,
     pub owner_class: Option<ClassId>,
     pub params_types: Vec<BuiltinType>,
-    pub ctor: bool,
+    pub ctor: Option<CtorType>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -219,10 +219,6 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn ast(&self) -> &'ast ast::Function {
-        self.src().ast
-    }
-
     pub fn full_name(&self, ctxt: &Context) -> String {
         let mut repr = String::new();
 
@@ -261,20 +257,11 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn src(&self) -> &FctSrc<'ast> {
-        self.kind.src()
-    }
-
-    pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
-        self.kind.src_mut()
-    }
-
-    pub fn var(&self, id: VarId) -> &Var {
-        &self.src().vars[id]
-    }
-
-    pub fn var_mut(&mut self, id: VarId) -> &mut Var {
-        &mut self.src_mut().vars[id]
+    pub fn src(&self) -> Arc<Mutex<FctSrc<'ast>>> {
+        match self.kind {
+            FctKind::Source(ref src) => src.clone(),
+            _ => panic!("source expected")
+        }
     }
 
     pub fn hidden_self(&self) -> bool {
@@ -284,17 +271,11 @@ impl<'ast> Fct<'ast> {
     pub fn has_self(&self) -> bool {
         self.owner_class.is_some()
     }
-
-    pub fn var_self(&mut self) -> &mut Var {
-        assert!(self.owner_class.is_some());
-
-        &mut self.src_mut().vars[0]
-    }
 }
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(FctSrc<'ast>), Builtin(Ptr), Intrinsic
+    Source(Arc<Mutex<FctSrc<'ast>>>), Builtin(Ptr), Intrinsic
 }
 
 impl<'ast> FctKind<'ast> {
@@ -305,16 +286,9 @@ impl<'ast> FctKind<'ast> {
         }
     }
 
-    pub fn src(&self) -> &FctSrc<'ast> {
+    pub fn src(&self) -> MutexGuard<FctSrc<'ast>> {
         match *self {
-            FctKind::Source(ref ast_info) => ast_info,
-            _ => panic!()
-        }
-    }
-
-    pub fn src_mut(&mut self) -> &mut FctSrc<'ast> {
-        match *self {
-            FctKind::Source(ref mut ast_info) => ast_info,
+            FctKind::Source(ref src) => src.lock().unwrap(),
             _ => panic!()
         }
     }
@@ -373,6 +347,14 @@ impl<'ast> FctSrc<'ast> {
 
     pub fn stacksize(&self) -> i32 {
         mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
+    }
+
+    pub fn var_self(&self) -> &Var {
+        &self.vars[0]
+    }
+
+    pub fn var_self_mut(&mut self) -> &mut Var {
+        &mut self.vars[0]
     }
 }
 

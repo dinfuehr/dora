@@ -6,20 +6,20 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::{self, Reg};
-use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, Store, Var, VarId};
+use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, FctSrc, Store, Var, VarId};
 use jit::expr::is_leaf;
 use mem;
 use mem::ptr::Ptr;
 use stdlib;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
-    let ast = fct.ast();
-
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>,
+                              src: &'a mut FctSrc<'ast>) {
     let mut ig = InfoGenerator {
         ctxt: ctxt,
         fct: fct,
-        ast: ast,
+        ast: src.ast,
+        src: src,
 
         localsize: 0,
         max_tempsize: 0,
@@ -38,6 +38,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>) {
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
 
     localsize: i32,
@@ -63,7 +64,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // the rest of the parameters are already stored on the stack
         // just use the current offset
         } else {
-            let var = self.fct.var_mut(p.var());
+            let var = &mut self.src.vars[p.var()];
             var.offset = self.param_offset;
 
             // determine next `param_offset`
@@ -124,23 +125,22 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         self.visit_fct(self.ast);
 
-        let src = self.fct.src_mut();
-        src.localsize = self.localsize;
-        src.tempsize = self.max_tempsize;
-        src.argsize = self.argsize;
-        src.leaf = self.leaf;
-        src.eh_return_value = self.eh_return_value;
+        self.src.localsize = self.localsize;
+        self.src.tempsize = self.max_tempsize;
+        self.src.argsize = self.argsize;
+        self.src.leaf = self.leaf;
+        self.src.eh_return_value = self.eh_return_value;
     }
 
     fn reserve_stack_for_self(&mut self) {
         let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-        self.fct.var_self().offset = offset;
+        self.src.var_self_mut().offset = offset;
     }
 
     fn reserve_stack_for_node(&mut self, id: VarId) {
-        let ty = self.fct.var(id).ty;
+        let ty = self.src.vars[id].ty;
         let offset = self.reserve_stack_for_type(ty);
-        self.fct.var_mut(id).offset = offset;
+        self.src.vars[id].offset = offset;
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
@@ -168,7 +168,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
-        let fid = self.fct.src().calls.get(&id).unwrap().fct_id();
+        let fid = self.src.calls.get(&id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid { return false; }
@@ -189,7 +189,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.fct.src().calls.get(&expr.id).unwrap();
+        let call_type = *self.src.calls.get(&expr.id).unwrap();
         let ctor = call_type.is_ctor();
 
         let mut args = expr.args.iter().map(|arg| {
@@ -225,7 +225,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         let fid = if data.is_none() {
-            Some(self.fct.src().calls.get(&id).unwrap().fct_id())
+            Some(self.src.calls.get(&id).unwrap().fct_id())
         } else {
             None
         };
@@ -271,7 +271,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         };
 
         // remember args
-        self.fct.src_mut().call_sites.insert(id, csite);
+        self.src.call_sites.insert(id, csite);
     }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {
@@ -361,7 +361,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = ty.size();
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.fct.src_mut().storage.insert(id, Store::Temp(self.cur_tempsize, ty));
+        self.src.storage.insert(id, Store::Temp(self.cur_tempsize, ty));
         // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
 
         self.cur_tempsize
@@ -375,62 +375,64 @@ mod tests {
     use ctxt::*;
     use test;
 
-    fn info<F>(code: &'static str, f: F) where F: FnOnce(&Fct) {
+    fn info<F>(code: &'static str, f: F) where F: FnOnce(&FctSrc) {
         test::parse(code, |ctxt| {
             let ast = ctxt.ast.elements[0].to_function().unwrap();
 
             ctxt.fct_by_node_id_mut(ast.id, |fct| {
-                generate(ctxt, fct);
+                let src = fct.src();
+                let mut src = src.lock().unwrap();
+                generate(ctxt, fct, &mut src);
 
-                f(fct);
+                f(&src);
             });
         });
     }
 
     #[test]
     fn test_tempsize() {
-        info("fun f() { 1+2*3; }", |fct| { assert_eq!(4, fct.src().tempsize); });
-        info("fun f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.src().tempsize); });
-        info("fun f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.src().tempsize); })
+        info("fun f() { 1+2*3; }", |fct| { assert_eq!(4, fct.tempsize); });
+        info("fun f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.tempsize); });
+        info("fun f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.tempsize); })
     }
 
     #[test]
     fn test_tempsize_for_fct_call() {
         info("fun f() { g(1,2,3,4,5,6); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |fct| {
-            assert_eq!(24, fct.src().tempsize);
+            assert_eq!(24, fct.tempsize);
         });
 
         info("fun f() { g(1,2,3,4,5,6,7,8); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
-            assert_eq!(32, fct.src().tempsize);
+            assert_eq!(32, fct.tempsize);
         });
 
         info("fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }", |fct| {
-            assert_eq!(36, fct.src().tempsize);
+            assert_eq!(36, fct.tempsize);
         });
     }
 
     #[test]
     fn test_invocation_flag() {
         info("fun f() { g(); } fun g() { }", |fct| {
-            assert!(!fct.src().leaf);
+            assert!(!fct.leaf);
         });
 
         info("fun f() { }", |fct| {
-            assert!(fct.src().leaf);
+            assert!(fct.leaf);
         });
     }
 
     #[test]
     fn test_param_offset() {
         info("fun f(a: bool, b: int) { let c = 1; }", |fct| {
-            assert_eq!(12, fct.src().localsize);
+            assert_eq!(12, fct.localsize);
 
-            for (var, offset) in fct.src().vars.iter().zip(&[-1, -8, -12]) {
+            for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
                 assert_eq!(*offset, var.offset);
             }
         });
@@ -442,10 +444,10 @@ mod tests {
                    e: int, f: int, g: int, h: int) {
                   let i : int = 1;
               }", |fct| {
-            assert_eq!(28, fct.src().localsize);
+            assert_eq!(28, fct.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-            for (var, offset) in fct.src().vars.iter().zip(&offsets) {
+            for (var, offset) in fct.vars.iter().zip(&offsets) {
                 assert_eq!(*offset, var.offset);
             }
         });
@@ -454,9 +456,9 @@ mod tests {
     #[test]
     fn test_var_offset() {
         info("fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }", |fct| {
-            assert_eq!(16, fct.src().localsize);
+            assert_eq!(16, fct.localsize);
 
-            for (var, offset) in fct.src().vars.iter().zip(&[-1, -2, -8, -16]) {
+            for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
                 assert_eq!(*offset, var.offset);
             }
         });

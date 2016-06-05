@@ -17,22 +17,27 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if fct.kind.is_src() {
-            let ast = fct.ast();
-            let mut nameck = NameCheck {
-                ctxt: ctxt,
-                fct: &mut fct,
-                ast: ast,
-            };
+        if !fct.is_src() { continue; }
 
-            nameck.check();
-        }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        let ast = src.ast;
+
+        let mut nameck = NameCheck {
+            ctxt: ctxt,
+            fct: &mut fct,
+            src: &mut src,
+            ast: ast,
+        };
+
+        nameck.check();
     }
 }
 
 struct NameCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
 }
 
@@ -52,9 +57,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
-        let var_id = VarId(self.fct.src().vars.len());
+        let var_id = VarId(self.src.vars.len());
         let cls_id = self.fct.owner_class.unwrap();
-        let ast_id = self.fct.src().ast.id;
+        let ast_id = self.src.ast.id;
         let name = self.ctxt.interner.intern("self");
 
         let var = Var {
@@ -66,13 +71,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             offset: 0
         };
 
-        self.fct.src_mut().vars.push(var);
+        self.src.vars.push(var);
     }
 
     pub fn add_var<F>(&mut self, mut var: Var, replacable: F) ->
             Result<VarId, Sym> where F: FnOnce(&Sym) -> bool {
         let name = var.name;
-        let var_id = VarId(self.fct.src().vars.len());
+        let var_id = VarId(self.src.vars.len());
 
         var.id = var_id;
 
@@ -85,7 +90,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
         }
 
-        self.fct.src_mut().vars.push(var);
+        self.src.vars.push(var);
 
         result
     }
@@ -202,7 +207,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id);
-                    self.fct.src_mut().calls.insert(call.id, call_type);
+                    self.src.calls.insert(call.id, call_type);
                     found = true;
                 }
 
@@ -210,7 +215,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                     let cls = self.ctxt.cls_by_id(cls_id);
 
                     let call_type = CallType::Ctor(cls_id, FctId(0));
-                    self.fct.src_mut().calls.insert(call.id, call_type);
+                    self.src.calls.insert(call.id, call_type);
                     found = true;
                 }
 

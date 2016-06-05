@@ -54,6 +54,8 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     if let Some(fct_id) = fct_id {
         ctxt.fct_by_id(fct_id, |fct| {
             if let FctKind::Source(ref src) = fct.kind {
+                let mut src = src.lock().unwrap();
+
                 if let Some(ref jit_fct) = src.jit_fct {
                     let cls_id = exception.header().class().id;
 
@@ -128,6 +130,8 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
 
         ctxt.fct_by_id(fct_id, |fct| {
             if let FctKind::Source(ref src) = fct.kind {
+                let mut src = src.lock().unwrap();
+
                 if let Some(ref jit_fct) = src.jit_fct {
                     let offset = pc - (jit_fct.fct_ptr().raw() as usize);
                     let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
@@ -174,6 +178,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
 
         ctxt.fct_by_id(fct_id, |fct| {
             if let FctKind::Source(ref src) = fct.kind {
+                let mut src = src.lock().unwrap();
                 let jit_fct = src.jit_fct.as_ref().unwrap();
                 let offset = pc - (jit_fct.fct_ptr().raw() as usize);
                 lineno = jit_fct.lineno_for_offset(offset as i32);

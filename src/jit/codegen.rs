@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::collections::HashSet;
 use std::slice;
+use std::sync::MutexGuard;
 
 use libc;
 
@@ -10,7 +11,7 @@ use ast::Stmt::*;
 use ast::visit::*;
 
 use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, REG_TMP1, trap};
-use ctxt::{Context, Fct, FctId, VarId};
+use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 
 use jit::buffer::*;
@@ -25,9 +26,11 @@ use ty::MachineMode;
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     ctxt.fct_by_id_mut(id, |fct| {
-        if let Some(ref jit) = fct.src().jit_fct { return jit.fct_ptr(); }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
 
-        let ast = fct.src().ast;
+        let ast = src.ast;
 
         let jit_fct = CodeGen {
             ctxt: ctxt,
@@ -35,6 +38,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
             ast: ast,
             buf: Buffer::new(),
             scopes: Scopes::new(),
+            src: &mut src,
 
             lbl_break: None,
             lbl_continue: None,
@@ -47,7 +51,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
         }
 
         let fct_ptr = jit_fct.fct_ptr();
-        fct.src_mut().jit_fct = Some(jit_fct);
+        src.jit_fct = Some(jit_fct);
 
         fct_ptr
     })
@@ -88,6 +92,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ast: &'ast Function,
     buf: Buffer,
     scopes: Scopes,
+    src: &'a mut FctSrc<'ast>,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -96,7 +101,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
 
 impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn generate(mut self) -> JitFct {
-        info::generate(self.ctxt, self.fct);
+        info::generate(self.ctxt, self.fct, self.src);
 
         if self.ctxt.args.flag_emit_debug {
             emit::debug(&mut self.buf);
@@ -106,7 +111,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.store_register_params_on_stack();
         self.visit_fct(self.ast);
 
-        let always_returns = self.fct.src().always_returns;
+        let always_returns = self.src.always_returns;
 
         if !always_returns {
             self.emit_epilog();
@@ -122,7 +127,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.is_ctor() {
-            let var = self.fct.var_self();
+            let var = self.src.var_self();
             emit::mov_reg_local(&mut self.buf, var.ty.mode(),
                                 REG_PARAMS[0], var.offset);
 
@@ -134,16 +139,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for (&reg, p) in REG_PARAMS.iter().skip(hidden_self)
                         .zip(&self.ast.params) {
-            var_store(&mut self.buf, self.fct, reg, p.var());
+            var_store(&mut self.buf, &self.src, reg, p.var());
         }
     }
 
     fn emit_prolog(&mut self) {
-        emit::prolog(&mut self.buf, self.fct.src().stacksize());
+        emit::prolog(&mut self.buf, self.src.stacksize());
     }
 
     fn emit_epilog(&mut self) {
-        emit::epilog(&mut self.buf, self.fct.src().stacksize());
+        emit::epilog(&mut self.buf, self.src.stacksize());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -152,7 +157,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
             if self.lbl_finally.is_some() {
                 emit::mov_reg_local(&mut self.buf, self.fct.return_type.mode(),
-                                    REG_RESULT, self.fct.src().eh_return_value.unwrap());
+                                    REG_RESULT, self.src.eh_return_value.unwrap());
             }
         }
 
@@ -162,7 +167,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn emit_return_with_value(&mut self) {
         if !self.fct.return_type.is_unit() {
             emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
-                                self.fct.src().eh_return_value.unwrap(), REG_RESULT);
+                                self.src.eh_return_value.unwrap(), REG_RESULT);
         }
 
         self.emit_return();
@@ -284,11 +289,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let reg = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.buf, self.fct, reg, s.var());
+            var_store(&mut self.buf, &self.src, reg, s.var());
         }
 
         let reference_type = {
-            let var = self.fct.var(s.var());
+            let var = &self.src.vars[s.var()];
 
             if var.ty.reference_type() {
                 self.scopes.add_var(var.id, var.offset);
@@ -301,7 +306,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             emit::nil(&mut self.buf, REG_RESULT);
-            var_store(&mut self.buf, self.fct, REG_RESULT, s.var());
+            var_store(&mut self.buf, &self.src, REG_RESULT, s.var());
         }
     }
 
@@ -341,7 +346,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for catch in &s.catch_blocks {
             let varid = catch.var();
-            let offset = self.fct.var(varid).offset;
+            let offset = self.src.vars[varid].offset;
 
             self.scopes.push_scope();
             self.scopes.add_var(varid, offset);
@@ -412,7 +417,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.ast,
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.src, self.ast,
                                     &mut self.buf, &mut self.scopes);
 
         expr_gen.generate(e)
@@ -446,13 +451,13 @@ pub enum JumpCond {
     NonZero
 }
 
-pub fn var_store(buf: &mut Buffer, fct: &Fct, src: Reg, var_id: VarId) {
-    let var = fct.var(var_id);
+pub fn var_store(buf: &mut Buffer, fct: &FctSrc, src: Reg, var_id: VarId) {
+    let var = &fct.vars[var_id];
     emit::mov_reg_local(buf, var.ty.mode(), src, var.offset);
 }
 
-pub fn var_load(buf: &mut Buffer, fct: &Fct, var_id: VarId, dest: Reg) {
-    let var = fct.var(var_id);
+pub fn var_load(buf: &mut Buffer, fct: &FctSrc, var_id: VarId, dest: Reg) {
+    let var = &fct.vars[var_id];
     emit::mov_local_reg(buf, var.ty.mode(), var.offset, dest);
 }
 
@@ -569,11 +574,14 @@ mod tests {
             let fctid = ctxt.sym.borrow().get_fct(name).unwrap();
 
             ctxt.fct_by_id_mut(fctid, |fct| {
-                let ast = fct.ast();
+                let src = fct.src();
+                let mut src = src.lock().unwrap();
+                let ast = src.ast;
 
                 let mut cg = CodeGen {
                     ctxt: ctxt,
                     fct: fct,
+                    src: &mut src,
                     ast: ast,
                     buf: Buffer::new(),
                     scopes: Scopes::new(),

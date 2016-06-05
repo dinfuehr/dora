@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, FctKind, FctSrc};
 use error::msg::Msg;
 
 use ast::*;
@@ -9,23 +9,27 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if fct.kind.is_src() {
-            let ast = fct.ast();
-            let mut flowck = FlowCheck {
-                ctxt: ctxt,
-                fct: &mut fct,
-                ast: ast,
-                in_loop: false,
-            };
+        if !fct.is_src() { continue; }
 
-            flowck.check();
-        }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        let ast = src.ast;
+        let mut flowck = FlowCheck {
+            ctxt: ctxt,
+            fct: &mut fct,
+            src: &mut src,
+            ast: ast,
+            in_loop: false,
+        };
+
+        flowck.check();
     }
 }
 
 struct FlowCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     in_loop: bool,
 }

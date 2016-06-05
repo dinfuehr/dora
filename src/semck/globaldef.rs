@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
 use ast::*;
@@ -59,7 +60,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             owner_class: None,
             ctor: None,
             initialized: false,
-            kind: FctKind::Source(FctSrc::new(f)),
+            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
         };
 
         if let Err(sym) = self.ctxt.add_fct_to_sym(fct) {

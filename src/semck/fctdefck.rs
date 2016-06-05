@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, FctKind, FctSrc};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
@@ -10,23 +10,28 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.lock().unwrap();
 
-        if fct.kind.is_src() {
-            let ast = fct.ast();
-            let mut defck = FctDefCheck {
-                ctxt: ctxt,
-                fct: &mut fct,
-                ast: ast,
-                current_type: BuiltinType::Unit,
-            };
+        if !fct.is_src() { continue; }
 
-            defck.check();
-        }
+        let src = fct.src();
+        let mut src = src.lock().unwrap();
+        let ast = src.ast;
+
+        let mut defck = FctDefCheck {
+            ctxt: ctxt,
+            fct: &mut fct,
+            src: &mut src,
+            ast: ast,
+            current_type: BuiltinType::Unit,
+        };
+
+        defck.check();
     }
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
+    src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
 }
@@ -60,7 +65,7 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 
                     let msg = Msg::MethodExists(
                         cls_name, method_name,
-                        param_names, method.src().ast.pos);
+                        param_names, method.kind.src().ast.pos);
                     self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
                     return;
                 }
@@ -103,7 +108,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
         }
 
         self.fct.params_types.push(self.current_type);
-        self.fct.var_mut(p.var()).ty = self.current_type;
+        self.src.vars[p.var()].ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -113,7 +118,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.visit_type(data_type);
 
                     let varid = var.var();
-                    self.fct.var_mut(varid).ty = self.current_type;
+                    self.src.vars[varid].ty = self.current_type;
                 }
 
                 if let Some(ref expr) = var.expr {
@@ -126,7 +131,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 for catch in &try.catch_blocks {
                     self.visit_type(&catch.data_type);
                     catch.set_ty(self.current_type);
-                    self.fct.var_mut(catch.var()).ty = self.current_type;
+                    self.src.vars[catch.var()].ty = self.current_type;
 
                     if !self.current_type.reference_type() {
                         let ty = self.current_type.name(self.ctxt);
