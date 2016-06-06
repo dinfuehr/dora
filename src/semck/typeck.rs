@@ -13,9 +13,7 @@ use lexer::position::Position;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
-    for fct in ctxt.fcts.iter() {
-        let mut fct = fct.lock().unwrap();
-
+    for fct in &ctxt.fcts {
         if !fct.is_src() { continue; }
 
         let src = fct.src();
@@ -24,7 +22,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
         let mut typeck = TypeCheck {
             ctxt: ctxt,
-            fct: &mut fct,
+            fct: &fct,
             src: &mut src,
             ast: ast,
             expr_type: BuiltinType::Unit,
@@ -36,7 +34,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
 struct TypeCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
+    fct: &'a Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     expr_type: BuiltinType,
@@ -208,11 +206,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(cls_id, fct_id);
                 assert!(self.src.calls.insert(e.id, call_type).is_none());
 
-                let index_type = if self.fct.id == fct_id {
-                    self.fct.params_types[1]
-                } else {
-                    self.ctxt.fct_by_id(fct_id, |fct| fct.params_types[1])
-                };
+                let index_type = self.ctxt.fct_by_id(fct_id).params_types[1];
 
                 e.set_ty(index_type);
                 self.expr_type = index_type;
@@ -300,25 +294,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.ctxt.cls_by_id(cls_id);
             let mut candidates = Vec::new();
 
-            for method in &cls.methods {
-                let method = *method;
+            for &method in &cls.methods {
+                let method = self.ctxt.fct_by_id(method);
 
-                if self.fct.id == method {
-                    if self.fct.name == name
-                        && args_compatible(&self.fct.params_types, args)
-                        && (return_type.is_none()
-                         || self.fct.return_type == return_type.unwrap()) {
-                        candidates.push((cls_id, method, self.fct.return_type));
-                    }
-                } else {
-                    self.ctxt.fct_by_id(method, |callee| {
-                        if callee.name == name
-                            && args_compatible(&callee.params_types, args)
-                            && (return_type.is_none()
-                             || callee.return_type == return_type.unwrap()) {
-                            candidates.push((cls_id, method, callee.return_type));
-                        }
-                    });
+                if method.name == name
+                    && args_compatible(&method.params_types, args)
+                    && (return_type.is_none()
+                     || method.return_type == return_type.unwrap()) {
+                    candidates.push((cls_id, method.id, method.return_type));
                 }
             }
 
@@ -488,17 +471,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = cls.ty;
                 let mut found = false;
 
-                for ctor in &cls.ctors {
-                    let ctor = *ctor;
+                for &ctor in &cls.ctors {
+                    let ctor = self.ctxt.fct_by_id(ctor);
 
-                    let params_types = if self.fct.id == ctor {
-                        self.fct.params_types.clone()
-                    } else {
-                        self.ctxt.fct_by_id(ctor, |fct| fct.params_types.clone())
-                    };
-
-                    if args_compatible(&params_types, &call_types) {
-                        let call_type = CallType::Ctor(cls_id, ctor);
+                    if args_compatible(&ctor.params_types, &call_types) {
+                        let call_type = CallType::Ctor(cls_id, ctor.id);
                         assert!(self.src.calls.insert(e.id, call_type).is_some());
 
                         found = true;
@@ -517,30 +494,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             CallType::Fct(callee_id) => {
-                let callee_name;
-                let callee_params;
-                let callee_return;
+                let callee = &self.ctxt.fcts[callee_id];
 
-                if callee_id == caller_id {
-                    callee_name = self.fct.name;
-                    callee_params = self.fct.params_types.clone();
-                    callee_return = self.fct.return_type;
+                e.set_ty(callee.return_type);
+                self.expr_type = callee.return_type;
 
-                } else {
-                    let fct = self.ctxt.fcts[callee_id.0].clone();
-                    let callee = &mut fct.lock().unwrap();
-
-                    callee_name = callee.name;
-                    callee_params = callee.params_types.clone();
-                    callee_return = callee.return_type;
-                }
-
-                e.set_ty(callee_return);
-                self.expr_type = callee_return;
-
-                if !args_compatible(&callee_params, &call_types) {
-                    let callee_name = self.ctxt.interner.str(callee_name).to_string();
-                    let callee_params = callee_params.iter()
+                if !args_compatible(&callee.params_types, &call_types) {
+                    let callee_name = self.ctxt.interner.str(callee.name).to_string();
+                    let callee_params = callee.params_types.iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<_>>();
                     let call_types = call_types.iter()
@@ -565,17 +526,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls = self.ctxt.cls_by_id(cls.parent_class.unwrap());
 
         for &ctor_id in &cls.ctors {
-            let compatible = self.ctxt.fct_by_id(ctor_id, |ctor| {
-                if args_compatible(&ctor.params_types, &arg_types) {
-                    e.set_fct_id(ctor_id);
+            let ctor = self.ctxt.fct_by_id(ctor_id);
 
-                    true
-                } else {
-                    false
-                }
-            });
-
-            if compatible { return; }
+            if args_compatible(&ctor.params_types, &arg_types) {
+                e.set_fct_id(ctor_id);
+                return;
+            }
         }
 
         let name = self.ctxt.interner.str(cls.name).to_string();

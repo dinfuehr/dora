@@ -49,56 +49,52 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     // println!("------------");
     // println!("find {:x}", pc);
 
-    let mut result = HandlerFound::No;
-
     if let Some(fct_id) = fct_id {
-        ctxt.fct_by_id(fct_id, |fct| {
-            if let FctKind::Source(ref src) = fct.kind {
-                let mut src = src.lock().unwrap();
+        let fct = ctxt.fct_by_id(fct_id);
 
-                if let Some(ref jit_fct) = src.jit_fct {
-                    let cls_id = exception.header().class().id;
+        if let FctKind::Source(ref src) = fct.kind {
+            let mut src = src.lock().unwrap();
 
-                    for entry in &jit_fct.exception_handlers {
-                        // println!("entry = {:x} to {:x} for {:?}",
-                        //          entry.try_start, entry.try_end, entry.catch_type);
+            if let Some(ref jit_fct) = src.jit_fct {
+                let cls_id = exception.header().class().id;
 
-                        if entry.try_start < pc && pc <= entry.try_end
-                            && (entry.catch_type == CatchType::Any
-                                || entry.catch_type == CatchType::Class(cls_id)) {
-                            let arg = (fp as isize + entry.offset as isize) as usize;
+                for entry in &jit_fct.exception_handlers {
+                    // println!("entry = {:x} to {:x} for {:?}",
+                    //          entry.try_start, entry.try_end, entry.catch_type);
 
-                            unsafe {
-                                *(arg as *mut usize) = exception.raw() as usize;
-                            }
+                    if entry.try_start < pc && pc <= entry.try_end
+                        && (entry.catch_type == CatchType::Any
+                            || entry.catch_type == CatchType::Class(cls_id)) {
+                        let arg = (fp as isize + entry.offset as isize) as usize;
 
-                            es.regs[RSP.int() as usize] = fp - src.stacksize() as usize;
-                            es.regs[RBP.int() as usize] = fp;
-                            es.pc = entry.catch;
-
-                            result = HandlerFound::Yes;
-                            return;
-
-                        } else if pc > entry.try_end {
-                            // exception handlers are sorted, no more possible handlers
-                            // in this function
-
-                            return;
+                        unsafe {
+                            *(arg as *mut usize) = exception.raw() as usize;
                         }
+
+                        es.regs[RSP.int() as usize] = fp - src.stacksize() as usize;
+                        es.regs[RBP.int() as usize] = fp;
+                        es.pc = entry.catch;
+
+                        return HandlerFound::Yes;
+
+                    } else if pc > entry.try_end {
+                        // exception handlers are sorted, no more possible handlers
+                        // in this function
+
+                        return HandlerFound::No;
                     }
                 }
-
-                // exception can only bubble up in stacktrace if current function
-                // is allowed to throw exceptions
-                if !src.ast.throws {
-                    result = HandlerFound::Stop;
-                    return;
-                }
             }
-        });
+
+            // exception can only bubble up in stacktrace if current function
+            // is allowed to throw exceptions
+            if !src.ast.throws {
+                return HandlerFound::Stop;
+            }
+        }
     }
 
-    result
+    HandlerFound::No
 }
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
@@ -127,29 +123,28 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
 
     if let Some(fct_id) = fct_id {
         let mut lineno = 0;
+        let fct = ctxt.fct_by_id(fct_id);
 
-        ctxt.fct_by_id(fct_id, |fct| {
-            if let FctKind::Source(ref src) = fct.kind {
-                let mut src = src.lock().unwrap();
+        if let FctKind::Source(ref src) = fct.kind {
+            let mut src = src.lock().unwrap();
 
-                if let Some(ref jit_fct) = src.jit_fct {
-                    let offset = pc - (jit_fct.fct_ptr().raw() as usize);
-                    let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
+            if let Some(ref jit_fct) = src.jit_fct {
+                let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+                let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
-                    if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
-                        for &offset in &gcpoint.offsets {
-                            let addr = (fp as isize + offset as isize) as usize;
-                            let obj = unsafe { *(addr as *const usize) };
+                if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
+                    for &offset in &gcpoint.offsets {
+                        let addr = (fp as isize + offset as isize) as usize;
+                        let obj = unsafe { *(addr as *const usize) };
 
-                            rootset.push(obj);
-                        }
-
-                    } else {
-                        panic!("no gc point found");
+                        rootset.push(obj);
                     }
+
+                } else {
+                    panic!("no gc point found");
                 }
             }
-        });
+        }
     }
 }
 
@@ -175,20 +170,17 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
 
     if let Some(fct_id) = fct_id {
         let mut lineno = 0;
+        let fct = ctxt.fct_by_id(fct_id);
+        if let FctKind::Source(ref src) = fct.kind {
+            let mut src = src.lock().unwrap();
+            let jit_fct = src.jit_fct.as_ref().unwrap();
+            let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            lineno = jit_fct.lineno_for_offset(offset as i32);
 
-        ctxt.fct_by_id(fct_id, |fct| {
-            if let FctKind::Source(ref src) = fct.kind {
-                let mut src = src.lock().unwrap();
-                let jit_fct = src.jit_fct.as_ref().unwrap();
-                let offset = pc - (jit_fct.fct_ptr().raw() as usize);
-                lineno = jit_fct.lineno_for_offset(offset as i32);
-
-                if lineno == 0 {
-                    panic!("lineno not found for program point");
-                }
+            if lineno == 0 {
+                panic!("lineno not found for program point");
             }
-
-        });
+        }
 
         stacktrace.push_entry(fct_id, lineno);
     }

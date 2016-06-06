@@ -13,7 +13,7 @@ use mem::ptr::Ptr;
 use stdlib;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>,
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &Fct<'ast>,
                               src: &'a mut FctSrc<'ast>) {
     let mut ig = InfoGenerator {
         ctxt: ctxt,
@@ -37,7 +37,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &'a mut Fct<'ast>,
 
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
+    fct: &'a Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
 
@@ -173,7 +173,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid { return false; }
 
-        self.ctxt.fct_by_id(fid, |fct| fct.kind.is_intrinsic())
+        self.ctxt.fct_by_id(fid).kind.is_intrinsic()
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
@@ -236,11 +236,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     if let Some(fid) = fid {
                         let ind = if with_ctor { ind-1 } else { ind };
 
-                        ty = if self.fct.id == fid {
-                            self.fct.params_types[ind]
-                        } else {
-                            self.ctxt.fct_by_id(fid, |fct| fct.params_types[ind])
-                        };
+                        ty = self.ctxt.fct_by_id(fid).params_types[ind];
                     }
 
                     Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
@@ -255,11 +251,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let return_type = data.map(|d| d.1).unwrap_or_else(|| {
             let fid = fid.unwrap();
 
-            if self.fct.id == fid {
-                self.fct.return_type
-            } else {
-                self.ctxt.fct_by_id(fid, |fct| fct.return_type)
-            }
+            self.ctxt.fct_by_id(fid).return_type
         });
 
         let callee = data.map(|d| Callee::Ptr(d.0)).unwrap_or_else(|| Callee::Fct(fid.unwrap()));
@@ -379,13 +371,12 @@ mod tests {
         test::parse(code, |ctxt| {
             let ast = ctxt.ast.elements[0].to_function().unwrap();
 
-            ctxt.fct_by_node_id_mut(ast.id, |fct| {
-                let src = fct.src();
-                let mut src = src.lock().unwrap();
-                generate(ctxt, fct, &mut src);
+            let fct = ctxt.fct_by_node_id(ast.id);
+            let src = fct.src();
+            let mut src = src.lock().unwrap();
+            generate(ctxt, &fct, &mut src);
 
-                f(&src);
-            });
+            f(&src);
         });
     }
 

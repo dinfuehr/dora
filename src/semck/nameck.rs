@@ -14,9 +14,7 @@ use sym::Sym::*;
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
-    for fct in ctxt.fcts.iter() {
-        let mut fct = fct.lock().unwrap();
-
+    for fct in &ctxt.fcts {
         if !fct.is_src() { continue; }
 
         let src = fct.src();
@@ -25,7 +23,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 
         let mut nameck = NameCheck {
             ctxt: ctxt,
-            fct: &mut fct,
+            fct: &fct,
             src: &mut src,
             ast: ast,
         };
@@ -36,7 +34,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 
 struct NameCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
+    fct: &'a Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
 }

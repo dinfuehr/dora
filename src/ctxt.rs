@@ -1,6 +1,6 @@
 use libc::c_void;
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -41,7 +41,7 @@ pub struct Context<'ast> {
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
                                                  // node id to FctId
-    pub fcts: Vec<Arc<Mutex<Fct<'ast>>>>, // stores all function definitions
+    pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
     pub literals: Mutex<Vec<Handle<Str>>>, // string literals
@@ -83,7 +83,7 @@ impl<'ast> Context<'ast> {
             assert!(self.fct_defs.insert(fct.kind.src().ast.id, fctid).is_none());
         }
 
-        self.fcts.push(Arc::new(Mutex::new(fct)));
+        self.fcts.push(fct);
 
         fctid
     }
@@ -104,18 +104,12 @@ impl<'ast> Context<'ast> {
         }
     }
 
-    pub fn fct_by_id<F, R>(&self, id: FctId, f: F) -> R where F: FnOnce(&Fct<'ast>) -> R {
-        let fct = self.fcts[id.0].clone();
-        let fctxt = fct.lock().unwrap();
-
-        f(&fctxt)
+    pub fn fct_by_id(&self, id: FctId) -> &Fct<'ast> {
+        &self.fcts[id]
     }
 
-    pub fn fct_by_id_mut<F, R>(&self, id: FctId, f: F) -> R where F: FnOnce(&mut Fct<'ast>) -> R {
-        let fct = self.fcts[id.0].clone();
-        let mut fctxt = fct.lock().unwrap();
-
-        f(&mut fctxt)
+    pub fn fct_by_id_mut(&mut self, id: FctId) -> &mut Fct<'ast> {
+        &mut self.fcts[id]
     }
 
     pub fn field(&self, cid: ClassId, fid: FieldId) -> &Field {
@@ -130,17 +124,30 @@ impl<'ast> Context<'ast> {
         &mut self.classes[id.0]
     }
 
-    pub fn fct_by_node_id_mut<F, R>(&self, id: ast::NodeId, f: F) -> R where F: FnOnce(&mut Fct<'ast>) -> R {
+    pub fn fct_by_node_id(&self, id: ast::NodeId) -> &Fct<'ast> {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
-        self.fct_by_id_mut(fct_id, f)
+        self.fct_by_id(fct_id)
     }
 
-    pub fn fct_by_node_id<F, R>(&self, id: ast::NodeId, f: F) -> R where
-                     F: FnOnce(&Fct<'ast>) -> R {
+    pub fn fct_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Fct<'ast> {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
-        self.fct_by_id(fct_id, f)
+        self.fct_by_id_mut(fct_id)
+    }
+}
+
+impl<'ast> Index<FctId> for Vec<Fct<'ast>> {
+    type Output = Fct<'ast>;
+
+    fn index(&self, index: FctId) -> &Fct<'ast> {
+        &self[index.0]
+    }
+}
+
+impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
+    fn index_mut(&mut self, index: FctId) -> &mut Fct<'ast> {
+        &mut self[index.0]
     }
 }
 

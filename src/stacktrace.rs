@@ -20,7 +20,7 @@ impl Stacktrace {
 
     pub fn dump(&self, ctxt: &Context) {
         for (ind, elem) in self.elems.iter().rev().enumerate() {
-            let name = ctxt.fct_by_id(elem.fct_id, |fct| fct.full_name(ctxt));
+            let name = ctxt.fct_by_id(elem.fct_id).full_name(ctxt);
             print!("  {}: {}:", ind, name);
 
             if elem.lineno == 0 {

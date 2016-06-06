@@ -18,7 +18,7 @@ use ty::{BuiltinType, MachineMode};
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
+    fct: &'a Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     buf: &'a mut Buffer,
@@ -30,7 +30,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
 impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     pub fn new(
         ctxt: &'a Context<'ast>,
-        fct: &'a mut Fct<'ast>,
+        fct: &'a Fct<'ast>,
         src: &'a mut FctSrc<'ast>,
         ast: &'ast Function,
         buf: &'a mut Buffer,
@@ -145,7 +145,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid { return false; }
 
-        self.ctxt.fct_by_id(fid, |fct| fct.kind.is_intrinsic())
+        self.ctxt.fct_by_id(fid).kind.is_intrinsic()
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -479,19 +479,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
 
         } else {
-            self.ctxt.fct_by_id_mut(fid, |fct| {
+            let fct = self.ctxt.fct_by_id(fid);
 
-                match fct.kind {
-                    FctKind::Source(ref src) => {
-                        let src = fct.src();
-                        let mut src = src.lock().unwrap();
+            match fct.kind {
+                FctKind::Source(ref src) => {
+                    let src = fct.src();
+                    let mut src = src.lock().unwrap();
 
-                        ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
-                    },
-                    FctKind::Builtin(ptr) => ptr,
-                    FctKind::Intrinsic => panic!("intrinsic fct call"),
-                }
-            })
+                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
+                },
+                FctKind::Builtin(ptr) => ptr,
+                FctKind::Intrinsic => panic!("intrinsic fct call"),
+            }
         }
     }
 

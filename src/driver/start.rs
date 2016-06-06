@@ -65,8 +65,10 @@ pub fn start() -> i32 {
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
 
+    let is_unit = ctxt.fct_by_id(main).return_type.is_unit();
+
     // main-fct without return value exits with status 0
-    if ctxt.fct_by_id(main, |f| f.return_type.is_unit()) {
+    if is_unit {
         0
 
     // else use return value of main for exit status
@@ -107,16 +109,15 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
         }
     };
 
-    ctxt.fct_by_id(fctid, |fct| {
-        let ret = fct.return_type;
+    let fct = ctxt.fct_by_id(fctid);
+    let ret = fct.return_type;
 
-        if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
-            || fct.params_types.len() > 0 {
-            let pos = fct.kind.src().ast.pos;
-            ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
-            return None;
-        }
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
+        || fct.params_types.len() > 0 {
+        let pos = fct.kind.src().ast.pos;
+        ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
+        return None;
+    }
 
-        Some(fctid)
-    })
+    Some(fctid)
 }

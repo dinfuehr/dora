@@ -25,36 +25,35 @@ use stdlib;
 use ty::MachineMode;
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
-    ctxt.fct_by_id_mut(id, |fct| {
-        let src = fct.src();
-        let mut src = src.lock().unwrap();
-        if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
+    let fct = ctxt.fct_by_id(id);
+    let src = fct.src();
+    let mut src = src.lock().unwrap();
+    if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
 
-        let ast = src.ast;
+    let ast = src.ast;
 
-        let jit_fct = CodeGen {
-            ctxt: ctxt,
-            fct: fct,
-            ast: ast,
-            buf: Buffer::new(),
-            scopes: Scopes::new(),
-            src: &mut src,
+    let jit_fct = CodeGen {
+        ctxt: ctxt,
+        fct: &fct,
+        ast: ast,
+        buf: Buffer::new(),
+        scopes: Scopes::new(),
+        src: &mut src,
 
-            lbl_break: None,
-            lbl_continue: None,
-            lbl_finally: None,
-        }.generate();
+        lbl_break: None,
+        lbl_continue: None,
+        lbl_finally: None,
+    }.generate();
 
-        if ctxt.args.flag_emit_asm {
-            dump_asm(&jit_fct, &ctxt.interner.str(ast.name),
-                ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
-        }
+    if ctxt.args.flag_emit_asm {
+        dump_asm(&jit_fct, &ctxt.interner.str(ast.name),
+            ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+    }
 
-        let fct_ptr = jit_fct.fct_ptr();
-        src.jit_fct = Some(jit_fct);
+    let fct_ptr = jit_fct.fct_ptr();
+    src.jit_fct = Some(jit_fct);
 
-        fct_ptr
-    })
+    fct_ptr
 }
 
 pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
@@ -88,7 +87,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 
 pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
+    fct: &'a Fct<'ast>,
     ast: &'ast Function,
     buf: Buffer,
     scopes: Scopes,
@@ -417,7 +416,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
-        let expr_gen = ExprGen::new(self.ctxt, self.fct, &mut self.src, self.ast,
+        let expr_gen = ExprGen::new(self.ctxt, self.fct, self.src, self.ast,
                                     &mut self.buf, &mut self.scopes);
 
         expr_gen.generate(e)
@@ -573,26 +572,25 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fctid = ctxt.sym.borrow().get_fct(name).unwrap();
 
-            ctxt.fct_by_id_mut(fctid, |fct| {
-                let src = fct.src();
-                let mut src = src.lock().unwrap();
-                let ast = src.ast;
+            let fct = ctxt.fct_by_id(fctid);
+            let src = fct.src();
+            let mut src = src.lock().unwrap();
+            let ast = src.ast;
 
-                let mut cg = CodeGen {
-                    ctxt: ctxt,
-                    fct: fct,
-                    src: &mut src,
-                    ast: ast,
-                    buf: Buffer::new(),
-                    scopes: Scopes::new(),
+            let mut cg = CodeGen {
+                ctxt: ctxt,
+                fct: &fct,
+                src: &mut src,
+                ast: ast,
+                buf: Buffer::new(),
+                scopes: Scopes::new(),
 
-                    lbl_break: None,
-                    lbl_continue: None,
-                    lbl_finally: None,
-                };
+                lbl_break: None,
+                lbl_continue: None,
+                lbl_finally: None,
+            };
 
-                cg.generate()
-            })
+            cg.generate()
         })
     }
 
