@@ -119,7 +119,7 @@ fn mark_recursive(ptr: usize) {
         obj.header_mut().mark();
         let class = obj.header().class();
 
-        for field in &class.fields {
+        for field in class.all_fields(get_ctxt()) {
             if field.ty.reference_type() {
                 let addr = ptr as isize + field.offset as isize;
                 let obj = unsafe { *(addr as *const usize) };

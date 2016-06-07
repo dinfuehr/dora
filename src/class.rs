@@ -45,6 +45,13 @@ pub struct Class<'ast> {
 }
 
 impl<'ast> Class<'ast> {
+    pub fn all_fields<'a>(&'a self, ctxt: &'a Context<'ast>) -> FieldIterator<'a, 'ast> {
+        FieldIterator {
+            ctxt: ctxt,
+            class: self,
+            field_idx: 0,
+        }
+    }
     pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
@@ -64,6 +71,36 @@ impl<'ast> Class<'ast> {
                 return None;
             }
         }
+    }
+}
+
+pub struct FieldIterator<'a, 'ast: 'a> {
+    ctxt: &'a Context<'ast>,
+    class: &'a Class<'ast>,
+    field_idx: usize
+}
+
+impl<'a, 'ast> Iterator for FieldIterator<'a, 'ast> {
+    type Item = &'a Field;
+
+    fn next(&mut self) -> Option<&'a Field> {
+        if self.field_idx < self.class.fields.len() {
+            let idx = self.field_idx;
+            self.field_idx = idx + 1;
+            return Some(&self.class.fields[idx]);
+
+        } else if let Some(parent_class) = self.class.parent_class {
+            self.class = self.ctxt.cls_by_id(parent_class);
+            let number_fields = self.class.fields.len();
+
+            if number_fields > 0 {
+                self.field_idx = 1;
+                return Some(&self.class.fields[0]);
+
+            }
+        }
+
+        None
     }
 }
 

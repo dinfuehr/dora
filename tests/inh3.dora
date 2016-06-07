@@ -1,6 +1,6 @@
 fun main() {
   let a = A(Data(10), Data(20));
-  // forceCollect();
+  forceCollect();
 
   assert(a.x.data == 10);
   assert(a.y.data == 20);
