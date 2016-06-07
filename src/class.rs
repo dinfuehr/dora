@@ -6,7 +6,7 @@ use ctxt::{Context, FctId};
 use interner::Name;
 use ty::BuiltinType;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(pub usize);
 
 #[derive(Debug)]
