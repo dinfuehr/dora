@@ -221,7 +221,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             match self.token.token_type {
                 TokenType::Fun => {
-                    self.restrict_modifiers(&modifiers, &[Modifier::Open]);
+                    self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Override]);
 
                     let fct = try!(self.parse_function(&modifiers));
                     cls.methods.push(fct);
@@ -343,7 +343,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: ident,
             pos: pos,
             method: self.in_class,
-            overridable: modifiers.contains(Modifier::Open),
+            overridable: modifiers.contains(Modifier::Open)
+                || modifiers.contains(Modifier::Override),
             overrides: modifiers.contains(Modifier::Override),
             ctor: None,
             params: params,
@@ -2161,14 +2162,22 @@ mod tests {
 
     #[test]
     fn parse_override_method() {
-        let (prog, interner) = parse("class A { fun f() {} override fun g() {} }");
+        let (prog, interner) = parse("class A { fun f() {}
+                                                override fun g() {}
+                                                open fun h() {} }");
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
         assert_eq!(false, m1.overrides);
+        assert_eq!(false, m1.overridable);
 
         let m2 = &cls.methods[1];
         assert_eq!(true, m2.overrides);
+        assert_eq!(true, m2.overridable);
+
+        let m3 = &cls.methods[2];
+        assert_eq!(false, m3.overrides);
+        assert_eq!(true, m3.overridable);
     }
 
     #[test]
