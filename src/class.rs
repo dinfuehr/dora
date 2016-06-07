@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::ops::Index;
+use std::convert::From;
+use std::ops::{Index, IndexMut};
 
 use ast;
 use ctxt::{Context, FctId};
@@ -7,7 +8,27 @@ use interner::Name;
 use ty::BuiltinType;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct ClassId(pub usize);
+pub struct ClassId(usize);
+
+impl From<usize> for ClassId {
+    fn from(data: usize) -> ClassId {
+        ClassId(data)
+    }
+}
+
+impl<'ast> Index<ClassId> for Vec<Box<Class<'ast>>> {
+    type Output = Class<'ast>;
+
+    fn index(&self, index: ClassId) -> &Class<'ast> {
+        &self[index.0]
+    }
+}
+
+impl<'ast> IndexMut<ClassId> for Vec<Box<Class<'ast>>> {
+    fn index_mut(&mut self, index: ClassId) -> &mut Class<'ast> {
+        &mut self[index.0]
+    }
+}
 
 #[derive(Debug)]
 pub struct Class<'ast> {
@@ -47,7 +68,13 @@ impl<'ast> Class<'ast> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(pub usize);
+pub struct FieldId(usize);
+
+impl From<usize> for FieldId {
+    fn from(data: usize) -> FieldId {
+        FieldId(data)
+    }
+}
 
 #[derive(Debug)]
 pub struct Field {

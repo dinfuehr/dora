@@ -27,7 +27,7 @@ struct GlobalDef<'x, 'ast: 'x> {
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast Class) {
-        let id = ClassId(self.ctxt.classes.len());
+        let id: ClassId = self.ctxt.classes.len().into();
         let cls = class::Class {
             id: id,
             name: c.name,

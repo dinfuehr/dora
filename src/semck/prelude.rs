@@ -23,7 +23,7 @@ fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
-    let cls_id = ClassId(ctxt.classes.len());
+    let cls_id: ClassId = ctxt.classes.len().into();
     let cls_name = ctxt.interner.intern("bool");
 
     let mtd_tos = add_method(ctxt, cls_id, BuiltinType::Bool, "toString", Vec::new(),
@@ -55,7 +55,7 @@ fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
-    let cls_id = ClassId(ctxt.classes.len());
+    let cls_id: ClassId = ctxt.classes.len().into();
     let cls_name = ctxt.interner.intern("int");
 
     let mtd_tos = add_method(ctxt, cls_id, BuiltinType::Int, "toString", Vec::new(),
@@ -83,7 +83,7 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
-    let cls_id = ClassId(ctxt.classes.len());
+    let cls_id: ClassId = ctxt.classes.len().into();
     let cls_name = ctxt.interner.intern("Str");
 
     let mtd_len = add_method(ctxt, cls_id, BuiltinType::Str, "len", Vec::new(),
@@ -116,7 +116,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
-    let cls_id = ClassId(ctxt.classes.len());
+    let cls_id: ClassId = ctxt.classes.len().into();
     let cls_name = ctxt.interner.intern("IntArray");
     let cls_type = BuiltinType::IntArray;
 

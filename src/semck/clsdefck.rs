@@ -66,10 +66,8 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             class.size
         };
 
-        let id = FieldId(class.fields.len());
-
         let field = Field {
-            id: id,
+            id: class.fields.len().into(),
             name: name,
             ty: ty,
             offset: offset,

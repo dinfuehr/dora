@@ -271,7 +271,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.cls_by_id(clsid);
-                let field = &cls.fields[fieldid.0];
+                let field = &cls.fields[fieldid];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
                     self.emit_expr(&expr_field.object, REG_RESULT);

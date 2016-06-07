@@ -49,17 +49,19 @@ pub struct Context<'ast> {
 
 impl<'ast> Context<'ast> {
     pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Context<'ast> {
+        let empty_class_id: ClassId = 0.into();
+
         Context {
             args: args,
             classes: Vec::new(),
             cls_defs: HashMap::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
-                int_class: ClassId(0),
-                str_class: ClassId(0),
+                int_class: empty_class_id,
+                str_class: empty_class_id,
                 str_classptr: 0,
-                bool_class: ClassId(0),
-                int_array: ClassId(0),
+                bool_class: empty_class_id,
+                int_array: empty_class_id,
                 int_array_classptr: 0
             },
             gc: Mutex::new(Gc::new()),
@@ -113,15 +115,15 @@ impl<'ast> Context<'ast> {
     }
 
     pub fn field(&self, cid: ClassId, fid: FieldId) -> &Field {
-        &self.classes[cid.0].fields[fid.0]
+        &self.classes[cid].fields[fid]
     }
 
     pub fn cls_by_id(&self, id: ClassId) -> &Class<'ast> {
-        &self.classes[id.0]
+        &self.classes[id]
     }
 
     pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class<'ast> {
-        &mut self.classes[id.0]
+        &mut self.classes[id]
     }
 
     pub fn fct_by_node_id(&self, id: ast::NodeId) -> &Fct<'ast> {

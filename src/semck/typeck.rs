@@ -176,7 +176,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.cls_by_id(clsid);
-                let field = &cls.fields[fieldid.0];
+                let field = &cls.fields[fieldid];
 
                 e.set_ty(field.ty);
                 self.expr_type = field.ty;
@@ -240,7 +240,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if lhs.has_cls_and_field() {
                     let (cls, fieldid) = lhs.cls_and_field();
 
-                    if !self.ctxt.cls_by_id(cls).fields[fieldid.0].reassignable {
+                    if !self.ctxt.cls_by_id(cls).fields[fieldid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
                 } else {
@@ -1077,7 +1077,7 @@ mod tests {
 
     #[test]
     fn type_array_assign() {
-        let iarray = BuiltinType::Class(ClassId(3));
+        let iarray = BuiltinType::Class(3.into());
         ok("fun f(a: IntArray) -> int { return a[3] = 4; }");
         err("fun f(a: IntArray) { a[3] = \"b\"; }", pos(1, 27),
             Msg::UnknownMethod("IntArray".into(), "set".into(),
