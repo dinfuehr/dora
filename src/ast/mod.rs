@@ -1042,6 +1042,7 @@ impl Expr {
             pos: pos,
             args: args,
             fct_id: RefCell::new(None),
+            cls_id: RefCell::new(None),
         })
     }
 
@@ -1283,6 +1284,7 @@ pub struct ExprSuperCallType {
     pub pos: Position,
     pub args: Vec<Box<Expr>>,
     pub fct_id: RefCell<Option<FctId>>,
+    pub cls_id: RefCell<Option<ClassId>>,
 }
 
 impl ExprSuperCallType {
@@ -1292,6 +1294,14 @@ impl ExprSuperCallType {
 
     pub fn set_fct_id(&self, id: FctId) {
         *self.fct_id.borrow_mut() = Some(id);
+    }
+
+    pub fn class_id(&self) -> ClassId {
+        self.cls_id.borrow().unwrap()
+    }
+
+    pub fn set_class_id(&self, id: ClassId) {
+        *self.cls_id.borrow_mut() = Some(id);
     }
 }
 

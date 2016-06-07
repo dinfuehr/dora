@@ -1,0 +1,14 @@
+fun main() {
+  let a = A(10);
+
+  assert(a.x == 10);
+  assert(a.y == 20);
+}
+
+class A(x1: int): B(x1*2) {
+  let x: int = x1;
+}
+
+open class B(y1: int) {
+  let y: int = y1;
+}

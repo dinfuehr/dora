@@ -108,6 +108,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
+            ExprSuperCall(ref expr) => self.expr_super_call(expr),
             ExprArray(ref expr) => self.expr_array(expr),
             ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
@@ -163,7 +164,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.index, BuiltinType::Unit, 0)
             ];
 
-            self.universal_call(expr.id, args, None);
+            self.universal_call(expr.id, args, None, None);
         }
     }
 
@@ -190,21 +191,32 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         let call_type = *self.src.calls.get(&expr.id).unwrap();
-        let ctor = call_type.is_ctor();
 
         let mut args = expr.args.iter().map(|arg| {
             Arg::Expr(arg, BuiltinType::Unit, 0)
         }).collect::<Vec<_>>();
 
-        if ctor {
+        if call_type.is_ctor() {
             args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
+        } else if call_type.is_ctor_new() {
+            args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
         }
 
-        self.universal_call(expr.id, args, None);
+        self.universal_call(expr.id, args, None, None);
+    }
+
+    fn expr_super_call(&mut self, expr: &'ast ExprSuperCallType) {
+        let mut args = expr.args.iter().map(|arg| {
+            Arg::Expr(arg, BuiltinType::Unit, 0)
+        }).collect::<Vec<_>>();
+
+        args.insert(0, Arg::Selfie(expr.class_id(), 0));
+
+        self.universal_call(expr.id, args, None, None);
     }
 
     fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>,
-                      data: Option<(Ptr, BuiltinType)>) {
+                      callee: Option<Callee>, return_type: Option<BuiltinType>) {
         // function invokes another function
         self.leaf = false;
         let mut with_ctor = false;
@@ -212,7 +224,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         for arg in &args {
             match *arg {
                 Arg::Expr(ast, _, _) => self.visit_expr(ast),
-                Arg::Selfie(_, _) => { with_ctor = true; }
+                Arg::Selfie(_, _)
+                | Arg::SelfieNew(_, _) => { with_ctor = true; }
             }
         }
 
@@ -224,7 +237,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.argsize = argsize;
         }
 
-        let fid = if data.is_none() {
+        let fid = if callee.is_none() {
             Some(self.src.calls.get(&id).unwrap().fct_id())
         } else {
             None
@@ -235,26 +248,23 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(ast, mut ty, _) => {
                     if let Some(fid) = fid {
                         let ind = if with_ctor { ind-1 } else { ind };
-
                         ty = self.ctxt.fct_by_id(fid).params_types[ind];
                     }
 
                     Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
                 }
 
-                Arg::Selfie(cid, _) => {
-                    Arg::Selfie(cid, self.reserve_temp_for_ctor(id))
-                }
+                Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
+                Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id))
             }
         }).collect::<Vec<_>>();
 
-        let return_type = data.map(|d| d.1).unwrap_or_else(|| {
+        let return_type = return_type.unwrap_or_else(|| {
             let fid = fid.unwrap();
-
             self.ctxt.fct_by_id(fid).return_type
         });
 
-        let callee = data.map(|d| Callee::Ptr(d.0)).unwrap_or_else(|| Callee::Fct(fid.unwrap()));
+        let callee = callee.unwrap_or_else(|| Callee::Fct(fid.unwrap()));
 
         let csite = CallSite {
             callee: callee,
@@ -305,7 +315,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
                 ];
 
-                self.universal_call(e.id, args, None);
+                self.universal_call(e.id, args, None, None);
             }
         }
     }
@@ -321,8 +331,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             ];
             let ptr = Ptr::new(stdlib::strcat as *mut c_void);
 
-            self.universal_call(expr.id, args,
-                Some((ptr, BuiltinType::Str)));
+            self.universal_call(expr.id, args, Some(Callee::Ptr(ptr)), Some(BuiltinType::Str));
 
         } else if expr.op.is_compare()
                   && (expr.lhs.ty().is_str()
@@ -333,8 +342,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             ];
             let ptr = Ptr::new(stdlib::strcmp as *mut c_void);
 
-            self.universal_call(expr.id, args,
-                Some((ptr, BuiltinType::Bool)));
+            self.universal_call(expr.id, args, Some(Callee::Ptr(ptr)), Some(BuiltinType::Bool));
 
         } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(&expr.lhs);

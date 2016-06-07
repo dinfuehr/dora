@@ -1,0 +1,12 @@
+fun main() {
+  let a = A(Data(10), Data(20));
+  // forceCollect();
+
+  assert(a.x.data == 10);
+  assert(a.y.data == 20);
+}
+
+class A(let x: Data, d: Data): B(d)
+open class B(let y: Data)
+
+class Data(let data: int)

@@ -68,7 +68,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprSuperCall(ref expr) => panic!("unimplemented"),
+            ExprSuperCall(ref expr) => self.emit_super_call(expr, dest),
             ExprField(ref expr) => self.emit_field(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
@@ -506,6 +506,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_universal_call(e.id, e.pos, dest);
     }
 
+    fn emit_super_call(&mut self, e: &'ast ExprSuperCallType, dest: Reg) {
+        self.emit_universal_call(e.id, e.pos, dest);
+    }
+
     fn has_call_site(&self, id: NodeId) -> bool {
         self.src.call_sites.get(&id).is_some()
     }
@@ -525,6 +529,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 Arg::Selfie(cls_id, _) => {
+                    self.emit_self(REG_RESULT);
+                }
+
+                Arg::SelfieNew(cls_id, _) => {
                     // allocate storage for object
                     let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);

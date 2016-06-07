@@ -465,7 +465,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }).collect();
 
         match call_type {
-            CallType::Ctor(cls_id, _) => {
+            CallType::CtorNew(cls_id, _) => {
                 let cls = self.ctxt.cls_by_id(cls_id);
                 e.set_ty(cls.ty);
                 self.expr_type = cls.ty;
@@ -475,7 +475,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let ctor = self.ctxt.fct_by_id(ctor);
 
                     if args_compatible(&ctor.params_types, &call_types) {
-                        let call_type = CallType::Ctor(cls_id, ctor.id);
+                        let call_type = CallType::CtorNew(cls_id, ctor.id);
                         assert!(self.src.calls.insert(e.id, call_type).is_some());
 
                         found = true;
@@ -522,19 +522,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         }).collect();
 
-        let cls = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
-        let cls = self.ctxt.cls_by_id(cls.parent_class.unwrap());
+        let owner = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+        let parent = self.ctxt.cls_by_id(owner.parent_class.unwrap());
 
-        for &ctor_id in &cls.ctors {
+        for &ctor_id in &parent.ctors {
             let ctor = self.ctxt.fct_by_id(ctor_id);
 
             if args_compatible(&ctor.params_types, &arg_types) {
                 e.set_fct_id(ctor_id);
+                e.set_class_id(parent.id);
+
+                let call_type = CallType::Ctor(parent.id, ctor.id);
+                assert!(self.src.calls.insert(e.id, call_type).is_none());
                 return;
             }
         }
 
-        let name = self.ctxt.interner.str(cls.name).to_string();
+        let name = self.ctxt.interner.str(parent.name).to_string();
         let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
         let msg = Msg::UnknownCtor(name, arg_types);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);

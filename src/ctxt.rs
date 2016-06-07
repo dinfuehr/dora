@@ -421,10 +421,20 @@ impl IdentType {
 
 #[derive(Debug, Copy, Clone)]
 pub enum CallType {
-    Fct(FctId), Method(ClassId, FctId), Ctor(ClassId, FctId)
+    Fct(FctId),
+    Method(ClassId, FctId),
+    CtorNew(ClassId, FctId),
+    Ctor(ClassId, FctId),
 }
 
 impl CallType {
+    pub fn is_ctor_new(&self) -> bool {
+        match *self {
+            CallType::CtorNew(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_ctor(&self) -> bool {
         match *self {
             CallType::Ctor(_, _) => true,
@@ -442,6 +452,7 @@ impl CallType {
     pub fn cls_id(&self) -> ClassId {
         match *self {
             CallType::Method(clsid, _) => clsid,
+            CallType::CtorNew(clsid, _) => clsid,
             CallType::Ctor(clsid, _) => clsid,
             _ => panic!()
         }
@@ -451,6 +462,7 @@ impl CallType {
         match *self {
             CallType::Fct(fctid) => fctid,
             CallType::Method(_, fctid) => fctid,
+            CallType::CtorNew(_, fctid) => fctid,
             CallType::Ctor(_, fctid) => fctid,
         }
     }
@@ -470,7 +482,9 @@ pub enum Callee {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Arg<'ast> {
-    Expr(&'ast ast::Expr, BuiltinType, i32), Selfie(ClassId, i32)
+    Expr(&'ast ast::Expr, BuiltinType, i32),
+    SelfieNew(ClassId, i32),
+    Selfie(ClassId, i32),
 }
 
 impl<'ast> Arg<'ast> {
@@ -478,13 +492,15 @@ impl<'ast> Arg<'ast> {
         match *self {
             Arg::Expr(_, _, offset) => offset,
             Arg::Selfie(_, offset) => offset,
+            Arg::SelfieNew(_, offset) => offset,
         }
     }
 
     pub fn ty(&self) -> BuiltinType {
         match *self {
             Arg::Expr(_, ty, _) => ty,
-            Arg::Selfie(cid, _) => BuiltinType::Class(cid)
+            Arg::Selfie(cid, _) => BuiltinType::Class(cid),
+            Arg::SelfieNew(cid, _) => BuiltinType::Class(cid),
         }
     }
 }
