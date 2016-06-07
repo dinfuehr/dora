@@ -1,10 +1,45 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use class::ClassId;
+use class::{Class, ClassId};
 use ctxt::Context;
+use error::msg::Msg;
+use lexer::position::Position;
 use object::Header;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+    cycle_detection(ctxt);
+    if ctxt.diag.borrow().has_errors() { return; }
+
+    determine_sizes(ctxt);
+}
+
+fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
+    for cls in &ctxt.classes {
+        let mut map: HashSet<ClassId> = HashSet::new();
+        map.insert(cls.id);
+
+        let mut cur: &Class<'ast> = cls;
+
+        loop {
+            if let Some(parent) = cur.parent_class {
+                if !map.insert(parent) {
+                    let pos = cls.ast.map(|ast| ast.pos).unwrap_or(Position::new(1, 1));
+                    ctxt.diag.borrow_mut().report(pos, Msg::CycleInHierarchy);
+
+                    break;
+                }
+
+                cur = ctxt.cls_by_id(parent);
+
+            } else {
+                break;
+            }
+        }
+
+    }
+}
+
+fn determine_sizes<'ast>(ctxt: &mut Context<'ast>) {
     let mut super_sizes: HashMap<ClassId, i32> = HashMap::new();
 
     for cls in &ctxt.classes {
@@ -57,6 +92,16 @@ fn test_super_size() {
         check_class(ctxt, "C", 4*3+8, Some("B"));
         check_field(ctxt, "C", "c", Header::size() + 4 * 3);
     });
+}
+
+#[test]
+fn test_cycle() {
+    use semck::tests::{errors, pos};
+
+    errors("open class A: B open class B: A", &[
+        (pos(1, 6), Msg::CycleInHierarchy),
+        (pos(1, 22), Msg::CycleInHierarchy)
+    ]);
 }
 
 #[cfg(test)]

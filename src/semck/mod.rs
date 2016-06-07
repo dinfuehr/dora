@@ -142,6 +142,21 @@ mod tests {
         });
     }
 
+    pub fn errors(code: &'static str, vec: &[(Position, Msg)]) {
+        test::parse_with_errors(code, |ctxt| {
+            let diag = ctxt.diag.borrow();
+            let errors = diag.errors();
+
+            println!("errors = {:?}", errors);
+            assert_eq!(vec.len(), errors.len());
+
+            for (ind, error) in errors.iter().enumerate() {
+                assert_eq!(vec[ind].0, error.pos);
+                assert_eq!(vec[ind].1, error.msg);
+            }
+        });
+    }
+
     pub fn pos(line: u32, col: u32) -> Position {
         Position::new(line, col)
     }

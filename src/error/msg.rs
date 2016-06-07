@@ -44,6 +44,7 @@ pub enum Msg {
     LetMissingInitialization,
     LetReassigned,
     UnderivableType(String),
+    CycleInHierarchy,
 }
 
 impl Msg {
@@ -130,6 +131,7 @@ impl Msg {
             UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }
+            CycleInHierarchy => "cycle in type hierarchy detected.".into()
         }
     }
 }
