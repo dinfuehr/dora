@@ -409,7 +409,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let data_type;
         let mut reassignable = false;
 
-        if self.token.is(TokenType::This) {
+        if self.token.is(TokenType::Selfie) {
             try!(self.read_token());
 
             name = self.interner.intern("self");
@@ -892,7 +892,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
-            TokenType::This => self.parse_self(),
+            TokenType::Selfie => self.parse_self(),
             _ => Err(ParseError {
                 position: self.token.position,
                 code: ErrorCode::UnknownFactor,

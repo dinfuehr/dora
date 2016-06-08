@@ -15,7 +15,7 @@ pub enum TokenType {
 
     // Keywords
     Class,
-    This,
+    Selfie,
     Fun,
     Let,
     Var,
