@@ -58,6 +58,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
             owner_class: None,
+            overrides: f.overrides,
+            overridable: f.overridable,
             ctor: None,
             initialized: false,
             kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),

@@ -45,6 +45,9 @@ pub enum Msg {
     LetReassigned,
     UnderivableType(String),
     CycleInHierarchy,
+    SuperfluousOverride(String),
+    SuperfluousOpen(String),
+    MissingOverride(String),
 }
 
 impl Msg {
@@ -131,7 +134,13 @@ impl Msg {
             UnderivableType(ref name) => {
                 format!("type `{}` cannot be used as super class.", name)
             }
-            CycleInHierarchy => "cycle in type hierarchy detected.".into()
+            CycleInHierarchy => "cycle in type hierarchy detected.".into(),
+            SuperfluousOverride(ref name) =>
+                "function `{}` uses modifier `override` without overriding a function.".into(),
+            MissingOverride(ref name) =>
+                "function `{}` needs modifier `override`.".into(),
+            SuperfluousOpen(ref name) =>
+                "function `{}` uses modifier `open` but class allows no subclasses.".into(),
         }
     }
 }

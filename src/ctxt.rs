@@ -16,6 +16,7 @@ use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
 use jit::stub::Stub;
+use lexer::position::Position;
 use mem::{self, Ptr};
 use object::{Handle, Str};
 use sym::*;
@@ -197,6 +198,8 @@ pub struct Fct<'ast> {
     pub id: FctId,
     pub name: Name,
     pub owner_class: Option<ClassId>,
+    pub overridable: bool,
+    pub overrides: bool,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: Option<CtorType>,
@@ -261,6 +264,19 @@ impl<'ast> Fct<'ast> {
         match self.kind {
             FctKind::Source(_) => true,
             _ => false
+        }
+    }
+
+    pub fn pos(&self) -> Position {
+        let src = self.is_src();
+
+        if src {
+            let src = self.src();
+            let src = src.lock().unwrap();
+
+            src.ast.pos
+        } else {
+            Position::new(1, 1)
         }
     }
 

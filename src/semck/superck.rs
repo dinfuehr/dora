@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use class::{Class, ClassId};
-use ctxt::Context;
+use ctxt::{Context, Fct};
 use error::msg::Msg;
 use lexer::position::Position;
 use object::Header;
@@ -11,6 +11,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     if ctxt.diag.borrow().has_errors() { return; }
 
     determine_sizes(ctxt);
+    check_override(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
@@ -78,6 +79,33 @@ fn determine_recursive_size<'ast>(ctxt: &Context<'ast>,
     super_size
 }
 
+fn check_override<'ast>(ctxt: &Context<'ast>) {
+    for class in &ctxt.classes {
+        for &fct_id in &class.methods {
+            let fct = ctxt.fct_by_id(fct_id);
+            check_override_fct(ctxt, class, fct);
+        }
+    }
+}
+
+fn check_override_fct<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
+    if cls.parent_class.is_none() {
+        if fct.overrides {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
+            return;
+        }
+
+        if fct.overridable {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
+            return;
+        }
+
+        return;
+    }
+}
+
 #[test]
 fn test_super_size() {
     use semck::tests::ok_with_test;
@@ -102,6 +130,22 @@ fn test_cycle() {
         (pos(1, 6), Msg::CycleInHierarchy),
         (pos(1, 22), Msg::CycleInHierarchy)
     ]);
+}
+
+#[test]
+fn test_superfluous_override() {
+    use semck::tests::{err, pos};
+
+    err("class A { override fun f() {} }",
+        pos(1, 20), Msg::SuperfluousOverride("f".into()));
+}
+
+#[test]
+fn test_superfluous_open() {
+    use semck::tests::{err, pos};
+
+    err("class A { open fun f() {} }",
+        pos(1, 16), Msg::SuperfluousOpen("f".into()));
 }
 
 #[cfg(test)]
