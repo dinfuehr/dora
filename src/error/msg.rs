@@ -36,8 +36,6 @@ pub enum Msg {
     WrongMainDefinition,
     SelfUnavailable,
     MultipleCandidates(String, String, Vec<String>),
-    SelfNeeded,
-    InvalidUseOfSelf,
     ReferenceTypeExpected(String),
     ThrowNil,
     CatchOrFinallyExpected,
@@ -122,8 +120,6 @@ impl Msg {
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",
                     name, call_types, cls)
             },
-            SelfNeeded => "`self` parameter needed for methods.".into(),
-            InvalidUseOfSelf => "`self` only allowed for first argument of methods.".into(),
             ReferenceTypeExpected(ref name) => {
                 format!("`{}` is not a reference type.", name)
             }

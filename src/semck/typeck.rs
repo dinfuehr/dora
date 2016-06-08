@@ -198,7 +198,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let value_type = self.expr_type;
 
             let name = self.ctxt.interner.intern("set");
-            let args = vec![object_type, index_type, value_type];
+            let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
             if let Some((cls_id, fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
@@ -311,7 +311,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
-                let args = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+                let args = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
                 let name = self.ctxt.interner.str(name).to_string();
                 let msg = Msg::MultipleCandidates(object_type, name, args);
                 self.ctxt.diag.borrow_mut().report(pos, msg);
@@ -321,7 +321,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let type_name = object_type.name(self.ctxt);
         let name = self.ctxt.interner.str(name).to_string();
-        let param_names = args[1..].iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+        let param_names = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
         let msg = Msg::UnknownMethod(type_name, name, param_names);
         self.ctxt.diag.borrow_mut().report(pos, msg);
 
@@ -451,7 +451,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType) {
-        if e.with_self {
+        if e.object.is_some() {
             self.check_method_call(e);
             return;
         }
@@ -547,12 +547,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_method_call(&mut self, e: &'ast ExprCallType) {
         let caller_id = self.fct.id;
 
+        let object = e.object.as_ref().unwrap();
+        self.visit_expr(object);
+        let object_type = self.expr_type;
+
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
             self.visit_expr(arg);
             self.expr_type
         }).collect();
-
-        let object_type = call_types[0];
 
         if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
                                                             e.name, &call_types, None) {
@@ -619,7 +621,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let index_type = self.expr_type;
 
         let name = self.ctxt.interner.intern("get");
-        let args = vec![object_type, index_type];
+        let args = vec![index_type];
 
         if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
                                                             name, &args, None) {
@@ -734,24 +736,24 @@ mod tests {
 
     #[test]
     fn type_object_field_without_self() {
-        ok("class Foo(let a: int) { fun f(self) -> int { return a; } }");
-        ok("class Foo(let a: int) { fun set(self, x: int) { a = x; } }");
-        err("class Foo(let a: int) { fun set(self, x: int) { b = x; } }",
-            pos(1, 49), Msg::UnknownIdentifier("b".into()));
+        ok("class Foo(let a: int) { fun f() -> int { return a; } }");
+        ok("class Foo(let a: int) { fun set(x: int) { a = x; } }");
+        err("class Foo(let a: int) { fun set(x: int) { b = x; } }",
+            pos(1, 43), Msg::UnknownIdentifier("b".into()));
     }
 
     #[test]
     fn type_method_call() {
         ok("class Foo {
-                fun bar(self) {}
-                fun baz(self) -> int { return 1; }
+                fun bar() {}
+                fun baz() -> int { return 1; }
             }
 
             fun f(x: Foo) { x.bar(); }
             fun g(x: Foo) -> int { return x.baz(); }");
 
         err("class Foo {
-                 fun bar(self) -> int { return 0; }
+                 fun bar() -> int { return 0; }
              }
 
              fun f(x: Foo) -> Str { return x.bar(); }",
@@ -761,57 +763,57 @@ mod tests {
     #[test]
     fn type_method_defined_twice() {
         err("class Foo {
-                 fun bar(self) {}
-                 fun bar(self) {}
+                 fun bar() {}
+                 fun bar() {}
              }", pos(3, 18), Msg::MethodExists(
                  "Foo".into(), "bar".into(), vec![], pos(2, 18)));
 
         err("class Foo {
-                 fun bar(self) {}
-                 fun bar(self) -> int {}
+                 fun bar() {}
+                 fun bar() -> int {}
              }", pos(3, 18), Msg::MethodExists(
                  "Foo".into(), "bar".into(), vec![], pos(2, 18)));
 
         err("class Foo {
-                 fun bar(self, a: int) {}
-                 fun bar(self, a: int) -> int {}
+                 fun bar(a: int) {}
+                 fun bar(a: int) -> int {}
              }", pos(3, 18), Msg::MethodExists(
                  "Foo".into(), "bar".into(), vec!["int".into()], pos(2, 18)));
 
         ok("class Foo {
-                fun bar(self, a: int) {}
-                fun bar(self, a: Str) {}
+                fun bar(a: int) {}
+                fun bar(a: Str) {}
             }");
     }
 
     #[test]
     fn type_self() {
-        ok("class Foo { fun me(self) -> Foo { return self; } }");
+        ok("class Foo { fun me() -> Foo { return self; } }");
         err("class Foo fun me() { return self; }",
             pos(1, 29), Msg::SelfUnavailable);
 
         ok("class Foo(let a: int, let b: int) {
-            fun bar(self) -> int { return self.a + self.b; }
+            fun bar() -> int { return self.a + self.b; }
         }");
 
         ok("class Foo(var a: int) {
-            fun setA(self, a: int) { self.a = a; }
+            fun setA(a: int) { self.a = a; }
         }");
 
         ok("class Foo {
-            fun zero(self) -> int { return 0; }
-            fun other(self) -> int { return self.zero(); }
+            fun zero() -> int { return 0; }
+            fun other() -> int { return self.zero(); }
         }");
 
         ok("class Foo {
-            fun bar(self) { self.bar(); }
+            fun bar() { self.bar(); }
         }");
     }
 
     #[test]
     fn type_unknown_method() {
         err("class Foo {
-                 fun bar(self, a: int) { }
+                 fun bar(a: int) { }
              }
 
              fun f(x: Foo) { x.bar(); }",
@@ -1054,12 +1056,12 @@ mod tests {
     #[test]
     fn type_nil_as_method_argument() {
         ok("class Foo {
-            fun f(self, a: Str) {}
-            fun f(self, a: int) {}
+            fun f(a: Str) {}
+            fun f(a: int) {}
         } fun f() { Foo().f(nil); }");
         err("class Foo {
-                fun f(self, a: Str) {}
-                fun f(self, a: Foo) {}
+                fun f(a: Str) {}
+                fun f(a: Foo) {}
             }
 
             fun f() {
@@ -1171,8 +1173,8 @@ mod tests {
     #[test]
     fn reassign_self() {
         err("class Foo {
-            fun f(self) { self = Foo(); }
-        }", pos(2, 32), Msg::LvalueExpected);
+            fun f() { self = Foo(); }
+        }", pos(2, 28), Msg::LvalueExpected);
     }
 
     #[test]

@@ -209,6 +209,10 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn in_class(&self) -> bool {
+        self.owner_class.is_some()
+    }
+
     pub fn is_ctor(&self) -> bool {
         self.ctor.is_some()
     }

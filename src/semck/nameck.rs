@@ -43,7 +43,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
-        if self.fct.is_ctor() {
+        if self.fct.in_class() {
             // add hidden this parameter for ctors and methods
             self.add_hidden_parameter_self();
         }
@@ -193,7 +193,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let mut found = false;
 
         // do not check method calls yet
-        if call.with_self {
+        if call.object.is_some() {
+            self.visit_expr(call.object.as_ref().unwrap());
+
             for arg in &call.args {
                 self.visit_expr(arg);
             }

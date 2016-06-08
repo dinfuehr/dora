@@ -169,10 +169,9 @@ fn add_ctor<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: Name,
 }
 
 fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, cls_type: BuiltinType,
-                    name: &'static str, mut args: Vec<BuiltinType>, return_type: BuiltinType,
+                    name: &'static str, args: Vec<BuiltinType>, return_type: BuiltinType,
                     kind: FctKind<'ast>) -> FctId {
     let name = ctxt.interner.intern(name);
-    args.insert(0, cls_type);
 
     let fct = Fct {
         id: FctId(0),

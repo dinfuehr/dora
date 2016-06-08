@@ -72,20 +72,10 @@ impl Elem {
 
 #[derive(Clone, Debug)]
 pub enum Type {
-    TypeSelf,
     TypeBasic(TypeBasicType),
     TypeTuple(TypeTupleType),
     TypePtr(TypePtrType),
     TypeArray(TypeArrayType),
-}
-
-impl Type {
-    pub fn is_self(&self) -> bool {
-        match *self {
-            Type::TypeSelf => true,
-            _ => false
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -179,10 +169,6 @@ impl Type {
 
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
-            Type::TypeSelf => {
-                "Self".into()
-            }
-
             Type::TypeBasic(ref val) => {
                 format!("{}", *interner.str(val.name))
             }
@@ -205,7 +191,6 @@ impl Type {
 
     pub fn pos(&self) -> Position {
         match *self {
-            Type::TypeSelf => panic!("no position for Self"),
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
             Type::TypePtr(ref val) => val.pos,
@@ -215,7 +200,6 @@ impl Type {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Type::TypeSelf => panic!("no id for Self"),
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
             Type::TypePtr(ref val) => val.id,
@@ -1025,13 +1009,13 @@ impl Expr {
     }
 
     pub fn create_call(id: NodeId, pos: Position, name: Name,
-                       with_self: bool, args: Vec<Box<Expr>>) -> Expr {
+                       object: Option<Box<Expr>>, args: Vec<Box<Expr>>) -> Expr {
         Expr::ExprCall(ExprCallType {
             id: id,
             pos: pos,
             name: name,
             args: args,
-            with_self: with_self,
+            object: object,
             ty: RefCell::new(None),
         })
     }
@@ -1471,7 +1455,7 @@ pub struct ExprCallType {
     pub pos: Position,
 
     pub name: Name,
-    pub with_self: bool,
+    pub object: Option<Box<Expr>>,
     pub args: Vec<Box<Expr>>,
     pub ty: RefCell<Option<BuiltinType>>,
 }

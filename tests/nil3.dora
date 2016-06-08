@@ -1,7 +1,7 @@
 //= error nil
 
 class Foo {
-  fun do(self) { }
+  fun do() { }
 }
 
 fun main() {

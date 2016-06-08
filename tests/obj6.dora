@@ -10,8 +10,8 @@ fun main() {
 }
 
 class Foo(let a: int) {
-  fun a1(self) -> int { return self.a; }
-  fun a2(self) -> int { return a; }
+  fun a1() -> int { return self.a; }
+  fun a2() -> int { return a; }
 
-  fun setA(self, _a: int) { a = _a; }
+  fun setA(_a: int) { a = _a; }
 }

@@ -3,19 +3,19 @@ fun main() {
 }
 
 class Bar(let a: int) {
-  fun do(self) {
+  fun do() {
     Foo(self.f()).a = self.g();
     assert(a == 100);
   }
 
-  fun f(self) -> int {
+  fun f() -> int {
     assert(a == 1);
     a = 10;
 
     return a;
   }
 
-  fun g(self) -> int {
+  fun g() -> int {
     assert(a == 10);
     a = 100;
 

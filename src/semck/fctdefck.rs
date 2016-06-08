@@ -74,7 +74,7 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
                    && method.name == self.fct().name
                    && method.params_types == self.fct().params_types {
                     let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
-                    let param_names = method.params_types[1..].iter()
+                    let param_names = method.params_types.iter()
                         .map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
                     let method_name = self.ctxt.interner.str(method.name).to_string();
 
@@ -104,23 +104,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_param(&mut self, p: &'ast Param) {
-        if p.idx == 0 && self.fct().owner_class.is_some() && !self.fct().is_ctor() {
-            if !p.data_type.is_self() {
-                self.ctxt.diag.borrow_mut().report(p.pos, Msg::SelfNeeded);
-                return;
-            }
-
-            let cls_id = self.fct().owner_class.unwrap();
-            self.current_type = BuiltinType::Class(cls_id);
-
-        } else {
-            if p.data_type.is_self() {
-                self.ctxt.diag.borrow_mut().report(p.pos, Msg::InvalidUseOfSelf);
-                return;
-            }
-
-            self.visit_type(&p.data_type);
-        }
+        self.visit_type(&p.data_type);
 
         let ty = self.current_type;
         self.fct_mut().params_types.push(ty);

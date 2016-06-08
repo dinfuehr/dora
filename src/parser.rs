@@ -405,28 +405,19 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_function_param(&mut self) -> Result<Param, ParseError> {
         let pos = self.token.position;
-        let name;
-        let data_type;
-        let mut reassignable = false;
 
-        if self.token.is(TokenType::Selfie) {
+        let reassignable = if self.token.is(TokenType::Var) {
             try!(self.read_token());
 
-            name = self.interner.intern("self");
-            data_type = Type::TypeSelf;
-
+            true
         } else {
-            if self.token.is(TokenType::Var) {
-                reassignable = true;
+            false
+        };
 
-                try!(self.read_token());
-            }
+        let name = try!(self.expect_identifier());
 
-            name = try!(self.expect_identifier());
-
-            try!(self.expect_token(TokenType::Colon));
-            data_type = try!(self.parse_type());
-        }
+        try!(self.expect_token(TokenType::Colon));
+        let data_type = try!(self.parse_type());
 
         Ok(Param {
             id: self.generate_id(),
@@ -918,19 +909,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
         try!(self.expect_token(TokenType::LParen));
 
-        let mut args = try!(self.parse_comma_list(TokenType::RParen, |p| {
+        let args = try!(self.parse_comma_list(TokenType::RParen, |p| {
             p.parse_expression()
         }));
 
-        let with_self = if let Some(this) = object {
-            args.insert(0, this);
-
-            true
-        } else {
-            false
-        };
-
-        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, with_self, args)))
+        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, object, args)))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -2065,18 +2048,19 @@ mod tests {
     fn parse_method_invocation() {
         let (expr, interner) = parse_expr("a.foo()");
         let call = expr.to_call().unwrap();
-        assert_eq!(true, call.with_self);
-        assert_eq!(1, call.args.len());
+        assert_eq!(true, call.object.is_some());
+        assert_eq!(0, call.args.len());
 
         let (expr, interner) = parse_expr("a.foo(1)");
         let call = expr.to_call().unwrap();
-        assert_eq!(2, call.args.len());
+        assert_eq!(true, call.object.is_some());
+        assert_eq!(1, call.args.len());
 
         let (expr, interner) = parse_expr("a.foo(1,2)");
         let call = expr.to_call().unwrap();
-        assert_eq!(3, call.args.len());
+        assert_eq!(true, call.object.is_some());
+        assert_eq!(2, call.args.len());
     }
-
 
     #[test]
     fn parse_array_index() {

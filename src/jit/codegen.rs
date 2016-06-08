@@ -125,7 +125,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let hidden_self = if self.fct.is_ctor() {
+        let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
             emit::mov_reg_local(&mut self.buf, var.ty.mode(),
                                 REG_PARAMS[0], var.offset);

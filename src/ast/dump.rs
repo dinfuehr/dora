@@ -130,9 +130,7 @@ impl<'a> AstDumper<'a> {
         dump!(self, "param {} @ {} {}",
             self.str(param.name), param.pos, param.id);
 
-        if !param.data_type.is_self() {
-            self.indent(|d| d.dump_type(&param.data_type));
-        }
+        self.indent(|d| d.dump_type(&param.data_type));
     }
 
     fn dump_type(&mut self, ty: &Type) {
@@ -354,10 +352,15 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
-        dump!(self, "call {} (with self={}) @ {} {}", self.str(expr.name),
-              expr.with_self, expr.pos, expr.id);
+        dump!(self, "call {} @ {} {}", self.str(expr.name),
+              expr.pos, expr.id);
 
         self.indent(|d| {
+            if let Some(ref object) = expr.object {
+                dump!(d, "object");
+                d.indent(|d| d.dump_expr(object));
+            }
+
             for arg in &expr.args {
                 d.dump_expr(arg);
             }
