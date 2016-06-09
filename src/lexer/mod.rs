@@ -100,6 +100,8 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("open", TokenType::Open);
         keywords.insert("override", TokenType::Override);
         keywords.insert("final", TokenType::Final);
+        keywords.insert("is", TokenType::Is);
+        keywords.insert("as", TokenType::As);
 
         let mut lexer = Lexer::<T> {
             reader: reader,

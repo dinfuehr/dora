@@ -923,6 +923,8 @@ pub enum Expr {
     ExprSelf(ExprSelfType),
     ExprNil(ExprNilType),
     ExprArray(ExprArrayType),
+    ExprIs(ExprIsType),
+    ExprAs(ExprAsType),
 }
 
 impl Expr {
@@ -945,6 +947,24 @@ impl Expr {
             lhs: lhs,
             rhs: rhs,
             ty: RefCell::new(None),
+        })
+    }
+
+    pub fn create_is(id: NodeId, pos: Position, object: Box<Expr>, data_type: Box<Type>) -> Expr {
+        Expr::ExprIs(ExprIsType {
+            id: id,
+            pos: pos,
+            object: object,
+            data_type: data_type,
+        })
+    }
+
+    pub fn create_as(id: NodeId, pos: Position, object: Box<Expr>, data_type: Box<Type>) -> Expr {
+        Expr::ExprAs(ExprAsType {
+            id: id,
+            pos: pos,
+            object: object,
+            data_type: data_type,
         })
     }
 
@@ -1209,6 +1229,34 @@ impl Expr {
         }
     }
 
+    pub fn to_is(&self) -> Option<&ExprIsType> {
+        match *self {
+            Expr::ExprIs(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_is(&self) -> bool {
+        match *self {
+            Expr::ExprIs(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn to_as(&self) -> Option<&ExprAsType> {
+        match *self {
+            Expr::ExprAs(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_as(&self) -> bool {
+        match *self {
+            Expr::ExprAs(_) => true,
+            _ => false
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
@@ -1224,6 +1272,8 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprArray(ref val) => val.id,
+            Expr::ExprIs(ref val) => val.id,
+            Expr::ExprAs(ref val) => val.id,
         }
     }
 
@@ -1242,6 +1292,8 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
+            Expr::ExprIs(ref val) => BuiltinType::Bool,
+            Expr::ExprAs(ref val) => panic!("unimplemented"),
         }
     }
 
@@ -1260,8 +1312,26 @@ impl Expr {
             Expr::ExprSelf(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
+            Expr::ExprIs(ref val) => panic!("unimplemented"),
+            Expr::ExprAs(ref val) => panic!("TODO"),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprIsType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub object: Box<Expr>,
+    pub data_type: Box<Type>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprAsType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub object: Box<Expr>,
+    pub data_type: Box<Type>,
 }
 
 #[derive(Clone, Debug)]

@@ -276,7 +276,21 @@ impl<'a> AstDumper<'a> {
             ExprSuperCall(ref call) => self.dump_expr_super_call(call),
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
+            ExprIs(ref expr) => self.dump_expr_is(expr),
+            ExprAs(ref expr) => self.dump_expr_as(expr),
         }
+    }
+
+    fn dump_expr_is(&mut self, expr: &ExprIsType) {
+        self.indent(|d| d.dump_expr(&expr.object));
+        dump!(self, "is @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_type(&expr.data_type));
+    }
+
+    fn dump_expr_as(&mut self, expr: &ExprAsType) {
+        self.indent(|d| d.dump_expr(&expr.object));
+        dump!(self, "as @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_type(&expr.data_type));
     }
 
     fn dump_expr_super_call(&mut self, expr: &ExprSuperCallType) {

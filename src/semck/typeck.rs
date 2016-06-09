@@ -653,6 +653,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
+            ExprIs(ref e) => panic!("unimplemented"),
+            ExprAs(ref e) => panic!("unimplemented"),
         }
     }
 

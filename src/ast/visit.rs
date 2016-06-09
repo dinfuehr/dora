@@ -217,6 +217,16 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             v.visit_expr(&value.object);
         }
 
+        ExprIs(ref value) => {
+            v.visit_expr(&value.object);
+            v.visit_type(&value.data_type);
+        }
+
+        ExprAs(ref value) => {
+            v.visit_expr(&value.object);
+            v.visit_type(&value.data_type);
+        }
+
         ExprSelf(_) => {}
         ExprLitInt(_) => {}
         ExprLitStr(_) => {}

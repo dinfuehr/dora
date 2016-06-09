@@ -831,6 +831,23 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_expression_l9(&mut self) -> ExprResult {
+        let mut left = try!(self.parse_expression_l10());
+
+        while self.token.is(TokenType::Is) || self.token.is(TokenType::As) {
+            let tok = try!(self.read_token());
+            let right = Box::new(try!(self.parse_type()));
+            let id = self.generate_id();
+
+            left = Box::new(match tok.token_type {
+                TokenType::Is => Expr::create_is(id, tok.position, left, right),
+                _ => Expr::create_as(id, tok.position, left, right),
+            });
+        }
+
+        Ok(left)
+    }
+
+    fn parse_expression_l10(&mut self) -> ExprResult {
         if self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) ||
            self.token.is(TokenType::Not) || self.token.is(TokenType::Tilde) {
             let tok = try!(self.read_token());
@@ -842,14 +859,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 _ => unreachable!()
             };
 
-            let expr = try!(self.parse_expression_l10());
+            let expr = try!(self.parse_expression_l11());
             Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
         } else {
-            self.parse_expression_l10()
+            self.parse_expression_l11()
         }
     }
 
-    fn parse_expression_l10(&mut self) -> ExprResult {
+    fn parse_expression_l11(&mut self) -> ExprResult {
         let mut left = try!(self.parse_factor());
 
         while self.token.is(TokenType::Dot) || self.token.is(TokenType::LBracket) {
@@ -2185,5 +2202,19 @@ mod tests {
         assert_eq!(true, m1.has_override);
         assert_eq!(false, m1.has_open);
         assert_eq!(true, m1.has_final);
+    }
+
+    #[test]
+    fn parse_is_expr() {
+        let (expr, interner) = parse_expr("a is Str");
+        let expr = expr.to_is().unwrap();
+        assert_eq!(true, expr.object.is_ident());
+    }
+
+    #[test]
+    fn parse_as_expr() {
+        let (expr, interner) = parse_expr("a as Str");
+        let expr = expr.to_as().unwrap();
+        assert_eq!(true, expr.object.is_ident());
     }
 }

@@ -80,6 +80,8 @@ pub enum TokenType {
     Ge,
     EqEqEq,
     NeEqEq,
+    Is,
+    As,
 }
 
 #[derive(PartialEq,Eq,Debug)]
