@@ -47,6 +47,7 @@ pub enum Msg {
     SuperfluousOpen(String),
     MissingOverride(String),
     ThrowsDifference(String),
+    MethodNotOverridable(String),
 }
 
 impl Msg {
@@ -139,7 +140,9 @@ impl Msg {
             SuperfluousOpen(ref name) =>
                 "method `{}` uses modifier `open` but class allows no subclasses.".into(),
             ThrowsDifference(ref name) =>
-                "use of `throws` in method `{}`needs to match super class".into()
+                "use of `throws` in method `{}`needs to match super class".into(),
+            MethodNotOverridable(ref name) =>
+                format!("method `{}` in super class not overridable.", name)
         }
     }
 }

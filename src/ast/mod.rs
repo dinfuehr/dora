@@ -285,8 +285,9 @@ pub struct Function {
     pub name: Name,
     pub pos: Position,
     pub method: bool,
-    pub overridable: bool,
-    pub overrides: bool,
+    pub has_open: bool,
+    pub has_override: bool,
+    pub has_final: bool,
     pub ctor: Option<CtorType>,
 
     pub params: Vec<Param>,

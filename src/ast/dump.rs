@@ -88,8 +88,9 @@ impl<'a> AstDumper<'a> {
         dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.pos, fct.id);
 
         self.indent(|d| {
-            dump!(d, "overrides = {}", fct.overrides);
-            dump!(d, "overridable = {}", fct.overridable);
+            dump!(d, "open = {}", fct.has_open);
+            dump!(d, "override = {}", fct.has_override);
+            dump!(d, "final = {}", fct.has_final);
             dump!(d, "throws = {}", fct.throws);
             dump!(d, "params");
             d.indent(|d| {

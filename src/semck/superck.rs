@@ -89,14 +89,18 @@ fn check_override<'ast>(ctxt: &Context<'ast>) {
 }
 
 fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
-    if fct.overridable && !fct.overrides && !cls.derivable {
+    // catch: class A { open fun f() } (A is not derivable)
+    if (fct.has_open && !cls.derivable)
+
+        // catch: open final fun f()
+        || (fct.has_open && fct.has_final) {
         let name = ctxt.interner.str(fct.name).to_string();
         ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
         return;
     }
 
     if cls.parent_class.is_none() {
-        if fct.overrides {
+        if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
             return;
@@ -113,10 +117,14 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) 
     if let Some(super_method) = super_method {
         let super_method = ctxt.fct_by_id(super_method);
 
-        if !fct.overrides {
+        if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::MissingOverride(name));
-            return;
+        }
+
+        if !super_method.has_open && !super_method.has_override {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
@@ -124,7 +132,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) 
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::ThrowsDifference(name));
         }
     } else {
-        if fct.overrides {
+        if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
         }
@@ -173,9 +181,16 @@ fn test_superfluous_override() {
 
 #[test]
 fn test_override() {
-    use semck::tests::ok;
+    use semck::tests::{ok, err, pos};
 
-    ok("open class A { fun f() {} } class B: A { override fun f() {} }");
+    err("open class A { fun f() {} } class B: A { override fun f() {} }",
+        pos(1, 51), Msg::MethodNotOverridable("f".into()));
+    ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
+    ok("open class A { open fun f() {} }
+        open class B: A { override fun f() {} }
+        open class C: B { override fun f() {} }");
+    err("open class A { open fun f() {} } class B: A { fun f() {} }",
+        pos(1, 47), Msg::MissingOverride("f".into()));
 }
 
 #[test]
@@ -198,14 +213,6 @@ fn test_final() {
     use semck::tests::ok;
 
     ok("open class A { final fun f() {} }");
-}
-
-#[test]
-fn test_override_missing() {
-    use semck::tests::{err, pos};
-
-    err("open class A { fun f() {} } class B: A { fun f() {} }",
-        pos(1, 42), Msg::MissingOverride("f".into()));
 }
 
 #[cfg(test)]

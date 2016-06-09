@@ -340,17 +340,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let return_type = try!(self.parse_function_type());
         let block = try!(self.parse_block());
 
-        let overridable = (modifiers.contains(Modifier::Open)
-                           || modifiers.contains(Modifier::Override))
-                          && !modifiers.contains(Modifier::Final);
-
         Ok(Function {
             id: self.generate_id(),
             name: ident,
             pos: pos,
             method: self.in_class,
-            overridable: overridable,
-            overrides: modifiers.contains(Modifier::Override),
+            has_open: modifiers.contains(Modifier::Open),
+            has_override: modifiers.contains(Modifier::Override),
+            has_final: modifiers.contains(Modifier::Final),
             ctor: None,
             params: params,
             throws: throws,
@@ -1058,8 +1055,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             name: cls.name,
             method: true,
-            overridable: false,
-            overrides: false,
+            has_open: false,
+            has_override: false,
+            has_final: false,
             ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
@@ -2143,10 +2141,10 @@ mod tests {
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
-        assert_eq!(true, m1.overridable);
+        assert_eq!(true, m1.has_open);
 
         let m2 = &cls.methods[1];
-        assert_eq!(false, m2.overridable);
+        assert_eq!(false, m2.has_open);
     }
 
     #[test]
@@ -2157,16 +2155,16 @@ mod tests {
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
-        assert_eq!(false, m1.overrides);
-        assert_eq!(false, m1.overridable);
+        assert_eq!(false, m1.has_override);
+        assert_eq!(false, m1.has_open);
 
         let m2 = &cls.methods[1];
-        assert_eq!(true, m2.overrides);
-        assert_eq!(true, m2.overridable);
+        assert_eq!(true, m2.has_override);
+        assert_eq!(false, m2.has_open);
 
         let m3 = &cls.methods[2];
-        assert_eq!(false, m3.overrides);
-        assert_eq!(true, m3.overridable);
+        assert_eq!(false, m3.has_override);
+        assert_eq!(true, m3.has_open);
     }
 
     #[test]
@@ -2184,7 +2182,8 @@ mod tests {
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
-        assert_eq!(true, m1.overrides);
-        assert_eq!(false, m1.overridable);
+        assert_eq!(true, m1.has_override);
+        assert_eq!(false, m1.has_open);
+        assert_eq!(true, m1.has_final);
     }
 }
