@@ -51,7 +51,7 @@ impl<'a> AstDumper<'a> {
         dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
 
         self.indent(|d| {
-            dump!(d, "derivable = {}", cls.derivable);
+            dump!(d, "open = {}", cls.has_open);
 
             if let Some(ref parent_class) = cls.parent_class {
                 dump!(d, "super (name={} @ {})", d.str(parent_class.name), parent_class.pos);

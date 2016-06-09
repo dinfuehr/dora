@@ -33,7 +33,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name: c.name,
             ty: BuiltinType::Class(id),
             parent_class: None,
-            derivable: c.derivable,
+            has_open: c.has_open,
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),

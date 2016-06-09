@@ -112,7 +112,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseError> {
-        let derivable = modifiers.contains(Modifier::Open);
+        let has_open = modifiers.contains(Modifier::Open);
 
         let pos = try!(self.expect_token(TokenType::Class)).position;
         let ident = try!(self.expect_identifier());
@@ -121,7 +121,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: self.generate_id(),
             name: ident,
             pos: pos,
-            derivable: derivable,
+            has_open: has_open,
             parent_class: None,
             ctors: Vec::new(),
             ctor_params: Vec::new(),
@@ -1973,7 +1973,7 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(false, class.derivable);
+        assert_eq!(false, class.has_open);
         assert_eq!(Position::new(1, 1), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
@@ -1984,7 +1984,7 @@ mod tests {
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(true, class.derivable);
+        assert_eq!(true, class.has_open);
         assert_eq!(Position::new(1, 6), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
@@ -2044,7 +2044,7 @@ mod tests {
         let (prog, interner) = parse("open class Foo");
         let class = prog.elements[0].to_class().unwrap();
 
-        assert_eq!(true, class.derivable);
+        assert_eq!(true, class.has_open);
     }
 
     #[test]

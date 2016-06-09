@@ -36,7 +36,7 @@ pub struct Class<'ast> {
     pub name: Name,
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,
-    pub derivable: bool,
+    pub has_open: bool,
     pub ctors: Vec<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,

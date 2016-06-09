@@ -96,9 +96,9 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             match sym {
                 Some(Sym::SymClass(clsid)) => {
                     parent_class.set_cls(clsid);
-                    let derivable = self.ctxt.cls_by_id(clsid).derivable;
+                    let has_open = self.ctxt.cls_by_id(clsid).has_open;
 
-                    if derivable {
+                    if has_open {
                         self.cls_mut().parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);

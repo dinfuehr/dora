@@ -214,7 +214,7 @@ pub struct Class {
     pub name: Name,
     pub pos: Position,
     pub parent_class: Option<ParentClass>,
-    pub derivable: bool,
+    pub has_open: bool,
     pub ctor_params: Vec<PrimaryCtorParam>,
 
     pub ctors: Vec<Function>,
