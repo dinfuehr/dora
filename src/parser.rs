@@ -221,7 +221,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             match self.token.token_type {
                 TokenType::Fun => {
-                    self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Override]);
+                    let mods = &[Modifier::Open, Modifier::Override, Modifier::Final];
+                    self.restrict_modifiers(&modifiers, mods);
 
                     let fct = try!(self.parse_function(&modifiers));
                     cls.methods.push(fct);
@@ -256,6 +257,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             let modifier = match self.token.token_type {
                 TokenType::Open => Modifier::Open,
                 TokenType::Override => Modifier::Override,
+                TokenType::Final => Modifier::Final,
                 _ => { break; }
             };
 
@@ -338,13 +340,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let return_type = try!(self.parse_function_type());
         let block = try!(self.parse_block());
 
+        let overridable = (modifiers.contains(Modifier::Open)
+                           || modifiers.contains(Modifier::Override))
+                          && !modifiers.contains(Modifier::Final);
+
         Ok(Function {
             id: self.generate_id(),
             name: ident,
             pos: pos,
             method: self.in_class,
-            overridable: modifiers.contains(Modifier::Open)
-                || modifiers.contains(Modifier::Override),
+            overridable: overridable,
             overrides: modifiers.contains(Modifier::Override),
             ctor: None,
             params: params,
@@ -2171,5 +2176,15 @@ mod tests {
 
         let parent_class = cls.parent_class.as_ref().unwrap();
         assert_eq!(2, parent_class.params.len());
+    }
+
+    #[test]
+    fn parse_final_method() {
+        let (prog, interner) = parse("open class A { final override fun g() {} }");
+        let cls = prog.elements[0].to_class().unwrap();
+
+        let m1 = &cls.methods[0];
+        assert_eq!(true, m1.overrides);
+        assert_eq!(false, m1.overridable);
     }
 }

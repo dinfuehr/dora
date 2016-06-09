@@ -34,6 +34,7 @@ pub enum TokenType {
     Try,
     Catch,
     Finally,
+    Final,
 
     Enum,
     Type,

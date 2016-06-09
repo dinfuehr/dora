@@ -327,13 +327,14 @@ pub struct ModifierElement {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Modifier { Override, Open }
+pub enum Modifier { Override, Open, Final }
 
 impl Modifier {
     pub fn name(&self) -> &'static str {
         match *self {
             Modifier::Open => "open",
             Modifier::Override => "override",
+            Modifier::Final => "final",
         }
     }
 }

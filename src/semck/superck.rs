@@ -194,6 +194,13 @@ fn test_superfluous_open() {
 }
 
 #[test]
+fn test_final() {
+    use semck::tests::ok;
+
+    ok("open class A { final fun f() {} }");
+}
+
+#[test]
 fn test_override_missing() {
     use semck::tests::{err, pos};
 
