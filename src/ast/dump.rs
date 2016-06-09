@@ -50,44 +50,30 @@ impl<'a> AstDumper<'a> {
     fn dump_class(&mut self, cls: &Class) {
         dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
 
-        if let Some(ref parent_class) = cls.parent_class {
-            self.indent(|d| {
+        self.indent(|d| {
+            dump!(d, "derivable = {}", cls.derivable);
+
+            if let Some(ref parent_class) = cls.parent_class {
                 dump!(d, "super (name={} @ {})", d.str(parent_class.name), parent_class.pos);
-            });
-        }
+            }
 
-        for ctor in &cls.ctors {
-            self.indent(|d| {
-                dump!(d, "ctor");
-
-                d.indent(|d| d.dump_fct(ctor));
-            })
-        }
-
-        self.indent(|d| {
-            dump!(d, "methods");
-
-            d.indent(|d| {
-                if cls.methods.is_empty() {
-                    dump!(d, "no methods");
-                } else {
-                    for mtd in &cls.methods {
-                        d.dump_fct(mtd);
-                    }
-                }
-            });
-        });
-
-        self.indent(|d| {
             dump!(d, "fields");
 
             d.indent(|d| {
-                if cls.fields.is_empty() {
-                    dump!(d, "no fields");
-                } else {
-                    for field in &cls.fields {
-                        d.dump_field(field);
-                    }
+                for field in &cls.fields {
+                    d.dump_field(field);
+                }
+            });
+
+            dump!(d, "ctor");
+            for ctor in &cls.ctors {
+                d.indent(|d| d.dump_fct(ctor));
+            }
+
+            dump!(d, "methods");
+            d.indent(|d| {
+                for mtd in &cls.methods {
+                    d.dump_fct(mtd);
                 }
             });
         });

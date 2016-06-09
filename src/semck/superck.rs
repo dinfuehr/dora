@@ -83,22 +83,22 @@ fn check_override<'ast>(ctxt: &Context<'ast>) {
     for class in &ctxt.classes {
         for &fct_id in &class.methods {
             let fct = ctxt.fct_by_id(fct_id);
-            check_override_fct(ctxt, class, fct);
+            check_fct_modifier(ctxt, class, fct);
         }
     }
 }
 
-fn check_override_fct<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
+fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
+    if fct.overridable && !fct.overrides && !cls.derivable {
+        let name = ctxt.interner.str(fct.name).to_string();
+        ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
+        return;
+    }
+
     if cls.parent_class.is_none() {
         if fct.overrides {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
-            return;
-        }
-
-        if fct.overridable {
-            let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
             return;
         }
 
@@ -169,6 +169,20 @@ fn test_superfluous_override() {
         pos(1, 51), Msg::SuperfluousOverride("f".into()));
     err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
         pos(1, 57), Msg::SuperfluousOverride("f".into()));
+}
+
+#[test]
+fn test_override() {
+    use semck::tests::ok;
+
+    ok("open class A { fun f() {} } class B: A { override fun f() {} }");
+}
+
+#[test]
+fn test_open() {
+    use semck::tests::ok;
+
+    ok("open class A { open fun f() {} }");
 }
 
 #[test]
