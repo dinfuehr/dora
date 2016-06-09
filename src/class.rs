@@ -72,6 +72,30 @@ impl<'ast> Class<'ast> {
             }
         }
     }
+
+    pub fn find_method(&self, ctxt: &Context, name: Name,
+                       args: &[BuiltinType]) -> Option<FctId> {
+        let mut classid = self.id;
+
+        loop {
+            let cls = ctxt.cls_by_id(classid);
+
+            for &method in &cls.methods {
+                let method = ctxt.fct_by_id(method);
+
+                if method.name == name && method.params_types == args {
+                    return Some(method.id);
+                }
+            }
+
+            if let Some(parent_class) = cls.parent_class {
+                classid = parent_class;
+
+            } else {
+                return None;
+            }
+        }
+    }
 }
 
 pub struct FieldIterator<'a, 'ast: 'a> {

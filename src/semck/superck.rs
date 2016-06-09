@@ -104,6 +104,31 @@ fn check_override_fct<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) 
 
         return;
     }
+
+    let parent = cls.parent_class.unwrap();
+    let parent = ctxt.cls_by_id(parent);
+
+    let super_method = parent.find_method(ctxt, fct.name, &fct.params_types);
+
+    if let Some(super_method) = super_method {
+        let super_method = ctxt.fct_by_id(super_method);
+
+        if !fct.overrides {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::MissingOverride(name));
+            return;
+        }
+
+        if super_method.throws != fct.throws {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::ThrowsDifference(name));
+        }
+    } else {
+        if fct.overrides {
+            let name = ctxt.interner.str(fct.name).to_string();
+            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
+        }
+    }
 }
 
 #[test]
@@ -138,6 +163,12 @@ fn test_superfluous_override() {
 
     err("class A { override fun f() {} }",
         pos(1, 20), Msg::SuperfluousOverride("f".into()));
+    err("open class B { } class A: B { override fun f() {} }",
+        pos(1, 40), Msg::SuperfluousOverride("f".into()));
+    err("open class B { fun g() {} } class A: B { override fun f() {} }",
+        pos(1, 51), Msg::SuperfluousOverride("f".into()));
+    err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
+        pos(1, 57), Msg::SuperfluousOverride("f".into()));
 }
 
 #[test]
@@ -146,6 +177,14 @@ fn test_superfluous_open() {
 
     err("class A { open fun f() {} }",
         pos(1, 16), Msg::SuperfluousOpen("f".into()));
+}
+
+#[test]
+fn test_override_missing() {
+    use semck::tests::{err, pos};
+
+    err("open class A { fun f() {} } class B: A { fun f() {} }",
+        pos(1, 42), Msg::MissingOverride("f".into()));
 }
 
 #[cfg(test)]

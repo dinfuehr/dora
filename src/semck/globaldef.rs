@@ -60,6 +60,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             owner_class: None,
             overrides: f.overrides,
             overridable: f.overridable,
+            throws: f.throws,
             ctor: None,
             initialized: false,
             kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),

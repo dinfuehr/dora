@@ -46,6 +46,7 @@ pub enum Msg {
     SuperfluousOverride(String),
     SuperfluousOpen(String),
     MissingOverride(String),
+    ThrowsDifference(String),
 }
 
 impl Msg {
@@ -132,11 +133,13 @@ impl Msg {
             }
             CycleInHierarchy => "cycle in type hierarchy detected.".into(),
             SuperfluousOverride(ref name) =>
-                "function `{}` uses modifier `override` without overriding a function.".into(),
+                "method `{}` uses modifier `override` without overriding a function.".into(),
             MissingOverride(ref name) =>
-                "function `{}` needs modifier `override`.".into(),
+                "method `{}` is missing modifier `override`.".into(),
             SuperfluousOpen(ref name) =>
-                "function `{}` uses modifier `open` but class allows no subclasses.".into(),
+                "method `{}` uses modifier `open` but class allows no subclasses.".into(),
+            ThrowsDifference(ref name) =>
+                "use of `throws` in method `{}`needs to match super class".into()
         }
     }
 }

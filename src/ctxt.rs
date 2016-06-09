@@ -204,6 +204,7 @@ pub struct Fct<'ast> {
     pub return_type: BuiltinType,
     pub ctor: Option<CtorType>,
     pub initialized: bool,
+    pub throws: bool,
 
     pub kind: FctKind<'ast>,
 }
