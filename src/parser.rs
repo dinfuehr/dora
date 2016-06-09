@@ -758,11 +758,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_expression_l5(&mut self) -> ExprResult {
         let mut left = try!(self.parse_expression_l6());
 
-        while self.token.is(TokenType::Is) || self.token.is(TokenType::IsNot) {
+        while self.token.is(TokenType::EqEqEq) || self.token.is(TokenType::NeEqEq) {
 
             let tok = try!(self.read_token());
             let op = match tok.token_type {
-                TokenType::Is => CmpOp::Is,
+                TokenType::EqEqEq => CmpOp::Is,
                 _ => CmpOp::IsNot
             };
 

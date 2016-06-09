@@ -297,7 +297,7 @@ impl<T : CodeReader> Lexer<T> {
 
                     if nnch == '=' {
                         self.read_char();
-                        TokenType::Is
+                        TokenType::EqEqEq
                     } else {
                         TokenType::EqEq
                     }
@@ -330,7 +330,7 @@ impl<T : CodeReader> Lexer<T> {
 
                     if nnch == '=' {
                         self.read_char();
-                        TokenType::IsNot
+                        TokenType::NeEqEq
                     } else {
                         TokenType::Ne
                     }
@@ -688,8 +688,8 @@ mod tests {
         assert_tok(&mut reader, TokenType::Lt, "", 1, 7);
 
         let mut reader = Lexer::from_str("!=====!");
-        assert_tok(&mut reader, TokenType::IsNot, "", 1, 1);
-        assert_tok(&mut reader, TokenType::Is, "", 1, 4);
+        assert_tok(&mut reader, TokenType::NeEqEq, "", 1, 1);
+        assert_tok(&mut reader, TokenType::EqEqEq, "", 1, 4);
         assert_tok(&mut reader, TokenType::Not, "", 1, 7);
 
         let mut reader = Lexer::from_str("!=!");
