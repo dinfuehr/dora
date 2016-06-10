@@ -635,6 +635,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type = BuiltinType::Unit;
         }
     }
+
+    fn check_expr_is(&mut self, e: &'ast ExprIsType) {
+        panic!("unimplemented");
+    }
+
+    fn check_expr_as(&mut self, e: &'ast ExprAsType) {
+        panic!("unimplemented");
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -653,8 +661,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprSelf(ref expr) => self.check_expr_self(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
-            ExprIs(ref e) => panic!("unimplemented"),
-            ExprAs(ref e) => panic!("unimplemented"),
+            ExprIs(ref expr) => self.check_expr_is(expr),
+            ExprAs(ref expr) => self.check_expr_as(expr),
         }
     }
 
