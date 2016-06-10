@@ -122,7 +122,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) 
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::MissingOverride(name));
         }
 
-        if !super_method.has_open && !super_method.has_override {
+        if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::MethodNotOverridable(name));
         }
@@ -191,6 +191,10 @@ fn test_override() {
         open class C: B { override fun f() {} }");
     err("open class A { open fun f() {} } class B: A { fun f() {} }",
         pos(1, 47), Msg::MissingOverride("f".into()));
+    err("open class A { open fun f() {} }
+         open class B: A { final override fun f() {} }
+         class C: B { override fun f() {} }",
+        pos(3, 32), Msg::MethodNotOverridable("f".into()));
 }
 
 #[test]
