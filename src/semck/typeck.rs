@@ -74,7 +74,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.vars[s.var()].ty = defined_type;
 
         if let Some(expr_type) = expr_type {
-            if !defined_type.allows(expr_type) {
+            if !defined_type.allows(self.ctxt, expr_type) {
                 let name = self.ctxt.interner.str(s.name).to_string();
                 let defined_type = defined_type.name(self.ctxt);
                 let expr_type = expr_type.name(self.ctxt);
@@ -125,7 +125,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let fct_type = self.fct.return_type;
 
-        if !fct_type.allows(expr_type) {
+        if !fct_type.allows(self.ctxt, expr_type) {
             let msg = if expr_type.is_nil() {
                 let fct_type = fct_type.name(self.ctxt);
 
@@ -249,7 +249,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
 
-            if !lhs_type.allows(rhs_type) {
+            if !lhs_type.allows(self.ctxt, rhs_type) {
                 let msg = if e.lhs.is_ident() {
                     let ident = e.lhs.to_ident().unwrap();
                     let name = self.ctxt.interner.str(ident.name).to_string();
@@ -299,7 +299,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let method = self.ctxt.fct_by_id(method);
 
                 if method.name == name
-                    && args_compatible(&method.params_types, args)
+                    && args_compatible(self.ctxt, &method.params_types, args)
                     && (return_type.is_none()
                      || method.return_type == return_type.unwrap()) {
                     candidates.push((cls_id, method.id, method.return_type));
@@ -401,22 +401,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let expected_type = match cmp {
             CmpOp::Is | CmpOp::IsNot => {
-                match ty {
-                    BuiltinType::Str
-                    | BuiltinType::Class(_)
-                    | BuiltinType::Nil => ty,
-                    _ => {
-                        let op = cmp.as_str().into();
-                        let lhs_type = lhs_type.name(self.ctxt);
-                        let rhs_type = rhs_type.name(self.ctxt);
-                        let msg = Msg::BinOpType(op, lhs_type, rhs_type);
-
-                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
-                        e.set_ty(BuiltinType::Bool);
-                        self.expr_type = BuiltinType::Bool;
-                        return;
-                    }
+                if !lhs_type.reference_type() {
+                    let lhs_type = lhs_type.name(self.ctxt);
+                    self.ctxt.diag.borrow_mut().report(e.pos,
+                        Msg::ReferenceTypeExpected(lhs_type));
                 }
+
+                if !rhs_type.reference_type() {
+                    let rhs_type = rhs_type.name(self.ctxt);
+                    self.ctxt.diag.borrow_mut().report(e.pos,
+                        Msg::ReferenceTypeExpected(rhs_type));
+                }
+
+                if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type))
+                    && !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type)) {
+                    let lhs_type = lhs_type.name(self.ctxt);
+                    let rhs_type = rhs_type.name(self.ctxt);
+                    self.ctxt.diag.borrow_mut().report(e.pos,
+                        Msg::TypesIncompatible(lhs_type, rhs_type));
+                }
+
+                e.set_ty(BuiltinType::Bool);
+                self.expr_type = BuiltinType::Bool;
+                return;
             },
 
             CmpOp::Eq | CmpOp::Ne => {
@@ -441,7 +448,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_type(&mut self, e: &'ast ExprBinType, op: BinOp, lhs_type: BuiltinType,
                   rhs_type: BuiltinType, expected_type: BuiltinType) {
-        if !expected_type.allows(lhs_type) || !expected_type.allows(rhs_type) {
+        if !expected_type.allows(self.ctxt, lhs_type)
+            || !expected_type.allows(self.ctxt, rhs_type) {
             let op = op.as_str().into();
             let lhs_type = lhs_type.name(self.ctxt);
             let rhs_type = rhs_type.name(self.ctxt);
@@ -475,7 +483,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 for &ctor in &cls.ctors {
                     let ctor = self.ctxt.fct_by_id(ctor);
 
-                    if args_compatible(&ctor.params_types, &call_types) {
+                    if args_compatible(self.ctxt, &ctor.params_types, &call_types) {
                         let call_type = CallType::CtorNew(cls_id, ctor.id);
                         assert!(self.src.calls.insert(e.id, call_type).is_some());
 
@@ -500,7 +508,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 e.set_ty(callee.return_type);
                 self.expr_type = callee.return_type;
 
-                if !args_compatible(&callee.params_types, &call_types) {
+                if !args_compatible(self.ctxt, &callee.params_types, &call_types) {
                     let callee_name = self.ctxt.interner.str(callee.name).to_string();
                     let callee_params = callee.params_types.iter()
                         .map(|a| a.name(self.ctxt))
@@ -529,7 +537,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &ctor_id in &parent.ctors {
             let ctor = self.ctxt.fct_by_id(ctor_id);
 
-            if args_compatible(&ctor.params_types, &arg_types) {
+            if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
                 e.set_fct_id(ctor_id);
                 e.set_class_id(parent.id);
 
@@ -733,13 +741,13 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     }
 }
 
-fn args_compatible(def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
+fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
     if def.len() != expr.len() {
         return false;
     }
 
     for (ind, arg) in def.iter().enumerate() {
-        if !arg.allows(expr[ind]) {
+        if !arg.allows(ctxt, expr[ind]) {
             return false;
         }
     }
@@ -1000,11 +1008,9 @@ mod tests {
         ok("fun f(a: bool) { a||a; a&&a; }");
 
         err("class A class B fun f(a: A, b: B) { a === b; }", pos(1, 39),
-            Msg::BinOpType("===".into(),
-                "A".into(), "B".into()));
+            Msg::TypesIncompatible("A".into(), "B".into()));
         err("class A class B fun f(a: A, b: B) { b !== a; }", pos(1, 39),
-            Msg::BinOpType("!==".into(),
-                "B".into(), "A".into()));
+            Msg::TypesIncompatible("B".into(), "A".into()));
         err("fun f(a: bool) { a+a; }", pos(1, 19),
             Msg::BinOpType("+".into(), "bool".into(), "bool".into()));
         err("fun f(a: bool) { a^a; }", pos(1, 19),
@@ -1013,14 +1019,6 @@ mod tests {
             Msg::BinOpType("||".into(), "int".into(),"int".into()));
         err("fun f(a: int) { a&&a; }", pos(1, 18),
             Msg::BinOpType("&&".into(), "int".into(), "int".into()));
-        err("fun f(a: int) { a===a; }", pos(1, 18),
-            Msg::BinOpType("===".into(), "int".into(), "int".into()));
-        err("fun f(a: int) { a!==a; }", pos(1, 18),
-            Msg::BinOpType("!==".into(), "int".into(), "int".into()));
-        err("fun f(a: bool) { a===a; }", pos(1, 19),
-            Msg::BinOpType("===".into(), "bool".into(), "bool".into()));
-        err("fun f(a: bool) { a!==a; }", pos(1, 19),
-            Msg::BinOpType("!==".into(), "bool".into(), "bool".into()));
         err("fun f(a: Str) { a-a; }", pos(1, 18),
             Msg::BinOpType("-".into(), "Str".into(), "Str".into()));
         err("fun f(a: Str) { a*a; }", pos(1, 18),
@@ -1276,5 +1274,23 @@ mod tests {
         err("open class A class B: A class C
              fun f(a: A) -> C { return a as C; }", pos(2, 42),
             Msg::TypesIncompatible("A".into(), "C".into()));
+    }
+
+    #[test]
+    fn check_upcast() {
+        ok("open class A class B: A
+            fun f(b: B) -> A {
+                let a: A = b;
+                return a;
+                //g(b);
+                //return b;
+            }
+
+            fun g(a: A) {}");
+    }
+
+    #[test]
+    fn check_cmp_is() {
+        ok("fun f(x: Str) { let a = nil === x; let b = x === nil; let c = nil === nil; }");
     }
 }

@@ -103,16 +103,22 @@ impl BuiltinType {
         }
     }
 
-    pub fn allows(&self, other: BuiltinType) -> bool {
+    pub fn allows(&self, ctxt: &Context, other: BuiltinType) -> bool {
         match *self {
             BuiltinType::Unit
                 | BuiltinType::Bool
-                | BuiltinType::Int
-                | BuiltinType::Nil => *self == other,
+                | BuiltinType::Int => *self == other,
+            BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str
                 | BuiltinType::IntArray
-                | BuiltinType::Class(_) => *self == other || other.is_nil()
+                | BuiltinType::Class(_) => {
+                if *self == other || other.is_nil() {
+                    return true;
+                }
+
+                other.subclass_from(ctxt, *self)
+            }
         }
     }
 
