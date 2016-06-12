@@ -90,10 +90,8 @@ fn check_override<'ast>(ctxt: &Context<'ast>) {
 
 fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
-    if (fct.has_open && !cls.has_open)
-
-        // catch: open final fun f()
-        || (fct.has_open && fct.has_final) {
+    // catch: open final fun f()
+    if fct.has_open && (!cls.has_open || fct.has_final) {
         let name = ctxt.interner.str(fct.name).to_string();
         ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
         return;
