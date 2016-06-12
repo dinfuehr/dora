@@ -10,6 +10,7 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
+use semck::read_type;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
@@ -637,7 +638,30 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_is(&mut self, e: &'ast ExprIsType) {
-        panic!("unimplemented");
+        self.visit_expr(&e.object);
+        let object_type = self.expr_type;
+        e.object.set_ty(self.expr_type);
+
+        let check_type = match read_type(self.ctxt, &e.data_type) {
+            Some(ty) => ty,
+            None => { return; }
+        };
+
+        if !check_type.reference_type() {
+            let name = check_type.name(self.ctxt);
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(name));
+            return;
+        }
+
+        if !check_type.subclass_from(self.ctxt, object_type) {
+            let object_type = object_type.name(self.ctxt);
+            let check_type = check_type.name(self.ctxt);
+            let msg = Msg::TypesIncompatible(object_type, check_type);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+
+        e.set_cls_id(object_type.cls_id(self.ctxt));
+        self.expr_type = BuiltinType::Bool;
     }
 
     fn check_expr_as(&mut self, e: &'ast ExprAsType) {
@@ -1200,5 +1224,17 @@ mod tests {
     fn access_super_class_field() {
         ok("open class A(var a: int) class B(x: int): A(x*2)
             fun foo(b: B) { b.a = b.a + 10; }");
+    }
+
+    #[test]
+    fn check_is() {
+        ok("open class A class B: A
+            fun f(a: A) -> bool { return a is B; }");
+        err("open class A class B: A
+             fun f(a: A) -> bool { return a is Str; }", pos(2, 45),
+            Msg::TypesIncompatible("A".into(), "Str".into()));
+        err("open class A class B: A class C
+             fun f(a: A) -> bool { return a is C; }", pos(2, 45),
+            Msg::TypesIncompatible("A".into(), "C".into()));
     }
 }

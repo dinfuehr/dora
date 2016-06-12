@@ -55,11 +55,11 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls_id(&self) -> ClassId {
+    pub fn cls_id(&self, ctxt: &Context) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
-            BuiltinType::Str => get_ctxt().primitive_classes.str_class,
-            BuiltinType::IntArray => get_ctxt().primitive_classes.int_array,
+            BuiltinType::Str => ctxt.primitive_classes.str_class,
+            BuiltinType::IntArray => ctxt.primitive_classes.int_array,
 
             _ => panic!()
         }
@@ -76,6 +76,14 @@ impl BuiltinType {
                 | BuiltinType::Int => true,
             _ => false
         }
+    }
+
+    pub fn subclass_from(&self, ctxt: &Context, ty: BuiltinType) -> bool {
+        if !self.reference_type() { return false; }
+        if !ty.reference_type() { return false; }
+
+        let cls = ctxt.cls_by_id(self.cls_id(ctxt));
+        cls.subclass_from(ctxt, ty.cls_id(ctxt))
     }
 
     pub fn name(&self, ctxt: &Context) -> String {

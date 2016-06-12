@@ -42,7 +42,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
     }
 
     fn visit_primary_ctor_param(&mut self, param: &'ast ast::PrimaryCtorParam) {
-        let ty = semck::read_type(self.ctxt, &param.data_type);
+        let ty = semck::read_type(self.ctxt, &param.data_type).unwrap_or(BuiltinType::Unit);
         param.set_ty(ty);
 
         if param.field {
@@ -117,7 +117,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
-        let ty = semck::read_type(self.ctxt, &f.data_type);
+        let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && f.expr.is_none() {

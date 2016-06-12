@@ -48,6 +48,7 @@ pub enum Msg {
     MissingOverride(String),
     ThrowsDifference(String),
     MethodNotOverridable(String),
+    TypesIncompatible(String, String),
 }
 
 impl Msg {
@@ -142,7 +143,10 @@ impl Msg {
             ThrowsDifference(ref name) =>
                 "use of `throws` in method `{}`needs to match super class".into(),
             MethodNotOverridable(ref name) =>
-                format!("method `{}` in super class not overridable.", name)
+                format!("method `{}` in super class not overridable.", name),
+            TypesIncompatible(ref na, ref nb) => {
+                format!("types `{}` and `{}` incompatible.", na, nb)
+            }
         }
     }
 }

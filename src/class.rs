@@ -96,6 +96,24 @@ impl<'ast> Class<'ast> {
             }
         }
     }
+
+    pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {
+        let mut class = self;
+
+        loop {
+            if class.id == super_id {
+                return true;
+            }
+
+            match class.parent_class {
+                Some(id) => {
+                    class = ctxt.cls_by_id(id);
+                }
+
+                None => { return false; }
+            }
+        }
+    }
 }
 
 pub struct FieldIterator<'a, 'ast: 'a> {

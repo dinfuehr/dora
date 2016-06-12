@@ -354,7 +354,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
             self.scopes.pop_scope();
 
-            let catch_type = CatchType::Class(catch.ty().cls_id());
+            let catch_type = CatchType::Class(catch.ty().cls_id(self.ctxt));
             self.buf.emit_exception_handler(try_span, catch_span.0, offset, catch_type);
 
             ret.push(catch_span);

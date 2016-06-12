@@ -956,6 +956,7 @@ impl Expr {
             pos: pos,
             object: object,
             data_type: data_type,
+            cls_id: RefCell::new(None),
         })
     }
 
@@ -965,6 +966,7 @@ impl Expr {
             pos: pos,
             object: object,
             data_type: data_type,
+            cls_id: RefCell::new(None),
         })
     }
 
@@ -1324,6 +1326,17 @@ pub struct ExprIsType {
     pub pos: Position,
     pub object: Box<Expr>,
     pub data_type: Box<Type>,
+    pub cls_id: RefCell<Option<ClassId>>,
+}
+
+impl ExprIsType {
+    pub fn cls_id(&self) -> ClassId {
+        self.cls_id.borrow().unwrap()
+    }
+
+    pub fn set_cls_id(&self, cls_id: ClassId) {
+        *self.cls_id.borrow_mut() = Some(cls_id);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1332,6 +1345,7 @@ pub struct ExprAsType {
     pub pos: Position,
     pub object: Box<Expr>,
     pub data_type: Box<Type>,
+    pub cls_id: RefCell<Option<ClassId>>,
 }
 
 #[derive(Clone, Debug)]

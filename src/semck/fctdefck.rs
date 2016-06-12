@@ -152,6 +152,6 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        self.current_type = semck::read_type(self.ctxt, t);
+        self.current_type = semck::read_type(self.ctxt, t).unwrap_or(BuiltinType::Unit);
     }
 }

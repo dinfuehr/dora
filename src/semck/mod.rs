@@ -62,13 +62,13 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     superck::check(ctxt);
 }
 
-pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
+pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeBasic(ref basic) => {
             if let Some(cls_id) = ctxt.sym.borrow().get_class(basic.name) {
                 let cls = ctxt.cls_by_id(cls_id);
 
-                return cls.ty;
+                return Some(cls.ty);
 
             } else {
                 let name = ctxt.interner.str(basic.name).to_string();
@@ -80,7 +80,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> BuiltinType {
         _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos())
     }
 
-    BuiltinType::Unit
+    None
 }
 
 pub fn always_returns(s: &Stmt) -> bool {
