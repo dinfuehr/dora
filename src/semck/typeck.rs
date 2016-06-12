@@ -1254,6 +1254,8 @@ mod tests {
     fn check_is() {
         ok("open class A class B: A
             fun f(a: A) -> bool { return a is B; }");
+        ok("class A
+            fun f(a: A) -> bool { return a is A; }");
         err("open class A class B: A
              fun f(a: A) -> bool { return a is Str; }", pos(2, 45),
             Msg::TypesIncompatible("A".into(), "Str".into()));
@@ -1266,6 +1268,8 @@ mod tests {
     fn check_as() {
         ok("open class A class B: A
             fun f(a: A) -> B { return a as B; }");
+        ok("class A
+            fun f(a: A) -> A { return a as A; }");
         err("open class A class B: A
              fun f(a: A) -> Str { return a as Str; }", pos(2, 44),
             Msg::TypesIncompatible("A".into(), "Str".into()));
