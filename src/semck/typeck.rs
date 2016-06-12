@@ -665,7 +665,31 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_as(&mut self, e: &'ast ExprAsType) {
-        panic!("unimplemented");
+        self.visit_expr(&e.object);
+        let object_type = self.expr_type;
+        e.object.set_ty(self.expr_type);
+
+        let check_type = match read_type(self.ctxt, &e.data_type) {
+            Some(ty) => ty,
+            None => { return; }
+        };
+
+        if !check_type.reference_type() {
+            let name = check_type.name(self.ctxt);
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(name));
+            return;
+        }
+
+        if !check_type.subclass_from(self.ctxt, object_type) {
+            let object_type = object_type.name(self.ctxt);
+            let check_type = check_type.name(self.ctxt);
+            let msg = Msg::TypesIncompatible(object_type, check_type);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+
+        let cls_id = check_type.cls_id(self.ctxt);
+        e.set_cls_id(cls_id);
+        self.expr_type = check_type;
     }
 }
 
@@ -1235,6 +1259,18 @@ mod tests {
             Msg::TypesIncompatible("A".into(), "Str".into()));
         err("open class A class B: A class C
              fun f(a: A) -> bool { return a is C; }", pos(2, 45),
+            Msg::TypesIncompatible("A".into(), "C".into()));
+    }
+
+    #[test]
+    fn check_as() {
+        ok("open class A class B: A
+            fun f(a: A) -> B { return a as B; }");
+        err("open class A class B: A
+             fun f(a: A) -> Str { return a as Str; }", pos(2, 44),
+            Msg::TypesIncompatible("A".into(), "Str".into()));
+        err("open class A class B: A class C
+             fun f(a: A) -> C { return a as C; }", pos(2, 42),
             Msg::TypesIncompatible("A".into(), "C".into()));
     }
 }

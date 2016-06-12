@@ -1348,6 +1348,16 @@ pub struct ExprAsType {
     pub cls_id: RefCell<Option<ClassId>>,
 }
 
+impl ExprAsType {
+    pub fn cls_id(&self) -> ClassId {
+        self.cls_id.borrow().unwrap()
+    }
+
+    pub fn set_cls_id(&self, cls_id: ClassId) {
+        *self.cls_id.borrow_mut() = Some(cls_id);
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ExprSuperCallType {
     pub id: NodeId,

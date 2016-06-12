@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::{Context, get_ctxt};
+use ctxt::Context;
 use mem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
