@@ -92,13 +92,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         match self.token.token_type {
             TokenType::Fun => {
-                self.ban_modifiers(&modifiers);
+                try!(self.ban_modifiers(&modifiers));
                 let fct = try!(self.parse_function(&modifiers));
                 Ok(ElemFunction(fct))
             }
 
             TokenType::Class => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Open]);
+                try!(self.restrict_modifiers(&modifiers, &[Modifier::Open]));
                 let class = try!(self.parse_class(&modifiers));
                 Ok(ElemClass(class))
             }
@@ -222,7 +222,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             match self.token.token_type {
                 TokenType::Fun => {
                     let mods = &[Modifier::Open, Modifier::Override, Modifier::Final];
-                    self.restrict_modifiers(&modifiers, mods);
+                    try!(self.restrict_modifiers(&modifiers, mods));
 
                     let fct = try!(self.parse_function(&modifiers));
                     cls.methods.push(fct);
@@ -230,7 +230,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
                 TokenType::Var
                 | TokenType::Let => {
-                    self.ban_modifiers(&modifiers);
+                    try!(self.ban_modifiers(&modifiers));
 
                     let field = try!(self.parse_field());
                     cls.fields.push(field);
@@ -1303,8 +1303,6 @@ mod tests {
 
     #[test]
     fn parse_field_access() {
-        use ast::dump::dump_expr;
-
         let (expr, interner) = parse_expr("obj.field");
         let field = expr.to_field().unwrap();
 
@@ -1315,9 +1313,7 @@ mod tests {
 
     #[test]
     fn parse_field_negated() {
-        use ast::dump::dump_expr;
-
-        let (expr, interner) = parse_expr("-obj.field");
+        let (expr, _) = parse_expr("-obj.field");
         assert!(expr.to_un().unwrap().opnd.is_field());
     }
 
@@ -1452,7 +1448,7 @@ mod tests {
 
     #[test]
     fn parse_add_left_associativity() {
-        let (expr, interner) = parse_expr("1+2+3");
+        let (expr, _) = parse_expr("1+2+3");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
@@ -1464,7 +1460,7 @@ mod tests {
 
     #[test]
     fn parse_add_right_associativity_via_parens() {
-        let (expr, interner) = parse_expr("1+(2+3)");
+        let (expr, _) = parse_expr("1+(2+3)");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
@@ -1672,10 +1668,10 @@ mod tests {
         assert_eq!(NodeId(2), p2.id);
 
         assert_eq!("a", *interner1.str(p1.name));
-        assert_eq!("a", *interner1.str(p2.name));
+        assert_eq!("a", *interner2.str(p2.name));
 
         assert_eq!("int", *interner1.str(p1.data_type.to_basic().unwrap().name));
-        assert_eq!("int", *interner1.str(p2.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner2.str(p2.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -2008,7 +2004,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_param() {
-        let (prog, interner) = parse("class Foo(a: int)");
+        let (prog, _) = parse("class Foo(a: int)");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
@@ -2019,7 +2015,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_param_var() {
-        let (prog, interner) = parse("class Foo(var a: int)");
+        let (prog, _) = parse("class Foo(var a: int)");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
@@ -2030,7 +2026,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_param_let() {
-        let (prog, interner) = parse("class Foo(let a: int)");
+        let (prog, _) = parse("class Foo(let a: int)");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
@@ -2041,7 +2037,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_params() {
-        let (prog, interner) = parse("class Foo(a: int, b: int)");
+        let (prog, _) = parse("class Foo(a: int, b: int)");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(0, class.fields.len());
@@ -2058,7 +2054,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_open() {
-        let (prog, interner) = parse("open class Foo");
+        let (prog, _) = parse("open class Foo");
         let class = prog.elements[0].to_class().unwrap();
 
         assert_eq!(true, class.has_open);
@@ -2066,17 +2062,17 @@ mod tests {
 
     #[test]
     fn parse_method_invocation() {
-        let (expr, interner) = parse_expr("a.foo()");
+        let (expr, _) = parse_expr("a.foo()");
         let call = expr.to_call().unwrap();
         assert_eq!(true, call.object.is_some());
         assert_eq!(0, call.args.len());
 
-        let (expr, interner) = parse_expr("a.foo(1)");
+        let (expr, _) = parse_expr("a.foo(1)");
         let call = expr.to_call().unwrap();
         assert_eq!(true, call.object.is_some());
         assert_eq!(1, call.args.len());
 
-        let (expr, interner) = parse_expr("a.foo(1,2)");
+        let (expr, _) = parse_expr("a.foo(1,2)");
         let call = expr.to_call().unwrap();
         assert_eq!(true, call.object.is_some());
         assert_eq!(2, call.args.len());
@@ -2092,21 +2088,21 @@ mod tests {
 
     #[test]
     fn parse_function_without_throws() {
-        let (prog, interner) = parse("fun f(a: int) {}");
+        let (prog, _) = parse("fun f(a: int) {}");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(!fct.throws);
     }
 
     #[test]
     fn parse_function_throws() {
-        let (prog, interner) = parse("fun f(a: int) throws {}");
+        let (prog, _) = parse("fun f(a: int) throws {}");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(fct.throws);
     }
 
     #[test]
     fn parse_function_throws_with_return_type() {
-        let (prog, interner) = parse("fun f(a: int) throws -> int { return 0; }");
+        let (prog, _) = parse("fun f(a: int) throws -> int { return 0; }");
         let fct = prog.elements[0].to_function().unwrap();
         assert!(fct.throws);
     }
@@ -2154,7 +2150,7 @@ mod tests {
 
     #[test]
     fn parse_open_method() {
-        let (prog, interner) = parse("class A { open fun f() {} fun g() {} }");
+        let (prog, _) = parse("class A { open fun f() {} fun g() {} }");
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
@@ -2166,7 +2162,7 @@ mod tests {
 
     #[test]
     fn parse_override_method() {
-        let (prog, interner) = parse("class A { fun f() {}
+        let (prog, _) = parse("class A { fun f() {}
                                                 override fun g() {}
                                                 open fun h() {} }");
         let cls = prog.elements[0].to_class().unwrap();
@@ -2186,7 +2182,7 @@ mod tests {
 
     #[test]
     fn parse_parent_class_params() {
-        let (prog, interner) = parse("class A: B(1, 2)");
+        let (prog, _) = parse("class A: B(1, 2)");
         let cls = prog.elements[0].to_class().unwrap();
 
         let parent_class = cls.parent_class.as_ref().unwrap();
@@ -2195,7 +2191,7 @@ mod tests {
 
     #[test]
     fn parse_final_method() {
-        let (prog, interner) = parse("open class A { final override fun g() {} }");
+        let (prog, _) = parse("open class A { final override fun g() {} }");
         let cls = prog.elements[0].to_class().unwrap();
 
         let m1 = &cls.methods[0];
@@ -2206,14 +2202,14 @@ mod tests {
 
     #[test]
     fn parse_is_expr() {
-        let (expr, interner) = parse_expr("a is Str");
+        let (expr, _) = parse_expr("a is Str");
         let expr = expr.to_is().unwrap();
         assert_eq!(true, expr.object.is_ident());
     }
 
     #[test]
     fn parse_as_expr() {
-        let (expr, interner) = parse_expr("a as Str");
+        let (expr, _) = parse_expr("a as Str");
         let expr = expr.to_as().unwrap();
         assert_eq!(true, expr.object.is_ident());
     }

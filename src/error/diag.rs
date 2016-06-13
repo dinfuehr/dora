@@ -1,4 +1,3 @@
-use ctxt::Context;
 use error::msg::Msg;
 use error::msg::MsgWithPos;
 
@@ -31,9 +30,9 @@ impl Diagnostic {
         !self.errors.is_empty()
     }
 
-    pub fn dump(&self, ctxt: &Context) {
+    pub fn dump(&self) {
         for err in &self.errors {
-            println!("{}", &err.message(ctxt));
+            println!("{}", &err.message());
         }
     }
 }

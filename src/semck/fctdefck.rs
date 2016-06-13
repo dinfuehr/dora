@@ -1,9 +1,7 @@
-use std::cell::{Ref, RefMut};
-
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct, FctId, FctKind, FctSrc};
+use ctxt::{Context, Fct, FctId, FctSrc};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;

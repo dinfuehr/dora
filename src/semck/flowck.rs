@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct, FctKind, FctSrc};
+use ctxt::{Context, Fct, FctSrc};
 use error::msg::Msg;
 
 use ast::*;
@@ -69,7 +69,6 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
 mod tests {
     use error::msg::Msg;
     use semck::tests::*;
-    use ty::BuiltinType;
 
     #[test]
     fn flowck_break() {

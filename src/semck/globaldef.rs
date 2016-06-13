@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 
 use ast::*;
 use ast::visit::*;
@@ -8,8 +7,6 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use mem;
-use object::Header;
 use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 

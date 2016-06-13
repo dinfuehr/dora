@@ -1,5 +1,3 @@
-use libc::*;
-
 use std::collections::HashMap;
 use std::fmt;
 use std::ptr;

@@ -73,8 +73,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
             ExprArray(ref expr) => self.emit_array(expr, dest),
-            ExprIs(ref expr) => panic!("unimplemented"),
-            ExprAs(ref expr) => panic!("unimplemented"),
+            ExprIs(_) => panic!("unimplemented"),
+            ExprAs(_) => panic!("unimplemented"),
         }
 
         dest
@@ -484,7 +484,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let fct = self.ctxt.fct_by_id(fid);
 
             match fct.kind {
-                FctKind::Source(ref src) => {
+                FctKind::Source(_) => {
                     let src = fct.src();
                     let mut src = src.lock().unwrap();
 
@@ -524,13 +524,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         };
         let mut temps : Vec<(BuiltinType, i32)> = Vec::new();
 
-        for (ind, arg) in csite.args.iter().enumerate() {
+        for arg in &csite.args {
             match *arg {
                 Arg::Expr(ast, _, _) => {
                     self.emit_expr(ast, REG_RESULT);
                 }
 
-                Arg::Selfie(cls_id, _) => {
+                Arg::Selfie(_, _) => {
                     self.emit_self(REG_RESULT);
                 }
 
@@ -673,8 +673,8 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprLitBool(_) => false,
         ExprIdent(_) => false,
         ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
-        ExprCall(ref val) => true,
-        ExprSuperCall(ref val) => true,
+        ExprCall(_) => true,
+        ExprSuperCall(_) => true,
         ExprField(ref e) => contains_fct_call(&e.object),
         ExprSelf(_) => false,
         ExprNil(_) => false,

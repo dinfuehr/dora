@@ -1,7 +1,6 @@
 use ast::CmpOp;
 use cpu::instr::*;
 use cpu::*;
-use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::JumpCond;
 use lexer::position::Position;
@@ -58,7 +57,7 @@ pub fn jump(buf: &mut Buffer, lbl: Label) {
     emit_jmp(buf, lbl);
 }
 
-pub fn divl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn divl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
@@ -67,7 +66,7 @@ pub fn divl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     RAX
 }
 
-pub fn modl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn modl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
@@ -76,37 +75,37 @@ pub fn modl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
     RDX
 }
 
-pub fn mull(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn mull(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_imull_reg_reg(buf, rhs, lhs);
 
     lhs
 }
 
-pub fn addl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn addl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_addl_reg_reg(buf, rhs, lhs);
 
     lhs
 }
 
-pub fn subl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn subl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_subl_reg_reg(buf, rhs, lhs);
 
     lhs
 }
 
-pub fn orl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn orl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_orl_reg_reg(buf, rhs, lhs);
 
     lhs
 }
 
-pub fn andl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn andl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_andl_reg_reg(buf, rhs, lhs);
 
     lhs
 }
 
-pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, dest: Reg) -> Reg {
+pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
     emit_xorl_reg_reg(buf, rhs, lhs);
 
     lhs

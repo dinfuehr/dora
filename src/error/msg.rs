@@ -1,6 +1,4 @@
 use self::Msg::*;
-use ctxt::Context;
-use interner::Name;
 use lexer::position::Position;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -52,7 +50,7 @@ pub enum Msg {
 }
 
 impl Msg {
-    pub fn message(&self, ctxt: &Context) -> String {
+    pub fn message(&self) -> String {
         match *self {
             Unimplemented => format!("feature not implemented yet."),
             UnknownClass(ref name) => format!("class `{}` does not exist.", name),
@@ -60,15 +58,15 @@ impl Msg {
             UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
             UnknownMethod(ref cls, ref name, ref args) => {
-                let args = args.connect(", ");
+                let args = args.join(", ");
                 format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
             },
             UnknownCtor(ref name, ref args) => {
-                let args = args.connect(", ");
+                let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
             }
             MethodExists(ref cls, ref name, ref args, pos) => {
-                let args = args.connect(", ");
+                let args = args.join(", ");
 
                 format!(
                     "method with definition `{}({})` already exists in class `{}` at line {}.",
@@ -85,8 +83,8 @@ impl Msg {
             VarNeedsTypeInfo(ref name) =>
                 format!("variable `{}` needs either type declaration or expression.", name),
             ParamTypesIncompatible(ref name, ref def, ref expr) => {
-                let def = def.connect(", ");
-                let expr = expr.connect(", ");
+                let def = def.join(", ");
+                let expr = expr.join(", ");
 
                 format!("function `{}({})` cannot be called as `{}({})`",
                     name, def, name, expr)
@@ -118,7 +116,7 @@ impl Msg {
             WrongMainDefinition => "`main` function has wrong definition".into(),
             SelfUnavailable => "`self` can only be used in methods not functions".into(),
             MultipleCandidates(ref cls, ref name, ref call_types) => {
-                let call_types = call_types.connect(", ");
+                let call_types = call_types.join(", ");
 
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",
                     name, call_types, cls)
@@ -134,13 +132,13 @@ impl Msg {
                 format!("type `{}` cannot be used as super class.", name)
             }
             CycleInHierarchy => "cycle in type hierarchy detected.".into(),
-            SuperfluousOverride(ref name) =>
+            SuperfluousOverride(_) =>
                 "method `{}` uses modifier `override` without overriding a function.".into(),
-            MissingOverride(ref name) =>
+            MissingOverride(_) =>
                 "method `{}` is missing modifier `override`.".into(),
-            SuperfluousOpen(ref name) =>
+            SuperfluousOpen(_) =>
                 "method `{}` uses modifier `open` but class allows no subclasses.".into(),
-            ThrowsDifference(ref name) =>
+            ThrowsDifference(_) =>
                 "use of `throws` in method `{}`needs to match super class".into(),
             MethodNotOverridable(ref name) =>
                 format!("method `{}` in super class not overridable.", name),
@@ -165,7 +163,7 @@ impl MsgWithPos {
         }
     }
 
-    pub fn message(&self, ctxt: &Context) -> String {
-        format!("error at {}: {}", self.pos, self.msg.message(ctxt))
+    pub fn message(&self) -> String {
+        format!("error at {}: {}", self.pos, self.msg.message())
     }
 }

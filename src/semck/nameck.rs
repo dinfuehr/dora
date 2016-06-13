@@ -5,7 +5,6 @@ use ast::*;
 use ast::Expr::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use class::ClassId;
 use interner::Name;
 use lexer::position::Position;
 
@@ -55,7 +54,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
-        let var_id = VarId(self.src.vars.len());
         let cls_id = self.fct.owner_class.unwrap();
         let ast_id = self.src.ast.id;
         let name = self.ctxt.interner.intern("self");
@@ -212,8 +210,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 }
 
                 SymClass(cls_id) => {
-                    let cls = self.ctxt.cls_by_id(cls_id);
-
                     let call_type = CallType::CtorNew(cls_id, FctId(0));
                     self.src.calls.insert(call.id, call_type);
                     found = true;
@@ -299,7 +295,6 @@ fn str(ctxt: &Context, name: Name) -> String {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
-    use interner::Name;
     use semck::tests::*;
 
     #[test]

@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct, FctKind, FctSrc};
+use ctxt::{Context, Fct, FctSrc};
 use error::msg::Msg;
 
 use ast::*;
@@ -73,7 +73,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtContinue(ref stmt) => Err(stmt.pos),
         StmtVar(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => Err(stmt.pos),
-        StmtThrow(ref stmt) => Ok(()),
+        StmtThrow(_) => Ok(()),
         StmtTry(ref stmt) => try_returns_value(stmt),
     }
 }

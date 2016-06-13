@@ -1,6 +1,5 @@
 use std::fmt;
 
-use cpu::emit;
 use cpu::trap;
 use ctxt::FctId;
 use mem::code::CodeMemory;

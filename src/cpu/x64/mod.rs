@@ -1,9 +1,6 @@
-use libc;
-
-use ctxt::{Context, FctId, FctKind, get_ctxt};
+use ctxt::{Context, FctKind, get_ctxt};
 use execstate::ExecState;
 use jit::fct::CatchType;
-use mem::ptr::Ptr;
 use object::{Handle, Obj};
 use stacktrace::Stacktrace;
 
@@ -53,7 +50,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
         let fct = ctxt.fct_by_id(fct_id);
 
         if let FctKind::Source(ref src) = fct.kind {
-            let mut src = src.lock().unwrap();
+            let src = src.lock().unwrap();
 
             if let Some(ref jit_fct) = src.jit_fct {
                 let cls_id = exception.header().class().id;
@@ -99,10 +96,10 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut rootset = Vec::new();
-    let mut pc : usize = 0;
+    let mut pc : usize;
     unsafe { asm!("lea (%rip), $0": "=r"(pc)) }
 
-    let mut fp : usize = 0;
+    let mut fp : usize;
     unsafe { asm!("mov %rbp, $0": "=r"(fp)) }
 
     determine_rootset(&mut rootset, ctxt, fp, pc);
@@ -122,15 +119,13 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
     let fct_id = code_map.get(pc);
 
     if let Some(fct_id) = fct_id {
-        let mut lineno = 0;
         let fct = ctxt.fct_by_id(fct_id);
 
         if let FctKind::Source(ref src) = fct.kind {
-            let mut src = src.lock().unwrap();
+            let src = src.lock().unwrap();
 
             if let Some(ref jit_fct) = src.jit_fct {
                 let offset = pc - (jit_fct.fct_ptr().raw() as usize);
-                let gcpoint = jit_fct.gcpoint_for_offset(offset as i32);
 
                 if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
                     for &offset in &gcpoint.offsets {
@@ -172,7 +167,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
         let mut lineno = 0;
         let fct = ctxt.fct_by_id(fct_id);
         if let FctKind::Source(ref src) = fct.kind {
-            let mut src = src.lock().unwrap();
+            let src = src.lock().unwrap();
             let jit_fct = src.jit_fct.as_ref().unwrap();
             let offset = pc - (jit_fct.fct_ptr().raw() as usize);
             lineno = jit_fct.lineno_for_offset(offset as i32);

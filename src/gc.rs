@@ -1,7 +1,6 @@
 use libc;
 use std::ptr::write_bytes;
 
-use class::Class;
 use cpu::get_rootset;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;

@@ -176,7 +176,7 @@ impl Type {
             Type::TypeTuple(ref val) => {
                 let types : Vec<String> = val.subtypes.iter().map(|t| t.to_string(interner)).collect();
 
-                format!("({})", types.connect(", "))
+                format!("({})", types.join(", "))
             }
 
             Type::TypePtr(ref val) => {
@@ -1283,19 +1283,19 @@ impl Expr {
         match *self {
             Expr::ExprUn(ref val) => val.ty(),
             Expr::ExprBin(ref val) => val.ty(),
-            Expr::ExprLitInt(ref val) => BuiltinType::Int,
-            Expr::ExprLitStr(ref val) => BuiltinType::Str,
-            Expr::ExprLitBool(ref val) => BuiltinType::Bool,
+            Expr::ExprLitInt(_) => BuiltinType::Int,
+            Expr::ExprLitStr(_) => BuiltinType::Str,
+            Expr::ExprLitBool(_) => BuiltinType::Bool,
             Expr::ExprIdent(ref val) => val.ty(),
             Expr::ExprAssign(ref val) => val.ty(),
             Expr::ExprCall(ref val) => val.ty(),
-            Expr::ExprSuperCall(ref val) => BuiltinType::Unit,
+            Expr::ExprSuperCall(_) => BuiltinType::Unit,
             Expr::ExprField(ref val) => val.ty(),
             Expr::ExprSelf(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
-            Expr::ExprIs(ref val) => BuiltinType::Bool,
-            Expr::ExprAs(ref val) => panic!("unimplemented"),
+            Expr::ExprIs(_) => BuiltinType::Bool,
+            Expr::ExprAs(_) => panic!("unimplemented"),
         }
     }
 
@@ -1303,19 +1303,19 @@ impl Expr {
         match *self {
             Expr::ExprUn(ref val) => val.set_ty(ty),
             Expr::ExprBin(ref val) => val.set_ty(ty),
-            Expr::ExprLitInt(ref val) => panic!("unimplemented"),
-            Expr::ExprLitStr(ref val) => panic!("unimplemented"),
-            Expr::ExprLitBool(ref val) => panic!("unimplemented"),
+            Expr::ExprLitInt(_) => panic!("unimplemented"),
+            Expr::ExprLitStr(_) => panic!("unimplemented"),
+            Expr::ExprLitBool(_) => panic!("unimplemented"),
             Expr::ExprIdent(ref val) => val.set_ty(ty),
             Expr::ExprAssign(ref val) => val.set_ty(ty),
             Expr::ExprCall(ref val) => val.set_ty(ty),
-            Expr::ExprSuperCall(ref val) => panic!("unimplemented"),
+            Expr::ExprSuperCall(_) => panic!("unimplemented"),
             Expr::ExprField(ref val) => val.set_ty(ty),
             Expr::ExprSelf(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
-            Expr::ExprIs(ref val) => panic!("unimplemented"),
-            Expr::ExprAs(ref val) => panic!("TODO"),
+            Expr::ExprIs(_) => panic!("unimplemented"),
+            Expr::ExprAs(_) => panic!("TODO"),
         }
     }
 }

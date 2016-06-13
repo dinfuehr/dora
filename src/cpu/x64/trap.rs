@@ -3,11 +3,9 @@ use cpu::instr::*;
 use execstate::ExecState;
 
 use jit::buffer::Buffer;
-use jit::fct::JitFct;
-use mem;
 use mem::ptr::Ptr;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TrapId(u32);
 
 impl TrapId {

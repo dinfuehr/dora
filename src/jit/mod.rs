@@ -1,7 +1,5 @@
-use ast::Function;
 use ctxt::*;
 
-use jit::buffer::*;
 use mem::ptr::Ptr;
 
 pub mod buffer;

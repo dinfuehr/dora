@@ -1,22 +1,17 @@
-use libc;
-use std;
 use std::mem;
 
-use ast::{self, Ast, Function};
-use ctxt::{Context, ctxt_ptr, FctId};
+use ast::{self, Ast};
+use ctxt::{Context, FctId};
 use driver::cmd::{self, Args};
 use error::msg::Msg;
 
 use interner::Interner;
 use jit;
-use jit::fct::JitFct;
 use lexer::position::Position;
-use mem::ptr::Ptr;
 use os;
 
 use parser::Parser;
 use semck;
-use sym::*;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -47,7 +42,7 @@ pub fn start() -> i32 {
     let main = find_main(&ctxt);
 
     if ctxt.diag.borrow().has_errors() {
-        ctxt.diag.borrow().dump(&ctxt);
+        ctxt.diag.borrow().dump();
         let no_errors = ctxt.diag.borrow().errors().len();
 
         if no_errors == 1 {

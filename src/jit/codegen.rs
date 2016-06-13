@@ -1,16 +1,12 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::collections::HashSet;
 use std::slice;
-use std::sync::MutexGuard;
-
-use libc;
 
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, REG_TMP1, trap};
+use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 
@@ -19,9 +15,7 @@ use jit::expr::*;
 use jit::fct::{CatchType, JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
-use object::Obj;
 use semck::always_returns;
-use stdlib;
 use ty::MachineMode;
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
@@ -72,7 +66,9 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 
     let engine = Engine::new(Arch::X86, MODE_64)
                  .expect("cannot create capstone engine");
-    engine.set_option(Opt::Syntax, asm_syntax);
+    if let Err(_) = engine.set_option(Opt::Syntax, asm_syntax) {
+        panic!("capstone: syntax couldn't be set");
+    }
 
     let instrs = engine.disasm(buf, jit_fct.fct_ptr().raw() as u64,
         jit_fct.fct_len()).expect("could not disassemble code");
@@ -325,7 +321,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         let try_span = self.stmt_with_finally(s, &s.try_block, lbl_after);
         let catch_spans = self.emit_try_catch_blocks(s, try_span, lbl_after);
-        let finally_start = self.emit_try_finally_block(s, lbl_after);
+        let finally_start = self.emit_try_finally_block(s);
 
         self.buf.define_label(lbl_after);
 
@@ -394,7 +390,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         (start, end)
     }
 
-    fn emit_try_finally_block(&mut self, s: &'ast StmtTryType, lbl_after: Label)
+    fn emit_try_finally_block(&mut self, s: &'ast StmtTryType)
                               -> Option<usize> {
         if s.finally_block.is_none() { return None; }
         let finally_block = s.finally_block.as_ref().unwrap();
@@ -533,7 +529,7 @@ pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
     let mut offsets = Vec::new();
 
     for scope in &vars.scopes {
-        for (var, &offset) in &scope.vars {
+        for (_, &offset) in &scope.vars {
             offsets.push(offset);
         }
 
@@ -556,19 +552,13 @@ pub enum Next {
 mod tests {
     use std::mem;
 
-    use driver;
-    use driver::cmd::AsmSyntax;
-    use jit;
     use jit::buffer::Buffer;
     use jit::codegen::{CodeGen, Scopes};
     use jit::fct::JitFct;
-    use mem::ptr::Ptr;
     use test;
 
     fn compile(code: &'static str) -> JitFct {
         test::parse(code, |ctxt| {
-            let fct_name = "f";
-
             let name = ctxt.interner.intern("f");
             let fctid = ctxt.sym.borrow().get_fct(name).unwrap();
 
@@ -577,7 +567,7 @@ mod tests {
             let mut src = src.lock().unwrap();
             let ast = src.ast;
 
-            let mut cg = CodeGen {
+            let cg = CodeGen {
                 ctxt: ctxt,
                 fct: &fct,
                 src: &mut src,

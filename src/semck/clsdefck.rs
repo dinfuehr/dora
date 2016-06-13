@@ -176,7 +176,6 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 #[cfg(test)]
 mod tests {
     use error::msg::Msg;
-    use interner::Name;
     use mem;
     use object::Header;
     use semck::tests::*;

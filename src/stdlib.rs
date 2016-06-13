@@ -2,15 +2,13 @@ use libc;
 
 use std::ffi::CStr;
 use std::io::{self, Write};
-use std::mem;
 use std::os::raw::c_char;
 use std::slice;
 use std::str;
 
-use cpu;
 use ctxt::get_ctxt;
 use mem::ptr::Ptr;
-use object::{Handle, IntArray, Obj, Str};
+use object::{Handle, IntArray, Str};
 
 pub extern "C" fn assert(val: bool) {
     if !val {

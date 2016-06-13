@@ -1,5 +1,4 @@
 use std::ptr;
-use libc::*;
 
 use mem;
 use mem::Ptr;

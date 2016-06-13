@@ -5,7 +5,6 @@ use self::Sym::*;
 use class::ClassId;
 use ctxt::*;
 use interner::Name;
-use ty::BuiltinType;
 
 #[derive(Debug)]
 pub struct SymTable {

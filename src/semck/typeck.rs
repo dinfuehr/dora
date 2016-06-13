@@ -1,6 +1,4 @@
-use std::sync::MutexGuard;
-
-use ctxt::{CallType, Context, Fct, FctKind, FctId, FctSrc, IdentType};
+use ctxt::{CallType, Context, Fct, FctId, FctSrc, IdentType};
 use class::ClassId;
 use error::msg::Msg;
 
@@ -202,7 +200,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((cls_id, fct_id, _)) = self.find_method(e.id, e.pos, object_type, name,
+            if let Some((cls_id, fct_id, _)) = self.find_method(e.pos, object_type, name,
                                                                   &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
                 assert!(self.src.calls.insert(e.id, call_type).is_none());
@@ -283,7 +281,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn find_method(&mut self, id: NodeId, pos: Position, object_type: BuiltinType,
+    fn find_method(&mut self, pos: Position, object_type: BuiltinType,
                    name: Name, args: &[BuiltinType],
                    return_type: Option<BuiltinType>) -> Option<(ClassId, FctId, BuiltinType)> {
         let cls_id = match object_type {
@@ -466,7 +464,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let call_type = *self.src.calls.get(&e.id).unwrap();
-        let caller_id = self.fct.id;
 
         let call_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
             self.visit_expr(arg);
@@ -554,8 +551,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_method_call(&mut self, e: &'ast ExprCallType) {
-        let caller_id = self.fct.id;
-
         let object = e.object.as_ref().unwrap();
         self.visit_expr(object);
         let object_type = self.expr_type;
@@ -565,7 +560,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type
         }).collect();
 
-        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
+        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.pos, object_type,
                                                             e.name, &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             assert!(self.src.calls.insert(e.id, call_type).is_none());
@@ -632,7 +627,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];
 
-        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.id, e.pos, object_type,
+        if let Some((cls_id, fct_id, return_type)) = self.find_method(e.pos, object_type,
                                                             name, &args, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             assert!(self.src.calls.insert(e.id, call_type).is_none());
@@ -704,9 +699,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(ref expr) => { self.expr_type = BuiltinType::Int; },
-            ExprLitStr(ref expr) => { self.expr_type = BuiltinType::Str; },
-            ExprLitBool(ref expr) => { self.expr_type = BuiltinType::Bool; },
+            ExprLitInt(_) => { self.expr_type = BuiltinType::Int; },
+            ExprLitStr(_) => { self.expr_type = BuiltinType::Str; },
+            ExprLitBool(_) => { self.expr_type = BuiltinType::Bool; },
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
@@ -757,12 +752,9 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
 
 #[cfg(test)]
 mod tests {
-    use class::ClassId;
     use error::msg::Msg;
-    use interner::Name;
     use semck::tests::*;
     use test::parse_with_errors;
-    use ty::BuiltinType;
 
     #[test]
     fn type_method_len() {
@@ -1135,7 +1127,6 @@ mod tests {
 
     #[test]
     fn type_array_assign() {
-        let iarray = BuiltinType::Class(3.into());
         ok("fun f(a: IntArray) -> int { return a[3] = 4; }");
         err("fun f(a: IntArray) { a[3] = \"b\"; }", pos(1, 27),
             Msg::UnknownMethod("IntArray".into(), "set".into(),
@@ -1260,6 +1251,9 @@ mod tests {
         err("open class A class B: A class C
              fun f(a: A) -> bool { return a is C; }", pos(2, 45),
             Msg::TypesIncompatible("A".into(), "C".into()));
+
+        ok("open class A class B: A fun f() -> A { return B(); }");
+        ok("open class A class B: A fun f() { let a: A = B(); }");
     }
 
     #[test]

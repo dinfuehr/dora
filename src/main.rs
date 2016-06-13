@@ -1,4 +1,6 @@
 #![feature(asm)]
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
 
 extern crate byteorder;
 extern crate libc;

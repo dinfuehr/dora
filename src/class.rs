@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 

@@ -1,12 +1,12 @@
-    use libc::c_void;
+use libc::c_void;
 use std::cmp;
 
 use ast::*;
 use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
-use cpu::{self, Reg};
-use ctxt::{Arg, Callee, CallSite, Context, Fct, FctKind, FctSrc, Store, Var, VarId};
+use cpu;
+use ctxt::{Arg, Callee, CallSite, Context, Fct, FctSrc, Store, VarId};
 use jit::expr::is_leaf;
 use mem;
 use mem::ptr::Ptr;
@@ -227,13 +227,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                       callee: Option<Callee>, return_type: Option<BuiltinType>) {
         // function invokes another function
         self.leaf = false;
-        let mut is_ctor = false;
 
         for arg in &args {
             match *arg {
                 Arg::Expr(ast, _, _) => self.visit_expr(ast),
                 Arg::Selfie(_, _)
-                | Arg::SelfieNew(_, _) => { is_ctor = true; }
+                | Arg::SelfieNew(_, _) => {}
             }
         }
 

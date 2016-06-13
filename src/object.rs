@@ -2,12 +2,10 @@ use libc;
 
 use std;
 use std::ops::{Deref, DerefMut};
-use std::ops::Index;
 use std::ptr;
 
 use class::Class;
 use ctxt::get_ctxt;
-use gc::Gc;
 use mem;
 use mem::ptr::Ptr;
 use ty::BuiltinType;

@@ -1,5 +1,3 @@
-use ast::Expr;
-use cpu;
 use ty::BuiltinType;
 
 // first param offset to rbp is +16,

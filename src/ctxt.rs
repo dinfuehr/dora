@@ -1,6 +1,4 @@
-use libc::c_void;
-
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -10,7 +8,6 @@ use error::diag::Diagnostic;
 
 use ast;
 use class::{Class, ClassId, Field, FieldId};
-use cpu::Reg;
 use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
@@ -77,7 +74,6 @@ impl<'ast> Context<'ast> {
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
-        let name = fct.name;
         let fctid = FctId(self.fcts.len());
 
         fct.id = fctid;
@@ -91,7 +87,7 @@ impl<'ast> Context<'ast> {
         fctid
     }
 
-    pub fn add_fct_to_sym(&mut self, mut fct: Fct<'ast>) -> Result<FctId, Sym> {
+    pub fn add_fct_to_sym(&mut self, fct: Fct<'ast>) -> Result<FctId, Sym> {
         let name = fct.name;
         let fctid = self.add_fct(fct);
 
