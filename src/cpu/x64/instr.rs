@@ -498,6 +498,15 @@ pub fn emit_shll_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
     emit_u8(buf, imm);
 }
 
+pub fn emit_shll_reg_cl(buf: &mut Buffer, dest: Reg) {
+    if dest.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xD3);
+    emit_modrm(buf, 0b11, 0b100, dest.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -915,5 +924,11 @@ mod tests {
         assert_emit!(0x89, 0x1C, 0x81; emit_movl_ra(RBX, RCX, RAX, 4));
         assert_emit!(0x89, 0x04, 0x4B; emit_movl_ra(RAX, RBX, RCX, 2));
         assert_emit!(0x45, 0x89, 0x3C, 0x03; emit_movl_ra(R15, R11, RAX, 1));
+    }
+
+    #[test]
+    fn test_shll_reg_reg() {
+        assert_emit!(0xD3, 0xE0; emit_shll_reg_cl(RAX));
+        assert_emit!(0x41, 0xD3, 0xE1; emit_shll_reg_cl(R9));
     }
 }

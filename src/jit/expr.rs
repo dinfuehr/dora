@@ -12,7 +12,7 @@ use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
-use object::{IntArray, Str};
+use object::{Header, IntArray, Str};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 
@@ -498,14 +498,36 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         if self.is_intrinsic(e.id) {
-            // only intrinsic: IntArray.len()
-            self.emit_expr(&e.args[0], REG_RESULT);
-            emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, 8, dest);
+            if e.object.is_some() {
+                // only intrinsic: IntArray.len()
+                self.emit_intrinsic_len(e, dest);
+            } else {
+                self.emit_intrinsic_shl(e, dest);
+            }
 
             return;
         }
 
         self.emit_universal_call(e.id, e.pos, dest);
+    }
+
+    fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
+        emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, Header::size(), dest);
+    }
+
+    fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(&e.args[0], REG_RESULT);
+        let offset = self.reserve_temp_for_node(&e.args[0]);
+        emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset);
+
+        self.emit_expr(&e.args[1], cpu::reg::RCX);
+        emit::mov_local_reg(self.buf, MachineMode::Int32, offset, REG_RESULT);
+        emit::shll_reg_cl(self.buf, REG_RESULT);
+
+        if REG_RESULT != dest {
+            emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
+        }
     }
 
     fn emit_super_call(&mut self, e: &'ast ExprSuperCallType, dest: Reg) {

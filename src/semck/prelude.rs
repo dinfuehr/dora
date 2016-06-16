@@ -119,7 +119,7 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     let cls_name = ctxt.interner.intern("IntArray");
 
     let mtd_len = add_method(ctxt, cls_id, "len", Vec::new(), BuiltinType::Int,
-        FctKind::Builtin(Ptr::new(stdlib::int_array_len as *mut c_void)));
+        FctKind::Intrinsic);
 
     let mtd_get = add_method(ctxt, cls_id, "get", vec![BuiltinType::Int], BuiltinType::Int,
         FctKind::Intrinsic);
@@ -194,34 +194,37 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId,
 }
 
 fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>) {
+    builtin_function("shl", vec![BuiltinType::Int, BuiltinType::Int], BuiltinType::Int,
+        ctxt, FctKind::Intrinsic);
+
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
-        ctxt, Ptr::new(stdlib::assert as *mut c_void));
+        ctxt, FctKind::Builtin(Ptr::new(stdlib::assert as *mut c_void)));
 
     builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        Ptr::new(stdlib::print as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::print as *mut c_void)));
 
     builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        Ptr::new(stdlib::println as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::println as *mut c_void)));
 
     builtin_function("argc", vec![], BuiltinType::Int, ctxt,
-        Ptr::new(stdlib::argc as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::argc as *mut c_void)));
 
     builtin_function("argv", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
-        Ptr::new(stdlib::argv as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::argv as *mut c_void)));
 
     builtin_function("forceCollect", vec![], BuiltinType::Unit, ctxt,
-        Ptr::new(stdlib::gc_collect as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::gc_collect as *mut c_void)));
 
     builtin_function("intArrayWith", vec![BuiltinType::Int, BuiltinType::Int],
         BuiltinType::IntArray, ctxt,
-        Ptr::new(stdlib::ctor_int_array_elem as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::ctor_int_array_elem as *mut c_void)));
 
     builtin_function("emptyIntArray", vec![], BuiltinType::IntArray, ctxt,
-        Ptr::new(stdlib::ctor_int_array_empty as *mut c_void));
+        FctKind::Builtin(Ptr::new(stdlib::ctor_int_array_empty as *mut c_void)));
 }
 
 fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
-                    ctxt: &mut Context<'ast>, fct: Ptr) {
+                    ctxt: &mut Context<'ast>, kind: FctKind<'ast>) {
     let name = ctxt.interner.intern(name);
 
     let fct = Fct {
@@ -237,7 +240,7 @@ fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
         throws: false,
         ctor: None,
         initialized: true,
-        kind: FctKind::Builtin(fct),
+        kind: kind,
     };
 
     assert!(ctxt.add_fct_to_sym(fct).is_ok());

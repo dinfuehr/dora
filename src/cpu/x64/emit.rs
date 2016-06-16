@@ -194,6 +194,10 @@ pub fn addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_addq_reg_reg(buf, src, dest);
 }
 
+pub fn shll_reg_cl(buf: &mut Buffer, dest: Reg) {
+    emit_shll_reg_cl(buf, dest);
+}
+
 pub fn shiftlq_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
     emit_shlq_reg(buf, imm, dest);
 }

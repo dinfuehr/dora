@@ -182,12 +182,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if self.is_intrinsic(expr.id) {
             for arg in &expr.args {
                 self.visit_expr(arg);
+                self.reserve_temp_for_node(arg);
             }
 
-            assert_eq!(1, expr.args.len());
+            if let Some(ref object) = expr.object {
+                self.reserve_temp_for_node_with_type(object.id(), BuiltinType::Ptr);
+            }
 
-            let id = expr.object.as_ref().unwrap().id();
-            self.reserve_temp_for_node_with_type(id, BuiltinType::Ptr);
             return;
         }
 
