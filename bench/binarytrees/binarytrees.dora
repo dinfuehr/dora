@@ -1,0 +1,82 @@
+fun main() {
+  var maxDepth = 6;
+
+  if argc() > 0 {
+    maxDepth = argv(0).parseInt();
+  }
+
+  if 6 > maxDepth {
+    maxDepth = 6;
+  }
+
+  let stretchDepth = maxDepth + 1;
+  println("stretch tree of depth " + stretchDepth.toString() +
+          "\t check: " + checkTree(createTree(0, stretchDepth)));
+
+  trees(maxDepth);
+}
+
+fun trees(maxDepth: int) {
+  let longLastingNode = createTree(0, maxDepth);
+  var depth = 4;
+
+  while depth <= maxDepth {
+    let iterations = 16 << (maxDepth - depth);
+
+    loops(iterations, depth);
+    depth += 2;
+  }
+
+  println("long lived tree of depth " + maxDepth.toString()
+    + "\t check: " + checkTree(longLastingNode));
+}
+
+fun loops(iterations: int, depth: int) {
+  var check = 0;
+  var item = 0;
+
+  while item < iterations {
+    check = check + checkTree(createTree(item, depth)) +
+      checkTree(createTree(-item, depth));
+
+    item = item + 1;
+  }
+
+  println((iterations << 1).toString() + "\t trees of depth " +
+    depth.toString() + "\t check: " + check.toString());
+}
+
+fun loops(iterations: int, depth: int) {
+    var check = 0;
+    var item = 0;
+
+    while item < iterations {
+      check = check + checkTree(createTree(item, depth)) +
+        checkTree(createTree(-item, depth));
+        item++;
+    }
+
+    println((iterations << 1).toString() + "\t trees of depth " +
+      depth.toString() + "\t check: " + check);
+}
+
+fun createTree(item: int, depth: int) {
+  let node = TreeNode(item, nil, nil);
+
+  if depth > 0 {
+    item = item + item;
+    depth = depth - 1;
+    node.left = createTree(item-1, depth);
+    node.right = createTree(item, depth);
+  }
+
+  return node;
+}
+
+fun checkTree(node: TreeNode) -> int {
+  if node.left == nil {
+    return node.item;
+  }
+
+  return checkTree(node.left) - checkTree(node.right) + node.item;
+}
