@@ -47,6 +47,7 @@ pub enum Msg {
     ThrowsDifference(String),
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
+    ReturnTypeMismatch(String, String),
 }
 
 impl Msg {
@@ -144,6 +145,9 @@ impl Msg {
                 format!("method `{}` in super class not overridable.", name),
             TypesIncompatible(ref na, ref nb) => {
                 format!("types `{}` and `{}` incompatible.", na, nb)
+            }
+            ReturnTypeMismatch(ref fct, ref sup) => {
+                format!("return types `{}` and `{}` do not match", fct, sup)
             }
         }
     }

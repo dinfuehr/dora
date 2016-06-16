@@ -1,8 +1,9 @@
+use std::collections::HashSet;
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
 use ast;
-use ctxt::{Context, FctId};
+use ctxt::{Context, Fct, FctId};
 use interner::Name;
 use ty::BuiltinType;
 
@@ -92,6 +93,36 @@ impl<'ast> Class<'ast> {
 
             } else {
                 return None;
+            }
+        }
+    }
+
+    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name,
+                                f: F) -> Vec<FctId> where F: Fn(&Fct) -> bool {
+        let mut classid = self.id;
+        let mut candidates = Vec::new();
+        let mut ignores = HashSet::new();
+
+        loop {
+            let cls = ctxt.cls_by_id(classid);
+
+            for &method in &cls.methods {
+                let method = ctxt.fct_by_id(method);
+
+                if method.name == name && !ignores.contains(&method.id) && f(method) {
+                    if let Some(overrides) = method.overrides {
+                        ignores.insert(overrides);
+                    }
+
+                    candidates.push(method.id);
+                }
+            }
+
+            if let Some(parent_class) = cls.parent_class {
+                classid = parent_class;
+
+            } else {
+                return candidates;
             }
         }
     }

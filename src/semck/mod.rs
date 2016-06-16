@@ -43,6 +43,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     fctdefck::check(ctxt);
     return_on_error!(ctxt);
 
+    // add size of super classes to field offsets
+    superck::check(ctxt);
+    return_on_error!(ctxt);
+
     // check types of expressions in functions
     typeck::check(ctxt);
     return_on_error!(ctxt);
@@ -52,9 +56,6 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // checks if function has a return value
     returnck::check(ctxt);
-
-    // add size of super classes to field offsets
-    superck::check(ctxt);
 }
 
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {

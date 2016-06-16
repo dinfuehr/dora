@@ -291,22 +291,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some(cls_id) = cls_id {
             let cls = self.ctxt.cls_by_id(cls_id);
-            let mut candidates = Vec::new();
+            let ctxt = self.ctxt;
 
-            for &method in &cls.methods {
-                let method = self.ctxt.fct_by_id(method);
-
-                if method.name == name
-                    && args_compatible(self.ctxt, &method.params_types, args)
-                    && (return_type.is_none()
-                     || method.return_type == return_type.unwrap()) {
-                    candidates.push((cls_id, method.id, method.return_type));
-                }
-            }
+            let candidates = cls.find_methods_with(ctxt, name, |method| {
+                args_compatible(ctxt, &method.params_types, args)
+                && (return_type.is_none()
+                    || method.return_type == return_type.unwrap())
+            });
 
             if candidates.len() == 1 {
                 let candidate = candidates[0];
-                return Some(candidate);
+                let fct = self.ctxt.fct_by_id(candidate);
+
+                return Some((fct.owner_class.unwrap(), candidate, fct.return_type));
 
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
@@ -1285,6 +1282,21 @@ mod tests {
 
     #[test]
     fn check_cmp_is() {
-        ok("fun f(x: Str) { let a = nil === x; let b = x === nil; let c = nil === nil; }");
+        ok("fun f(x: Str) {
+                let a = nil === x;
+                let b = x === nil;
+                let c = nil === nil;
+            }");
+    }
+
+    #[test]
+    fn super_call() {
+        ok("open class A { fun f() {} }
+            class B: A { fun g() {} }
+
+            fun foo(b: B) {
+                b.f();
+                b.g();
+            }");
     }
 }

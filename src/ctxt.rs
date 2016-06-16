@@ -186,7 +186,7 @@ pub enum CtorType {
     Primary, Secondary
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
 
 #[derive(Debug)]
@@ -197,6 +197,7 @@ pub struct Fct<'ast> {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub overrides: Option<FctId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: Option<CtorType>,

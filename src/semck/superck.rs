@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use class::{Class, ClassId};
-use ctxt::{Context, Fct};
+use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
 use lexer::position::Position;
 use object::Header;
@@ -79,16 +79,24 @@ fn determine_recursive_size<'ast>(ctxt: &Context<'ast>,
     super_size
 }
 
-fn check_override<'ast>(ctxt: &Context<'ast>) {
+fn check_override<'ast>(ctxt: &mut Context<'ast>) {
+    let mut updates: Vec<(FctId, FctId)> = Vec::new();
+
     for class in &ctxt.classes {
         for &fct_id in &class.methods {
             let fct = ctxt.fct_by_id(fct_id);
-            check_fct_modifier(ctxt, class, fct);
+            check_fct_modifier(ctxt, class, fct, &mut updates);
         }
+    }
+
+    for update in updates {
+        let fct = ctxt.fct_by_id_mut(update.0);
+        fct.overrides = Some(update.1);
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) {
+fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>,
+                            updates: &mut Vec<(FctId, FctId)>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -129,6 +137,15 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>) 
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::ThrowsDifference(name));
         }
+
+        if super_method.return_type != fct.return_type {
+            let pos = fct.pos();
+            let fct = fct.return_type.name(ctxt);
+            let sup = super_method.return_type.name(ctxt);
+            ctxt.diag.borrow_mut().report(pos, Msg::ReturnTypeMismatch(fct, sup));
+        }
+
+        updates.push((fct.id, super_method.id));
     } else {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
@@ -193,6 +210,24 @@ fn test_override() {
          open class B: A { final override fun f() {} }
          class C: B { override fun f() {} }",
         pos(3, 32), Msg::MethodNotOverridable("f".into()));
+}
+
+#[test]
+fn test_override_with_wrong_return_type() {
+    use semck::tests::{err, pos};
+
+    err("open class A { open fun f() {} }
+        class B: A { override fun f() -> int { return 1; } }",
+        pos(2, 31), Msg::ReturnTypeMismatch("int".into(), "()".into()));
+}
+
+#[test]
+fn test_override_with_missing_throws() {
+    use semck::tests::{err, pos};
+
+    err("open class A { open fun f() throws {} }
+         class B: A { override fun f() {} }", pos(2, 32),
+         Msg::ThrowsDifference("f".into()));
 }
 
 #[test]
