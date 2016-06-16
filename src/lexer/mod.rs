@@ -216,24 +216,51 @@ impl<T : CodeReader> Lexer<T> {
 
     fn read_string(&mut self) -> Result<Token, ParseError> {
         let mut tok = self.build_token(TokenType::String);
+        let mut escape = false;
 
         self.read_char();
 
-        while !self.is_eof() && !self.is_newline() && !self.is_quote() {
-            let ch = try!(self.read_char().unwrap()).value;
+        while !self.is_eof() && (escape || !self.is_quote()) {
+            let mut ch = try!(self.read_char().unwrap()).value;
+
+            if escape {
+                ch = match ch {
+                    '\\' => '\\',
+                    'n' => '\n',
+                    't' => '\t',
+                    'r' => '\r',
+                    '\"' => '\"',
+                    '\'' => '\'',
+                    _ => {
+                        return Err(ParseError {
+                            position: tok.position,
+                            code: ErrorCode::InvalidEscapeSequence,
+                            message: format!("unknown escape sequence `\\{}`", ch),
+                        });
+                    }
+                };
+
+                escape = false;
+
+            } else if ch == '\\' {
+                escape = true;
+                continue;
+            }
+
             tok.value.push(ch);
         }
 
-        if self.is_quote() {
+        if !escape && self.is_quote() {
             self.read_char();
 
             Ok(tok)
+
         } else {
             Err(ParseError {
-              position: tok.position,
-              code: ErrorCode::UnclosedString,
-              message: "unclosed string".to_string()
-          })
+                position: tok.position,
+                code: ErrorCode::UnclosedString,
+                message: "unclosed string".to_string()
+            })
         }
     }
 
@@ -627,6 +654,30 @@ mod tests {
     #[test]
     fn test_string_with_newline() {
         let mut reader = Lexer::from_str("\"abc\ndef\"");
+        assert_tok(&mut reader, TokenType::String, "abc\ndef", 1, 1);
+    }
+
+    #[test]
+    fn test_escape_sequences() {
+        let mut reader = Lexer::from_str("\"\\\"\"");
+        assert_tok(&mut reader, TokenType::String, "\"", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\\'\"");
+        assert_tok(&mut reader, TokenType::String, "'", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\t\"");
+        assert_tok(&mut reader, TokenType::String, "\t", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\n\"");
+        assert_tok(&mut reader, TokenType::String, "\n", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\r\"");
+        assert_tok(&mut reader, TokenType::String, "\r", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\\\\"");
+        assert_tok(&mut reader, TokenType::String, "\\", 1, 1);
+
+        let mut reader = Lexer::from_str("\"\\");
         assert_err(&mut reader, ErrorCode::UnclosedString, 1, 1);
     }
 

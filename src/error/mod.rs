@@ -10,7 +10,7 @@ pub enum ErrorCode {
     UnclosedComment, UnknownChar, UnclosedString, NumberOverflow, UnknownFactor,
     UnexpectedToken, ExpectedTopLevelElement, ExpectedType, ExpectedIdentifier,
     MisplacedElse, IoError, CommaExpected, ExpectedValue, ExpectedClassElement,
-    RedundantModifier, MisplacedModifier, Unimplemented,
+    RedundantModifier, MisplacedModifier, Unimplemented, InvalidEscapeSequence,
 }
 
 #[derive(Debug)]
