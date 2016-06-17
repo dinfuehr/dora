@@ -1,5 +1,6 @@
 use libc;
 use std::ptr::write_bytes;
+use time;
 
 use cpu::get_rootset;
 use ctxt::get_ctxt;
@@ -13,6 +14,9 @@ pub struct Gc {
     memory: Vec<Ptr>,
     bytes_allocated: usize,
     threshold: usize,
+
+    pub duration: u64,
+    pub total_allocated: u64,
 }
 
 impl Gc {
@@ -21,10 +25,13 @@ impl Gc {
             memory: Vec::new(),
             bytes_allocated: 0,
             threshold: INITIAL_THRESHOLD,
+            duration: 0,
+            total_allocated: 0,
         }
     }
 
     pub fn alloc(&mut self, size: usize) -> Ptr {
+        let start = time::precise_time_ns();
         let ctxt = get_ctxt();
 
         if ctxt.args.flag_gc_stress {
@@ -56,12 +63,16 @@ impl Gc {
 
         self.memory.push(ptr);
         self.bytes_allocated += size;
+        self.total_allocated += size as u64;
 
         if ctxt.args.flag_gc_dump {
             println!("GC: allocate {} bytes: {:x} (total {} bytes, threshold {}, {} objects)",
                      size, ptr.raw() as usize,
                      self.bytes_allocated, self.threshold, self.memory.len());
         }
+
+        let duration = time::precise_time_ns() - start;
+        self.duration += duration;
 
         ptr
     }

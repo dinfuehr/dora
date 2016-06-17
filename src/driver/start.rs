@@ -60,6 +60,13 @@ pub fn start() -> i32 {
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
 
+    if ctxt.args.flag_gc_stats {
+        let gc = ctxt.gc.lock().unwrap();
+
+        println!("GC stats: {} duration, {} bytes allocated",
+            gc.duration, gc.total_allocated);
+    }
+
     let is_unit = ctxt.fct_by_id(main).return_type.is_unit();
 
     // main-fct without return value exits with status 0

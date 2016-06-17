@@ -8,6 +8,7 @@ rustc-serialize = "*"
 docopt = "*"
 byteorder = "*"
 libc = "*"
+time = "*"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

@@ -24,6 +24,7 @@ Options:
                         Allowed values: intel, att
     --gc-dump           Dump GC actions
     --gc-stress         Collect garbage at every allocation
+    --gc-stats          Print GC statistics
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -38,6 +39,7 @@ pub struct Args {
     pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_dump: bool,
     pub flag_gc_stress: bool,
+    pub flag_gc_stats: bool,
 }
 
 impl Default for Args {
@@ -53,6 +55,7 @@ impl Default for Args {
             flag_asm_syntax: None,
             flag_gc_dump: false,
             flag_gc_stress: false,
+            flag_gc_stats: false,
         }
     }
 }

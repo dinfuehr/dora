@@ -3,10 +3,11 @@
 #![allow(non_camel_case_types)]
 
 extern crate byteorder;
+extern crate capstone;
+extern crate docopt;
 extern crate libc;
 extern crate rustc_serialize;
-extern crate docopt;
-extern crate capstone;
+extern crate time;
 
 mod ast;
 mod class;
