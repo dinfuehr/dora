@@ -16,6 +16,8 @@ pub struct Gc {
     threshold: usize,
 
     pub duration: u64,
+    pub malloc_duration: u64,
+    pub collect_duration: u64,
     pub total_allocated: u64,
 }
 
@@ -26,12 +28,14 @@ impl Gc {
             bytes_allocated: 0,
             threshold: INITIAL_THRESHOLD,
             duration: 0,
+            malloc_duration: 0,
+            collect_duration: 0,
             total_allocated: 0,
         }
     }
 
     pub fn alloc(&mut self, size: usize) -> Ptr {
-        let start = time::precise_time_ns();
+        let alloc_start = time::precise_time_ns();
         let ctxt = get_ctxt();
 
         if ctxt.args.flag_gc_stress {
@@ -57,8 +61,11 @@ impl Gc {
             }
         }
 
+        let malloc_start = time::precise_time_ns();
         let ptr = unsafe { libc::malloc(size) };
         unsafe { write_bytes(ptr, 0, size); }
+        self.malloc_duration += time::precise_time_ns() - malloc_start;
+
         let ptr = Ptr::new(ptr);
 
         self.memory.push(ptr);
@@ -71,13 +78,13 @@ impl Gc {
                      self.bytes_allocated, self.threshold, self.memory.len());
         }
 
-        let duration = time::precise_time_ns() - start;
-        self.duration += duration;
+        self.duration += time::precise_time_ns() - alloc_start;
 
         ptr
     }
 
     pub fn collect(&mut self) {
+        let collect_start = time::precise_time_ns();
         let ctxt = get_ctxt();
         let rootset = get_rootset(ctxt);
 
@@ -93,6 +100,8 @@ impl Gc {
         mark_literals();
         mark_rootset(&rootset);
         sweep(self, ctxt.args.flag_gc_dump);
+
+        self.collect_duration += time::precise_time_ns() - collect_start;
     }
 }
 

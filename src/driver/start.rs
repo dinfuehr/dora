@@ -63,8 +63,8 @@ pub fn start() -> i32 {
     if ctxt.args.flag_gc_stats {
         let gc = ctxt.gc.lock().unwrap();
 
-        println!("GC stats: {} duration, {} bytes allocated",
-            gc.duration, gc.total_allocated);
+        println!("GC stats: {} duration ({} malloc duration, {} collect duration), {} bytes allocated",
+            gc.duration, gc.malloc_duration, gc.collect_duration, gc.total_allocated);
     }
 
     let is_unit = ctxt.fct_by_id(main).return_type.is_unit();
