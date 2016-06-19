@@ -63,8 +63,10 @@ pub fn start() -> i32 {
     if ctxt.args.flag_gc_stats {
         let gc = ctxt.gc.lock().unwrap();
 
-        println!("GC stats: {} duration ({} malloc duration, {} collect duration), {} bytes allocated",
-            gc.duration, gc.malloc_duration, gc.collect_duration, gc.total_allocated);
+        println!("GC stats: {} ms duration", in_ms(gc.duration));
+        println!("\tmalloc duration: {} ms", in_ms(gc.malloc_duration));
+        println!("\tcollect duration: {} ms", in_ms(gc.collect_duration));
+        println!("\tsweep duration: {} ms", in_ms(gc.sweep_duration));
     }
 
     let is_unit = ctxt.fct_by_id(main).return_type.is_unit();
@@ -77,6 +79,10 @@ pub fn start() -> i32 {
     } else {
         res
     }
+}
+
+fn in_ms(ns: u64) -> u64 {
+    ns / 1000 / 1000
 }
 
 fn parse_file(args: &Args, mut interner: &mut Interner) -> Result<Ast, i32> {
