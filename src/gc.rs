@@ -18,6 +18,7 @@ pub struct Gc {
     pub duration: u64,
     pub malloc_duration: u64,
     pub collect_duration: u64,
+    pub sweep_duration: u64,
     pub total_allocated: u64,
 }
 
@@ -30,6 +31,7 @@ impl Gc {
             duration: 0,
             malloc_duration: 0,
             collect_duration: 0,
+            sweep_duration: 0,
             total_allocated: 0,
         }
     }
@@ -99,7 +101,10 @@ impl Gc {
 
         mark_literals();
         mark_rootset(&rootset);
+
+        let sweep_start = time::precise_time_ns();
         sweep(self, ctxt.args.flag_gc_dump);
+        self.sweep_duration += time::precise_time_ns() - sweep_start;
 
         self.collect_duration += time::precise_time_ns() - collect_start;
     }
