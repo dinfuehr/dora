@@ -152,31 +152,38 @@ fn mark_literals(cur_marked: bool) {
     let literals = ctxt.literals.lock().unwrap();
 
     for lit in literals.iter() {
-        mark_recursive(lit.raw() as usize, cur_marked);
+        mark_recursive(lit.raw() as *mut Obj, cur_marked);
     }
 }
 
 fn mark_rootset(rootset: &Vec<usize>, cur_marked: bool) {
     for &root in rootset {
-        mark_recursive(root, cur_marked);
+        mark_recursive(root as *mut Obj, cur_marked);
     }
 }
 
-fn mark_recursive(ptr: usize, cur_marked: bool) {
-    if ptr == 0 { return; }
-    let obj = unsafe { &mut *(ptr as *mut Obj) };
+fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
+    if obj.is_null() { return; }
 
-    if obj.header().marked() != cur_marked {
-        obj.header_mut().set_mark(cur_marked);
-        let class = obj.header().class();
+    let mut elements: Vec<*mut Obj> = vec![obj];
 
-        for field in class.all_fields(get_ctxt()) {
-            if field.ty.reference_type() {
-                let addr = ptr as isize + field.offset as isize;
-                let obj = unsafe { *(addr as *const usize) };
+    while !elements.is_empty() {
+        let ptr = elements.pop().unwrap();
+        let obj = unsafe { &mut *ptr };
 
-                if obj == 0 { return; }
-                mark_recursive(obj, cur_marked);
+        if obj.header().marked() != cur_marked {
+            obj.header_mut().set_mark(cur_marked);
+            let class = obj.header().class();
+
+            for field in class.all_fields(get_ctxt()) {
+                if field.ty.reference_type() {
+                    let addr = ptr as isize + field.offset as isize;
+                    let obj = unsafe { *(addr as *const usize) } as *mut Obj;
+
+                    if obj.is_null() { continue; }
+
+                    elements.push(obj);
+                }
             }
         }
     }
