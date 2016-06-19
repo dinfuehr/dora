@@ -1,4 +1,4 @@
 #!/bin/sh
 
 cargo build --release
-target/release/dora $@
+time target/release/dora $@

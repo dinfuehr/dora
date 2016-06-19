@@ -67,6 +67,8 @@ pub fn start() -> i32 {
         println!("\tmalloc duration: {} ms", in_ms(gc.malloc_duration));
         println!("\tcollect duration: {} ms", in_ms(gc.collect_duration));
         println!("\tsweep duration: {} ms", in_ms(gc.sweep_duration));
+        println!("\t{} collections", gc.collections);
+        println!("\t{} bytes allocated", gc.total_allocated);
     }
 
     let is_unit = ctxt.fct_by_id(main).return_type.is_unit();

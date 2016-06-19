@@ -21,6 +21,7 @@ pub struct Gc {
     pub collect_duration: u64,
     pub sweep_duration: u64,
     pub total_allocated: u64,
+    pub collections: u64,
 }
 
 impl Gc {
@@ -36,6 +37,7 @@ impl Gc {
             collect_duration: 0,
             sweep_duration: 0,
             total_allocated: 0,
+            collections: 0,
         }
     }
 
@@ -126,6 +128,7 @@ impl Gc {
         self.cur_marked = !self.cur_marked;
 
         self.collect_duration += time::precise_time_ns() - collect_start;
+        self.collections += 1;
     }
 }
 
