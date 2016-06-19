@@ -7,8 +7,7 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use mem::ptr::Ptr;
-use object::{Handle, IntArray, Str};
+use object::{Handle, IntArray, Obj, Str};
 
 pub extern "C" fn assert(val: bool) {
     if !val {
@@ -60,7 +59,7 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     Str::concat(lhs, rhs)
 }
 
-pub extern "C" fn gc_alloc(size: usize) -> Ptr {
+pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
 

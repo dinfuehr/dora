@@ -17,6 +17,9 @@ pub struct Header {
     // additional information>
     // bit 0 - marked flag
     info: usize,
+
+    // next allocated object
+    next: *mut Obj,
 }
 
 impl Header {
@@ -46,6 +49,14 @@ impl Header {
         } else {
             false
         }
+    }
+
+    pub fn set_succ(&mut self, ptr: *mut Obj) {
+        self.next = ptr;
+    }
+
+    pub fn succ(&self) -> *mut Obj {
+        self.next
     }
 }
 
@@ -176,7 +187,7 @@ impl Str {
                    + len + 1;                  // string content
 
         let ctxt = get_ctxt();
-        let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
+        let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let cls = ctxt.primitive_classes.str_classptr;
         let mut handle : Handle<Str> = ptr.into();
@@ -263,7 +274,7 @@ impl IntArray {
                    + len * std::mem::size_of::<i32>(); // array content
 
         let ctxt = get_ctxt();
-        let ptr = ctxt.gc.lock().unwrap().alloc(size).raw() as usize;
+        let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let cls = ctxt.primitive_classes.int_array_classptr;
         let mut handle : Handle<IntArray> = ptr.into();

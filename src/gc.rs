@@ -1,17 +1,17 @@
 use libc;
-use std::ptr::write_bytes;
+use std::ptr::{self, write_bytes};
 use time;
 
 use cpu::get_rootset;
 use ctxt::get_ctxt;
-use mem::ptr::Ptr;
 use object::Obj;
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
 
 pub struct Gc {
-    memory: Vec<Ptr>,
+    obj_start: *mut Obj,
+    obj_end: *mut Obj,
     bytes_allocated: usize,
     threshold: usize,
 
@@ -25,7 +25,8 @@ pub struct Gc {
 impl Gc {
     pub fn new() -> Gc {
         Gc {
-            memory: Vec::new(),
+            obj_start: ptr::null_mut(),
+            obj_end: ptr::null_mut(),
             bytes_allocated: 0,
             threshold: INITIAL_THRESHOLD,
             duration: 0,
@@ -36,7 +37,7 @@ impl Gc {
         }
     }
 
-    pub fn alloc(&mut self, size: usize) -> Ptr {
+    pub fn alloc(&mut self, size: usize) -> *mut Obj {
         let alloc_start = time::precise_time_ns();
         let ctxt = get_ctxt();
 
@@ -64,20 +65,36 @@ impl Gc {
         }
 
         let malloc_start = time::precise_time_ns();
-        let ptr = unsafe { libc::malloc(size) };
-        unsafe { write_bytes(ptr, 0, size); }
+        let ptr = unsafe { libc::malloc(size) as *mut Obj };
+        unsafe { write_bytes(ptr as *mut u8, 0, size); }
         self.malloc_duration += time::precise_time_ns() - malloc_start;
 
-        let ptr = Ptr::new(ptr);
+        {
+            let ptr = ptr as *mut Obj;
 
-        self.memory.push(ptr);
+            if self.obj_end.is_null() {
+                assert!(self.obj_start.is_null());
+
+                self.obj_start = ptr;
+                self.obj_end = ptr;
+
+            } else {
+                assert!(!self.obj_start.is_null());
+
+                let obj_end = unsafe { &mut *self.obj_end };
+                obj_end.header_mut().set_succ(ptr);
+
+                self.obj_end = ptr;
+            }
+        }
+
         self.bytes_allocated += size;
         self.total_allocated += size as u64;
 
         if ctxt.args.flag_gc_dump {
-            println!("GC: allocate {} bytes: {:x} (total {} bytes, threshold {}, {} objects)",
-                     size, ptr.raw() as usize,
-                     self.bytes_allocated, self.threshold, self.memory.len());
+            println!("GC: allocate {} bytes: {:x} (total {} bytes, threshold {})",
+                     size, ptr as usize,
+                     self.bytes_allocated, self.threshold);
         }
 
         self.duration += time::precise_time_ns() - alloc_start;
@@ -94,9 +111,13 @@ impl Gc {
             println!("GC: collect garbage");
         }
 
-        for &ptr in &self.memory {
-            let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
-            obj.header_mut().unmark();
+        let mut obj = self.obj_start;
+
+        while !obj.is_null() {
+            let curr = unsafe { &mut *obj };
+            curr.header_mut().unmark();
+
+            obj = curr.header().succ();
         }
 
         mark_literals();
@@ -112,9 +133,14 @@ impl Gc {
 
 impl Drop for Gc {
     fn drop(&mut self) {
-        for mem in &self.memory {
+        let mut obj = self.obj_start;
+
+        while !obj.is_null() {
+            let curr = obj;
+            obj = unsafe { &mut *obj }.header().succ();
+
             unsafe {
-                libc::free(mem.raw());
+                libc::free(curr as *mut libc::c_void);
             }
         }
     }
@@ -156,32 +182,45 @@ fn mark_recursive(ptr: usize) {
 }
 
 fn sweep(gc: &mut Gc, dump: bool) {
-    let mut i = 0;
+    let mut obj = gc.obj_start;
+    let mut last: *mut Obj = ptr::null_mut();
 
-    while i < gc.memory.len() {
-        let ptr = gc.memory[i];
-        let obj = unsafe { &mut *(ptr.raw() as *mut Obj) };
+    while !obj.is_null() {
+        let curr = unsafe { &mut *obj };
+        let succ = curr.header().succ();
 
-        if !obj.header().is_marked() {
-            let size = obj.size();
+        if !curr.header().is_marked() {
+            let size = curr.size();
 
             unsafe {
-                // TODO: make overwriting memory optional
-                write_bytes(ptr.raw() as *mut u8, 0xcc, size);
+                // overwrite memory for better detection of gc bugs
+                write_bytes(obj as *mut u8, 0xcc, size);
 
-                libc::free(ptr.raw())
-            };
-
-            gc.bytes_allocated -= size;
-            gc.memory.remove(i);
-
-            if dump {
-                println!("sweep {:x} with {} bytes", ptr.raw() as usize, size);
+                // free unused memory
+                libc::free(obj as *mut libc::c_void);
             }
 
-            continue;
+            gc.bytes_allocated -= size;
+
+            if dump {
+                println!("sweep {:x} with {} bytes", obj as usize, size);
+            }
+
+        } else {
+            if last.is_null() {
+                gc.obj_start = obj;
+            } else {
+                let last = unsafe { &mut *last };
+                last.header_mut().set_succ(obj);
+            }
+
+            // last survived object
+            last = obj;
         }
 
-        i += 1;
+        // set next handled object
+        obj = succ;
     }
+
+    gc.obj_end = last;
 }
