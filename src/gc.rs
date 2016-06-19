@@ -14,6 +14,7 @@ pub struct Gc {
     obj_end: *mut Obj,
     bytes_allocated: usize,
     threshold: usize,
+    pub cur_marked: bool,
 
     pub duration: u64,
     pub malloc_duration: u64,
@@ -27,6 +28,7 @@ impl Gc {
         Gc {
             obj_start: ptr::null_mut(),
             obj_end: ptr::null_mut(),
+            cur_marked: true,
             bytes_allocated: 0,
             threshold: INITIAL_THRESHOLD,
             duration: 0,
@@ -111,21 +113,17 @@ impl Gc {
             println!("GC: collect garbage");
         }
 
-        let mut obj = self.obj_start;
-
-        while !obj.is_null() {
-            let curr = unsafe { &mut *obj };
-            curr.header_mut().unmark();
-
-            obj = curr.header().succ();
-        }
-
-        mark_literals();
-        mark_rootset(&rootset);
+        mark_literals(self.cur_marked);
+        mark_rootset(&rootset, self.cur_marked);
 
         let sweep_start = time::precise_time_ns();
-        sweep(self, ctxt.args.flag_gc_dump);
+        let cur_marked = self.cur_marked;
+        sweep(self, ctxt.args.flag_gc_dump, cur_marked);
         self.sweep_duration += time::precise_time_ns() - sweep_start;
+
+        // switch cur_marked value, so that I don't have to unmark all
+        // objects in the beginning of the next collection
+        self.cur_marked = !self.cur_marked;
 
         self.collect_duration += time::precise_time_ns() - collect_start;
     }
@@ -146,27 +144,27 @@ impl Drop for Gc {
     }
 }
 
-fn mark_literals() {
+fn mark_literals(cur_marked: bool) {
     let ctxt = get_ctxt();
     let literals = ctxt.literals.lock().unwrap();
 
     for lit in literals.iter() {
-        mark_recursive(lit.raw() as usize);
+        mark_recursive(lit.raw() as usize, cur_marked);
     }
 }
 
-fn mark_rootset(rootset: &Vec<usize>) {
+fn mark_rootset(rootset: &Vec<usize>, cur_marked: bool) {
     for &root in rootset {
-        mark_recursive(root);
+        mark_recursive(root, cur_marked);
     }
 }
 
-fn mark_recursive(ptr: usize) {
+fn mark_recursive(ptr: usize, cur_marked: bool) {
     if ptr == 0 { return; }
     let obj = unsafe { &mut *(ptr as *mut Obj) };
 
-    if !obj.header().is_marked() {
-        obj.header_mut().mark();
+    if obj.header().marked() != cur_marked {
+        obj.header_mut().set_mark(cur_marked);
         let class = obj.header().class();
 
         for field in class.all_fields(get_ctxt()) {
@@ -175,13 +173,13 @@ fn mark_recursive(ptr: usize) {
                 let obj = unsafe { *(addr as *const usize) };
 
                 if obj == 0 { return; }
-                mark_recursive(obj);
+                mark_recursive(obj, cur_marked);
             }
         }
     }
 }
 
-fn sweep(gc: &mut Gc, dump: bool) {
+fn sweep(gc: &mut Gc, dump: bool, cur_marked: bool) {
     let mut obj = gc.obj_start;
     let mut last: *mut Obj = ptr::null_mut();
 
@@ -189,7 +187,7 @@ fn sweep(gc: &mut Gc, dump: bool) {
         let curr = unsafe { &mut *obj };
         let succ = curr.header().succ();
 
-        if !curr.header().is_marked() {
+        if curr.header().marked() != cur_marked {
             let size = curr.size();
 
             unsafe {

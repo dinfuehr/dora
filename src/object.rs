@@ -35,15 +35,15 @@ impl Header {
         unsafe { &(*self.class) }
     }
 
-    pub fn unmark(&mut self) {
-        self.info = self.info & (!1);
+    pub fn set_mark(&mut self, value: bool) {
+        self.info = if value {
+            self.info | 1
+        } else {
+            self.info & (!1)
+        };
     }
 
-    pub fn mark(&mut self) {
-        self.info = self.info | 1;
-    }
-
-    pub fn is_marked(&self) -> bool {
+    pub fn marked(&self) -> bool {
         if (self.info & 1) != 0 {
             true
         } else {
