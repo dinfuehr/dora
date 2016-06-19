@@ -31,7 +31,7 @@ impl Header {
         self.class as usize
     }
 
-    pub fn class(&self) -> &Class {
+    pub fn class(&self) -> &Class<'static> {
         unsafe { &(*self.class) }
     }
 

@@ -562,7 +562,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-                    self.emit_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
+                    self.emit_direct_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
 
                     // store classptr in object
                     let cptr = (&*cls) as *const class::Class as usize;
@@ -606,14 +606,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        self.emit_call_insn(pos, ptr, csite.return_type, dest);
+        self.emit_direct_call_insn(pos, ptr, csite.return_type, dest);
 
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);
         }
     }
 
-    fn emit_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
+    fn emit_direct_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
         let lineno = pos.line as i32;
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;

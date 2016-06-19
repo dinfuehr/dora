@@ -31,6 +31,7 @@ mod stacktrace;
 mod stdlib;
 mod sym;
 mod ty;
+mod vtable;
 
 #[cfg(test)]
 mod test;

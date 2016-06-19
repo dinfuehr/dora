@@ -36,6 +36,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
             ast: Some(c),
             size: 0,
+            vtable: None,
         };
 
         self.ctxt.classes.push(Box::new(cls));

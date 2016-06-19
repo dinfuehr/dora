@@ -5,6 +5,7 @@ use std::ops::{Index, IndexMut};
 use ast;
 use ctxt::{Context, Fct, FctId};
 use interner::Name;
+use vtable::VTable;
 use ty::BuiltinType;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -42,6 +43,7 @@ pub struct Class<'ast> {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub ast: Option<&'ast ast::Class>,
+    pub vtable: Option<Box<VTable<'ast>>>,
 }
 
 impl<'ast> Class<'ast> {
@@ -127,7 +129,7 @@ impl<'ast> Class<'ast> {
         }
     }
 
-    pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, ctxt: &Context<'ast>, super_id: ClassId) -> bool {
         let mut class = self;
 
         loop {

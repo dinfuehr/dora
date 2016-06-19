@@ -208,6 +208,10 @@ pub struct Fct<'ast> {
 }
 
 impl<'ast> Fct<'ast> {
+    pub fn is_virtual(&self) -> bool {
+        (self.has_open || self.has_override) && !self.has_final
+    }
+
     pub fn in_class(&self) -> bool {
         self.owner_class.is_some()
     }

@@ -44,6 +44,7 @@ fn add_class_bool<'ast>(ctxt: &mut Context<'ast>) {
         methods: vec![mtd_tos, mtd_toi],
         size: BuiltinType::Bool.size(),
         ast: None,
+        vtable: None,
     });
 
     ctxt.classes.push(cls);
@@ -72,6 +73,7 @@ fn add_class_int<'ast>(ctxt: &mut Context<'ast>) {
         methods: vec![mtd_tos],
         size: BuiltinType::Int.size(),
         ast: None,
+        vtable: None,
     });
 
     ctxt.classes.push(cls);
@@ -104,6 +106,7 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
         methods: vec![mtd_len, mtd_parse],
         size: 0,
         ast: None,
+        vtable: None,
     });
 
     ctxt.primitive_classes.str_class = cls_id;
@@ -137,7 +140,8 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
         fields: Vec::new(),
         methods: vec![mtd_len, mtd_get, mtd_set],
         size: 0,
-        ast: None
+        ast: None,
+        vtable: None,
     });
 
     ctxt.primitive_classes.int_array = cls_id;
