@@ -11,6 +11,7 @@ use jit::buffer::*;
 use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
 use jit::stub::Stub;
 use lexer::position::Position;
+use mem;
 use mem::ptr::Ptr;
 use object::{Header, IntArray, Str};
 use stdlib;
@@ -614,13 +615,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_direct_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
-        let lineno = pos.line as i32;
-        let disp = self.buf.add_addr(ptr);
-        let pos = self.buf.pos() as i32;
-
-        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
-        emit::call(self.buf, REG_RESULT);
-        self.buf.emit_lineno(lineno);
+        self.insn_direct_call(ptr);
+        self.buf.emit_lineno(pos.line as i32);
 
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.buf.emit_gcpoint(gcpoint);
@@ -628,6 +624,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
         }
+    }
+
+    fn insn_direct_call(&mut self, ptr: Ptr) {
+        let disp = self.buf.add_addr(ptr);
+        let pos = self.buf.pos() as i32;
+
+        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
+        emit::call(self.buf, REG_RESULT);
+    }
+
+    fn insn_indirect_call(&mut self, index: u32) {
+        let obj = REG_PARAMS[0];
+
+        emit::movl_imm_reg(self.buf, index, REG_RESULT);
+        emit::mov_array_reg(self.buf, MachineMode::Ptr, obj,
+            REG_RESULT, mem::ptr_width() as u8, REG_RESULT);
+        emit::call(self.buf, REG_RESULT);
     }
 }
 
