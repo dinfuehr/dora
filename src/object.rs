@@ -4,15 +4,15 @@ use std;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 
-use class::Class;
 use ctxt::get_ctxt;
 use mem;
 use mem::ptr::Ptr;
 use ty::BuiltinType;
+use vtable::VTable;
 
 pub struct Header {
     // ptr to class
-    class: *const Class<'static>,
+    vtable: *mut VTable<'static>,
 
     // additional information>
     // bit 0 - marked flag
@@ -27,12 +27,12 @@ impl Header {
         std::mem::size_of::<Header>() as i32
     }
 
-    pub fn classptr(&self) -> usize {
-        self.class as usize
+    pub fn vtblptr(&self) -> *mut VTable<'static> {
+        self.vtable
     }
 
-    pub fn class(&self) -> &Class<'static> {
-        unsafe { &(*self.class) }
+    pub fn vtbl(&self) -> &mut VTable<'static> {
+        unsafe { &mut *self.vtable }
     }
 
     pub fn set_mark(&mut self, value: bool) {
@@ -80,10 +80,10 @@ impl Obj {
     }
 
     pub fn size(&self) -> usize {
-        let size = self.header().class().size;
+        let size = self.header().vtbl().class().size;
         if size > 0 { return size as usize; }
 
-        let ty = self.header().class().ty;
+        let ty = self.header().vtbl().class().ty;
 
         match ty {
             BuiltinType::Str => {
@@ -189,9 +189,10 @@ impl Str {
         let ctxt = get_ctxt();
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
-        let cls = ctxt.primitive_classes.str_classptr;
+        let clsid = ctxt.primitive_classes.str_class;
+        let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
         let mut handle : Handle<Str> = ptr.into();
-        handle.header_mut().class = cls as *const Class;
+        handle.header_mut().vtable = vtable as *mut VTable<'static>;
 
         handle
     }
@@ -276,9 +277,10 @@ impl IntArray {
         let ctxt = get_ctxt();
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
-        let cls = ctxt.primitive_classes.int_array_classptr;
+        let clsid = ctxt.primitive_classes.int_array;
+        let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
         let mut handle : Handle<IntArray> = ptr.into();
-        handle.header_mut().class = cls as *const Class;
+        handle.header_mut().vtable = vtable as *mut VTable<'static>;
         handle.length = len;
 
         for i in 0..handle.len() {

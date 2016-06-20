@@ -57,10 +57,8 @@ impl<'ast> Context<'ast> {
             primitive_classes: PrimitiveClasses {
                 int_class: empty_class_id,
                 str_class: empty_class_id,
-                str_classptr: 0,
                 bool_class: empty_class_id,
                 int_array: empty_class_id,
-                int_array_classptr: 0
             },
             gc: Mutex::new(Gc::new()),
             literals: Mutex::new(Vec::new()),
@@ -154,10 +152,8 @@ impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
 pub struct PrimitiveClasses {
     pub int_class: ClassId,
     pub str_class: ClassId,
-    pub str_classptr: usize,
     pub bool_class: ClassId,
     pub int_array: ClassId,
-    pub int_array_classptr: usize,
 }
 
 impl PrimitiveClasses {
@@ -170,15 +166,6 @@ impl PrimitiveClasses {
             _ => None
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct FctDecl {
-    pub id: FctId,
-    pub name: Name,
-    pub owner_class: Option<ClassId>,
-    pub params_types: Vec<BuiltinType>,
-    pub ctor: Option<CtorType>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

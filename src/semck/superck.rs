@@ -5,6 +5,7 @@ use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
 use lexer::position::Position;
 use object::Header;
+use vtable::VTable;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
@@ -12,6 +13,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     determine_sizes(ctxt);
     check_override(ctxt);
+    create_vtables(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
@@ -151,6 +153,15 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>,
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
         }
+    }
+}
+
+fn create_vtables<'ast>(ctxt: &mut Context<'ast>) {
+    for cls in &mut ctxt.classes {
+        let classptr: *mut Class<'ast> = &mut **cls;
+
+        let vtable = Box::new(VTable { classptr: classptr });
+        cls.vtable = Some(vtable)
     }
 }
 

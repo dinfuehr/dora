@@ -173,7 +173,7 @@ fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
 
         if obj.header().marked() != cur_marked {
             obj.header_mut().set_mark(cur_marked);
-            let class = obj.header().class();
+            let class = obj.header().vtbl().class();
 
             for field in class.all_fields(get_ctxt()) {
                 if field.ty.reference_type() {

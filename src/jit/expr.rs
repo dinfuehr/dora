@@ -2,7 +2,7 @@ use libc::c_void;
 
 use ast::*;
 use ast::Expr::*;
-use class::{self, ClassId, FieldId};
+use class::{ClassId, FieldId};
 use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
@@ -16,6 +16,7 @@ use mem::ptr::Ptr;
 use object::{Header, IntArray, Str};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
+use vtable::VTable;
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
@@ -566,7 +567,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     self.emit_direct_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
 
                     // store classptr in object
-                    let cptr = (&*cls) as *const class::Class as usize;
+                    let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as usize;
                     let disp = self.buf.add_addr(cptr.into());
                     let pos = self.buf.pos() as i32;
 

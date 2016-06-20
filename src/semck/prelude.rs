@@ -110,7 +110,6 @@ fn add_class_str<'ast>(ctxt: &mut Context<'ast>) {
     });
 
     ctxt.primitive_classes.str_class = cls_id;
-    ctxt.primitive_classes.str_classptr = &*cls as *const Class as usize;
     ctxt.classes.push(cls);
 
     let sym = SymClass(cls_id);
@@ -145,7 +144,6 @@ fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>) {
     });
 
     ctxt.primitive_classes.int_array = cls_id;
-    ctxt.primitive_classes.int_array_classptr = &*cls as *const Class as usize;
     ctxt.classes.push(cls);
 
     let sym = SymClass(cls_id);

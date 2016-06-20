@@ -53,7 +53,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
             let src = src.lock().unwrap();
 
             if let Some(ref jit_fct) = src.jit_fct {
-                let cls_id = exception.header().class().id;
+                let cls_id = exception.header().vtbl().class().id;
 
                 for entry in &jit_fct.exception_handlers {
                     // println!("entry = {:x} to {:x} for {:?}",
