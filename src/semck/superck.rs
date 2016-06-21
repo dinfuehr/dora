@@ -11,8 +11,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
     if ctxt.diag.borrow().has_errors() { return; }
 
-    determine_sizes(ctxt);
     check_override(ctxt);
+    if ctxt.diag.borrow().has_errors() { return; }
+
+    determine_sizes(ctxt);
     create_vtables(ctxt);
 }
 
@@ -157,12 +159,53 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>,
 }
 
 fn create_vtables<'ast>(ctxt: &mut Context<'ast>) {
-    for cls in &mut ctxt.classes {
-        let classptr: *mut Class<'ast> = &mut **cls;
+    for clsid in 0..ctxt.classes.len() {
+        let clsid: ClassId = clsid.into();
 
-        let vtable = Box::new(VTable { classptr: classptr });
-        cls.vtable = Some(vtable)
+        ensure_super_vtables(ctxt, clsid);
     }
+}
+
+fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
+    let mut vtable_entries: Vec<usize> = Vec::new();
+
+    if let Some(superid) = ctxt.cls_by_id(clsid).parent_class {
+        ensure_super_vtables(ctxt, superid);
+
+        let cls = ctxt.cls_by_id(superid);
+        let vtable = cls.vtable.as_ref().unwrap();
+
+        vtable_entries.extend_from_slice(vtable.table());
+    }
+
+    for ind in 0..ctxt.cls_by_id_mut(clsid).methods.len() {
+        let fctid = ctxt.cls_by_id_mut(clsid).methods[ind];
+        let is_virtual = ctxt.fct_by_id(fctid).is_virtual();
+
+        if is_virtual {
+            let overrides = ctxt.fct_by_id(fctid).overrides;
+            let vtable_index = if let Some(overrides) = overrides {
+                ctxt.fct_by_id(overrides).vtable_index.unwrap()
+
+            } else {
+                let vtable_index = vtable_entries.len();
+                vtable_entries.push(0);
+
+                vtable_index
+            };
+
+            let fct = ctxt.fct_by_id_mut(fctid);
+            fct.vtable_index = Some(vtable_index);
+        }
+    }
+
+    let cls = ctxt.cls_by_id_mut(clsid);
+    let classptr: *mut Class<'ast> = &mut *cls;
+    cls.vtable = Some(Box::new(VTable {
+        classptr: classptr,
+        table_length: 0,
+        table: [0]
+    }));
 }
 
 #[test]

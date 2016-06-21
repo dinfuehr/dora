@@ -188,6 +188,7 @@ pub struct Fct<'ast> {
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: Option<CtorType>,
+    pub vtable_index: Option<usize>,
     pub initialized: bool,
     pub throws: bool,
 

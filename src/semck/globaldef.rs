@@ -62,6 +62,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             overrides: None,
             throws: f.throws,
             ctor: None,
+            vtable_index: None,
             initialized: false,
             kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
         };

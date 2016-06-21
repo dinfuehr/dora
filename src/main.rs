@@ -1,7 +1,10 @@
 #![feature(asm)]
+#![feature(alloc)]
+#![feature(heap_api)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
+extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
 extern crate docopt;
