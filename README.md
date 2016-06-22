@@ -11,9 +11,15 @@ $ cd capstone && git checkout 3.0.4 && sudo make install
 ```
 
 ## Compilation & Testing
-Dora uses [cargo](http://crates.io) for building:
+Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
+Rust is needed because Dora uses some unstable features of Rust (e.g. inline assembly).
+
+Dora uses [cargo](http://crates.io) for building, which is bundled with Rust:
 
 ```
 cargo build
 cargo test # runs tests
+
+./test # builds + runs unit tests + runs test suite
+./test-release # builds release mode + runs unit tests + runs test suite
 ```
