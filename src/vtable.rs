@@ -21,6 +21,7 @@ impl<'ast> VTable<'ast> {
 
             let mut vtable = Box::from_raw(ptr);
             vtable.classptr = classptr;
+            vtable.table_length = entries.len();
 
             ptr::copy(entries.as_ptr(), &mut vtable.table[0], entries.len());
 

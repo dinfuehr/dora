@@ -3,7 +3,9 @@ use std::collections::{HashMap, HashSet};
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
+use jit::stub::Stub;
 use lexer::position::Position;
+use mem::ptr::Ptr;
 use object::Header;
 use vtable::VTable;
 
@@ -167,6 +169,10 @@ fn create_vtables<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
+    if ctxt.cls_by_id(clsid).vtable.is_some() {
+        return;
+    }
+
     let mut vtable_entries: Vec<usize> = Vec::new();
 
     if let Some(superid) = ctxt.cls_by_id(clsid).parent_class {
@@ -180,7 +186,15 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
 
     for ind in 0..ctxt.cls_by_id_mut(clsid).methods.len() {
         let fctid = ctxt.cls_by_id_mut(clsid).methods[ind];
-        let is_virtual = ctxt.fct_by_id(fctid).is_virtual();
+        let is_virtual = {
+            let fct = ctxt.fct_by_id(fctid);
+
+            if fct.vtable_index.is_some() {
+                continue;
+            }
+
+            fct.is_virtual()
+        };
 
         if is_virtual {
             let overrides = ctxt.fct_by_id(fctid).overrides;
@@ -194,18 +208,44 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
                 vtable_index
             };
 
-            let fct = ctxt.fct_by_id_mut(fctid);
-            fct.vtable_index = Some(vtable_index);
+            let is_src = {
+                let fct = ctxt.fct_by_id_mut(fctid);
+                fct.vtable_index = Some(vtable_index);
+
+                fct.is_src()
+            };
+
+            if is_src {
+                vtable_entries[vtable_index] = ensure_stub(ctxt, fctid).raw() as usize;
+            }
         }
     }
 
     let cls = ctxt.cls_by_id_mut(clsid);
     let classptr: *mut Class<'ast> = &mut *cls;
-    cls.vtable = Some(Box::new(VTable {
-        classptr: classptr,
-        table_length: 0,
-        table: [0]
-    }));
+    cls.vtable = Some(VTable::from_table(classptr, &vtable_entries));
+}
+
+fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {
+    let stub = Stub::new(fid);
+
+    {
+        let mut code_map = ctxt.code_map.lock().unwrap();
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+    }
+
+    if ctxt.args.flag_emit_stubs {
+        println!("create stub at {:?}", stub.ptr_start());
+    }
+
+    let ptr = stub.ptr_start();
+
+    let src = ctxt.fct_by_id_mut(fid).src();
+    let mut src = src.lock().unwrap();
+    assert!(src.stub.is_none());
+    src.stub = Some(stub);
+
+    ptr
 }
 
 #[test]
