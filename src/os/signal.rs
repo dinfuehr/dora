@@ -89,7 +89,14 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
 
     if let Some(fct_id) = fct_id {
         let jit_fct = jit::generate(ctxt, fct_id);
-        cpu::trap::patch_fct_call(es, jit_fct);
+        let fct = ctxt.fct_by_id(fct_id);
+
+        if fct.is_virtual() {
+            cpu::trap::patch_vtable_call(es, jit_fct);
+        } else {
+            cpu::trap::patch_fct_call(es, jit_fct);
+        }
+
         write_execstate(es, ucontext as *mut c_void);
     } else {
         println!("error: code not found for address {:x}", es.pc);

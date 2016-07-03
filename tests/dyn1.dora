@@ -1,5 +1,4 @@
-//= error fail
-// output "ABC"
+//= output "ABC"
 
 open class A { open fun foo() { print("A"); } }
 class B: A { override fun foo() { print("B"); } }

@@ -76,3 +76,8 @@ pub fn patch_fct_call(es: &mut ExecState, fct_ptr: Ptr) {
     // execute fct call again
     es.pc = fct_ptr.raw() as usize;
 }
+
+pub fn patch_vtable_call(es: &mut ExecState, fct_ptr: Ptr) {
+    // execute fct call again
+    es.pc = fct_ptr.raw() as usize;
+}
