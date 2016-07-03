@@ -44,4 +44,12 @@ impl<'ast> VTable<'ast> {
             slice::from_raw_parts(ptr, self.table_length)
         }
     }
+
+    pub fn table_mut(&self) -> &mut [usize] {
+        let ptr = self.table.as_ptr() as *mut usize;
+
+        unsafe {
+            slice::from_raw_parts_mut(ptr, self.table_length)
+        }
+    }
 }

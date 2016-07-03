@@ -1,5 +1,6 @@
 use cpu::*;
 use cpu::instr::*;
+use ctxt::{Context, FctId};
 use execstate::ExecState;
 
 use jit::buffer::Buffer;
@@ -77,7 +78,16 @@ pub fn patch_fct_call(es: &mut ExecState, fct_ptr: Ptr) {
     es.pc = fct_ptr.raw() as usize;
 }
 
-pub fn patch_vtable_call(es: &mut ExecState, fct_ptr: Ptr) {
+pub fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: Ptr) {
+    let fct = ctxt.fct_by_id(fid);
+    let vtable_index = fct.vtable_index.unwrap();
+    let cls_id = fct.owner_class.unwrap();
+
+    let cls = ctxt.cls_by_id(cls_id);
+    let vtable = cls.vtable.as_ref().unwrap();
+
+    vtable.table_mut()[vtable_index as usize] = fct_ptr.raw() as usize;
+
     // execute fct call again
     es.pc = fct_ptr.raw() as usize;
 }

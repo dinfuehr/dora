@@ -92,7 +92,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
         let fct = ctxt.fct_by_id(fct_id);
 
         if fct.is_virtual() {
-            cpu::trap::patch_vtable_call(es, jit_fct);
+            cpu::trap::patch_vtable_call(ctxt, es, fct_id, jit_fct);
         } else {
             cpu::trap::patch_fct_call(es, jit_fct);
         }
