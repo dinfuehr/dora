@@ -205,7 +205,7 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
                 let vtable_index = vtable_entries.len();
                 vtable_entries.push(0);
 
-                vtable_index
+                vtable_index as u32
             };
 
             let is_src = {
@@ -216,7 +216,7 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
             };
 
             if is_src {
-                vtable_entries[vtable_index] = ensure_stub(ctxt, fctid).raw() as usize;
+                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, fctid).raw() as usize;
             }
         }
     }
@@ -235,7 +235,7 @@ fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {
     }
 
     if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:?}", stub.ptr_start());
+        println!("create stub at {:x}", stub.ptr_start().raw() as usize);
     }
 
     let ptr = stub.ptr_start();

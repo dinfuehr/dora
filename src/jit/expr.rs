@@ -542,10 +542,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
         let csite = self.src.call_sites.get(&id).unwrap().clone();
-        let ptr = match csite.callee {
-            Callee::Fct(fid) => self.ptr_for_fct_id(fid),
-            Callee::Ptr(ptr) => ptr
-        };
         let mut temps : Vec<(BuiltinType, i32)> = Vec::new();
 
         for arg in &csite.args {
@@ -564,7 +560,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
-                    self.emit_direct_call_insn(pos, mptr, BuiltinType::Ptr, REG_RESULT);
+                    self.emit_direct_call_insn(mptr, pos, BuiltinType::Ptr, REG_RESULT);
 
                     // store classptr in object
                     let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as usize;
@@ -608,15 +604,41 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
         }
 
-        self.emit_direct_call_insn(pos, ptr, csite.return_type, dest);
+        match csite.callee {
+            Callee::Fct(fid) => {
+                let fct = self.ctxt.fct_by_id(fid);
+
+                if fct.is_virtual() {
+                    let vtable_index = fct.vtable_index.unwrap();
+                    self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
+
+                } else {
+                    let ptr = self.ptr_for_fct_id(fid);
+                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+                }
+            }
+
+            Callee::Ptr(ptr) => {
+                self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+            }
+        };
 
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);
         }
     }
 
-    fn emit_direct_call_insn(&mut self, pos: Position, ptr: Ptr, ty: BuiltinType, dest: Reg) {
+    fn emit_direct_call_insn(&mut self, ptr: Ptr, pos: Position, ty: BuiltinType, dest: Reg) {
         self.insn_direct_call(ptr);
+        self.emit_after_call_insns(pos, ty, dest);
+    }
+
+    fn emit_indirect_call_insn(&mut self, index: u32, pos: Position, ty: BuiltinType, dest: Reg) {
+        self.insn_indirect_call(index);
+        self.emit_after_call_insns(pos, ty, dest);
+    }
+
+    fn emit_after_call_insns(&mut self, pos: Position, ty: BuiltinType, dest: Reg) {
         self.buf.emit_lineno(pos.line as i32);
 
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
@@ -638,9 +660,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn insn_indirect_call(&mut self, index: u32) {
         let obj = REG_PARAMS[0];
 
-        emit::movl_imm_reg(self.buf, index, REG_RESULT);
-        emit::mov_array_reg(self.buf, MachineMode::Ptr, obj,
-            REG_RESULT, mem::ptr_width() as u8, REG_RESULT);
+        // REG_RESULT = [obj]
+        // REG_TMP1 = offset table in vtable
+        // REG_RESULT = REG_RESULT + REG_TMP1
+        emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
+        emit::movl_imm_reg(self.buf, 2*mem::ptr_width() as u32, REG_TMP1);
+        emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+
+        // REG_TMP1 = index
+        // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
+        emit::movl_imm_reg(self.buf, index, REG_TMP1);
+        emit::mov_array_reg(self.buf, MachineMode::Ptr, REG_RESULT,
+            REG_TMP1, mem::ptr_width() as u8, REG_RESULT);
+
+        // call *REG_RESULT
         emit::call(self.buf, REG_RESULT);
     }
 }
@@ -667,7 +700,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
     }
 
     if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:?}", stub.ptr_start());
+        println!("create stub at {:x}", stub.ptr_start().raw() as usize);
     }
 
     let ptr = stub.ptr_start();

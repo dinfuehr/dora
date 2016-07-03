@@ -32,7 +32,7 @@ impl Stub {
 
 impl fmt::Debug for Stub {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Stub {{ start: {:?}, end: {:?} }}",
-            self.ptr_start(), self.ptr_end())
+        write!(f, "Stub {{ start: {:x}, end: {:x} }}",
+            self.ptr_start().raw() as usize, self.ptr_end().raw() as usize)
     }
 }

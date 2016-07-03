@@ -1,0 +1,16 @@
+//= error fail
+// output "ABC"
+
+open class A { open fun foo() { print("A"); } }
+class B: A { override fun foo() { print("B"); } }
+class C: A { override fun foo() { print("C"); } }
+
+fun main() {
+  test(A());
+  test(B());
+  test(C());
+}
+
+fun test(a: A) {
+  a.foo();
+}
