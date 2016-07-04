@@ -86,7 +86,8 @@ pub fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr
     let cls = ctxt.cls_by_id(cls_id);
     let vtable = cls.vtable.as_ref().unwrap();
 
-    vtable.table_mut()[vtable_index as usize] = fct_ptr.raw() as usize;
+    let methodtable = vtable.table_mut();
+    methodtable[vtable_index as usize] = fct_ptr.raw() as usize;
 
     // execute fct call again
     es.pc = fct_ptr.raw() as usize;
