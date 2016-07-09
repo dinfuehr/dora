@@ -1,5 +1,5 @@
 fun main() {
-  let n = 7;
+  var n = 7;
   if argc() > 0 { n = argv(0).parseInt(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
@@ -8,17 +8,17 @@ fun fannkuch(n: int) -> int {
   let perm = intArrayWith(n, 0);
   let perm1 = intArrayWith(n, 0);
   let count = intArrayWith(n, 0);
-  let maxFlipsCount = 0;
-  let permCount = 0;
-  let checksum = 0;
+  var maxFlipsCount = 0;
+  var permCount = 0;
+  var checksum = 0;
 
-  let i = 0;
+  var i = 0;
   while i < n {
     perm1[i] = i;
     i = i + 1;
   }
 
-  let r = n;
+  var r = n;
 
   while true {
     while r != 1 {
@@ -26,19 +26,19 @@ fun fannkuch(n: int) -> int {
       r = r - 1;
     }
 
-    let i = 0;
+    var i = 0;
     while i < n {
       perm[i] = perm1[i];
       i = i + 1;
     }
 
-    let flipsCount = 0;
-    let k = 0;
+    var flipsCount = 0;
+    var k = 0;
 
     while (k = perm[0]) != 0 {
       let k2 = (k+1) / 2;
 
-      let i = 0;
+      var i = 0;
       while i < k2 {
         let temp = perm[i];
         perm[i] = perm[k-i];
@@ -65,7 +65,7 @@ fun fannkuch(n: int) -> int {
       }
 
       let perm0 = perm1[0];
-      let i = 0;
+      var i = 0;
 
       while i < r {
         let j = i + 1;
