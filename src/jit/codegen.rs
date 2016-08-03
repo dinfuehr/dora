@@ -15,6 +15,7 @@ use jit::expr::*;
 use jit::fct::{CatchType, JitFct, GcPoint};
 use jit::info;
 use mem::ptr::Ptr;
+use os;
 use semck::always_returns;
 use ty::MachineMode;
 
@@ -116,6 +117,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
         code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), jit_fct.fct_id());
+
+        os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);
 
         jit_fct
     }
