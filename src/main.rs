@@ -25,6 +25,7 @@ mod interner;
 mod jit;
 mod lexer;
 mod mem;
+mod mir;
 mod object;
 mod os;
 mod os_cpu;
