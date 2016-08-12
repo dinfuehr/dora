@@ -1,14 +1,14 @@
 use libc;
 
-use std::fs::OpenOptions;
-use std::io::prelude::*;
-
 use ctxt::Context;
 use interner::Name;
 use jit::fct::JitFct;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {
+    use std::fs::OpenOptions;
+    use std::io::prelude::*;
+
     let pid = unsafe { libc::getpid() };
     let fname = format!("/tmp/perf-{}.map", pid);
 
