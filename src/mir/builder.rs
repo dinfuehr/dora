@@ -4,11 +4,11 @@ use ast::{Stmt,
 use ctxt::Fct;
 use mir::repr::{BasicBlockId, BasicBlock, Mir};
 
-pub fn generate<'a, 'ast>(fct: &'a Fct<'ast>) -> Mir {
+pub fn generate<'a, 'ast>(fct: &'a Fct<'ast>) -> Result<Mir, ()> {
     let mut builder = Builder::new(fct);
-    builder.generate();
 
-    builder.mir
+    try!(builder.generate());
+    Ok(builder.mir)
 }
 
 struct Builder<'a, 'ast: 'a> {
@@ -30,32 +30,37 @@ impl<'a, 'ast> Builder<'a, 'ast> {
         self.mir.block_mut(self.current)
     }
 
-    fn generate(&mut self) {
-        //let block_id = self.mir.add_block();
-        //self.use_block(block_id);
-
+    fn generate(&mut self) -> Result<(), ()> {
         let src = self.fct.src();
         let src = src.lock().unwrap();
-        self.stmt(&src.ast.block);
+
+        self.stmt(&src.ast.block)
     }
 
-    fn stmt(&mut self, stmt: &Stmt) {
+    fn stmt(&mut self, stmt: &Stmt) -> Result<(), ()> {
         match *stmt {
             Stmt::StmtReturn(ref stmt) => self.stmt_return(stmt),
             Stmt::StmtBlock(ref stmt) => self.stmt_block(stmt),
-            _ => unreachable!()
+            _ => Err(())
         }
     }
 
-    fn stmt_return(&mut self, stmt: &StmtReturnType) {
-        assert!(stmt.expr.is_none());
-        self.block_mut().add_ret();
+    fn stmt_return(&mut self, stmt: &StmtReturnType) -> Result<(), ()> {
+        match stmt.expr {
+            Some(_) => Err(()),
+            None => {
+                self.block_mut().add_ret();
+                Ok(())
+            }
+        }
     }
 
-    fn stmt_block(&mut self, stmt: &StmtBlockType) {
+    fn stmt_block(&mut self, stmt: &StmtBlockType) -> Result<(), ()> {
         for stmt in &stmt.stmts {
-            self.stmt(stmt);
+            try!(self.stmt(stmt));
         }
+
+        Ok(())
     }
 }
 
@@ -67,9 +72,8 @@ mod tests {
     #[test]
     fn generate_empty() {
         parse("fun f() {}", |ctxt| {
-            let mir = generate(ctxt.fcts.last().unwrap());
+            let mir = generate(ctxt.fcts.last().unwrap()).unwrap();
             assert_eq!("f", *ctxt.interner.str(mir.name));
         });
     }
 }
-
