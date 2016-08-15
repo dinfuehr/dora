@@ -3,6 +3,7 @@ use std::io::Bytes;
 use std::io::{Read, BufReader, Error};
 
 pub trait CodeReader {
+    fn filename(&self) -> &str;
     fn next(&mut self) -> ReaderResult;
 }
 
@@ -27,6 +28,10 @@ impl StrReader {
 
 #[cfg(test)]
 impl CodeReader for StrReader {
+    fn filename(&self) -> &str {
+        "<<code>>"
+    }
+
     fn next(&mut self) -> ReaderResult {
         match self.rest.next() {
             Some(ch) => ReaderResult::Char(ch),
@@ -36,6 +41,7 @@ impl CodeReader for StrReader {
 }
 
 pub struct FileReader {
+    filename: String,
     rest: Bytes<BufReader<File>>,
 }
 
@@ -45,11 +51,18 @@ impl FileReader {
         let reader = BufReader::new(file);
 
         // TODO: use chars instead of bytes when it is stable
-        Ok(FileReader { rest: reader.bytes() })
+        Ok(FileReader {
+            filename: filename.to_string(),
+            rest: reader.bytes()
+        })
     }
 }
 
 impl CodeReader for FileReader {
+    fn filename(&self) -> &str {
+        &self.filename
+    }
+
     fn next(&mut self) -> ReaderResult {
         match self.rest.next() {
             Some(Ok(ch)) => ReaderResult::Char(ch as char),

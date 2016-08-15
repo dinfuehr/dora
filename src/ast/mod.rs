@@ -15,15 +15,39 @@ pub mod dump;
 
 #[derive(Clone, Debug)]
 pub struct Ast {
-    pub elements: Vec<Elem>,
+    pub files: Vec<File>,
 }
 
 impl Ast {
-    pub fn new(elements: Vec<Elem>) -> Ast {
+    pub fn for_file(name: &str, elements: Vec<Elem>) -> Ast {
         Ast {
-            elements: elements
+            files: vec![File {
+                path: name.to_string(),
+                elements: elements
+            }]
         }
     }
+
+    #[cfg(test)]
+    pub fn fct0(&self) -> &Function {
+        self.files[0].elements[0].to_function().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn fct(&self, index: usize) -> &Function {
+        self.files[0].elements[index].to_function().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn cls0(&self) -> &Class {
+        self.files[0].elements[0].to_class().unwrap()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct File {
+    pub path: String,
+    pub elements: Vec<Elem>,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]

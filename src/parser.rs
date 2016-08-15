@@ -78,7 +78,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             elements.push(el);
         }
 
-        Ok(Ast::new(elements))
+        Ok(Ast::for_file(self.lexer.filename(), elements))
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -1645,7 +1645,7 @@ mod tests {
     #[test]
     fn parse_function() {
         let (prog, interner) = parse("fun b() { }");
-        let fct = prog.elements[0].to_function().unwrap();
+        let fct = prog.fct0();
 
         assert_eq!("b", *interner.str(fct.name));
         assert_eq!(0, fct.params.len());
@@ -1656,10 +1656,10 @@ mod tests {
     #[test]
     fn parse_function_with_single_param() {
         let (p1, interner1) = parse("fun f(a:int) { }");
-        let f1 = p1.elements[0].to_function().unwrap();
+        let f1 = p1.fct0();
 
         let (p2, interner2) = parse("fun f(a:int,) { }");
-        let f2 = p2.elements[0].to_function().unwrap();
+        let f2 = p2.fct0();
 
         let p1 = &f1.params[0];
         let p2 = &f2.params[0];
@@ -1677,10 +1677,10 @@ mod tests {
     #[test]
     fn parse_function_with_multiple_params() {
         let (p1, interner1) = parse("fun f(a:int, b:str) { }");
-        let f1 = p1.elements[0].to_function().unwrap();
+        let f1 = p1.fct0();
 
         let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
-        let f2 = p2.elements[0].to_function().unwrap();
+        let f2 = p2.fct0();
 
         let p1a = &f1.params[0];
         let p1b = &f1.params[1];
@@ -1784,12 +1784,12 @@ mod tests {
     fn parse_multiple_functions() {
         let (prog, interner) = parse("fun f() { } fun g() { }");
 
-        let f = prog.elements[0].to_function().unwrap();
+        let f = prog.fct0();
         assert_eq!("f", *interner.str(f.name));
         assert_eq!(false, f.method);
         assert_eq!(Position::new(1, 1), f.pos);
 
-        let g = prog.elements[1].to_function().unwrap();
+        let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name));
         assert_eq!(false, g.method);
         assert_eq!(Position::new(1, 13), g.pos);
@@ -1961,7 +1961,7 @@ mod tests {
             fun id(a: Str) -> Str { return a; }
         }");
 
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
         assert_eq!(0, cls.fields.len());
         assert_eq!(2, cls.methods.len());
 
@@ -1983,7 +1983,7 @@ mod tests {
     #[test]
     fn parse_class() {
         let (prog, interner) = parse("class Foo");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(false, class.has_open);
@@ -1994,7 +1994,7 @@ mod tests {
     #[test]
     fn parse_class_with_parens_but_no_params() {
         let (prog, interner) = parse("open class Foo()");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(true, class.has_open);
@@ -2005,7 +2005,7 @@ mod tests {
     #[test]
     fn parse_class_with_param() {
         let (prog, _) = parse("class Foo(a: int)");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(1, class.ctor_params.len());
@@ -2016,7 +2016,7 @@ mod tests {
     #[test]
     fn parse_class_with_param_var() {
         let (prog, _) = parse("class Foo(var a: int)");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(1, class.ctor_params.len());
@@ -2027,7 +2027,7 @@ mod tests {
     #[test]
     fn parse_class_with_param_let() {
         let (prog, _) = parse("class Foo(let a: int)");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(1, class.ctor_params.len());
@@ -2038,7 +2038,7 @@ mod tests {
     #[test]
     fn parse_class_with_params() {
         let (prog, _) = parse("class Foo(a: int, b: int)");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(2, class.ctor_params.len());
@@ -2047,7 +2047,7 @@ mod tests {
     #[test]
     fn parse_class_with_parent_class() {
         let (prog, interner) = parse("class Foo : Bar");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!("Bar", interner.str(class.parent_class.as_ref().unwrap().name).to_string());
     }
@@ -2055,7 +2055,7 @@ mod tests {
     #[test]
     fn parse_class_with_open() {
         let (prog, _) = parse("open class Foo");
-        let class = prog.elements[0].to_class().unwrap();
+        let class = prog.cls0();
 
         assert_eq!(true, class.has_open);
     }
@@ -2089,21 +2089,21 @@ mod tests {
     #[test]
     fn parse_function_without_throws() {
         let (prog, _) = parse("fun f(a: int) {}");
-        let fct = prog.elements[0].to_function().unwrap();
+        let fct = prog.fct0();
         assert!(!fct.throws);
     }
 
     #[test]
     fn parse_function_throws() {
         let (prog, _) = parse("fun f(a: int) throws {}");
-        let fct = prog.elements[0].to_function().unwrap();
+        let fct = prog.fct0();
         assert!(fct.throws);
     }
 
     #[test]
     fn parse_function_throws_with_return_type() {
         let (prog, _) = parse("fun f(a: int) throws -> int { return 0; }");
-        let fct = prog.elements[0].to_function().unwrap();
+        let fct = prog.fct0();
         assert!(fct.throws);
     }
 
@@ -2137,7 +2137,7 @@ mod tests {
     #[test]
     fn parse_field() {
         let (prog, interner) = parse("class A { var f1: int; let f2: int = 0; }");
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
 
         let f1 = &cls.fields[0];
         assert_eq!("f1", &interner.str(f1.name).to_string());
@@ -2151,7 +2151,7 @@ mod tests {
     #[test]
     fn parse_open_method() {
         let (prog, _) = parse("class A { open fun f() {} fun g() {} }");
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
         assert_eq!(true, m1.has_open);
@@ -2165,7 +2165,7 @@ mod tests {
         let (prog, _) = parse("class A { fun f() {}
                                                 override fun g() {}
                                                 open fun h() {} }");
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
         assert_eq!(false, m1.has_override);
@@ -2183,7 +2183,7 @@ mod tests {
     #[test]
     fn parse_parent_class_params() {
         let (prog, _) = parse("class A: B(1, 2)");
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
 
         let parent_class = cls.parent_class.as_ref().unwrap();
         assert_eq!(2, parent_class.params.len());
@@ -2192,7 +2192,7 @@ mod tests {
     #[test]
     fn parse_final_method() {
         let (prog, _) = parse("open class A { final override fun g() {} }");
-        let cls = prog.elements[0].to_class().unwrap();
+        let cls = prog.cls0();
 
         let m1 = &cls.methods[0];
         assert_eq!(true, m1.has_override);

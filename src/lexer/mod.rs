@@ -118,6 +118,10 @@ impl<T : CodeReader> Lexer<T> {
         lexer
     }
 
+    pub fn filename(&self) -> &str {
+        self.reader.filename()
+    }
+
     pub fn read_token(&mut self) -> Result<Token, ParseError> {
         loop {
             self.skip_white();

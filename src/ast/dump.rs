@@ -38,8 +38,18 @@ struct AstDumper<'a> {
 }
 
 impl<'a> AstDumper<'a> {
-    fn dump_ast(&mut self, ast: &'a Ast) {
-        for el in &ast.elements {
+    fn dump_ast(&mut self, ast: &Ast) {
+        for f in &ast.files {
+            dump!(self, "file {}", &f.path);
+
+            self.indent(|d| {
+                d.dump_file(f);
+            })
+        }
+    }
+
+    fn dump_file(&mut self, f: &File) {
+        for el in &f.elements {
             match *el {
                 ElemFunction(ref fct) => self.dump_fct(fct),
                 ElemClass(ref cls) => self.dump_class(cls),
