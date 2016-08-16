@@ -393,7 +393,7 @@ mod tests {
 
     fn info<F>(code: &'static str, f: F) where F: FnOnce(&FctSrc) {
         test::parse(code, |ctxt| {
-            let ast = ctxt.ast.files[0].elements[0].to_function().unwrap();
+            let ast = ctxt.ast.fct0();
 
             let fct = ctxt.fct_by_node_id(ast.id);
             let src = fct.src();

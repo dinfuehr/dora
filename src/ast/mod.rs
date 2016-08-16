@@ -19,12 +19,9 @@ pub struct Ast {
 }
 
 impl Ast {
-    pub fn for_file(name: &str, elements: Vec<Elem>) -> Ast {
+    pub fn new() -> Ast {
         Ast {
-            files: vec![File {
-                path: name.to_string(),
-                elements: elements
-            }]
+            files: Vec::new()
         }
     }
 

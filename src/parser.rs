@@ -69,7 +69,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         ret
     }
 
-    pub fn parse(&mut self) -> Result<Ast, ParseError> {
+    pub fn parse(&mut self, ast: &mut Ast) -> Result<(), ParseError> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -78,7 +78,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             elements.push(el);
         }
 
-        Ok(Ast::for_file(self.lexer.filename(), elements))
+        ast.files.push(File {
+            path: self.lexer.filename().to_string(),
+            elements: elements
+        });
+
+        Ok(())
     }
 
     fn init(&mut self) -> Result<(), ParseError> {
@@ -1256,7 +1261,9 @@ mod tests {
 
     fn parse(code: &'static str) -> (Ast, Interner) {
         let mut interner = Interner::new();
-        let ast = Parser::from_str(code, &mut interner).parse().unwrap();
+        let mut ast = Ast::new();
+
+        Parser::from_str(code, &mut interner).parse(&mut ast).unwrap();
 
         (ast, interner)
     }

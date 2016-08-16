@@ -23,10 +23,11 @@ pub fn start() -> i32 {
     }
 
     let mut interner = Interner::new();
-    let ast = match parse_file(&args, &mut interner) {
-        Ok(ast) => ast,
-        Err(code) => return code,
-    };
+    let mut ast = Ast::new();
+
+    if let Err(code) = parse_file(&mut ast, &args, &mut interner) {
+        return code;
+    }
 
     if args.flag_emit_ast {
         ast::dump::dump(&ast, &interner);
@@ -87,8 +88,8 @@ fn in_ms(ns: u64) -> u64 {
     ns / 1000 / 1000
 }
 
-fn parse_file(args: &Args, mut interner: &mut Interner) -> Result<Ast, i32> {
-    let mut parser = match Parser::from_file(&args.arg_file, &mut interner) {
+fn parse_file(ast: &mut Ast, args: &Args, interner: &mut Interner) -> Result<(), i32> {
+    let mut parser = match Parser::from_file(&args.arg_file, interner) {
         Err(_) => {
             println!("unable to read file `{}`", &args.arg_file);
             return Err(1);
@@ -97,16 +98,12 @@ fn parse_file(args: &Args, mut interner: &mut Interner) -> Result<Ast, i32> {
         Ok(parser) => parser
     };
 
-    let ast = match parser.parse() {
-        Ok(ret) => ret,
+    if let Err(error) = parser.parse(ast) {
+        error.print();
+        return Err(1);
+    }
 
-        Err(error) => {
-            error.print();
-            return Err(1);
-        }
-    };
-
-    Ok(ast)
+    Ok(())
 }
 
 fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
