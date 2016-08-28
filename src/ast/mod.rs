@@ -16,13 +16,22 @@ pub mod dump;
 #[derive(Clone, Debug)]
 pub struct Ast {
     pub files: Vec<File>,
+    pub next_id: NodeId,
 }
 
 impl Ast {
     pub fn new() -> Ast {
         Ast {
-            files: Vec::new()
+            files: Vec::new(),
+            next_id: NodeId(1),
         }
+    }
+
+    pub fn generate_id(&mut self) -> NodeId {
+        let ret = self.next_id;
+        self.next_id = NodeId(ret.0+1);
+
+        ret
     }
 
     #[cfg(test)]

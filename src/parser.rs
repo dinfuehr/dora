@@ -21,6 +21,7 @@ pub struct Parser<'a, T: CodeReader> {
     lexer: Lexer<T>,
     token: Token,
     interner: &'a mut Interner,
+    ast: &'a mut Ast,
     param_idx: u32,
     field_idx: u32,
     in_class: bool,
@@ -30,16 +31,18 @@ pub struct Parser<'a, T: CodeReader> {
 
 #[cfg(test)]
 impl<'a> Parser<'a, StrReader> {
-    pub fn from_str(code: &'static str, interner: &'a mut Interner) -> Parser<'a, StrReader> {
-        Parser::new(Lexer::from_str(code), interner)
+    pub fn from_str(code: &'static str, ast: &'a mut Ast,
+                    interner: &'a mut Interner) -> Parser<'a, StrReader> {
+        Parser::new(Lexer::from_str(code), ast, interner)
     }
 }
 
 impl<'a> Parser<'a, FileReader> {
-    pub fn from_file(filename: &str, interner: &'a mut Interner) -> Result<Parser<'a, FileReader>,Error> {
+    pub fn from_file(filename: &str, ast: &'a mut Ast,
+                     interner: &'a mut Interner) -> Result<Parser<'a, FileReader>,Error> {
         let reader = try!(Lexer::from_file(filename));
 
-        Ok(Parser::new(reader, interner))
+        Ok(Parser::new(reader, ast, interner))
     }
 }
 
@@ -47,7 +50,7 @@ type ExprResult = Result<Box<Expr>,ParseError>;
 type StmtResult = Result<Box<Stmt>,ParseError>;
 
 impl<'a, T: CodeReader> Parser<'a, T> {
-    pub fn new(lexer: Lexer<T>, interner: &'a mut Interner) -> Parser<T> {
+    pub fn new(lexer: Lexer<T>, ast: &'a mut Ast, interner: &'a mut Interner) -> Parser<'a, T> {
         let token = Token::new(TokenType::End, Position::new(1,1));
         let parser = Parser {
             lexer: lexer,
@@ -56,6 +59,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             param_idx: 0,
             field_idx: 0,
             in_class: false,
+            ast: ast,
             next_id: NodeId(1),
         };
 
@@ -63,13 +67,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn generate_id(&mut self) -> NodeId {
-        let ret = self.next_id;
-        self.next_id = NodeId(ret.0+1);
-
-        ret
+        self.ast.generate_id()
     }
 
-    pub fn parse(&mut self, ast: &mut Ast) -> Result<(), ParseError> {
+    pub fn parse(&mut self) -> Result<(), ParseError> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -78,7 +79,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             elements.push(el);
         }
 
-        ast.files.push(File {
+        self.ast.files.push(File {
             path: self.lexer.filename().to_string(),
             elements: elements
         });
@@ -1201,20 +1202,23 @@ mod tests {
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
         let mut interner = Interner::new();
-        let ast = {
-            let mut parser = Parser::from_str(code, &mut interner);
+        let mut ast = Ast::new();
+
+        let expr = {
+            let mut parser = Parser::from_str(code, &mut ast, &mut interner);
             assert!(parser.init().is_ok(), true);
 
             parser.parse_expression().unwrap()
         };
 
-        (ast, interner)
+        (expr, interner)
     }
 
     fn err_expr(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
         let err = {
             let mut interner = Interner::new();
-            let mut parser = Parser::from_str(code, &mut interner);
+            let mut ast = Ast::new();
+            let mut parser = Parser::from_str(code, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
             parser.parse_expression().unwrap_err()
@@ -1227,7 +1231,8 @@ mod tests {
 
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
         let mut interner = Interner::new();
-        let mut parser = Parser::from_str(code, &mut interner);
+        let mut ast = Ast::new();
+        let mut parser = Parser::from_str(code, &mut ast, &mut interner);
         assert!(parser.init().is_ok(), true);
 
         parser.parse_statement().unwrap()
@@ -1236,7 +1241,8 @@ mod tests {
     fn err_stmt(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
         let err = {
             let mut interner = Interner::new();
-            let mut parser = Parser::from_str(code, &mut interner);
+            let mut ast = Ast::new();
+            let mut parser = Parser::from_str(code, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
             parser.parse_statement().unwrap_err()
@@ -1250,7 +1256,8 @@ mod tests {
     fn parse_type(code: &'static str) -> (Type, Interner) {
         let mut interner = Interner::new();
         let ty = {
-            let mut parser = Parser::from_str(code, &mut interner);
+            let mut ast = Ast::new();
+            let mut parser = Parser::from_str(code, &mut ast, &mut interner);
             assert!(parser.init().is_ok(), true);
 
             parser.parse_type().unwrap()
@@ -1263,7 +1270,7 @@ mod tests {
         let mut interner = Interner::new();
         let mut ast = Ast::new();
 
-        Parser::from_str(code, &mut interner).parse(&mut ast).unwrap();
+        Parser::from_str(code, &mut ast, &mut interner).parse().unwrap();
 
         (ast, interner)
     }

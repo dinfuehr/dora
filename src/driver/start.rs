@@ -2,7 +2,7 @@ use std::mem;
 
 use ast::{self, Ast};
 use ctxt::{Context, FctId};
-use driver::cmd::{self, Args};
+use driver::cmd;
 use error::msg::Msg;
 
 use interner::Interner;
@@ -25,7 +25,8 @@ pub fn start() -> i32 {
     let mut interner = Interner::new();
     let mut ast = Ast::new();
 
-    if let Err(code) = parse_file(&mut ast, &args, &mut interner) {
+    if let Err(code) = parse_file("stdlib/prelude.dora", &mut ast, &mut interner)
+                        .and_then(|_| parse_file(&args.arg_file, &mut ast, &mut interner)) {
         return code;
     }
 
@@ -88,17 +89,17 @@ fn in_ms(ns: u64) -> u64 {
     ns / 1000 / 1000
 }
 
-fn parse_file(ast: &mut Ast, args: &Args, interner: &mut Interner) -> Result<(), i32> {
-    let mut parser = match Parser::from_file(&args.arg_file, interner) {
+fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<(), i32> {
+    let mut parser = match Parser::from_file(filename, ast, interner) {
         Err(_) => {
-            println!("unable to read file `{}`", &args.arg_file);
+            println!("unable to read file `{}`", filename);
             return Err(1);
         }
 
         Ok(parser) => parser
     };
 
-    if let Err(error) = parser.parse(ast) {
+    if let Err(error) = parser.parse() {
         error.print();
         return Err(1);
     }
