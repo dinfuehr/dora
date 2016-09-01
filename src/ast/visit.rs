@@ -96,7 +96,9 @@ pub fn walk_fct<'v, V: Visitor<'v>>(v: &mut V, f: &'v Function) {
         v.visit_type(ty);
     }
 
-    v.visit_stmt(&f.block);
+    if let Some(ref block) = f.block {
+        v.visit_stmt(block);
+    }
 }
 
 pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {

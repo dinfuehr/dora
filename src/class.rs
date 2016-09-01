@@ -38,6 +38,7 @@ pub struct Class<'ast> {
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,
     pub has_open: bool,
+    pub internal: bool,
     pub ctors: Vec<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,

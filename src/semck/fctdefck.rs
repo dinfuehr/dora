@@ -98,7 +98,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
             self.fct_mut().return_type = self.current_type;
         }
 
-        self.visit_stmt(&f.block);
+        self.visit_stmt(f.block());
     }
 
     fn visit_param(&mut self, p: &'ast Param) {

@@ -122,7 +122,10 @@ impl<'a> AstDumper<'a> {
             }
 
             dump!(d, "executes");
-            d.indent(|d| d.dump_stmt(&fct.block));
+
+            if let Some(ref block) = fct.block {
+                d.indent(|d| d.dump_stmt(block));
+            }
         });
     }
 

@@ -104,7 +104,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             }
 
             TokenType::Class => {
-                try!(self.restrict_modifiers(&modifiers, &[Modifier::Open]));
+                try!(self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Internal]));
                 let class = try!(self.parse_class(&modifiers));
                 Ok(ElemClass(class))
             }
@@ -119,6 +119,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseError> {
         let has_open = modifiers.contains(Modifier::Open);
+        let internal = modifiers.contains(Modifier::Internal);
 
         let pos = try!(self.expect_token(TokenType::Class)).position;
         let ident = try!(self.expect_identifier());
@@ -128,6 +129,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: ident,
             pos: pos,
             has_open: has_open,
+            internal: internal,
             parent_class: None,
             ctors: Vec::new(),
             ctor_params: Vec::new(),
@@ -344,7 +346,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let params = try!(self.parse_function_params());
         let throws = try!(self.parse_throws());
         let return_type = try!(self.parse_function_type());
-        let block = try!(self.parse_block());
+        let block = try!(self.parse_function_block());
 
         Ok(Function {
             id: self.generate_id(),
@@ -447,6 +449,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             Ok(Some(ty))
         } else {
             Ok(None)
+        }
+    }
+
+    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, ParseError> {
+        if self.token.is(TokenType::Semicolon) {
+            try!(self.read_token());
+
+            Ok(None)
+        } else {
+            let block = try!(self.parse_block());
+
+            Ok(Some(block))
         }
     }
 
@@ -1087,7 +1101,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             params: params,
             throws: false,
             return_type: Some(self.build_type(cls.name)),
-            block: self.build_block(assignments)
+            block: Some(self.build_block(assignments))
         }
     }
 
@@ -2228,5 +2242,12 @@ mod tests {
         let (expr, _) = parse_expr("a as Str");
         let expr = expr.to_as().unwrap();
         assert_eq!(true, expr.object.is_ident());
+    }
+
+    #[test]
+    fn parse_internal() {
+        let (prog, _) = parse("internal fn foo();");
+        let fct = prog.fct0();
+        assert!(fct.internal);
     }
 }

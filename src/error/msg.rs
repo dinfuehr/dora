@@ -48,6 +48,7 @@ pub enum Msg {
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
+    UnresolvedInternal
 }
 
 impl Msg {
@@ -149,6 +150,8 @@ impl Msg {
             ReturnTypeMismatch(ref fct, ref sup) => {
                 format!("return types `{}` and `{}` do not match", fct, sup)
             }
+            UnresolvedInternal =>
+                "unresolved interal".into()
         }
     }
 }

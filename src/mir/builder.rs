@@ -34,7 +34,7 @@ impl<'a, 'ast> Builder<'a, 'ast> {
         let src = self.fct.src();
         let src = src.lock().unwrap();
 
-        self.stmt(&src.ast.block)
+        self.stmt(src.ast.block())
     }
 
     fn stmt(&mut self, stmt: &Stmt) -> Result<(), ()> {

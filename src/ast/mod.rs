@@ -245,6 +245,7 @@ pub struct Class {
     pub pos: Position,
     pub parent_class: Option<ParentClass>,
     pub has_open: bool,
+    pub internal: bool,
     pub ctor_params: Vec<PrimaryCtorParam>,
 
     pub ctors: Vec<Function>,
@@ -325,7 +326,13 @@ pub struct Function {
     pub throws: bool,
 
     pub return_type: Option<Type>,
-    pub block: Box<Stmt>,
+    pub block: Option<Box<Stmt>>,
+}
+
+impl Function {
+    pub fn block(&self) -> &Stmt {
+        self.block.as_ref().unwrap()
+    }
 }
 
 #[derive(Clone, Debug)]

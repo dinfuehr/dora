@@ -41,7 +41,7 @@ impl<'a, 'ast> ReturnCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        let returns = returns_value(&f.block);
+        let returns = returns_value(f.block());
 
         if let Err(pos) = returns {
             let return_type = self.fct.return_type;

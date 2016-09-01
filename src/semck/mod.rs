@@ -56,6 +56,34 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // checks if function has a return value
     returnck::check(ctxt);
+
+    // check for internal functions or classes
+    internalck(ctxt);
+    return_on_error!(ctxt);
+}
+
+fn internalck<'ast>(ctxt: &Context<'ast>) {
+    for fct in &ctxt.fcts {
+        if fct.internal {
+            let src = fct.src();
+            let src = src.lock().unwrap();
+            ctxt.diag.borrow_mut().report(src.ast.pos, Msg::UnresolvedInternal);
+        }
+    }
+
+    for cls in &ctxt.classes {
+        if cls.internal {
+            ctxt.diag.borrow_mut().report(cls.ast.unwrap().pos, Msg::UnresolvedInternal);
+        }
+
+        for method in &cls.methods {
+            let method = ctxt.fct_by_id(*method);
+            let src = method.src();
+            let src = src.lock().unwrap();
+
+            ctxt.diag.borrow_mut().report(src.ast.pos, Msg::UnresolvedInternal);
+        }
+    }
 }
 
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {

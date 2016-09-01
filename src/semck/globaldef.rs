@@ -31,6 +31,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ty: BuiltinType::Class(id),
             parent_class: None,
             has_open: c.has_open,
+            internal: c.internal,
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),

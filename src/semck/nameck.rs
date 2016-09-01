@@ -48,7 +48,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         for p in &self.ast.params { self.visit_param(p); }
-        self.visit_stmt(&self.ast.block);
+        self.visit_stmt(self.ast.block());
 
         self.ctxt.sym.borrow_mut().pop_level();
     }
