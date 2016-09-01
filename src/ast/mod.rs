@@ -318,6 +318,7 @@ pub struct Function {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub internal: bool,
     pub ctor: Option<CtorType>,
 
     pub params: Vec<Param>,
@@ -358,7 +359,7 @@ pub struct ModifierElement {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Modifier { Override, Open, Final }
+pub enum Modifier { Override, Open, Final, Internal }
 
 impl Modifier {
     pub fn name(&self) -> &'static str {
@@ -366,6 +367,7 @@ impl Modifier {
             Modifier::Open => "open",
             Modifier::Override => "override",
             Modifier::Final => "final",
+            Modifier::Internal => "internal",
         }
     }
 }

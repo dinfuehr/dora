@@ -184,6 +184,7 @@ pub struct Fct<'ast> {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub internal: bool,
     pub overrides: Option<FctId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,

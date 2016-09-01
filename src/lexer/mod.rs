@@ -102,6 +102,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("final", TokenType::Final);
         keywords.insert("is", TokenType::Is);
         keywords.insert("as", TokenType::As);
+        keywords.insert("internal", TokenType::Internal);
 
         let mut lexer = Lexer::<T> {
             reader: reader,

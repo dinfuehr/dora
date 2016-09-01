@@ -70,6 +70,7 @@ pub enum TokenType {
     Caret,
     And,
     Or,
+    Internal,
 
     Eq,
     EqEq,
