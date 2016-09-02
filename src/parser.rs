@@ -5,7 +5,7 @@ use std::io::Error;
 use ast::*;
 use ast::Elem::*;
 use ctxt::CtorType;
-use error::*;
+use error::msg::*;
 
 use interner::*;
 
@@ -46,8 +46,8 @@ impl<'a> Parser<'a, FileReader> {
     }
 }
 
-type ExprResult = Result<Box<Expr>,ParseError>;
-type StmtResult = Result<Box<Stmt>,ParseError>;
+type ExprResult = Result<Box<Expr>, MsgWithPos>;
+type StmtResult = Result<Box<Stmt>, MsgWithPos>;
 
 impl<'a, T: CodeReader> Parser<'a, T> {
     pub fn new(lexer: Lexer<T>, ast: &'a mut Ast, interner: &'a mut Interner) -> Parser<'a, T> {
@@ -70,7 +70,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         self.ast.generate_id()
     }
 
-    pub fn parse(&mut self) -> Result<(), ParseError> {
+    pub fn parse(&mut self) -> Result<(), MsgWithPos> {
         try!(self.init());
         let mut elements = vec![];
 
@@ -87,18 +87,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(())
     }
 
-    fn init(&mut self) -> Result<(), ParseError> {
+    fn init(&mut self) -> Result<(), MsgWithPos> {
         try!(self.read_token());
 
         Ok(())
     }
 
-    fn parse_top_level_element(&mut self) -> Result<Elem, ParseError> {
+    fn parse_top_level_element(&mut self) -> Result<Elem, MsgWithPos> {
         let modifiers = try!(self.parse_modifiers());
 
         match self.token.token_type {
             TokenType::Fun => {
-                try!(self.ban_modifiers(&modifiers));
+                try!(self.restrict_modifiers(&modifiers, &[Modifier::Internal]));
                 let fct = try!(self.parse_function(&modifiers));
                 Ok(ElemFunction(fct))
             }
@@ -109,15 +109,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 Ok(ElemClass(class))
             }
 
-            _ => Err(ParseError {
-                position: self.token.position,
-                code: ErrorCode::ExpectedTopLevelElement,
-                message: format!("top level element expected but got {}", self.token)
-            })
+            _ => {
+                let msg = Msg::ExpectedTopLevelElement(self.token.name());
+                Err(MsgWithPos::new(self.token.position, msg))
+            }
         }
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseError> {
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
         let has_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
 
@@ -162,7 +161,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(cls)
     }
 
-    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, ParseError> {
+    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {
         if !self.token.is(TokenType::LParen) {
             return Ok(Vec::new());
         }
@@ -176,7 +175,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(params)
     }
 
-    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<(), ParseError> {
+    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
         if !self.token.is(TokenType::LParen) {
             return Ok(());
         }
@@ -192,7 +191,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(())
     }
 
-    fn parse_primary_ctor_param(&mut self) -> Result<PrimaryCtorParam, ParseError> {
+    fn parse_primary_ctor_param(&mut self) -> Result<PrimaryCtorParam, MsgWithPos> {
         let field = self.token.is(TokenType::Var) || self.token.is(TokenType::Let);
         let reassignable = self.token.is(TokenType::Var);
 
@@ -217,7 +216,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         })
     }
 
-    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), ParseError> {
+    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
         if !self.token.is(TokenType::LBrace) {
             return Ok(());
         }
@@ -245,11 +244,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 }
 
                 _ => {
-                    return Err(ParseError {
-                        position: self.token.position,
-                        code: ErrorCode::ExpectedClassElement,
-                        message: "field or method expected".to_string()
-                    })
+                    return Err(MsgWithPos::new(self.token.position,
+                                    Msg::ExpectedClassElement(self.token.name())))
                 }
             }
         }
@@ -258,7 +254,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(())
     }
 
-    fn parse_modifiers(&mut self) -> Result<Modifiers, ParseError> {
+    fn parse_modifiers(&mut self) -> Result<Modifiers, MsgWithPos> {
         let mut modifiers = Modifiers::new();
 
         loop {
@@ -266,15 +262,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 TokenType::Open => Modifier::Open,
                 TokenType::Override => Modifier::Override,
                 TokenType::Final => Modifier::Final,
+                TokenType::Internal => Modifier::Internal,
                 _ => { break; }
             };
 
             if modifiers.contains(modifier) {
-                return Err(ParseError {
-                    position: self.token.position,
-                    code: ErrorCode::RedundantModifier,
-                    message: format!("redundant modifier `{}`", self.token.value.clone())
-                });
+                return Err(MsgWithPos::new(self.token.position,
+                                Msg::RedundantModifier(self.token.name())));
             }
 
             let pos = try!(self.read_token()).position;
@@ -284,26 +278,23 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(modifiers)
     }
 
-    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), ParseError> {
+    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), MsgWithPos> {
         self.restrict_modifiers(modifiers, &[])
     }
 
     fn restrict_modifiers(&mut self, modifiers: &Modifiers,
-                                     restrict: &[Modifier]) -> Result<(), ParseError> {
+                                     restrict: &[Modifier]) -> Result<(), MsgWithPos> {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                return Err(ParseError {
-                    position: modifier.pos,
-                    code: ErrorCode::MisplacedModifier,
-                    message: format!("misplaced modifier `{}`", modifier.value.name())
-                });
+                return Err(MsgWithPos::new(modifier.pos,
+                                Msg::MisplacedModifier(modifier.value.name().into())));
             }
         }
 
         Ok(())
     }
 
-    fn parse_field(&mut self) -> Result<Field, ParseError> {
+    fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
         let pos = self.token.position;
         let reassignable = if self.token.is(TokenType::Var) {
             try!(self.expect_token(TokenType::Var));
@@ -339,7 +330,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         })
     }
 
-    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseError> {
+    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
         let pos = try!(self.expect_token(TokenType::Fun)).position;
         let ident = try!(self.expect_identifier());
 
@@ -365,7 +356,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         })
     }
 
-    fn parse_throws(&mut self) -> Result<bool, ParseError> {
+    fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
         if self.token.is(TokenType::Throws) {
             try!(self.read_token());
 
@@ -375,7 +366,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(false)
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>,ParseError> {
+    fn parse_function_params(&mut self) -> Result<Vec<Param>, MsgWithPos> {
         try!(self.expect_token(TokenType::LParen));
         self.param_idx = 0;
 
@@ -388,18 +379,15 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(params)
     }
 
-    fn parse_comma_list<F, R>(&mut self, stop: TokenType, parse: F) -> Result<Vec<R>, ParseError>
-        where F: Fn(&mut Parser<T>) -> Result<R, ParseError> {
+    fn parse_comma_list<F, R>(&mut self, stop: TokenType, parse: F) -> Result<Vec<R>, MsgWithPos>
+        where F: Fn(&mut Parser<T>) -> Result<R, MsgWithPos> {
         let mut data = vec![];
         let mut comma = true;
 
         while !self.token.is(stop) && !self.token.is_eof() {
             if !comma {
-                return Err(ParseError {
-                    position: self.token.position,
-                    code: ErrorCode::CommaExpected,
-                    message: format!("`,` expected but got {}", self.token)
-                })
+                return Err(MsgWithPos::new(self.token.position,
+                           Msg::ExpectedToken(TokenType::Comma.name().into(), self.token.name())));
             }
 
             let entry = try!(parse(self));
@@ -414,7 +402,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(data)
     }
 
-    fn parse_function_param(&mut self) -> Result<Param, ParseError> {
+    fn parse_function_param(&mut self) -> Result<Param, MsgWithPos> {
         let pos = self.token.position;
 
         let reassignable = if self.token.is(TokenType::Var) {
@@ -441,7 +429,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<Option<Type>, ParseError> {
+    fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
         if self.token.is(TokenType::Arrow) {
             try!(self.read_token());
             let ty = try!(self.parse_type());
@@ -452,7 +440,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, ParseError> {
+    fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, MsgWithPos> {
         if self.token.is(TokenType::Semicolon) {
             try!(self.read_token());
 
@@ -464,7 +452,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_type(&mut self) -> Result<Type, ParseError> {
+    fn parse_type(&mut self) -> Result<Type, MsgWithPos> {
         match self.token.token_type {
             TokenType::Identifier => {
                 let token = try!(self.read_token());
@@ -492,11 +480,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 ))
             }
 
-            _ => Err(ParseError {
-                position: self.token.position,
-                code: ErrorCode::ExpectedType,
-                message: "type expected".to_string()
-            }),
+            _ => Err(MsgWithPos::new(self.token.position,
+                     Msg::ExpectedType(self.token.name()))),
         }
     }
 
@@ -511,11 +496,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Break => self.parse_break(),
             TokenType::Continue => self.parse_continue(),
             TokenType::Return => self.parse_return(),
-            TokenType::Else => Err(ParseError {
-                position: self.token.position,
-                code: ErrorCode::MisplacedElse,
-                message: "misplaced else".to_string()
-            }),
+            TokenType::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
             TokenType::Throw => self.parse_throw(),
             TokenType::Try => self.parse_try(),
             _ => self.parse_expression_statement()
@@ -550,7 +531,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             try_block, catch_blocks, finally_block)))
     }
 
-    fn parse_catch(&mut self) -> Result<CatchBlock, ParseError> {
+    fn parse_catch(&mut self) -> Result<CatchBlock, MsgWithPos> {
         let pos = try!(self.expect_token(TokenType::Catch)).position;
         let name = try!(self.expect_identifier());
         try!(self.expect_token(TokenType::Colon));
@@ -560,7 +541,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(CatchBlock::new(name, pos, data_type, block))
     }
 
-    fn parse_finally(&mut self) -> Result<FinallyBlock, ParseError> {
+    fn parse_finally(&mut self) -> Result<FinallyBlock, MsgWithPos> {
         try!(self.expect_token(TokenType::Finally));
         let block = try!(self.parse_block());
 
@@ -587,7 +568,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                                      reassignable, data_type, expr)))
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<Type>, ParseError> {
+    fn parse_var_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
         if self.token.is(TokenType::Colon) {
             try!(self.read_token());
 
@@ -597,7 +578,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, ParseError> {
+    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, MsgWithPos> {
         if self.token.is(TokenType::Eq) {
             try!(self.expect_token(TokenType::Eq));
             let expr = try!(self.parse_expression());
@@ -924,11 +905,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
             TokenType::Selfie => self.parse_self(),
-            _ => Err(ParseError {
-                position: self.token.position,
-                code: ErrorCode::UnknownFactor,
-                message: format!("factor expected but got {}", self.token)
-            })
+            _ => Err(MsgWithPos::new(self.token.position,
+                     Msg::ExpectedFactor(self.token.name().clone())))
         }
     }
 
@@ -969,11 +947,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         match tok.value.parse() {
             Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), tok.position, num))),
-            _ => Err(ParseError {
-                position: tok.position,
-                message: format!("number {} does not fit into range", tok),
-                code: ErrorCode::NumberOverflow
-            })
+            _ => Err(MsgWithPos::new(tok.position, Msg::NumberOverflow(tok.name().clone())))
         }
     }
 
@@ -1002,42 +976,40 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(Box::new(Expr::create_nil(self.generate_id(), tok.position)))
     }
 
-    fn expect_identifier(&mut self) -> Result<Name, ParseError> {
+    fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
         if self.token.token_type == TokenType::Identifier {
             let ident = try!(self.read_token());
             let interned = self.interner.intern(&ident.value);
 
             Ok(interned)
         } else {
-            Err(ParseError {
-                position: self.token.position,
-                message: format!("identifier expected, but got token {}", self.token),
-                code: ErrorCode::ExpectedIdentifier
-            })
+            Err(MsgWithPos::new(self.token.position,
+                Msg::ExpectedIdentifier(self.token.name())))
         }
     }
 
-    fn expect_semicolon(&mut self) -> Result<Token,ParseError> {
+    fn expect_semicolon(&mut self) -> Result<Token,MsgWithPos> {
         self.expect_token(TokenType::Semicolon)
     }
 
-    fn expect_token(&mut self, token_type: TokenType) -> Result<Token,ParseError> {
+    fn expect_token(&mut self, token_type: TokenType) -> Result<Token, MsgWithPos> {
         if self.token.token_type == token_type {
             let token = try!(self.read_token());
 
             Ok(token)
         } else {
-            Err(ParseError {
-                position: self.token.position,
-                message: format!("Token {:?} expected, but got token {}",
-                    token_type, self.token),
-                code: ErrorCode::UnexpectedToken
-            })
+            Err(MsgWithPos::new(self.token.position,
+                Msg::ExpectedToken(token_type.name().into(), self.token.name())))
         }
     }
 
-    fn read_token(&mut self) -> Result<Token,ParseError> {
-        let tok = try!(self.lexer.read_token());
+    fn read_token(&mut self) -> Result<Token, MsgWithPos> {
+        let tok = match self.lexer.read_token() {
+            Ok(tok) => tok,
+            Err(err) => {
+                return Err(MsgWithPos::new(err.position, Msg::Unimplemented));
+            }
+        };
 
         Ok(mem::replace(&mut self.token, tok))
     }
@@ -1212,7 +1184,7 @@ mod tests {
     use ast::*;
     use interner::*;
 
-    use error::ErrorCode;
+    use error::msg::Msg;
     use lexer::position::Position;
     use parser::Parser;
 
@@ -1230,7 +1202,7 @@ mod tests {
         (expr, interner)
     }
 
-    fn err_expr(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
+    fn err_expr(code: &'static str, msg: Msg, line:u32, col:u32) {
         let err = {
             let mut interner = Interner::new();
             let mut ast = Ast::new();
@@ -1240,9 +1212,9 @@ mod tests {
             parser.parse_expression().unwrap_err()
         };
 
-        assert_eq!(error_code, err.code);
-        assert_eq!(line, err.position.line);
-        assert_eq!(col, err.position.column);
+        assert_eq!(msg, err.msg);
+        assert_eq!(line, err.pos.line);
+        assert_eq!(col, err.pos.column);
     }
 
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
@@ -1254,7 +1226,7 @@ mod tests {
         parser.parse_statement().unwrap()
     }
 
-    fn err_stmt(code: &'static str, error_code: ErrorCode, line:u32, col:u32) {
+    fn err_stmt(code: &'static str, msg: Msg, line:u32, col:u32) {
         let err = {
             let mut interner = Interner::new();
             let mut ast = Ast::new();
@@ -1264,9 +1236,9 @@ mod tests {
             parser.parse_statement().unwrap_err()
         };
 
-        assert_eq!(error_code, err.code);
-        assert_eq!(line, err.position.line);
-        assert_eq!(col, err.position.column);
+        assert_eq!(msg, err.msg);
+        assert_eq!(line, err.pos.line);
+        assert_eq!(col, err.pos.column);
     }
 
     fn parse_type(code: &'static str) -> (Type, Interner) {
@@ -1349,7 +1321,7 @@ mod tests {
 
     #[test]
     fn parse_field_non_ident() {
-        err_expr("obj.12", ErrorCode::ExpectedIdentifier, 1, 5);
+        err_expr("obj.12", Msg::ExpectedIdentifier("12".into()), 1, 5);
     }
 
     #[test]
@@ -1391,7 +1363,7 @@ mod tests {
 
     #[test]
     fn parse_double_neg_without_parentheses() {
-        err_expr("- -2", ErrorCode::UnknownFactor, 1, 3);
+        err_expr("- -2", Msg::ExpectedFactor("-".into()), 1, 3);
     }
 
     #[test]
@@ -1406,7 +1378,7 @@ mod tests {
 
     #[test]
     fn parse_double_unary_plus_without_parentheses() {
-        err_expr("+ +4", ErrorCode::UnknownFactor, 1, 3);
+        err_expr("+ +4", Msg::ExpectedFactor("+".into()), 1, 3);
     }
 
     #[test]
@@ -1835,7 +1807,7 @@ mod tests {
 
     #[test]
     fn parse_expr_stmt_without_semicolon() {
-        err_stmt("1", ErrorCode::UnexpectedToken, 1, 2);
+        err_stmt("1", Msg::ExpectedToken(";".into(), "<<EOF>>".into()), 1, 2);
     }
 
     #[test]
@@ -1940,7 +1912,7 @@ mod tests {
 
     #[test]
     fn parse_else() {
-        err_stmt("else", ErrorCode::MisplacedElse, 1, 1);
+        err_stmt("else", Msg::MisplacedElse, 1, 1);
     }
 
     #[test]
@@ -2246,7 +2218,7 @@ mod tests {
 
     #[test]
     fn parse_internal() {
-        let (prog, _) = parse("internal fn foo();");
+        let (prog, _) = parse("internal fun foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }

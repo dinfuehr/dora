@@ -7,7 +7,10 @@ use semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
     parse_with_errors(code, |ctxt| {
-        assert!(!ctxt.diag.borrow().has_errors());
+        if ctxt.diag.borrow().has_errors() {
+            ctxt.diag.borrow().dump();
+            panic!("unexpected error in test::parse()");
+        }
 
         f(ctxt)
     })

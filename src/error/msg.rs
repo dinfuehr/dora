@@ -1,3 +1,6 @@
+
+use std::fmt;
+
 use self::Msg::*;
 use lexer::position::Position;
 
@@ -48,7 +51,23 @@ pub enum Msg {
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
-    UnresolvedInternal
+    UnresolvedInternal,
+    UnclosedComment,
+    UnknownChar,
+    UnclosedString,
+    NumberOverflow(String),
+    ExpectedFactor(String),
+    ExpectedToken(String, String),
+    ExpectedTopLevelElement(String),
+    ExpectedType(String),
+    ExpectedIdentifier(String),
+    MisplacedElse,
+    IoError,
+    ExpectedValue,
+    ExpectedClassElement(String),
+    RedundantModifier(String),
+    MisplacedModifier(String),
+    InvalidEscapeSequence,
 }
 
 impl Msg {
@@ -150,8 +169,23 @@ impl Msg {
             ReturnTypeMismatch(ref fct, ref sup) => {
                 format!("return types `{}` and `{}` do not match", fct, sup)
             }
-            UnresolvedInternal =>
-                "unresolved interal".into()
+            UnresolvedInternal => "unresolved interal".into(),
+            MisplacedElse => "misplace else".into(),
+            ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
+            NumberOverflow(ref value) => format!("number {} does not fit into 32 bits.", value),
+            ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
+            ExpectedType(ref got) => format!("type expected but got {}.", got),
+            ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),
+            MisplacedModifier(ref modifier) =>
+                format!("misplaced modifier `{}`.", modifier),
+            ExpectedTopLevelElement(ref token) =>
+                format!("expected function or class but got {}.", token),
+            ExpectedClassElement(ref token) =>
+                format!("field or method expected but got {}.", token),
+            RedundantModifier(ref token) => format!("redundant modifier {}.", token),
+
+            // TODO: delete me if all messges defined
+            _ => panic!("should be defined"),
         }
     }
 }
@@ -172,5 +206,11 @@ impl MsgWithPos {
 
     pub fn message(&self) -> String {
         format!("error at {}: {}", self.pos, self.msg.message())
+    }
+}
+
+impl fmt::Display for MsgWithPos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "error at line {}: {}", self.pos, self.msg.message())
     }
 }

@@ -101,6 +101,7 @@ impl<'a> AstDumper<'a> {
             dump!(d, "open = {}", fct.has_open);
             dump!(d, "override = {}", fct.has_override);
             dump!(d, "final = {}", fct.has_final);
+            dump!(d, "internal = {}", fct.internal);
             dump!(d, "throws = {}", fct.throws);
             dump!(d, "params");
             d.indent(|d| {
