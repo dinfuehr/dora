@@ -63,7 +63,6 @@ pub enum Msg {
     ExpectedIdentifier(String),
     MisplacedElse,
     IoError,
-    ExpectedValue,
     ExpectedClassElement(String),
     RedundantModifier(String),
     MisplacedModifier(String),
@@ -188,9 +187,6 @@ impl Msg {
             InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`", ch),
             UnclosedString => "unclosed string".into(),
             IoError => "error reading from file".into(),
-
-            // TODO: delete me if all messges defined
-            _ => panic!("should be defined"),
         }
     }
 }
