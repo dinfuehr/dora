@@ -403,7 +403,10 @@ impl<T : CodeReader> Lexer<T> {
         while !self.eof_reached && self.buffer.len() < 10 {
             match self.reader.next() {
                 ReaderResult::Char(ch) => {
-                    self.buffer.push_back(Ok(CharPos { value: ch, position: self.position }));
+                    self.buffer.push_back(Ok(CharPos {
+                        value: ch,
+                        position: self.position
+                    }));
 
                     match ch {
                         '\n' => {
@@ -424,7 +427,8 @@ impl<T : CodeReader> Lexer<T> {
                 ReaderResult::Eof => self.eof_reached = true,
 
                 ReaderResult::Err => {
-                    self.buffer.push_back(Err(MsgWithPos::new(self.position, Msg::IoError)))
+                    let msg = MsgWithPos::new(self.position, Msg::IoError);
+                    self.buffer.push_back(Err(msg))
                 },
             }
         }
