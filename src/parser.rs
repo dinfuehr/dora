@@ -1179,7 +1179,7 @@ mod tests {
     use ast::*;
     use interner::*;
 
-    use error::msg::Msg;
+    use error::msg::{Msg, MsgWithPos};
     use lexer::position::Position;
     use parser::Parser;
 
@@ -2229,6 +2229,13 @@ mod tests {
     fn parse_function_without_body() {
         let (prog, _) = parse("fun foo();");
         let fct = prog.fct0();
-        assert_eq!(None, fct.block);
+        assert!(fct.block.is_none());
+    }
+
+    #[test]
+    fn parse_internal_class() {
+        let (prog, _) = parse("internal class Foo {}");
+        let cls = prog.cls0();
+        assert!(cls.internal);
     }
 }
