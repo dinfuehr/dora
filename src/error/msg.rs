@@ -53,7 +53,7 @@ pub enum Msg {
     ReturnTypeMismatch(String, String),
     UnresolvedInternal,
     UnclosedComment,
-    UnknownChar,
+    UnknownChar(char),
     UnclosedString,
     NumberOverflow(String),
     ExpectedFactor(String),
@@ -67,7 +67,7 @@ pub enum Msg {
     ExpectedClassElement(String),
     RedundantModifier(String),
     MisplacedModifier(String),
-    InvalidEscapeSequence,
+    InvalidEscapeSequence(char),
 }
 
 impl Msg {
@@ -183,6 +183,11 @@ impl Msg {
             ExpectedClassElement(ref token) =>
                 format!("field or method expected but got {}.", token),
             RedundantModifier(ref token) => format!("redundant modifier {}.", token),
+            UnknownChar(ch) => format!("unknown character {} (codepoint {})", ch, ch as usize),
+            UnclosedComment => "unclosed comment".into(),
+            InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`", ch),
+            UnclosedString => "unclosed string".into(),
+            IoError => "error reading from file".into(),
 
             // TODO: delete me if all messges defined
             _ => panic!("should be defined"),

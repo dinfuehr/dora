@@ -1004,12 +1004,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn read_token(&mut self) -> Result<Token, MsgWithPos> {
-        let tok = match self.lexer.read_token() {
-            Ok(tok) => tok,
-            Err(err) => {
-                return Err(MsgWithPos::new(err.position, Msg::Unimplemented));
-            }
-        };
+        let tok = try!(self.lexer.read_token());
 
         Ok(mem::replace(&mut self.token, tok))
     }

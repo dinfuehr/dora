@@ -5,7 +5,7 @@ use lexer::reader::{CodeReader, FileReader, ReaderResult};
 use lexer::token::{Token, TokenType};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
-use error::{ParseError, ErrorCode};
+use error::msg::{Msg, MsgWithPos};
 
 #[cfg(test)]
 use lexer::reader::StrReader;
@@ -23,7 +23,7 @@ pub struct Lexer<T : CodeReader> {
     state: State,
     keywords: HashMap<&'static str, TokenType>,
 
-    buffer: VecDeque<Result<CharPos, ParseError>>
+    buffer: VecDeque<Result<CharPos, MsgWithPos>>
 }
 
 enum State {
@@ -123,7 +123,7 @@ impl<T : CodeReader> Lexer<T> {
         self.reader.filename()
     }
 
-    pub fn read_token(&mut self) -> Result<Token, ParseError> {
+    pub fn read_token(&mut self) -> Result<Token, MsgWithPos> {
         loop {
             self.skip_white();
 
@@ -135,14 +135,10 @@ impl<T : CodeReader> Lexer<T> {
                 return self.read_number();
 
             } else if self.is_comment_start() {
-                if let Some(err) = self.read_comment() {
-                    return Err(err)
-                }
+                try!(self.read_comment());
 
             } else if self.is_multi_comment_start() {
-                if let Some(err) = self.read_multi_comment() {
-                    return Err(err)
-                }
+                try!(self.read_multi_comment());
 
             } else if self.is_identifier_start() {
                 return self.read_identifier();
@@ -156,11 +152,7 @@ impl<T : CodeReader> Lexer<T> {
             } else {
                 let ch = self.top().unwrap().value;
 
-                return Err(ParseError {
-                    position: self.position,
-                    code: ErrorCode::UnknownChar,
-                    message: format!("unknown character {} (ascii code {})", ch, ch as usize)
-                } )
+                return Err(MsgWithPos::new(self.position, Msg::UnknownChar(ch)));
             }
         }
     }
@@ -171,16 +163,15 @@ impl<T : CodeReader> Lexer<T> {
         }
     }
 
-
-    fn read_comment(&mut self) -> Option<ParseError> {
+    fn read_comment(&mut self) -> Result<(), MsgWithPos> {
         while !self.is_eof() && !self.is_newline() {
             self.read_char();
         }
 
-        None
+        Ok(())
     }
 
-    fn read_multi_comment(&mut self) -> Option<ParseError> {
+    fn read_multi_comment(&mut self) -> Result<(), MsgWithPos> {
         let pos = self.top().unwrap().position;
 
         self.read_char();
@@ -191,20 +182,16 @@ impl<T : CodeReader> Lexer<T> {
         }
 
         if self.is_eof() {
-          return Some(ParseError {
-              position: pos,
-              code: ErrorCode::UnclosedComment,
-              message: "unclosed comment".to_string()
-          } );
+          return Err(MsgWithPos::new(pos, Msg::UnclosedComment));
         }
 
         self.read_char();
         self.read_char();
 
-        None
+        Ok(())
     }
 
-    fn read_identifier(&mut self) -> Result<Token, ParseError> {
+    fn read_identifier(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenType::Identifier);
 
         while self.is_identifier() {
@@ -219,7 +206,7 @@ impl<T : CodeReader> Lexer<T> {
         Ok(tok)
     }
 
-    fn read_string(&mut self) -> Result<Token, ParseError> {
+    fn read_string(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenType::String);
         let mut escape = false;
 
@@ -237,11 +224,8 @@ impl<T : CodeReader> Lexer<T> {
                     '\"' => '\"',
                     '\'' => '\'',
                     _ => {
-                        return Err(ParseError {
-                            position: tok.position,
-                            code: ErrorCode::InvalidEscapeSequence,
-                            message: format!("unknown escape sequence `\\{}`", ch),
-                        });
+                        let msg = MsgWithPos::new(tok.position, Msg::InvalidEscapeSequence(ch));
+                        return Err(msg);
                     }
                 };
 
@@ -261,15 +245,11 @@ impl<T : CodeReader> Lexer<T> {
             Ok(tok)
 
         } else {
-            Err(ParseError {
-                position: tok.position,
-                code: ErrorCode::UnclosedString,
-                message: "unclosed string".to_string()
-            })
+            Err(MsgWithPos::new(tok.position, Msg::UnclosedString))
         }
     }
 
-    fn read_operator(&mut self) -> Result<Token, ParseError> {
+    fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenType::End);
         let ch = try!(self.read_char().unwrap()).value;
 
@@ -374,18 +354,14 @@ impl<T : CodeReader> Lexer<T> {
             }
 
             _ => {
-                return Err(ParseError {
-                    position: tok.position,
-                    code: ErrorCode::UnknownChar,
-                    message: format!("unknown character {} (ascii code {})", ch, ch as usize)
-                } )
+                return Err(MsgWithPos::new(tok.position, Msg::UnknownChar(ch)));
             }
         };
 
         Ok(tok)
     }
 
-    fn read_number(&mut self) -> Result<Token, ParseError> {
+    fn read_number(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenType::Number);
 
         while self.is_digit() {
@@ -396,7 +372,7 @@ impl<T : CodeReader> Lexer<T> {
         Ok(tok)
     }
 
-    fn read_char(&mut self) -> Option<Result<CharPos, ParseError>> {
+    fn read_char(&mut self) -> Option<Result<CharPos, MsgWithPos>> {
         let ch = self.buffer.pop_front();
         self.fill_buffer();
 
@@ -447,11 +423,7 @@ impl<T : CodeReader> Lexer<T> {
                 ReaderResult::Eof => self.eof_reached = true,
 
                 ReaderResult::Err => {
-                    self.buffer.push_back(Err(ParseError {
-                        position: self.position,
-                        message: "error reading from file".to_string(),
-                        code: ErrorCode::IoError,
-                    }))
+                    self.buffer.push_back(Err(MsgWithPos::new(self.position, Msg::IoError)))
                 },
             }
         }
@@ -534,9 +506,9 @@ impl<T : CodeReader> Lexer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use error::msg::Msg;
     use lexer::reader::{CodeReader, StrReader};
     use lexer::token::TokenType;
-    use error::ErrorCode;
 
     fn assert_end<T: CodeReader>(reader: &mut Lexer<T>, l: u32, c: u32) {
         assert_tok(reader, TokenType::End, "", l, c);
@@ -551,11 +523,11 @@ mod tests {
         assert_eq!(c, tok.position.column);
     }
 
-    fn assert_err<T: CodeReader>(reader: &mut Lexer<T>, code: ErrorCode, l: u32, c: u32) {
+    fn assert_err<T: CodeReader>(reader: &mut Lexer<T>, msg: Msg, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
-        assert_eq!(code, err.code);
-        assert_eq!(l, err.position.line);
-        assert_eq!(c, err.position.column);
+        assert_eq!(msg, err.msg);
+        assert_eq!(l, err.pos.line);
+        assert_eq!(c, err.pos.column);
     }
 
     #[test]
@@ -598,11 +570,11 @@ mod tests {
     #[test]
     fn test_unfinished_multi_comment() {
         let mut reader = Lexer::from_str("/*test");
-        assert_err(&mut reader, ErrorCode::UnclosedComment, 1, 1);
+        assert_err(&mut reader, Msg::UnclosedComment, 1, 1);
 
         let mut reader = Lexer::from_str("1/*test");
         assert_tok(&mut reader, TokenType::Number, "1", 1, 1);
-        assert_err(&mut reader, ErrorCode::UnclosedComment, 1, 2);
+        assert_err(&mut reader, Msg::UnclosedComment, 1, 2);
     }
 
     #[test]
@@ -683,13 +655,13 @@ mod tests {
         assert_tok(&mut reader, TokenType::String, "\\", 1, 1);
 
         let mut reader = Lexer::from_str("\"\\");
-        assert_err(&mut reader, ErrorCode::UnclosedString, 1, 1);
+        assert_err(&mut reader, Msg::UnclosedString, 1, 1);
     }
 
     #[test]
     fn test_unclosed_string() {
         let mut reader = Lexer::from_str("\"abc");
-        assert_err(&mut reader, ErrorCode::UnclosedString, 1, 1);
+        assert_err(&mut reader, Msg::UnclosedString, 1, 1);
     }
 
     #[test]
