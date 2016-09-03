@@ -224,7 +224,8 @@ impl<T : CodeReader> Lexer<T> {
                     '\"' => '\"',
                     '\'' => '\'',
                     _ => {
-                        let msg = MsgWithPos::new(tok.position, Msg::InvalidEscapeSequence(ch));
+                        let msg = Msg::InvalidEscapeSequence(ch);
+                        let msg = MsgWithPos::new(tok.position, msg);
                         return Err(msg);
                     }
                 };
