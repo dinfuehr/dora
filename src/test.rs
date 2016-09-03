@@ -1,6 +1,7 @@
 use ctxt::Context;
 use driver::cmd::Args;
 use ast::{self, Ast};
+use error::msg::MsgWithPos;
 use interner::Interner;
 use parser::Parser;
 use semck;
@@ -9,10 +10,22 @@ pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T
     parse_with_errors(code, |ctxt| {
         if ctxt.diag.borrow().has_errors() {
             ctxt.diag.borrow().dump();
+            println!("{}", code);
             panic!("unexpected error in test::parse()");
         }
 
         f(ctxt)
+    })
+}
+
+pub fn parse_err(code: &'static str) -> Vec<MsgWithPos> {
+    parse_with_errors(code, |ctxt| {
+        if !ctxt.diag.borrow().has_errors() {
+            println!("{}", code);
+            panic!("no error found in test::parse_err()");
+        }
+
+        ctxt.diag.borrow().errors().clone()
     })
 }
 

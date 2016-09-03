@@ -1258,6 +1258,13 @@ mod tests {
         (ast, interner)
     }
 
+    fn parse_err(code: &'static str) -> MsgWithPos {
+        let mut interner = Interner::new();
+        let mut ast = Ast::new();
+
+        Parser::from_str(code, &mut ast, &mut interner).parse().unwrap_err()
+    }
+
     #[test]
     fn parse_ident() {
         let (expr, interner) = parse_expr("a");
@@ -2216,5 +2223,12 @@ mod tests {
         let (prog, _) = parse("internal fun foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
+    }
+
+    #[test]
+    fn parse_function_without_body() {
+        let (prog, _) = parse("fun foo();");
+        let fct = prog.fct0();
+        assert_eq!(None, fct.block);
     }
 }
