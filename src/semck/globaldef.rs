@@ -51,8 +51,15 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_fct(&mut self, f: &'ast Function) {
+        let kind = if f.block.is_some() {
+            FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f))))
+        } else {
+            FctKind::Definition
+        };
+
         let fct = Fct {
             id: FctId(0),
+            pos: f.pos,
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
@@ -66,7 +73,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ctor: None,
             vtable_index: None,
             initialized: false,
-            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
+            kind: kind,
         };
 
         if let Err(sym) = self.ctxt.add_fct_to_sym(fct) {

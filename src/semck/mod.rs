@@ -2,7 +2,6 @@ use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
 use ctxt::Context;
 use error::msg::Msg;
-use lexer::position::Position;
 use ty::BuiltinType;
 
 mod clsdefck;
@@ -66,16 +65,11 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 fn internalck<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
         if fct.internal {
-            let pos = if fct.is_src() {
-                let src = fct.src();
-                let src = src.lock().unwrap();
+            ctxt.diag.borrow_mut().report(fct.pos, Msg::UnresolvedInternal);
+        }
 
-                src.ast.pos
-            } else {
-                Position::new(1, 1)
-            };
-
-            ctxt.diag.borrow_mut().report(pos, Msg::UnresolvedInternal);
+        if fct.kind.is_definition() {
+            ctxt.diag.borrow_mut().report(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -88,16 +82,11 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
             let method = ctxt.fct_by_id(*method);
 
             if method.internal {
-                let pos = if method.is_src() {
-                    let src = method.src();
-                    let src = src.lock().unwrap();
+                ctxt.diag.borrow_mut().report(method.pos, Msg::UnresolvedInternal);
+            }
 
-                    src.ast.pos
-                } else {
-                    Position::new(1, 1)
-                };
-
-                ctxt.diag.borrow_mut().report(pos, Msg::UnresolvedInternal);
+            if method.kind.is_definition() {
+                ctxt.diag.borrow_mut().report(method.pos, Msg::MissingFctBody);
             }
         }
     }

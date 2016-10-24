@@ -179,6 +179,7 @@ pub struct FctId(pub usize);
 #[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
+    pub pos: Position,
     pub name: Name,
     pub owner_class: Option<ClassId>,
     pub has_open: bool,
@@ -294,7 +295,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(Arc<Mutex<FctSrc<'ast>>>), Builtin(Ptr), Intrinsic
+    Source(Arc<Mutex<FctSrc<'ast>>>), Definition, Builtin(Ptr), Intrinsic
 }
 
 impl<'ast> FctKind<'ast> {
@@ -315,6 +316,13 @@ impl<'ast> FctKind<'ast> {
     pub fn is_intrinsic(&self) -> bool {
         match *self {
             FctKind::Intrinsic => true,
+            _ => false
+        }
+    }
+
+    pub fn is_definition(&self) -> bool {
+        match *self {
+            FctKind::Definition => true,
             _ => false
         }
     }

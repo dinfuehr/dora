@@ -493,6 +493,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
                 },
                 FctKind::Builtin(ptr) => ptr,
+
+                FctKind::Definition => unreachable!(),
                 FctKind::Intrinsic => panic!("intrinsic fct call"),
             }
         }

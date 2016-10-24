@@ -5,6 +5,7 @@ use stdlib;
 use ctxt::*;
 use class::*;
 use interner::Name;
+use lexer::position::Position;
 use mem::Ptr;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -158,6 +159,7 @@ fn add_ctor<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId, name: Name,
                   args: Vec<BuiltinType>, fct: Ptr) -> FctId {
     let fct = Fct {
         id: FctId(0),
+        pos: Position::new(1, 1),
         name: name,
         params_types: args,
         return_type: BuiltinType::Class(cls_id),
@@ -184,6 +186,7 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId,
 
     let fct = Fct {
         id: FctId(0),
+        pos: Position::new(1, 1),
         name: name,
         params_types: args,
         return_type: return_type,
@@ -239,6 +242,7 @@ fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
 
     let fct = Fct {
         id: FctId(0),
+        pos: Position::new(1, 1),
         name: name,
         params_types: args,
         return_type: ret,

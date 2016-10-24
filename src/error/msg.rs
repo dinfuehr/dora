@@ -67,6 +67,7 @@ pub enum Msg {
     RedundantModifier(String),
     MisplacedModifier(String),
     InvalidEscapeSequence(char),
+    MissingFctBody,
 }
 
 impl Msg {
@@ -166,10 +167,10 @@ impl Msg {
                 format!("types `{}` and `{}` incompatible.", na, nb)
             }
             ReturnTypeMismatch(ref fct, ref sup) => {
-                format!("return types `{}` and `{}` do not match", fct, sup)
+                format!("return types `{}` and `{}` do not match.", fct, sup)
             }
-            UnresolvedInternal => "unresolved interal".into(),
-            MisplacedElse => "misplace else".into(),
+            UnresolvedInternal => "unresolved internal.".into(),
+            MisplacedElse => "misplace else.".into(),
             ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
             NumberOverflow(ref value) => format!("number {} does not fit into 32 bits.", value),
             ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
@@ -182,11 +183,12 @@ impl Msg {
             ExpectedClassElement(ref token) =>
                 format!("field or method expected but got {}.", token),
             RedundantModifier(ref token) => format!("redundant modifier {}.", token),
-            UnknownChar(ch) => format!("unknown character {} (codepoint {})", ch, ch as usize),
-            UnclosedComment => "unclosed comment".into(),
-            InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`", ch),
-            UnclosedString => "unclosed string".into(),
-            IoError => "error reading from file".into(),
+            UnknownChar(ch) => format!("unknown character {} (codepoint {}).", ch, ch as usize),
+            UnclosedComment => "unclosed comment.".into(),
+            InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),
+            UnclosedString => "unclosed string.".into(),
+            IoError => "error reading from file.".into(),
+            MissingFctBody => "missing function body.".into(),
         }
     }
 }

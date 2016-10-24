@@ -130,6 +130,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         let fct = Fct {
             id: FctId(0),
+            pos: f.pos,
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
@@ -153,6 +154,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_method(&mut self, f: &'ast ast::Function) {
         let fct = Fct {
             id: FctId(0),
+            pos: f.pos,
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
