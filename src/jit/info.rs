@@ -18,7 +18,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &Fct<'ast>,
     let mut ig = InfoGenerator {
         ctxt: ctxt,
         fct: fct,
-        ast: src.ast,
+        ast: fct.ast,
         src: src,
 
         localsize: 0,

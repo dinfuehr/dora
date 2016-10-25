@@ -44,6 +44,10 @@ pub extern "C" fn print(val: Handle<Str>) {
     };
 }
 
+pub extern "C" fn zero() -> i32 {
+    0
+}
+
 pub extern "C" fn println(val: Handle<Str>) {
     print(val);
     println!("");

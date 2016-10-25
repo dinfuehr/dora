@@ -25,7 +25,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     let mut src = src.lock().unwrap();
     if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
 
-    let ast = src.ast;
+    let ast = fct.ast;
 
     let jit_fct = CodeGen {
         ctxt: ctxt,

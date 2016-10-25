@@ -20,11 +20,11 @@ use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub static mut ctxt_ptr: Option<Ptr> = None;
+pub static mut CTXT: Option<Ptr> = None;
 
 pub fn get_ctxt() -> &'static Context<'static> {
     unsafe {
-        &*(ctxt_ptr.unwrap().raw() as *const Context)
+        &*(CTXT.unwrap().raw() as *const Context)
     }
 }
 
@@ -77,7 +77,7 @@ impl<'ast> Context<'ast> {
         fct.id = fctid;
 
         if fct.kind.is_src() {
-            assert!(self.fct_defs.insert(fct.kind.src().ast.id, fctid).is_none());
+            assert!(self.fct_defs.insert(fct.ast.id, fctid).is_none());
         }
 
         self.fcts.push(fct);
@@ -179,6 +179,7 @@ pub struct FctId(pub usize);
 #[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
+    pub ast: &'ast ast::Function,
     pub pos: Position,
     pub name: Name,
     pub owner_class: Option<ClassId>,
@@ -265,16 +266,7 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn pos(&self) -> Position {
-        let src = self.is_src();
-
-        if src {
-            let src = self.src();
-            let src = src.lock().unwrap();
-
-            src.ast.pos
-        } else {
-            Position::new(1, 1)
-        }
+        self.ast.pos
     }
 
     pub fn src(&self) -> Arc<Mutex<FctSrc<'ast>>> {
@@ -330,7 +322,6 @@ impl<'ast> FctKind<'ast> {
 
 #[derive(Debug)]
 pub struct FctSrc<'ast> {
-    pub ast: &'ast ast::Function,
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub storage: HashMap<ast::NodeId, Store>,
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
@@ -347,9 +338,8 @@ pub struct FctSrc<'ast> {
 }
 
 impl<'ast> FctSrc<'ast> {
-    pub fn new(ast: &'ast ast::Function) -> FctSrc<'ast> {
+    pub fn new() -> FctSrc<'ast> {
         FctSrc {
-            ast: ast,
             calls: HashMap::new(),
             storage: HashMap::new(),
             call_sites: HashMap::new(),

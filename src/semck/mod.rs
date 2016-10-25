@@ -1,7 +1,11 @@
+use libc;
+
 use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
-use ctxt::Context;
+use ctxt::{Context, FctKind};
 use error::msg::Msg;
+use mem::ptr::Ptr;
+use stdlib;
 use ty::BuiltinType;
 
 mod clsdefck;
@@ -57,9 +61,25 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // checks if function has a return value
     returnck::check(ctxt);
 
+    prelude_internal(ctxt);
+
     // check for internal functions or classes
     internalck(ctxt);
     return_on_error!(ctxt);
+}
+
+fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
+    let name = ctxt.interner.intern("zero");
+    let fctid = ctxt.sym.borrow().get_fct(name);
+
+    if let Some(fctid) = fctid {
+        let fct = ctxt.fct_by_id_mut(fctid);
+
+        if fct.internal {
+            fct.kind = FctKind::Builtin(Ptr::new(stdlib::zero as *mut libc::c_void));
+            fct.internal = false;
+        }
+    }
 }
 
 fn internalck<'ast>(ctxt: &Context<'ast>) {

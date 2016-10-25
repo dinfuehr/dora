@@ -18,7 +18,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 
         let src = fct.src();
         let mut src = src.lock().unwrap();
-        let ast = src.ast;
+        let ast = fct.ast;
 
         let mut nameck = NameCheck {
             ctxt: ctxt,
@@ -55,7 +55,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     pub fn add_hidden_parameter_self(&mut self) {
         let cls_id = self.fct.owner_class.unwrap();
-        let ast_id = self.src.ast.id;
+        let ast_id = self.fct.ast.id;
         let name = self.ctxt.interner.intern("self");
 
         let var = Var {

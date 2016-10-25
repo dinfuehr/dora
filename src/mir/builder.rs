@@ -31,10 +31,12 @@ impl<'a, 'ast> Builder<'a, 'ast> {
     }
 
     fn generate(&mut self) -> Result<(), ()> {
-        let src = self.fct.src();
-        let src = src.lock().unwrap();
+        // let src = self.fct.src();
+        // let src = src.lock().unwrap();
+        //
+        // self.stmt(self.fct.block())
 
-        self.stmt(src.ast.block())
+        Ok(())
     }
 
     fn stmt(&mut self, stmt: &Stmt) -> Result<(), ()> {

@@ -2,7 +2,7 @@ use std;
 use libc::*;
 
 use cpu::{self, REG_RESULT};
-use ctxt::{Context, ctxt_ptr, get_ctxt};
+use ctxt::{Context, CTXT, get_ctxt};
 use execstate::ExecState;
 use jit;
 use mem::ptr::Ptr;
@@ -12,7 +12,7 @@ use os_cpu::*;
 pub fn register_signals(ctxt: &Context) {
     unsafe {
         let ptr = Ptr::new(ctxt as *const Context as *mut c_void);
-        ctxt_ptr = Some(ptr);
+        CTXT = Some(ptr);
 
         let mut sa: sigaction = std::mem::uninitialized();
 

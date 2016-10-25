@@ -12,6 +12,35 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
     for id in 0..last {
         let id = FctId(id);
 
+        let ast = {
+            let fct = ctxt.fct_by_id(id);
+            if !fct.is_src() && !fct.kind.is_definition() { continue; }
+
+            fct.ast
+        };
+
+        {
+            for p in &ast.params {
+                let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
+
+                let fct = ctxt.fct_by_id_mut(id);
+                fct.params_types.push(ty);
+
+                if fct.is_src() {
+                    let src = fct.src();
+                    let mut src = src.lock().unwrap();
+
+                    src.vars[p.var()].ty = ty;
+                }
+            }
+
+            if let Some(ret) = ast.return_type.as_ref() {
+                let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
+                let fct = ctxt.fct_by_id_mut(id);
+                fct.return_type = ty;
+            }
+        }
+
         let src = {
             let fct = ctxt.fct_by_id(id);
             if !fct.is_src() { continue; }
@@ -20,8 +49,6 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
         };
 
         let mut src = src.lock().unwrap();
-
-        let ast = src.ast;
 
         let mut defck = FctDefCheck {
             ctxt: ctxt,
@@ -78,7 +105,7 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 
                     let msg = Msg::MethodExists(
                         cls_name, method_name,
-                        param_names, method.kind.src().ast.pos);
+                        param_names, method.pos);
                     self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
                     return;
                 }
@@ -89,24 +116,7 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
-        for p in &f.params {
-            self.visit_param(p);
-        }
-
-        if let Some(ref ty) = f.return_type {
-            self.visit_type(ty);
-            self.fct_mut().return_type = self.current_type;
-        }
-
         self.visit_stmt(f.block());
-    }
-
-    fn visit_param(&mut self, p: &'ast Param) {
-        self.visit_type(&p.data_type);
-
-        let ty = self.current_type;
-        self.fct_mut().params_types.push(ty);
-        self.src.vars[p.var()].ty = ty;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {

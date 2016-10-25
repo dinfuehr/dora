@@ -1,8 +1,8 @@
 fun main() {
-  let result = 1 + zero();
+  let result = 1 + myzero();
   assert(result == 1);
 }
 
-fun zero() -> int {
+fun myzero() -> int {
   return 0;
 }

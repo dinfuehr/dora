@@ -131,6 +131,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         let fct = Fct {
             id: FctId(0),
             pos: f.pos,
+            ast: f,
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,
@@ -144,7 +145,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             ctor: f.ctor,
             vtable_index: None,
             initialized: false,
-            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
+            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new()))),
         };
 
         let fctid = self.ctxt.add_fct(fct);
@@ -154,6 +155,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_method(&mut self, f: &'ast ast::Function) {
         let fct = Fct {
             id: FctId(0),
+            ast: f,
             pos: f.pos,
             name: f.name,
             params_types: Vec::new(),
@@ -168,7 +170,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             ctor: None,
             vtable_index: None,
             initialized: false,
-            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f)))),
+            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new()))),
         };
 
         let fctid = self.ctxt.add_fct(fct);

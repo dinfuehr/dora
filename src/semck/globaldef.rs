@@ -52,7 +52,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
-            FctKind::Source(Arc::new(Mutex::new(FctSrc::new(f))))
+            FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
         } else {
             FctKind::Definition
         };
@@ -60,6 +60,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let fct = Fct {
             id: FctId(0),
             pos: f.pos,
+            ast: f,
             name: f.name,
             params_types: Vec::new(),
             return_type: BuiltinType::Unit,

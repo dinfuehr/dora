@@ -85,7 +85,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
 
             // exception can only bubble up in stacktrace if current function
             // is allowed to throw exceptions
-            if !src.ast.throws {
+            if !fct.ast.throws {
                 return HandlerFound::Stop;
             }
         }

@@ -5,3 +5,5 @@ fun abs(val: int) -> int {
     return -val;
   }
 }
+
+internal fun zero() -> int;

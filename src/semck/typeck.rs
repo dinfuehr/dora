@@ -17,7 +17,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
         let src = fct.src();
         let mut src = src.lock().unwrap();
-        let ast = src.ast;
+        let ast = fct.ast;
 
         let mut typeck = TypeCheck {
             ctxt: ctxt,

@@ -122,7 +122,7 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
 
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
         || fct.params_types.len() > 0 {
-        let pos = fct.kind.src().ast.pos;
+        let pos = fct.ast.pos;
         ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
         return None;
     }
