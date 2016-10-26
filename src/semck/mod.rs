@@ -72,6 +72,12 @@ fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
     internal_fct(ctxt, "zero", stdlib::zero as *const u8);
     internal_fct(ctxt, "print", stdlib::print as *const u8);
     internal_fct(ctxt, "println", stdlib::println as *const u8);
+    internal_fct(ctxt, "assert", stdlib::assert as *const u8);
+    internal_fct(ctxt, "argc", stdlib::argc as *const u8);
+    internal_fct(ctxt, "argv", stdlib::argv as *const u8);
+    internal_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
+    internal_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *const u8);
+    internal_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *const u8);
 }
 
 fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {

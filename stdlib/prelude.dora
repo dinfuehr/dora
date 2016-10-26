@@ -9,3 +9,9 @@ fun abs(val: int) -> int {
 internal fun zero() -> int;
 internal fun print(text: Str);
 internal fun println(text: Str);
+internal fun assert(val: bool);
+internal fun argc() -> int;
+internal fun argv(idx: int) -> Str;
+internal fun forceCollect();
+internal fun intArrayWith(len: int, val: int) -> IntArray;
+internal fun emptyIntArray() -> IntArray;

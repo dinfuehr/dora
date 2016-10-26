@@ -254,27 +254,6 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId,
 fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
     builtin_function("shl", vec![BuiltinType::Int, BuiltinType::Int], BuiltinType::Int,
         ctxt, FctKind::Intrinsic, definition);
-
-    builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
-        ctxt, FctKind::Builtin(Ptr::new(stdlib::assert as *mut c_void)), definition);
-
-    builtin_function("argc", vec![], BuiltinType::Int, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::argc as *mut c_void)), definition);
-
-    builtin_function("argv", vec![BuiltinType::Int], BuiltinType::Str, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::argv as *mut c_void)), definition);
-
-    builtin_function("forceCollect", vec![], BuiltinType::Unit, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::gc_collect as *mut c_void)), definition);
-
-    builtin_function("intArrayWith", vec![BuiltinType::Int, BuiltinType::Int],
-        BuiltinType::IntArray, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::ctor_int_array_elem as *mut c_void)),
-        definition);
-
-    builtin_function("emptyIntArray", vec![], BuiltinType::IntArray, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::ctor_int_array_empty as *mut c_void)),
-        definition);
 }
 
 fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
