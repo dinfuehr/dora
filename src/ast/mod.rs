@@ -36,17 +36,17 @@ impl Ast {
 
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.files[0].elements[0].to_function().unwrap()
+        self.files.last().unwrap().elements[0].to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.files[0].elements[index].to_function().unwrap()
+        self.files.last().unwrap().elements[index].to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.files[0].elements[0].to_class().unwrap()
+        self.files.last().unwrap().elements[0].to_class().unwrap()
     }
 }
 

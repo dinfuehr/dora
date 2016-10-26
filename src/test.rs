@@ -23,6 +23,12 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&C
     let args : Args = Default::default();
 
     {
+        let mut parser = Parser::from_file("stdlib/prelude.dora",
+                                           &mut ast, &mut interner).unwrap();
+        parser.parse().unwrap()
+    }
+
+    {
         let mut parser = Parser::from_str(code, &mut ast, &mut interner);
         parser.parse().unwrap()
     }

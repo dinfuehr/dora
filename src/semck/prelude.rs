@@ -258,12 +258,6 @@ fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::
     builtin_function("assert", vec![BuiltinType::Bool], BuiltinType::Unit,
         ctxt, FctKind::Builtin(Ptr::new(stdlib::assert as *mut c_void)), definition);
 
-    builtin_function("print", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::print as *mut c_void)), definition);
-
-    builtin_function("println", vec![BuiltinType::Str], BuiltinType::Unit, ctxt,
-        FctKind::Builtin(Ptr::new(stdlib::println as *mut c_void)), definition);
-
     builtin_function("argc", vec![], BuiltinType::Int, ctxt,
         FctKind::Builtin(Ptr::new(stdlib::argc as *mut c_void)), definition);
 

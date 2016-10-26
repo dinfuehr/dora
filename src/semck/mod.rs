@@ -69,14 +69,20 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
-    let name = ctxt.interner.intern("zero");
+    internal_fct(ctxt, "zero", stdlib::zero as *const u8);
+    internal_fct(ctxt, "print", stdlib::print as *const u8);
+    internal_fct(ctxt, "println", stdlib::println as *const u8);
+}
+
+fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
+    let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.borrow().get_fct(name);
 
     if let Some(fctid) = fctid {
         let fct = ctxt.fct_by_id_mut(fctid);
 
         if fct.internal {
-            fct.kind = FctKind::Builtin(Ptr::new(stdlib::zero as *mut libc::c_void));
+            fct.kind = FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void));
             fct.internal = false;
         }
     }
