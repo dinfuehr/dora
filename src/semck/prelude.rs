@@ -50,7 +50,6 @@ pub fn init<'ast>(ctxt: &mut Context<'ast>) {
     };
 
     add_builtin_classes(ctxt, fct);
-    add_builtin_functions(ctxt, fct);
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
@@ -249,39 +248,6 @@ fn add_method<'ast>(ctxt: &mut Context<'ast>, cls_id: ClassId,
     };
 
     ctxt.add_fct(fct)
-}
-
-fn add_builtin_functions<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
-    builtin_function("shl", vec![BuiltinType::Int, BuiltinType::Int], BuiltinType::Int,
-        ctxt, FctKind::Intrinsic, definition);
-}
-
-fn builtin_function<'ast>(name: &str, args: Vec<BuiltinType>, ret: BuiltinType,
-                    ctxt: &mut Context<'ast>, kind: FctKind<'ast>,
-                    definition: &'ast ast::Function) {
-    let name = ctxt.interner.intern(name);
-
-    let fct = Fct {
-        id: FctId(0),
-        pos: Position::new(1, 1),
-        ast: definition,
-        name: name,
-        params_types: args,
-        return_type: ret,
-        owner_class: None,
-        has_override: false,
-        has_open: false,
-        has_final: false,
-        internal: false,
-        overrides: None,
-        throws: false,
-        ctor: None,
-        vtable_index: None,
-        initialized: true,
-        kind: kind,
-    };
-
-    assert!(ctxt.add_fct_to_sym(fct).is_ok());
 }
 
 #[cfg(test)]

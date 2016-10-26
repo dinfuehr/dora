@@ -69,18 +69,27 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
-    internal_fct(ctxt, "zero", stdlib::zero as *const u8);
-    internal_fct(ctxt, "print", stdlib::print as *const u8);
-    internal_fct(ctxt, "println", stdlib::println as *const u8);
-    internal_fct(ctxt, "assert", stdlib::assert as *const u8);
-    internal_fct(ctxt, "argc", stdlib::argc as *const u8);
-    internal_fct(ctxt, "argv", stdlib::argv as *const u8);
-    internal_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
-    internal_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *const u8);
-    internal_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *const u8);
+    native_fct(ctxt, "zero", stdlib::zero as *const u8);
+    native_fct(ctxt, "print", stdlib::print as *const u8);
+    native_fct(ctxt, "println", stdlib::println as *const u8);
+    native_fct(ctxt, "assert", stdlib::assert as *const u8);
+    native_fct(ctxt, "argc", stdlib::argc as *const u8);
+    native_fct(ctxt, "argv", stdlib::argv as *const u8);
+    native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
+    native_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *const u8);
+    native_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *const u8);
+    intrinsic_fct(ctxt, "shl");
 }
 
-fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
+fn native_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
+    internal_fct(ctxt, name, FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void)));
+}
+
+fn intrinsic_fct<'ast>(ctxt: &mut Context<'ast>, name: &str) {
+    internal_fct(ctxt, name, FctKind::Intrinsic);
+}
+
+fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind<'ast>) {
     let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.borrow().get_fct(name);
 
@@ -88,7 +97,7 @@ fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
         let fct = ctxt.fct_by_id_mut(fctid);
 
         if fct.internal {
-            fct.kind = FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void));
+            fct.kind = kind;
             fct.internal = false;
         }
     }
