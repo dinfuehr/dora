@@ -69,7 +69,6 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
-    native_fct(ctxt, "zero", stdlib::zero as *const u8);
     native_fct(ctxt, "print", stdlib::print as *const u8);
     native_fct(ctxt, "println", stdlib::println as *const u8);
     native_fct(ctxt, "assert", stdlib::assert as *const u8);

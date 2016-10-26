@@ -6,7 +6,6 @@ fun abs(val: int) -> int {
   }
 }
 
-internal fun zero() -> int;
 internal fun print(text: Str);
 internal fun println(text: Str);
 internal fun assert(val: bool);
