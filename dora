@@ -1,4 +1,4 @@
 #!/bin/sh
 
-cargo build --release
-time target/release/dora $@
+cargo build
+target/debug/dora $@

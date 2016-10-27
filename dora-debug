@@ -1,4 +1,0 @@
-#!/bin/sh
-
-cargo build
-target/debug/dora $@
