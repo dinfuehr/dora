@@ -92,10 +92,24 @@ fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
     native_method(ctxt, clsid, "len", stdlib::str_len as *const u8);
     native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
 
+    let clsid = ctxt.primitive_classes.int_array;
+    intrinsic_method(ctxt, clsid, "len");
+    intrinsic_method(ctxt, clsid, "get");
+    intrinsic_method(ctxt, clsid, "set");
+
     intrinsic_fct(ctxt, "shl");
 }
 
 fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+    internal_method(ctxt, clsid, name, FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void)));
+}
+
+fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str) {
+    internal_method(ctxt, clsid, name, FctKind::Intrinsic);
+}
+
+fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str,
+                         kind: FctKind<'ast>) {
     let methods = ctxt.cls_by_id(clsid).methods.clone();
     let name = ctxt.interner.intern(name);
 
@@ -103,7 +117,7 @@ fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fct
       let mtd = ctxt.fct_by_id_mut(*mid);
 
       if mtd.name == name && mtd.internal {
-        mtd.kind = FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void));
+        mtd.kind = kind;
         mtd.internal = false;
         break;
       }
@@ -117,6 +131,8 @@ fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
         internal_class(ctxt, "bool", BuiltinType::Bool, BuiltinType::Bool.size());
     ctxt.primitive_classes.str_class =
         internal_class(ctxt, "Str", BuiltinType::Str, 0);
+    ctxt.primitive_classes.int_array =
+        internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>, name: &str,

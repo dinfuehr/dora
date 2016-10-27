@@ -29,3 +29,9 @@ internal class Str {
   internal fun len() -> int;
   internal fun parseInt() -> int;
 }
+
+internal class IntArray {
+  internal fun len() -> int;
+  internal fun get(idx: int) -> int;
+  internal fun set(idx: int, val: int);
+}

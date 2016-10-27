@@ -81,10 +81,6 @@ pub extern "C" fn ctor_int_array_elem(len: i32, value: i32) -> Handle<IntArray> 
     IntArray::alloc_with_elem(len as usize, value)
 }
 
-pub extern "C" fn int_array_len(array: Handle<IntArray>) -> i32 {
-    array.len() as i32
-}
-
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
     s.len() as i32
 }
