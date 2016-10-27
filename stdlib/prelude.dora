@@ -24,3 +24,8 @@ internal class bool {
   internal fun toInt() -> int;
   internal fun toString() -> Str;
 }
+
+internal class Str {
+  internal fun len() -> int;
+  internal fun parseInt() -> int;
+}

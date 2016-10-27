@@ -1,7 +1,3 @@
-use libc::c_void;
-
-use stdlib;
-
 use ast;
 use ctxt::*;
 use class::*;
@@ -53,44 +49,7 @@ pub fn init<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
-    add_class_str(ctxt, definition);
     add_class_int_array(ctxt, definition);
-}
-
-fn add_class_str<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
-    let cls_id: ClassId = ctxt.classes.len().into();
-    let cls_name = ctxt.interner.intern("Str");
-
-    let mtd_len = add_method(ctxt, cls_id, "len", Vec::new(),
-        BuiltinType::Int,
-        FctKind::Builtin(Ptr::new(stdlib::str_array_len as *mut c_void)),
-        definition);
-
-    let mtd_parse = add_method(ctxt, cls_id, "parseInt", Vec::new(),
-        BuiltinType::Int,
-        FctKind::Builtin(Ptr::new(stdlib::parse as *mut c_void)),
-        definition);
-
-    let cls = Box::new(Class {
-        id: cls_id,
-        name: cls_name,
-        ty: BuiltinType::Str,
-        parent_class: None,
-        has_open: false,
-        internal: false,
-        ctors: Vec::new(),
-        fields: Vec::new(),
-        methods: vec![mtd_len, mtd_parse],
-        size: 0,
-        ast: None,
-        vtable: None,
-    });
-
-    ctxt.primitive_classes.str_class = cls_id;
-    ctxt.classes.push(cls);
-
-    let sym = SymClass(cls_id);
-    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
 }
 
 fn add_class_int_array<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {

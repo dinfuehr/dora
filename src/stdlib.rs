@@ -85,7 +85,7 @@ pub extern "C" fn int_array_len(array: Handle<IntArray>) -> i32 {
     array.len() as i32
 }
 
-pub extern "C" fn str_array_len(s: Handle<Str>) -> i32 {
+pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
     s.len() as i32
 }
 
@@ -113,7 +113,7 @@ pub extern "C" fn argv(ind: i32) -> Handle<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn parse(val: Handle<Str>) -> i32 {
+pub extern "C" fn str_parse_int(val: Handle<Str>) -> i32 {
     let slice = unsafe { slice::from_raw_parts(val.data(), val.len()) };
     let val = str::from_utf8(slice).unwrap();
 
