@@ -2,6 +2,7 @@ use libc;
 
 use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
+use class::ClassId;
 use ctxt::{Context, FctKind};
 use error::msg::Msg;
 use mem::ptr::Ptr;
@@ -32,6 +33,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // this check does not look into fct or class bodies
     globaldef::check(ctxt);
     return_on_error!(ctxt);
+
+    internal_class(ctxt);
 
     // checks class definitions/bodies
     clsdefck::check(ctxt);
@@ -77,7 +80,48 @@ fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
     native_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *const u8);
     native_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *const u8);
+
+    let clsid = ctxt.primitive_classes.int_class;
+    native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
+
     intrinsic_fct(ctxt, "shl");
+
+}
+
+fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+    let methods = ctxt.cls_by_id(clsid).methods.clone();
+    let name = ctxt.interner.intern(name);
+
+    for mid in &methods {
+      let mtd = ctxt.fct_by_id_mut(*mid);
+
+      if mtd.name == name && mtd.internal {
+        mtd.kind = FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void));
+        mtd.internal = false;
+        break;
+      }
+    }
+}
+
+fn internal_class<'ast>(ctxt: &mut Context<'ast>) {
+    let name = ctxt.interner.intern("int");
+    let clsid = ctxt.sym.borrow().get_class(name);
+
+    if let Some(clsid) = clsid {
+        {
+            let cls = ctxt.cls_by_id_mut(clsid);
+
+            if cls.internal {
+                cls.ty = BuiltinType::Int;
+                cls.size = BuiltinType::Int.size();
+                cls.internal = false;
+            }
+        }
+
+        ctxt.primitive_classes.int_class = clsid;
+    } else {
+        panic!("class int not found!");
+    }
 }
 
 fn native_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {

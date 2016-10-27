@@ -153,8 +153,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.parse_class_body(&mut cls));
 
-        let ctor = self.generate_ctor(&mut cls);
-        cls.ctors.push(ctor);
+        // only generate ctors for 'normal' classes
+        if !cls.internal {
+            let ctor = self.generate_ctor(&mut cls);
+            cls.ctors.push(ctor);
+        }
 
         self.in_class = false;
 
@@ -228,7 +231,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             match self.token.token_type {
                 TokenType::Fun => {
-                    let mods = &[Modifier::Open, Modifier::Override, Modifier::Final];
+                    let mods = &[Modifier::Internal, Modifier::Open, Modifier::Override, Modifier::Final];
                     try!(self.restrict_modifiers(&modifiers, mods));
 
                     let fct = try!(self.parse_function(&modifiers));

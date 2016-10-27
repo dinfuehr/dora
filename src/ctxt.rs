@@ -109,6 +109,18 @@ impl<'ast> Context<'ast> {
         &mut self.fcts[id]
     }
 
+    #[cfg(test)]
+    pub fn fct_by_name(&self, name: &str) -> Option<&Fct<'ast>> {
+        let name = self.interner.intern(name);
+        let fctid = self.sym.borrow().get_fct(name);
+
+        if let Some(fctid) = fctid {
+            Some(self.fct_by_id(fctid))
+        } else {
+            None
+        }
+    }
+
     pub fn field(&self, cid: ClassId, fid: FieldId) -> &Field {
         &self.classes[cid].fields[fid]
     }
