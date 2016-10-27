@@ -34,7 +34,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     globaldef::check(ctxt);
     return_on_error!(ctxt);
 
-    internal_class(ctxt);
+    internal_classes(ctxt);
 
     // checks class definitions/bodies
     clsdefck::check(ctxt);
@@ -85,7 +85,6 @@ fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
     intrinsic_fct(ctxt, "shl");
-
 }
 
 fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
@@ -103,8 +102,12 @@ fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fct
     }
 }
 
-fn internal_class<'ast>(ctxt: &mut Context<'ast>) {
-    let name = ctxt.interner.intern("int");
+fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
+    ctxt.primitive_classes.int_class = internal_class(ctxt, "int", BuiltinType::Int);
+}
+
+fn internal_class<'ast>(ctxt: &mut Context<'ast>, name: &str, ty: BuiltinType) -> ClassId {
+    let name = ctxt.interner.intern(name);
     let clsid = ctxt.sym.borrow().get_class(name);
 
     if let Some(clsid) = clsid {
@@ -112,13 +115,13 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>) {
             let cls = ctxt.cls_by_id_mut(clsid);
 
             if cls.internal {
-                cls.ty = BuiltinType::Int;
-                cls.size = BuiltinType::Int.size();
+                cls.ty = ty;
+                cls.size = ty.size();
                 cls.internal = false;
             }
         }
 
-        ctxt.primitive_classes.int_class = clsid;
+        clsid
     } else {
         panic!("class int not found!");
     }
