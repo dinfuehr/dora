@@ -53,45 +53,8 @@ pub fn init<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn add_builtin_classes<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
-    add_class_bool(ctxt, definition);
     add_class_str(ctxt, definition);
     add_class_int_array(ctxt, definition);
-}
-
-fn add_class_bool<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {
-    let cls_id: ClassId = ctxt.classes.len().into();
-    let cls_name = ctxt.interner.intern("bool");
-
-    let mtd_tos = add_method(ctxt, cls_id, "toString", Vec::new(),
-        BuiltinType::Str,
-        FctKind::Builtin(Ptr::new(stdlib::bool_to_string as *mut c_void)),
-        definition);
-
-    let mtd_toi = add_method(ctxt, cls_id, "toInt", Vec::new(),
-        BuiltinType::Int,
-        FctKind::Builtin(Ptr::new(stdlib::bool_to_int as *mut c_void)),
-        definition);
-
-    let cls = Box::new(Class {
-        id: cls_id,
-        name: cls_name,
-        ty: BuiltinType::Bool,
-        parent_class: None,
-        has_open: false,
-        internal: false,
-        ctors: Vec::new(),
-        fields: Vec::new(),
-        methods: vec![mtd_tos, mtd_toi],
-        size: BuiltinType::Bool.size(),
-        ast: None,
-        vtable: None,
-    });
-
-    ctxt.classes.push(cls);
-    ctxt.primitive_classes.bool_class = cls_id;
-
-    let sym = SymClass(cls_id);
-    assert!(ctxt.sym.borrow_mut().insert(cls_name, sym).is_none());
 }
 
 fn add_class_str<'ast>(ctxt: &mut Context<'ast>, definition: &'ast ast::Function) {

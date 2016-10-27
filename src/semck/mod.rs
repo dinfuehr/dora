@@ -84,6 +84,10 @@ fn prelude_internal<'ast>(ctxt: &mut Context<'ast>) {
     let clsid = ctxt.primitive_classes.int_class;
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
+    let clsid = ctxt.primitive_classes.bool_class;
+    native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *const u8);
+    native_method(ctxt, clsid, "toString", stdlib::bool_to_string as *const u8);
+
     intrinsic_fct(ctxt, "shl");
 }
 
@@ -104,6 +108,7 @@ fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fct
 
 fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.int_class = internal_class(ctxt, "int", BuiltinType::Int);
+    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>, name: &str, ty: BuiltinType) -> ClassId {
