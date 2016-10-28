@@ -153,8 +153,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.parse_class_body(&mut cls));
 
-        // only generate ctors for 'normal' classes
-        if !cls.internal {
+        // do not generate ctors for internal classes
+        // add ctor if either there are primary ctor params or no ctors exist yet
+        if !cls.internal && (cls.ctor_params.len() > 0 || cls.ctors.is_empty()) {
             let ctor = self.generate_ctor(&mut cls);
             cls.ctors.push(ctor);
         }
@@ -231,11 +232,19 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             match self.token.token_type {
                 TokenType::Fun => {
-                    let mods = &[Modifier::Internal, Modifier::Open, Modifier::Override, Modifier::Final];
+                    let mods = &[Modifier::Internal, Modifier::Open,
+                                 Modifier::Override, Modifier::Final];
                     try!(self.restrict_modifiers(&modifiers, mods));
 
                     let fct = try!(self.parse_function(&modifiers));
                     cls.methods.push(fct);
+                }
+
+                TokenType::Init => {
+                    try!(self.ban_modifiers(&modifiers));
+
+                    let ctor = try!(self.parse_ctor(cls));
+                    cls.ctors.push(ctor);
                 }
 
                 TokenType::Var
@@ -295,6 +304,28 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
 
         Ok(())
+    }
+
+    fn parse_ctor(&mut self, cls: &Class) -> Result<Function, MsgWithPos> {
+        let pos = try!(self.expect_token(TokenType::Init)).position;
+        let params = try!(self.parse_function_params());
+        let block = try!(self.parse_function_block());
+
+        Ok(Function {
+            id: self.generate_id(),
+            pos: pos,
+            name: cls.name,
+            method: true,
+            has_open: false,
+            has_override: false,
+            has_final: false,
+            internal: false,
+            ctor: Some(CtorType::Secondary),
+            params: params,
+            throws: false,
+            return_type: Some(self.build_type(cls.name)),
+            block: block
+        })
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -2240,5 +2271,12 @@ mod tests {
         let (prog, _) = parse("internal class Foo {}");
         let cls = prog.cls0();
         assert!(cls.internal);
+    }
+
+    #[test]
+    fn parse_ctor() {
+        let (prog, _) = parse("class X { init() {} }");
+        let cls = prog.cls0();
+        assert_eq!(1, cls.ctors.len());
     }
 }

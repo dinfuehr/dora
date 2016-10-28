@@ -35,6 +35,7 @@ pub enum TokenType {
     Catch,
     Finally,
     Final,
+    Init,
 
     Enum,
     Type,
@@ -118,6 +119,7 @@ impl TokenType {
             TokenType::Catch => "catch",
             TokenType::Finally => "finally",
             TokenType::Final => "final",
+            TokenType::Init => "init",
 
             TokenType::Enum => "enum",
             TokenType::Type => "type",
