@@ -623,7 +623,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Callee::Ptr(ptr) => {
                 self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
             }
-        };
+        }
+
+        if csite.args.len() > 0 {
+            if let Arg::SelfieNew(_, _) = csite.args[0] {
+                let (ty, offset) = temps[0];
+                emit::mov_local_reg(self.buf, ty.mode(), offset, dest);
+            }
+        }
 
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);

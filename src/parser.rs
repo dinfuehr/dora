@@ -323,7 +323,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             ctor: Some(CtorType::Secondary),
             params: params,
             throws: false,
-            return_type: Some(self.build_type(cls.name)),
+            return_type: None,
             block: block
         })
     }
@@ -1077,13 +1077,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             self.build_stmt_expr(ass)
         }).collect();
 
-        let this = self.build_this();
-        let ret = vec![self.build_return(Some(this))];
-
         let assignments = super_ctor.into_iter()
                             .chain(param_assignments.into_iter())
-                            .chain(field_assignments.into_iter())
-                            .chain(ret.into_iter()).collect();
+                            .chain(field_assignments.into_iter()).collect();
 
         let params = cls.ctor_params.iter().enumerate().map(|(idx, field)| {
             self.build_param(idx as u32, field.name, field.data_type.clone())
@@ -1101,7 +1097,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
-            return_type: Some(self.build_type(cls.name)),
+            return_type: None,
             block: Some(self.build_block(assignments))
         }
     }
@@ -1159,16 +1155,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: name,
             info: RefCell::new(None),
             ty: RefCell::new(None),
-        }))
-    }
-
-    fn build_return(&mut self, expr: Option<Box<Expr>>) -> Box<Stmt> {
-        let id = self.generate_id();
-
-        Box::new(Stmt::StmtReturn(StmtReturnType {
-            id: id,
-            pos: Position::new(1, 1),
-            expr: expr,
         }))
     }
 
