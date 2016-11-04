@@ -21,9 +21,6 @@ Dora uses [cargo](http://crates.io) for building, which is bundled with Rust:
 rustup update nightly-2016-10-21
 rustup override set nightly-2016-10-21
 
-cargo build
-cargo test # runs tests
-
-./test # builds + runs unit tests + runs test suite
-./test-release # builds release mode + runs unit tests + runs test suite
+# run all tests in debug and release mode
+./test && ./test-release
 ```
