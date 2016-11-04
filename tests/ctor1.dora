@@ -1,0 +1,9 @@
+//= output "xyz"
+
+class X {
+    init(msg: Str) { print(msg); }
+}
+
+fun main() {
+    X("xyz");
+}

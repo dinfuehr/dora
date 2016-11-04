@@ -2264,5 +2264,14 @@ mod tests {
         let (prog, _) = parse("class X { init() {} }");
         let cls = prog.cls0();
         assert_eq!(1, cls.ctors.len());
+        assert_eq!(0, cls.ctors[0].params.len());
+    }
+
+    #[test]
+    fn parse_ctor_with_params() {
+        let (prog, _) = parse("class X { init(a: int, b: int) {} }");
+        let cls = prog.cls0();
+        assert_eq!(1, cls.ctors.len());
+        assert_eq!(2, cls.ctors[0].params.len());
     }
 }
