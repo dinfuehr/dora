@@ -1,0 +1,16 @@
+class X {
+    var ma : int;
+    var mb : int;
+
+    init(a: int, b: int) {
+        ma = a;
+        mb = b;
+    }
+}
+
+fun main() {
+    let x = X(2, 4);
+
+    assert(x.ma == 2);
+    assert(x.mb == 4);
+}
