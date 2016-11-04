@@ -1,0 +1,22 @@
+fun main() {
+    let x1 = X(1, 3);
+    let x2 = X();
+
+    assert(x1.a == x2.b);
+    assert(x1.b == x2.a);
+}
+
+class X {
+    var a: int;
+    var b: int;
+
+    init(a: int, b: int) {
+        self.a = a;
+        self.b = b;
+    }
+
+    init() {
+        self.a = 3;
+        self.b = 1;
+    }
+}
