@@ -153,7 +153,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.parse_class_body(&mut cls));
 
-        self.add_field_initializers_to_ctors(&mut cls);
+        // add initializers to all ctors only if no primary ctor was added
+        if cls.ctor_params.len() == 0 {
+            self.add_field_initializers_to_ctors(&mut cls);
+        }
 
         // do not generate ctors for internal classes
         // add ctor if either there are primary ctor params or no ctors exist yet
