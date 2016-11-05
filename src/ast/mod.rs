@@ -48,6 +48,11 @@ impl Ast {
     pub fn cls0(&self) -> &Class {
         self.files.last().unwrap().elements[0].to_class().unwrap()
     }
+
+    #[cfg(test)]
+    pub fn cls(&self, index: usize) -> &Class {
+        self.files.last().unwrap().elements[index].to_class().unwrap()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -339,8 +344,10 @@ impl Function {
 
 #[derive(Clone, Debug)]
 pub struct Delegation {
+    pub id: NodeId,
+    pub pos: Position,
     pub this: bool, // true for this, false for super
-    pub params: Vec<Box<Expr>>,
+    pub args: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

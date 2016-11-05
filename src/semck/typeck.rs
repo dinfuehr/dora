@@ -595,14 +595,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn check_expr_self(&mut self, e: &'ast ExprSelfType) {
+    fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
         if let Some(clsid) = self.fct.owner_class {
             let ty = BuiltinType::Class(clsid);
             e.set_ty(ty);
             self.expr_type = ty;
 
         } else {
-            let msg = Msg::SelfUnavailable;
+            let msg = Msg::ThisUnavailable;
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
             e.set_ty(BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
@@ -706,7 +706,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprCall(ref expr) => self.check_expr_call(expr),
             ExprSuperCall(ref expr) => self.check_expr_super_call(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
-            ExprSelf(ref expr) => self.check_expr_self(expr),
+            ExprSelf(ref expr) => self.check_expr_this(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
             ExprIs(ref expr) => self.check_expr_is(expr),
@@ -845,7 +845,7 @@ mod tests {
     fn type_self() {
         ok("class Foo { fun me() -> Foo { return self; } }");
         err("class Foo fun me() { return self; }",
-            pos(1, 29), Msg::SelfUnavailable);
+            pos(1, 29), Msg::ThisUnavailable);
 
         ok("class Foo(let a: int, let b: int) {
             fun bar() -> int { return self.a + self.b; }

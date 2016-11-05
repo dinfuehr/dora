@@ -349,6 +349,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_ctor(&mut self, cls: &Class) -> Result<Function, MsgWithPos> {
         let pos = try!(self.expect_token(TokenType::Init)).position;
         let params = try!(self.parse_function_params());
+        let delegation = try!(self.parse_delegation());
         let block = try!(self.parse_function_block());
 
         Ok(Function {
@@ -360,13 +361,43 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: false,
             has_final: false,
             internal: false,
-            delegation: None,
+            delegation: delegation,
             ctor: Some(CtorType::Secondary),
             params: params,
             throws: false,
             return_type: None,
             block: block
         })
+    }
+
+    fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
+        if !self.token.is(TokenType::Colon) {
+            return Ok(None);
+        }
+
+        try!(self.expect_token(TokenType::Colon));
+
+        let this = self.token.is(TokenType::This);
+        let pos = self.token.position;
+
+        if !this && !self.token.is(TokenType::Super) {
+            let name = self.token.name();
+            return Err(MsgWithPos::new(pos, Msg::ThisOrSuperExpected(name)));
+        }
+
+        try!(self.read_token());
+        try!(self.expect_token(TokenType::LParen));
+
+        let args = try!(self.parse_comma_list(TokenType::RParen, |p| {
+            p.parse_expression()
+        }));
+
+        Ok(Some(Delegation {
+            id: self.generate_id(),
+            pos: pos,
+            this: this,
+            args: args
+        }))
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -981,7 +1012,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
-            TokenType::Selfie => self.parse_self(),
+            TokenType::This => self.parse_this(),
             _ => Err(MsgWithPos::new(self.token.position,
                      Msg::ExpectedFactor(self.token.name().clone())))
         }
@@ -1041,7 +1072,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(Box::new(Expr::create_lit_bool(self.generate_id(), tok.position, value)))
     }
 
-    fn parse_self(&mut self) -> ExprResult {
+    fn parse_this(&mut self) -> ExprResult {
         let tok = try!(self.read_token());
 
         Ok(Box::new(Expr::create_this(self.generate_id(), tok.position)))
@@ -2318,5 +2349,28 @@ mod tests {
         let cls = prog.cls0();
         assert_eq!(1, cls.ctors.len());
         assert_eq!(2, cls.ctors[0].params.len());
+    }
+
+    #[test]
+    fn parse_ctor_with_this_delegation() {
+        let (prog, _) = parse("class X(a: int) { init(a: int, b: int): self(a) {} }");
+        let cls = prog.cls0();
+        assert_eq!(2, cls.ctors.len());
+
+        let delegation = cls.ctors[0].delegation.as_ref().unwrap();
+        assert_eq!(true, delegation.this);
+        assert_eq!(1, delegation.args.len());
+    }
+
+    #[test]
+    fn parse_ctor_with_super_delegation() {
+        let (prog, _) = parse("class Y(a: int)
+                               class X: Y { init(a: int, b: int): super(a) {} }");
+        let cls = prog.cls(1);
+        assert_eq!(1, cls.ctors.len());
+
+        let delegation = cls.ctors[0].delegation.as_ref().unwrap();
+        assert_eq!(false, delegation.this);
+        assert_eq!(1, delegation.args.len());
     }
 }

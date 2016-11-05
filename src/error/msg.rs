@@ -35,7 +35,7 @@ pub enum Msg {
     NoReturnValue,
     MainNotFound,
     WrongMainDefinition,
-    SelfUnavailable,
+    ThisUnavailable,
     MultipleCandidates(String, String, Vec<String>),
     ReferenceTypeExpected(String),
     ThrowNil,
@@ -68,6 +68,7 @@ pub enum Msg {
     MisplacedModifier(String),
     InvalidEscapeSequence(char),
     MissingFctBody,
+    ThisOrSuperExpected(String),
 }
 
 impl Msg {
@@ -135,7 +136,7 @@ impl Msg {
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
-            SelfUnavailable => "`self` can only be used in methods not functions".into(),
+            ThisUnavailable => "`self` can only be used in methods not functions".into(),
             MultipleCandidates(ref cls, ref name, ref call_types) => {
                 let call_types = call_types.join(", ");
 
@@ -189,6 +190,8 @@ impl Msg {
             UnclosedString => "unclosed string.".into(),
             IoError => "error reading from file.".into(),
             MissingFctBody => "missing function body.".into(),
+            ThisOrSuperExpected(ref val) =>
+                format!("`self` or `super` expected but got {}.", val),
         }
     }
 }

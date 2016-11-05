@@ -15,7 +15,8 @@ pub enum TokenType {
 
     // Keywords
     Class,
-    Selfie,
+    This,
+    Super,
     Fun,
     Let,
     Var,
@@ -99,7 +100,8 @@ impl TokenType {
 
             // Keywords
             TokenType::Class => "class",
-            TokenType::Selfie => "self",
+            TokenType::This => "this",
+            TokenType::Super => "super",
             TokenType::Fun => "fun",
             TokenType::Let => "let",
             TokenType::Var => "var",
