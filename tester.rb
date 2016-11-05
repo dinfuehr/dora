@@ -70,7 +70,7 @@ def run_test(file)
 
   target = $release ? "release" : "debug"
 
-  system("target/#{target}/dora #{file} #{args} >#{$temp_out.path} 2>/dev/null")
+  system("target/#{target}/dora #{file} #{args} >#{$temp_out.path} 2>&1")
   process = $?
   exit_code = process.exitstatus
 
@@ -80,10 +80,10 @@ def run_test(file)
       expectation.code && exit_code != expectation.code
 
     position, message = read_error_message($temp_out)
-    return "position does not match" if
-      position && expectation.position && position != expectation.position
-    return "message does not match" if
-      message && expectation.message && message != expectation.message
+    return "position does not match (#{position.inspect} != #{expectation.position.inspect})" if
+      expectation.position && position != expectation.position
+    return "message does not match (#{message.inspect} != #{expectation.message.inspect})" if
+      expectation.message && message != expectation.message
 
   elsif exit_code != 0
     return "expected success but was #{exit_code}"

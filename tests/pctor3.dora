@@ -1,0 +1,9 @@
+fun main() {
+    let y = Y(101, 3);
+
+    assert(y.a == 3);
+    assert(y.b == 101);
+}
+
+open class X(let a: int)
+class Y(let b: int, a: int): X(a) {}
