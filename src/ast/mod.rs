@@ -246,7 +246,7 @@ pub struct Class {
     pub parent_class: Option<ParentClass>,
     pub has_open: bool,
     pub internal: bool,
-    pub ctor_params: Vec<PrimaryCtorParam>,
+    pub primary_ctor: bool,
 
     pub ctors: Vec<Function>,
     pub fields: Vec<Field>,
@@ -306,6 +306,7 @@ pub struct Field {
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
+    pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
     pub reassignable: bool,
 }
@@ -321,6 +322,7 @@ pub struct Function {
     pub has_final: bool,
     pub internal: bool,
     pub ctor: Option<CtorType>,
+    pub delegation: Option<Delegation>,
 
     pub params: Vec<Param>,
     pub throws: bool,
@@ -333,6 +335,12 @@ impl Function {
     pub fn block(&self) -> &Stmt {
         self.block.as_ref().unwrap()
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Delegation {
+    pub this: bool, // true for this, false for super
+    pub params: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

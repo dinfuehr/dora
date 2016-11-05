@@ -41,15 +41,6 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         self.ctxt.cls_by_id_mut(self.cls_id.unwrap())
     }
 
-    fn visit_primary_ctor_param(&mut self, param: &'ast ast::PrimaryCtorParam) {
-        let ty = semck::read_type(self.ctxt, &param.data_type).unwrap_or(BuiltinType::Unit);
-        param.set_ty(ty);
-
-        if param.field {
-            self.add_field(param.pos, param.name, ty, param.reassignable);
-        }
-    }
-
     fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
         for field in &self.cls().fields {
             if field.name == name {
@@ -82,10 +73,6 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
-
-        for param in &c.ctor_params {
-            self.visit_primary_ctor_param(param);
-        }
 
         visit::walk_class(self, c);
 
@@ -120,7 +107,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
-        if !f.reassignable && f.expr.is_none() {
+        if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
             self.ctxt.diag.borrow_mut().report(f.pos, Msg::LetMissingInitialization);
         }
     }

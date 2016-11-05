@@ -1,0 +1,15 @@
+fun main() {
+    let foo = Foo(123);
+    assert(foo.a == 124);
+
+    let bar = Bar(124);
+    assert(bar.a == 125);
+}
+
+class Foo(x: int) {
+    let a: int = x+1;
+}
+
+class Bar(x: int) {
+    var a: int = x+1;
+}

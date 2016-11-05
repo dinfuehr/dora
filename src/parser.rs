@@ -129,15 +129,15 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: pos,
             has_open: has_open,
             internal: internal,
+            primary_ctor: false,
             parent_class: None,
             ctors: Vec::new(),
-            ctor_params: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new()
         };
 
         self.in_class = true;
-        try!(self.parse_primary_ctor(&mut cls));
+        let ctor_params = try!(self.parse_primary_ctor(&mut cls));
 
         cls.parent_class = if self.token.is(TokenType::Colon) {
             try!(self.read_token());
@@ -154,15 +154,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.parse_class_body(&mut cls));
 
         // add initializers to all ctors only if no primary ctor was added
-        if cls.ctor_params.len() == 0 {
+        if ctor_params.len() == 0 {
             self.add_field_initializers_to_ctors(&mut cls);
         }
 
         // do not generate ctors for internal classes
         // add ctor if either there are primary ctor params or no ctors exist yet
-        if !cls.internal && (cls.ctor_params.len() > 0 || cls.ctors.is_empty()) {
-            let ctor = self.generate_ctor(&mut cls);
+        if !cls.internal && (ctor_params.len() > 0 || cls.ctors.is_empty()) {
+            let ctor = self.generate_primary_ctor(&mut cls, ctor_params);
             cls.ctors.push(ctor);
+            cls.primary_ctor = true;
         }
 
         self.in_class = false;
@@ -208,23 +209,21 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(params)
     }
 
-    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
+    fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<Vec<PrimaryCtorParam>, MsgWithPos> {
         if !self.token.is(TokenType::LParen) {
-            return Ok(());
+            return Ok(Vec::new());
         }
 
         try!(self.expect_token(TokenType::LParen));
 
         let params = try!(self.parse_comma_list(TokenType::RParen, |p| {
-            p.parse_primary_ctor_param()
+            p.parse_primary_ctor_param(cls)
         }));
 
-        cls.ctor_params = params;
-
-        Ok(())
+        Ok(params)
     }
 
-    fn parse_primary_ctor_param(&mut self) -> Result<PrimaryCtorParam, MsgWithPos> {
+    fn parse_primary_ctor_param(&mut self, cls: &mut Class) -> Result<PrimaryCtorParam, MsgWithPos> {
         let field = self.token.is(TokenType::Var) || self.token.is(TokenType::Let);
         let reassignable = self.token.is(TokenType::Var);
 
@@ -238,6 +237,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.expect_token(TokenType::Colon));
         let data_type = try!(self.parse_type());
+
+        if field {
+            cls.fields.push(Field {
+                id: self.generate_id(),
+                name: name,
+                pos: pos,
+                data_type: data_type.clone(),
+                primary_ctor: true,
+                expr: None,
+                reassignable: reassignable,
+            })
+        }
 
         Ok(PrimaryCtorParam {
             name: name,
@@ -349,6 +360,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: false,
             has_final: false,
             internal: false,
+            delegation: None,
             ctor: Some(CtorType::Secondary),
             params: params,
             throws: false,
@@ -388,6 +400,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: name,
             pos: pos,
             data_type: data_type,
+            primary_ctor: false,
             expr: expr,
             reassignable: reassignable,
         })
@@ -411,6 +424,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),
             internal: modifiers.contains(Modifier::Internal),
+            delegation: None,
             ctor: None,
             params: params,
             throws: throws,
@@ -442,8 +456,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(params)
     }
 
-    fn parse_comma_list<F, R>(&mut self, stop: TokenType, parse: F) -> Result<Vec<R>, MsgWithPos>
-        where F: Fn(&mut Parser<T>) -> Result<R, MsgWithPos> {
+    fn parse_comma_list<F, R>(&mut self, stop: TokenType, mut parse: F) -> Result<Vec<R>, MsgWithPos>
+        where F: FnMut(&mut Parser<T>) -> Result<R, MsgWithPos> {
         let mut data = vec![];
         let mut comma = true;
 
@@ -1072,7 +1086,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(mem::replace(&mut self.token, tok))
     }
 
-    fn generate_ctor(&mut self, cls: &mut Class) -> Function {
+    fn generate_primary_ctor(&mut self, cls: &mut Class, ctor_params: Vec<PrimaryCtorParam>) -> Function {
         let super_ctor = if let Some(ref parent_class) = cls.parent_class {
             let expr = Expr::create_super_call(
                 self.generate_id(),
@@ -1085,9 +1099,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             Vec::new()
         };
 
-        let param_assignments: Vec<Box<Stmt>> = cls.ctor_params.iter()
-                                                      .filter(|param| param.field)
-                                                      .map(|param| {
+        let param_assignments: Vec<Box<Stmt>> = ctor_params.iter()
+                                                    .filter(|param| param.field)
+                                                    .map(|param| {
             let this = self.build_this();
             let lhs = self.build_field(this, param.name);
             let rhs = self.build_ident(param.name);
@@ -1110,7 +1124,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                             .chain(param_assignments.into_iter())
                             .chain(field_assignments.into_iter()).collect();
 
-        let params = cls.ctor_params.iter().enumerate().map(|(idx, field)| {
+        let params = ctor_params.iter().enumerate().map(|(idx, field)| {
             self.build_param(idx as u32, field.name, field.data_type.clone())
         }).collect();
 
@@ -1123,6 +1137,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: false,
             has_final: false,
             internal: false,
+            delegation: None,
             ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
@@ -2061,9 +2076,9 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(1, class.ctor_params.len());
-        assert_eq!(false, class.ctor_params[0].field);
-        assert_eq!(false, class.ctor_params[0].reassignable);
+        assert_eq!(1, class.ctors.len());
+        assert_eq!(1, class.ctors[0].params.len());
+        assert_eq!(false, class.ctors[0].params[0].reassignable);
     }
 
     #[test]
@@ -2071,10 +2086,10 @@ mod tests {
         let (prog, _) = parse("class Foo(var a: int)");
         let class = prog.cls0();
 
-        assert_eq!(0, class.fields.len());
-        assert_eq!(1, class.ctor_params.len());
-        assert_eq!(true, class.ctor_params[0].field);
-        assert_eq!(true, class.ctor_params[0].reassignable);
+        assert_eq!(1, class.fields.len());
+        assert_eq!(true, class.fields[0].reassignable);
+        assert_eq!(1, class.ctors.len());
+        assert_eq!(1, class.ctors[0].params.len());
     }
 
     #[test]
@@ -2082,10 +2097,11 @@ mod tests {
         let (prog, _) = parse("class Foo(let a: int)");
         let class = prog.cls0();
 
-        assert_eq!(0, class.fields.len());
-        assert_eq!(1, class.ctor_params.len());
-        assert_eq!(true, class.ctor_params[0].field);
-        assert_eq!(false, class.ctor_params[0].reassignable);
+        assert_eq!(1, class.fields.len());
+        assert_eq!(false, class.fields[0].reassignable);
+        assert_eq!(1, class.ctors.len());
+        assert_eq!(1, class.ctors[0].params.len());
+        assert_eq!(false, class.ctors[0].params[0].reassignable);
     }
 
     #[test]
@@ -2094,7 +2110,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(2, class.ctor_params.len());
+        assert_eq!(2, class.ctors[0].params.len());
     }
 
     #[test]

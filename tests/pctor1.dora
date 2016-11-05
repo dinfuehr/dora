@@ -1,0 +1,19 @@
+fun main() {
+    let foo = Foo(123);
+
+    assert(foo.a == 123);
+    assert(foo.b == 123);
+
+    let bar = Bar(124);
+
+    assert(bar.a == 124);
+    assert(bar.b == 124);
+}
+
+class Foo(let b: int) {
+    let a: int = b;
+}
+
+class Bar(var b: int) {
+    var a: int = b;
+}
