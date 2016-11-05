@@ -153,6 +153,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         try!(self.parse_class_body(&mut cls));
 
+        self.add_field_initializers_to_ctors(&mut cls);
+
         // do not generate ctors for internal classes
         // add ctor if either there are primary ctor params or no ctors exist yet
         if !cls.internal && (cls.ctor_params.len() > 0 || cls.ctors.is_empty()) {
@@ -163,6 +165,32 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         self.in_class = false;
 
         Ok(cls)
+    }
+
+    fn add_field_initializers_to_ctors(&mut self, cls: &mut Class) {
+        for ctor in &mut cls.ctors {
+            let mut inits = Vec::new();
+
+            for field in &cls.fields {
+                if let Some(ref expr) = field.expr {
+                    let this = self.build_this();
+                    let lhs = self.build_field(this, field.name);
+                    let ass = self.build_assign(lhs, expr.clone());
+
+                    inits.push(self.build_stmt_expr(ass));
+                }
+            }
+
+            if inits.len() > 0 {
+                if ctor.block.is_some() {
+                    let block = mem::replace(&mut ctor.block, None);
+                    inits.push(block.unwrap());
+                }
+
+                let block = self.build_block(inits);
+                ctor.block = Some(block);
+            }
+        }
     }
 
     fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {

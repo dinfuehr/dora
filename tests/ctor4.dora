@@ -1,0 +1,15 @@
+fun main() {
+    let x = X(10);
+
+    assert(x.x == 1);
+    assert(x.y == 10);
+}
+
+class X {
+    var x : int = 1;
+    var y : int;
+
+    init(py: int) {
+        y = py;
+    }
+}
