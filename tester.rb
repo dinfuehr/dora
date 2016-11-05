@@ -75,8 +75,8 @@ def run_test(file)
   exit_code = process.exitstatus
 
   if expectation.fail
-    return "expected failure" if exit_code == 0
-    return "expected failure #{expectation.code} but was #{exit_code}" if
+    return "expected failure (test exited with 0)" if exit_code == 0
+    return "expected failure (#{expectation.code} expected but test returned #{exit_code})" if
       expectation.code && exit_code != expectation.code
 
     position, message = read_error_message($temp_out)
@@ -86,7 +86,7 @@ def run_test(file)
       expectation.message && message != expectation.message
 
   elsif exit_code != 0
-    return "expected success but was #{exit_code}"
+    return "expected success (0 expected but test returned #{exit_code})"
 
   end
 
