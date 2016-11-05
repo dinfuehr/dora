@@ -181,11 +181,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 }
             }
 
-            if inits.len() > 0 {
-                if ctor.block.is_some() {
-                    let block = mem::replace(&mut ctor.block, None);
-                    inits.push(block.unwrap());
-                }
+            if inits.len() > 0 && ctor.block.is_some() {
+                let block = mem::replace(&mut ctor.block, None);
+                inits.push(block.unwrap());
 
                 let block = self.build_block(inits);
                 ctor.block = Some(block);
