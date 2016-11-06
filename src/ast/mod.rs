@@ -327,7 +327,6 @@ pub struct Function {
     pub has_final: bool,
     pub internal: bool,
     pub ctor: Option<CtorType>,
-    pub delegation: Option<Delegation>,
 
     pub params: Vec<Param>,
     pub throws: bool,
@@ -340,14 +339,6 @@ impl Function {
     pub fn block(&self) -> &Stmt {
         self.block.as_ref().unwrap()
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct Delegation {
-    pub id: NodeId,
-    pub pos: Position,
-    pub this: bool, // true for this, false for super
-    pub args: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1098,10 +1089,12 @@ impl Expr {
         })
     }
 
-    pub fn create_delegation(id: NodeId, pos: Position, args: Vec<Box<Expr>>) -> Expr {
+    pub fn create_delegation(id: NodeId, pos: Position, ty: DelegationType,
+                             args: Vec<Box<Expr>>) -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
             id: id,
             pos: pos,
+            ty: ty,
             args: args,
             fct_id: RefCell::new(None),
             cls_id: RefCell::new(None),
@@ -1271,6 +1264,20 @@ impl Expr {
         }
     }
 
+    pub fn to_delegation(&self) -> Option<&ExprDelegationType> {
+        match *self {
+            Expr::ExprDelegation(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_delegation(&self) -> bool {
+        match *self {
+            Expr::ExprDelegation(_) => true,
+            _ => false
+        }
+    }
+
     pub fn is_this(&self) -> bool {
         match *self {
             Expr::ExprSelf(_) => true,
@@ -1416,6 +1423,7 @@ impl ExprAsType {
 pub struct ExprDelegationType {
     pub id: NodeId,
     pub pos: Position,
+    pub ty: DelegationType, // true for this class, false for super class
     pub args: Vec<Box<Expr>>,
     pub fct_id: RefCell<Option<FctId>>,
     pub cls_id: RefCell<Option<ClassId>>,
@@ -1437,6 +1445,11 @@ impl ExprDelegationType {
     pub fn set_class_id(&self, id: ClassId) {
         *self.cls_id.borrow_mut() = Some(id);
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DelegationType {
+    This, Super
 }
 
 #[derive(Clone, Debug)]

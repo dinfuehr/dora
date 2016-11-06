@@ -350,7 +350,22 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = try!(self.expect_token(TokenType::Init)).position;
         let params = try!(self.parse_function_params());
         let delegation = try!(self.parse_delegation());
-        let block = try!(self.parse_function_block());
+        let mut block = try!(self.parse_function_block());
+
+        if let Some(delegation) = delegation {
+            let expr = Expr::create_delegation(
+                self.generate_id(),
+                delegation.pos,
+                delegation.ty,
+                delegation.args
+            );
+
+            let stmt = self.build_stmt_expr(Box::new(expr));
+
+            block = Some(self.build_block(
+                vec![stmt, block.unwrap()]
+            ));
+        }
 
         Ok(Function {
             id: self.generate_id(),
@@ -361,7 +376,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: false,
             has_final: false,
             internal: false,
-            delegation: delegation,
             ctor: Some(CtorType::Secondary),
             params: params,
             throws: false,
@@ -376,14 +390,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
 
         try!(self.expect_token(TokenType::Colon));
-
-        let this = self.token.is(TokenType::This);
         let pos = self.token.position;
 
-        if !this && !self.token.is(TokenType::Super) {
+        let ty = if self.token.is(TokenType::This) {
+            DelegationType::This
+        } else if self.token.is(TokenType::Super) {
+            DelegationType::Super
+        } else {
             let name = self.token.name();
             return Err(MsgWithPos::new(pos, Msg::ThisOrSuperExpected(name)));
-        }
+        };
 
         try!(self.read_token());
         try!(self.expect_token(TokenType::LParen));
@@ -393,9 +409,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }));
 
         Ok(Some(Delegation {
-            id: self.generate_id(),
             pos: pos,
-            this: this,
+            ty: ty,
             args: args
         }))
     }
@@ -455,7 +470,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),
             internal: modifiers.contains(Modifier::Internal),
-            delegation: None,
             ctor: None,
             params: params,
             throws: throws,
@@ -1123,6 +1137,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             let expr = Expr::create_delegation(
                 self.generate_id(),
                 parent_class.pos,
+                DelegationType::Super,
                 parent_class.params.clone()
             );
 
@@ -1169,7 +1184,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             has_override: false,
             has_final: false,
             internal: false,
-            delegation: None,
             ctor: Some(CtorType::Primary),
             params: params,
             throws: false,
@@ -1268,6 +1282,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             ty: RefCell::new(None),
         }))
     }
+}
+
+#[derive(Clone, Debug)]
+struct Delegation {
+    pub pos: Position,
+    pub ty: DelegationType,
+    pub args: Vec<Box<Expr>>,
 }
 
 #[cfg(test)]
@@ -2358,8 +2379,10 @@ mod tests {
         let cls = prog.cls0();
         assert_eq!(2, cls.ctors.len());
 
-        let delegation = cls.ctors[0].delegation.as_ref().unwrap();
-        assert_eq!(true, delegation.this);
+        let block = cls.ctors[0].block.as_ref().unwrap().to_block().unwrap();
+        let delegation = block.stmts[0].to_expr().unwrap().expr.to_delegation().unwrap();
+
+        assert_eq!(DelegationType::This, delegation.ty);
         assert_eq!(1, delegation.args.len());
     }
 
@@ -2370,8 +2393,10 @@ mod tests {
         let cls = prog.cls(1);
         assert_eq!(1, cls.ctors.len());
 
-        let delegation = cls.ctors[0].delegation.as_ref().unwrap();
-        assert_eq!(false, delegation.this);
+        let block = cls.ctors[0].block.as_ref().unwrap().to_block().unwrap();
+        let delegation = block.stmts[0].to_expr().unwrap().expr.to_delegation().unwrap();
+
+        assert_eq!(DelegationType::Super, delegation.ty);
         assert_eq!(1, delegation.args.len());
     }
 }
