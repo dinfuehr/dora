@@ -108,7 +108,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprCall(ref expr) => self.expr_call(expr),
-            ExprSuperCall(ref expr) => self.expr_super_call(expr),
+            ExprDelegation(ref expr) => self.expr_delegation(expr),
             ExprArray(ref expr) => self.expr_array(expr),
             ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
@@ -214,7 +214,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.universal_call(expr.id, args, in_class, None, None);
     }
 
-    fn expr_super_call(&mut self, expr: &'ast ExprSuperCallType) {
+    fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
         let mut args = expr.args.iter().map(|arg| {
             Arg::Expr(arg, BuiltinType::Unit, 0)
         }).collect::<Vec<_>>();

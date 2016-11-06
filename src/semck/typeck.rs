@@ -519,7 +519,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_super_call(&mut self, e: &'ast ExprSuperCallType) {
+    fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
         let arg_types : Vec<BuiltinType> = e.args.iter().map(|arg| {
             self.visit_expr(arg);
             self.expr_type
@@ -704,7 +704,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
             ExprCall(ref expr) => self.check_expr_call(expr),
-            ExprSuperCall(ref expr) => self.check_expr_super_call(expr),
+            ExprDelegation(ref expr) => self.check_expr_delegation(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
@@ -1290,7 +1290,7 @@ mod tests {
     }
 
     #[test]
-    fn super_call() {
+    fn super_delegation() {
         ok("open class A { fun f() {} }
             class B: A { fun g() {} }
 

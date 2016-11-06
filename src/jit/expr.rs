@@ -70,7 +70,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
-            ExprSuperCall(ref expr) => self.emit_super_call(expr, dest),
+            ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprField(ref expr) => self.emit_field(expr, dest),
             ExprSelf(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
@@ -534,7 +534,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_super_call(&mut self, e: &'ast ExprSuperCallType, dest: Reg) {
+    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {
         self.emit_universal_call(e.id, e.pos, dest);
     }
 
@@ -731,7 +731,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprIdent(_) => true,
         ExprAssign(_) => false,
         ExprCall(_) => false,
-        ExprSuperCall(_) => false,
+        ExprDelegation(_) => false,
         ExprField(_) => false,
         ExprSelf(_) => true,
         ExprNil(_) => true,
@@ -752,7 +752,7 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprIdent(_) => false,
         ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
         ExprCall(_) => true,
-        ExprSuperCall(_) => true,
+        ExprDelegation(_) => true,
         ExprField(ref e) => contains_fct_call(&e.object),
         ExprSelf(_) => false,
         ExprNil(_) => false,

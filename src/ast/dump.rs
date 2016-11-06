@@ -287,7 +287,7 @@ impl<'a> AstDumper<'a> {
             ExprIdent(ref ident) => self.dump_expr_ident(ident),
             ExprAssign(ref assign) => self.dump_expr_assign(assign),
             ExprCall(ref call) => self.dump_expr_call(call),
-            ExprSuperCall(ref call) => self.dump_expr_super_call(call),
+            ExprDelegation(ref call) => self.dump_expr_delegation(call),
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
             ExprIs(ref expr) => self.dump_expr_is(expr),
@@ -307,7 +307,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_type(&expr.data_type));
     }
 
-    fn dump_expr_super_call(&mut self, expr: &ExprSuperCallType) {
+    fn dump_expr_delegation(&mut self, expr: &ExprDelegationType) {
         dump!(self, "super @ {} {}", expr.pos, expr.id);
 
         self.indent(|d| {

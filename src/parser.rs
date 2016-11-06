@@ -1117,9 +1117,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(mem::replace(&mut self.token, tok))
     }
 
-    fn generate_primary_ctor(&mut self, cls: &mut Class, ctor_params: Vec<PrimaryCtorParam>) -> Function {
-        let super_ctor = if let Some(ref parent_class) = cls.parent_class {
-            let expr = Expr::create_super_call(
+    fn generate_primary_ctor(&mut self, cls: &mut Class,
+                             ctor_params: Vec<PrimaryCtorParam>) -> Function {
+        let delegation = if let Some(ref parent_class) = cls.parent_class {
+            let expr = Expr::create_delegation(
                 self.generate_id(),
                 parent_class.pos,
                 parent_class.params.clone()
@@ -1151,7 +1152,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             self.build_stmt_expr(ass)
         }).collect();
 
-        let assignments = super_ctor.into_iter()
+        let assignments = delegation.into_iter()
                             .chain(param_assignments.into_iter())
                             .chain(field_assignments.into_iter()).collect();
 

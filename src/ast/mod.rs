@@ -971,7 +971,7 @@ pub enum Expr {
     ExprLitBool(ExprLitBoolType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
-    ExprSuperCall(ExprSuperCallType),
+    ExprDelegation(ExprDelegationType),
     ExprAssign(ExprAssignType),
     ExprField(ExprFieldType),
     ExprSelf(ExprSelfType),
@@ -1098,8 +1098,8 @@ impl Expr {
         })
     }
 
-    pub fn create_super_call(id: NodeId, pos: Position, args: Vec<Box<Expr>>) -> Expr {
-        Expr::ExprSuperCall(ExprSuperCallType {
+    pub fn create_delegation(id: NodeId, pos: Position, args: Vec<Box<Expr>>) -> Expr {
+        Expr::ExprDelegation(ExprDelegationType {
             id: id,
             pos: pos,
             args: args,
@@ -1323,7 +1323,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
-            Expr::ExprSuperCall(ref val) => val.id,
+            Expr::ExprDelegation(ref val) => val.id,
             Expr::ExprField(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
@@ -1343,7 +1343,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.ty(),
             Expr::ExprAssign(ref val) => val.ty(),
             Expr::ExprCall(ref val) => val.ty(),
-            Expr::ExprSuperCall(_) => BuiltinType::Unit,
+            Expr::ExprDelegation(_) => BuiltinType::Unit,
             Expr::ExprField(ref val) => val.ty(),
             Expr::ExprSelf(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
@@ -1363,7 +1363,7 @@ impl Expr {
             Expr::ExprIdent(ref val) => val.set_ty(ty),
             Expr::ExprAssign(ref val) => val.set_ty(ty),
             Expr::ExprCall(ref val) => val.set_ty(ty),
-            Expr::ExprSuperCall(_) => panic!("unimplemented"),
+            Expr::ExprDelegation(_) => panic!("unimplemented"),
             Expr::ExprField(ref val) => val.set_ty(ty),
             Expr::ExprSelf(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
@@ -1413,7 +1413,7 @@ impl ExprAsType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprSuperCallType {
+pub struct ExprDelegationType {
     pub id: NodeId,
     pub pos: Position,
     pub args: Vec<Box<Expr>>,
@@ -1421,7 +1421,7 @@ pub struct ExprSuperCallType {
     pub cls_id: RefCell<Option<ClassId>>,
 }
 
-impl ExprSuperCallType {
+impl ExprDelegationType {
     pub fn fct_id(&self) -> FctId {
         self.fct_id.borrow().unwrap()
     }
