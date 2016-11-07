@@ -527,7 +527,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let owner = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
 
-        // init(...) : super(...) is not allowed for classes with primary ctor
+        // init(..) : super(..) is not allowed for classes with primary ctor
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
             let name = self.ctxt.interner.str(owner.name).to_string();
             let msg = Msg::NoSuperDelegationWithPrimaryCtor(name);
@@ -536,6 +536,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
+        // init(..) : super(..) not allowed for classes without base class
         if e.ty.is_super() && owner.parent_class.is_none() {
             let name = self.ctxt.interner.str(owner.name).to_string();
             let msg = Msg::NoSuperClass(name);
