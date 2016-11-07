@@ -170,7 +170,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         // don't expand <var> to self.<var> in primary ctors
         // otherwise `let b: int = b;` would be possible
-        if !self.fct.is_primary_ctor() {
+        if !self.fct.ctor.is_primary() {
             if let Some(clsid) = self.fct.owner_class {
                 let cls = self.ctxt.cls_by_id(clsid);
 

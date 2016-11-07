@@ -1,0 +1,7 @@
+//= error at 6:20
+
+fun main() {}
+
+class X {
+    init(a: int) : self(a, a) {}
+}

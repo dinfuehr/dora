@@ -69,6 +69,8 @@ pub enum Msg {
     InvalidEscapeSequence(char),
     MissingFctBody,
     ThisOrSuperExpected(String),
+    NoSuperDelegationWithPrimaryCtor(String),
+    NoSuperClass(String),
 }
 
 impl Msg {
@@ -192,6 +194,9 @@ impl Msg {
             MissingFctBody => "missing function body.".into(),
             ThisOrSuperExpected(ref val) =>
                 format!("`self` or `super` expected but got {}.", val),
+            NoSuperDelegationWithPrimaryCtor(ref name) =>
+                format!("no `super` delegation allowed for ctor in class {}, because class has primary ctor.", name),
+            NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
         }
     }
 }

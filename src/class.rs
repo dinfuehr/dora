@@ -39,6 +39,8 @@ pub struct Class<'ast> {
     pub parent_class: Option<ClassId>,
     pub has_open: bool,
     pub internal: bool,
+    pub primary_ctor: bool,
+
     pub ctors: Vec<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,

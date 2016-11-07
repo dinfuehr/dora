@@ -32,6 +32,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             parent_class: None,
             has_open: c.has_open,
             internal: c.internal,
+            primary_ctor: c.primary_ctor,
+
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
@@ -71,7 +73,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             internal: f.internal,
             overrides: None,
             throws: f.throws,
-            ctor: None,
+            ctor: CtorType::None,
             vtable_index: None,
             initialized: false,
             kind: kind,

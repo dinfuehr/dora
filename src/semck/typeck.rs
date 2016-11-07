@@ -233,7 +233,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
             // check if field is reassignable, assignment only allowed in primary ctor
-            } else if !self.fct.is_primary_ctor() {
+            } else if !self.fct.ctor.is_primary() {
                 let lhs = e.lhs.to_field().unwrap();
 
                 if lhs.has_cls_and_field() {
@@ -526,22 +526,46 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }).collect();
 
         let owner = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
-        let parent = self.ctxt.cls_by_id(owner.parent_class.unwrap());
 
-        for &ctor_id in &parent.ctors {
+        // init(...) : super(...) is not allowed for classes with primary ctor
+        if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
+            let name = self.ctxt.interner.str(owner.name).to_string();
+            let msg = Msg::NoSuperDelegationWithPrimaryCtor(name);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+            return;
+        }
+
+        if e.ty.is_super() && owner.parent_class.is_none() {
+            let name = self.ctxt.interner.str(owner.name).to_string();
+            let msg = Msg::NoSuperClass(name);
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+            return;
+        }
+
+        let cls_id = if e.ty.is_super() {
+            owner.parent_class.unwrap()
+        } else {
+            owner.id
+        };
+
+        let cls = self.ctxt.cls_by_id(cls_id);
+
+        for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fct_by_id(ctor_id);
 
             if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
                 e.set_fct_id(ctor_id);
-                e.set_class_id(parent.id);
+                e.set_class_id(cls.id);
 
-                let call_type = CallType::Ctor(parent.id, ctor.id);
+                let call_type = CallType::Ctor(cls.id, ctor.id);
                 assert!(self.src.calls.insert(e.id, call_type).is_none());
                 return;
             }
         }
 
-        let name = self.ctxt.interner.str(parent.name).to_string();
+        let name = self.ctxt.interner.str(cls.name).to_string();
         let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
         let msg = Msg::UnknownCtor(name, arg_types);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);

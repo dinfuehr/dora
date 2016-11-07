@@ -326,7 +326,7 @@ pub struct Function {
     pub has_override: bool,
     pub has_final: bool,
     pub internal: bool,
-    pub ctor: Option<CtorType>,
+    pub ctor: CtorType,
 
     pub params: Vec<Param>,
     pub throws: bool,
@@ -1450,6 +1450,22 @@ impl ExprDelegationType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DelegationType {
     This, Super
+}
+
+impl DelegationType {
+    pub fn is_this(&self) -> bool {
+        match *self {
+            DelegationType::This => true,
+            _ => false
+        }
+    }
+
+    pub fn is_super(&self) -> bool {
+        match *self {
+            DelegationType::Super => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
