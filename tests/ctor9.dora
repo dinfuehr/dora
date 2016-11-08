@@ -1,0 +1,9 @@
+fun main() {
+  let x = X(2, 4);
+
+  assert(x.a == 4);
+  assert(x.b == 2);
+}
+
+open class Y(let a: int) {}
+class X(let b: int, a: int) : Y(a) {}

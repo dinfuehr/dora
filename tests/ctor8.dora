@@ -1,0 +1,24 @@
+fun main() {
+  let x = X(1);
+
+  assert(x.a == 1);
+  assert(x.b == 0);
+  assert(x.c == 0);
+
+  let x = X(1, 2);
+
+  assert(x.a == 1);
+  assert(x.b == 2);
+  assert(x.c == 0);
+
+  let x = X(1, 2, 3);
+
+  assert(x.a == 1);
+  assert(x.b == 2);
+  assert(x.c == 3);
+}
+
+class X(let a: int, let b: int, let c: int) {
+  init(a: int) : self(a, 0, 0) {}
+  init(a: int, b: int) : self(a, b, 0) {}
+}
