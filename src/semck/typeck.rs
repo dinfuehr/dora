@@ -230,6 +230,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     if !self.src.vars[varid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
+
                 } else if let IdentType::Field(clsid, fieldid) = ident_type {
                     if !self.fct.ctor.is() && !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
@@ -246,6 +247,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     if !self.ctxt.cls_by_id(cls).fields[fieldid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
+
                 } else {
                     return;
                 }
@@ -259,6 +261,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let rhs_type = rhs_type.name(self.ctxt);
 
                     Msg::AssignType(name, lhs_type, rhs_type)
+
                 } else {
                     let field = e.lhs.to_field().unwrap();
                     let name = self.ctxt.interner.str(field.name).to_string();

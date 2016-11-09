@@ -42,7 +42,7 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>, name: &str,
 pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt, "print", stdlib::print as *const u8);
     native_fct(ctxt, "println", stdlib::println as *const u8);
-    native_fct(ctxt, "assert", stdlib::assert as *const u8);
+    intrinsic_fct(ctxt, "assert");
     native_fct(ctxt, "argc", stdlib::argc as *const u8);
     native_fct(ctxt, "argv", stdlib::argv as *const u8);
     native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);

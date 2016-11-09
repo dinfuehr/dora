@@ -505,6 +505,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             if e.object.is_some() {
                 // only intrinsic: IntArray.len()
                 self.emit_intrinsic_len(e, dest);
+
+            } else if e.args.len() == 1 {
+                self.emit_intrinsic_assert(e, dest);
+
             } else {
                 self.emit_intrinsic_shl(e, dest);
             }
@@ -518,6 +522,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
         emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, Header::size(), dest);
+    }
+
+    fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
+        let lbl_div = self.buf.create_label();
+        self.emit_expr(&e.args[0], REG_RESULT);
+        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_div);
+        self.buf.emit_bailout(lbl_div, trap::ASSERT, e.pos);
     }
 
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {

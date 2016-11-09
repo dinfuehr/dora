@@ -9,15 +9,6 @@ use std::str;
 use ctxt::get_ctxt;
 use object::{Handle, IntArray, Obj, Str};
 
-pub extern "C" fn assert(val: bool) {
-    if !val {
-        unsafe {
-            println!("assert failed");
-            libc::_exit(101);
-        }
-    }
-}
-
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
     let buffer = val.to_string();
     Str::from(buffer.as_bytes())
