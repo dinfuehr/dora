@@ -1,5 +1,3 @@
-use libc;
-
 use std;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
@@ -148,7 +146,7 @@ impl<T> Into<Handle<T>> for usize {
 
 impl<T> Into<Ptr> for Handle<T> {
     fn into(self) -> Ptr {
-        Ptr::new(self.ptr as *mut libc::c_void)
+        Ptr::new(self.ptr as *mut u8)
     }
 }
 

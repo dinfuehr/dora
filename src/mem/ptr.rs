@@ -1,13 +1,12 @@
 use std::fmt;
 use std::convert::Into;
 use std::ptr;
-use libc;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
-pub struct Ptr(*mut libc::c_void);
+pub struct Ptr(*mut u8);
 
 impl Ptr {
-    pub fn new(ptr: *mut libc::c_void) -> Ptr {
+    pub fn new(ptr: *mut u8) -> Ptr {
         assert!(!ptr.is_null());
 
         Ptr(ptr)
@@ -21,14 +20,14 @@ impl Ptr {
         Ptr(unsafe { self.0.offset(diff) })
     }
 
-    pub fn raw(self) -> *mut libc::c_void {
+    pub fn raw(self) -> *mut u8 {
         self.0
     }
 }
 
 impl Into<Ptr> for usize {
     fn into(self) -> Ptr {
-        Ptr::new(self as *mut libc::c_void)
+        Ptr::new(self as *mut u8)
     }
 }
 

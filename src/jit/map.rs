@@ -116,9 +116,7 @@ fn span(v1: usize, v2: usize) -> PtrSpan {
 
 #[cfg(test)]
 pub fn ptr(val: usize) -> Ptr {
-    use libc::c_void;
-
-    Ptr::new(val as *mut c_void)
+    Ptr::new(val as *mut u8)
 }
 
 #[cfg(test)]

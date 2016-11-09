@@ -1,4 +1,3 @@
-use libc::c_void;
 use std::cmp;
 
 use ast::*;
@@ -343,7 +342,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
             ];
-            let ptr = Ptr::new(stdlib::strcat as *mut c_void);
+            let ptr = Ptr::new(stdlib::strcat as *mut u8);
 
             self.universal_call(expr.id, args, false,
                 Some(Callee::Ptr(ptr)), Some(BuiltinType::Str));
@@ -355,7 +354,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
             ];
-            let ptr = Ptr::new(stdlib::strcmp as *mut c_void);
+            let ptr = Ptr::new(stdlib::strcmp as *mut u8);
 
             self.universal_call(expr.id, args, false,
                 Some(Callee::Ptr(ptr)), Some(BuiltinType::Bool));

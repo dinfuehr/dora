@@ -303,7 +303,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(Arc<Mutex<FctSrc<'ast>>>), Definition, Builtin(Ptr), Intrinsic
+    Source(Arc<Mutex<FctSrc<'ast>>>), Definition, Native(Ptr), Builtin(Intrinsic)
 }
 
 impl<'ast> FctKind<'ast> {
@@ -323,7 +323,7 @@ impl<'ast> FctKind<'ast> {
 
     pub fn is_intrinsic(&self) -> bool {
         match *self {
-            FctKind::Intrinsic => true,
+            FctKind::Builtin(_) => true,
             _ => false
         }
     }
@@ -334,6 +334,11 @@ impl<'ast> FctKind<'ast> {
             _ => false
         }
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Intrinsic {
+    IntArrayLen, IntArrayGet, IntArraySet, Assert, Shl
 }
 
 #[derive(Debug)]

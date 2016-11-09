@@ -11,7 +11,7 @@ use os_cpu::*;
 
 pub fn register_signals(ctxt: &Context) {
     unsafe {
-        let ptr = Ptr::new(ctxt as *const Context as *mut c_void);
+        let ptr = Ptr::new(ctxt as *const Context as *mut u8);
         CTXT = Some(ptr);
 
         let mut sa: sigaction = std::mem::uninitialized();

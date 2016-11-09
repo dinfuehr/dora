@@ -1,7 +1,5 @@
-use libc;
-
 use class::ClassId;
-use ctxt::{Context, FctKind};
+use ctxt::{Context, FctKind, Intrinsic};
 use mem::ptr::Ptr;
 use stdlib;
 use ty::BuiltinType;
@@ -40,40 +38,42 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>, name: &str,
 }
 
 pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
-    native_fct(ctxt, "print", stdlib::print as *const u8);
-    native_fct(ctxt, "println", stdlib::println as *const u8);
-    intrinsic_fct(ctxt, "assert");
-    native_fct(ctxt, "argc", stdlib::argc as *const u8);
-    native_fct(ctxt, "argv", stdlib::argv as *const u8);
-    native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
-    native_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *const u8);
-    native_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *const u8);
+    native_fct(ctxt, "print", stdlib::print as *mut u8);
+    native_fct(ctxt, "println", stdlib::println as *mut u8);
+    intrinsic_fct(ctxt, "assert", Intrinsic::Assert);
+    native_fct(ctxt, "argc", stdlib::argc as *mut u8);
+    native_fct(ctxt, "argv", stdlib::argv as *mut u8);
+    native_fct(ctxt, "forceCollect", stdlib::gc_collect as *mut u8);
+    native_fct(ctxt, "intArrayWith", stdlib::ctor_int_array_elem as *mut u8);
+    native_fct(ctxt, "emptyIntArray", stdlib::ctor_int_array_empty as *mut u8);
 
     let clsid = ctxt.primitive_classes.int_class;
-    native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
+    native_method(ctxt, clsid, "toString", stdlib::int_to_string as *mut u8);
 
     let clsid = ctxt.primitive_classes.bool_class;
-    native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *const u8);
-    native_method(ctxt, clsid, "toString", stdlib::bool_to_string as *const u8);
+    native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *mut u8);
+    native_method(ctxt, clsid, "toString", stdlib::bool_to_string as *mut u8);
 
     let clsid = ctxt.primitive_classes.str_class;
-    native_method(ctxt, clsid, "len", stdlib::str_len as *const u8);
-    native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
+    native_method(ctxt, clsid, "len", stdlib::str_len as *mut u8);
+    native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *mut u8);
 
     let clsid = ctxt.primitive_classes.int_array;
-    intrinsic_method(ctxt, clsid, "len");
-    intrinsic_method(ctxt, clsid, "get");
-    intrinsic_method(ctxt, clsid, "set");
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::IntArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::IntArraySet);
 
-    intrinsic_fct(ctxt, "shl");
+    intrinsic_fct(ctxt, "shl", Intrinsic::Shl);
 }
 
-fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
-    internal_method(ctxt, clsid, name, FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void)));
+fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId,
+                       name: &str, fctptr: *mut u8) {
+    internal_method(ctxt, clsid, name, FctKind::Native(Ptr::new(fctptr)));
 }
 
-fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str) {
-    internal_method(ctxt, clsid, name, FctKind::Intrinsic);
+fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId,
+                          name: &str, intrinsic: Intrinsic) {
+    internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
 fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str,
@@ -92,12 +92,12 @@ fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str,
     }
 }
 
-fn native_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
-    internal_fct(ctxt, name, FctKind::Builtin(Ptr::new(fctptr as *mut libc::c_void)));
+fn native_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *mut u8) {
+    internal_fct(ctxt, name, FctKind::Native(Ptr::new(fctptr)));
 }
 
-fn intrinsic_fct<'ast>(ctxt: &mut Context<'ast>, name: &str) {
-    internal_fct(ctxt, name, FctKind::Intrinsic);
+fn intrinsic_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, intrinsic: Intrinsic) {
+    internal_fct(ctxt, name, FctKind::Builtin(intrinsic));
 }
 
 fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind<'ast>) {

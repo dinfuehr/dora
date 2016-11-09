@@ -1,5 +1,3 @@
-use libc::c_void;
-
 use mem::{self, Ptr};
 
 #[derive(Debug)]
@@ -26,13 +24,13 @@ impl DSeg {
         self.size
     }
 
-    pub fn finish(&self, ptr: *mut c_void) {
+    pub fn finish(&self, ptr: *mut u8) {
         for entry in &self.entries {
             let offset = self.size - entry.disp;
 
             unsafe {
                 let entry_ptr = ptr.offset(offset as isize);
-                *(entry_ptr as *mut (*const c_void)) = entry.value.raw();
+                *(entry_ptr as *mut (*mut u8)) = entry.value.raw();
             }
         }
     }

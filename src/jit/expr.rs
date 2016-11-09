@@ -83,7 +83,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
-        if self.is_intrinsic(e.id) {
+        if self.intrinsic(e.id).is_some() {
             self.emit_expr(&e.object, REG_RESULT);
             let offset = self.reserve_temp_for_node(&e.object);
             emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset);
@@ -143,13 +143,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn is_intrinsic(&self, id: NodeId) -> bool {
+    fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
         let fid = self.src.calls.get(&id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
-        if self.fct.id == fid { return false; }
+        if self.fct.id == fid { return None; }
 
-        self.ctxt.fct_by_id(fid).kind.is_intrinsic()
+        let fct = self.ctxt.fct_by_id(fid);
+
+        match fct.kind {
+            FctKind::Builtin(intrinsic) => Some(intrinsic),
+            _ => None,
+        }
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -220,7 +225,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         if e.lhs.is_array() {
-            if self.is_intrinsic(e.id) {
+            if self.intrinsic(e.id).is_some() {
                 let array = e.lhs.to_array().unwrap();
                 self.emit_expr(&array.object, REG_RESULT);
                 let offset_object = self.reserve_temp_for_node(&array.object);
@@ -492,25 +497,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                     ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
                 },
-                FctKind::Builtin(ptr) => ptr,
+                FctKind::Native(ptr) => ptr,
 
                 FctKind::Definition => unreachable!(),
-                FctKind::Intrinsic => panic!("intrinsic fct call"),
+                FctKind::Builtin(_) => panic!("intrinsic fct call"),
             }
         }
     }
 
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        if self.is_intrinsic(e.id) {
-            if e.object.is_some() {
-                // only intrinsic: IntArray.len()
-                self.emit_intrinsic_len(e, dest);
-
-            } else if e.args.len() == 1 {
-                self.emit_intrinsic_assert(e, dest);
-
-            } else {
-                self.emit_intrinsic_shl(e, dest);
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            match intrinsic {
+                Intrinsic::IntArrayLen => self.emit_intrinsic_len(e, dest),
+                Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
+                Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
+                _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
 
             return;
@@ -572,7 +573,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
-                    let mptr = Ptr::new(stdlib::gc_alloc as *mut c_void);
+                    let mptr = Ptr::new(stdlib::gc_alloc as *mut u8);
                     self.emit_direct_call_insn(mptr, pos, BuiltinType::Ptr, REG_RESULT);
 
                     // store classptr in object

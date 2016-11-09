@@ -33,7 +33,7 @@ pub fn mmap(size: usize, exec: ProtType) -> Ptr {
         panic!("mmap failed");
     }
 
-    Ptr::new(ptr)
+    Ptr::new(ptr as *mut u8)
 }
 
 pub fn munmap(ptr: Ptr, size: usize) {
