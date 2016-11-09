@@ -1,0 +1,13 @@
+fun main() {
+  let x = X();
+
+  assert(x.x == 2);
+}
+
+class X(something: int) {
+  let x: int = something;
+
+  init() : self(1) {
+    x = 2;
+  }
+}

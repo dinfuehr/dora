@@ -9,7 +9,7 @@ fun main() {
   assert(101 == a1);
 }
 
-class Foo(let a: int) {
+class Foo(var a: int) {
   fun a1() -> int { return self.a; }
   fun a2() -> int { return a; }
 

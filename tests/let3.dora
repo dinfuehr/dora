@@ -1,0 +1,11 @@
+//= error at 9:7
+
+fun main() {
+  let x = X(1);
+}
+
+class X(let a: int) {
+  fun set(b: int) {
+    a = b;
+  }
+}

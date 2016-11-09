@@ -230,10 +230,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     if !self.src.vars[varid].reassignable {
                         self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                     }
+                } else if let IdentType::Field(clsid, fieldid) = ident_type {
+                    if !self.fct.ctor.is() && !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
+                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                    }
                 }
 
-            // check if field is reassignable, assignment only allowed in primary ctor
-            } else if !self.fct.ctor.is_primary() {
+            // check if field is reassignable, assignment only allowed in ctor
+            } else if !self.fct.ctor.is() {
                 let lhs = e.lhs.to_field().unwrap();
 
                 if lhs.has_cls_and_field() {
@@ -817,7 +821,9 @@ mod tests {
     #[test]
     fn type_object_field_without_self() {
         ok("class Foo(let a: int) { fun f() -> int { return a; } }");
-        ok("class Foo(let a: int) { fun set(x: int) { a = x; } }");
+        ok("class Foo(var a: int) { fun set(x: int) { a = x; } }");
+        err("class Foo(let a: int) { fun set(x: int) { a = x; } }",
+            pos(1, 45), Msg::LetReassigned);
         err("class Foo(let a: int) { fun set(x: int) { b = x; } }",
             pos(1, 43), Msg::UnknownIdentifier("b".into()));
     }

@@ -2,7 +2,7 @@ fun main() {
   Bar(1).do();
 }
 
-class Bar(let a: int) {
+class Bar(var a: int) {
   fun do() {
     Foo(self.f()).a = self.g();
     assert(a == 100);
