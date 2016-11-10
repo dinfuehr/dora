@@ -1,0 +1,15 @@
+//= error at 9:10
+
+fun main() { }
+
+open class A { }
+
+class B: A {
+  fun foo() {
+    super.bar();
+  }
+
+  fun bar() -> int {
+    return 1;
+  }
+}

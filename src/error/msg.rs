@@ -36,6 +36,8 @@ pub enum Msg {
     MainNotFound,
     WrongMainDefinition,
     ThisUnavailable,
+    SuperUnavailable,
+    SuperNeedsMethodCall,
     MultipleCandidates(String, String, Vec<String>),
     ReferenceTypeExpected(String),
     ThrowNil,
@@ -139,6 +141,8 @@ impl Msg {
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             ThisUnavailable => "`self` can only be used in methods not functions".into(),
+            SuperUnavailable => "`super` only available in methods of classes with parent class".into(),
+            SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
             MultipleCandidates(ref cls, ref name, ref call_types) => {
                 let call_types = call_types.join(", ");
 

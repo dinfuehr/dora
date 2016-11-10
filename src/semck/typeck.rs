@@ -581,6 +581,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_method_call(&mut self, e: &'ast ExprCallType) {
         let object = e.object.as_ref().unwrap();
+
+        if let Some(ref expr) = object.to_super() {
+            expr.set_method(true);
+        }
+
         self.visit_expr(object);
         let object_type = self.expr_type;
 
@@ -639,6 +644,32 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             e.set_ty(BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
+    }
+
+    fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
+        if !e.method() {
+            let msg = Msg::SuperNeedsMethodCall;
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            e.set_ty(BuiltinType::Unit);
+            self.expr_type = BuiltinType::Unit;
+        }
+
+        if let Some(clsid) = self.fct.owner_class {
+            let cls = self.ctxt.cls_by_id(clsid);
+
+            if let Some(superid) = cls.parent_class {
+                let ty = BuiltinType::Class(superid);
+                e.set_ty(ty);
+                self.expr_type = ty;
+
+                return;
+            }
+        }
+
+        let msg = Msg::SuperUnavailable;
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        e.set_ty(BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_nil(&mut self, e: &'ast ExprNilType) {
@@ -739,6 +770,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
+            ExprSuper(ref expr) => self.check_expr_super(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
             ExprIs(ref expr) => self.check_expr_is(expr),
@@ -1332,5 +1364,18 @@ mod tests {
                 b.f();
                 b.g();
             }");
+    }
+
+    #[test]
+    fn super_method_call() {
+        ok("open class A { open fun f() -> int { return 1; } }
+            class B: A { override fun f() -> int { return super.f() + 1; } }");
+    }
+
+    #[test]
+    fn super_as_normal_expression() {
+        err("open class A { }
+            class B: A { fun me() { let x = super; } }", pos(2, 45),
+            Msg::SuperNeedsMethodCall);
     }
 }

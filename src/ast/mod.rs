@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::hash::*;
 use std::slice::Iter;
@@ -966,6 +966,7 @@ pub enum Expr {
     ExprAssign(ExprAssignType),
     ExprField(ExprFieldType),
     ExprSelf(ExprSelfType),
+    ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
     ExprArray(ExprArrayType),
     ExprIs(ExprIsType),
@@ -1056,6 +1057,15 @@ impl Expr {
             id: id,
             pos: pos,
             ty: RefCell::new(None),
+        })
+    }
+
+    pub fn create_super(id: NodeId, pos: Position) -> Expr {
+        Expr::ExprSuper(ExprSuperType {
+            id: id,
+            pos: pos,
+            ty: RefCell::new(None),
+            method: Cell::new(false),
         })
     }
 
@@ -1285,6 +1295,13 @@ impl Expr {
         }
     }
 
+    pub fn to_super(&self) -> Option<&ExprSuperType> {
+        match *self {
+            Expr::ExprSuper(ref val) => Some(val),
+            _ => None
+        }
+    }
+
     pub fn is_nil(&self) -> bool {
         match *self {
             Expr::ExprNil(_) => true,
@@ -1333,6 +1350,7 @@ impl Expr {
             Expr::ExprDelegation(ref val) => val.id,
             Expr::ExprField(ref val) => val.id,
             Expr::ExprSelf(ref val) => val.id,
+            Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprArray(ref val) => val.id,
             Expr::ExprIs(ref val) => val.id,
@@ -1353,6 +1371,7 @@ impl Expr {
             Expr::ExprDelegation(_) => BuiltinType::Unit,
             Expr::ExprField(ref val) => val.ty(),
             Expr::ExprSelf(ref val) => val.ty(),
+            Expr::ExprSuper(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
             Expr::ExprIs(_) => BuiltinType::Bool,
@@ -1373,6 +1392,7 @@ impl Expr {
             Expr::ExprDelegation(_) => panic!("unimplemented"),
             Expr::ExprField(ref val) => val.set_ty(ty),
             Expr::ExprSelf(ref val) => val.set_ty(ty),
+            Expr::ExprSuper(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
             Expr::ExprIs(_) => panic!("unimplemented"),
@@ -1551,6 +1571,32 @@ pub struct ExprLitBoolType {
     pub pos: Position,
 
     pub value: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprSuperType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub ty: RefCell<Option<BuiltinType>>,
+    pub method: Cell<bool>,
+}
+
+impl ExprSuperType {
+    pub fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    pub fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
+
+    pub fn method(&self) -> bool {
+        self.method.get()
+    }
+
+    pub fn set_method(&self, val: bool) {
+        self.method.set(val);
+    }
 }
 
 #[derive(Clone, Debug)]

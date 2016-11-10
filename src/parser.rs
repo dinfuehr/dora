@@ -1027,6 +1027,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
             TokenType::This => self.parse_this(),
+            TokenType::Super => self.parse_super(),
             _ => Err(MsgWithPos::new(self.token.position,
                      Msg::ExpectedFactor(self.token.name().clone())))
         }
@@ -1090,6 +1091,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = try!(self.read_token());
 
         Ok(Box::new(Expr::create_this(self.generate_id(), tok.position)))
+    }
+
+    fn parse_super(&mut self) -> ExprResult {
+        let tok = try!(self.read_token());
+
+        Ok(Box::new(Expr::create_super(self.generate_id(), tok.position)))
     }
 
     fn parse_nil(&mut self) -> ExprResult {
