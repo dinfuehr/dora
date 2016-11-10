@@ -39,6 +39,8 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
 
             ASSERT => {
                 println!("assert failed");
+                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
                 unsafe { _exit(101); }
             }
 

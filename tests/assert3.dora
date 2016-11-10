@@ -1,0 +1,17 @@
+//= error assert
+
+fun main() {
+  f(false);
+}
+
+fun f(a: bool) {
+    g(a);
+}
+
+fun g(a: bool) {
+    h(a);
+}
+
+fun h(a: bool) {
+    assert(a);
+}
