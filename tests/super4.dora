@@ -1,0 +1,24 @@
+fun main() {
+  let c = C();
+
+  assert(c.foo(1) == 3);
+  assert(c.foo(2) == 5);
+}
+
+open class A {
+  open fun foo(a: int) -> int {
+    return a;
+  }
+}
+
+open class B: A {
+  open override fun foo(a: int) -> int {
+    return super.foo(a) * 2;
+  }
+}
+
+class C: B {
+  override fun foo(a: int) -> int {
+    return super.foo(a) + 1;
+  }
+}

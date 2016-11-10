@@ -114,12 +114,14 @@ impl<'ast> Class<'ast> {
             for &method in &cls.methods {
                 let method = ctxt.fct_by_id(method);
 
-                if method.name == name && !ignores.contains(&method.id) && f(method) {
+                if method.name == name && f(method) {
                     if let Some(overrides) = method.overrides {
                         ignores.insert(overrides);
                     }
 
-                    candidates.push(method.id);
+                    if !ignores.contains(&method.id) {
+                        candidates.push(method.id);
+                    }
                 }
             }
 
