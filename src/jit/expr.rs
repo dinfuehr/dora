@@ -1,5 +1,3 @@
-use libc::c_void;
-
 use ast::*;
 use ast::Expr::*;
 use class::{ClassId, FieldId};
