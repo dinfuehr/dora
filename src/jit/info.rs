@@ -250,11 +250,17 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             None
         };
 
+        let mut super_call = false;
+
         let args = args.iter().enumerate().map(|(ind, arg)| {
             match *arg {
                 Arg::Expr(ast, mut ty, _) => {
                     if let Some(fid) = fid {
                         ty = if ind == 0 && in_class {
+                            if ast.is_super() {
+                                super_call = true;
+                            }
+
                             let cid = self.ctxt.fct_by_id(fid).owner_class.unwrap();
                             self.ctxt.cls_by_id(cid).ty
 
@@ -282,6 +288,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let csite = CallSite {
             callee: callee,
             args: args,
+            super_call: super_call,
             return_type: return_type
         };
 

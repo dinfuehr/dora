@@ -1295,6 +1295,13 @@ impl Expr {
         }
     }
 
+    pub fn is_super(&self) -> bool {
+        match *self {
+            Expr::ExprSuper(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_super(&self) -> Option<&ExprSuperType> {
         match *self {
             Expr::ExprSuper(ref val) => Some(val),

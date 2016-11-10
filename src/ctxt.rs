@@ -505,6 +505,7 @@ impl CallType {
 pub struct CallSite<'ast> {
     pub callee: Callee,
     pub args: Vec<Arg<'ast>>,
+    pub super_call: bool,
     pub return_type: BuiltinType,
 }
 

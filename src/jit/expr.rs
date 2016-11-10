@@ -621,7 +621,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Callee::Fct(fid) => {
                 let fct = self.ctxt.fct_by_id(fid);
 
-                if fct.is_virtual() {
+                if csite.super_call {
+                    let ptr = self.ptr_for_fct_id(fid);
+                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+
+                } else if fct.is_virtual() {
                     let vtable_index = fct.vtable_index.unwrap();
                     self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
 
