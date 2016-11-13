@@ -700,7 +700,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_is(&mut self, e: &'ast ExprIsType) {
+    fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
         let object_type = self.expr_type;
         e.object.set_ty(self.expr_type);
@@ -733,35 +733,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         e.set_cls_id(object_type.cls_id(self.ctxt));
-        self.expr_type = BuiltinType::Bool;
-    }
-
-    fn check_expr_as(&mut self, e: &'ast ExprAsType) {
-        self.visit_expr(&e.object);
-        let object_type = self.expr_type;
-        e.object.set_ty(self.expr_type);
-
-        let check_type = match read_type(self.ctxt, &e.data_type) {
-            Some(ty) => ty,
-            None => { return; }
+        self.expr_type = if e.is {
+            BuiltinType::Bool
+        } else {
+            check_type
         };
-
-        if !check_type.reference_type() {
-            let name = check_type.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(name));
-            return;
-        }
-
-        if !check_type.subclass_from(self.ctxt, object_type) {
-            let object_type = object_type.name(self.ctxt);
-            let check_type = check_type.name(self.ctxt);
-            let msg = Msg::TypesIncompatible(object_type, check_type);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
-
-        let cls_id = check_type.cls_id(self.ctxt);
-        e.set_cls_id(cls_id);
-        self.expr_type = check_type;
     }
 }
 
@@ -782,8 +758,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprSuper(ref expr) => self.check_expr_super(expr),
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
-            ExprIs(ref expr) => self.check_expr_is(expr),
-            ExprAs(ref expr) => self.check_expr_as(expr),
+            ExprConv(ref expr) => self.check_expr_conv(expr),
         }
     }
 

@@ -291,20 +291,14 @@ impl<'a> AstDumper<'a> {
             ExprSelf(ref selfie) => self.dump_expr_self(selfie),
             ExprSuper(ref expr) => self.dump_expr_super(expr),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
-            ExprIs(ref expr) => self.dump_expr_is(expr),
-            ExprAs(ref expr) => self.dump_expr_as(expr),
+            ExprConv(ref expr) => self.dump_expr_conv(expr),
         }
     }
 
-    fn dump_expr_is(&mut self, expr: &ExprIsType) {
+    fn dump_expr_conv(&mut self, expr: &ExprConvType) {
         self.indent(|d| d.dump_expr(&expr.object));
-        dump!(self, "is @ {} {}", expr.pos, expr.id);
-        self.indent(|d| d.dump_type(&expr.data_type));
-    }
-
-    fn dump_expr_as(&mut self, expr: &ExprAsType) {
-        self.indent(|d| d.dump_expr(&expr.object));
-        dump!(self, "as @ {} {}", expr.pos, expr.id);
+        let op = if expr.is { "is" } else { "as" };
+        dump!(self, "{} @ {} {}", op, expr.pos, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
     }
 

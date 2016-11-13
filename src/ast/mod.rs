@@ -969,8 +969,7 @@ pub enum Expr {
     ExprSuper(ExprSuperType),
     ExprNil(ExprNilType),
     ExprArray(ExprArrayType),
-    ExprIs(ExprIsType),
-    ExprAs(ExprAsType),
+    ExprConv(ExprConvType),
 }
 
 impl Expr {
@@ -996,24 +995,16 @@ impl Expr {
         })
     }
 
-    pub fn create_is(id: NodeId, pos: Position, object: Box<Expr>, data_type: Box<Type>) -> Expr {
-        Expr::ExprIs(ExprIsType {
+    pub fn create_conv(id: NodeId, pos: Position, object: Box<Expr>,
+                       data_type: Box<Type>, is: bool) -> Expr {
+        Expr::ExprConv(ExprConvType {
             id: id,
             pos: pos,
             object: object,
             data_type: data_type,
+            is: is,
             cls_id: RefCell::new(None),
             valid: Cell::new(false),
-        })
-    }
-
-    pub fn create_as(id: NodeId, pos: Position, object: Box<Expr>, data_type: Box<Type>) -> Expr {
-        Expr::ExprAs(ExprAsType {
-            id: id,
-            pos: pos,
-            object: object,
-            data_type: data_type,
-            cls_id: RefCell::new(None),
         })
     }
 
@@ -1317,30 +1308,16 @@ impl Expr {
         }
     }
 
-    pub fn to_is(&self) -> Option<&ExprIsType> {
+    pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
-            Expr::ExprIs(ref val) => Some(val),
+            Expr::ExprConv(ref val) => Some(val),
             _ => None
         }
     }
 
-    pub fn is_is(&self) -> bool {
+    pub fn is_conv(&self) -> bool {
         match *self {
-            Expr::ExprIs(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn to_as(&self) -> Option<&ExprAsType> {
-        match *self {
-            Expr::ExprAs(ref val) => Some(val),
-            _ => None
-        }
-    }
-
-    pub fn is_as(&self) -> bool {
-        match *self {
-            Expr::ExprAs(_) => true,
+            Expr::ExprConv(_) => true,
             _ => false
         }
     }
@@ -1361,8 +1338,7 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.id,
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprArray(ref val) => val.id,
-            Expr::ExprIs(ref val) => val.id,
-            Expr::ExprAs(ref val) => val.id,
+            Expr::ExprConv(ref val) => val.id,
         }
     }
 
@@ -1382,8 +1358,11 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
-            Expr::ExprIs(_) => BuiltinType::Bool,
-            Expr::ExprAs(_) => panic!("unimplemented"),
+            Expr::ExprConv(ref val) => if val.is {
+                    BuiltinType::Bool
+                } else {
+                    panic!("unimplemented");
+                },
         }
     }
 
@@ -1403,23 +1382,27 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
-            Expr::ExprIs(_) => panic!("unimplemented"),
-            Expr::ExprAs(_) => panic!("TODO"),
+            Expr::ExprConv(ref val) => if val.is {
+                    panic!("unimplemented")
+                } else {
+                    panic!("TODO")
+                },
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprIsType {
+pub struct ExprConvType {
     pub id: NodeId,
     pub pos: Position,
     pub object: Box<Expr>,
+    pub is: bool,
     pub data_type: Box<Type>,
     pub cls_id: RefCell<Option<ClassId>>,
     pub valid: Cell<bool>,
 }
 
-impl ExprIsType {
+impl ExprConvType {
     pub fn cls_id(&self) -> ClassId {
         self.cls_id.borrow().unwrap()
     }
@@ -1434,25 +1417,6 @@ impl ExprIsType {
 
     pub fn set_valid(&self, val: bool) {
         self.valid.set(val);
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprAsType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub object: Box<Expr>,
-    pub data_type: Box<Type>,
-    pub cls_id: RefCell<Option<ClassId>>,
-}
-
-impl ExprAsType {
-    pub fn cls_id(&self) -> ClassId {
-        self.cls_id.borrow().unwrap()
-    }
-
-    pub fn set_cls_id(&self, cls_id: ClassId) {
-        *self.cls_id.borrow_mut() = Some(cls_id);
     }
 }
 

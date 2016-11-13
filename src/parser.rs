@@ -958,14 +958,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let mut left = try!(self.parse_expression_l10());
 
         while self.token.is(TokenType::Is) || self.token.is(TokenType::As) {
+            let is = self.token.is(TokenType::Is);
+
             let tok = try!(self.read_token());
             let right = Box::new(try!(self.parse_type()));
             let id = self.generate_id();
 
-            left = Box::new(match tok.token_type {
-                TokenType::Is => Expr::create_is(id, tok.position, left, right),
-                _ => Expr::create_as(id, tok.position, left, right),
-            });
+            let expr = Expr::create_conv(id, tok.position, left, right, is);
+            left = Box::new(expr);
         }
 
         Ok(left)
@@ -2332,15 +2332,17 @@ mod tests {
     #[test]
     fn parse_is_expr() {
         let (expr, _) = parse_expr("a is Str");
-        let expr = expr.to_is().unwrap();
+        let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
+        assert_eq!(true, expr.is);
     }
 
     #[test]
     fn parse_as_expr() {
         let (expr, _) = parse_expr("a as Str");
-        let expr = expr.to_as().unwrap();
+        let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
+        assert_eq!(false, expr.is);
     }
 
     #[test]

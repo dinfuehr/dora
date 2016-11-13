@@ -74,8 +74,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
             ExprArray(ref expr) => self.emit_array(expr, dest),
-            ExprIs(_) => panic!("unimplemented"),
-            ExprAs(_) => panic!("unimplemented"),
+            ExprConv(_) => panic!("unimplemented"),
         }
 
         dest
@@ -752,8 +751,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprSuper(_) => true,
         ExprNil(_) => true,
         ExprArray(_) => false,
-        ExprIs(_) => false,
-        ExprAs(_) => false,
+        ExprConv(_) => false,
     }
 }
 
@@ -774,7 +772,6 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprSuper(_) => false,
         ExprNil(_) => false,
         ExprArray(ref e) => contains_fct_call(&e.object) || contains_fct_call(&e.index),
-        ExprIs(ref e) => contains_fct_call(&e.object),
-        ExprAs(ref e) => contains_fct_call(&e.object),
+        ExprConv(ref e) => contains_fct_call(&e.object),
     }
 }
