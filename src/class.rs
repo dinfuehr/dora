@@ -31,9 +31,13 @@ impl<'ast> IndexMut<ClassId> for Vec<Box<Class<'ast>>> {
     }
 }
 
+pub static DISPLAY_SIZE: usize = 6;
+
 #[derive(Debug)]
 pub struct Class<'ast> {
     pub id: ClassId,
+    pub depth: u32,
+    // pub display: [*mut Class<'ast>; 6],
     pub name: Name,
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,

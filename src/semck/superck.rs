@@ -18,6 +18,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     determine_sizes(ctxt);
     create_vtables(ctxt);
+
+    create_displays(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
@@ -248,136 +250,151 @@ fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {
     ptr
 }
 
-#[test]
-fn test_super_size() {
-    use semck::tests::ok_with_test;
+fn create_displays<'ast>(ctxt: &mut Context<'ast>) {
+    for clsid in 0..ctxt.classes.len() {
+        let clsid: ClassId = clsid.into();
 
-    ok_with_test("open class A { var a: int; }
-           open class B: A { var b1: int; var b2: int; }
-           class C: B { var c: Str; }", |ctxt| {
-        check_class(ctxt, "A", 4, None);
-        check_field(ctxt, "A", "a", Header::size());
-        check_class(ctxt, "B", 4*3, Some("A"));
-        check_field(ctxt, "B", "b1", Header::size() + 4);
-        check_class(ctxt, "C", 4*3+8, Some("B"));
-        check_field(ctxt, "C", "c", Header::size() + 4 * 3);
-    });
+        ensure_display(ctxt, clsid);
+    }
 }
 
-#[test]
-fn test_cycle() {
-    use semck::tests::{errors, pos};
+fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> u32 {
+    let parent_clsid = {
+        let cls = ctxt.cls_by_id(clsid);
 
-    errors("open class A: B open class B: A", &[
-        (pos(1, 6), Msg::CycleInHierarchy),
-        (pos(1, 22), Msg::CycleInHierarchy)
-    ]);
-}
-
-#[test]
-fn test_superfluous_override() {
-    use semck::tests::{err, pos};
-
-    err("class A { override fun f() {} }",
-        pos(1, 20), Msg::SuperfluousOverride("f".into()));
-    err("open class B { } class A: B { override fun f() {} }",
-        pos(1, 40), Msg::SuperfluousOverride("f".into()));
-    err("open class B { fun g() {} } class A: B { override fun f() {} }",
-        pos(1, 51), Msg::SuperfluousOverride("f".into()));
-    err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
-        pos(1, 57), Msg::SuperfluousOverride("f".into()));
-}
-
-#[test]
-fn test_override() {
-    use semck::tests::{ok, err, pos};
-
-    err("open class A { fun f() {} } class B: A { override fun f() {} }",
-        pos(1, 51), Msg::MethodNotOverridable("f".into()));
-    ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
-    ok("open class A { open fun f() {} }
-        open class B: A { override fun f() {} }
-        open class C: B { override fun f() {} }");
-    err("open class A { open fun f() {} } class B: A { fun f() {} }",
-        pos(1, 47), Msg::MissingOverride("f".into()));
-    err("open class A { open fun f() {} }
-         open class B: A { final override fun f() {} }
-         class C: B { override fun f() {} }",
-        pos(3, 32), Msg::MethodNotOverridable("f".into()));
-}
-
-#[test]
-fn test_override_with_wrong_return_type() {
-    use semck::tests::{err, pos};
-
-    err("open class A { open fun f() {} }
-        class B: A { override fun f() -> int { return 1; } }",
-        pos(2, 31), Msg::ReturnTypeMismatch("int".into(), "()".into()));
-}
-
-#[test]
-fn test_override_with_missing_throws() {
-    use semck::tests::{err, pos};
-
-    err("open class A { open fun f() throws {} }
-         class B: A { override fun f() {} }", pos(2, 32),
-         Msg::ThrowsDifference("f".into()));
-}
-
-#[test]
-fn test_open() {
-    use semck::tests::ok;
-
-    ok("open class A { open fun f() {} }");
-}
-
-#[test]
-fn test_superfluous_open() {
-    use semck::tests::{err, pos};
-
-    err("class A { open fun f() {} }",
-        pos(1, 16), Msg::SuperfluousOpen("f".into()));
-}
-
-#[test]
-fn test_final() {
-    use semck::tests::ok;
-
-    ok("open class A { final fun f() {} }");
-}
-
-#[cfg(test)]
-fn check_class<'ast>(ctxt: &Context<'ast>,
-                     name: &'static str,
-                     size: i32,
-                     parent: Option<&'static str>) {
-    let name = ctxt.interner.intern(name);
-    let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
-
-    let parent_id = parent.map(|name| ctxt.interner.intern(name))
-                          .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
-
-    let cls = ctxt.cls_by_id(cls_id);
-    assert_eq!(parent_id, cls.parent_class);
-    assert_eq!(Header::size() + size, cls.size);
-}
-
-#[cfg(test)]
-fn check_field<'ast>(ctxt: &Context<'ast>,
-                     cls_name: &'static str,
-                     field_name: &'static str,
-                     offset: i32) {
-    let cls_name = ctxt.interner.intern(cls_name);
-    let field_name = ctxt.interner.intern(field_name);
-    let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
-    let cls = ctxt.cls_by_id(cls_id);
-
-    for field in &cls.fields {
-        if field_name == field.name {
-            assert_eq!(offset, field.offset);
-            return;
+        // if depth already set or class has no parent class,
+        // then there is no more work to do
+        if cls.depth != 0 || cls.parent_class.is_none() {
+            return cls.depth;
         }
+
+        cls.parent_class.unwrap()
+    };
+
+    let depth = 1 + ensure_display(ctxt, parent_clsid);
+    ctxt.cls_by_id_mut(clsid).depth = depth;
+
+    depth
+}
+
+#[cfg(test)]
+mod tests {
+    use ctxt::Context;
+    use error::msg::Msg;
+    use object::Header;
+    use semck::tests::{err, errors, ok, ok_with_test, pos};
+
+    #[test]
+    fn test_super_size() {
+        ok_with_test("open class A { var a: int; }
+            open class B: A { var b1: int; var b2: int; }
+            class C: B { var c: Str; }", |ctxt| {
+            check_class(ctxt, "A", 4, None);
+            check_field(ctxt, "A", "a", Header::size());
+            check_class(ctxt, "B", 4*3, Some("A"));
+            check_field(ctxt, "B", "b1", Header::size() + 4);
+            check_class(ctxt, "C", 4*3+8, Some("B"));
+            check_field(ctxt, "C", "c", Header::size() + 4 * 3);
+        });
     }
 
-    unreachable!();
+    #[test]
+    fn test_cycle() {
+        errors("open class A: B open class B: A", &[
+            (pos(1, 6), Msg::CycleInHierarchy),
+            (pos(1, 22), Msg::CycleInHierarchy)
+        ]);
+    }
+
+    #[test]
+    fn test_superfluous_override() {
+        err("class A { override fun f() {} }",
+            pos(1, 20), Msg::SuperfluousOverride("f".into()));
+        err("open class B { } class A: B { override fun f() {} }",
+            pos(1, 40), Msg::SuperfluousOverride("f".into()));
+        err("open class B { fun g() {} } class A: B { override fun f() {} }",
+            pos(1, 51), Msg::SuperfluousOverride("f".into()));
+        err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
+            pos(1, 57), Msg::SuperfluousOverride("f".into()));
+    }
+
+    #[test]
+    fn test_override() {
+        err("open class A { fun f() {} } class B: A { override fun f() {} }",
+            pos(1, 51), Msg::MethodNotOverridable("f".into()));
+        ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
+        ok("open class A { open fun f() {} }
+            open class B: A { override fun f() {} }
+            open class C: B { override fun f() {} }");
+        err("open class A { open fun f() {} } class B: A { fun f() {} }",
+            pos(1, 47), Msg::MissingOverride("f".into()));
+        err("open class A { open fun f() {} }
+             open class B: A { final override fun f() {} }
+             class C: B { override fun f() {} }",
+            pos(3, 36), Msg::MethodNotOverridable("f".into()));
+    }
+
+    #[test]
+    fn test_override_with_wrong_return_type() {
+        err("open class A { open fun f() {} }
+             class B: A { override fun f() -> int { return 1; } }",
+            pos(2, 36), Msg::ReturnTypeMismatch("int".into(), "()".into()));
+    }
+
+    #[test]
+    fn test_override_with_missing_throws() {
+        err("open class A { open fun f() throws {} }
+             class B: A { override fun f() {} }", pos(2, 36),
+            Msg::ThrowsDifference("f".into()));
+    }
+
+    #[test]
+    fn test_open() {
+        ok("open class A { open fun f() {} }");
+    }
+
+    #[test]
+    fn test_superfluous_open() {
+        err("class A { open fun f() {} }",
+            pos(1, 16), Msg::SuperfluousOpen("f".into()));
+    }
+
+    #[test]
+    fn test_final() {
+        ok("open class A { final fun f() {} }");
+    }
+
+    fn check_class<'ast>(ctxt: &Context<'ast>,
+                        name: &'static str,
+                        size: i32,
+                        parent: Option<&'static str>) {
+        let name = ctxt.interner.intern(name);
+        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
+
+        let parent_id = parent.map(|name| ctxt.interner.intern(name))
+                            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
+
+        let cls = ctxt.cls_by_id(cls_id);
+        assert_eq!(parent_id, cls.parent_class);
+        assert_eq!(Header::size() + size, cls.size);
+    }
+
+    fn check_field<'ast>(ctxt: &Context<'ast>,
+                        cls_name: &'static str,
+                        field_name: &'static str,
+                        offset: i32) {
+        let cls_name = ctxt.interner.intern(cls_name);
+        let field_name = ctxt.interner.intern(field_name);
+        let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
+        let cls = ctxt.cls_by_id(cls_id);
+
+        for field in &cls.fields {
+            if field_name == field.name {
+                assert_eq!(offset, field.offset);
+                return;
+            }
+        }
+
+        unreachable!();
+    }
 }
