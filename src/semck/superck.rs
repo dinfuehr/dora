@@ -279,6 +279,7 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use class::Class;
     use ctxt::Context;
     use error::msg::Msg;
     use object::Header;
@@ -362,6 +363,31 @@ mod tests {
     #[test]
     fn test_final() {
         ok("open class A { final fun f() {} }");
+    }
+
+    #[test]
+    fn test_depth() {
+        ok_with_test("class A { } class B { }", |ctxt| {
+            assert_eq!(cls_by_name(ctxt, "A").depth, 0);
+            assert_eq!(cls_by_name(ctxt, "B").depth, 0);
+        });
+    }
+
+    #[test]
+    fn test_depth_with_multiple_levels() {
+        ok_with_test("open class A { } open class B: A { }
+                      class C: B { }", |ctxt| {
+            assert_eq!(cls_by_name(ctxt, "A").depth, 0);
+            assert_eq!(cls_by_name(ctxt, "B").depth, 1);
+            assert_eq!(cls_by_name(ctxt, "C").depth, 2);
+        });
+    }
+
+    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a Class<'ast> {
+        let name = ctxt.interner.intern(name);
+        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
+
+        ctxt.cls_by_id(cls_id)
     }
 
     fn check_class<'ast>(ctxt: &Context<'ast>,
