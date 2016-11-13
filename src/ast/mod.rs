@@ -1003,6 +1003,7 @@ impl Expr {
             object: object,
             data_type: data_type,
             cls_id: RefCell::new(None),
+            valid: Cell::new(false),
         })
     }
 
@@ -1415,6 +1416,7 @@ pub struct ExprIsType {
     pub object: Box<Expr>,
     pub data_type: Box<Type>,
     pub cls_id: RefCell<Option<ClassId>>,
+    pub valid: Cell<bool>,
 }
 
 impl ExprIsType {
@@ -1424,6 +1426,14 @@ impl ExprIsType {
 
     pub fn set_cls_id(&self, cls_id: ClassId) {
         *self.cls_id.borrow_mut() = Some(cls_id);
+    }
+
+    pub fn valid(&self) -> bool {
+        self.valid.get()
+    }
+
+    pub fn set_valid(&self, val: bool) {
+        self.valid.set(val);
     }
 }
 

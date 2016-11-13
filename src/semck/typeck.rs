@@ -716,7 +716,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        if !check_type.subclass_from(self.ctxt, object_type) {
+        if object_type.subclass_from(self.ctxt, check_type) {
+            // open class A { } class B: A { }
+            // (b is A) is valid
+
+            e.set_valid(true);
+
+        } else if check_type.subclass_from(self.ctxt, object_type) {
+            // normal check
+
+        } else {
             let object_type = object_type.name(self.ctxt);
             let check_type = check_type.name(self.ctxt);
             let msg = Msg::TypesIncompatible(object_type, check_type);
@@ -1306,6 +1315,8 @@ mod tests {
     fn check_is() {
         ok("open class A class B: A
             fun f(a: A) -> bool { return a is B; }");
+        ok("open class A class B: A
+            fun f(b: B) -> bool { return b is A; }");
         ok("class A
             fun f(a: A) -> bool { return a is A; }");
         err("open class A class B: A
