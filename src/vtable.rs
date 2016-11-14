@@ -10,7 +10,9 @@ pub const DISPLAY_SIZE: usize = 6;
 pub struct VTable<'ast> {
     pub classptr: *mut Class<'ast>,
     pub subtype_depth: i32,
+    pub subtype_offset: i32,
     pub subtype_display: [*const u8; DISPLAY_SIZE],
+    // pub subtype_overflow: Option<Box<*const u8>>,
     pub table_length: usize,
     pub table: [usize; 1],
 }
@@ -26,6 +28,7 @@ impl<'ast> VTable<'ast> {
             let mut vtable = Box::from_raw(ptr);
             vtable.classptr = classptr;
             vtable.subtype_depth = 0;
+            vtable.subtype_offset = 0;
             vtable.subtype_display = [ptr::null(); DISPLAY_SIZE];
             vtable.table_length = entries.len();
 
