@@ -12,7 +12,7 @@ pub struct VTable<'ast> {
     pub subtype_depth: i32,
     pub subtype_offset: i32,
     pub subtype_display: [*const u8; DISPLAY_SIZE],
-    // pub subtype_overflow: Option<Box<*const u8>>,
+    // pub subtype_overflow: Option<Box<[*const u8]>>,
     pub table_length: usize,
     pub table: [usize; 1],
 }
@@ -30,6 +30,7 @@ impl<'ast> VTable<'ast> {
             vtable.subtype_depth = 0;
             vtable.subtype_offset = 0;
             vtable.subtype_display = [ptr::null(); DISPLAY_SIZE];
+            // vtable.subtype_overflow = None;
             vtable.table_length = entries.len();
 
             ptr::copy(entries.as_ptr(), &mut vtable.table[0], entries.len());
