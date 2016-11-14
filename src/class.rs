@@ -37,7 +37,7 @@ pub static DISPLAY_SIZE: usize = 6;
 pub struct Class<'ast> {
     pub id: ClassId,
     pub depth: u32,
-    // pub display: [*mut Class<'ast>; 6],
+    pub display: [*mut Class<'ast>; 6],
     pub name: Name,
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,
