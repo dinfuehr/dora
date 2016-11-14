@@ -258,21 +258,24 @@ fn create_displays<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> u32 {
+fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> i32 {
     let parent_clsid = {
         let cls = ctxt.cls_by_id(clsid);
+        let depth = cls.vtable.as_ref().unwrap().subtype_depth;
 
         // if depth already set or class has no parent class,
         // then there is no more work to do
-        if cls.depth != 0 || cls.parent_class.is_none() {
-            return cls.depth;
+        if depth != 0 || cls.parent_class.is_none() {
+            return depth;
         }
 
         cls.parent_class.unwrap()
     };
 
     let depth = 1 + ensure_display(ctxt, parent_clsid);
-    ctxt.cls_by_id_mut(clsid).depth = depth;
+    let mut cls = ctxt.cls_by_id_mut(clsid);
+    let mut vtable = cls.vtable.as_mut().unwrap();
+    vtable.subtype_depth = depth;
 
     depth
 }
@@ -284,6 +287,7 @@ mod tests {
     use error::msg::Msg;
     use object::Header;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
+    use vtable::VTable;
 
     #[test]
     fn test_super_size() {
@@ -368,8 +372,8 @@ mod tests {
     #[test]
     fn test_depth() {
         ok_with_test("class A { } class B { }", |ctxt| {
-            assert_eq!(cls_by_name(ctxt, "A").depth, 0);
-            assert_eq!(cls_by_name(ctxt, "B").depth, 0);
+            assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
+            assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 0);
         });
     }
 
@@ -377,10 +381,14 @@ mod tests {
     fn test_depth_with_multiple_levels() {
         ok_with_test("open class A { } open class B: A { }
                       class C: B { }", |ctxt| {
-            assert_eq!(cls_by_name(ctxt, "A").depth, 0);
-            assert_eq!(cls_by_name(ctxt, "B").depth, 1);
-            assert_eq!(cls_by_name(ctxt, "C").depth, 2);
+            assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
+            assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 1);
+            assert_eq!(vtable_by_name(ctxt, "C").subtype_depth, 2);
         });
+    }
+
+    fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable<'ast> {
+        cls_by_name(ctxt, name).vtable.as_ref().unwrap()
     }
 
     fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a Class<'ast> {

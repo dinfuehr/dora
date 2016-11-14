@@ -687,7 +687,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // REG_TMP1 = offset table in vtable
         // REG_RESULT = REG_RESULT + REG_TMP1
         emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
-        emit::movl_imm_reg(self.buf, 2*mem::ptr_width() as u32, REG_TMP1);
+        emit::movl_imm_reg(self.buf, VTable::offset_of_table() as u32, REG_TMP1);
         emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 
         // REG_TMP1 = index

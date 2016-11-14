@@ -4,9 +4,13 @@ use std::{self, ptr, slice};
 use class::Class;
 use mem;
 
+pub const DISPLAY_SIZE: usize = 6;
+
 #[derive(Debug)]
 pub struct VTable<'ast> {
     pub classptr: *mut Class<'ast>,
+    pub subtype_depth: i32,
+    pub subtype_display: [*const u8; DISPLAY_SIZE],
     pub table_length: usize,
     pub table: [usize; 1],
 }
@@ -21,6 +25,8 @@ impl<'ast> VTable<'ast> {
 
             let mut vtable = Box::from_raw(ptr);
             vtable.classptr = classptr;
+            vtable.subtype_depth = 0;
+            vtable.subtype_display = [ptr::null(); DISPLAY_SIZE];
             vtable.table_length = entries.len();
 
             ptr::copy(entries.as_ptr(), &mut vtable.table[0], entries.len());
@@ -51,5 +57,9 @@ impl<'ast> VTable<'ast> {
         unsafe {
             slice::from_raw_parts_mut(ptr, self.table_length)
         }
+    }
+
+    pub fn offset_of_table() -> i32 {
+        (3 + DISPLAY_SIZE as i32) * mem::ptr_width()
     }
 }

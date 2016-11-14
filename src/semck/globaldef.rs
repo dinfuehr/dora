@@ -1,4 +1,3 @@
-use std::ptr;
 use std::sync::{Arc, Mutex};
 
 use ast::*;
@@ -28,8 +27,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let id: ClassId = self.ctxt.classes.len().into();
         let cls = class::Class {
             id: id,
-            depth: 0,
-            display: [ptr::null_mut(); 6],
             name: c.name,
             ty: BuiltinType::Class(id),
             parent_class: None,
