@@ -88,7 +88,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             self.emit_expr(&e.index, REG_TMP1);
             emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, REG_RESULT);
-            emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
+
+            if !self.ctxt.args.flag_omit_bounds_check {
+                emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
+            }
 
             cpu::instr::emit_addq_imm_reg(self.buf, IntArray::offset_of_data(), REG_RESULT);
             emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
@@ -239,7 +242,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 emit::mov_local_reg(self.buf, MachineMode::Ptr, offset_object, REG_TMP1);
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_index, REG_TMP2);
-                emit::check_index_out_of_bounds(self.buf, e.pos, REG_TMP1, REG_TMP2, REG_RESULT);
+
+                if !self.ctxt.args.flag_omit_bounds_check {
+                    emit::check_index_out_of_bounds(self.buf, e.pos, REG_TMP1,
+                                                    REG_TMP2, REG_RESULT);
+                }
 
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
                 cpu::instr::emit_addq_imm_reg(self.buf, IntArray::offset_of_data(), REG_TMP1);
