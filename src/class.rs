@@ -11,6 +11,12 @@ use ty::BuiltinType;
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
 
+impl From<ClassId> for usize {
+    fn from(data: ClassId) -> usize {
+        data.0
+    }
+}
+
 impl From<usize> for ClassId {
     fn from(data: usize) -> ClassId {
         ClassId(data)

@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 
 use class::{Class, ClassId};
@@ -7,7 +8,7 @@ use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
 use object::Header;
-use vtable::VTable;
+use vtable::{DISPLAY_SIZE, VTable};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
@@ -258,26 +259,58 @@ fn create_displays<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> i32 {
-    let parent_clsid = {
+fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
+    let parent_id = {
         let cls = ctxt.cls_by_id(clsid);
-        let depth = cls.vtable.as_ref().unwrap().subtype_depth;
+        let vtable = cls.vtable.as_ref().unwrap();
 
-        // if depth already set or class has no parent class,
-        // then there is no more work to do
-        if depth != 0 || cls.parent_class.is_none() {
-            return depth;
+        // if subtype_display[0] is set, vtable was already initialized
+        if !vtable.subtype_display[0].is_null() {
+            return vtable.subtype_depth as usize;
         }
 
-        cls.parent_class.unwrap()
+        cls.parent_class
     };
 
-    let depth = 1 + ensure_display(ctxt, parent_clsid);
-    let mut cls = ctxt.cls_by_id_mut(clsid);
-    let mut vtable = cls.vtable.as_mut().unwrap();
-    vtable.subtype_depth = depth;
+    if let Some(parent_id) = parent_id {
+        let depth = 1 + ensure_display(ctxt, parent_id);
 
-    depth
+        let (cls, parent) = index_twice(&mut ctxt.classes, clsid.into(), parent_id.into());
+
+        let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
+        let parent_vtable: &mut VTable<'ast> = parent.vtable.as_mut().unwrap();
+
+        assert!(depth < DISPLAY_SIZE);
+
+        vtable.subtype_depth = depth as i32;
+
+        vtable.subtype_display[0..depth-1].
+            clone_from_slice(&parent_vtable.subtype_display[0..depth-1]);
+        vtable.subtype_display[depth] = vtable as *const VTable<'ast> as *const u8;
+
+        depth
+
+    } else {
+        let cls = ctxt.cls_by_id_mut(clsid);
+        let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
+
+        vtable.subtype_depth = 0;
+        vtable.subtype_display[0] = vtable as *const VTable<'ast> as *const u8;
+
+        0
+    }
+}
+
+fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
+    assert!(a != b);
+    assert!(max(a, b) < array.len());
+
+    unsafe {
+        let ao = &mut *(array.get_unchecked_mut(a) as *mut _);
+        let bo = &mut *(array.get_unchecked_mut(b) as *mut _);
+
+        (ao, bo)
+    }
 }
 
 #[cfg(test)]
