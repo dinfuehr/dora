@@ -6,6 +6,7 @@ use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
 use jit::stub::Stub;
 use lexer::position::Position;
+use mem;
 use mem::ptr::Ptr;
 use object::Header;
 use vtable::{DISPLAY_SIZE, VTable};
@@ -279,14 +280,23 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
 
         let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
         let parent_vtable: &mut VTable<'ast> = parent.vtable.as_mut().unwrap();
+        let depth_fixed;
 
-        assert!(depth < DISPLAY_SIZE);
+        if depth >= DISPLAY_SIZE {
+            // depth_fixed = DISPLAY_SIZE;
+            panic!("depth >= DISPLAY_SIZE not yet supported");
+
+        } else {
+            depth_fixed = depth;
+        }
 
         vtable.subtype_depth = depth as i32;
+        vtable.subtype_offset = VTable::offset_of_display() +
+                                mem::ptr_width() * (depth_fixed as i32);
 
-        vtable.subtype_display[0..depth-1].
-            clone_from_slice(&parent_vtable.subtype_display[0..depth-1]);
-        vtable.subtype_display[depth] = vtable as *const VTable<'ast> as *const u8;
+        vtable.subtype_display[0..depth_fixed].
+            clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
+        vtable.subtype_display[depth] = vtable as *const _;
 
         depth
 
@@ -295,7 +305,7 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
 
         vtable.subtype_depth = 0;
-        vtable.subtype_display[0] = vtable as *const VTable<'ast> as *const u8;
+        vtable.subtype_display[0] = vtable as *const _;
 
         0
     }
@@ -318,6 +328,7 @@ mod tests {
     use class::Class;
     use ctxt::Context;
     use error::msg::Msg;
+    use interner::Name;
     use object::Header;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
     use vtable::VTable;
@@ -417,7 +428,57 @@ mod tests {
             assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
             assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 1);
             assert_eq!(vtable_by_name(ctxt, "C").subtype_depth, 2);
+
+            {
+                let vtable = vtable_by_name(ctxt, "C");
+
+                assert_name(ctxt, vtable_name(vtable), "C");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 1), "B");
+                assert_name(ctxt, vtable_display_name(vtable, 2), "C");
+                assert!(vtable.subtype_display[3].is_null());
+            }
+
+            {
+                let vtable = vtable_by_name(ctxt, "B");
+
+                assert_name(ctxt, vtable_name(vtable), "B");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 1), "B");
+                assert!(vtable.subtype_display[2].is_null());
+            }
+
+            {
+                let vtable = vtable_by_name(ctxt, "A");
+
+                assert_name(ctxt, vtable_name(vtable), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
+                assert!(vtable.subtype_display[1].is_null());
+            }
         });
+    }
+
+    fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
+        let bname = ctxt.interner.intern(b);
+
+        println!("{} {}", ctxt.interner.str(a), b);
+
+        assert_eq!(a, bname);
+    }
+
+    fn vtable_name<'ast>(vtable: *const VTable<'ast>) -> Name {
+        let cls = unsafe { &*(*vtable).classptr };
+
+        cls.name
+    }
+
+    fn vtable_display_name<'ast>(vtable: *const VTable<'ast>, ind: usize) -> Name {
+        unsafe {
+            let vtable = (*vtable).subtype_display[ind] as *const VTable<'ast>;
+            let cls = &*(*vtable).classptr;
+
+            cls.name
+        }
     }
 
     fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable<'ast> {

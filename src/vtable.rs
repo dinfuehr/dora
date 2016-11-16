@@ -11,7 +11,7 @@ pub struct VTable<'ast> {
     pub classptr: *mut Class<'ast>,
     pub subtype_depth: i32,
     pub subtype_offset: i32,
-    pub subtype_display: [*const u8; DISPLAY_SIZE+1],
+    pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE+1],
     // pub subtype_overflow: Option<Box<[*const u8]>>,
     pub table_length: usize,
     pub table: [usize; 1],
@@ -61,6 +61,10 @@ impl<'ast> VTable<'ast> {
         unsafe {
             slice::from_raw_parts_mut(ptr, self.table_length)
         }
+    }
+
+    pub fn offset_of_display() -> i32 {
+        mem::ptr_width() * 2
     }
 
     pub fn offset_of_table() -> i32 {
