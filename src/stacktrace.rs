@@ -11,6 +11,10 @@ impl Stacktrace {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
+
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
         self.elems.push(StackElem {
             fct_id: fct_id,

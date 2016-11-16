@@ -123,22 +123,18 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
 
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
+            let jit_fct = src.jit_fct.as_ref().expect("no jit information");
+            let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect("no gcpoint");
 
-            if let Some(ref jit_fct) = src.jit_fct {
-                let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            for &offset in &gcpoint.offsets {
+                let addr = (fp as isize + offset as isize) as usize;
+                let obj = unsafe { *(addr as *const usize) };
 
-                if let Some(gcpoint) = jit_fct.gcpoint_for_offset(offset as i32) {
-                    for &offset in &gcpoint.offsets {
-                        let addr = (fp as isize + offset as isize) as usize;
-                        let obj = unsafe { *(addr as *const usize) };
-
-                        rootset.push(obj);
-                    }
-
-                } else {
-                    panic!("no gc point found");
-                }
+                rootset.push(obj);
             }
+        } else {
+            panic!("should be FctKind::Source");
         }
     }
 }
@@ -151,7 +147,9 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
 
     while rbp != 0 {
         let ra = unsafe { *((rbp + 8) as *const usize) };
-        determine_stack_entry(&mut stacktrace, ctxt, ra);
+        let cont = determine_stack_entry(&mut stacktrace, ctxt, ra);
+
+        if !cont { break; }
 
         rbp = unsafe { *(rbp as *const usize) };
     }
@@ -159,7 +157,7 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     return stacktrace;
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let fct_id = code_map.get(pc);
 
@@ -178,5 +176,10 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
         }
 
         stacktrace.push_entry(fct_id, lineno);
+
+        true
+    } else {
+        // only continue if we still haven't reached jitted functions
+        stacktrace.len() == 0
     }
 }

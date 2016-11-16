@@ -109,6 +109,7 @@ impl Gc {
     pub fn collect(&mut self) {
         let collect_start = time::precise_time_ns();
         let ctxt = get_ctxt();
+
         let rootset = get_rootset(ctxt);
 
         if ctxt.args.flag_gc_dump {
