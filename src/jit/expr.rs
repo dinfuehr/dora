@@ -98,7 +98,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
 
-            let disp = self.buf.add_addr(vtable as *const VTable<'ast> as *mut u8);
+            let disp = self.buf.add_addr(vtable as *const _ as *mut u8);
             let pos = self.buf.pos() as i32;
 
             emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);

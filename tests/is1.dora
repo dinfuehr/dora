@@ -4,10 +4,15 @@ fun main() {
   assert(!isb(nil));
   assert(!isb(A()));
   assert(isb(B()));
+  assert(isa(B()));
 }
 
 fun isb(a: A) -> bool {
   return a is B;
+}
+
+fun isa(b: B) -> bool {
+  return b is A;
 }
 
 open class A {}

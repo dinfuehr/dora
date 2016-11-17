@@ -732,7 +732,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        e.set_cls_id(object_type.cls_id(self.ctxt));
+        e.set_cls_id(check_type.cls_id(self.ctxt));
         self.expr_type = if e.is {
             BuiltinType::Bool
         } else {

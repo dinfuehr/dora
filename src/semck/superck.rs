@@ -438,6 +438,7 @@ mod tests {
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
                 assert_name(ctxt, vtable_display_name(vtable, 2), "C");
                 assert!(vtable.subtype_display[3].is_null());
+                assert_eq!(vtable.subtype_offset, 32);
             }
 
             {
@@ -447,6 +448,7 @@ mod tests {
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
                 assert!(vtable.subtype_display[2].is_null());
+                assert_eq!(vtable.subtype_offset, 24);
             }
 
             {
@@ -455,6 +457,7 @@ mod tests {
                 assert_name(ctxt, vtable_name(vtable), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert!(vtable.subtype_display[1].is_null());
+                assert_eq!(vtable.subtype_offset, 16);
             }
         });
     }
