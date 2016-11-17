@@ -64,7 +64,7 @@ def run_tests
   puts
   puts "#{passed} tests passed; #{failed} tests failed"
 
-  tests == passed
+  failed == 0
 end
 
 def run_test(file)
