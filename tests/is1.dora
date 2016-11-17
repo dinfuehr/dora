@@ -1,0 +1,10 @@
+fun main() {
+  check(nil);
+}
+
+fun check(a: A) -> bool {
+  return a is B;
+}
+
+open class A {}
+class B: A {}

@@ -74,10 +74,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprSuper(_) => self.emit_self(dest),
             ExprNil(_) => self.emit_nil(dest),
             ExprArray(ref expr) => self.emit_array(expr, dest),
-            ExprConv(_) => panic!("unimplemented"),
+            ExprConv(ref expr) => self.emit_conv(expr, dest),
         }
 
         dest
+    }
+
+    fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
+        assert!(e.is);
+
+        self.emit_expr(&e.object, dest);
+
+        // return false if object is nil
+        let lbl_nil = emit::nil_ptr_check(self.buf, dest);
+
+        emit::movl_imm_reg(self.buf, 1, dest);
+
+        self.buf.define_label(lbl_nil);
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
@@ -611,7 +624,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                     if call_type.is_some() && call_type.unwrap().is_method()
                         && check_for_nil(ty) {
-                        emit::nil_ptr_check(self.buf, pos, reg);
+                        emit::nil_ptr_check_bailout(self.buf, pos, reg);
                     }
                 }
 

@@ -25,12 +25,21 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
-pub fn nil_ptr_check(buf: &mut Buffer, pos: Position, reg: Reg) {
+pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
     emit_jz(buf, lbl);
     buf.emit_bailout(lbl, trap::NIL, pos);
+}
+
+pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
+    emit_testq_reg_reg(buf, reg, reg);
+
+    let lbl = buf.create_label();
+    emit_jz(buf, lbl);
+
+    lbl
 }
 
 pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {

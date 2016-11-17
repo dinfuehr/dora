@@ -310,7 +310,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         let reg = self.emit_expr(&s.expr);
-        emit::nil_ptr_check(&mut self.buf, s.pos, reg);
+        emit::nil_ptr_check_bailout(&mut self.buf, s.pos, reg);
 
         if reg != REG_RESULT {
             emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, reg, REG_RESULT);
