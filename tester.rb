@@ -15,7 +15,8 @@ class TestExpectation
                 :code,
                 :message,
                 :args,
-                :output
+                :output,
+                :file
 
   def initialize(opts = {})
     fail = opts.fetch(:fail, false)
@@ -74,8 +75,9 @@ def run_test(file)
   args = expectation.args.join(" ") if expectation.args
 
   target = $release ? "release" : "debug"
+  testfile = expectation.file || file
 
-  system("target/#{target}/dora #{file} #{args} >#{$temp_out.path} 2>&1")
+  system("target/#{target}/dora #{testfile} #{args} >#{$temp_out.path} 2>&1")
   process = $?
   exit_code = process.exitstatus
 
@@ -203,6 +205,9 @@ def test_case_expectation(file)
         when "fail"
           # do nothing
         end
+
+      when "file"
+        exp.file = arguments[1]
 
       when "ignore" then return :ignore
 

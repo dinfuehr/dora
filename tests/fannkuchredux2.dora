@@ -1,0 +1,3 @@
+//= file bench/fannkuchredux/fannkuchredux.dora
+//= args 2
+//= output "-1\nPfannkuchen (2) = 1\n"
