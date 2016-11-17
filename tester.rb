@@ -47,6 +47,10 @@ def run_tests
     if res == true
       puts "ok"
       passed += 1
+
+    elsif res == :ignore
+      puts "ignore"
+
     else
       print "failed"
       print " (#{res})" if res != false
@@ -64,6 +68,7 @@ end
 
 def run_test(file)
   expectation = test_case_expectation(file)
+  return :ignore if expectation == :ignore
 
   args = ""
   args = expectation.args.join(" ") if expectation.args
@@ -198,6 +203,8 @@ def test_case_expectation(file)
         when "fail"
           # do nothing
         end
+
+      when "ignore" then return :ignore
 
       when "output"
         exp.output = arguments[1]

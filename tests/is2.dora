@@ -1,0 +1,13 @@
+//= ignore
+
+fun main() {
+
+}
+
+open class L1 {}
+open class L2: L1 {}
+open class L3: L2 {}
+open class L4: L3 {}
+open class L5: L4 {}
+open class L6: L5 {}
+open class L7: L6 {}

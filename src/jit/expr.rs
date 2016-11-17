@@ -14,7 +14,7 @@ use mem::ptr::Ptr;
 use object::{Header, IntArray, Str};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
-use vtable::VTable;
+use vtable::{DISPLAY_SIZE, VTable};
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
@@ -96,17 +96,22 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let cls = self.ctxt.cls_by_id(cls_id);
             let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
 
-            emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
+            if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
+                panic!("not yet supported");
 
-            let disp = self.buf.add_addr(vtable as *const _ as *mut u8);
-            let pos = self.buf.pos() as i32;
+            } else {
+                emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
 
-            emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
+                let disp = self.buf.add_addr(vtable as *const _ as *mut u8);
+                let pos = self.buf.pos() as i32;
 
-            emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
-                              vtable.subtype_offset, REG_TMP1);
+                emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
 
-            emit::cmp_setl(self.buf, MachineMode::Ptr, REG_TMP1, CmpOp::Eq, REG_TMP2, dest);
+                emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
+                                  vtable.subtype_offset, REG_TMP1);
+                emit::cmp_setl(self.buf, MachineMode::Ptr,
+                               REG_TMP1, CmpOp::Eq, REG_TMP2, dest);
+            }
         }
 
         self.buf.define_label(lbl_nil);
