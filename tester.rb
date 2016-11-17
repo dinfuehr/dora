@@ -132,6 +132,7 @@ def read_cmdline(text)
     if escaped
       arg +=  case char
               when "n" then "\n"
+              when "t" then "\t"
               else
                 return "unknown escape sequence \\#{char}"
               end
