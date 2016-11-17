@@ -88,7 +88,26 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // return false if object is nil
         let lbl_nil = emit::nil_ptr_check(self.buf, dest);
 
-        emit::movl_imm_reg(self.buf, 1, dest);
+        if e.valid() {
+            emit::movl_imm_reg(self.buf, 1, dest);
+
+        } else {
+            let cls_id = e.cls_id();
+            let cls = self.ctxt.cls_by_id(cls_id);
+            let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
+
+            emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
+
+            let disp = self.buf.add_addr(vtable as *const VTable<'ast> as *mut u8);
+            let pos = self.buf.pos() as i32;
+
+            emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
+
+            emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
+                              vtable.subtype_offset, REG_TMP1);
+
+            emit::cmp_setl(self.buf, MachineMode::Ptr, REG_TMP1, CmpOp::Eq, REG_TMP2, dest);
+        }
 
         self.buf.define_label(lbl_nil);
     }
@@ -207,7 +226,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let handle = Str::from(lit.value.as_bytes());
         self.ctxt.literals.lock().unwrap().push(handle);
 
-        let disp = self.buf.add_addr(handle.into());
+        let disp = self.buf.add_addr(handle.raw() as *const u8);
         let pos = self.buf.pos() as i32;
 
         emit::movq_addr_reg(self.buf, disp + pos, dest);
@@ -500,10 +519,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if reg != dest_reg { emit::mov_reg_reg(self.buf, ty.mode(), reg, dest_reg); }
     }
 
-    fn ptr_for_fct_id(&mut self, fid: FctId) -> Ptr {
+    fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
+            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt).raw()
 
         } else {
             let fct = self.ctxt.fct_by_id(fid);
@@ -513,9 +532,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let src = fct.src();
                     let mut src = src.lock().unwrap();
 
-                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
+                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt).raw()
                 },
-                FctKind::Native(ptr) => ptr,
+                FctKind::Native(ptr) => ptr.raw(),
 
                 FctKind::Definition => unreachable!(),
                 FctKind::Builtin(_) => panic!("intrinsic fct call"),
@@ -591,12 +610,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
-                    let mptr = Ptr::new(stdlib::gc_alloc as *mut u8);
+                    let mptr = stdlib::gc_alloc as *mut u8;
                     self.emit_direct_call_insn(mptr, pos, BuiltinType::Ptr, REG_RESULT);
 
                     // store classptr in object
-                    let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as usize;
-                    let disp = self.buf.add_addr(cptr.into());
+                    let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+                    let disp = self.buf.add_addr(cptr);
                     let pos = self.buf.pos() as i32;
 
                     emit::movq_addr_reg(self.buf, disp + pos, REG_TMP1);
@@ -655,7 +674,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+                self.emit_direct_call_insn(ptr.raw(), pos, csite.return_type, dest);
             }
         }
 
@@ -671,7 +690,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_direct_call_insn(&mut self, ptr: Ptr, pos: Position, ty: BuiltinType, dest: Reg) {
+    fn emit_direct_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
         self.insn_direct_call(ptr);
         self.emit_after_call_insns(pos, ty, dest);
     }
@@ -692,7 +711,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn insn_direct_call(&mut self, ptr: Ptr) {
+    fn insn_direct_call(&mut self, ptr: *const u8) {
         let disp = self.buf.add_addr(ptr);
         let pos = self.buf.pos() as i32;
 

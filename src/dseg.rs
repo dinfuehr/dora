@@ -1,4 +1,4 @@
-use mem::{self, Ptr};
+use mem;
 
 #[derive(Debug)]
 pub struct DSeg {
@@ -9,7 +9,7 @@ pub struct DSeg {
 #[derive(Debug)]
 struct Entry {
     disp: i32,
-    value: Ptr,
+    value: *const u8,
 }
 
 impl DSeg {
@@ -30,12 +30,12 @@ impl DSeg {
 
             unsafe {
                 let entry_ptr = ptr.offset(offset as isize);
-                *(entry_ptr as *mut (*mut u8)) = entry.value.raw();
+                *(entry_ptr as *mut (*const u8)) = entry.value;
             }
         }
     }
 
-    pub fn add_addr(&mut self, ptr: Ptr) -> i32 {
+    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
         for entry in &self.entries {
             if entry.value == ptr {
                 return entry.disp;

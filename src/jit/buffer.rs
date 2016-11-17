@@ -4,7 +4,6 @@ use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use jit::fct::{CatchType, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
-use mem::Ptr;
 
 #[derive(Debug)]
 pub struct Buffer {
@@ -59,7 +58,7 @@ impl Buffer {
         self.fix_forward_jumps();
     }
 
-    pub fn add_addr(&mut self, ptr: Ptr) -> i32 {
+    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
         self.dseg.add_addr(ptr)
     }
 

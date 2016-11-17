@@ -1,8 +1,12 @@
+//= error
+
 fun main() {
-  check(nil);
+  assert(!isb(nil));
+  assert(!isb(A()));
+  assert(isb(B()));
 }
 
-fun check(a: A) -> bool {
+fun isb(a: A) -> bool {
   return a is B;
 }
 

@@ -305,6 +305,7 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
 
         vtable.subtype_depth = 0;
+        vtable.subtype_offset = VTable::offset_of_display();
         vtable.subtype_display[0] = vtable as *const _;
 
         0
