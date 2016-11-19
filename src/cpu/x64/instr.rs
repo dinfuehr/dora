@@ -1,7 +1,7 @@
 use ast::CmpOp;
 use cpu::*;
-
 use jit::buffer::*;
+use ty::MachineMode;
 
 pub fn emit_orl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 0, 0x09, src, dest);
@@ -412,6 +412,53 @@ pub fn emit_cmpq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 1, 0x39, src, dest);
 }
 
+pub fn emit_cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
+                        base: Reg, index: Reg, scale: i32, disp: i32,
+                        dest: Reg) {
+    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+
+    let (x64, opcode) = match mode {
+        MachineMode::Int8 => (0, 0x38),
+        MachineMode::Int32 => (0, 0x39),
+        MachineMode::Ptr => (1, 0x39),
+    };
+
+    if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
+        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
+    }
+
+    emit_op(buf, opcode);
+    emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
+}
+
+fn emit_membase_with_index_and_scale(buf: &mut Buffer,
+                                     base: Reg, index: Reg, scale: i32, disp: i32,
+                                     dest: Reg) {
+    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+
+    let scale = match scale {
+        8 => 3,
+        4 => 2,
+        2 => 1,
+        _ => 0,
+    };
+
+    if disp == 0 {
+        emit_modrm(buf, 0, dest.and7(), 4);
+        emit_sib(buf, scale, index.and7(), base.and7());
+
+    } else if fits_i8(disp) {
+        emit_modrm(buf, 1, dest.and7(), 4);
+        emit_sib(buf, scale, index.and7(), base.and7());
+        emit_u8(buf, disp as u8);
+
+    } else {
+        emit_modrm(buf, 2, dest.and7(), 4);
+        emit_sib(buf, scale, index.and7(), base.and7());
+        emit_u32(buf, disp as u32);
+    }
+}
+
 pub fn emit_cltd(buf: &mut Buffer) {
     emit_op(buf, 0x99);
 }
@@ -514,6 +561,7 @@ mod tests {
     use ast::CmpOp;
     use cpu::*;
     use jit::buffer::Buffer;
+    use ty::MachineMode;
 
     macro_rules! assert_emit {
         (
@@ -930,5 +978,51 @@ mod tests {
     fn test_shll_reg_reg() {
         assert_emit!(0xD3, 0xE0; emit_shll_reg_cl(RAX));
         assert_emit!(0x41, 0xD3, 0xE1; emit_shll_reg_cl(R9));
+    }
+
+    #[test]
+    fn test_cmp_mem_reg() {
+        let p = MachineMode::Ptr;
+
+        // cmp [rax+rbx*8+1],rcx
+        assert_emit!(0x48, 0x39, 0x4c, 0xd8, 1; emit_cmp_mem_reg(p, RAX, RBX, 8, 1, RCX));
+
+        // cmp [rax+rbx*8],rcx
+        assert_emit!(0x48, 0x39, 0x0c, 0xd8; emit_cmp_mem_reg(p, RAX, RBX, 8, 0, RCX));
+
+        // cmp [rax+rbx*8+256],rcx
+        assert_emit!(0x48, 0x39, 0x8c, 0xd8, 0, 1, 0, 0;
+                     emit_cmp_mem_reg(p, RAX, RBX, 8, 256, RCX));
+
+        // cmp [r8+rbp*1],rsp
+        assert_emit!(0x49, 0x39, 0x24, 0x28;
+                     emit_cmp_mem_reg(p, R8, RBP, 1, 0, RSP));
+
+        // cmp [rsi+r9*1],rdi
+        assert_emit!(0x4a, 0x39, 0x3c, 0x0e; emit_cmp_mem_reg(p, RSI, R9, 1, 0, RDI));
+
+        // cmp [rsp+rsi*1],r15
+        assert_emit!(0x4c, 0x39, 0x3c, 0x34; emit_cmp_mem_reg(p, RSP, RSI, 1, 0, R15));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cmp_mem_reg_base_rip() {
+        let mut buf = Buffer::new();
+        emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RIP, RAX, 1, 0, RAX);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cmp_mem_reg_index_rip() {
+        let mut buf = Buffer::new();
+        emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, RIP, 1, 0, RAX);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cmp_mem_reg_dest_rip() {
+        let mut buf = Buffer::new();
+        emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, RBX, 1, 0, RIP);
     }
 }
