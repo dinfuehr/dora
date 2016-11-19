@@ -1003,6 +1003,10 @@ mod tests {
 
         // cmp [rsp+rsi*1],r15
         assert_emit!(0x4c, 0x39, 0x3c, 0x34; emit_cmp_mem_reg(p, RSP, RSI, 1, 0, R15));
+
+        // cmp [rsp+rbp],rax
+        assert_emit!(0x48, 0x39, 0x04, 0x2c; emit_cmp_mem_reg(p, RSP, RBP, 1, 0, RAX));
+
     }
 
     #[test]
