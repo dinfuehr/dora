@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
+use std::ptr;
 
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, FctId};
@@ -283,11 +284,26 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         let depth_fixed;
 
         if depth >= DISPLAY_SIZE {
-            // depth_fixed = DISPLAY_SIZE;
-            panic!("depth >= DISPLAY_SIZE not yet supported");
+            depth_fixed = DISPLAY_SIZE;
+
+            vtable.allocate_overflow(depth as usize - DISPLAY_SIZE + 1);
+
+            unsafe {
+                if depth > DISPLAY_SIZE {
+                    ptr::copy_nonoverlapping(parent_vtable.subtype_overflow,
+                                             vtable.subtype_overflow as *mut _,
+                                             depth as usize - DISPLAY_SIZE);
+                }
+
+                let ptr = vtable.subtype_overflow.offset(
+                            depth as isize - DISPLAY_SIZE as isize) as *mut _;
+                *ptr = vtable as *const _;
+            }
 
         } else {
             depth_fixed = depth;
+
+            vtable.subtype_display[depth] = vtable as *const _;
         }
 
         vtable.subtype_depth = depth as i32;
@@ -296,7 +312,6 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
 
         vtable.subtype_display[0..depth_fixed].
             clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
-        vtable.subtype_display[depth] = vtable as *const _;
 
         depth
 

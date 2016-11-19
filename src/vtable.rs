@@ -1,5 +1,5 @@
 use alloc::heap;
-use std::mem::align_of;
+use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
@@ -74,7 +74,7 @@ pub struct VTable<'ast> {
     pub subtype_depth: i32,
     pub subtype_offset: i32,
     pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE+1],
-    pub subtype_overflow: *const usize,
+    pub subtype_overflow: *const VTable<'ast>,
     pub table_length: usize,
     pub table: [usize; 1],
 }
@@ -114,5 +114,31 @@ impl<'ast> VTable<'ast> {
 
     pub fn offset_of_table() -> i32 {
         (4 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+    }
+
+    pub fn allocate_overflow(&mut self, num: usize) {
+        assert!(self.subtype_overflow.is_null());
+
+        unsafe {
+            self.subtype_overflow = heap::allocate(num * size_of::<*const VTable<'ast>>(),
+                                                   align_of::<*const VTable<'ast>>()) as *mut VTable<'ast>;
+        }
+    }
+
+    pub fn deallocate_overflow(&mut self, num: usize) {
+        unsafe {
+            heap::deallocate(self.subtype_overflow as *const u8 as *mut u8,
+                             num * size_of::<*const VTable<'ast>>(),
+                             align_of::<*const VTable<'ast>>());
+        }
+    }
+}
+
+impl<'ast> Drop for VTable<'ast> {
+    fn drop(&mut self) {
+        if !self.subtype_overflow.is_null() {
+            let elems = self.subtype_depth as usize - DISPLAY_SIZE + 1;
+            self.deallocate_overflow(elems);
+        }
     }
 }
