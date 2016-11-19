@@ -9,7 +9,7 @@ use lexer::position::Position;
 use mem;
 use mem::ptr::Ptr;
 use object::Header;
-use vtable::{DISPLAY_SIZE, VTable};
+use vtable::{DISPLAY_SIZE, VTable, VTableBox};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
@@ -227,7 +227,7 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
 
     let cls = ctxt.cls_by_id_mut(clsid);
     let classptr: *mut Class<'ast> = &mut *cls;
-    cls.vtable = Some(VTable::from_table(classptr, &vtable_entries));
+    cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
 fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {

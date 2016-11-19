@@ -5,7 +5,7 @@ use std::ops::{Index, IndexMut};
 use ast;
 use ctxt::{Context, Fct, FctId};
 use interner::Name;
-use vtable::VTable;
+use vtable::VTableBox;
 use ty::BuiltinType;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -54,7 +54,7 @@ pub struct Class<'ast> {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub ast: Option<&'ast ast::Class>,
-    pub vtable: Option<Box<VTable<'ast>>>,
+    pub vtable: Option<VTableBox<'ast>>,
 }
 
 impl<'ast> Class<'ast> {

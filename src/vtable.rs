@@ -1,10 +1,72 @@
 use alloc::heap;
-use std::{self, ptr, slice};
+use std::mem::align_of;
+use std::ops::{Deref, DerefMut};
+use std::{self, fmt, ptr, slice};
 
 use class::Class;
 use mem;
 
 pub const DISPLAY_SIZE: usize = 6;
+
+pub struct VTableBox<'ast>(*mut VTable <'ast>);
+
+impl<'ast> VTableBox<'ast> {
+    pub fn new(classptr: *mut Class<'ast>, entries: &[usize]) -> VTableBox<'ast> {
+        let size = VTable::size_of(entries.len());
+        let vtable = VTable {
+            classptr: classptr,
+            subtype_depth: 0,
+            subtype_offset: 0,
+            subtype_display: [ptr::null(); DISPLAY_SIZE+1],
+            subtype_overflow: ptr::null(),
+            table_length: entries.len(),
+            table: [0],
+        };
+
+        unsafe {
+            let ptr = heap::allocate(size, align_of::<VTable<'ast>>()) as *mut VTable<'ast>;
+            ptr::write(ptr, vtable);
+
+            ptr::copy(entries.as_ptr(), &mut (&mut *ptr).table[0], entries.len());
+
+            VTableBox(ptr)
+        }
+    }
+}
+
+impl<'ast> fmt::Debug for VTableBox<'ast> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let vtable = self.deref();
+
+        vtable.fmt(f)
+    }
+}
+
+impl<'ast> Deref for VTableBox<'ast> {
+    type Target = VTable<'ast>;
+
+    fn deref(&self) -> &VTable<'ast> {
+        unsafe { &*self.0 }
+    }
+}
+
+impl<'ast> DerefMut for VTableBox<'ast> {
+    fn deref_mut(&mut self) -> &mut VTable<'ast> {
+        unsafe { &mut *self.0 }
+    }
+}
+
+impl<'ast> Drop for VTableBox<'ast> {
+    fn drop(&mut self) {
+        unsafe {
+            let len = (&*self.0).table_length;
+            ptr::drop_in_place(self.0);
+
+            heap::deallocate(self.0 as *mut u8, VTable::size_of(len),
+                             align_of::<VTable<'ast>>());
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct VTable<'ast> {
@@ -12,31 +74,14 @@ pub struct VTable<'ast> {
     pub subtype_depth: i32,
     pub subtype_offset: i32,
     pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE+1],
-    // pub subtype_overflow: Option<Box<[*const u8]>>,
+    pub subtype_overflow: *const usize,
     pub table_length: usize,
     pub table: [usize; 1],
 }
 
 impl<'ast> VTable<'ast> {
-    pub fn from_table(classptr: *mut Class<'ast>, entries: &[usize]) -> Box<VTable<'ast>> {
-        let size = std::mem::size_of::<VTable>()
-            + entries.len() * std::mem::size_of::<usize>();
-
-        unsafe {
-            let ptr = heap::allocate(size, mem::ptr_width() as usize) as *mut VTable<'ast>;
-
-            let mut vtable = Box::from_raw(ptr);
-            vtable.classptr = classptr;
-            vtable.subtype_depth = 0;
-            vtable.subtype_offset = 0;
-            vtable.subtype_display = [ptr::null(); DISPLAY_SIZE+1];
-            // vtable.subtype_overflow = None;
-            vtable.table_length = entries.len();
-
-            ptr::copy(entries.as_ptr(), &mut vtable.table[0], entries.len());
-
-            vtable
-        }
+    pub fn size_of(table_length: usize) -> usize {
+        std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
     pub fn classptr(&self) -> *mut Class<'ast> {
@@ -68,6 +113,6 @@ impl<'ast> VTable<'ast> {
     }
 
     pub fn offset_of_table() -> i32 {
-        (3 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+        (4 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
     }
 }
