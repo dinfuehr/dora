@@ -1,0 +1,14 @@
+//= error cast
+
+fun main() {
+  let a = A();
+
+  assert(asb(a) === a);
+}
+
+fun asb(a: A) -> B {
+  return a as B;
+}
+
+open class A {}
+class B: A {}

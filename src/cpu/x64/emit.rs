@@ -74,6 +74,14 @@ pub fn cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
     emit_cmp_mem_reg(buf, mode, base, disp, dest);
 }
 
+pub fn cmp_reg_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
+    match mode {
+        MachineMode::Int8
+            | MachineMode::Int32 => emit_cmpl_reg_reg(buf, rhs, lhs),
+        MachineMode::Ptr => emit_cmpq_reg_reg(buf, rhs, lhs),
+    }
+}
+
 pub fn test_and_jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
 

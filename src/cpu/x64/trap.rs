@@ -21,6 +21,7 @@ pub const ASSERT: TrapId = TrapId(10);
 pub const INDEX_OUT_OF_BOUNDS: TrapId = TrapId(11);
 pub const NIL: TrapId = TrapId(13);
 pub const THROW: TrapId = TrapId(14);
+pub const CAST: TrapId = TrapId(15);
 
 // emit stub instruction
 pub fn emit(buf: &mut Buffer, trap: TrapId) {

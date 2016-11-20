@@ -104,6 +104,11 @@ impl Buffer {
         self.bailouts.push((lbl, trap, pos));
     }
 
+    pub fn emit_bailout_inplace(&mut self, trap: TrapId, pos: Position) {
+        self.emit_lineno(pos.line as i32);
+        trap::emit(self, trap);
+    }
+
     pub fn emit_exception_handler(&mut self, span: (usize, usize), catch: usize,
                                   offset: i32, catch_type: CatchType) {
         self.exception_handlers.push(ExHandler {

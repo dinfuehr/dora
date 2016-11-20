@@ -1,0 +1,19 @@
+fun main() {
+  let b = B();
+
+  assert(asb(nil) === nil);
+  assert(asa(nil) === nil);
+  assert(asa(b) === b);
+  assert(asb(b) === b);
+}
+
+fun asb(a: A) -> B {
+  return a as B;
+}
+
+fun asa(b: B) -> A {
+  return b as A;
+}
+
+open class A {}
+class B: A {}

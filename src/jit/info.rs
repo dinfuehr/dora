@@ -111,6 +111,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprArray(ref expr) => self.expr_array(expr),
             ExprAssign(ref expr) => self.expr_assign(expr),
             ExprBin(ref expr) => self.expr_bin(expr),
+            ExprConv(ref expr) => self.expr_conv(expr),
 
             _ => visit::walk_expr(self, e)
         }
@@ -165,6 +166,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.universal_call(expr.id, args, true,
                 None, None);
+        }
+    }
+
+    fn expr_conv(&mut self, e: &'ast ExprConvType) {
+        self.visit_expr(&e.object);
+
+        if !e.is && !e.valid() {
+            self.reserve_temp_for_node(&e.object);
         }
     }
 

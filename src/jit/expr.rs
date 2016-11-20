@@ -81,20 +81,34 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
-        assert!(e.is);
-
         self.emit_expr(&e.object, dest);
 
         // return false if object is nil
         let lbl_nil = emit::nil_ptr_check(self.buf, dest);
 
         if e.valid() {
-            emit::movl_imm_reg(self.buf, 1, dest);
+            if e.is {
+                // return true for object is T
+                emit::movl_imm_reg(self.buf, 1, dest);
+
+            } else {
+                // do nothing for object as T
+            }
 
         } else {
             let cls_id = e.cls_id();
             let cls = self.ctxt.cls_by_id(cls_id);
             let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
+
+            let offset = if e.is {
+                0
+            } else {
+                // reserve temp variable for object
+                let offset = self.reserve_temp_for_node(&e.object);
+                emit::mov_reg_local(self.buf, MachineMode::Ptr, dest, offset);
+
+                offset
+            };
 
             // object instanceof T
 
@@ -122,8 +136,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let lbl_check = self.buf.create_label();
                 emit::jump_if(self.buf, JumpCond::NonZero, lbl_check);
 
-                // mov dest, 1
-                emit::movl_imm_reg(self.buf, 1, dest);
+                if e.is {
+                    // mov dest, 1
+                    emit::movl_imm_reg(self.buf, 1, dest);
+                } else {
+                    // mov temp var into dest
+                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
+                }
 
                 // jmp lbl_finished
                 let lbl_finished = self.buf.create_label();
@@ -162,8 +181,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_false:
                 self.buf.define_label(lbl_false);
 
-                // dest = false
-                emit::movl_imm_reg(self.buf, 0, dest);
+                if e.is {
+                    // dest = false
+                    emit::movl_imm_reg(self.buf, 0, dest);
+                } else {
+                    // bailout
+                    self.buf.emit_bailout_inplace(trap::CAST, e.pos);
+                }
 
                 // lbl_finished:
                 self.buf.define_label(lbl_finished);
@@ -173,13 +197,30 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                   vtable.subtype_offset, REG_TMP1);
 
                 // cmp tmp1, tmp2
-                emit::cmp_setl(self.buf, MachineMode::Ptr,
-                               REG_TMP1, CmpOp::Eq, REG_TMP2, dest);
+                emit::cmp_reg_reg(self.buf, MachineMode::Ptr, REG_TMP1, REG_TMP2);
+
+                if e.is {
+                    emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+
+                } else {
+                    let lbl_bailout = self.buf.create_label();
+                    emit::jump_if(self.buf, JumpCond::NonZero, lbl_bailout);
+                    self.buf.emit_bailout(lbl_bailout, trap::CAST, e.pos);
+
+                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
+                }
+            }
+
+            if !e.is {
+                self.free_temp_for_node(&e.object, offset);
             }
         }
 
         // lbl_nil:
         self.buf.define_label(lbl_nil);
+
+        // for is we are finished: dest is null which is boolean false
+        // also for as we are finished: dest is null and stays null
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {

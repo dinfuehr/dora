@@ -203,6 +203,7 @@ def test_case_expectation(file)
         when "array" then exp.code = 102
         when "nil" then exp.code = 103
         when "exception" then exp.code = 104
+        when "cast" then exp.code = 105
         when "fail"
           # do nothing
         end
