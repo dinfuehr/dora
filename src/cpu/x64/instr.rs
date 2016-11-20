@@ -412,6 +412,24 @@ pub fn emit_cmpq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 1, 0x39, src, dest);
 }
 
+pub fn emit_cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
+                        base: Reg, disp: i32, dest: Reg) {
+    let base_msb = if base == RIP { 0 } else { base.msb() };
+
+    let (x64, opcode) = match mode {
+        MachineMode::Int8 => (0, 0x38),
+        MachineMode::Int32 => (0, 0x39),
+        MachineMode::Ptr => (1, 0x39),
+    };
+
+    if x64 != 0 || dest.msb() != 0 || base_msb != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, base_msb);
+    }
+
+    emit_op(buf, opcode);
+    emit_membase(buf, base, disp, dest);
+}
+
 pub fn emit_cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
                         base: Reg, index: Reg, scale: i32, disp: i32,
                         dest: Reg) {
@@ -1028,5 +1046,35 @@ mod tests {
     fn test_cmp_memindex_reg_dest_rip() {
         let mut buf = Buffer::new();
         emit_cmp_memindex_reg(&mut buf, MachineMode::Ptr, RAX, RBX, 1, 0, RIP);
+    }
+
+    #[test]
+    fn test_cmp_mem_reg() {
+        let p = MachineMode::Ptr;
+
+        // cmp [rbx+1],rax
+        assert_emit!(0x48, 0x39, 0x43, 1; emit_cmp_mem_reg(p, RBX, 1, RAX));
+
+        // cmp [rbx+256],rax
+        assert_emit!(0x48, 0x39, 0x83, 0, 1, 0, 0; emit_cmp_mem_reg(p, RBX, 256, RAX));
+
+        // cmp [rdi+1],rax
+        assert_emit!(0x48, 0x39, 0x47, 1; emit_cmp_mem_reg(p, RDI, 1, RAX));
+
+        // cmp [r9+1],rax
+        assert_emit!(0x49, 0x39, 0x41, 1; emit_cmp_mem_reg(p, R9, 1, RAX));
+
+        // cmp [rdi+1],r10
+        assert_emit!(0x4c, 0x39, 0x57, 1; emit_cmp_mem_reg(p, RDI, 1, R10));
+
+        // cmp [rip+1], rax
+        assert_emit!(0x48, 0x39, 0x05, 1, 0, 0, 0; emit_cmp_mem_reg(p, RIP, 1, RAX));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cmp_mem_reg_dest_rip() {
+        let mut buf = Buffer::new();
+        emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, 1, RIP);
     }
 }
