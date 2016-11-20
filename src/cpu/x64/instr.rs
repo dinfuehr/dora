@@ -1069,6 +1069,14 @@ mod tests {
 
         // cmp [rip+1], rax
         assert_emit!(0x48, 0x39, 0x05, 1, 0, 0, 0; emit_cmp_mem_reg(p, RIP, 1, RAX));
+
+        let i = MachineMode::Int32;
+
+        // cmp [rbx+1], eax
+        assert_emit!(0x39, 0x43, 1; emit_cmp_mem_reg(i, RBX, 1, RAX));
+
+        // cmp [rbx+1], r10d
+        assert_emit!(0x44, 0x39, 0x53, 1; emit_cmp_mem_reg(i, RBX, 1, R10));
     }
 
     #[test]
