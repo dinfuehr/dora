@@ -108,7 +108,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
-                // tmp3 = tmp1.subtype_offset
+                // tmp3 = [tmp1 + T.vtable.subtype_offset]
                 emit::mov_mem_reg(self.buf, MachineMode::Int32,
                                   REG_TMP1, vtable.subtype_offset,
                                   REG_RESULT);
@@ -132,13 +132,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_check:
                 self.buf.define_label(lbl_check);
 
-                // tmp3 = tmp2 + T.vtable.subtype_depth
+                // tmp3 = [tmp2 + offset T.vtable.subtype_depth]
                 emit::mov_mem_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP2, vtable.subtype_depth, REG_RESULT);
+                                  REG_TMP2, VTable::offset_of_depth(), REG_RESULT);
 
-                // cmp [tmp1 + T.vtable.subtype_depth], tmp3
+                // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
                 emit::cmp_mem_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP1, vtable.subtype_depth, REG_RESULT);
+                                  REG_TMP1, VTable::offset_of_depth(), REG_RESULT);
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();
@@ -156,6 +156,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // dest = if zero then true else false
                 emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
 
+                // jmp lbl_finished
+                emit::jump(self.buf, lbl_finished);
+
                 // lbl_false:
                 self.buf.define_label(lbl_false);
 
@@ -165,7 +168,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_finished:
                 self.buf.define_label(lbl_finished);
             } else {
-                // tmp1 = tmp1 + T.vtable.subtype_offset
+                // tmp1 = [tmp1 + T.vtable.subtype_offset]
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
                                   vtable.subtype_offset, REG_TMP1);
 

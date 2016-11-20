@@ -477,6 +477,36 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_depth_greater_display_size() {
+        ok_with_test("  open class L1 { }
+                        open class L2: L1 { }
+                        open class L3: L2 { }
+                        open class L4: L3 { }
+                        open class L5: L4 { }
+                        open class L6: L5 { }
+                        class L7: L6 { }", |ctxt| {
+            assert_eq!(vtable_by_name(ctxt, "L1").subtype_depth, 0);
+            assert_eq!(vtable_by_name(ctxt, "L2").subtype_depth, 1);
+            assert_eq!(vtable_by_name(ctxt, "L3").subtype_depth, 2);
+            assert_eq!(vtable_by_name(ctxt, "L4").subtype_depth, 3);
+            assert_eq!(vtable_by_name(ctxt, "L5").subtype_depth, 4);
+            assert_eq!(vtable_by_name(ctxt, "L6").subtype_depth, 5);
+            assert_eq!(vtable_by_name(ctxt, "L7").subtype_depth, 6);
+
+            let vtable = vtable_by_name(ctxt, "L7");
+            assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
+            assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
+            assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
+            assert_name(ctxt, vtable_display_name(vtable, 3), "L4");
+            assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
+            assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
+
+            assert!(!vtable.subtype_overflow.is_null());
+            assert_eq!(vtable_by_name(ctxt, "L7") as *const _, vtable.get_subtype_overflow(0));
+        });
+    }
+
     fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
         let bname = ctxt.interner.intern(b);
 

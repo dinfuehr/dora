@@ -108,6 +108,10 @@ impl<'ast> VTable<'ast> {
         }
     }
 
+    pub fn offset_of_depth() -> i32 {
+        mem::ptr_width()
+    }
+
     pub fn offset_of_display() -> i32 {
         mem::ptr_width() * 2
     }
@@ -118,6 +122,17 @@ impl<'ast> VTable<'ast> {
 
     pub fn offset_of_overflow() -> i32 {
         (2 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+    }
+
+    pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable<'ast> {
+        assert!(self.subtype_depth as usize >= DISPLAY_SIZE &&
+                ind < self.subtype_depth as usize - DISPLAY_SIZE + 1);
+
+        unsafe {
+            let ptr = self.subtype_overflow.offset(ind as isize) as *mut _;
+
+            *ptr
+        }
     }
 
     pub fn allocate_overflow(&mut self, num: usize) {
