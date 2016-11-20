@@ -137,9 +137,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                   REG_TMP2, vtable.subtype_depth, REG_RESULT);
 
                 // cmp [tmp1 + T.vtable.subtype_depth], tmp3
-                // FIXME: use cmp_mem_reg instead of cmp_memindex_reg
-                emit::cmp_memindex_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP1, REG_TMP1, 1, vtable.subtype_depth, REG_RESULT);
+                emit::cmp_mem_reg(self.buf, MachineMode::Int32,
+                                  REG_TMP1, vtable.subtype_depth, REG_RESULT);
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();

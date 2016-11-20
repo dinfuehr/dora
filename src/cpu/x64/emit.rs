@@ -69,6 +69,11 @@ pub fn cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
     emit_cmp_memindex_reg(buf, mode, base, index, scale, disp, dest);
 }
 
+pub fn cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
+                        base: Reg, disp: i32, dest: Reg) {
+    emit_cmp_mem_reg(buf, mode, base, disp, dest);
+}
+
 pub fn test_and_jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
 
