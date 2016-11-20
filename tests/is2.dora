@@ -1,10 +1,10 @@
 fun main() {
   assert(!isl7(L1()));
-  /*assert(!isl7(L2()));
+  assert(!isl7(L2()));
   assert(!isl7(L3()));
   assert(!isl7(L4()));
   assert(!isl7(L5()));
-  assert(!isl7(L6()));*/
+  assert(!isl7(L6()));
   assert(isl7(L7()));
 
   assert(!isl7(LX()));

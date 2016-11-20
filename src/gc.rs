@@ -231,5 +231,11 @@ fn sweep(gc: &mut Gc, dump: bool, cur_marked: bool) {
         obj = succ;
     }
 
+    // if no objects left, obj_start needs to be reset to null
+    if last.is_null() {
+        gc.obj_start = ptr::null_mut();
+    }
+
+    // last survived object is now end of list
     gc.obj_end = last;
 }
