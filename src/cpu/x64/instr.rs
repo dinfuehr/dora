@@ -256,6 +256,22 @@ fn emit_alub_imm_reg(buf: &mut Buffer, opcode: u8, rax_opcode: u8,
     }
 }
 
+pub fn emit_sub_imm_mem(buf: &mut Buffer, mode: MachineMode, base: Reg, imm: u8) {
+    let (x64, opcode) = match mode {
+        MachineMode::Ptr => (1, 0x83),
+        MachineMode::Int32 => (0, 0x83),
+        MachineMode::Int8 => (0, 0x80),
+    };
+
+    if x64 != 0 || base.msb() != 0 {
+        emit_rex(buf, x64, 0, 0, base.msb());
+    }
+
+    emit_op(buf, opcode);
+    emit_modrm(buf, 0b00, 0b101, base.and7());
+    emit_u8(buf, imm);
+}
+
 pub fn emit_pushq_reg(buf: &mut Buffer, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
@@ -1084,5 +1100,14 @@ mod tests {
     fn test_cmp_mem_reg_dest_rip() {
         let mut buf = Buffer::new();
         emit_cmp_mem_reg(&mut buf, MachineMode::Ptr, RAX, 1, RIP);
+    }
+
+    #[test]
+    fn test_sub_imm_mem() {
+        assert_emit!(0x83, 0x28, 1; emit_sub_imm_mem(MachineMode::Int32, RAX, 1));
+        assert_emit!(0x48, 0x83, 0x28, 1; emit_sub_imm_mem(MachineMode::Ptr, RAX, 1));
+        assert_emit!(0x49, 0x83, 0x29, 1; emit_sub_imm_mem(MachineMode::Ptr, R9, 1));
+        assert_emit!(0x49, 0x83, 0x28, 1; emit_sub_imm_mem(MachineMode::Ptr, R8, 1));
+        assert_emit!(0x41, 0x80, 0x28, 1; emit_sub_imm_mem(MachineMode::Int8, R8, 1));
     }
 }
