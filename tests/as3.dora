@@ -1,11 +1,9 @@
-//= error cast
-
 fun main() {
   let l7 = L7();
-  assert(asl7(l7) == l7);
+  assert(asl7(l7) === l7);
 }
 
-fun asl7(a: L1) -> bool {
+fun asl7(a: L1) -> L7 {
   return a as L7;
 }
 
