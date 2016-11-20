@@ -172,8 +172,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                        REG_TMP1, REG_RESULT, 8, -8 * DISPLAY_SIZE as i32,
                                        REG_TMP2);
 
-                // dest = if zero then true else false
-                emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+                if e.is {
+                    // dest = if zero then true else false
+                    emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+
+                } else {
+                    // jump to lbl_false if cmp did not succeed
+                    emit::jump_if(self.buf, JumpCond::NonZero, lbl_false);
+
+                    // otherwise load temp variable again
+                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
+                }
 
                 // jmp lbl_finished
                 emit::jump(self.buf, lbl_finished);
