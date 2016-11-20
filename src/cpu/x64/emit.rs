@@ -53,9 +53,32 @@ pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: R
     emit_movzbl_reg_reg(buf, dest, dest);
 }
 
-pub fn jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
+pub fn set(buf: &mut Buffer, mode: MachineMode, op: CmpOp, dest: Reg) {
+    emit_setb_reg(buf, op, dest);
+
+    match mode {
+        MachineMode::Int8 => {},
+        MachineMode::Int32
+            | MachineMode::Ptr => emit_movzbl_reg_reg(buf, dest, dest),
+    }
+}
+
+pub fn cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
+                   base: Reg, index: Reg, scale: i32, disp: i32,
+                   dest: Reg) {
+    emit_cmp_memindex_reg(buf, mode, base, index, scale, disp, dest);
+}
+
+pub fn test_and_jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
 
+    match cond {
+        JumpCond::Zero => emit_jz(buf, lbl),
+        JumpCond::NonZero => emit_jnz(buf, lbl)
+    }
+}
+
+pub fn jump_if(buf: &mut Buffer, cond: JumpCond, lbl: Label) {
     match cond {
         JumpCond::Zero => emit_jz(buf, lbl),
         JumpCond::NonZero => emit_jnz(buf, lbl)

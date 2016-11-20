@@ -96,24 +96,87 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let cls = self.ctxt.cls_by_id(cls_id);
             let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
 
+            // object instanceof T
+
+            // tmp1 = <vtable of object>
             emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
 
             let disp = self.buf.add_addr(vtable as *const _ as *mut u8);
             let pos = self.buf.pos() as i32;
 
+            // tmp2 = <vtable of T>
             emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
-                panic!("not yet supported");
+                // tmp3 = tmp1.subtype_offset
+                emit::mov_mem_reg(self.buf, MachineMode::Int32,
+                                  REG_TMP1, vtable.subtype_offset,
+                                  REG_RESULT);
 
+                // cmp [tmp3 + tmp1], tmp2
+                emit::cmp_memindex_reg(self.buf, MachineMode::Ptr,
+                                       REG_RESULT, REG_TMP1, 1, 0,
+                                       REG_TMP2);
+
+                // jnz lbl_check
+                let lbl_check = self.buf.create_label();
+                emit::jump_if(self.buf, JumpCond::NonZero, lbl_check);
+
+                // mov dest, 1
+                emit::movl_imm_reg(self.buf, 1, dest);
+
+                // jmp lbl_finished
+                let lbl_finished = self.buf.create_label();
+                emit::jump(self.buf, lbl_finished);
+
+                // lbl_check:
+                self.buf.define_label(lbl_check);
+
+                // tmp3 = tmp2 + T.vtable.subtype_depth
+                emit::mov_mem_reg(self.buf, MachineMode::Int32,
+                                  REG_TMP2, vtable.subtype_depth, REG_RESULT);
+
+                // cmp [tmp1 + T.vtable.subtype_depth], tmp3
+                // FIXME: use cmp_mem_reg instead of cmp_memindex_reg
+                emit::cmp_memindex_reg(self.buf, MachineMode::Int32,
+                                  REG_TMP1, REG_TMP1, 1, vtable.subtype_depth, REG_RESULT);
+
+                // jnz lbl_false
+                let lbl_false = self.buf.create_label();
+                emit::jump_if(self.buf, JumpCond::NonZero, lbl_false);
+
+                // tmp1 = tmp1.subtype_overflow
+                emit::mov_mem_reg(self.buf, MachineMode::Ptr,
+                                  REG_TMP1, VTable::offset_of_overflow(), REG_TMP1);
+
+                // cmp [tmp1 + (-8)*DISPLAY_SIZE + tmp3<<3 ], tmp2
+                emit::cmp_memindex_reg(self.buf, MachineMode::Ptr,
+                                       REG_TMP1, REG_RESULT, 8, -8 * DISPLAY_SIZE as i32,
+                                       REG_TMP2);
+
+                // dest = if zero then true else false
+                emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+
+                // lbl_false:
+                self.buf.define_label(lbl_false);
+
+                // dest = false
+                emit::movl_imm_reg(self.buf, 0, dest);
+
+                // lbl_finished:
+                self.buf.define_label(lbl_finished);
             } else {
+                // tmp1 = tmp1 + T.vtable.subtype_offset
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
                                   vtable.subtype_offset, REG_TMP1);
+
+                // cmp tmp1, tmp2
                 emit::cmp_setl(self.buf, MachineMode::Ptr,
                                REG_TMP1, CmpOp::Eq, REG_TMP2, dest);
             }
         }
 
+        // lbl_nil:
         self.buf.define_label(lbl_nil);
     }
 
@@ -373,10 +436,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit::jump_if(self.buf, JumpCond::NonZero, REG_RESULT, lbl_true);
+        emit::test_and_jump_if(self.buf, JumpCond::NonZero, REG_RESULT, lbl_true);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.buf.define_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
@@ -394,10 +457,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
         self.buf.define_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
@@ -444,7 +507,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             let lbl_div = eg.buf.create_label();
-            emit::jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
+            emit::test_and_jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
             trap::emit(eg.buf, trap::DIV0);
 
             eg.buf.define_label(lbl_div);
@@ -570,7 +633,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
         let lbl_div = self.buf.create_label();
         self.emit_expr(&e.args[0], REG_RESULT);
-        emit::jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_div);
+        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_div);
         self.buf.emit_bailout(lbl_div, trap::ASSERT, e.pos);
     }
 

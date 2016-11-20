@@ -116,6 +116,10 @@ impl<'ast> VTable<'ast> {
         (4 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
     }
 
+    pub fn offset_of_overflow() -> i32 {
+        (2 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+    }
+
     pub fn allocate_overflow(&mut self, num: usize) {
         assert!(self.subtype_overflow.is_null());
 
