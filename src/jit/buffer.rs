@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{CatchType, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
+use jit::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 
 #[derive(Debug)]
@@ -13,6 +13,7 @@ pub struct Buffer {
     bailouts: Vec<(Label, TrapId, Position)>,
     dseg: DSeg,
     gcpoints: GcPoints,
+    comments: Comments,
     linenos: LineNumberTable,
     exception_handlers: Vec<ExHandler>,
 }
@@ -26,6 +27,7 @@ impl Buffer {
             bailouts: Vec::new(),
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
+            comments: Comments::new(),
             linenos: LineNumberTable::new(),
             exception_handlers: Vec::new(),
         }
@@ -34,7 +36,7 @@ impl Buffer {
     pub fn jit(mut self, id: FctId) -> JitFct {
         self.finish();
 
-        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints,
+        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints, self.comments,
                             self.linenos, self.exception_handlers)
     }
 
@@ -91,6 +93,11 @@ impl Buffer {
         self.labels.push(None);
 
         Label(idx)
+    }
+
+    pub fn emit_comment(&mut self, comment: Comment) {
+        let pos = self.pos() as i32;
+        self.comments.insert(pos, comment);
     }
 
     pub fn define_label(&mut self, lbl: Label) {

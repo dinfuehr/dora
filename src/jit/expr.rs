@@ -7,6 +7,7 @@ use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
+use jit::fct::Comment;
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem;
@@ -349,6 +350,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let disp = self.buf.add_addr(handle.raw() as *const u8);
         let pos = self.buf.pos() as i32;
 
+        self.buf.emit_comment(Comment::LoadString);
         emit::movq_addr_reg(self.buf, disp + pos, dest);
     }
 

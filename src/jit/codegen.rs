@@ -71,12 +71,17 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
         panic!("capstone: syntax couldn't be set");
     }
 
-    let instrs = engine.disasm(buf, jit_fct.fct_ptr().raw() as u64,
+    let start_addr = jit_fct.fct_ptr().raw() as u64;
+    let instrs = engine.disasm(buf, start_addr,
         jit_fct.fct_len()).expect("could not disassemble code");
 
-    println!("fn {} (id {})", name, jit_fct.fct_id().0);
+    println!("fn {} (id {}) {:#x}", name, jit_fct.fct_id().0, start_addr);
 
     for instr in instrs {
+        if let Some(comment) = jit_fct.get_comment((instr.addr - start_addr) as i32) {
+            println!("\t\t; {}", comment);
+        }
+
         println!("  {:#06x}: {}\t\t{}",
                  instr.addr, instr.mnemonic, instr.op_str);
     }

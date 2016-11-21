@@ -20,6 +20,8 @@ pub struct JitFct {
 
     gcpoints: GcPoints,
 
+    comments: Comments,
+
     linenos: LineNumberTable,
 
     pub exception_handlers: Vec<ExHandler>,
@@ -27,7 +29,8 @@ pub struct JitFct {
 
 impl JitFct {
     pub fn from_buffer(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
-               linenos: LineNumberTable, mut exception_handlers: Vec<ExHandler>) -> JitFct {
+                comments: Comments, linenos: LineNumberTable,
+                mut exception_handlers: Vec<ExHandler>) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -54,6 +57,7 @@ impl JitFct {
             fct_id: fct_id,
             code: code,
             gcpoints: gcpoints,
+            comments: comments,
             fct_start: fct_start,
             fct_len: buffer.len(),
             linenos: linenos,
@@ -91,6 +95,10 @@ impl JitFct {
 
     pub fn fct_len(&self) -> usize {
         self.fct_len
+    }
+
+    pub fn get_comment(&self, pos: i32) -> Option<&Comment> {
+        self.comments.get(pos)
     }
 }
 
@@ -137,6 +145,42 @@ impl GcPoint {
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
         GcPoint {
             offsets: offsets
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Comments {
+    comments: HashMap<i32, Comment>
+}
+
+impl Comments {
+    pub fn new() -> Comments {
+        Comments {
+            comments: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, pos: i32) -> Option<&Comment> {
+        self.comments.get(&pos)
+    }
+
+    pub fn insert(&mut self, pos: i32, comment: Comment) {
+        self.comments.insert(pos, comment);
+    }
+}
+
+#[derive(Debug)]
+pub enum Comment {
+    LoadString,
+    LoadFunction,
+}
+
+impl fmt::Display for Comment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &Comment::LoadString => write!(f, "load string"),
+            &Comment::LoadFunction => write!(f, "load function pointer"),
         }
     }
 }
