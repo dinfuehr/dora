@@ -6,6 +6,7 @@ use class::ClassId;
 use ctxt::FctId;
 use dseg::DSeg;
 use mem::{CodeMemory, Ptr};
+use object::{Handle, Str};
 
 pub struct JitFct {
     code: CodeMemory,
@@ -149,7 +150,6 @@ impl GcPoint {
     }
 }
 
-#[derive(Debug)]
 pub struct Comments {
     comments: HashMap<i32, Comment>
 }
@@ -170,17 +170,24 @@ impl Comments {
     }
 }
 
-#[derive(Debug)]
 pub enum Comment {
-    LoadString,
-    LoadFunction,
+    LoadString(Handle<Str>),
+    Alloc(ClassId),
+    StoreVTable(ClassId),
+    CallSuper(FctId),
+    CallVirtual(FctId),
+    CallDirect(FctId),
 }
 
 impl fmt::Display for Comment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Comment::LoadString => write!(f, "load string"),
-            &Comment::LoadFunction => write!(f, "load function pointer"),
+            &Comment::LoadString(_) => write!(f, "load string"),
+            &Comment::Alloc(_) => write!(f, "allocate object"),
+            &Comment::StoreVTable(_) => write!(f, "store vtable"),
+            &Comment::CallSuper(fid) => write!(f, "call super {}", fid.0),
+            &Comment::CallVirtual(fid) => write!(f, "call virtual {}", fid.0),
+            &Comment::CallDirect(fid) => write!(f, "call direct {}", fid.0),
         }
     }
 }

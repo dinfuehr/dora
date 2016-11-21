@@ -5,7 +5,6 @@ use dseg::DSeg;
 use jit::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 
-#[derive(Debug)]
 pub struct Buffer {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,

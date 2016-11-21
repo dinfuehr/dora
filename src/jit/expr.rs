@@ -350,7 +350,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let disp = self.buf.add_addr(handle.raw() as *const u8);
         let pos = self.buf.pos() as i32;
 
-        self.buf.emit_comment(Comment::LoadString);
+        self.buf.emit_comment(Comment::LoadString(handle));
         emit::movq_addr_reg(self.buf, disp + pos, dest);
     }
 
@@ -729,6 +729,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 Arg::SelfieNew(cls_id, _) => {
                     // allocate storage for object
+                    self.buf.emit_comment(Comment::Alloc(cls_id));
+
                     let cls = self.ctxt.cls_by_id(cls_id);
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
@@ -740,6 +742,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let disp = self.buf.add_addr(cptr);
                     let pos = self.buf.pos() as i32;
 
+                    self.buf.emit_comment(Comment::StoreVTable(cls_id));
                     emit::movq_addr_reg(self.buf, disp + pos, REG_TMP1);
                     emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_TMP1, REG_RESULT, 0);
                 }
@@ -783,14 +786,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 if csite.super_call {
                     let ptr = self.ptr_for_fct_id(fid);
+                    self.buf.emit_comment(Comment::CallSuper(fid));
                     self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
 
                 } else if fct.is_virtual() {
                     let vtable_index = fct.vtable_index.unwrap();
+                    self.buf.emit_comment(Comment::CallVirtual(fid));
                     self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
 
                 } else {
                     let ptr = self.ptr_for_fct_id(fid);
+                    self.buf.emit_comment(Comment::CallDirect(fid));
                     self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
                 }
             }
