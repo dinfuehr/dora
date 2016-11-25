@@ -1028,6 +1028,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Nil => self.parse_nil(),
             TokenType::This => self.parse_this(),
             TokenType::Super => self.parse_super(),
+            TokenType::Try => self.parse_try(),
+            TokenType::TryForce
+                | TokenType::TryOpt => self.parse_try_op(),
             _ => Err(MsgWithPos::new(self.token.position,
                      Msg::ExpectedFactor(self.token.name().clone())))
         }
@@ -1063,6 +1066,35 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         try!(self.expect_token(TokenType::RParen));
 
         Ok(exp)
+    }
+
+    fn parse_try_op(&mut self) -> ExprResult {
+        let tok = try!(self.read_token());
+        let exp = try!(self.parse_expression());
+
+        let mode = if tok.is(TokenType::TryForce) {
+            TryMode::Force
+        } else {
+            TryMode::Opt
+        };
+
+        Ok(Box::new(Expr::create_try(self.generate_id(), tok.position, exp, mode)))
+    }
+
+    fn parse_try(&mut self) -> ExprResult {
+        let pos = try!(self.expect_token(TokenType::Try)).position;
+        let exp = try!(self.parse_expression());
+
+        let mode = if self.token.is(TokenType::Else) {
+            try!(self.read_token());
+            let alt_exp = try!(self.parse_expression());
+
+            TryMode::Else(alt_exp)
+        } else {
+            TryMode::Normal
+        };
+
+        Ok(Box::new(Expr::create_try(self.generate_id(), pos, exp, mode)))
     }
 
     fn parse_number(&mut self) -> ExprResult {
@@ -2407,5 +2439,61 @@ mod tests {
 
         assert_eq!(DelegationType::Super, delegation.ty);
         assert_eq!(1, delegation.args.len());
+    }
+
+    #[test]
+    fn parse_try_function() {
+        let (expr, _) = parse_expr("try foo()");
+        let try = expr.to_try().unwrap();
+        let call = try.expr.to_call().unwrap();
+
+        assert!(try.mode.is_normal());
+        assert!(call.object.is_none());
+        assert_eq!(0, call.args.len());
+    }
+
+    #[test]
+    fn parse_try_method() {
+        let (expr, _) = parse_expr("try obj.foo()");
+        let try = expr.to_try().unwrap();
+        let call = try.expr.to_call().unwrap();
+
+        assert!(try.mode.is_normal());
+        assert!(call.object.is_some());
+        assert_eq!(0, call.args.len());
+    }
+
+    #[test]
+    fn parse_try_expr() {
+        // although `try 1` does not make sense it should parse correctly
+        let (expr, _) = parse_expr("try 1");
+        let try = expr.to_try().unwrap();
+
+        assert!(try.mode.is_normal());
+        assert!(try.expr.is_lit_int());
+    }
+
+    #[test]
+    fn parse_try_with_else() {
+        let (expr, _) = parse_expr("try foo() else 2");
+        let try = expr.to_try().unwrap();
+
+        assert!(try.mode.is_else());
+    }
+
+    #[test]
+    fn parse_try_force() {
+        let (expr, _) = parse_expr("try! foo()");
+        let try = expr.to_try().unwrap();
+
+        assert!(try.mode.is_force());
+    }
+
+    #[test]
+    fn parse_try_opt() {
+        let (expr, _) = parse_expr("try? foo()");
+        let try = expr.to_try().unwrap();
+
+        assert!(try.mode.is_opt());
     }
 }

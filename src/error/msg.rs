@@ -73,6 +73,9 @@ pub enum Msg {
     ThisOrSuperExpected(String),
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
+    TryNeedsCall,
+    TryCallNonThrowing,
+    ThrowingCallWithoutTry,
 }
 
 impl Msg {
@@ -201,6 +204,9 @@ impl Msg {
             NoSuperDelegationWithPrimaryCtor(ref name) =>
                 format!("no `super` delegation allowed for ctor in class {}, because class has primary ctor.", name),
             NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
+            TryNeedsCall => "`try` expects function or method call.".into(),
+            TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
+            ThrowingCallWithoutTry => "function or method call that is able to throw, nees `try`.".into(),
         }
     }
 }

@@ -76,9 +76,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             ExprNil(_) => self.emit_nil(dest),
             ExprArray(ref expr) => self.emit_array(expr, dest),
             ExprConv(ref expr) => self.emit_conv(expr, dest),
+            ExprTry(ref expr) => self.emit_try(expr, dest),
         }
 
         dest
+    }
+
+    fn emit_try(&mut self, e: &'ast ExprTryType, dest: Reg) {
+        self.emit_expr(&e.expr, dest);
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
@@ -919,6 +924,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprNil(_) => true,
         ExprArray(_) => false,
         ExprConv(_) => false,
+        ExprTry(_) => false,
     }
 }
 
@@ -940,5 +946,6 @@ pub fn contains_fct_call(expr: &Expr) -> bool {
         ExprNil(_) => false,
         ExprArray(ref e) => contains_fct_call(&e.object) || contains_fct_call(&e.index),
         ExprConv(ref e) => contains_fct_call(&e.object),
+        ExprTry(ref e) => contains_fct_call(&e.expr),
     }
 }

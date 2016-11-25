@@ -970,6 +970,7 @@ pub enum Expr {
     ExprNil(ExprNilType),
     ExprArray(ExprArrayType),
     ExprConv(ExprConvType),
+    ExprTry(ExprTryType),
 }
 
 impl Expr {
@@ -979,6 +980,16 @@ impl Expr {
             pos: pos,
             op: op,
             opnd: opnd,
+            ty: RefCell::new(None),
+        })
+    }
+
+    pub fn create_try(id: NodeId, pos: Position, expr: Box<Expr>, mode: TryMode) -> Expr {
+        Expr::ExprTry(ExprTryType {
+            id: id,
+            pos: pos,
+            expr: expr,
+            mode: mode,
             ty: RefCell::new(None),
         })
     }
@@ -1322,6 +1333,20 @@ impl Expr {
         }
     }
 
+    pub fn to_try(&self) -> Option<&ExprTryType> {
+        match *self {
+            Expr::ExprTry(ref val) => Some(val),
+            _ => None
+        }
+    }
+
+    pub fn is_try(&self) -> bool {
+        match *self {
+            Expr::ExprTry(_) => true,
+            _ => false
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,
@@ -1339,6 +1364,7 @@ impl Expr {
             Expr::ExprNil(ref val) => val.id,
             Expr::ExprArray(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
+            Expr::ExprTry(ref val) => val.id,
         }
     }
 
@@ -1358,6 +1384,7 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.ty(),
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
+            Expr::ExprTry(ref val) => val.ty(),
             Expr::ExprConv(ref val) => if val.is {
                     BuiltinType::Bool
                 } else {
@@ -1382,6 +1409,7 @@ impl Expr {
             Expr::ExprSuper(ref val) => val.set_ty(ty),
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
+            Expr::ExprTry(ref val) => val.set_ty(ty),
             Expr::ExprConv(ref val) => if val.is {
                     panic!("unimplemented")
                 } else {
@@ -1417,6 +1445,60 @@ impl ExprConvType {
 
     pub fn set_valid(&self, val: bool) {
         self.valid.set(val);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprTryType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub expr: Box<Expr>,
+    pub mode: TryMode,
+    pub ty: RefCell<Option<BuiltinType>>,
+}
+
+impl ExprTryType {
+    pub fn ty(&self) -> BuiltinType {
+        self.ty.borrow().unwrap()
+    }
+
+    pub fn set_ty(&self, ty: BuiltinType) {
+        *self.ty.borrow_mut() = Some(ty);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum TryMode {
+    Normal, Else(Box<Expr>), Opt, Force
+}
+
+impl TryMode {
+    pub fn is_normal(&self) -> bool {
+        match self {
+          &TryMode::Normal => true,
+          _ => false,
+        }
+    }
+
+    pub fn is_else(&self) -> bool {
+        match self {
+          &TryMode::Else(_) => true,
+          _ => false,
+        }
+    }
+
+    pub fn is_force(&self) -> bool {
+        match self {
+          &TryMode::Force => true,
+          _ => false,
+        }
+    }
+
+    pub fn is_opt(&self) -> bool {
+        match self {
+          &TryMode::Opt => true,
+          _ => false,
+        }
     }
 }
 

@@ -461,9 +461,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_call(&mut self, e: &'ast ExprCallType) {
+    fn check_expr_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
         if e.object.is_some() {
-            self.check_method_call(e);
+            self.check_method_call(e, in_try);
             return;
         }
 
@@ -524,6 +524,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             _ => panic!("invocation of method")
         }
+
+        if !in_try {
+            let fct_id = call_type.fct_id();
+            let throws = self.ctxt.fct_by_id(fct_id).throws;
+
+            if throws {
+                let msg = Msg::ThrowingCallWithoutTry;
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            }
+        }
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
@@ -579,7 +589,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
     }
 
-    fn check_method_call(&mut self, e: &'ast ExprCallType) {
+    fn check_method_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
         let object = e.object.as_ref().unwrap();
 
         if let Some(ref expr) = object.to_super() {
@@ -600,6 +610,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             assert!(self.src.calls.insert(e.id, call_type).is_none());
             e.set_ty(return_type);
             self.expr_type = return_type;
+
+            if !in_try {
+                let throws = self.ctxt.fct_by_id(fct_id).throws;
+
+                if throws {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                }
+            }
         } else {
             e.set_ty(BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
@@ -700,6 +719,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_expr_try(&mut self, e: &'ast ExprTryType) {
+        if let Some(call) = e.expr.to_call() {
+            self.check_expr_call(call, true);
+            e.set_ty(self.expr_type);
+
+            let fct_id = self.src.calls.get(&call.id).unwrap().fct_id();
+            let throws = self.ctxt.fct_by_id(fct_id).throws;
+
+            if !throws {
+                self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryCallNonThrowing);
+            }
+        } else {
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryNeedsCall);
+
+            self.expr_type = BuiltinType::Unit;
+            e.set_ty(BuiltinType::Unit);
+        }
+    }
+
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
         let object_type = self.expr_type;
@@ -751,7 +789,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),
             ExprBin(ref expr) => self.check_expr_bin(expr),
-            ExprCall(ref expr) => self.check_expr_call(expr),
+            ExprCall(ref expr) => self.check_expr_call(expr, false),
             ExprDelegation(ref expr) => self.check_expr_delegation(expr),
             ExprField(ref expr) => self.check_expr_field(expr),
             ExprSelf(ref expr) => self.check_expr_this(expr),
@@ -759,6 +797,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprNil(ref expr) => self.check_expr_nil(expr),
             ExprArray(ref expr) => self.check_expr_array(expr),
             ExprConv(ref expr) => self.check_expr_conv(expr),
+            ExprTry(ref expr) => self.check_expr_try(expr),
         }
     }
 
@@ -1363,5 +1402,45 @@ mod tests {
         err("open class A { }
             class B: A { fun me() { let x = super; } }", pos(2, 45),
             Msg::SuperNeedsMethodCall);
+    }
+
+    #[test]
+    fn try_with_non_call() {
+        err("fun me() { try 1; }", pos(1, 12), Msg::TryNeedsCall);
+    }
+
+    #[test]
+    fn try_fct() {
+        ok("fun one() throws -> int { return 1; } fun me() -> int { return try one(); }");
+    }
+
+    #[test]
+    fn throws_fct_without_try() {
+        err("fun one() throws -> int { return 1; } fun me() -> int { return one(); }",
+            pos(1, 64), Msg::ThrowingCallWithoutTry);
+    }
+
+    #[test]
+    fn try_fct_non_throwing() {
+        err("fun one() -> int { return 1; }
+             fun me() -> int { return try one(); }", pos(2, 39), Msg::TryCallNonThrowing);
+    }
+
+    #[test]
+    fn try_method() {
+        ok("class Foo { fun one() throws -> int { return 1; } }
+            fun me() -> int { return try Foo().one(); }");
+    }
+
+    #[test]
+    fn throws_method_without_try() {
+        err("class Foo { fun one() throws -> int { return 1; } }
+             fun me() -> int { return Foo().one(); }", pos(2, 44), Msg::ThrowingCallWithoutTry);
+    }
+
+    #[test]
+    fn try_method_non_throwing() {
+        err("class Foo { fun one() -> int { return 1; } }
+             fun me() -> int { return try Foo().one(); }", pos(2, 39), Msg::TryCallNonThrowing);
     }
 }

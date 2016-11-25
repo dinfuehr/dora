@@ -202,8 +202,26 @@ impl<T : CodeReader> Lexer<T> {
             tok.value.push(ch);
         }
 
-        if let Some(toktype) = self.keywords.get(&tok.value[..]) {
-            tok.token_type = *toktype
+        let lookup = self.keywords.get(&tok.value[..]).cloned();
+        if let Some(toktype) = lookup {
+            tok.token_type = toktype;
+
+            if tok.token_type == TokenType::Try {
+                if let Some(ch) = self.top() {
+                    let ch = ch.value;
+
+                    if ch == '!' || ch == '?' {
+                        tok.value.push(ch);
+                        tok.token_type = if ch == '!' {
+                            TokenType::TryForce
+                        } else {
+                            TokenType::TryOpt
+                        };
+
+                        try!(self.read_char().unwrap());
+                    }
+                }
+            }
         }
 
         Ok(tok)
@@ -739,5 +757,10 @@ mod tests {
 
         let mut reader = Lexer::from_str("->");
         assert_tok(&mut reader, TokenType::Arrow, "", 1, 1);
+
+        let mut reader = Lexer::from_str("try!try?1");
+        assert_tok(&mut reader, TokenType::TryForce, "try!", 1, 1);
+        assert_tok(&mut reader, TokenType::TryOpt, "try?", 1, 5);
+        assert_tok(&mut reader, TokenType::Number, "1", 1, 9);
     }
 }

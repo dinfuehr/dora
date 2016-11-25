@@ -292,6 +292,7 @@ impl<'a> AstDumper<'a> {
             ExprSuper(ref expr) => self.dump_expr_super(expr),
             ExprNil(ref nil) => self.dump_expr_nil(nil),
             ExprConv(ref expr) => self.dump_expr_conv(expr),
+            ExprTry(ref expr) => self.dump_expr_try(expr),
         }
     }
 
@@ -300,6 +301,11 @@ impl<'a> AstDumper<'a> {
         let op = if expr.is { "is" } else { "as" };
         dump!(self, "{} @ {} {}", op, expr.pos, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
+    }
+
+    fn dump_expr_try(&mut self, expr: &ExprTryType) {
+        dump!(self, "try @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_expr(&expr.expr));
     }
 
     fn dump_expr_delegation(&mut self, expr: &ExprDelegationType) {
