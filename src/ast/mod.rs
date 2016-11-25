@@ -418,7 +418,7 @@ pub enum Stmt {
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
     StmtThrow(StmtThrowType),
-    StmtTry(StmtTryType),
+    StmtDo(StmtDoType),
 }
 
 impl Stmt {
@@ -510,13 +510,13 @@ impl Stmt {
         })
     }
 
-    pub fn create_try(id: NodeId, pos: Position, try_block: Box<Stmt>,
-                      catch_blocks: Vec<CatchBlock>,
-                      finally_block: Option<FinallyBlock>) -> Stmt {
-        Stmt::StmtTry(StmtTryType {
+    pub fn create_do(id: NodeId, pos: Position, do_block: Box<Stmt>,
+                     catch_blocks: Vec<CatchBlock>,
+                     finally_block: Option<FinallyBlock>) -> Stmt {
+        Stmt::StmtDo(StmtDoType {
             id: id,
             pos: pos,
-            try_block: try_block,
+            do_block: do_block,
             catch_blocks: catch_blocks,
             finally_block: finally_block,
         })
@@ -534,7 +534,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
             Stmt::StmtThrow(ref stmt) => stmt.id,
-            Stmt::StmtTry(ref stmt) => stmt.id,
+            Stmt::StmtDo(ref stmt) => stmt.id,
         }
     }
 
@@ -550,7 +550,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
             Stmt::StmtThrow(ref stmt) => stmt.pos,
-            Stmt::StmtTry(ref stmt) => stmt.pos,
+            Stmt::StmtDo(ref stmt) => stmt.pos,
         }
     }
 
@@ -568,16 +568,16 @@ impl Stmt {
         }
     }
 
-    pub fn to_try(&self) -> Option<&StmtTryType> {
+    pub fn to_do(&self) -> Option<&StmtDoType> {
         match *self {
-            Stmt::StmtTry(ref val) => Some(val),
+            Stmt::StmtDo(ref val) => Some(val),
             _ => None
         }
     }
 
     pub fn is_try(&self) -> bool {
         match *self {
-            Stmt::StmtTry(_) => true,
+            Stmt::StmtDo(_) => true,
             _ => false
         }
     }
@@ -797,10 +797,10 @@ pub struct StmtThrowType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtTryType {
+pub struct StmtDoType {
     pub id: NodeId,
     pub pos: Position,
-    pub try_block: Box<Stmt>,
+    pub do_block: Box<Stmt>,
     pub catch_blocks: Vec<CatchBlock>,
     pub finally_block: Option<FinallyBlock>,
 }

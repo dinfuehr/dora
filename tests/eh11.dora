@@ -1,7 +1,7 @@
 //= output "finally in foo\ncatch me\n"
 
 fun main() {
-  try {
+  do {
     foo();
   } catch x: Str {
     println(x);
@@ -9,7 +9,7 @@ fun main() {
 }
 
 fun foo() throws {
-  try {
+  do {
     throw "catch me";
   } finally {
     println("finally in foo");

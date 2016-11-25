@@ -324,12 +324,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         trap::emit(&mut self.buf, trap::THROW);
     }
 
-    fn emit_stmt_try(&mut self, s: &'ast StmtTryType) {
+    fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
         let lbl_after = self.buf.create_label();
 
-        let try_span = self.stmt_with_finally(s, &s.try_block, lbl_after);
-        let catch_spans = self.emit_try_catch_blocks(s, try_span, lbl_after);
-        let finally_start = self.emit_try_finally_block(s);
+        let try_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
+        let catch_spans = self.emit_do_catch_blocks(s, try_span, lbl_after);
+        let finally_start = self.emit_do_finally_block(s);
 
         self.buf.define_label(lbl_after);
 
@@ -343,7 +343,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_try_catch_blocks(&mut self, s: &'ast StmtTryType, try_span: (usize, usize),
+    fn emit_do_catch_blocks(&mut self, s: &'ast StmtDoType, try_span: (usize, usize),
                              lbl_after: Label) -> Vec<(usize, usize)> {
         let mut ret = Vec::new();
 
@@ -367,7 +367,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         ret
     }
 
-    fn stmt_with_finally(&mut self, s: &'ast StmtTryType, stmt: &'ast Stmt,
+    fn stmt_with_finally(&mut self, s: &'ast StmtDoType, stmt: &'ast Stmt,
                             lbl_after: Label) -> (usize, usize) {
         let saved_lbl_finally = self.lbl_finally;
         let lbl_finally = self.buf.create_label();
@@ -398,7 +398,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         (start, end)
     }
 
-    fn emit_try_finally_block(&mut self, s: &'ast StmtTryType)
+    fn emit_do_finally_block(&mut self, s: &'ast StmtDoType)
                               -> Option<usize> {
         if s.finally_block.is_none() { return None; }
         let finally_block = s.finally_block.as_ref().unwrap();
@@ -440,7 +440,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
-            StmtTry(ref stmt) => self.emit_stmt_try(stmt),
+            StmtDo(ref stmt) => self.emit_stmt_do(stmt),
         }
     }
 

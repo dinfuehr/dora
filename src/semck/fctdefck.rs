@@ -135,7 +135,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
             }
 
-            StmtTry(ref try) => {
+            StmtDo(ref try) => {
                 for catch in &try.catch_blocks {
                     self.visit_type(&catch.data_type);
                     catch.set_ty(self.current_type);

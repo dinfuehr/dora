@@ -174,8 +174,8 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_expr_top(&value.expr);
         }
 
-        StmtTry(ref value) => {
-            v.visit_stmt(&value.try_block);
+        StmtDo(ref value) => {
+            v.visit_stmt(&value.do_block);
 
             for catch in &value.catch_blocks {
                 v.visit_type(&catch.data_type);

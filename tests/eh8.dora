@@ -1,5 +1,5 @@
 fun main() {
-  try {
+  do {
     throw intArrayWith(5, 1);
 
   } catch x: IntArray {

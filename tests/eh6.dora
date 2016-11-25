@@ -5,7 +5,7 @@ fun main() {
 }
 
 fun f() -> int {
-  try {
+  do {
     print("hello ");
   } catch e: IntArray {
     return 4;

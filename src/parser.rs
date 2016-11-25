@@ -620,7 +620,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Return => self.parse_return(),
             TokenType::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
             TokenType::Throw => self.parse_throw(),
-            TokenType::Try => self.parse_try(),
+            TokenType::Do => self.parse_do(),
             _ => self.parse_expression_statement()
         }
     }
@@ -634,8 +634,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Ok(Box::new(Stmt::create_throw(self.generate_id(), pos, expr)))
     }
 
-    fn parse_try(&mut self) -> StmtResult {
-        let pos = try!(self.expect_token(TokenType::Try)).position;
+    fn parse_do(&mut self) -> StmtResult {
+        let pos = try!(self.expect_token(TokenType::Do)).position;
         let try_block = try!(self.parse_block());
         let mut catch_blocks = Vec::new();
 
@@ -649,7 +649,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             None
         };
 
-        Ok(Box::new(Stmt::create_try(self.generate_id(), pos,
+        Ok(Box::new(Stmt::create_do(self.generate_id(), pos,
             try_block, catch_blocks, finally_block)))
     }
 
@@ -2245,19 +2245,19 @@ mod tests {
     }
 
     #[test]
-    fn parse_try() {
-        let stmt = parse_stmt("try { 1; } catch e: Str { 2; }
+    fn parse_do() {
+        let stmt = parse_stmt("do { 1; } catch e: Str { 2; }
                                           catch e: IntArray { 3; } finally { 4; }");
-        let try = stmt.to_try().unwrap();
+        let try = stmt.to_do().unwrap();
 
         assert_eq!(2, try.catch_blocks.len());
         assert!(try.finally_block.is_some());
     }
 
     #[test]
-    fn parse_try_without_catch() {
-        let stmt = parse_stmt("try { 1; }");
-        let try = stmt.to_try().unwrap();
+    fn parse_do_without_catch() {
+        let stmt = parse_stmt("do { 1; }");
+        let try = stmt.to_do().unwrap();
 
         assert_eq!(0, try.catch_blocks.len());
         assert!(try.finally_block.is_none());

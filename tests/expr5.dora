@@ -1,9 +1,9 @@
 fun main() {
-  Bar(1).do();
+  Bar(1).exec();
 }
 
 class Bar(var a: int) {
-  fun do() {
+  fun exec() {
     Foo(self.f()).a = self.g();
     assert(a == 100);
   }

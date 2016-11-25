@@ -3,7 +3,7 @@
 fun main() {
   var a = 0;
 
-  try {
+  do {
     a = 3;
     throw "abc";
 

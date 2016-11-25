@@ -96,6 +96,7 @@ impl<T : CodeReader> Lexer<T> {
         keywords.insert("throws", TokenType::Throws);
         keywords.insert("throw", TokenType::Throw);
         keywords.insert("try", TokenType::Try);
+        keywords.insert("do", TokenType::Do);
         keywords.insert("catch", TokenType::Catch);
         keywords.insert("finally", TokenType::Finally);
         keywords.insert("open", TokenType::Open);

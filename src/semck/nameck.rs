@@ -119,8 +119,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_try(&mut self, try: &'ast StmtTryType) {
-        self.visit_stmt(&try.try_block);
+    fn check_stmt_do(&mut self, try: &'ast StmtDoType) {
+        self.visit_stmt(&try.do_block);
 
         for catch in &try.catch_blocks {
             self.ctxt.sym.borrow_mut().push_level();
@@ -266,7 +266,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match *s {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtBlock(ref stmt) => self.check_stmt_block(stmt),
-            StmtTry(ref stmt) => self.check_stmt_try(stmt),
+            StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // no need to handle rest of statements
             _ => visit::walk_stmt(self, s)

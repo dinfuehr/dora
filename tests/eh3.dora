@@ -3,7 +3,7 @@ fun main() {
 }
 
 fun f() -> int {
-  try {
+  do {
     return 6;
   } catch e: IntArray {
     return 4;

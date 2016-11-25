@@ -1,7 +1,7 @@
 //= output "DONE\n"
 
 fun main() {
-  try {
+  do {
     foo();
   } catch x: IntArray {
     assert(x.len() == 5);
@@ -10,7 +10,7 @@ fun main() {
 }
 
 fun foo() throws {
-  try {
+  do {
     throw intArrayWith(5, 1);
   } finally {
     forceCollect();

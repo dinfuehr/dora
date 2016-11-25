@@ -1,10 +1,10 @@
 //= error nil
 
 class Foo {
-  fun do() { }
+  fun bar() { }
 }
 
 fun main() {
   let foo: Foo = nil;
-  foo.do();
+  foo.bar();
 }

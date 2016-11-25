@@ -76,7 +76,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             self.reserve_stack_for_node(var.var());
         }
 
-        if let StmtTry(ref try) = *s {
+        if let StmtDo(ref try) = *s {
             let ret = self.fct.return_type;
 
             if !ret.is_unit() {

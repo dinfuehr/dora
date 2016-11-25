@@ -153,8 +153,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_stmt_try(&mut self, s: &'ast StmtTryType) {
-        self.visit_stmt(&s.try_block);
+    fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
+        self.visit_stmt(&s.do_block);
 
         for catch in &s.catch_blocks {
             self.visit_stmt(&catch.block);
@@ -769,7 +769,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
-            StmtTry(ref stmt) => self.check_stmt_try(stmt),
+            StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // for the rest of the statements, no special handling is necessary
             StmtBreak(_) => visit::walk_stmt(self, s),
@@ -1192,30 +1192,30 @@ mod tests {
 
     #[test]
     fn type_catch_variable() {
-        ok("fun f() { try {} catch a: Str { print(a); } }");
-        ok("fun f() { var x = 0; try {} catch a: IntArray { x=a.len(); } }");
+        ok("fun f() { do {} catch a: Str { print(a); } }");
+        ok("fun f() { var x = 0; do {} catch a: IntArray { x=a.len(); } }");
     }
 
     #[test]
     fn try_value_type() {
-        err("fun f() { try {} catch a: int {} }", pos(1, 27),
+        err("fun f() { do {} catch a: int {} }", pos(1, 26),
             Msg::ReferenceTypeExpected("int".into()));
     }
 
     #[test]
     fn try_missing_catch() {
-        err("fun f() { try {} }", pos(1, 11), Msg::CatchOrFinallyExpected);
+        err("fun f() { do {} }", pos(1, 11), Msg::CatchOrFinallyExpected);
     }
 
     #[test]
     fn try_check_blocks() {
-        err("fun f() { try {} catch a: IntArray {} a.len(); }", pos(1, 39),
+        err("fun f() { do {} catch a: IntArray {} a.len(); }", pos(1, 38),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { try {} catch a: IntArray {} finally { a.len(); } }", pos(1, 49),
+        err("fun f() { do {} catch a: IntArray {} finally { a.len(); } }", pos(1, 48),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { try { return a; } catch a: IntArray {} }", pos(1, 24),
+        err("fun f() { do { return a; } catch a: IntArray {} }", pos(1, 23),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { try { } catch a: IntArray { return a; } }", pos(1, 39),
+        err("fun f() { do { } catch a: IntArray { return a; } }", pos(1, 38),
             Msg::ReturnType("()".into(), "IntArray".into()));
     }
 
@@ -1246,7 +1246,7 @@ mod tests {
     #[test]
     fn reassign_catch() {
         err("fun f() {
-               try {
+               do {
                  throw \"test\";
                } catch x: IntArray {
                  x = emptyIntArray();

@@ -1,7 +1,7 @@
 //= output "catch me\n"
 
 fun main() {
-  try {
+  do {
     foo();
   } catch x: Str {
     println(x);

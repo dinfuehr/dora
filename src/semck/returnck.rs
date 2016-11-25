@@ -74,7 +74,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtVar(ref stmt) => Err(stmt.pos),
         StmtExpr(ref stmt) => Err(stmt.pos),
         StmtThrow(_) => Ok(()),
-        StmtTry(ref stmt) => try_returns_value(stmt),
+        StmtDo(ref stmt) => do_returns_value(stmt),
     }
 }
 
@@ -100,7 +100,7 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
     Err(pos)
 }
 
-fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
+fn do_returns_value(s: &StmtDoType) -> Result<(), Position> {
     // return in finally-block is good enough
     if let Some(ref finally_block) = s.finally_block {
         if returns_value(&finally_block.block).is_ok() {
@@ -109,8 +109,8 @@ fn try_returns_value(s: &StmtTryType) -> Result<(), Position> {
     }
 
     // if no finally block given or finally does not return,
-    // try and all catch-blocks need to return
-    try!(returns_value(&s.try_block));
+    // do and all catch-blocks need to return
+    try!(returns_value(&s.do_block));
 
     for catch in &s.catch_blocks {
         try!(returns_value(&catch.block));
@@ -167,15 +167,15 @@ mod tests {
     }
 
     #[test]
-    fn try_returns() {
-        ok("fun f() -> int { try { return 1; } catch x: Str { return 2; } }");
-        ok("fun f() -> int { try { } catch x: Str { return 2; } return 1; }");
-        ok("fun f() -> int { try { return 2; } catch x: Str { } return 1; }");
-        ok("fun f() -> int { try { } catch x: Str { } return 1; }");
-        ok("fun f() -> int { try { } catch x: Str { } finally { return 1; } }");
-        err("fun f() -> int { try { return 1; } catch x: Str { } }",
-            pos(1, 49), Msg::NoReturnValue);
-        err("fun f() -> int { try { } catch x: Str { return 1; } }",
-            pos(1, 22), Msg::NoReturnValue);
+    fn do_returns() {
+        ok("fun f() -> int { do { return 1; } catch x: Str { return 2; } }");
+        ok("fun f() -> int { do { } catch x: Str { return 2; } return 1; }");
+        ok("fun f() -> int { do { return 2; } catch x: Str { } return 1; }");
+        ok("fun f() -> int { do { } catch x: Str { } return 1; }");
+        ok("fun f() -> int { do { } catch x: Str { } finally { return 1; } }");
+        err("fun f() -> int { do { return 1; } catch x: Str { } }",
+            pos(1, 48), Msg::NoReturnValue);
+        err("fun f() -> int { do { } catch x: Str { return 1; } }",
+            pos(1, 21), Msg::NoReturnValue);
     }
 }
