@@ -722,7 +722,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_try(&mut self, e: &'ast ExprTryType) {
         if let Some(call) = e.expr.to_call() {
             self.check_expr_call(call, true);
-            e.set_ty(self.expr_type);
+            let e_type = self.expr_type;
+            e.set_ty(e_type);
 
             let fct_id = self.src.calls.get(&call.id).unwrap().fct_id();
             let throws = self.ctxt.fct_by_id(fct_id).throws;
@@ -730,6 +731,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if !throws {
                 self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryCallNonThrowing);
             }
+
+            match e.mode {
+                TryMode::Normal => {},
+                TryMode::Else(ref alt_expr) => {
+                    self.visit_expr(alt_expr);
+                    let alt_type = self.expr_type;
+
+                    if !e_type.allows(self.ctxt, alt_type) {
+                        let e_type = e_type.name(self.ctxt);
+                        let alt_type = alt_type.name(self.ctxt);
+                        let msg = Msg::TypesIncompatible(e_type, alt_type);
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    }
+                }
+
+                TryMode::Force
+                    | TryMode::Opt => panic!("unsupported"),
+            }
+
+            self.expr_type = e_type;
         } else {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryNeedsCall);
 
@@ -1442,5 +1463,17 @@ mod tests {
     fn try_method_non_throwing() {
         err("class Foo { fun one() -> int { return 1; } }
              fun me() -> int { return try Foo().one(); }", pos(2, 39), Msg::TryCallNonThrowing);
+    }
+
+    #[test]
+    fn try_else() {
+        ok("fun one() throws -> int { return 1; }
+            fun me() -> int { return try one() else 0; }");
+        err("fun one() throws -> int { return 1; }
+             fun me() -> int { return try one() else \"bla\"; }",
+            pos(2, 39), Msg::TypesIncompatible("int".into(), "Str".into()));
+        err("fun one() throws -> int { return 1; }
+             fun me() -> int { return try one() else false; }",
+            pos(2, 39), Msg::TypesIncompatible("int".into(), "bool".into()));
     }
 }
