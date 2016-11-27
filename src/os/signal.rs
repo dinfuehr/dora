@@ -32,7 +32,7 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
     let ctxt = get_ctxt();
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        use cpu::trap::{ASSERT, CAST, COMPILER, INDEX_OUT_OF_BOUNDS, NIL, THROW};
+        use cpu::trap::{ASSERT, CAST, COMPILER, INDEX_OUT_OF_BOUNDS, NIL, THROW, UNEXPECTED};
 
         match trap {
             COMPILER => compile_request(ctxt, &mut es, ucontext),
@@ -75,6 +75,13 @@ fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(105); }
+            }
+
+            UNEXPECTED => {
+                println!("unexpected exception");
+                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe { _exit(106); }
             }
 
             _ => {

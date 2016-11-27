@@ -113,8 +113,32 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.buf.define_label(lbl_after);
             }
 
-            TryMode::Force
-                | TryMode::Opt => panic!("unsupported"),
+            TryMode::Force => {
+                let lbl_after = self.buf.create_label();
+
+                let try_span = {
+                    let start = self.buf.pos();
+                    self.emit_expr(&e.expr, dest);
+                    let end = self.buf.pos();
+
+                    emit::jump(&mut self.buf, lbl_after);
+
+                    (start, end)
+                };
+
+                let catch_span = {
+                    let start = self.buf.pos();
+                    self.buf.emit_bailout_inplace(trap::UNEXPECTED, e.pos);
+                    let end = self.buf.pos();
+
+                    (start, end)
+                };
+
+                self.buf.emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
+                self.buf.define_label(lbl_after);
+            }
+
+            TryMode::Opt => panic!("unsupported"),
         }
     }
 

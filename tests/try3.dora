@@ -1,0 +1,10 @@
+//= error unexpected
+
+fun main() {
+    let val = try! foo();
+    print(val.toString());
+}
+
+fun foo() throws -> int {
+    throw "foo";
+}

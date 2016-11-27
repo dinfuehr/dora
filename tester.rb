@@ -204,6 +204,7 @@ def test_case_expectation(file)
         when "nil" then exp.code = 103
         when "exception" then exp.code = 104
         when "cast" then exp.code = 105
+        when "unexpected" then exp.code = 106
         when "fail"
           # do nothing
         end

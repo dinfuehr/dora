@@ -746,8 +746,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
                 }
 
-                TryMode::Force
-                    | TryMode::Opt => panic!("unsupported"),
+                TryMode::Force => {},
+                TryMode::Opt => panic!("unsupported"),
             }
 
             self.expr_type = e_type;
