@@ -192,7 +192,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let lbl_start = self.buf.create_label();
         let lbl_end = self.buf.create_label();
 
-        self.buf.define_label(lbl_start);
+        self.buf.bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
             // always true => no condition evaluation
@@ -210,20 +210,20 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             emit::jump(&mut this.buf, lbl_start);
         });
 
-        self.buf.define_label(lbl_end);
+        self.buf.bind_label(lbl_end);
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
         let lbl_start = self.buf.create_label();
         let lbl_end = self.buf.create_label();
-        self.buf.define_label(lbl_start);
+        self.buf.bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
             emit::jump(&mut this.buf, lbl_start);
         });
 
-        self.buf.define_label(lbl_end);
+        self.buf.bind_label(lbl_end);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -255,12 +255,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         if let Some(ref else_block) = s.else_block {
             emit::jump(&mut self.buf, lbl_end);
-            self.buf.define_label(lbl_else);
+            self.buf.bind_label(lbl_else);
 
             self.visit_stmt(else_block);
         }
 
-        self.buf.define_label(lbl_end);
+        self.buf.bind_label(lbl_end);
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType)  {
@@ -331,7 +331,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let catch_spans = self.emit_do_catch_blocks(s, try_span, lbl_after);
         let finally_start = self.emit_do_finally_block(s);
 
-        self.buf.define_label(lbl_after);
+        self.buf.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
             let offset = s.finally_block.as_ref().unwrap().offset();
@@ -384,7 +384,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         self.visit_stmt(stmt);
         let end = self.buf.pos();
 
-        self.buf.define_label(lbl_finally);
+        self.buf.bind_label(lbl_finally);
         self.lbl_finally = saved_lbl_finally;
 
         if let Some(ref finally_block) = s.finally_block {

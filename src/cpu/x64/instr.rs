@@ -726,7 +726,7 @@ mod tests {
         let lbl = buf.create_label();
         emit_jz(&mut buf, lbl);
         emit_nop(&mut buf);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.data());
     }
 
@@ -736,7 +736,7 @@ mod tests {
         let lbl = buf.create_label();
         emit_jnz(&mut buf, lbl);
         emit_nop(&mut buf);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.data());
     }
 
@@ -746,7 +746,7 @@ mod tests {
         let lbl = buf.create_label();
         emit_jmp(&mut buf, lbl);
         emit_nop(&mut buf);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
         assert_eq!(vec![0xe9, 1, 0, 0, 0, 0x90], buf.data());
     }
 

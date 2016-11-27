@@ -110,7 +110,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 };
 
                 self.buf.emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
-                self.buf.define_label(lbl_after);
+                self.buf.bind_label(lbl_after);
             }
 
             TryMode::Force => {
@@ -135,7 +135,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 };
 
                 self.buf.emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
-                self.buf.define_label(lbl_after);
+                self.buf.bind_label(lbl_after);
             }
 
             TryMode::Opt => panic!("unsupported"),
@@ -211,7 +211,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::jump(self.buf, lbl_finished);
 
                 // lbl_check:
-                self.buf.define_label(lbl_check);
+                self.buf.bind_label(lbl_check);
 
                 // tmp3 = [tmp2 + offset T.vtable.subtype_depth]
                 emit::mov_mem_reg(self.buf, MachineMode::Int32,
@@ -250,7 +250,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::jump(self.buf, lbl_finished);
 
                 // lbl_false:
-                self.buf.define_label(lbl_false);
+                self.buf.bind_label(lbl_false);
 
                 if e.is {
                     // dest = false
@@ -261,7 +261,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 // lbl_finished:
-                self.buf.define_label(lbl_finished);
+                self.buf.bind_label(lbl_finished);
             } else {
                 // tmp1 = [tmp1 + T.vtable.subtype_offset]
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
@@ -288,7 +288,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
 
         // lbl_nil:
-        self.buf.define_label(lbl_nil);
+        self.buf.bind_label(lbl_nil);
 
         // for is we are finished: dest is null which is boolean false
         // also for as we are finished: dest is null and stays null
@@ -556,14 +556,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&e.rhs, REG_RESULT);
         emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
-        self.buf.define_label(lbl_true);
+        self.buf.bind_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
         emit::jump(self.buf, lbl_end);
 
-        self.buf.define_label(lbl_false);
+        self.buf.bind_label(lbl_false);
         emit::movl_imm_reg(self.buf, 0, dest);
 
-        self.buf.define_label(lbl_end);
+        self.buf.bind_label(lbl_end);
     }
 
     fn emit_bin_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
@@ -577,14 +577,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&e.rhs, REG_RESULT);
         emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
 
-        self.buf.define_label(lbl_true);
+        self.buf.bind_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
         emit::jump(self.buf, lbl_end);
 
-        self.buf.define_label(lbl_false);
+        self.buf.bind_label(lbl_false);
         emit::movl_imm_reg(self.buf, 0, dest);
 
-        self.buf.define_label(lbl_end);
+        self.buf.bind_label(lbl_end);
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
@@ -625,7 +625,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::test_and_jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
             trap::emit(eg.buf, trap::DIV0);
 
-            eg.buf.define_label(lbl_div);
+            eg.buf.bind_label(lbl_div);
 
             if e.op == BinOp::Div {
                 emit::divl(eg.buf, lhs, rhs, dest)

@@ -51,7 +51,7 @@ impl Buffer {
         for bailout in &bailouts {
             let (lbl, trap, pos) = *bailout;
 
-            self.define_label(lbl);
+            self.bind_label(lbl);
             self.emit_lineno(pos.line as i32);
             trap::emit(self, trap);
         }
@@ -99,7 +99,7 @@ impl Buffer {
         self.comments.insert(pos, comment);
     }
 
-    pub fn define_label(&mut self, lbl: Label) {
+    pub fn bind_label(&mut self, lbl: Label) {
         let lbl_idx = lbl.index();
 
         assert!(self.labels[lbl_idx].is_none());
@@ -193,7 +193,7 @@ mod tests {
     fn test_backward_with_gap() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
         buf.emit_u8(0x33);
         buf.emit_label(lbl);
 
@@ -204,7 +204,7 @@ mod tests {
     fn test_backward() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
         buf.emit_label(lbl);
 
         assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], buf.data());
@@ -216,7 +216,7 @@ mod tests {
         let lbl = buf.create_label();
         buf.emit_label(lbl);
         buf.emit_u8(0x11);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
 
         assert_eq!(vec![1, 0, 0, 0, 0x11], buf.data());
     }
@@ -226,19 +226,19 @@ mod tests {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
         buf.emit_label(lbl);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
 
         assert_eq!(vec![0, 0, 0, 0], buf.data());
     }
 
     #[test]
     #[should_panic]
-    fn test_define_label_twice() {
+    fn test_bind_label_twice() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
 
-        buf.define_label(lbl);
-        buf.define_label(lbl);
+        buf.bind_label(lbl);
+        buf.bind_label(lbl);
     }
 
     #[test]
