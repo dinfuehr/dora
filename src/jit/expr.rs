@@ -7,7 +7,7 @@ use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
 use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
-use jit::fct::Comment;
+use jit::fct::{CatchType, Comment};
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem;
@@ -83,7 +83,39 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_try(&mut self, e: &'ast ExprTryType, dest: Reg) {
-        self.emit_expr(&e.expr, dest);
+        match e.mode {
+            TryMode::Normal => {
+                self.emit_expr(&e.expr, dest);
+            },
+
+            TryMode::Else(ref alt_expr) => {
+                let lbl_after = self.buf.create_label();
+
+                let try_span = {
+                    let start = self.buf.pos();
+                    self.emit_expr(&e.expr, dest);
+                    let end = self.buf.pos();
+
+                    emit::jump(&mut self.buf, lbl_after);
+
+                    (start, end)
+                };
+
+                let catch_span = {
+                    let start = self.buf.pos();
+                    self.emit_expr(alt_expr, dest);
+                    let end = self.buf.pos();
+
+                    (start, end)
+                };
+
+                self.buf.emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
+                self.buf.define_label(lbl_after);
+            }
+
+            TryMode::Force
+                | TryMode::Opt => panic!("unsupported"),
+        }
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {

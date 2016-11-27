@@ -335,10 +335,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         if let Some(finally_start) = finally_start {
             let offset = s.finally_block.as_ref().unwrap().offset();
-            self.buf.emit_exception_handler(try_span, finally_start, offset, CatchType::Any);
+            self.buf.emit_exception_handler(try_span, finally_start,
+                                            Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.buf.emit_exception_handler(catch_span, finally_start, offset, CatchType::Any);
+                self.buf.emit_exception_handler(catch_span, finally_start,
+                                                Some(offset), CatchType::Any);
             }
         }
     }
@@ -359,7 +361,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.scopes.pop_scope();
 
             let catch_type = CatchType::Class(catch.ty().cls_id(self.ctxt));
-            self.buf.emit_exception_handler(try_span, catch_span.0, offset, catch_type);
+            self.buf.emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
             ret.push(catch_span);
         }

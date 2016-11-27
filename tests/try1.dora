@@ -1,0 +1,11 @@
+//= output "0"
+
+fun main() {
+    let val = try foo() else 0;
+
+    print(val.toString());
+}
+
+fun foo() throws -> int {
+    throw "bla";
+}

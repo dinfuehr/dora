@@ -222,7 +222,7 @@ pub struct ExHandler {
     pub try_start: usize,
     pub try_end: usize,
     pub catch: usize,
-    pub offset: i32,
+    pub offset: Option<i32>,
     pub catch_type: CatchType,
 }
 

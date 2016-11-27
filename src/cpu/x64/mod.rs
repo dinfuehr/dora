@@ -62,10 +62,12 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                     if entry.try_start < pc && pc <= entry.try_end
                         && (entry.catch_type == CatchType::Any
                             || entry.catch_type == CatchType::Class(cls_id)) {
-                        let arg = (fp as isize + entry.offset as isize) as usize;
+                        if let Some(offset) = entry.offset {
+                            let arg = (fp as isize + offset as isize) as usize;
 
-                        unsafe {
-                            *(arg as *mut usize) = exception.raw() as usize;
+                            unsafe {
+                                *(arg as *mut usize) = exception.raw() as usize;
+                            }
                         }
 
                         es.regs[RSP.int() as usize] = fp - src.stacksize() as usize;
