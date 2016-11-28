@@ -107,14 +107,14 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                 Dwarf_Addr row_pc;
 
                 fres = dwarf_get_fde_info_for_cfa_reg3 (myfde,
-                                                    mypcval,
-                                                    &value_type,
-                                                    &offset_relevant,
-                                                    &register_num,
-                                                    &offset_or_block_len,
-                                                    &block_ptr,
-                                                    &row_pc,
-                                                    &error);
+                                                        mypcval,
+                                                        &value_type,
+                                                        &offset_relevant,
+                                                        &register_num,
+                                                        &offset_or_block_len,
+                                                        &block_ptr,
+                                                        &row_pc,
+                                                        &error);
 
                 if (fres == DW_DLV_OK) {
                     printf("cfa\n");
