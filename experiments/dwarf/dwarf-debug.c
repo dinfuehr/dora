@@ -98,6 +98,34 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                 }
             }
 
+            {
+                Dwarf_Small value_type;
+                Dwarf_Signed offset_relevant;
+                Dwarf_Signed register_num;
+                Dwarf_Signed offset_or_block_len;
+                Dwarf_Ptr block_ptr;
+                Dwarf_Addr row_pc;
+
+                fres = dwarf_get_fde_info_for_cfa_reg3 (myfde,
+                                                    mypcval,
+                                                    &value_type,
+                                                    &offset_relevant,
+                                                    &register_num,
+                                                    &offset_or_block_len,
+                                                    &block_ptr,
+                                                    &row_pc,
+                                                    &error);
+
+                if (fres == DW_DLV_OK) {
+                    printf("cfa\n");
+                    printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
+                    printf("\toffset_relevant = %d\n", offset_relevant);
+                    printf("\tregister_num = %d\n", register_num);
+                    printf("\toffset_or_block_len = %d\n", offset_or_block_len);
+                    printf("\tblock_ptr = %p\n", block_ptr);
+                }
+            }
+
             Dwarf_Half table_column = 1;
 
             for (table_column = 0; table_column <= 16; table_column++) {
