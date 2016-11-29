@@ -236,7 +236,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 if e.is {
                     // dest = if zero then true else false
-                    emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+                    emit::set(self.buf, MachineMode::Int32, CondCode::Equal, dest);
 
                 } else {
                     // jump to lbl_false if cmp did not succeed
@@ -268,7 +268,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                   vtable.subtype_offset, REG_TMP2);
 
                 if e.is {
-                    emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);
+                    emit::set(self.buf, MachineMode::Int32, CondCode::Equal, dest);
 
                 } else {
                     let lbl_bailout = self.buf.create_label();
@@ -591,7 +591,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let cmp_type = lhs_type.if_nil(rhs_type);
 
         if op == CmpOp::Is || op == CmpOp::IsNot {
-            let op = if op == CmpOp::Is { CmpOp::Eq } else { CmpOp::Ne };
+            let op = if op == CmpOp::Is { CondCode::Equal } else { CondCode::NotEqual };
 
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
                 emit::cmp_setl(eg.buf, MachineMode::Ptr, lhs, op, rhs, dest);
@@ -605,11 +605,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, e.pos, dest);
             emit::movl_imm_reg(self.buf, 0, REG_TMP1);
-            emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT, op, REG_TMP1, dest);
+            emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT,
+                           to_cond_code(op), REG_TMP1, dest);
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_setl(eg.buf, MachineMode::Int32, lhs, op, rhs, dest);
+                emit::cmp_setl(eg.buf, MachineMode::Int32, lhs, to_cond_code(op), rhs, dest);
 
                 dest
             });
@@ -956,6 +957,19 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
     src.stub = Some(stub);
 
     ptr
+}
+
+fn to_cond_code(cmp: CmpOp) -> CondCode {
+    match cmp {
+        CmpOp::Eq => CondCode::Equal,
+        CmpOp::Ne => CondCode::NotEqual,
+        CmpOp::Gt => CondCode::Greater,
+        CmpOp::Ge => CondCode::GreaterEq,
+        CmpOp::Lt => CondCode::Less,
+        CmpOp::Le => CondCode::LessEq,
+        CmpOp::Is => CondCode::Equal,
+        CmpOp::IsNot => CondCode::NotEqual,
+    }
 }
 
 /// Returns `true` if the given expression `expr` is either literal or

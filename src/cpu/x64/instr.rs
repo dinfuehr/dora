@@ -1,4 +1,3 @@
-use ast::CmpOp;
 use cpu::*;
 use jit::buffer::*;
 use jit::codegen::CondCode;
@@ -499,19 +498,22 @@ pub fn emit_cltd(buf: &mut Buffer) {
     emit_op(buf, 0x99);
 }
 
-pub fn emit_setb_reg(buf: &mut Buffer, op: CmpOp, reg: Reg) {
+pub fn emit_setb_reg(buf: &mut Buffer, op: CondCode, reg: Reg) {
     if reg.msb() != 0 || !reg.is_basic_reg() {
         emit_rex(buf, 0, 0, 0, reg.msb());
     }
 
     let op = match op {
-        CmpOp::Lt => 0x9c,
-        CmpOp::Le => 0x9e,
-        CmpOp::Gt => 0x9f,
-        CmpOp::Ge => 0x9d,
-        CmpOp::Eq => 0x94,
-        CmpOp::Ne => 0x95,
-        _ => unreachable!(),
+        CondCode::Less => 0x9c,
+        CondCode::LessEq => 0x9e,
+        CondCode::Greater => 0x9f,
+        CondCode::GreaterEq => 0x9d,
+        CondCode::UnsignedLess => 0x9c,
+        CondCode::UnsignedLessEq => 0x9e,
+        CondCode::UnsignedGreater => 0x9f,
+        CondCode::UnsignedGreaterEq => 0x9d,
+        CondCode::Zero | CondCode::Equal => 0x94,
+        CondCode::NonZero | CondCode::NotEqual => 0x95,
     };
 
     emit_op(buf, 0x0f);
@@ -594,7 +596,6 @@ pub fn emit_shll_reg_cl(buf: &mut Buffer, dest: Reg) {
 mod tests {
     use super::*;
 
-    use ast::CmpOp;
     use cpu::*;
     use jit::buffer::Buffer;
     use jit::codegen::CondCode;
@@ -1020,12 +1021,12 @@ mod tests {
 
     #[test]
     fn test_setb_reg() {
-        assert_emit!(0x0f, 0x94, 0xc0; emit_setb_reg(CmpOp::Eq, RAX));
-        assert_emit!(0x41, 0x0f, 0x95, 0xc7; emit_setb_reg(CmpOp::Ne, R15));
-        assert_emit!(0x0f, 0x9d, 0xc1; emit_setb_reg(CmpOp::Ge, RCX));
-        assert_emit!(0x0f, 0x9f, 0xc2; emit_setb_reg(CmpOp::Gt, RDX));
-        assert_emit!(0x40, 0x0f, 0x9e, 0xc6; emit_setb_reg(CmpOp::Le, RSI));
-        assert_emit!(0x40, 0x0f, 0x9c, 0xc7; emit_setb_reg(CmpOp::Lt, RDI));
+        assert_emit!(0x0f, 0x94, 0xc0; emit_setb_reg(CondCode::Equal, RAX));
+        assert_emit!(0x41, 0x0f, 0x95, 0xc7; emit_setb_reg(CondCode::NotEqual, R15));
+        assert_emit!(0x0f, 0x9d, 0xc1; emit_setb_reg(CondCode::GreaterEq, RCX));
+        assert_emit!(0x0f, 0x9f, 0xc2; emit_setb_reg(CondCode::Greater, RDX));
+        assert_emit!(0x40, 0x0f, 0x9e, 0xc6; emit_setb_reg(CondCode::LessEq, RSI));
+        assert_emit!(0x40, 0x0f, 0x9c, 0xc7; emit_setb_reg(CondCode::Less, RDI));
     }
 
     #[test]

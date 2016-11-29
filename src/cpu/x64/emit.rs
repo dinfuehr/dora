@@ -1,4 +1,3 @@
-use ast::CmpOp;
 use cpu::instr::*;
 use cpu::*;
 use jit::buffer::*;
@@ -42,7 +41,7 @@ pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
     lbl
 }
 
-pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: Reg, dest: Reg) {
+pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CondCode, rhs: Reg, dest: Reg) {
     match mode {
         MachineMode::Int8
             | MachineMode::Int32 => emit_cmpl_reg_reg(buf, rhs, lhs),
@@ -53,7 +52,7 @@ pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CmpOp, rhs: R
     emit_movzbl_reg_reg(buf, dest, dest);
 }
 
-pub fn set(buf: &mut Buffer, mode: MachineMode, op: CmpOp, dest: Reg) {
+pub fn set(buf: &mut Buffer, mode: MachineMode, op: CondCode, dest: Reg) {
     emit_setb_reg(buf, op, dest);
 
     match mode {
