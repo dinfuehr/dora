@@ -2,7 +2,7 @@ use ast::CmpOp;
 use cpu::instr::*;
 use cpu::*;
 use jit::buffer::*;
-use jit::codegen::JumpCond;
+use jit::codegen::CondCode;
 use lexer::position::Position;
 use object::IntArray;
 use ty::MachineMode;
@@ -29,7 +29,7 @@ pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, JumpCond::Zero, lbl);
+    emit_jcc(buf, CondCode::Zero, lbl);
     buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
@@ -37,7 +37,7 @@ pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, JumpCond::Zero, lbl);
+    emit_jcc(buf, CondCode::Zero, lbl);
 
     lbl
 }
@@ -82,12 +82,12 @@ pub fn cmp_reg_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn test_and_jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
+pub fn test_and_jump_if(buf: &mut Buffer, cond: CondCode, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
     emit_jcc(buf, cond, lbl);
 }
 
-pub fn jump_if(buf: &mut Buffer, cond: JumpCond, lbl: Label) {
+pub fn jump_if(buf: &mut Buffer, cond: CondCode, lbl: Label) {
     emit_jcc(buf, cond, lbl);
 }
 
@@ -155,7 +155,7 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
     emit_cmpq_reg_reg(buf, temp, index);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, JumpCond::UnsignedGreaterEq, lbl);
+    emit_jcc(buf, CondCode::UnsignedGreaterEq, lbl);
     buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 

@@ -6,7 +6,7 @@ use cpu::emit;
 use cpu::trap;
 use ctxt::*;
 use jit::buffer::*;
-use jit::codegen::{self, JumpCond, Scopes, TempOffsets};
+use jit::codegen::{self, CondCode, Scopes, TempOffsets};
 use jit::fct::{CatchType, Comment};
 use jit::stub::Stub;
 use lexer::position::Position;
@@ -196,7 +196,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 // jnz lbl_check
                 let lbl_check = self.buf.create_label();
-                emit::jump_if(self.buf, JumpCond::NonZero, lbl_check);
+                emit::jump_if(self.buf, CondCode::NonZero, lbl_check);
 
                 if e.is {
                     // mov dest, 1
@@ -223,7 +223,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();
-                emit::jump_if(self.buf, JumpCond::Less, lbl_false);
+                emit::jump_if(self.buf, CondCode::Less, lbl_false);
 
                 // tmp1 = tmp1.subtype_overflow
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr,
@@ -240,7 +240,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 } else {
                     // jump to lbl_false if cmp did not succeed
-                    emit::jump_if(self.buf, JumpCond::NonZero, lbl_false);
+                    emit::jump_if(self.buf, CondCode::NonZero, lbl_false);
 
                     // otherwise load temp variable again
                     emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
@@ -272,7 +272,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 } else {
                     let lbl_bailout = self.buf.create_label();
-                    emit::jump_if(self.buf, JumpCond::NonZero, lbl_bailout);
+                    emit::jump_if(self.buf, CondCode::NonZero, lbl_bailout);
                     self.buf.emit_bailout(lbl_bailout, trap::CAST, e.pos);
 
                     emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
@@ -548,10 +548,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit::test_and_jump_if(self.buf, JumpCond::NonZero, REG_RESULT, lbl_true);
+        emit::test_and_jump_if(self.buf, CondCode::NonZero, REG_RESULT, lbl_true);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_false);
 
         self.buf.bind_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
@@ -569,10 +569,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let lbl_end = self.buf.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT);
-        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_false);
 
         self.emit_expr(&e.rhs, REG_RESULT);
-        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_false);
+        emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_false);
 
         self.buf.bind_label(lbl_true);
         emit::movl_imm_reg(self.buf, 1, dest);
@@ -619,7 +619,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             let lbl_div = eg.buf.create_label();
-            emit::test_and_jump_if(eg.buf, JumpCond::NonZero, rhs, lbl_div);
+            emit::test_and_jump_if(eg.buf, CondCode::NonZero, rhs, lbl_div);
             trap::emit(eg.buf, trap::DIV0);
 
             eg.buf.bind_label(lbl_div);
@@ -745,7 +745,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
         let lbl_div = self.buf.create_label();
         self.emit_expr(&e.args[0], REG_RESULT);
-        emit::test_and_jump_if(self.buf, JumpCond::Zero, REG_RESULT, lbl_div);
+        emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_div);
         self.buf.emit_bailout(lbl_div, trap::ASSERT, e.pos);
     }
 

@@ -1,7 +1,7 @@
 use ast::CmpOp;
 use cpu::*;
 use jit::buffer::*;
-use jit::codegen::JumpCond;
+use jit::codegen::CondCode;
 use ty::MachineMode;
 
 pub fn emit_orl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
@@ -338,18 +338,18 @@ pub fn fits_i8(imm: i32) -> bool {
     imm == (imm as i8) as i32
 }
 
-pub fn emit_jcc(buf: &mut Buffer, cond: JumpCond, lbl: Label) {
+pub fn emit_jcc(buf: &mut Buffer, cond: CondCode, lbl: Label) {
     let opcode = match cond {
-        JumpCond::Zero | JumpCond::Equal => 0x84,
-        JumpCond::NonZero | JumpCond::NotEqual => 0x85,
-        JumpCond::Greater => 0x8F,
-        JumpCond::GreaterEq => 0x8D,
-        JumpCond::Less => 0x8C,
-        JumpCond::LessEq => 0x8E,
-        JumpCond::UnsignedGreater => 0x87, // above
-        JumpCond::UnsignedGreaterEq => 0x83, // above or equal
-        JumpCond::UnsignedLess => 0x82, // below
-        JumpCond::UnsignedLessEq => 0x86, // below or equal
+        CondCode::Zero | CondCode::Equal => 0x84,
+        CondCode::NonZero | CondCode::NotEqual => 0x85,
+        CondCode::Greater => 0x8F,
+        CondCode::GreaterEq => 0x8D,
+        CondCode::Less => 0x8C,
+        CondCode::LessEq => 0x8E,
+        CondCode::UnsignedGreater => 0x87, // above
+        CondCode::UnsignedGreaterEq => 0x83, // above or equal
+        CondCode::UnsignedLess => 0x82, // below
+        CondCode::UnsignedLessEq => 0x86, // below or equal
     };
 
     emit_op(buf, 0x0f);
@@ -597,7 +597,7 @@ mod tests {
     use ast::CmpOp;
     use cpu::*;
     use jit::buffer::Buffer;
-    use jit::codegen::JumpCond;
+    use jit::codegen::CondCode;
     use ty::MachineMode;
 
     macro_rules! assert_emit {
@@ -727,7 +727,7 @@ mod tests {
     fn test_emit_jcc_zero() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::Zero, lbl);
+        emit_jcc(&mut buf, CondCode::Zero, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x84, 1, 0, 0, 0, 0x90], buf.data());
@@ -737,7 +737,7 @@ mod tests {
     fn test_emit_jcc_non_zero() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::NonZero, lbl);
+        emit_jcc(&mut buf, CondCode::NonZero, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x85, 1, 0, 0, 0, 0x90], buf.data());
@@ -747,7 +747,7 @@ mod tests {
     fn test_emit_jcc_greater() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::Greater, lbl);
+        emit_jcc(&mut buf, CondCode::Greater, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8F, 1, 0, 0, 0, 0x90], buf.data());
@@ -757,7 +757,7 @@ mod tests {
     fn test_emit_jcc_greater_or_equal() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::GreaterEq, lbl);
+        emit_jcc(&mut buf, CondCode::GreaterEq, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8D, 1, 0, 0, 0, 0x90], buf.data());
@@ -767,7 +767,7 @@ mod tests {
     fn test_emit_jcc_less() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::Less, lbl);
+        emit_jcc(&mut buf, CondCode::Less, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8C, 1, 0, 0, 0, 0x90], buf.data());
@@ -777,7 +777,7 @@ mod tests {
     fn test_emit_jcc_less_or_equal() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::LessEq, lbl);
+        emit_jcc(&mut buf, CondCode::LessEq, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x8E, 1, 0, 0, 0, 0x90], buf.data());
@@ -787,7 +787,7 @@ mod tests {
     fn test_emit_jcc_unsigned_greater() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::UnsignedGreater, lbl);
+        emit_jcc(&mut buf, CondCode::UnsignedGreater, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x87, 1, 0, 0, 0, 0x90], buf.data());
@@ -797,7 +797,7 @@ mod tests {
     fn test_emit_jcc_unsigned_greater_or_equal() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::UnsignedGreaterEq, lbl);
+        emit_jcc(&mut buf, CondCode::UnsignedGreaterEq, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x83, 1, 0, 0, 0, 0x90], buf.data());
@@ -807,7 +807,7 @@ mod tests {
     fn test_emit_jcc_unsigned_less() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::UnsignedLess, lbl);
+        emit_jcc(&mut buf, CondCode::UnsignedLess, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x82, 1, 0, 0, 0, 0x90], buf.data());
@@ -817,7 +817,7 @@ mod tests {
     fn test_emit_jcc_unsigned_less_or_equal() {
         let mut buf = Buffer::new();
         let lbl = buf.create_label();
-        emit_jcc(&mut buf, JumpCond::UnsignedLessEq, lbl);
+        emit_jcc(&mut buf, CondCode::UnsignedLessEq, lbl);
         emit_nop(&mut buf);
         buf.bind_label(lbl);
         assert_eq!(vec![0x0f, 0x86, 1, 0, 0, 0, 0x90], buf.data());
