@@ -17,6 +17,25 @@
 #include <libdwarf/dwarf.h>
 #include <libdwarf/libdwarf.h>
 
+const char *regnames[] = {
+    "rax",
+    "rcx",
+    "rdx",
+    "rbp",
+    "rsi",
+    "rdi",
+    "rbp",
+    "rsp",
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "rip"
+};
 
 void die(char* fmt, ...)
 {
@@ -27,6 +46,36 @@ void die(char* fmt, ...)
     va_end(args);
 
     exit(EXIT_FAILURE);
+}
+
+void emit_info(char *reg,
+               Dwarf_Small value_type,
+               Dwarf_Signed offset_relevant,
+               Dwarf_Signed register_num,
+               Dwarf_Signed offset_or_block_len,
+               Dwarf_Ptr block_ptr) {
+    printf("register %s = ", reg);
+
+    if (value_type == DW_EXPR_OFFSET) {
+        if (register_num == DW_FRAME_CFA_COL3) {
+            printf("cfa + %d\n", offset_or_block_len);
+        } else if (register_num == DW_FRAME_SAME_VAL) {
+            printf("old value\n");
+        } else if (register_num == DW_FRAME_UNDEFINED_VAL) {
+            printf("UNDEFINED\n");
+        } else {
+            printf("r%d + %d\n", register_num, offset_or_block_len);
+        }
+
+    } else {
+        printf("UNKNOWN (value_type != DW_EXPR_OFFSET)\n");
+    }
+
+    printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
+    printf("\toffset_relevant = %d\n", offset_relevant);
+    printf("\tregister_num = %d\n", register_num);
+    printf("\toffset_or_block_len = %d\n", offset_or_block_len);
+    printf("\tblock_ptr = %p\n", block_ptr);
 }
 
 void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
@@ -148,12 +197,12 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                                                     &error);
 
                 if (fres == DW_DLV_OK) {
-                    printf("register %d\n", table_column);
-                    printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
-                    printf("\toffset_relevant = %d\n", offset_relevant);
-                    printf("\tregister_num = %d\n", register_num);
-                    printf("\toffset_or_block_len = %d\n", offset_or_block_len);
-                    printf("\tblock_ptr = %p\n", block_ptr);
+                    emit_info(regnames[table_column],
+                              value_type,
+                              offset_relevant,
+                              register_num,
+                              offset_or_block_len,
+                              block_ptr);
                 }
             }
         }
