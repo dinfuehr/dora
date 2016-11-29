@@ -48,7 +48,7 @@ void die(char* fmt, ...)
     exit(EXIT_FAILURE);
 }
 
-void emit_info(char *reg,
+void emit_info(const char *reg,
                Dwarf_Small value_type,
                Dwarf_Signed offset_relevant,
                Dwarf_Signed register_num,
@@ -63,8 +63,10 @@ void emit_info(char *reg,
             printf("old value\n");
         } else if (register_num == DW_FRAME_UNDEFINED_VAL) {
             printf("UNDEFINED\n");
-        } else {
+        } else if (offset_relevant) {
             printf("r%d + %d\n", register_num, offset_or_block_len);
+        } else {
+            printf("r%d\n", register_num);
         }
 
     } else {
@@ -166,12 +168,12 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                                                         &error);
 
                 if (fres == DW_DLV_OK) {
-                    printf("cfa\n");
-                    printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
-                    printf("\toffset_relevant = %d\n", offset_relevant);
-                    printf("\tregister_num = %d\n", register_num);
-                    printf("\toffset_or_block_len = %d\n", offset_or_block_len);
-                    printf("\tblock_ptr = %p\n", block_ptr);
+                    emit_info("cfa",
+                              value_type,
+                              offset_relevant,
+                              register_num,
+                              offset_or_block_len,
+                              block_ptr);
                 }
             }
 
