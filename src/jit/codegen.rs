@@ -453,7 +453,17 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
 
 pub enum JumpCond {
     Zero,
-    NonZero
+    NonZero,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEq,
+    Less,
+    LessEq,
+    UnsignedGreater,
+    UnsignedGreaterEq,
+    UnsignedLess,
+    UnsignedLessEq,
 }
 
 pub fn var_store(buf: &mut Buffer, fct: &FctSrc, src: Reg, var_id: VarId) {

@@ -223,7 +223,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();
-                emit::jump_if(self.buf, JumpCond::NonZero, lbl_false);
+                emit::jump_if(self.buf, JumpCond::Less, lbl_false);
 
                 // tmp1 = tmp1.subtype_overflow
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr,
@@ -263,12 +263,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_finished:
                 self.buf.bind_label(lbl_finished);
             } else {
-                // tmp1 = [tmp1 + T.vtable.subtype_offset]
-                emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
-                                  vtable.subtype_offset, REG_TMP1);
-
-                // cmp tmp1, tmp2
-                emit::cmp_reg_reg(self.buf, MachineMode::Ptr, REG_TMP1, REG_TMP2);
+                // cmp [tmp1 = T.vtable.subtype_offset], tmp2
+                emit::cmp_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
+                                  vtable.subtype_offset, REG_TMP2);
 
                 if e.is {
                     emit::set(self.buf, MachineMode::Int32, CmpOp::Eq, dest);

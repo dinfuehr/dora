@@ -29,7 +29,7 @@ pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jz(buf, lbl);
+    emit_jcc(buf, JumpCond::Zero, lbl);
     buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
@@ -37,7 +37,7 @@ pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jz(buf, lbl);
+    emit_jcc(buf, JumpCond::Zero, lbl);
 
     lbl
 }
@@ -84,18 +84,11 @@ pub fn cmp_reg_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
 
 pub fn test_and_jump_if(buf: &mut Buffer, cond: JumpCond, reg: Reg, lbl: Label) {
     emit_testl_reg_reg(buf, reg, reg);
-
-    match cond {
-        JumpCond::Zero => emit_jz(buf, lbl),
-        JumpCond::NonZero => emit_jnz(buf, lbl)
-    }
+    emit_jcc(buf, cond, lbl);
 }
 
 pub fn jump_if(buf: &mut Buffer, cond: JumpCond, lbl: Label) {
-    match cond {
-        JumpCond::Zero => emit_jz(buf, lbl),
-        JumpCond::NonZero => emit_jnz(buf, lbl)
-    }
+    emit_jcc(buf, cond, lbl);
 }
 
 pub fn jump(buf: &mut Buffer, lbl: Label) {
@@ -162,7 +155,7 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
     emit_cmpq_reg_reg(buf, temp, index);
 
     let lbl = buf.create_label();
-    emit_juge(buf, lbl);
+    emit_jcc(buf, JumpCond::UnsignedGreaterEq, lbl);
     buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 
