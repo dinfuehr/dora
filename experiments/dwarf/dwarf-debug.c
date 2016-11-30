@@ -73,11 +73,11 @@ void emit_info(const char *reg,
         printf("UNKNOWN (value_type != DW_EXPR_OFFSET)\n");
     }
 
-    printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
-    printf("\toffset_relevant = %d\n", offset_relevant);
-    printf("\tregister_num = %d\n", register_num);
-    printf("\toffset_or_block_len = %d\n", offset_or_block_len);
-    printf("\tblock_ptr = %p\n", block_ptr);
+    // printf("\tvalue_type = %d\n", (Dwarf_Signed) value_type);
+    // printf("\toffset_relevant = %d\n", offset_relevant);
+    // printf("\tregister_num = %d\n", register_num);
+    // printf("\toffset_or_block_len = %d\n", offset_or_block_len);
+    // printf("\tblock_ptr = %p\n", block_ptr);
 }
 
 void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
@@ -102,110 +102,148 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                                     &error);
 
         if (fres == DW_DLV_OK) {
-            Dwarf_Cie mycie = 0;
+            // Dwarf_Cie mycie = 0;
 
-            fres = dwarf_get_cie_of_fde (myfde, &mycie, &error);
+            // fres = dwarf_get_cie_of_fde (myfde, &mycie, &error);
 
-            if (fres == DW_DLV_OK) {
-                printf("found cie\n");
+            // if (fres == DW_DLV_OK) {
+            //     printf("found cie\n");
 
-                Dwarf_Unsigned bytes_in_cie;
-                Dwarf_Small version;
-                char *augmenter;
-                Dwarf_Unsigned code_alignment_factor;
-                Dwarf_Signed data_alignment_factor;
-                Dwarf_Half return_address_register_rule;
-                Dwarf_Ptr initial_instructions;
-                Dwarf_Unsigned initial_instructions_length;
+            //     Dwarf_Unsigned bytes_in_cie;
+            //     Dwarf_Small version;
+            //     char *augmenter;
+            //     Dwarf_Unsigned code_alignment_factor;
+            //     Dwarf_Signed data_alignment_factor;
+            //     Dwarf_Half return_address_register_rule;
+            //     Dwarf_Ptr initial_instructions;
+            //     Dwarf_Unsigned initial_instructions_length;
 
-                fres = dwarf_get_cie_info (mycie,
-                                           &bytes_in_cie,
-                                           &version,
-                                           &augmenter,
-                                           &code_alignment_factor,
-                                           &data_alignment_factor,
-                                           &return_address_register_rule,
-                                           &initial_instructions,
-                                           &initial_instructions_length,
-                                           &error);
+            //     fres = dwarf_get_cie_info (mycie,
+            //                                &bytes_in_cie,
+            //                                &version,
+            //                                &augmenter,
+            //                                &code_alignment_factor,
+            //                                &data_alignment_factor,
+            //                                &return_address_register_rule,
+            //                                &initial_instructions,
+            //                                &initial_instructions_length,
+            //                                &error);
 
-                if (fres == DW_DLV_OK) {
-                    printf("bytes_in_cie = %u\n", bytes_in_cie);
-                    printf("version = %d\n", version);
-                    printf("augmenter = %s\n", augmenter);
-                    printf("code_alignment_factor = %u\n", code_alignment_factor);
-                    printf("data_alignment_factor = %d\n", data_alignment_factor);
-                    printf("return_address_register_rule = %d\n", return_address_register_rule);
-                    printf("initial_instructions = %p\n", initial_instructions);
-                    printf("initial_instructions_length = %u\n", initial_instructions_length);
+            //     if (fres == DW_DLV_OK) {
+            //         printf("bytes_in_cie = %u\n", bytes_in_cie);
+            //         printf("version = %d\n", version);
+            //         printf("augmenter = %s\n", augmenter);
+            //         printf("code_alignment_factor = %u\n", code_alignment_factor);
+            //         printf("data_alignment_factor = %d\n", data_alignment_factor);
+            //         printf("return_address_register_rule = %d\n", return_address_register_rule);
+            //         printf("initial_instructions = %p\n", initial_instructions);
+            //         printf("initial_instructions_length = %u\n", initial_instructions_length);
 
-                    unsigned char *instr = initial_instructions;
+            //         unsigned char *instr = initial_instructions;
 
-                    for (int i=0; i<initial_instructions_length; i++) {
-                        printf("%02x ", instr[i]);
-                    }
+            //         for (int i=0; i<initial_instructions_length; i++) {
+            //             printf("%02x ", instr[i]);
+            //         }
 
-                    printf("\n");
-                }
-            }
+            //         printf("\n");
+            //     }
+            // }
+
+            // {
+            //     Dwarf_Small value_type;
+            //     Dwarf_Signed offset_relevant;
+            //     Dwarf_Signed register_num;
+            //     Dwarf_Signed offset_or_block_len;
+            //     Dwarf_Ptr block_ptr;
+            //     Dwarf_Addr row_pc;
+
+            //     fres = dwarf_get_fde_info_for_cfa_reg3 (myfde,
+            //                                             mypcval,
+            //                                             &value_type,
+            //                                             &offset_relevant,
+            //                                             &register_num,
+            //                                             &offset_or_block_len,
+            //                                             &block_ptr,
+            //                                             &row_pc,
+            //                                             &error);
+
+            //     if (fres == DW_DLV_OK) {
+            //         emit_info("cfa",
+            //                   value_type,
+            //                   offset_relevant,
+            //                   register_num,
+            //                   offset_or_block_len,
+            //                   block_ptr);
+            //     }
+            // }
+
+            // Dwarf_Half table_column = 1;
+
+            // for (table_column = 0; table_column <= 16; table_column++) {
+            //     Dwarf_Small value_type;
+            //     Dwarf_Signed offset_relevant;
+            //     Dwarf_Signed register_num;
+            //     Dwarf_Signed offset_or_block_len;
+            //     Dwarf_Ptr block_ptr;
+            //     Dwarf_Addr row_pc;
+
+            //     fres = dwarf_get_fde_info_for_reg3 (myfde,
+            //                                         table_column,
+            //                                         mypcval,
+            //                                         &value_type,
+            //                                         &offset_relevant,
+            //                                         &register_num,
+            //                                         &offset_or_block_len,
+            //                                         &block_ptr,
+            //                                         &row_pc,
+            //                                         &error);
+
+            //     if (fres == DW_DLV_OK) {
+            //         emit_info(regnames[table_column],
+            //                   value_type,
+            //                   offset_relevant,
+            //                   register_num,
+            //                   offset_or_block_len,
+            //                   block_ptr);
+            //     }
+            // }
 
             {
-                Dwarf_Small value_type;
-                Dwarf_Signed offset_relevant;
-                Dwarf_Signed register_num;
-                Dwarf_Signed offset_or_block_len;
-                Dwarf_Ptr block_ptr;
+                Dwarf_Regtable3 reg_table;
                 Dwarf_Addr row_pc;
 
-                fres = dwarf_get_fde_info_for_cfa_reg3 (myfde,
-                                                        mypcval,
-                                                        &value_type,
-                                                        &offset_relevant,
-                                                        &register_num,
-                                                        &offset_or_block_len,
-                                                        &block_ptr,
-                                                        &row_pc,
-                                                        &error);
+                reg_table.rt3_reg_table_size = 16;
+                reg_table.rt3_rules = calloc (sizeof(Dwarf_Regtable_Entry3),
+                                              reg_table.rt3_reg_table_size);
+
+                fres = dwarf_get_fde_info_for_all_regs3 (myfde, mypcval, &reg_table, &row_pc, &error);
 
                 if (fres == DW_DLV_OK) {
-                    emit_info("cfa",
-                              value_type,
-                              offset_relevant,
-                              register_num,
-                              offset_or_block_len,
-                              block_ptr);
+                    Dwarf_Regtable_Entry3 *entry = &reg_table.rt3_cfa_rule;
+
+                    emit_info ("cfa",
+                               entry->dw_value_type,
+                               entry->dw_offset_relevant,
+                               entry->dw_regnum,
+                               entry->dw_offset_or_block_len,
+                               entry->dw_block_ptr);
+
+                    for (int i=0; i<reg_table.rt3_reg_table_size; i++) {
+                        entry = &reg_table.rt3_rules[i];
+
+                        emit_info (regnames[i],
+                                   entry->dw_value_type,
+                                   entry->dw_offset_relevant,
+                                   entry->dw_regnum,
+                                   entry->dw_offset_or_block_len,
+                                   entry->dw_block_ptr);
+                    }
+
+                } else {
+                    printf ("couldn't get reg_table info\n");
                 }
-            }
 
-            Dwarf_Half table_column = 1;
-
-            for (table_column = 0; table_column <= 16; table_column++) {
-                Dwarf_Small value_type;
-                Dwarf_Signed offset_relevant;
-                Dwarf_Signed register_num;
-                Dwarf_Signed offset_or_block_len;
-                Dwarf_Ptr block_ptr;
-                Dwarf_Addr row_pc;
-
-                fres = dwarf_get_fde_info_for_reg3 (myfde,
-                                                    table_column,
-                                                    mypcval,
-                                                    &value_type,
-                                                    &offset_relevant,
-                                                    &register_num,
-                                                    &offset_or_block_len,
-                                                    &block_ptr,
-                                                    &row_pc,
-                                                    &error);
-
-                if (fres == DW_DLV_OK) {
-                    emit_info(regnames[table_column],
-                              value_type,
-                              offset_relevant,
-                              register_num,
-                              offset_or_block_len,
-                              block_ptr);
-                }
+                free (reg_table.rt3_rules);
             }
         }
 
