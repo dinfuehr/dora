@@ -216,7 +216,8 @@ void list_eh_frame_entries(Dwarf_Debug dbg, Dwarf_Addr mypcval)
                 reg_table.rt3_rules = calloc (sizeof(Dwarf_Regtable_Entry3),
                                               reg_table.rt3_reg_table_size);
 
-                fres = dwarf_get_fde_info_for_all_regs3 (myfde, mypcval, &reg_table, &row_pc, &error);
+                fres = dwarf_get_fde_info_for_all_regs3 (myfde, mypcval,
+                                                         &reg_table, &row_pc, &error);
 
                 if (fres == DW_DLV_OK) {
                     Dwarf_Regtable_Entry3 *entry = &reg_table.rt3_cfa_rule;
