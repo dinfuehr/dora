@@ -447,6 +447,40 @@ pub fn emit_cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
     emit_membase(buf, base, disp, dest);
 }
 
+pub fn emit_cmp_mem_imm(buf: &mut Buffer, mode: MachineMode,
+                        base: Reg, disp: i32, imm: i32) {
+    let base_msb = if base == RIP { 0 } else { base.msb() };
+
+    let opcode = if fits_i8(imm) {
+        0x83
+    } else {
+        0x81
+    };
+
+    let (x64, opcode) = match mode {
+        MachineMode::Int8 => (0, 0x80),
+        MachineMode::Int32 => (0, opcode),
+        MachineMode::Ptr => (1, opcode),
+    };
+
+    if x64 != 0 || base_msb != 0 {
+        emit_rex(buf, x64, 0, 0, base_msb);
+    }
+
+    emit_op(buf, opcode);
+    emit_membase(buf, base, disp, RDI);
+
+    if fits_i8(imm) {
+        emit_u8(buf, imm as u8);
+    } else {
+        if mode == MachineMode::Int8 {
+            panic!("Int8 does not support 32 bit values");
+        }
+
+        emit_u32(buf, imm as u32);
+    }
+}
+
 pub fn emit_cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
                         base: Reg, index: Reg, scale: i32, disp: i32,
                         dest: Reg) {
@@ -623,8 +657,29 @@ mod tests {
             let mut buf = Buffer::new();
             $name(&mut buf, $($param,)*);
             let expected = vec![$($expr,)*];
+            let data = buf.data();
 
-            assert_eq!(expected, buf.data());
+            if expected != data {
+                print!("exp: ");
+
+                for (ind, val) in expected.iter().enumerate() {
+                    if ind > 0 { print!(", "); }
+
+                    print!("{:02x}", val);
+                }
+
+                print!("\ngot: ");
+
+                for (ind, val) in data.iter().enumerate() {
+                    if ind > 0 { print!(", "); }
+
+                    print!("{:02x}", val);
+                }
+
+                println!("");
+
+                panic!("emitted code wrong.");
+            }
         }};
     }
 
@@ -1177,6 +1232,46 @@ mod tests {
 
         // cmp [rbx+1], r10d
         assert_emit!(0x44, 0x39, 0x53, 1; emit_cmp_mem_reg(i, RBX, 1, R10));
+    }
+
+    #[test]
+    fn test_cmp_mem_imm() {
+        let p = MachineMode::Ptr;
+
+        // cmp [rbx+1], 2
+        assert_emit!(0x48, 0x83, 0x7b, 1, 2; emit_cmp_mem_imm(p, RBX, 1, 2));
+
+        // cmp [rbx+256], 2
+        assert_emit!(0x48, 0x83, 0xBB, 0, 1, 0, 0, 2; emit_cmp_mem_imm(p, RBX, 256, 2));
+
+        // cmp [rdi+1], 256
+        assert_emit!(0x48, 0x81, 0x7F, 1, 0, 1, 0, 0; emit_cmp_mem_imm(p, RDI, 1, 256));
+
+        // cmp [r9+1], 2
+        assert_emit!(0x49, 0x83, 0x79, 1, 2; emit_cmp_mem_imm(p, R9, 1, 2));
+
+        let i = MachineMode::Int32;
+
+        // cmp [rbx+1], 2
+        assert_emit!(0x83, 0x7B, 1, 2; emit_cmp_mem_imm(i, RBX, 1, 2));
+
+        // cmp [rbx+1], 256
+        assert_emit!(0x81, 0x7B, 1, 0, 1, 0, 0; emit_cmp_mem_imm(i, RBX, 1, 256));
+
+        let b = MachineMode::Int8;
+
+        // cmp [rbx+1], 2
+        assert_emit!(0x80, 0x7B, 1, 2; emit_cmp_mem_imm(b, RBX, 1, 2));
+
+        // cmp [R15+256], 2
+        assert_emit!(0x41, 0x80, 0xBF, 0, 1, 0, 0, 2; emit_cmp_mem_imm(b, R15, 256, 2));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_cmp_mem_imm_i32_for_i8() {
+        let mut buf = Buffer::new();
+        emit_cmp_mem_imm(&mut buf, MachineMode::Int8, R15, 256, 256);
     }
 
     #[test]

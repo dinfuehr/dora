@@ -73,6 +73,11 @@ pub fn cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
     emit_cmp_mem_reg(buf, mode, base, disp, dest);
 }
 
+pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode,
+                        base: Reg, disp: i32, imm: i32) {
+    emit_cmp_mem_imm(buf, mode, base, disp, imm);
+}
+
 pub fn cmp_reg_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
     match mode {
         MachineMode::Int8
