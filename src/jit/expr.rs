@@ -184,35 +184,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
-                // tmp3 = [tmp1 + T.vtable.subtype_offset]
-                emit::mov_mem_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP1, vtable.subtype_offset,
-                                  REG_RESULT);
-
-                // cmp [tmp3 + tmp1], tmp2
-                emit::cmp_memindex_reg(self.buf, MachineMode::Ptr,
-                                       REG_RESULT, REG_TMP1, 1, 0,
-                                       REG_TMP2);
-
-                // jnz lbl_check
-                let lbl_check = self.buf.create_label();
-                emit::jump_if(self.buf, CondCode::NonZero, lbl_check);
-
-                if e.is {
-                    // mov dest, 1
-                    emit::movl_imm_reg(self.buf, 1, dest);
-                } else {
-                    // mov temp var into dest
-                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
-                }
-
-                // jmp lbl_finished
-                let lbl_finished = self.buf.create_label();
-                emit::jump(self.buf, lbl_finished);
-
-                // lbl_check:
-                self.buf.bind_label(lbl_check);
-
                 // tmp3 = [tmp2 + offset T.vtable.subtype_depth]
                 emit::mov_mem_reg(self.buf, MachineMode::Int32,
                                   REG_TMP2, VTable::offset_of_depth(), REG_RESULT);
@@ -247,6 +218,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 // jmp lbl_finished
+                let lbl_finished = self.buf.create_label();
                 emit::jump(self.buf, lbl_finished);
 
                 // lbl_false:
