@@ -16,8 +16,7 @@ impl<'ast> VTableBox<'ast> {
         let vtable = VTable {
             classptr: classptr,
             subtype_depth: 0,
-            subtype_offset: 0,
-            subtype_display: [ptr::null(); DISPLAY_SIZE+1],
+            subtype_display: [ptr::null(); DISPLAY_SIZE],
             subtype_overflow: ptr::null(),
             table_length: entries.len(),
             table: [0],
@@ -72,8 +71,7 @@ impl<'ast> Drop for VTableBox<'ast> {
 pub struct VTable<'ast> {
     pub classptr: *mut Class<'ast>,
     pub subtype_depth: i32,
-    pub subtype_offset: i32,
-    pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE+1],
+    pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE],
     pub subtype_overflow: *const VTable<'ast>,
     pub table_length: usize,
     pub table: [usize; 1],
@@ -116,12 +114,12 @@ impl<'ast> VTable<'ast> {
         mem::ptr_width() * 2
     }
 
-    pub fn offset_of_table() -> i32 {
-        (4 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+    pub fn offset_of_method_table() -> i32 {
+        (4 + DISPLAY_SIZE as i32) * mem::ptr_width()
     }
 
     pub fn offset_of_overflow() -> i32 {
-        (2 + DISPLAY_SIZE as i32 + 1) * mem::ptr_width()
+        (2 + DISPLAY_SIZE as i32) * mem::ptr_width()
     }
 
     pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable<'ast> {

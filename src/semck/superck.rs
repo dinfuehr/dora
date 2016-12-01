@@ -7,7 +7,6 @@ use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
 use jit::stub::Stub;
 use lexer::position::Position;
-use mem;
 use mem::ptr::Ptr;
 use object::Header;
 use vtable::{DISPLAY_SIZE, VTable, VTableBox};
@@ -307,9 +306,6 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_offset = VTable::offset_of_display() +
-                                mem::ptr_width() * (depth_fixed as i32);
-
         vtable.subtype_display[0..depth_fixed].
             clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
 
@@ -320,7 +316,6 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
 
         vtable.subtype_depth = 0;
-        vtable.subtype_offset = VTable::offset_of_display();
         vtable.subtype_display[0] = vtable as *const _;
 
         0
@@ -453,7 +448,6 @@ mod tests {
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
                 assert_name(ctxt, vtable_display_name(vtable, 2), "C");
                 assert!(vtable.subtype_display[3].is_null());
-                assert_eq!(vtable.subtype_offset, 32);
             }
 
             {
@@ -463,7 +457,6 @@ mod tests {
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
                 assert!(vtable.subtype_display[2].is_null());
-                assert_eq!(vtable.subtype_offset, 24);
             }
 
             {
@@ -472,7 +465,6 @@ mod tests {
                 assert_name(ctxt, vtable_name(vtable), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert!(vtable.subtype_display[1].is_null());
-                assert_eq!(vtable.subtype_offset, 16);
             }
         });
     }

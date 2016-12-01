@@ -14,8 +14,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <libdwarf/dwarf.h>
-#include <libdwarf/libdwarf.h>
+#include <dwarf.h>
+#include <libdwarf.h>
 
 
 void die(char* fmt, ...)

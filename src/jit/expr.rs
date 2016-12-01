@@ -234,16 +234,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_finished:
                 self.buf.bind_label(lbl_finished);
             } else {
-                // cmp [tmp1 = T.vtable.subtype_offset], tmp2
+                let display_entry = VTable::offset_of_display()
+                                    + vtable.subtype_depth * mem::ptr_width();
+
+                // tmp1 = vtable of object
+                // tmp2 = vtable of T
+                // cmp [tmp1 + offset], tmp2
                 emit::cmp_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
-                                  vtable.subtype_offset, REG_TMP2);
+                                  display_entry, REG_TMP2);
 
                 if e.is {
                     emit::set(self.buf, MachineMode::Int32, CondCode::Equal, dest);
 
                 } else {
                     let lbl_bailout = self.buf.create_label();
-                    emit::jump_if(self.buf, CondCode::NonZero, lbl_bailout);
+                    emit::jump_if(self.buf, CondCode::NotEqual, lbl_bailout);
                     self.buf.emit_bailout(lbl_bailout, trap::CAST, e.pos);
 
                     emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
@@ -884,7 +889,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // REG_TMP1 = offset table in vtable
         // REG_RESULT = REG_RESULT + REG_TMP1
         emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
-        emit::movl_imm_reg(self.buf, VTable::offset_of_table() as u32, REG_TMP1);
+        emit::movl_imm_reg(self.buf, VTable::offset_of_method_table() as u32, REG_TMP1);
         emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 
         // REG_TMP1 = index

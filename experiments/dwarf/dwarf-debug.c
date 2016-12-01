@@ -14,8 +14,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <libdwarf/dwarf.h>
-#include <libdwarf/libdwarf.h>
+#include <dwarf.h>
+#include <libdwarf.h>
 
 const char *regnames[] = {
     "rax",
@@ -58,15 +58,15 @@ void emit_info(const char *reg,
 
     if (value_type == DW_EXPR_OFFSET) {
         if (register_num == DW_FRAME_CFA_COL3) {
-            printf("cfa + %d\n", offset_or_block_len);
+            printf("cfa + %Ld\n", offset_or_block_len);
         } else if (register_num == DW_FRAME_SAME_VAL) {
             printf("old value\n");
         } else if (register_num == DW_FRAME_UNDEFINED_VAL) {
             printf("UNDEFINED\n");
         } else if (offset_relevant) {
-            printf("r%d + %d\n", register_num, offset_or_block_len);
+            printf("r%Ld + %Ld\n", register_num, offset_or_block_len);
         } else {
-            printf("r%d\n", register_num);
+            printf("r%Ld\n", register_num);
         }
 
     } else {
