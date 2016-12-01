@@ -184,13 +184,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
-                // tmp3 = [tmp2 + offset T.vtable.subtype_depth]
-                emit::mov_mem_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP2, VTable::offset_of_depth(), REG_RESULT);
-
                 // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
-                emit::cmp_mem_reg(self.buf, MachineMode::Int32,
-                                  REG_TMP1, VTable::offset_of_depth(), REG_RESULT);
+                emit::cmp_mem_imm(self.buf, MachineMode::Int32,
+                                  REG_TMP1, VTable::offset_of_depth(), vtable.subtype_depth);
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();
@@ -200,10 +196,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::mov_mem_reg(self.buf, MachineMode::Ptr,
                                   REG_TMP1, VTable::offset_of_overflow(), REG_TMP1);
 
-                // cmp [tmp1 + (-8)*DISPLAY_SIZE + tmp3<<3 ], tmp2
-                emit::cmp_memindex_reg(self.buf, MachineMode::Ptr,
-                                       REG_TMP1, REG_RESULT, 8, -8 * DISPLAY_SIZE as i32,
-                                       REG_TMP2);
+                let overflow_offset = mem::ptr_width() *
+                                        (vtable.subtype_depth - DISPLAY_SIZE as i32);
+
+                // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
+                emit::cmp_mem_reg(self.buf, MachineMode::Ptr,
+                                  REG_TMP1, overflow_offset,
+                                  REG_TMP2);
 
                 if e.is {
                     // dest = if zero then true else false
