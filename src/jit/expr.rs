@@ -832,12 +832,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 } else {
                     let ptr = self.ptr_for_fct_id(fid);
                     self.buf.emit_comment(Comment::CallDirect(fid));
-                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+                    self.emit_native_call_insn(ptr, pos, csite.return_type, dest);
                 }
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_direct_call_insn(ptr.raw(), pos, csite.return_type, dest);
+                self.emit_native_call_insn(ptr.raw(), pos, csite.return_type, dest);
             }
         }
 
@@ -851,6 +851,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);
         }
+    }
+
+    fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
+        // let stackframesize = std::mem::size_of::<StackFrameInfo>() as i32;
+
+        // emit::reserve_stack(self.buf, stackframesize);
+        // self.insn_direct_call(start_native_call as *const u8);
+
+        self.insn_direct_call(ptr);
+        self.emit_after_call_insns(pos, ty, dest);
+
+        // self.insn_direct_call(finish_native_call as *const u8);
+        // emit::free_stack(self.buf, stackframesize);
     }
 
     fn emit_direct_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
@@ -901,6 +914,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // call *REG_RESULT
         emit::call(self.buf, REG_RESULT);
     }
+}
+
+fn start_native_call() {
+    // println!("start native");
+}
+
+fn finish_native_call() {
+    // println!("finish native");
 }
 
 fn check_for_nil(ty: BuiltinType) -> bool {

@@ -232,6 +232,14 @@ pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     }
 }
 
+pub fn reserve_stack(buf: &mut Buffer, imm: i32) {
+    emit_subq_imm_reg(buf, imm, RSP);
+}
+
+pub fn free_stack(buf: &mut Buffer, imm: i32) {
+    emit_addq_imm_reg(buf, imm, RSP);
+}
+
 pub fn addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_addq_reg_reg(buf, src, dest);
 }
@@ -261,10 +269,6 @@ pub fn call(buf: &mut Buffer, reg: Reg) {
 
 pub fn push_param(buf: &mut Buffer, reg: Reg) {
     emit_pushq_reg(buf, reg);
-}
-
-pub fn free_stack(buf: &mut Buffer, size: i32) {
-    emit_addq_imm_reg(buf, size, RSP);
 }
 
 // emit debug instruction
