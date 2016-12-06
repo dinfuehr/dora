@@ -40,3 +40,10 @@ struct StackElem {
     fct_id: FctId,
     lineno: i32
 }
+
+pub struct StackFrameInfo {
+    pub sp: usize,
+    pub fp: usize,
+    pub ra: usize,
+    pub xpc: usize,
+}

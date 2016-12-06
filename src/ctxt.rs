@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
+use std::ptr;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use driver::cmd::Args;
@@ -16,6 +17,7 @@ use jit::stub::Stub;
 use lexer::position::Position;
 use mem::{self, Ptr};
 use object::{Handle, Str};
+use stacktrace::StackFrameInfo;
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -43,6 +45,7 @@ pub struct Context<'ast> {
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
     pub literals: Mutex<Vec<Handle<Str>>>, // string literals
+    pub sfi: RefCell<*const StackFrameInfo>,
 }
 
 impl<'ast> Context<'ast> {
@@ -68,7 +71,18 @@ impl<'ast> Context<'ast> {
             fct_defs: HashMap::new(),
             fcts: Vec::new(),
             code_map: Mutex::new(CodeMap::new()),
+            sfi: RefCell::new(ptr::null()),
         }
+    }
+
+    pub fn use_sfi<F, R>(&self, sfi: &StackFrameInfo, fct: F) -> R where F: FnOnce() -> R {
+        *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
+
+        let ret = fct();
+
+        *self.sfi.borrow_mut() = ptr::null();
+
+        ret
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {

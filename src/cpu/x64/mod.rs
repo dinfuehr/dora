@@ -1,8 +1,9 @@
 use ctxt::{Context, FctKind, get_ctxt};
 use execstate::ExecState;
 use jit::fct::CatchType;
+use mem;
 use object::{Handle, Obj};
-use stacktrace::Stacktrace;
+use stacktrace::{Stacktrace, StackFrameInfo};
 
 pub use self::param::*;
 pub use self::reg::*;
@@ -12,6 +13,17 @@ pub mod instr;
 pub mod param;
 pub mod reg;
 pub mod trap;
+
+pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
+    let ra = unsafe { *(es.sp as *const usize) };
+
+    StackFrameInfo {
+        fp: es.regs[RBP.int() as usize],
+        sp: es.sp + mem::ptr_width() as usize,
+        ra: ra,
+        xpc: ra-1,
+    }
+}
 
 pub fn handle_exception(exception: Handle<Obj>, es: &mut ExecState) -> bool {
     let mut pc : usize = es.pc;
@@ -98,11 +110,22 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
 
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut rootset = Vec::new();
-    let mut pc : usize;
-    unsafe { asm!("lea (%rip), $0": "=r"(pc)) }
 
+    let mut pc : usize;
     let mut fp : usize;
-    unsafe { asm!("mov %rbp, $0": "=r"(fp)) }
+
+    if ctxt.sfi.borrow().is_null() {
+        unsafe {
+            asm!("mov %rbp, $0": "=r"(fp));
+            asm!("lea (%rip), $0": "=r"(pc));
+        }
+
+    } else {
+        let sfi = unsafe { &**ctxt.sfi.borrow() };
+
+        pc = sfi.ra;
+        fp = sfi.fp;
+    }
 
     determine_rootset(&mut rootset, ctxt, fp, pc);
 
@@ -116,7 +139,7 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     rootset
 }
 
-fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) {
+fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let fct_id = code_map.get(pc);
 
@@ -138,6 +161,10 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
         } else {
             panic!("should be FctKind::Source");
         }
+
+        true
+    } else {
+        false
     }
 }
 

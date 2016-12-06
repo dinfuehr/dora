@@ -27,7 +27,7 @@ pub fn register_signals(ctxt: &Context) {
 }
 
 // signal handler function
-fn handler(signo: c_int, _: *const c_void, ucontext: *const c_void) {
+fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
     let mut es = read_execstate(ucontext);
     let ctxt = get_ctxt();
 
@@ -104,16 +104,20 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
     };
 
     if let Some(fct_id) = fct_id {
-        let jit_fct = jit::generate(ctxt, fct_id);
-        let fct = ctxt.fct_by_id(fct_id);
+        let sfi = cpu::sfi_from_execution_state(es);
 
-        if fct.is_virtual() {
-            cpu::trap::patch_vtable_call(ctxt, es, fct_id, jit_fct);
-        } else {
-            cpu::trap::patch_fct_call(es, jit_fct);
-        }
+        ctxt.use_sfi(&sfi, || {
+            let jit_fct = jit::generate(ctxt, fct_id);
+            let fct = ctxt.fct_by_id(fct_id);
 
-        write_execstate(es, ucontext as *mut c_void);
+            if fct.is_virtual() {
+                cpu::trap::patch_vtable_call(ctxt, es, fct_id, jit_fct);
+            } else {
+                cpu::trap::patch_fct_call(es, jit_fct);
+            }
+
+            write_execstate(es, ucontext as *mut c_void);
+        });
     } else {
         println!("error: code not found for address {:x}", es.pc);
         unsafe { _exit(200); }
