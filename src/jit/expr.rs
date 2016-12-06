@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Expr::*;
 use class::{ClassId, FieldId};
-use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{self, Reg, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
@@ -832,12 +832,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 } else {
                     let ptr = self.ptr_for_fct_id(fid);
                     self.buf.emit_comment(Comment::CallDirect(fid));
-                    self.emit_native_call_insn(ptr, pos, csite.return_type, dest);
+                    self.emit_native_call_insn(ptr, pos, &csite, dest);
                 }
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_native_call_insn(ptr.raw(), pos, csite.return_type, dest);
+                self.emit_native_call_insn(ptr.raw(), pos, &csite, dest);
             }
         }
 
@@ -853,16 +853,33 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
-        // let stackframesize = std::mem::size_of::<StackFrameInfo>() as i32;
+    fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position,
+                             csite: &CallSite, dest: Reg) {
+        // let stackframesize = std::mem::size_of::<StackFrameInfo>() as i32
+        // let stackframesize = 8;
 
         // emit::reserve_stack(self.buf, stackframesize);
         // self.insn_direct_call(start_native_call as *const u8);
 
         self.insn_direct_call(ptr);
-        self.emit_after_call_insns(pos, ty, dest);
+        self.buf.emit_lineno(pos.line as i32);
+
+        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+        self.buf.emit_gcpoint(gcpoint);
+
+        // if csite.return_type != BuiltinType::Unit {
+        //     emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_RESULT, REG_SP, 0);
+        // }
 
         // self.insn_direct_call(finish_native_call as *const u8);
+        // if csite.return_type != BuiltinType::Unit {
+        //     emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_SP, 0, REG_RESULT);
+        // }
+
+        if REG_RESULT != dest && csite.return_type != BuiltinType::Unit {
+            emit::mov_reg_reg(self.buf, MachineMode::Ptr, REG_RESULT, dest);
+        }
+
         // emit::free_stack(self.buf, stackframesize);
     }
 
