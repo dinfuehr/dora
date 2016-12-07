@@ -32,11 +32,11 @@ impl Buffer {
         }
     }
 
-    pub fn jit(mut self, id: FctId) -> JitFct {
+    pub fn jit(mut self, id: FctId, stacksize: i32) -> JitFct {
         self.finish();
 
-        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints, self.comments,
-                            self.linenos, self.exception_handlers)
+        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints, stacksize,
+                            self.comments, self.linenos, self.exception_handlers)
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -248,6 +248,6 @@ mod tests {
         let lbl = buf.create_label();
 
         buf.emit_label(lbl);
-        buf.jit(FctId(1));
+        buf.jit(FctId(1), 0);
     }
 }

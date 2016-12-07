@@ -118,7 +118,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_epilog();
         }
 
-        let jit_fct = self.buf.jit(self.fct.id);
+        let jit_fct = self.buf.jit(self.fct.id, self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
         code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), jit_fct.fct_id());

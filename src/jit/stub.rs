@@ -14,7 +14,7 @@ impl Stub {
     pub fn new(fct_id: FctId) -> Stub {
         let mut buf = Buffer::new();
         trap::emit(&mut buf, trap::COMPILER);
-        let code = buf.jit(fct_id).code();
+        let code = buf.jit(fct_id, 0).code();
 
         Stub {
             mem: code

@@ -19,6 +19,8 @@ pub struct JitFct {
     // machine code length in bytes
     fct_len: usize,
 
+    pub framesize: i32,
+
     gcpoints: GcPoints,
 
     comments: Comments,
@@ -30,7 +32,7 @@ pub struct JitFct {
 
 impl JitFct {
     pub fn from_buffer(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
-                comments: Comments, linenos: LineNumberTable,
+                framesize: i32, comments: Comments, linenos: LineNumberTable,
                 mut exception_handlers: Vec<ExHandler>) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
@@ -59,6 +61,7 @@ impl JitFct {
             code: code,
             gcpoints: gcpoints,
             comments: comments,
+            framesize: framesize,
             fct_start: fct_start,
             fct_len: buffer.len(),
             linenos: linenos,
