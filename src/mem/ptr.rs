@@ -2,7 +2,7 @@ use std::fmt;
 use std::convert::Into;
 use std::ptr;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 pub struct Ptr(*mut u8);
 
 impl Ptr {

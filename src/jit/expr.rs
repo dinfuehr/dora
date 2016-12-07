@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Expr::*;
 use class::{ClassId, FieldId};
-use cpu::{self, Reg, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;

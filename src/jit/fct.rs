@@ -14,7 +14,7 @@ pub struct JitFct {
     fct_id: FctId,
 
     // pointer to beginning of function
-    fct_start: Ptr,
+    pub fct_start: Ptr,
 
     // machine code length in bytes
     fct_len: usize,
