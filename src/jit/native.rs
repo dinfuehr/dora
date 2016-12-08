@@ -1,8 +1,8 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use cpu::{emit, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{Context, FctId};
+use cpu::{emit, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
+use ctxt::{Context, FctId, get_ctxt};
 use jit::buffer::Buffer;
 use jit::fct::JitFct;
 use mem;
@@ -74,6 +74,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
                               offset_args + ind as i32 * 8);
         }
 
+        emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, REG_FP, REG_PARAMS[0]);
         emit::direct_call(&mut self.buf, start_native_call as *const u8);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
@@ -99,10 +100,28 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
     }
 }
 
-fn start_native_call() {
-    // println!("start native");
+fn start_native_call(fp: *const u8) {
+    unsafe {
+        // fp is framepointer of native stub
+
+        // get framepointer of dora function and return address into dora
+        let dora_ra = *(fp.offset(8) as *const usize);
+        let dora_fp = *(fp as *const usize);
+
+        let sfi_size = size_of::<StackFrameInfo>() as isize;
+        let sfi: *mut StackFrameInfo = fp.offset(-sfi_size) as *mut StackFrameInfo;
+        let sfi: &mut StackFrameInfo = &mut *sfi;
+
+        sfi.sp = 0;
+        sfi.fp = dora_fp;
+        sfi.ra = dora_ra;
+        sfi.xpc = sfi.ra - 1;
+
+        let ctxt = get_ctxt();
+        ctxt.push_sfi(sfi);
+    }
 }
 
 fn finish_native_call() {
-    // println!("finish native");
+    get_ctxt().pop_sfi();
 }

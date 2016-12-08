@@ -1,3 +1,5 @@
+use std::ptr;
+
 use ctxt::{Context, FctKind, get_ctxt};
 use execstate::ExecState;
 use jit::fct::CatchType;
@@ -18,6 +20,7 @@ pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
     let ra = unsafe { *(es.sp as *const usize) };
 
     StackFrameInfo {
+        last: ptr::null(),
         fp: es.regs[RBP.int() as usize],
         sp: es.sp + mem::ptr_width() as usize,
         ra: ra,

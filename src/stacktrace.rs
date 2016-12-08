@@ -42,6 +42,7 @@ struct StackElem {
 }
 
 pub struct StackFrameInfo {
+    pub last: *const StackFrameInfo,
     pub sp: usize,
     pub fp: usize,
     pub ra: usize,

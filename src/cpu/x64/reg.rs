@@ -4,6 +4,7 @@ pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
 pub const REG_TMP2: Reg = R11;
 pub const REG_SP: Reg = RSP;
+pub const REG_FP: Reg = RBP;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Reg(u8);

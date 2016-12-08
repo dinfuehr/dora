@@ -78,14 +78,33 @@ impl<'ast> Context<'ast> {
         }
     }
 
-    pub fn use_sfi<F, R>(&self, sfi: &StackFrameInfo, fct: F) -> R where F: FnOnce() -> R {
+    pub fn use_sfi<F, R>(&self, sfi: &mut StackFrameInfo, fct: F) -> R where F: FnOnce() -> R {
+        sfi.last = *self.sfi.borrow();
+
         *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
 
         let ret = fct();
 
-        *self.sfi.borrow_mut() = ptr::null();
+        *self.sfi.borrow_mut() = sfi.last;
 
         ret
+    }
+
+    pub fn push_sfi(&self, sfi: &mut StackFrameInfo) {
+        let last = *self.sfi.borrow();
+
+        sfi.last = last;
+
+        *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
+    }
+
+    pub fn pop_sfi(&self) {
+        let current_sfi = *self.sfi.borrow();
+        assert!(!current_sfi.is_null());
+        let sfi = unsafe { &*current_sfi };
+
+        let last_sfi = sfi.last as *const StackFrameInfo;
+        *self.sfi.borrow_mut() = last_sfi;
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {

@@ -104,9 +104,9 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
     };
 
     if let Some(fct_id) = fct_id {
-        let sfi = cpu::sfi_from_execution_state(es);
+        let mut sfi = cpu::sfi_from_execution_state(es);
 
-        ctxt.use_sfi(&sfi, || {
+        ctxt.use_sfi(&mut sfi, || {
             let jit_fct = jit::generate(ctxt, fct_id);
             let fct = ctxt.fct_by_id(fct_id);
 
