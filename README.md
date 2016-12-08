@@ -17,9 +17,9 @@ Rust is needed because Dora uses some unstable features of Rust (e.g. inline ass
 Dora uses [cargo](http://crates.io) for building, which is bundled with Rust:
 
 ```
-# right now specific nightly version is needed
-rustup update nightly-2016-10-21
-rustup override set nightly-2016-10-21
+# install last nightly and use it for this project
+rustup update nightly
+rustup override set nightly
 
 # run all tests in debug and release mode
 ./test && ./test-release
