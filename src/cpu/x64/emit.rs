@@ -1,4 +1,4 @@
-use cpu::instr::*;
+use cpu::asm::*;
 use cpu::*;
 use jit::buffer::*;
 use jit::codegen::CondCode;

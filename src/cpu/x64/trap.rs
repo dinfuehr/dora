@@ -1,5 +1,5 @@
 use cpu::*;
-use cpu::instr::*;
+use cpu::asm::*;
 use ctxt::{Context, FctId};
 use execstate::ExecState;
 

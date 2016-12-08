@@ -10,8 +10,8 @@ use stacktrace::{Stacktrace, StackFrameInfo};
 pub use self::param::*;
 pub use self::reg::*;
 
+pub mod asm;
 pub mod emit;
-pub mod instr;
 pub mod param;
 pub mod reg;
 pub mod trap;
