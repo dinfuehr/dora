@@ -32,6 +32,14 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     call(buf, REG_RESULT);
 }
 
+pub fn add_imm_reg(buf: &mut Buffer, mode: MachineMode, imm: i32, dest: Reg) {
+    match mode {
+        MachineMode::Int8 => unimplemented!(),
+        MachineMode::Int32 => unimplemented!(),
+        MachineMode::Ptr => emit_addq_imm_reg(buf, imm, dest),
+    }
+}
+
 pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
