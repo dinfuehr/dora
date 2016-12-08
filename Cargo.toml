@@ -13,6 +13,3 @@ time = "*"
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
 
-# need for -fno-omit-frame-pointer
-[profile.release]
-debug = true
