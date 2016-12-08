@@ -13,3 +13,8 @@ time = "*"
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
 
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
