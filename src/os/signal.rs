@@ -100,7 +100,7 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
 fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) {
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
-        code_map.get(es.pc)
+        code_map.get(es.pc as *const u8)
     };
 
     if let Some(fct_id) = fct_id {

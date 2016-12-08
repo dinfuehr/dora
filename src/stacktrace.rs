@@ -1,3 +1,5 @@
+use std::ptr;
+
 use ctxt::{Context, FctId};
 
 pub struct Stacktrace {
@@ -47,4 +49,16 @@ pub struct StackFrameInfo {
     pub fp: usize,
     pub ra: usize,
     pub xpc: usize,
+}
+
+impl StackFrameInfo {
+    pub fn new() -> StackFrameInfo {
+        StackFrameInfo {
+            last: ptr::null(),
+            sp: 0,
+            fp: 0,
+            ra: 0,
+            xpc: 0,
+        }
+    }
 }

@@ -335,6 +335,16 @@ impl<'ast> Fct<'ast> {
     pub fn has_self(&self) -> bool {
         self.owner_class.is_some()
     }
+
+    pub fn real_args(&self) -> i32 {
+        let params = self.params_types.len() as i32;
+
+        if self.owner_class.is_some() {
+            params + 1
+        } else {
+            params
+        }
+    }
 }
 
 #[derive(Debug)]

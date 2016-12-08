@@ -12,6 +12,7 @@ use os;
 
 use parser::Parser;
 use semck;
+use stacktrace::StackFrameInfo;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -57,7 +58,14 @@ pub fn start() -> i32 {
     }
 
     let main = main.unwrap();
-    let fct_ptr = jit::generate(&ctxt, main);
+
+    let fct_ptr = {
+        let mut sfi = StackFrameInfo::new();
+
+        ctxt.use_sfi(&mut sfi, || {
+            jit::generate(&ctxt, main)
+        })
+    };
 
     let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();

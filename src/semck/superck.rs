@@ -235,7 +235,7 @@ fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+        code_map.insert(stub.ptr_start().raw(), stub.ptr_end().raw(), fid);
     }
 
     if ctxt.args.flag_emit_stubs {

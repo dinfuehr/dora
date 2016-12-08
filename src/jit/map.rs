@@ -2,10 +2,9 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use ctxt::FctId;
-use mem::Ptr;
 
 pub struct CodeMap {
-    tree: BTreeMap<PtrSpan, FctId>
+    tree: BTreeMap<CodeSpan, FctId>
 }
 
 impl CodeMap {
@@ -25,49 +24,48 @@ impl CodeMap {
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: Ptr, end: Ptr, fct: FctId) {
-        let span = PtrSpan::new(start, end);
+    pub fn insert(&mut self, start: *const u8, end: *const u8, fct: FctId) {
+        let span = CodeSpan::new(start, end);
         assert!(self.tree.insert(span, fct).is_none());
     }
 
-    pub fn get<T>(&self, ptr: T) -> Option<FctId> where T: Into<Ptr> {
-        let ptr = ptr.into();
-        let span = PtrSpan::new(ptr, ptr.offset(1));
+    pub fn get(&self, ptr: *const u8) -> Option<FctId> {
+        let span = CodeSpan::new(ptr, unsafe { ptr.offset(1) });
 
         self.tree.get(&span).map(|el| { *el })
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-struct PtrSpan {
-    start: Ptr,
-    end: Ptr,
+struct CodeSpan {
+    start: *const u8,
+    end: *const u8,
 }
 
-impl PtrSpan {
-    fn intersect(&self, other: &PtrSpan) -> bool {
+impl CodeSpan {
+    fn intersect(&self, other: &CodeSpan) -> bool {
         (self.start <= other.start && other.start < self.end) ||
             (self.start < other.end && other.end <= self.end) ||
             (other.start <= self.start && self.end <= other.end)
     }
 }
 
-impl PartialEq for PtrSpan {
-    fn eq(&self, other: &PtrSpan) -> bool {
+impl PartialEq for CodeSpan {
+    fn eq(&self, other: &CodeSpan) -> bool {
         self.intersect(other)
     }
 }
 
-impl Eq for PtrSpan {}
+impl Eq for CodeSpan {}
 
-impl PartialOrd for PtrSpan {
-    fn partial_cmp(&self, other: &PtrSpan) -> Option<Ordering> {
+impl PartialOrd for CodeSpan {
+    fn partial_cmp(&self, other: &CodeSpan) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for PtrSpan {
-    fn cmp(&self, other: &PtrSpan) -> Ordering {
+impl Ord for CodeSpan {
+    fn cmp(&self, other: &CodeSpan) -> Ordering {
         if self.intersect(other) {
             Ordering::Equal
 
@@ -80,11 +78,11 @@ impl Ord for PtrSpan {
     }
 }
 
-impl PtrSpan {
-    fn new(start: Ptr, end: Ptr) -> PtrSpan {
+impl CodeSpan {
+    fn new(start: *const u8, end: *const u8) -> CodeSpan {
         assert!(start < end);
 
-        PtrSpan { start: start, end: end }
+        CodeSpan { start: start, end: end }
     }
 }
 
@@ -110,13 +108,13 @@ fn test_intersect() {
 }
 
 #[cfg(test)]
-fn span(v1: usize, v2: usize) -> PtrSpan {
-    PtrSpan::new(ptr(v1), ptr(v2))
+fn span(v1: usize, v2: usize) -> CodeSpan {
+    CodeSpan::new(ptr(v1), ptr(v2))
 }
 
 #[cfg(test)]
-pub fn ptr(val: usize) -> Ptr {
-    Ptr::new(val as *mut u8)
+pub fn ptr(val: usize) -> *const u8 {
+    val as *const u8
 }
 
 #[cfg(test)]

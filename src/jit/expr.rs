@@ -692,8 +692,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let mut src = src.lock().unwrap();
 
                     ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt).raw()
-                },
-                FctKind::Native(ptr) => ptr.raw(),
+                }
+
+                FctKind::Native(ptr) => {
+                    ensure_native_stub(self.ctxt, ptr.raw(), fct.return_type, fct.real_args())
+                }
 
                 FctKind::Definition => unreachable!(),
                 FctKind::Builtin(_) => panic!("intrinsic fct call"),
@@ -772,7 +775,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
 
                     let mptr = stdlib::gc_alloc as *mut u8;
-                    self.emit_direct_call_insn(mptr, pos, BuiltinType::Ptr, REG_RESULT);
+                    self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
 
                     // store classptr in object
                     let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
@@ -841,7 +844,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             Callee::Ptr(ptr) => {
                 self.emit_native_call_insn(ptr.raw(), pos, csite.return_type,
                                            csite.args.len() as i32, dest);
-                // self.emit_direct_call_insn(ptr.raw(), pos, csite.return_type, dest);
             }
         }
 
@@ -859,24 +861,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position,
                              ty: BuiltinType, args: i32, dest: Reg) {
-        let ptr = {
-            let mut native_fcts = self.ctxt.native_fcts.lock().unwrap();
-
-            if let Some(ptr) = native_fcts.find_fct(ptr) {
-                ptr
-
-            } else {
-                let jit_fct = native::generate(self.ctxt, ptr, ty, args);
-
-                if self.ctxt.args.flag_emit_asm {
-                    dump_asm(&jit_fct, "someptr",
-                        self.ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
-                }
-
-                native_fcts.insert_fct(ptr, jit_fct)
-            }
-        };
-
+        let ptr = ensure_native_stub(self.ctxt, ptr, ty, args);
         self.emit_direct_call_insn(ptr, pos, ty, dest);
     }
 
@@ -940,6 +925,24 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
+fn ensure_native_stub(ctxt: &Context, ptr: *const u8, ty: BuiltinType, args: i32) -> *const u8 {
+    let mut native_fcts = ctxt.native_fcts.lock().unwrap();
+
+    if let Some(ptr) = native_fcts.find_fct(ptr) {
+        ptr
+
+    } else {
+        let jit_fct = native::generate(ctxt, ptr, ty, args);
+
+        if ctxt.args.flag_emit_asm {
+            dump_asm(&jit_fct, "native_stub",
+                ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+        }
+
+        native_fcts.insert_fct(ptr, jit_fct)
+    }
+}
+
 fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> Ptr {
     if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
     if let Some(ref stub) = src.stub { return stub.ptr_start(); }
@@ -948,7 +951,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+        code_map.insert(stub.ptr_start().raw(), stub.ptr_end().raw(), fid);
     }
 
     if ctxt.args.flag_emit_stubs {

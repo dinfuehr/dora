@@ -55,7 +55,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     let ctxt = get_ctxt();
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
-        code_map.get(pc)
+        code_map.get(pc as *const u8)
     };
 
     // println!("------------");
@@ -117,26 +117,23 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut pc : usize;
     let mut fp : usize;
 
-    if ctxt.sfi.borrow().is_null() {
-        unsafe {
-            asm!("mov %rbp, $0": "=r"(fp));
-            asm!("lea (%rip), $0": "=r"(pc));
-        }
+    assert!(!ctxt.sfi.borrow().is_null());
 
-    } else {
+    {
         let sfi = unsafe { &**ctxt.sfi.borrow() };
 
         pc = sfi.ra;
         fp = sfi.fp;
     }
 
-    determine_rootset(&mut rootset, ctxt, fp, pc);
 
     while fp != 0 {
+        if !determine_rootset(&mut rootset, ctxt, fp, pc) {
+            break;
+        }
+    
         pc = unsafe { *((fp + 8) as *const usize) };
         fp = unsafe { *(fp as *const usize) };
-
-        determine_rootset(&mut rootset, ctxt, fp, pc);
     }
 
     rootset
@@ -144,7 +141,7 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
 
 fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
-    let fct_id = code_map.get(pc);
+    let fct_id = code_map.get(pc as *const u8);
 
     if let Some(fct_id) = fct_id {
         let fct = ctxt.fct_by_id(fct_id);
@@ -191,7 +188,7 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
 
 fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
-    let fct_id = code_map.get(pc);
+    let fct_id = code_map.get(pc as *const u8);
 
     if let Some(fct_id) = fct_id {
         let mut lineno = 0;
