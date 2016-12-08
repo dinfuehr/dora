@@ -13,6 +13,7 @@ use gc::Gc;
 use interner::*;
 use jit::fct::JitFct;
 use jit::map::CodeMap;
+use jit::native::NativeFcts;
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem::{self, Ptr};
@@ -46,6 +47,7 @@ pub struct Context<'ast> {
     pub gc: Mutex<Gc>, // garbage collector
     pub literals: Mutex<Vec<Handle<Str>>>, // string literals
     pub sfi: RefCell<*const StackFrameInfo>,
+    pub native_fcts: Mutex<NativeFcts>,
 }
 
 impl<'ast> Context<'ast> {
@@ -72,6 +74,7 @@ impl<'ast> Context<'ast> {
             fcts: Vec::new(),
             code_map: Mutex::new(CodeMap::new()),
             sfi: RefCell::new(ptr::null()),
+            native_fcts: Mutex::new(NativeFcts::new()),
         }
     }
 

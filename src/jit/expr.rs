@@ -5,9 +5,11 @@ use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
+use driver::cmd::AsmSyntax;
 use jit::buffer::*;
-use jit::codegen::{self, CondCode, Scopes, TempOffsets};
+use jit::codegen::{self, dump_asm, CondCode, Scopes, TempOffsets};
 use jit::fct::{CatchType, Comment};
+use jit::native;
 use jit::stub::Stub;
 use lexer::position::Position;
 use mem;
@@ -832,12 +834,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 } else {
                     let ptr = self.ptr_for_fct_id(fid);
                     self.buf.emit_comment(Comment::CallDirect(fid));
-                    self.emit_native_call_insn(ptr, pos, &csite, dest);
+                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
                 }
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_native_call_insn(ptr.raw(), pos, &csite, dest);
+                self.emit_native_call_insn(ptr.raw(), pos, csite.return_type,
+                                           csite.args.len() as i32, dest);
+                // self.emit_direct_call_insn(ptr.raw(), pos, csite.return_type, dest);
             }
         }
 
@@ -854,37 +858,30 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position,
-                             csite: &CallSite, dest: Reg) {
-        // let stackframesize = std::mem::size_of::<StackFrameInfo>() as i32
-        // let stackframesize = 8;
+                             ty: BuiltinType, args: i32, dest: Reg) {
+        let ptr = {
+            let mut native_fcts = self.ctxt.native_fcts.lock().unwrap();
 
-        // emit::reserve_stack(self.buf, stackframesize);
-        // self.insn_direct_call(start_native_call as *const u8);
+            if let Some(ptr) = native_fcts.find_fct(ptr) {
+                ptr
 
-        self.insn_direct_call(ptr);
-        self.buf.emit_lineno(pos.line as i32);
+            } else {
+                let jit_fct = native::generate(self.ctxt, ptr, ty, args);
 
-        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-        self.buf.emit_gcpoint(gcpoint);
+                if self.ctxt.args.flag_emit_asm {
+                    dump_asm(&jit_fct, "someptr",
+                        self.ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+                }
 
-        // if csite.return_type != BuiltinType::Unit {
-        //     emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_RESULT, REG_SP, 0);
-        // }
+                native_fcts.insert_fct(ptr, jit_fct)
+            }
+        };
 
-        // self.insn_direct_call(finish_native_call as *const u8);
-        // if csite.return_type != BuiltinType::Unit {
-        //     emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_SP, 0, REG_RESULT);
-        // }
-
-        if REG_RESULT != dest && csite.return_type != BuiltinType::Unit {
-            emit::mov_reg_reg(self.buf, MachineMode::Ptr, REG_RESULT, dest);
-        }
-
-        // emit::free_stack(self.buf, stackframesize);
+        self.emit_direct_call_insn(ptr, pos, ty, dest);
     }
 
     fn emit_direct_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
-        self.insn_direct_call(ptr);
+        emit::direct_call(self.buf, ptr);
         self.emit_after_call_insns(pos, ty, dest);
     }
 
@@ -931,14 +928,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // call *REG_RESULT
         emit::call(self.buf, REG_RESULT);
     }
-}
-
-fn start_native_call() {
-    // println!("start native");
-}
-
-fn finish_native_call() {
-    // println!("finish native");
 }
 
 fn check_for_nil(ty: BuiltinType) -> bool {

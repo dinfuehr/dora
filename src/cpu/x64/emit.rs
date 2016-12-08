@@ -24,6 +24,14 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
+pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
+    let disp = buf.add_addr(ptr);
+    let pos = buf.pos() as i32;
+
+    movq_addr_reg(buf, disp + pos, REG_RESULT);
+    call(buf, REG_RESULT);
+}
+
 pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
