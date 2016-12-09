@@ -41,3 +41,9 @@ pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);
 pub const R30: Reg = Reg(30);
 pub const R31: Reg = Reg(31);
+
+impl Reg {
+    pub fn is_gpr(self) -> bool {
+        self.u32() <= 31
+    }
+}
