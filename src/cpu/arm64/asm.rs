@@ -86,8 +86,48 @@ fn cls_addsub_shreg(sf: u32, op: u32, s: u32, shift: Shift, rm: Reg,
     assert!(rd.is_gpr());
     assert!(fits_u5(imm6));
 
-    (0b01011 as u32) << 24 | sf << 31 | op << 30 | s << 29 |
+    0b01011u32 << 24 | sf << 31 | op << 30 | s << 29 |
         shift.u32() << 22 | rm.u32() << 16 | imm6 << 10 | rn.u32() << 5 | rd.u32()
+}
+
+pub fn ldrw_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+}
+
+pub fn ldrx_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+}
+
+fn cls_ldst_regoffset(size: u32, v: u32, opc: u32, rm: Reg, option: u32,
+                      s: u32, rn: Reg, rt: Reg) -> u32 {
+    assert!(fits_u2(size));
+    assert!(fits_bit(v));
+    assert!(fits_u2(opc));
+    assert!(rm.is_gpr());
+    assert!(fits_u3(option));
+    assert!(fits_bit(s));
+    assert!(rn.is_gpr());
+    assert!(rt.is_gpr());
+
+    0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 |
+        v << 26 | opc << 22 | rm.u32() << 16 | option << 13 | s << 12 |
+        rn.u32() << 5 | rt.u32()
+}
+
+#[derive(Copy, Clone)]
+pub enum Extend {
+    UXTW, LSL, SXTW, SXTX
+}
+
+impl Extend {
+    fn u32(self) -> u32 {
+        match self {
+            Extend::UXTW => 0b010,
+            Extend::LSL => 0b011,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -107,6 +147,14 @@ impl Shift {
 
 fn fits_bit(imm: u32) -> bool {
     imm < 2
+}
+
+fn fits_u2(imm: u32) -> bool {
+    imm < 4
+}
+
+fn fits_u3(imm: u32) -> bool {
+    imm < 8
 }
 
 fn fits_u4(imm: u32) -> bool {
@@ -226,9 +274,6 @@ mod tests {
 
     #[test]
     fn test_add_imm() {
-//    4:	91000420 	add	x0, x1, #0x1
-//    8:	91400c62 	add	x2, x3, #0x3, lsl #12
-
         assert_emit!(0x11000420; add_imm(0, R0, R1, 1, 0));
         assert_emit!(0x11400c62; add_imm(0, R2, R3, 3, 1));
         assert_emit!(0x91000420; add_imm(1, R0, R1, 1, 0));
@@ -273,5 +318,21 @@ mod tests {
         assert_emit!(0xcb010000; sub_reg(1, R0, R0, R1));
         assert_emit!(0x4b030041; sub_reg(0, R1, R2, R3));
         assert_emit!(0xcb030041; sub_reg(1, R1, R2, R3));
+    }
+
+    #[test]
+    fn test_ldrw_ind() {
+        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, Extend::SXTW, 1));
+    }
+
+    #[test]
+    fn test_ldrx_ind() {
+        assert_emit!(0xf8626820; ldrx_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8657883; ldrx_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xf86858e6; ldrx_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xf86bd949; ldrx_ind(R9, R10, R11, Extend::SXTW, 1));
     }
 }
