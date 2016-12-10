@@ -202,35 +202,35 @@ fn cls_ld_literal(opc: u32, v: u32, imm19: i32, rt: Reg) -> u32 {
     0b011u32 << 27 | opc << 30 | v << 26 | imm << 5 | rt.u32()
 }
 
-fn and_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn and_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b00, shift, 0, rm, imm6, rn, rd)
 }
 
-fn bic_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn bic_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b00, shift, 1, rm, imm6, rn, rd)
 }
 
-fn orr_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn orr_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b01, shift, 0, rm, imm6, rn, rd)
 }
 
-fn orn_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn orn_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b01, shift, 1, rm, imm6, rn, rd)
 }
 
-fn eor_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn eor_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd)
 }
 
-fn eon_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn eon_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd)
 }
 
-fn ands_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn ands_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b11, shift, 0, rm, imm6, rn, rd)
 }
 
-fn bics_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+pub fn bics_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
     cls_logical_shreg(sf, 0b11, shift, 1, rm, imm6, rn, rd)
 }
 
@@ -247,6 +247,19 @@ fn cls_logical_shreg(sf: u32, opc: u32, shift: Shift, n: u32, rm: Reg,
     0b01010u32 << 24 | sf << 31 | opc << 29 | shift.u32() << 22 |
         n << 21 | rm.u32() << 16 | imm6 << 10 |
         rn.u32() << 5 | rd.u32()
+}
+
+pub fn brk(imm16: u32) -> u32 {
+    cls_exception(0b001, imm16, 0, 0)
+}
+
+fn cls_exception(opc: u32, imm16: u32, op2: u32, ll: u32) -> u32 {
+    assert!(fits_u3(opc));
+    assert!(fits_u16(imm16));
+    assert!(op2 == 0);
+    assert!(fits_u2(ll));
+
+    0b11010100u32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
 }
 
 #[derive(Copy, Clone)]
@@ -355,6 +368,10 @@ fn fits_u12(imm: u32) -> bool {
 
 fn fits_i12(imm: i32) -> bool {
     -2048 <= imm && imm < 2048
+}
+
+fn fits_u16(imm: u32) -> bool {
+    imm < 65_536
 }
 
 fn fits_i19(imm: i32) -> bool {
@@ -593,5 +610,11 @@ mod tests {
         assert_emit!(0xca711a0f; eon_shreg(1, R15, R16, R17, Shift::LSR, 6));
         assert_emit!(0xea941e72; ands_shreg(1, R18, R19, R20, Shift::ASR, 7));
         assert_emit!(0xeaf726d5; bics_shreg(1, R21, R22, R23, Shift::ROR, 9));
+    }
+
+    #[test]
+    fn test_brk() {
+        assert_emit!(0xd4200000; brk(0));
+        assert_emit!(0xd43fffe0; brk(0xFFFF));
     }
 }
