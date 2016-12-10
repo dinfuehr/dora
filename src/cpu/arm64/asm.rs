@@ -61,11 +61,11 @@ fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd:
 }
 
 pub fn add_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 0, 0, Shift::Lsl, rm, 0, rn, rd)
+    cls_addsub_shreg(sf, 0, 0, Shift::LSL, rm, 0, rn, rd)
 }
 
 pub fn sub_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
-    cls_addsub_shreg(sf, 1, 0, Shift::Lsl, rm, 0, rn, rd)
+    cls_addsub_shreg(sf, 1, 0, Shift::LSL, rm, 0, rn, rd)
 }
 
 pub fn add_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
@@ -81,6 +81,7 @@ fn cls_addsub_shreg(sf: u32, op: u32, s: u32, shift: Shift, rm: Reg,
     assert!(fits_bit(sf));
     assert!(fits_bit(op));
     assert!(fits_bit(s));
+    assert!(!shift.is_ror());
     assert!(rm.is_gpr());
     assert!(rn.is_gpr());
     assert!(rd.is_gpr());
@@ -90,52 +91,51 @@ fn cls_addsub_shreg(sf: u32, op: u32, s: u32, shift: Shift, rm: Reg,
         shift.u32() << 22 | rm.u32() << 16 | imm6 << 10 | rn.u32() << 5 | rd.u32()
 }
 
-pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b00, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b00, 0, 0b01, rm, extend, amount, rn, rt)
 }
 
-pub fn ldrh_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b01, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+pub fn ldrh_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b01, 0, 0b01, rm, extend, amount, rn, rt)
 }
 
-pub fn ldrw_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b10, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+pub fn ldrw_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 0, 0b01, rm, extend, amount, rn, rt)
 }
 
-pub fn ldrx_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b11, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+pub fn ldrx_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 0, 0b01, rm, extend, amount, rn, rt)
 }
 
-pub fn strb_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b00, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+pub fn strb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b00, 0, 0b00, rm, extend, amount, rn, rt)
 }
 
-pub fn strh_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b01, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+pub fn strh_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b01, 0, 0b00, rm, extend, amount, rn, rt)
 }
 
 
-pub fn strw_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b10, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+pub fn strw_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 0, 0b00, rm, extend, amount, rn, rt)
 }
 
-pub fn strx_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b11, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+pub fn strx_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 0, 0b00, rm, extend, amount, rn, rt)
 }
 
-fn cls_ldst_regoffset(size: u32, v: u32, opc: u32, rm: Reg, option: u32,
+fn cls_ldst_regoffset(size: u32, v: u32, opc: u32, rm: Reg, option: LdStExtend,
                       s: u32, rn: Reg, rt: Reg) -> u32 {
     assert!(fits_u2(size));
     assert!(fits_bit(v));
     assert!(fits_u2(opc));
     assert!(rm.is_gpr());
-    assert!(fits_u3(option));
     assert!(fits_bit(s));
     assert!(rn.is_gpr());
     assert!(rt.is_gpr());
 
     0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 |
-        v << 26 | opc << 22 | rm.u32() << 16 | option << 13 | s << 12 |
+        v << 26 | opc << 22 | rm.u32() << 16 | option.u32() << 13 | s << 12 |
         rn.u32() << 5 | rt.u32()
 }
 
@@ -202,16 +202,80 @@ fn cls_ld_literal(opc: u32, v: u32, imm19: i32, rt: Reg) -> u32 {
     0b011u32 << 27 | opc << 30 | v << 26 | imm << 5 | rt.u32()
 }
 
+fn and_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b00, shift, 0, rm, imm6, rn, rd)
+}
+
+fn bic_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b00, shift, 1, rm, imm6, rn, rd)
+}
+
+fn orr_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b01, shift, 0, rm, imm6, rn, rd)
+}
+
+fn orn_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b01, shift, 1, rm, imm6, rn, rd)
+}
+
+fn eor_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b10, shift, 0, rm, imm6, rn, rd)
+}
+
+fn eon_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b10, shift, 1, rm, imm6, rn, rd)
+}
+
+fn ands_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b11, shift, 0, rm, imm6, rn, rd)
+}
+
+fn bics_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -> u32 {
+    cls_logical_shreg(sf, 0b11, shift, 1, rm, imm6, rn, rd)
+}
+
+fn cls_logical_shreg(sf: u32, opc: u32, shift: Shift, n: u32, rm: Reg,
+                     imm6: u32, rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_u2(opc));
+    assert!(fits_bit(n));
+    assert!(rm.is_gpr());
+    assert!(fits_u5(imm6));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    0b01010u32 << 24 | sf << 31 | opc << 29 | shift.u32() << 22 |
+        n << 21 | rm.u32() << 16 | imm6 << 10 |
+        rn.u32() << 5 | rd.u32()
+}
+
 #[derive(Copy, Clone)]
 pub enum Extend {
-    UXTW, LSL, SXTW, SXTX
+    UXTB, UXTH, LSL, UXTW, UXTX,
+    SXTB, SXTH, SXTW, SXTX,
 }
 
 impl Extend {
+    fn is_ldr(self) -> bool {
+        match self {
+            Extend::UXTW |
+                Extend::LSL |
+                Extend::SXTW |
+                Extend::SXTX => true,
+
+            _ => false,
+        }
+    }
+
     fn u32(self) -> u32 {
         match self {
+            Extend::UXTB => 0b000,
+            Extend::UXTH => 0b001,
+            Extend::LSL  => 0b010,
             Extend::UXTW => 0b010,
-            Extend::LSL => 0b011,
+            Extend::UXTX => 0b011,
+            Extend::SXTB => 0b100,
+            Extend::SXTH => 0b101,
             Extend::SXTW => 0b110,
             Extend::SXTX => 0b111,
         }
@@ -219,16 +283,40 @@ impl Extend {
 }
 
 #[derive(Copy, Clone)]
+pub enum LdStExtend {
+    UXTW, LSL, SXTW, SXTX
+}
+
+impl LdStExtend {
+    fn u32(self) -> u32 {
+        match self {
+            LdStExtend::UXTW => 0b010,
+            LdStExtend::LSL  => 0b011,
+            LdStExtend::SXTW => 0b110,
+            LdStExtend::SXTX => 0b111,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub enum Shift {
-    Lsl, Lsr, Asr
+    LSL, LSR, ASR, ROR
 }
 
 impl Shift {
+    fn is_ror(self) -> bool {
+        match self {
+            Shift::ROR => true,
+            _ => false,
+        }
+    }
+
     fn u32(self) -> u32 {
         match self {
-            Shift::Lsl => 0,
-            Shift::Lsr => 1,
-            Shift::Asr => 2,
+            Shift::LSL => 0,
+            Shift::LSR => 1,
+            Shift::ASR => 2,
+            Shift::ROR => 3,
         }
     }
 }
@@ -382,18 +470,18 @@ mod tests {
 
     #[test]
     fn test_add_shreg() {
-        assert_emit!(0x0b030441; add_shreg(0, R1, R2, R3, Shift::Lsl, 1));
-        assert_emit!(0x8b0608a4; add_shreg(1, R4, R5, R6, Shift::Lsl, 2));
-        assert_emit!(0x0b430441; add_shreg(0, R1, R2, R3, Shift::Lsr, 1));
-        assert_emit!(0x8b8608a4; add_shreg(1, R4, R5, R6, Shift::Asr, 2));
+        assert_emit!(0x0b030441; add_shreg(0, R1, R2, R3, Shift::LSL, 1));
+        assert_emit!(0x8b0608a4; add_shreg(1, R4, R5, R6, Shift::LSL, 2));
+        assert_emit!(0x0b430441; add_shreg(0, R1, R2, R3, Shift::LSR, 1));
+        assert_emit!(0x8b8608a4; add_shreg(1, R4, R5, R6, Shift::ASR, 2));
     }
 
     #[test]
     fn test_sub_shreg() {
-        assert_emit!(0x4b030441; sub_shreg(0, R1, R2, R3, Shift::Lsl, 1));
-        assert_emit!(0xcb0608a4; sub_shreg(1, R4, R5, R6, Shift::Lsl, 2));
-        assert_emit!(0x4b430441; sub_shreg(0, R1, R2, R3, Shift::Lsr, 1));
-        assert_emit!(0xcb8608a4; sub_shreg(1, R4, R5, R6, Shift::Asr, 2));
+        assert_emit!(0x4b030441; sub_shreg(0, R1, R2, R3, Shift::LSL, 1));
+        assert_emit!(0xcb0608a4; sub_shreg(1, R4, R5, R6, Shift::LSL, 2));
+        assert_emit!(0x4b430441; sub_shreg(0, R1, R2, R3, Shift::LSR, 1));
+        assert_emit!(0xcb8608a4; sub_shreg(1, R4, R5, R6, Shift::ASR, 2));
     }
 
     #[test]
@@ -444,21 +532,21 @@ mod tests {
 
     #[test]
     fn test_ldr_ind() {
-        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, LdStExtend::LSL, 0));
 
-        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, LdStExtend::LSL, 0));
 
-        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
 
-        assert_emit!(0xf8626820; ldrx_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xf8657883; ldrx_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xf86858e6; ldrx_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xf86bd949; ldrx_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xf8626820; ldrx_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xf8657883; ldrx_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xf86858e6; ldrx_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xf86bd949; ldrx_ind(R9, R10, R11, LdStExtend::SXTW, 1));
     }
 
     #[test]
@@ -478,20 +566,32 @@ mod tests {
 
     #[test]
     fn test_str_ind() {
-        assert_emit!(0x38226820; strb_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x38256883; strb_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x38226820; strb_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x38256883; strb_ind(R3, R4, R5, LdStExtend::LSL, 0));
 
-        assert_emit!(0x78226820; strh_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x78256883; strh_ind(R3, R4, R5, Extend::LSL, 0));
+        assert_emit!(0x78226820; strh_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0x78256883; strh_ind(R3, R4, R5, LdStExtend::LSL, 0));
 
-        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, LdStExtend::SXTW, 1));
 
-        assert_emit!(0xf8226820; strx_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xf8257883; strx_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xf82858e6; strx_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xf82bd949; strx_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xf8226820; strx_ind(R0, R1, R2, LdStExtend::LSL, 0));
+        assert_emit!(0xf8257883; strx_ind(R3, R4, R5, LdStExtend::LSL, 1));
+        assert_emit!(0xf82858e6; strx_ind(R6, R7, R8, LdStExtend::UXTW, 1));
+        assert_emit!(0xf82bd949; strx_ind(R9, R10, R11, LdStExtend::SXTW, 1));
+    }
+
+    #[test]
+    fn test_logical_shreg() {
+        assert_emit!(0x0a020420; and_shreg(0, R0, R1, R2, Shift::LSL, 1));
+        assert_emit!(0x0a650883; bic_shreg(0, R3, R4, R5, Shift::LSR, 2));
+        assert_emit!(0xaa880ce6; orr_shreg(1, R6, R7, R8, Shift::ASR, 3));
+        assert_emit!(0xaaeb1149; orn_shreg(1, R9, R10, R11, Shift::ROR, 4));
+        assert_emit!(0xca0e15ac; eor_shreg(1, R12, R13, R14, Shift::LSL, 5));
+        assert_emit!(0xca711a0f; eon_shreg(1, R15, R16, R17, Shift::LSR, 6));
+        assert_emit!(0xea941e72; ands_shreg(1, R18, R19, R20, Shift::ASR, 7));
+        assert_emit!(0xeaf726d5; bics_shreg(1, R21, R22, R23, Shift::ROR, 9));
     }
 }
