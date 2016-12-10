@@ -90,12 +90,37 @@ fn cls_addsub_shreg(sf: u32, op: u32, s: u32, shift: Shift, rm: Reg,
         shift.u32() << 22 | rm.u32() << 16 | imm6 << 10 | rn.u32() << 5 | rd.u32()
 }
 
+pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b00, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+}
+
+pub fn ldrh_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b01, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+}
+
 pub fn ldrw_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
     cls_ldst_regoffset(0b10, 0, 0b01, rm, extend.u32(), amount, rn, rt)
 }
 
 pub fn ldrx_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
     cls_ldst_regoffset(0b11, 0, 0b01, rm, extend.u32(), amount, rn, rt)
+}
+
+pub fn strb_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b00, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+}
+
+pub fn strh_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b01, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+}
+
+
+pub fn strw_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 0, 0b00, rm, extend.u32(), amount, rn, rt)
+}
+
+pub fn strx_ind(rt: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 0, 0b00, rm, extend.u32(), amount, rn, rt)
 }
 
 fn cls_ldst_regoffset(size: u32, v: u32, opc: u32, rm: Reg, option: u32,
@@ -112,6 +137,69 @@ fn cls_ldst_regoffset(size: u32, v: u32, opc: u32, rm: Reg, option: u32,
     0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 |
         v << 26 | opc << 22 | rm.u32() << 16 | option << 13 | s << 12 |
         rn.u32() << 5 | rt.u32()
+}
+
+pub fn ldrb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b00, 0, 0b01, imm12, rn, rt)
+}
+
+pub fn ldrh_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b01, 0, 0b01, imm12, rn, rt)
+}
+
+pub fn ldrw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b10, 0, 0b01, imm12, rn, rt)
+}
+
+pub fn ldrx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b11, 0, 0b01, imm12, rn, rt)
+}
+
+pub fn strb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b00, 0, 0b00, imm12, rn, rt)
+}
+
+pub fn strh_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b01, 0, 0b00, imm12, rn, rt)
+}
+
+pub fn strw_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b10, 0, 0b00, imm12, rn, rt)
+}
+
+pub fn strx_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
+    cls_ldst_regimm(0b11, 0, 0b00, imm12, rn, rt)
+}
+
+fn cls_ldst_regimm(size: u32, v: u32, opc: u32, imm12: u32, rn: Reg, rt: Reg) -> u32 {
+    assert!(fits_u2(size));
+    assert!(fits_bit(v));
+    assert!(fits_u2(opc));
+    assert!(fits_u12(imm12));
+    assert!(rn.is_gpr());
+    assert!(rt.is_gpr());
+
+    0b111001u32 << 24 | size << 30 | v << 26 | opc << 22 |
+        imm12 << 10 | rn.u32() << 5 | rt.u32()
+}
+
+pub fn ldrw_literal(rt: Reg, imm19: i32) -> u32 {
+    cls_ld_literal(0b00, 0, imm19, rt)
+}
+
+pub fn ldrx_literal(rt: Reg, imm19: i32) -> u32 {
+    cls_ld_literal(0b01, 0, imm19, rt)
+}
+
+fn cls_ld_literal(opc: u32, v: u32, imm19: i32, rt: Reg) -> u32 {
+    assert!(fits_u2(opc));
+    assert!(fits_bit(v));
+    assert!(fits_i19(imm19));
+    assert!(rt.is_gpr());
+
+    let imm = (imm19 as u32) & 0x7FFFF;
+
+    0b011u32 << 27 | opc << 30 | v << 26 | imm << 5 | rt.u32()
 }
 
 #[derive(Copy, Clone)]
@@ -179,6 +267,10 @@ fn fits_u12(imm: u32) -> bool {
 
 fn fits_i12(imm: i32) -> bool {
     -2048 <= imm && imm < 2048
+}
+
+fn fits_i19(imm: i32) -> bool {
+    -262_144 <= imm && imm < 262_144
 }
 
 #[cfg(test)]
@@ -321,18 +413,85 @@ mod tests {
     }
 
     #[test]
-    fn test_ldrw_ind() {
+    fn test_ldr_imm() {
+        assert_emit!(0x39400420; ldrb_imm(R0, R1, 1));
+        assert_emit!(0x39400862; ldrb_imm(R2, R3, 2));
+
+        assert_emit!(0x79400420; ldrh_imm(R0, R1, 1));
+        assert_emit!(0x79400862; ldrh_imm(R2, R3, 2));
+
+        assert_emit!(0xb9400420; ldrw_imm(R0, R1, 1));
+        assert_emit!(0xb9400862; ldrw_imm(R2, R3, 2));
+
+        assert_emit!(0xf9400420; ldrx_imm(R0, R1, 1));
+        assert_emit!(0xf9400862; ldrx_imm(R2, R3, 2));
+    }
+
+    #[test]
+    fn test_ldr_literal() {
+        // forward jump
+        assert_emit!(0x18000060; ldrw_literal(R0, 3));
+        assert_emit!(0x58000040; ldrx_literal(R0, 2));
+        assert_emit!(0x1800007e; ldrw_literal(R30, 3));
+        assert_emit!(0x5800005e; ldrx_literal(R30, 2));
+
+        // backward jump
+        assert_emit!(0x18ffffe0; ldrw_literal(R0, -1));
+        assert_emit!(0x58ffffc0; ldrx_literal(R0, -2));
+        assert_emit!(0x18fffffe; ldrw_literal(R30, -1));
+        assert_emit!(0x58ffffde; ldrx_literal(R30, -2));
+    }
+
+    #[test]
+    fn test_ldr_ind() {
+        assert_emit!(0x38626820; ldrb_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38656883; ldrb_ind(R3, R4, R5, Extend::LSL, 0));
+
+        assert_emit!(0x78626820; ldrh_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78656883; ldrh_ind(R3, R4, R5, Extend::LSL, 0));
+
         assert_emit!(0xb8626820; ldrw_ind(R0, R1, R2, Extend::LSL, 0));
         assert_emit!(0xb8657883; ldrw_ind(R3, R4, R5, Extend::LSL, 1));
         assert_emit!(0xb86858e6; ldrw_ind(R6, R7, R8, Extend::UXTW, 1));
         assert_emit!(0xb86bd949; ldrw_ind(R9, R10, R11, Extend::SXTW, 1));
-    }
 
-    #[test]
-    fn test_ldrx_ind() {
         assert_emit!(0xf8626820; ldrx_ind(R0, R1, R2, Extend::LSL, 0));
         assert_emit!(0xf8657883; ldrx_ind(R3, R4, R5, Extend::LSL, 1));
         assert_emit!(0xf86858e6; ldrx_ind(R6, R7, R8, Extend::UXTW, 1));
         assert_emit!(0xf86bd949; ldrx_ind(R9, R10, R11, Extend::SXTW, 1));
+    }
+
+    #[test]
+    fn test_str_imm() {
+        assert_emit!(0x39000420; strb_imm(R0, R1, 1));
+        assert_emit!(0x39000862; strb_imm(R2, R3, 2));
+
+        assert_emit!(0x79000420; strh_imm(R0, R1, 1));
+        assert_emit!(0x79000862; strh_imm(R2, R3, 2));
+
+        assert_emit!(0xb9000420; strw_imm(R0, R1, 1));
+        assert_emit!(0xb9000862; strw_imm(R2, R3, 2));
+
+        assert_emit!(0xf9000420; strx_imm(R0, R1, 1));
+        assert_emit!(0xf9000862; strx_imm(R2, R3, 2));
+    }
+
+    #[test]
+    fn test_str_ind() {
+        assert_emit!(0x38226820; strb_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38256883; strb_ind(R3, R4, R5, Extend::LSL, 0));
+
+        assert_emit!(0x78226820; strh_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78256883; strh_ind(R3, R4, R5, Extend::LSL, 0));
+
+        assert_emit!(0xb8226820; strw_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8257883; strw_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xb82858e6; strw_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xb82bd949; strw_ind(R9, R10, R11, Extend::SXTW, 1));
+
+        assert_emit!(0xf8226820; strx_ind(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8257883; strx_ind(R3, R4, R5, Extend::LSL, 1));
+        assert_emit!(0xf82858e6; strx_ind(R6, R7, R8, Extend::UXTW, 1));
+        assert_emit!(0xf82bd949; strx_ind(R9, R10, R11, Extend::SXTW, 1));
     }
 }
