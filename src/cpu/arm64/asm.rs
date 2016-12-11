@@ -419,6 +419,38 @@ fn cls_dataproc2(sf: u32, s: u32, rm: Reg, opcode: u32, rn: Reg, rd: Reg) -> u32
         opcode << 10 | rn.u32() << 5 | rd.u32()
 }
 
+pub fn ldpw(rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
+    cls_ldst_pair(0b00, 0, 1, imm7, rt2, rn, rt)
+}
+
+pub fn stpw(rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
+    cls_ldst_pair(0b00, 0, 0, imm7, rt2, rn, rt)
+}
+
+pub fn ldpx(rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
+    cls_ldst_pair(0b10, 0, 1, imm7, rt2, rn, rt)
+}
+
+pub fn stpx(rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
+    cls_ldst_pair(0b10, 0, 0, imm7, rt2, rn, rt)
+}
+
+fn cls_ldst_pair(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg,
+                 rn: Reg, rt: Reg) -> u32 {
+    assert!(fits_u2(opc));
+    assert!(fits_bit(v));
+    assert!(fits_bit(l));
+    assert!(fits_i7(imm7));
+    assert!(rt2.is_gpr());
+    assert!(rn.is_gpr());
+    assert!(rt.is_gpr());
+
+    let imm = (imm7 as u32) & 0x7F;
+
+    opc << 30 | 0b101u32 << 27 | 1u32 << 24 | l << 22 | imm << 15 |
+        rt2.u32() << 10 | rn.u32() << 5 | rt.u32()
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
@@ -575,6 +607,10 @@ fn fits_u6(imm: u32) -> bool {
 
 fn fits_u7(imm: u32) -> bool {
     imm < 128
+}
+
+fn fits_i7(imm: i32) -> bool {
+    -64 <= imm && imm < 64
 }
 
 fn fits_u12(imm: u32) -> bool {
@@ -947,5 +983,25 @@ mod tests {
         assert_emit!(0x1acb2549; lsrv(0, R9, R10, R11));
         assert_emit!(0x1ace29ac; asrv(0, R12, R13, R14));
         assert_emit!(0x1ad12e0f; rorv(0, R15, R16, R17));
+    }
+
+    #[test]
+    fn test_ldp() {
+        assert_emit!(0x29400440; ldpw(R0, R1, R2, 0));
+        assert_emit!(0x294090a3; ldpw(R3, R4, R5, 1));
+        assert_emit!(0x294110a3; ldpw(R3, R4, R5, 2));
+        assert_emit!(0xa9400440; ldpx(R0, R1, R2, 0));
+        assert_emit!(0xa94090a3; ldpx(R3, R4, R5, 1));
+        assert_emit!(0xa94110a3; ldpx(R3, R4, R5, 2));
+    }
+
+    #[test]
+    fn test_stp() {
+        assert_emit!(0x29000440; stpw(R0, R1, R2, 0));
+        assert_emit!(0x290090a3; stpw(R3, R4, R5, 1));
+        assert_emit!(0x290110a3; stpw(R3, R4, R5, 2));
+        assert_emit!(0xa9000440; stpx(R0, R1, R2, 0));
+        assert_emit!(0xa90090a3; stpx(R3, R4, R5, 1));
+        assert_emit!(0xa90110a3; stpx(R3, R4, R5, 2));
     }
 }
