@@ -29,6 +29,21 @@ fn cls_uncond_branch_reg(opc: u32, op2: u32, op3: u32, rn: Reg, op4: u32) -> u32
         op3 << 10 | rn.u32() << 5 | op4
 }
 
+pub fn b_imm(imm26: i32) -> u32 {
+    cls_uncond_branch_imm(0, imm26)
+}
+
+pub fn bl_imm(imm26: i32) -> u32 {
+    cls_uncond_branch_imm(1, imm26)
+}
+
+fn cls_uncond_branch_imm(op: u32, imm26: i32) -> u32 {
+    assert!(fits_bit(op));
+    assert!(fits_i26(imm26));
+
+    0b101u32 << 26 | op << 31 | ((imm26 as u32) & 0x3FFFFFF)
+}
+
 pub fn nop() -> u32 {
     cls_system(0)
 }
@@ -378,6 +393,10 @@ fn fits_i19(imm: i32) -> bool {
     -262_144 <= imm && imm < 262_144
 }
 
+fn fits_i26(imm: i32) -> bool {
+    -(1i32 << 25) <= imm && imm < (1i32 << 25)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -616,5 +635,19 @@ mod tests {
     fn test_brk() {
         assert_emit!(0xd4200000; brk(0));
         assert_emit!(0xd43fffe0; brk(0xFFFF));
+    }
+
+    #[test]
+    fn test_b_imm() {
+        assert_emit!(0x14000000; b_imm(0));
+        assert_emit!(0x17FFFFFF; b_imm(-1));
+        assert_emit!(0x14000001; b_imm(1));
+    }
+
+    #[test]
+    fn test_bl_imm() {
+        assert_emit!(0x94000000; bl_imm(0));
+        assert_emit!(0x97FFFFFF; bl_imm(-1));
+        assert_emit!(0x94000001; bl_imm(1));
     }
 }
