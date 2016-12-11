@@ -427,6 +427,10 @@ pub fn msub(sf: u32, rd: Reg, rn: Reg, rm: Reg, ra: Reg) -> u32 {
     cls_dataproc3(sf, 0, 0, rm, 1, ra, rn, rd)
 }
 
+pub fn mul(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    madd(sf, rd, rn, rm, REG_ZERO)
+}
+
 fn cls_dataproc3(sf: u32, op54: u32, op31: u32, rm: Reg, o0: u32,
                  ra: Reg, rn: Reg, rd: Reg) -> u32 {
     assert!(fits_bit(sf));
@@ -1035,5 +1039,11 @@ mod tests {
         assert_emit!(0x1b0720c5; madd(0, R5, R6, R7, R8));
         assert_emit!(0x9b0bb149; msub(1, R9, R10, R11, R12));
         assert_emit!(0x1b0fc1cd; msub(0, R13, R14, R15, R16));
+    }
+
+    #[test]
+    fn test_mul() {
+        assert_emit!(0x9b037c41; mul(1, R1, R2, R3));
+        assert_emit!(0x1b067ca4; mul(0, R4, R5, R6));
     }
 }
