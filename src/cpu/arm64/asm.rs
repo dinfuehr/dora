@@ -383,6 +383,42 @@ fn cls_pcrel(op: u32, imm: i32, rd: Reg) -> u32 {
     1u32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.u32()
 }
 
+pub fn udiv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b10, rn, rd)
+}
+
+pub fn sdiv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b11, rn, rd)
+}
+
+pub fn lslv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b1000, rn, rd)
+}
+
+pub fn lsrv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b1001, rn, rd)
+}
+
+pub fn asrv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b1010, rn, rd)
+}
+
+pub fn rorv(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
+    cls_dataproc2(sf, 0, rm, 0b1011, rn, rd)
+}
+
+fn cls_dataproc2(sf: u32, s: u32, rm: Reg, opcode: u32, rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(s));
+    assert!(fits_u6(opcode));
+    assert!(rm.is_gpr());
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31 | s << 29 | 0b11010110u32 << 21 | rm.u32() << 16 |
+        opcode << 10 | rn.u32() << 5 | rd.u32()
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
@@ -901,5 +937,15 @@ mod tests {
         assert_emit!(0x9000001d; adrp(R29,  0));
         assert_emit!(0x9000003c; adrp(R28,  4));
         assert_emit!(0x9000005b; adrp(R27,  8));
+    }
+
+    #[test]
+    fn test_div() {
+        assert_emit!(0x1ac20820; udiv(0, R0, R1, R2));
+        assert_emit!(0x9ac50c83; sdiv(1, R3, R4, R5));
+        assert_emit!(0x1ac820e6; lslv(0, R6, R7, R8));
+        assert_emit!(0x1acb2549; lsrv(0, R9, R10, R11));
+        assert_emit!(0x1ace29ac; asrv(0, R12, R13, R14));
+        assert_emit!(0x1ad12e0f; rorv(0, R15, R16, R17));
     }
 }
