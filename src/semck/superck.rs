@@ -2,10 +2,10 @@ use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::ptr;
 
+use baseline::stub::Stub;
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
-use jit::stub::Stub;
 use lexer::position::Position;
 use mem::ptr::Ptr;
 use object::Header;

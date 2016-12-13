@@ -1,6 +1,5 @@
 use cpu::Reg;
 use cpu::arm64::reg::*;
-use jit::buffer::Buffer;
 
 pub fn ret() -> u32 {
     cls_uncond_branch_reg(0b0010, 0b11111, 0, REG_LR, 0)

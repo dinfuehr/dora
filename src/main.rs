@@ -13,6 +13,7 @@ extern crate rustc_serialize;
 extern crate time;
 
 mod ast;
+mod baseline;
 mod class;
 mod cpu;
 mod ctxt;
@@ -22,7 +23,6 @@ mod error;
 mod execstate;
 mod gc;
 mod interner;
-mod jit;
 mod lexer;
 mod mem;
 mod mir;

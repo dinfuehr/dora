@@ -1,6 +1,6 @@
 use ctxt::Context;
 use interner::Name;
-use jit::fct::JitFct;
+use baseline::fct::JitFct;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {

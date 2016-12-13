@@ -1,10 +1,10 @@
 use std;
 use libc::*;
 
+use baseline;
 use cpu::{self, REG_RESULT};
 use ctxt::{Context, CTXT, get_ctxt};
 use execstate::ExecState;
-use jit;
 use mem::ptr::Ptr;
 use object::{Handle, Obj};
 use os_cpu::*;
@@ -107,7 +107,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
         let mut sfi = cpu::sfi_from_execution_state(es);
 
         ctxt.use_sfi(&mut sfi, || {
-            let jit_fct = jit::generate(ctxt, fct_id);
+            let jit_fct = baseline::generate(ctxt, fct_id);
             let fct = ctxt.fct_by_id(fct_id);
 
             if fct.is_virtual() {

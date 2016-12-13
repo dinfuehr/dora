@@ -1,8 +1,8 @@
 use std::ptr;
 
+use baseline::fct::CatchType;
 use ctxt::{Context, FctKind, get_ctxt};
 use execstate::ExecState;
-use jit::fct::CatchType;
 use mem;
 use object::{Handle, Obj};
 use stacktrace::{Stacktrace, StackFrameInfo};

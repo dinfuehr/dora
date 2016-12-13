@@ -1,8 +1,9 @@
+use baseline::fct::{CatchType, Comments, Comment, ExHandler,
+                    JitFct, LineNumberTable, GcPoints, GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use cpu::trap::{self, TrapId};
 use dseg::DSeg;
-use jit::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints, GcPoint};
 use lexer::position::Position;
 
 pub struct Buffer {

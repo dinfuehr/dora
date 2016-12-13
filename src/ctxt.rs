@@ -8,13 +8,13 @@ use driver::cmd::Args;
 use error::diag::Diagnostic;
 
 use ast;
+use baseline::fct::JitFct;
+use baseline::map::CodeMap;
+use baseline::native::NativeFcts;
+use baseline::stub::Stub;
 use class::{Class, ClassId, Field, FieldId};
 use gc::Gc;
 use interner::*;
-use jit::fct::JitFct;
-use jit::map::CodeMap;
-use jit::native::NativeFcts;
-use jit::stub::Stub;
 use lexer::position::Position;
 use mem::{self, Ptr};
 use object::{Handle, Str};

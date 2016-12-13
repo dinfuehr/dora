@@ -1,7 +1,7 @@
 use cpu::asm::*;
 use cpu::*;
-use jit::buffer::*;
-use jit::codegen::CondCode;
+use baseline::buffer::*;
+use baseline::codegen::CondCode;
 use lexer::position::Position;
 use object::IntArray;
 use ty::MachineMode;
@@ -314,8 +314,8 @@ pub fn bool_not_reg(buf: &mut Buffer, dest: Reg) {
 mod tests {
     use super::*;
 
+    use baseline::buffer::Buffer;
     use cpu::trap;
-    use jit::buffer::Buffer;
 
     #[test]
     fn test_debug() {

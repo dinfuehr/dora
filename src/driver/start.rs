@@ -6,7 +6,7 @@ use driver::cmd;
 use error::msg::Msg;
 
 use interner::Interner;
-use jit;
+use baseline;
 use lexer::position::Position;
 use os;
 
@@ -63,7 +63,7 @@ pub fn start() -> i32 {
         let mut sfi = StackFrameInfo::new();
 
         ctxt.use_sfi(&mut sfi, || {
-            jit::generate(&ctxt, main)
+            baseline::generate(&ctxt, main)
         })
     };
 

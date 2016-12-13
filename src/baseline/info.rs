@@ -6,7 +6,7 @@ use ast::Expr::*;
 use ast::visit::*;
 use cpu;
 use ctxt::{Arg, Callee, CallSite, Context, Fct, FctSrc, Store, VarId};
-use jit::expr::is_leaf;
+use baseline::expr::is_leaf;
 use mem;
 use mem::ptr::Ptr;
 use stdlib;

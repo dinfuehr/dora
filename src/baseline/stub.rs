@@ -1,10 +1,10 @@
 use std::fmt;
 
+use baseline::buffer::Buffer;
 use cpu::trap;
 use ctxt::FctId;
 use mem::code::CodeMemory;
 use mem::Ptr;
-use jit::buffer::Buffer;
 
 pub struct Stub {
     mem: CodeMemory,

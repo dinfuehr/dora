@@ -6,14 +6,14 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
+use baseline::buffer::*;
+use baseline::expr::*;
+use baseline::fct::{CatchType, JitFct, GcPoint};
+use baseline::info;
 use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 
-use jit::buffer::*;
-use jit::expr::*;
-use jit::fct::{CatchType, JitFct, GcPoint};
-use jit::info;
 use mem::ptr::Ptr;
 use os;
 use semck::always_returns;

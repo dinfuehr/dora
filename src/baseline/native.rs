@@ -1,10 +1,10 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
+use baseline::buffer::Buffer;
+use baseline::fct::JitFct;
 use cpu::{emit, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, FctId, get_ctxt};
-use jit::buffer::Buffer;
-use jit::fct::JitFct;
 use mem;
 use stacktrace::StackFrameInfo;
 use ty::{BuiltinType, MachineMode};

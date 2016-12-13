@@ -1,9 +1,9 @@
+use baseline::buffer::Buffer;
 use cpu::*;
 use cpu::asm::*;
 use ctxt::{Context, FctId};
 use execstate::ExecState;
 
-use jit::buffer::Buffer;
 use mem::ptr::Ptr;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
