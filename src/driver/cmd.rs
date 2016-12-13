@@ -23,6 +23,7 @@ Options:
     --omit-bounds-check     Omit array index out of bounds checks
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
                             Allowed values: intel, att
+    --enable-perf           Enable dump for perf
     --gc-dump               Dump GC actions
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
@@ -35,6 +36,7 @@ pub struct Args {
     pub flag_emit_ast: bool,
     pub flag_emit_asm: bool,
     pub flag_emit_stubs: bool,
+    pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
     pub flag_version: bool,
     pub flag_emit_debug: bool,
@@ -53,6 +55,7 @@ impl Default for Args {
             flag_emit_asm: false,
             flag_emit_stubs: false,
             flag_emit_debug: false,
+            flag_enable_perf: false,
             flag_omit_bounds_check: false,
             flag_version: false,
             flag_asm_syntax: None,

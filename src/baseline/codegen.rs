@@ -123,7 +123,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let mut code_map = self.ctxt.code_map.lock().unwrap();
         code_map.insert(jit_fct.ptr_start().raw(), jit_fct.ptr_end().raw(), jit_fct.fct_id());
 
-        os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);
+        if self.ctxt.args.flag_enable_perf {
+            os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);
+        }
 
         jit_fct
     }
