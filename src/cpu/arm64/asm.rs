@@ -479,6 +479,35 @@ fn cls_ldst_pair(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg,
         rt2.u32() << 10 | rn.u32() << 5 | rt.u32()
 }
 
+pub fn sbfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
+    cls_bitfield(sf, 0b00, sf, immr, imms, rn, rd)
+}
+
+pub fn bfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
+    cls_bitfield(sf, 0b01, sf, immr, imms, rn, rd)
+}
+
+pub fn ubfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
+    cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd)
+}
+
+pub fn uxtb(rd: Reg, rn: Reg) -> u32 {
+    ubfm(0, rd, rn, 0, 7)
+}
+
+fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_u2(opc));
+    assert!(fits_bit(n));
+    assert!(fits_u6(immr));
+    assert!(fits_u6(imms));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 |
+        (imms & 0x3F) << 10 | rn.u32() << 5 | rd.u32()
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
@@ -1045,5 +1074,16 @@ mod tests {
     fn test_mul() {
         assert_emit!(0x9b037c41; mul(1, R1, R2, R3));
         assert_emit!(0x1b067ca4; mul(0, R4, R5, R6));
+    }
+
+    #[test]
+    fn test_bfm() {
+        assert_emit!(0x53010820; ubfm(0, R0, R1, 1, 2));
+        assert_emit!(0xd3431062; ubfm(1, R2, R3, 3, 4));
+        assert_emit!(0x33010820; bfm(0, R0, R1, 1, 2));
+        assert_emit!(0xb3431062; bfm(1, R2, R3, 3, 4));
+        assert_emit!(0x13010820; sbfm(0, R0, R1, 1, 2));
+        assert_emit!(0x93431062; sbfm(1, R2, R3, 3, 4));
+        assert_emit!(0x53001c20; uxtb(R0, R1));
     }
 }
