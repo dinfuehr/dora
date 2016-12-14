@@ -3,8 +3,10 @@ use cpu::*;
 use baseline::buffer::*;
 use baseline::codegen::CondCode;
 use lexer::position::Position;
+use mem::ptr_width;
 use object::IntArray;
 use ty::MachineMode;
+use vtable::VTable;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     emit_pushq_reg(buf, RBP);
@@ -29,6 +31,26 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     let pos = buf.pos() as i32;
 
     movq_addr_reg(buf, disp + pos, REG_RESULT);
+    call(buf, REG_RESULT);
+}
+
+pub fn indirect_call(buf: &mut Buffer, index: u32) {
+    let obj = REG_PARAMS[0];
+
+    // REG_RESULT = [obj]
+    // REG_TMP1 = offset table in vtable
+    // REG_RESULT = REG_RESULT + REG_TMP1
+    mov_mem_reg(buf, MachineMode::Ptr, obj, 0, REG_RESULT);
+    load_int_const(buf, REG_TMP1, VTable::offset_of_method_table());
+    ptr_add(buf, REG_RESULT, REG_RESULT, REG_TMP1);
+
+    // REG_TMP1 = index
+    // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
+    load_int_const(buf, REG_TMP1, index as i32);
+    mov_array_reg(buf, MachineMode::Ptr, REG_RESULT,
+        REG_TMP1, ptr_width() as u8, REG_RESULT);
+
+    // call *REG_RESULT
     call(buf, REG_RESULT);
 }
 

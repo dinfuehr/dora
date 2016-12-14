@@ -887,7 +887,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_indirect_call_insn(&mut self, index: u32, pos: Position, ty: BuiltinType, dest: Reg) {
-        self.insn_indirect_call(index);
+        emit::indirect_call(&mut self.buf, index);
         self.emit_after_call_insns(pos, ty, dest);
     }
 
@@ -900,34 +900,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
         }
-    }
-
-    fn insn_direct_call(&mut self, ptr: *const u8) {
-        let disp = self.buf.add_addr(ptr);
-        let pos = self.buf.pos() as i32;
-
-        emit::movq_addr_reg(self.buf, disp + pos, REG_RESULT);
-        emit::call(self.buf, REG_RESULT);
-    }
-
-    fn insn_indirect_call(&mut self, index: u32) {
-        let obj = REG_PARAMS[0];
-
-        // REG_RESULT = [obj]
-        // REG_TMP1 = offset table in vtable
-        // REG_RESULT = REG_RESULT + REG_TMP1
-        emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
-        emit::load_int_const(self.buf, REG_TMP1, VTable::offset_of_method_table());
-        emit::ptr_add(self.buf, REG_RESULT, REG_RESULT, REG_TMP1);
-
-        // REG_TMP1 = index
-        // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
-        emit::load_int_const(self.buf, REG_TMP1, index as i32);
-        emit::mov_array_reg(self.buf, MachineMode::Ptr, REG_RESULT,
-            REG_TMP1, mem::ptr_width() as u8, REG_RESULT);
-
-        // call *REG_RESULT
-        emit::call(self.buf, REG_RESULT);
     }
 }
 
