@@ -249,14 +249,6 @@ pub fn mov_reg_local(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32)
     }
 }
 
-pub fn movl_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    emit_movl_reg_reg(buf, src, dest);
-}
-
-pub fn movp_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    emit_movq_reg_reg(buf, src, dest);
-}
-
 pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     match mode {
         MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
@@ -264,8 +256,12 @@ pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     }
 }
 
-pub fn addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
-    emit_addq_reg_reg(buf, src, dest);
+pub fn ptr_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    emit_addq_reg_reg(buf, rhs, lhs);
+
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
 pub fn shll_reg_cl(buf: &mut Buffer, dest: Reg) {

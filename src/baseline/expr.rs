@@ -444,7 +444,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
                 emit::add_imm_reg(self.buf, MachineMode::Ptr, IntArray::offset_of_data(), REG_TMP1);
                 emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
-                emit::addq_reg_reg(self.buf, REG_TMP2, REG_TMP1);
+                emit::ptr_add(self.buf, REG_TMP1, REG_TMP1, REG_TMP2);
                 emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);
 
                 self.free_temp_for_node(&array.object, offset_object);
@@ -919,7 +919,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // REG_RESULT = REG_RESULT + REG_TMP1
         emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
         emit::load_int_const(self.buf, REG_TMP1, VTable::offset_of_method_table());
-        emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
+        emit::ptr_add(self.buf, REG_RESULT, REG_RESULT, REG_TMP1);
 
         // REG_TMP1 = index
         // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
