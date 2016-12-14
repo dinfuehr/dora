@@ -264,14 +264,6 @@ pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     }
 }
 
-pub fn reserve_stack(buf: &mut Buffer, imm: i32) {
-    emit_subq_imm_reg(buf, imm, RSP);
-}
-
-pub fn free_stack(buf: &mut Buffer, imm: i32) {
-    emit_addq_imm_reg(buf, imm, RSP);
-}
-
 pub fn addq_reg_reg(buf: &mut Buffer, src: Reg, dest: Reg) {
     emit_addq_reg_reg(buf, src, dest);
 }
@@ -282,10 +274,6 @@ pub fn shll_reg_cl(buf: &mut Buffer, dest: Reg) {
 
 pub fn shiftlq_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
     emit_shlq_reg(buf, imm, dest);
-}
-
-pub fn shiftll_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
-    emit_shll_reg(buf, imm, dest);
 }
 
 pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {
@@ -299,18 +287,22 @@ pub fn call(buf: &mut Buffer, reg: Reg) {
     emit_callq_reg(buf, reg);
 }
 
-pub fn push_param(buf: &mut Buffer, reg: Reg) {
-    emit_pushq_reg(buf, reg);
-}
-
 // emit debug instruction
 pub fn debug(buf: &mut Buffer) {
     // emit int3 = 0xCC
     emit_op(buf, 0xCC);
 }
 
-pub fn movl_imm_reg(buf: &mut Buffer, imm: u32, dest: Reg) {
-    emit_movl_imm_reg(buf, imm, dest);
+pub fn load_int_const(buf: &mut Buffer, dest: Reg, imm: i32) {
+    emit_movl_imm_reg(buf, imm as u32, dest);
+}
+
+pub fn load_true(buf: &mut Buffer, dest: Reg) {
+    emit_movl_imm_reg(buf, 1, dest);
+}
+
+pub fn load_false(buf: &mut Buffer, dest: Reg) {
+    emit_movl_imm_reg(buf, 0, dest);
 }
 
 pub fn int_neg(buf: &mut Buffer, dest: Reg, src: Reg) {

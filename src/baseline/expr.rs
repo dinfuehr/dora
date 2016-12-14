@@ -153,7 +153,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if e.valid() {
             if e.is {
                 // return true for object is T
-                emit::movl_imm_reg(self.buf, 1, dest);
+                emit::load_true(self.buf, dest);
 
             } else {
                 // do nothing for object as T
@@ -227,7 +227,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 if e.is {
                     // dest = false
-                    emit::movl_imm_reg(self.buf, 0, dest);
+                    emit::load_false(self.buf, dest);
                 } else {
                     // bailout
                     self.buf.emit_bailout_inplace(trap::CAST, e.pos);
@@ -371,12 +371,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        emit::movl_imm_reg(self.buf, lit.value as u32, dest);
+        emit::load_int_const(self.buf, dest, lit.value);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {
-        let value : u32 = if lit.value { 1 } else { 0 };
-        emit::movl_imm_reg(self.buf, value, dest);
+        if lit.value {
+            emit::load_true(self.buf, dest);
+        } else {
+            emit::load_false(self.buf, dest);
+        };
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
@@ -532,11 +535,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_false);
 
         self.buf.bind_label(lbl_true);
-        emit::movl_imm_reg(self.buf, 1, dest);
+        emit::load_true(self.buf, dest);
         emit::jump(self.buf, lbl_end);
 
         self.buf.bind_label(lbl_false);
-        emit::movl_imm_reg(self.buf, 0, dest);
+        emit::load_false(self.buf, dest);
 
         self.buf.bind_label(lbl_end);
     }
@@ -553,11 +556,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_false);
 
         self.buf.bind_label(lbl_true);
-        emit::movl_imm_reg(self.buf, 1, dest);
+        emit::load_true(self.buf, dest);
         emit::jump(self.buf, lbl_end);
 
         self.buf.bind_label(lbl_false);
-        emit::movl_imm_reg(self.buf, 0, dest);
+        emit::load_false(self.buf, dest);
 
         self.buf.bind_label(lbl_end);
     }
@@ -582,7 +585,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, e.pos, dest);
-            emit::movl_imm_reg(self.buf, 0, REG_TMP1);
+            emit::load_int_const(self.buf, REG_TMP1, 0);
             emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT,
                            to_cond_code(op), REG_TMP1, dest);
 
@@ -786,7 +789,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     self.buf.emit_comment(Comment::Alloc(cls_id));
 
                     let cls = self.ctxt.cls_by_id(cls_id);
-                    emit::movl_imm_reg(self.buf, cls.size as u32, REG_PARAMS[0]);
+                    emit::load_int_const(self.buf, REG_PARAMS[0], cls.size);
 
                     let mptr = stdlib::gc_alloc as *mut u8;
                     self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
@@ -915,12 +918,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         // REG_TMP1 = offset table in vtable
         // REG_RESULT = REG_RESULT + REG_TMP1
         emit::mov_mem_reg(self.buf, MachineMode::Ptr, obj, 0, REG_RESULT);
-        emit::movl_imm_reg(self.buf, VTable::offset_of_method_table() as u32, REG_TMP1);
+        emit::load_int_const(self.buf, REG_TMP1, VTable::offset_of_method_table());
         emit::addq_reg_reg(self.buf, REG_TMP1, REG_RESULT);
 
         // REG_TMP1 = index
         // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
-        emit::movl_imm_reg(self.buf, index, REG_TMP1);
+        emit::load_int_const(self.buf, REG_TMP1, index as i32);
         emit::mov_array_reg(self.buf, MachineMode::Ptr, REG_RESULT,
             REG_TMP1, mem::ptr_width() as u8, REG_RESULT);
 
