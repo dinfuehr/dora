@@ -42,7 +42,7 @@ pub fn indirect_call(buf: &mut Buffer, index: u32) {
     // REG_RESULT = REG_RESULT + REG_TMP1
     mov_mem_reg(buf, MachineMode::Ptr, obj, 0, REG_RESULT);
     load_int_const(buf, REG_TMP1, VTable::offset_of_method_table());
-    ptr_add(buf, REG_RESULT, REG_RESULT, REG_TMP1);
+    emit_addq_reg_reg(buf, REG_TMP1, REG_RESULT);
 
     // REG_TMP1 = index
     // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
@@ -66,7 +66,7 @@ pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: 
 
     emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
     emit_shlq_reg(buf, 2, index);
-    ptr_add(buf, array, array, index);
+    emit_addq_reg_reg(buf, index, array);
     mov_reg_mem(buf, MachineMode::Int32, value, array, 0);
 }
 
@@ -177,6 +177,19 @@ pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
+pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    if rhs != RCX {
+        assert!(lhs != RCX);
+        emit_movq_reg_reg(buf, rhs, RCX);
+    }
+
+    emit_shll_reg_cl(buf, lhs);
+
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
+}
+
 pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_orl_reg_reg(buf, rhs, lhs);
 
@@ -270,18 +283,6 @@ pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
         MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
         MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
     }
-}
-
-pub fn ptr_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    emit_addq_reg_reg(buf, rhs, lhs);
-
-    if dest != lhs {
-        emit_movl_reg_reg(buf, lhs, dest);
-    }
-}
-
-pub fn shll_reg_cl(buf: &mut Buffer, dest: Reg) {
-    emit_shll_reg_cl(buf, dest);
 }
 
 pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {

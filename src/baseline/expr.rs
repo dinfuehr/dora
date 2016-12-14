@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::Stub;
 use class::{ClassId, FieldId};
-use cpu::{self, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
@@ -752,9 +752,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let offset = self.reserve_temp_for_node(&e.args[0]);
         emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset);
 
-        self.emit_expr(&e.args[1], cpu::reg::RCX);
+        self.emit_expr(&e.args[1], REG_TMP1);
         emit::mov_local_reg(self.buf, MachineMode::Int32, offset, REG_RESULT);
-        emit::shll_reg_cl(self.buf, REG_RESULT);
+
+        emit::int_shl(self.buf, dest, REG_RESULT, REG_TMP1);
 
         if REG_RESULT != dest {
             emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
