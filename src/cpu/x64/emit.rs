@@ -30,7 +30,7 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     let disp = buf.add_addr(ptr);
     let pos = buf.pos() as i32;
 
-    movq_addr_reg(buf, disp + pos, REG_RESULT);
+    load_constpool(buf, REG_RESULT, disp + pos);
     call(buf, REG_RESULT);
 }
 
@@ -285,7 +285,7 @@ pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     }
 }
 
-pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {
+pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
     // next instruction has 7 bytes
     let disp = -(disp + 7);
 

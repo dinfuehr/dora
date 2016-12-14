@@ -183,7 +183,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let pos = self.buf.pos() as i32;
 
             // tmp2 = <vtable of T>
-            emit::movq_addr_reg(self.buf, disp + pos, REG_TMP2);
+            emit::load_constpool(self.buf, REG_TMP2, disp + pos);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
                 // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
@@ -389,7 +389,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let pos = self.buf.pos() as i32;
 
         self.buf.emit_comment(Comment::LoadString(handle));
-        emit::movq_addr_reg(self.buf, disp + pos, dest);
+        emit::load_constpool(self.buf, dest, disp + pos);
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
@@ -800,7 +800,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let pos = self.buf.pos() as i32;
 
                     self.buf.emit_comment(Comment::StoreVTable(cls_id));
-                    emit::movq_addr_reg(self.buf, disp + pos, REG_TMP1);
+                    emit::load_constpool(self.buf, REG_TMP1, disp + pos);
                     emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_TMP1, REG_RESULT, 0);
                 }
             }
