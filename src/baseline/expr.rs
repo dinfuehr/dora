@@ -408,9 +408,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         match e.op {
             UnOp::Plus => {},
-            UnOp::Neg => emit::negl_reg(self.buf, dest),
-            UnOp::BitNot => emit::notl_reg(self.buf, dest),
-            UnOp::Not => emit::bool_not_reg(self.buf, dest)
+            UnOp::Neg => emit::int_neg(self.buf, dest, dest),
+            UnOp::BitNot => emit::int_not(self.buf, dest, dest),
+            UnOp::Not => emit::bool_not(self.buf, dest, dest)
         }
     }
 
@@ -604,16 +604,20 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             eg.buf.bind_label(lbl_div);
 
             if e.op == BinOp::Div {
-                emit::divl(eg.buf, lhs, rhs, dest)
+                emit::int_div(eg.buf, dest, lhs, rhs)
             } else {
-                emit::modl(eg.buf, lhs, rhs, dest)
+                emit::int_mod(eg.buf, dest, lhs, rhs)
             }
+
+            dest
         });
     }
 
     fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::mull(eg.buf, lhs, rhs, dest)
+            emit::int_mul(eg.buf, dest, lhs, rhs);
+
+            dest
         });
     }
 
@@ -623,32 +627,42 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::addl(eg.buf, lhs, rhs, dest)
+                emit::int_add(eg.buf, dest, lhs, rhs);
+
+                dest
             });
         }
     }
 
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::subl(eg.buf, lhs, rhs, dest)
+            emit::int_sub(eg.buf, dest, lhs, rhs);
+
+            dest
         });
     }
 
     fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::orl(eg.buf, lhs, rhs, dest)
+            emit::int_or(eg.buf, dest, lhs, rhs);
+
+            dest
         });
     }
 
     fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::andl(eg.buf, lhs, rhs, dest)
+            emit::int_and(eg.buf, dest, lhs, rhs);
+
+            dest
         });
     }
 
     fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            emit::xorl(eg.buf, lhs, rhs, dest)
+            emit::int_xor(eg.buf, dest, lhs, rhs);
+
+            dest
         });
     }
 

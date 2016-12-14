@@ -115,58 +115,74 @@ pub fn jump(buf: &mut Buffer, lbl: Label) {
     emit_jmp(buf, lbl);
 }
 
-pub fn divl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
     emit_idivl_reg_reg(buf, rhs);
 
-    RAX
+    if dest != RAX {
+        emit_movl_reg_reg(buf, RAX, dest);
+    }
 }
 
-pub fn modl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
     emit_idivl_reg_reg(buf, rhs);
 
-    RDX
+    if dest != RDX {
+        emit_movl_reg_reg(buf, RDX, dest);
+    }
 }
 
-pub fn mull(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_imull_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
-pub fn addl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_addl_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
-pub fn subl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_subl_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
-pub fn orl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_orl_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
-pub fn andl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_and(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_andl_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
-pub fn xorl(buf: &mut Buffer, lhs: Reg, rhs: Reg, _: Reg) -> Reg {
+pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_xorl_reg_reg(buf, rhs, lhs);
 
-    lhs
+    if dest != lhs {
+        emit_movl_reg_reg(buf, lhs, dest);
+    }
 }
 
 pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
@@ -297,17 +313,29 @@ pub fn movl_imm_reg(buf: &mut Buffer, imm: u32, dest: Reg) {
     emit_movl_imm_reg(buf, imm, dest);
 }
 
-pub fn negl_reg(buf: &mut Buffer, dest: Reg) {
-    emit_negl_reg(buf, dest);
+pub fn int_neg(buf: &mut Buffer, dest: Reg, src: Reg) {
+    emit_negl_reg(buf, src);
+
+    if dest != src {
+        emit_movl_reg_reg(buf, src, dest);
+    }
 }
 
-pub fn notl_reg(buf: &mut Buffer, dest: Reg) {
-    emit_notl_reg(buf, dest);
+pub fn int_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+    emit_notl_reg(buf, src);
+
+    if dest != src {
+        emit_movl_reg_reg(buf, src, dest);
+    }
 }
 
-pub fn bool_not_reg(buf: &mut Buffer, dest: Reg) {
-    emit_xorb_imm_reg(buf, 1, dest);
-    emit_andb_imm_reg(buf, 1, dest);
+pub fn bool_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+    emit_xorb_imm_reg(buf, 1, src);
+    emit_andb_imm_reg(buf, 1, src);
+
+    if dest != src {
+        emit_movl_reg_reg(buf, src, dest);
+    }
 }
 
 #[cfg(test)]
