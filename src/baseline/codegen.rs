@@ -310,7 +310,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
-            emit::nil(&mut self.buf, REG_RESULT);
+            emit::load_nil(&mut self.buf, REG_RESULT);
             var_store(&mut self.buf, &self.src, REG_RESULT, s.var());
         }
     }
@@ -453,6 +453,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CondCode {
     Zero,
     NonZero,

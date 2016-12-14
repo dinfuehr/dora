@@ -14,7 +14,7 @@ use driver::cmd::AsmSyntax;
 use lexer::position::Position;
 use mem;
 use mem::ptr::Ptr;
-use object::{Header, IntArray, Str};
+use object::{Header, Str};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
@@ -208,7 +208,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 if e.is {
                     // dest = if zero then true else false
-                    emit::set(self.buf, MachineMode::Int32, CondCode::Equal, dest);
+                    emit::set(self.buf, dest, CondCode::Equal);
 
                 } else {
                     // jump to lbl_false if cmp did not succeed
@@ -246,7 +246,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                   display_entry, REG_TMP2);
 
                 if e.is {
-                    emit::set(self.buf, MachineMode::Int32, CondCode::Equal, dest);
+                    emit::set(self.buf, dest, CondCode::Equal);
 
                 } else {
                     let lbl_bailout = self.buf.create_label();
@@ -282,8 +282,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
             }
 
-            emit::add_imm_reg(self.buf, MachineMode::Ptr, IntArray::offset_of_data(), REG_RESULT);
-            emit::mov_array_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 4, REG_RESULT);
+            emit::load_array_elem(self.buf, MachineMode::Int32, REG_RESULT, REG_RESULT, REG_TMP1);
 
             self.free_temp_for_node(&e.object, offset);
 
@@ -354,7 +353,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_nil(&mut self, dest: Reg) {
-        emit::nil(self.buf, dest);
+        emit::load_nil(self.buf, dest);
     }
 
     fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: Reg) {
@@ -442,10 +441,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
-                emit::add_imm_reg(self.buf, MachineMode::Ptr, IntArray::offset_of_data(), REG_TMP1);
-                emit::shiftlq_imm_reg(self.buf, 2, REG_TMP2);
-                emit::ptr_add(self.buf, REG_TMP1, REG_TMP1, REG_TMP2);
-                emit::mov_reg_mem(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1, 0);
+                emit::store_array_elem(self.buf, MachineMode::Int32, REG_TMP1, REG_TMP2, REG_RESULT);
+
 
                 self.free_temp_for_node(&array.object, offset_object);
                 self.free_temp_for_node(&array.index, offset_index);
@@ -575,7 +572,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let op = if op == CmpOp::Is { CondCode::Equal } else { CondCode::NotEqual };
 
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_setl(eg.buf, MachineMode::Ptr, lhs, op, rhs, dest);
+                emit::cmp_reg_reg(eg.buf, MachineMode::Ptr, lhs, rhs);
+                emit::set(eg.buf, dest, op);
 
                 dest
             });
@@ -586,12 +584,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, e.pos, dest);
             emit::load_int_const(self.buf, REG_TMP1, 0);
-            emit::cmp_setl(self.buf, MachineMode::Int32, REG_RESULT,
-                           to_cond_code(op), REG_TMP1, dest);
+            emit::cmp_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1);
+            emit::set(self.buf, dest, to_cond_code(op));
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_setl(eg.buf, MachineMode::Int32, lhs, to_cond_code(op), rhs, dest);
+                emit::cmp_reg_reg(eg.buf, MachineMode::Int32, lhs, rhs);
+                emit::set(eg.buf, dest, to_cond_code(op));
 
                 dest
             });

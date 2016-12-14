@@ -32,12 +32,20 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     call(buf, REG_RESULT);
 }
 
-pub fn add_imm_reg(buf: &mut Buffer, mode: MachineMode, imm: i32, dest: Reg) {
-    match mode {
-        MachineMode::Int8 => unimplemented!(),
-        MachineMode::Int32 => unimplemented!(),
-        MachineMode::Ptr => emit_addq_imm_reg(buf, imm, dest),
-    }
+pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
+    assert!(mode == MachineMode::Int32);
+
+    emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
+    mov_array_reg(buf, mode, array, index, mode.size() as u8, dest);
+}
+
+pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
+    assert!(mode == MachineMode::Int32);
+
+    emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
+    emit_shlq_reg(buf, 2, index);
+    ptr_add(buf, array, array, index);
+    mov_reg_mem(buf, MachineMode::Int32, value, array, 0);
 }
 
 pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
@@ -57,25 +65,9 @@ pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
     lbl
 }
 
-pub fn cmp_setl(buf: &mut Buffer, mode: MachineMode, lhs: Reg, op: CondCode, rhs: Reg, dest: Reg) {
-    match mode {
-        MachineMode::Int8
-            | MachineMode::Int32 => emit_cmpl_reg_reg(buf, rhs, lhs),
-        MachineMode::Ptr => emit_cmpq_reg_reg(buf, rhs, lhs),
-    }
-
+pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
     emit_setb_reg(buf, op, dest);
     emit_movzbl_reg_reg(buf, dest, dest);
-}
-
-pub fn set(buf: &mut Buffer, mode: MachineMode, op: CondCode, dest: Reg) {
-    emit_setb_reg(buf, op, dest);
-
-    match mode {
-        MachineMode::Int8 => {},
-        MachineMode::Int32
-            | MachineMode::Ptr => emit_movzbl_reg_reg(buf, dest, dest),
-    }
 }
 
 pub fn cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
@@ -103,6 +95,8 @@ pub fn cmp_reg_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
 }
 
 pub fn test_and_jump_if(buf: &mut Buffer, cond: CondCode, reg: Reg, lbl: Label) {
+    assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
+
     emit_testl_reg_reg(buf, reg, reg);
     emit_jcc(buf, cond, lbl);
 }
@@ -195,7 +189,7 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
     buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 
-pub fn nil(buf: &mut Buffer, dest: Reg) {
+pub fn load_nil(buf: &mut Buffer, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }
 
@@ -266,10 +260,6 @@ pub fn ptr_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 
 pub fn shll_reg_cl(buf: &mut Buffer, dest: Reg) {
     emit_shll_reg_cl(buf, dest);
-}
-
-pub fn shiftlq_imm_reg(buf: &mut Buffer, imm: u8, dest: Reg) {
-    emit_shlq_reg(buf, imm, dest);
 }
 
 pub fn movq_addr_reg(buf: &mut Buffer, disp: i32, dest: Reg) {
