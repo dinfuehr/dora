@@ -1,13 +1,16 @@
 use cpu::Reg;
 
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
+pub static SCRATCH: [Reg; 2] = [R16, R17];
+
 pub const REG_RESULT: Reg = R0;
 pub const REG_TMP1: Reg = R10;
 pub const REG_TMP2: Reg = R11;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
-pub const REG_SP: Reg = R31;
-pub const REG_ZERO: Reg = R31;
+
+pub const REG_SP: Reg = Reg(32);
+pub const REG_ZERO: Reg = Reg(33);
 
 pub const R0: Reg = Reg(0);
 pub const R1: Reg = Reg(1);
@@ -40,10 +43,25 @@ pub const R27: Reg = Reg(27);
 pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);
 pub const R30: Reg = Reg(30);
-pub const R31: Reg = Reg(31);
 
 impl Reg {
+    pub fn asm(self) -> u32 {
+        match self {
+            REG_SP => 31,
+            REG_ZERO => 31,
+            _ => self.0 as u32
+        }
+    }
+
     pub fn is_gpr(self) -> bool {
-        self.u32() <= 31
+        self.0 <= 30
+    }
+
+    pub fn is_gpr_or_zero(self) -> bool {
+        self.is_gpr() || self == REG_ZERO
+    }
+
+    pub fn is_gpr_or_sp(self) -> bool {
+        self.is_gpr() || self == REG_SP
     }
 }

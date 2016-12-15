@@ -1,7 +1,8 @@
-use baseline::buffer::Buffer;
-use cpu::arm64::reg::*;
 use cpu::arm64::asm::*;
+use cpu::arm64::*;
 use cpu::Reg;
+use cpu::arm64::reg::*;
+use baseline::buffer::*;
 
 pub fn load_int_const(buf: &mut Buffer, dest: Reg, imm: i32) {
     let register_size = 32;
@@ -24,4 +25,24 @@ pub fn load_true(buf: &mut Buffer, dest: Reg) {
 
 pub fn load_false(buf: &mut Buffer, dest: Reg) {
     buf.emit_u32(movz(0, dest, 0, 0));
+}
+
+pub fn int_neg(buf: &mut Buffer, dest: Reg, src: Reg) {
+    buf.emit_u32(sub_reg(0, dest, REG_ZERO, src));
+}
+
+pub fn int_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+    buf.emit_u32(orn_shreg(0, dest, REG_ZERO, src, Shift::LSL, 0));
+}
+
+pub fn bool_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+    let scratch = get_scratch();
+
+    buf.emit_u32(movz(0, scratch, 1, 0));
+    buf.emit_u32(eor_shreg(0, dest, src, scratch, Shift::LSL, 0));
+    buf.emit_u32(uxtb(dest, dest));
+}
+
+fn get_scratch() -> Reg {
+    SCRATCH[0]
 }

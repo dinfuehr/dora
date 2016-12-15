@@ -11,12 +11,6 @@ pub mod arm64;
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Reg(u8);
 
-impl Reg {
-    fn u32(self) -> u32 {
-        self.0 as u32
-    }
-}
-
 impl From<Reg> for u32 {
     fn from(reg: Reg) -> u32 {
         reg.0 as u32
