@@ -37,18 +37,14 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
 pub fn indirect_call(buf: &mut Buffer, index: u32) {
     let obj = REG_PARAMS[0];
 
-    // REG_RESULT = [obj]
-    // REG_TMP1 = offset table in vtable
-    // REG_RESULT = REG_RESULT + REG_TMP1
+    // REG_RESULT = [obj] (load vtable)
     mov_mem_reg(buf, MachineMode::Ptr, obj, 0, REG_RESULT);
-    load_int_const(buf, REG_TMP1, VTable::offset_of_method_table());
-    emit_addq_reg_reg(buf, REG_TMP1, REG_RESULT);
 
-    // REG_TMP1 = index
-    // REG_RESULT = [REG_RESULT + 8 * REG_TMP1]
-    load_int_const(buf, REG_TMP1, index as i32);
-    mov_array_reg(buf, MachineMode::Ptr, REG_RESULT,
-        REG_TMP1, ptr_width() as u8, REG_RESULT);
+    // calculate offset of VTable entry
+    let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
+
+    // load vtable entry
+    emit_movq_memq_reg(buf, REG_RESULT, disp, REG_RESULT);
 
     // call *REG_RESULT
     call(buf, REG_RESULT);

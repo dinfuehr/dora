@@ -4,6 +4,43 @@ use cpu::Reg;
 use cpu::arm64::reg::*;
 use baseline::buffer::*;
 
+pub fn prolog(buf: &mut Buffer, stacksize: i32) {
+    buf.emit_u32(stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
+    buf.emit_u32(add_reg(1, REG_FP, REG_SP, REG_ZERO));
+
+    if stacksize > 0 {
+        let scratch = get_scratch();
+        load_int_const(buf, scratch, stacksize);
+        buf.emit_u32(sub_reg(1, REG_SP, REG_SP, scratch));
+    }
+}
+
+pub fn epilog(buf: &mut Buffer, stacksize: i32) {
+    if stacksize > 0 {
+        let scratch = get_scratch();
+        load_int_const(buf, scratch, stacksize);
+        buf.emit_u32(add_reg(1, REG_SP, REG_SP, scratch));
+    }
+
+    buf.emit_u32(add_reg(1, REG_SP, REG_FP, REG_ZERO));
+    buf.emit_u32(ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
+    buf.emit_u32(ret());
+}
+
+pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
+    let disp = buf.add_addr(ptr);
+    let pos = buf.pos() as i32;
+
+    let scratch = get_scratch();
+    // TODO: load from const pool
+    unimplemented!();
+    br(scratch);
+}
+
+pub fn indirect_call(buf: &mut Buffer, index: u32) {
+    unimplemented!();
+}
+
 pub fn load_int_const(buf: &mut Buffer, dest: Reg, imm: i32) {
     let register_size = 32;
     let imm = imm as i64 as u64;
