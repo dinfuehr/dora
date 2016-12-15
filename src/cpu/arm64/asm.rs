@@ -377,15 +377,15 @@ fn cls_cond_select(sf: u32, op: u32, s: u32, rm: Reg, cond: Cond, op2: u32,
         rn.u32() << 5 | rd.u32()
 }
 
-fn movn(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
+pub fn movn(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
     cls_move_wide_imm(sf, 0b00, shift, imm16, rd)
 }
 
-fn movz(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
+pub fn movz(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
     cls_move_wide_imm(sf, 0b10, shift, imm16, rd)
 }
 
-fn movk(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
+pub fn movk(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
     cls_move_wide_imm(sf, 0b11, shift, imm16, rd)
 }
 
@@ -727,6 +727,48 @@ fn fits_i21(imm: i32) -> bool {
 
 fn fits_i26(imm: i32) -> bool {
     -(1i32 << 25) <= imm && imm < (1i32 << 25)
+}
+
+pub fn fits_movz(imm: u64, register_size: u32) -> bool {
+    assert!(register_size == 32 || register_size == 64);
+
+    count_empty_half_words(imm, register_size) >= (register_size/16 - 1)
+}
+
+pub fn fits_movn(imm: u64, register_size: u32) -> bool {
+    fits_movz(!imm, register_size)
+}
+
+pub fn shift_movz(mut imm: u64) -> u32 {
+    for count in 0..4 {
+        if (imm & 0xFFFF) != 0 {
+            return count;
+        }
+
+        imm >>= 16;
+    }
+
+    0
+}
+
+pub fn shift_movn(imm: u64) -> u32 {
+    shift_movz(!imm)
+}
+
+pub fn count_empty_half_words(mut imm: u64, register_size: u32) -> u32 {
+    assert!(register_size == 32 || register_size == 64);
+
+    let mut count = 0;
+
+    for _ in 0..(register_size/16) {
+        if (imm & 0xFFFF) == 0 {
+            count += 1;
+        }
+
+        imm >>= 16;
+    }
+
+    count
 }
 
 #[cfg(test)]
@@ -1132,5 +1174,52 @@ mod tests {
     fn test_ldst_pair_post() {
         assert_emit!(0xa8fe7bfd; ldp_post(1, REG_FP, REG_LR, REG_SP, -4));
         assert_emit!(0x28c40440; ldp_post(0, R0, R1, R2, 8));
+    }
+
+    #[test]
+    fn test_count_empty_half_words() {
+        assert_eq!(4, count_empty_half_words(0, 64));
+        assert_eq!(3, count_empty_half_words(1, 64));
+        assert_eq!(3, count_empty_half_words(1u64 << 16, 64));
+        assert_eq!(3, count_empty_half_words(1u64 << 32, 64));
+        assert_eq!(3, count_empty_half_words(1u64 << 48, 64));
+
+        assert_eq!(2, count_empty_half_words(0, 32));
+        assert_eq!(1, count_empty_half_words(1, 32));
+        assert_eq!(1, count_empty_half_words(1u64 << 16, 32));
+    }
+
+    #[test]
+    fn test_fits_movz() {
+        assert!(fits_movz(1, 64));
+        assert!(fits_movz(0xFFFF, 64));
+        assert!(fits_movz(0xFFFFu64 << 16, 64));
+        assert!(!fits_movz(0x1FFFF, 64));
+        assert!(fits_movz(1u64 << 16, 64));
+        assert!(!fits_movz(0x10001, 64));
+
+        assert!(fits_movz(1, 32));
+        assert!(fits_movz(0xFFFF, 32));
+        assert!(fits_movz(0xFFFFu64 << 16, 32));
+        assert!(!fits_movz(0x1FFFF, 32));
+    }
+
+    #[test]
+    fn test_fits_movn() {
+        let min1 = !0u64;
+
+        assert!(fits_movn(min1, 64));
+        assert!(fits_movn(min1, 32));
+        assert!(fits_movn(min1 << 2, 32));
+        assert!(fits_movn(min1 << 16, 32));
+        assert!(!fits_movn(min1 << 17, 32));
+    }
+
+    #[test]
+    fn test_shift_movz() {
+        assert_eq!(0, shift_movz(0));
+        assert_eq!(0, shift_movz(1));
+        assert_eq!(0, shift_movz(0xFFFF));
+        assert_eq!(1, shift_movz(0x10000));
     }
 }
