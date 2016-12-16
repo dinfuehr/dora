@@ -85,20 +85,21 @@ pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
     emit_movzbl_reg_reg(buf, dest, dest);
 }
 
-pub fn cmp_memindex_reg(buf: &mut Buffer, mode: MachineMode,
-                   base: Reg, index: Reg, scale: i32, disp: i32,
-                   dest: Reg) {
-    emit_cmp_memindex_reg(buf, mode, base, index, scale, disp, dest);
+pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
+    match mem {
+        Mem::Local(offset) => emit_cmp_mem_reg(buf, mode, REG_FP, offset, rhs),
+        Mem::Base(base, disp) => emit_cmp_mem_reg(buf, mode, base, disp, rhs),
+        Mem::Index(base, index, scale, disp) =>
+            emit_cmp_memindex_reg(buf, mode, base, index, scale, disp, rhs)
+    }
 }
 
-pub fn cmp_mem_reg(buf: &mut Buffer, mode: MachineMode,
-                        base: Reg, disp: i32, dest: Reg) {
-    emit_cmp_mem_reg(buf, mode, base, disp, dest);
-}
-
-pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode,
-                        base: Reg, disp: i32, imm: i32) {
-    emit_cmp_mem_imm(buf, mode, base, disp, imm);
+pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
+    match mem {
+        Mem::Local(_) => unimplemented!(),
+        Mem::Base(base, disp) => emit_cmp_mem_imm(buf, mode, base, disp, imm),
+        Mem::Index(_, _, _, _) => unimplemented!(),
+    }
 }
 
 pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {

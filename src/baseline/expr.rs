@@ -188,7 +188,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
                 // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
                 emit::cmp_mem_imm(self.buf, MachineMode::Int32,
-                                  REG_TMP1, VTable::offset_of_depth(), vtable.subtype_depth);
+                                  Mem::Base(REG_TMP1, VTable::offset_of_depth()),
+                                  vtable.subtype_depth);
 
                 // jnz lbl_false
                 let lbl_false = self.buf.create_label();
@@ -202,9 +203,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                                         (vtable.subtype_depth - DISPLAY_SIZE as i32);
 
                 // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
-                emit::cmp_mem_reg(self.buf, MachineMode::Ptr,
-                                  REG_TMP1, overflow_offset,
-                                  REG_TMP2);
+                emit::cmp_mem(self.buf, MachineMode::Ptr,
+                              Mem::Base(REG_TMP1, overflow_offset),
+                              REG_TMP2);
 
                 if e.is {
                     // dest = if zero then true else false
@@ -242,8 +243,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // tmp1 = vtable of object
                 // tmp2 = vtable of T
                 // cmp [tmp1 + offset], tmp2
-                emit::cmp_mem_reg(self.buf, MachineMode::Ptr, REG_TMP1,
-                                  display_entry, REG_TMP2);
+                emit::cmp_mem(self.buf, MachineMode::Ptr, Mem::Base(REG_TMP1, display_entry),
+                               REG_TMP2);
 
                 if e.is {
                     emit::set(self.buf, dest, CondCode::Equal);
