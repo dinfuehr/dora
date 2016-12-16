@@ -498,7 +498,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.emit_expr(&e.rhs, REG_RESULT);
                 emit::load_mem(self.buf, MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
 
-                emit::mov_reg_mem(self.buf, field.ty.mode(), REG_RESULT, REG_TMP1, field.offset);
+                emit::store_mem(self.buf, field.ty.mode(),
+                                Mem::Base(REG_TMP1, field.offset), REG_RESULT);
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest {
@@ -805,7 +806,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                     self.buf.emit_comment(Comment::StoreVTable(cls_id));
                     emit::load_constpool(self.buf, REG_TMP1, disp + pos);
-                    emit::mov_reg_mem(self.buf, MachineMode::Ptr, REG_TMP1, REG_RESULT, 0);
+                    emit::store_mem(self.buf, MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1);
                 }
             }
 

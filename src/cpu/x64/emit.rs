@@ -60,10 +60,8 @@ pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Re
 pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
     assert!(mode == MachineMode::Int32);
 
-    emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
-    emit_shlq_reg(buf, 2, index);
-    emit_addq_reg_reg(buf, index, array);
-    mov_reg_mem(buf, MachineMode::Int32, value, array, 0);
+    store_mem(buf, MachineMode::Int32,
+              Mem::Index(array, index, 4, IntArray::offset_of_data()), value);
 }
 
 pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
@@ -275,14 +273,6 @@ pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, d
         MachineMode::Int8 => emit_movzbl_memq_reg(buf, src, offset, dest),
         MachineMode::Int32 => emit_movl_memq_reg(buf, src, offset, dest),
         MachineMode::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
-    }
-}
-
-pub fn mov_reg_mem(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg, offset: i32) {
-    match mode {
-        MachineMode::Int8 => emit_movb_reg_memq(buf, src, dest, offset),
-        MachineMode::Int32 => emit_movl_reg_memq(buf, src, dest, offset),
-        MachineMode::Ptr => emit_movq_reg_memq(buf, src, dest, offset),
     }
 }
 

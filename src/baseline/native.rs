@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use baseline::buffer::Buffer;
 use baseline::fct::JitFct;
-use cpu::{emit, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
+use cpu::{emit, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, FctId, get_ctxt};
 use mem;
 use stacktrace::StackFrameInfo;
@@ -70,8 +70,8 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
         assert!(self.args <= REG_PARAMS.len() as i32);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
-            emit::mov_reg_mem(&mut self.buf, MachineMode::Ptr, reg, REG_SP,
-                              offset_args + ind as i32 * 8);
+            emit::store_mem(&mut self.buf, MachineMode::Ptr,
+                            Mem::Base(REG_SP, offset_args + ind as i32 * 8), reg);
         }
 
         emit::copy_reg(&mut self.buf, MachineMode::Ptr, REG_PARAMS[0], REG_FP);
@@ -85,7 +85,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
         emit::direct_call(&mut self.buf, self.ptr);
 
         if save_return {
-            emit::mov_reg_mem(&mut self.buf, MachineMode::Ptr, REG_RESULT, REG_SP, 0);
+            emit::store_mem(&mut self.buf, MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT);
         }
 
         emit::direct_call(&mut self.buf, finish_native_call as *const u8);
