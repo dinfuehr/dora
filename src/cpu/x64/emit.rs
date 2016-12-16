@@ -38,7 +38,7 @@ pub fn indirect_call(buf: &mut Buffer, index: u32) {
     let obj = REG_PARAMS[0];
 
     // REG_RESULT = [obj] (load vtable)
-    mov_mem_reg(buf, MachineMode::Ptr, obj, 0, REG_RESULT);
+    emit::load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
 
     // calculate offset of VTable entry
     let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
@@ -53,8 +53,7 @@ pub fn indirect_call(buf: &mut Buffer, index: u32) {
 pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
     assert!(mode == MachineMode::Int32);
 
-    emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
-    load_mem(buf, mode, dest, Mem::Index(array, index, mode.size(), 0));
+    load_mem(buf, mode, dest, Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
 }
 
 pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
@@ -265,14 +264,6 @@ pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
 
         Mem::Index(base, index, scale, disp) =>
             emit_mov_reg_memindex(buf, mode, src, base, index, scale, disp)
-    }
-}
-
-pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, dest: Reg) {
-    match mode {
-        MachineMode::Int8 => emit_movzbl_memq_reg(buf, src, offset, dest),
-        MachineMode::Int32 => emit_movl_memq_reg(buf, src, offset, dest),
-        MachineMode::Ptr => emit_movq_memq_reg(buf, src, offset, dest),
     }
 }
 

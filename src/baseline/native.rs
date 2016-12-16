@@ -78,8 +78,8 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
         emit::direct_call(&mut self.buf, start_native_call as *const u8);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
-            emit::mov_mem_reg(&mut self.buf, MachineMode::Ptr, REG_SP,
-                              offset_args + ind as i32 * 8, reg);
+            emit::load_mem(&mut self.buf, MachineMode::Ptr, reg,
+                           Mem::Base(REG_SP, offset_args + ind as i32 * 8));
         }
 
         emit::direct_call(&mut self.buf, self.ptr);
@@ -91,7 +91,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
         emit::direct_call(&mut self.buf, finish_native_call as *const u8);
 
         if save_return {
-            emit::mov_mem_reg(&mut self.buf, MachineMode::Ptr, REG_SP, 0, REG_RESULT);
+            emit::load_mem(&mut self.buf, MachineMode::Ptr, REG_RESULT, Mem::Base(REG_SP, 0));
         }
 
         emit::epilog(&mut self.buf, framesize);

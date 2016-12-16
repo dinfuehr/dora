@@ -177,7 +177,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             // object instanceof T
 
             // tmp1 = <vtable of object>
-            emit::mov_mem_reg(self.buf, MachineMode::Ptr, dest, 0, REG_TMP1);
+            emit::load_mem(self.buf, MachineMode::Ptr, REG_TMP1, Mem::Base(dest, 0));
 
             let disp = self.buf.add_addr(vtable as *const _ as *mut u8);
             let pos = self.buf.pos() as i32;
@@ -195,8 +195,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 emit::jump_if(self.buf, CondCode::Less, lbl_false);
 
                 // tmp1 = tmp1.subtype_overflow
-                emit::mov_mem_reg(self.buf, MachineMode::Ptr,
-                                  REG_TMP1, VTable::offset_of_overflow(), REG_TMP1);
+                emit::load_mem(self.buf, MachineMode::Ptr, REG_TMP1,
+                               Mem::Base(REG_TMP1, VTable::offset_of_overflow()));
 
                 let overflow_offset = mem::ptr_width() *
                                         (vtable.subtype_depth - DISPLAY_SIZE as i32);
@@ -366,7 +366,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_field_access(&mut self, cls: ClassId, field: FieldId, src: Reg, dest: Reg) {
         let cls = self.ctxt.cls_by_id(cls);
         let field = &cls.fields[field];
-        emit::mov_mem_reg(self.buf, field.ty.mode(), src, field.offset, dest);
+        emit::load_mem(self.buf, field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -742,7 +742,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
-        emit::mov_mem_reg(self.buf, MachineMode::Ptr, REG_RESULT, Header::size(), dest);
+        emit::load_mem(self.buf, MachineMode::Ptr, dest, Mem::Base(REG_RESULT, Header::size()));
     }
 
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
