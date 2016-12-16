@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::Stub;
 use class::{ClassId, FieldId};
-use cpu::{Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use cpu::emit;
 use cpu::trap;
 use ctxt::*;
@@ -169,7 +169,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             } else {
                 // reserve temp variable for object
                 let offset = self.reserve_temp_for_node(&e.object);
-                emit::mov_reg_local(self.buf, MachineMode::Ptr, dest, offset);
+                emit::store_mem(self.buf, MachineMode::Ptr, Mem::Local(offset), dest);
 
                 offset
             };
@@ -215,7 +215,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::jump_if(self.buf, CondCode::NonZero, lbl_false);
 
                     // otherwise load temp variable again
-                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
+                    emit::load_mem(self.buf, MachineMode::Ptr, dest, Mem::Local(offset));
                 }
 
                 // jmp lbl_finished
@@ -253,7 +253,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     emit::jump_if(self.buf, CondCode::NotEqual, lbl_bailout);
                     self.buf.emit_bailout(lbl_bailout, trap::CAST, e.pos);
 
-                    emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, dest);
+                    emit::load_mem(self.buf, MachineMode::Ptr, dest, Mem::Local(offset));
                 }
             }
 
@@ -273,10 +273,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if self.intrinsic(e.id).is_some() {
             self.emit_expr(&e.object, REG_RESULT);
             let offset = self.reserve_temp_for_node(&e.object);
-            emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset);
+            emit::store_mem(self.buf, MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
 
             self.emit_expr(&e.index, REG_TMP1);
-            emit::mov_local_reg(self.buf, MachineMode::Ptr, offset, REG_RESULT);
+            emit::load_mem(self.buf, MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
 
             if !self.ctxt.args.flag_omit_bounds_check {
                 emit::check_index_out_of_bounds(self.buf, e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
@@ -349,7 +349,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_self(&mut self, dest: Reg) {
         let var = self.src.var_self();
 
-        emit::mov_local_reg(self.buf, var.ty.mode(), var.offset, dest);
+        emit::load_mem(self.buf, var.ty.mode(), dest, Mem::Local(var.offset));
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -422,26 +422,30 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let array = e.lhs.to_array().unwrap();
                 self.emit_expr(&array.object, REG_RESULT);
                 let offset_object = self.reserve_temp_for_node(&array.object);
-                emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, offset_object);
+                emit::store_mem(self.buf, MachineMode::Ptr, Mem::Local(offset_object),
+                                REG_RESULT);
 
                 self.emit_expr(&array.index, REG_RESULT);
                 let offset_index = self.reserve_temp_for_node(&array.index);
-                emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_index);
+                emit::store_mem(self.buf, MachineMode::Int32, Mem::Local(offset_index),
+                                REG_RESULT);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
                 let offset_value = self.reserve_temp_for_node(&e.rhs);
-                emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset_value);
+                emit::store_mem(self.buf, MachineMode::Int32, Mem::Local(offset_value),
+                                REG_RESULT);
 
-                emit::mov_local_reg(self.buf, MachineMode::Ptr, offset_object, REG_TMP1);
-                emit::mov_local_reg(self.buf, MachineMode::Int32, offset_index, REG_TMP2);
+                emit::load_mem(self.buf, MachineMode::Ptr, REG_TMP1, Mem::Local(offset_object));
+                emit::load_mem(self.buf, MachineMode::Int32, REG_TMP2, Mem::Local(offset_index));
 
                 if !self.ctxt.args.flag_omit_bounds_check {
                     emit::check_index_out_of_bounds(self.buf, e.pos, REG_TMP1,
                                                     REG_TMP2, REG_RESULT);
                 }
 
-                emit::mov_local_reg(self.buf, MachineMode::Int32, offset_value, REG_RESULT);
-                emit::store_array_elem(self.buf, MachineMode::Int32, REG_TMP1, REG_TMP2, REG_RESULT);
+                emit::load_mem(self.buf, MachineMode::Int32, REG_RESULT, Mem::Local(offset_value));
+                emit::store_array_elem(self.buf, MachineMode::Int32, REG_TMP1, REG_TMP2,
+                                       REG_RESULT);
 
 
                 self.free_temp_for_node(&array.object, offset_object);
@@ -489,10 +493,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 };
 
                 let temp_offset = self.reserve_temp_for_node(temp);
-                emit::mov_reg_local(self.buf, MachineMode::Ptr, REG_RESULT, temp_offset);
+                emit::store_mem(self.buf, MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
-                emit::mov_local_reg(self.buf, MachineMode::Ptr, temp_offset, REG_TMP1);
+                emit::load_mem(self.buf, MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
 
                 emit::mov_reg_mem(self.buf, field.ty.mode(), REG_RESULT, REG_TMP1, field.offset);
                 self.free_temp_for_node(temp, temp_offset);
@@ -678,10 +682,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let ty = e.lhs.ty();
 
             self.emit_expr(&e.lhs, REG_RESULT);
-            emit::mov_reg_local(self.buf, ty.mode(), REG_RESULT, offset);
+            emit::store_mem(self.buf, ty.mode(), Mem::Local(offset), REG_RESULT);
 
             self.emit_expr(&e.rhs, rhs_reg);
-            emit::mov_local_reg(self.buf, ty.mode(), offset, lhs_reg);
+            emit::load_mem(self.buf, ty.mode(), lhs_reg, Mem::Local(offset));
 
             self.free_temp_for_node(&e.lhs, offset);
         } else {
@@ -750,10 +754,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.args[0], REG_RESULT);
         let offset = self.reserve_temp_for_node(&e.args[0]);
-        emit::mov_reg_local(self.buf, MachineMode::Int32, REG_RESULT, offset);
+        emit::store_mem(self.buf, MachineMode::Int32, Mem::Local(offset), REG_RESULT);
 
         self.emit_expr(&e.args[1], REG_TMP1);
-        emit::mov_local_reg(self.buf, MachineMode::Int32, offset, REG_RESULT);
+        emit::load_mem(self.buf, MachineMode::Int32, REG_RESULT, Mem::Local(offset));
 
         emit::int_shl(self.buf, dest, REG_RESULT, REG_TMP1);
 
@@ -806,7 +810,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             let offset = self.reserve_temp_for_arg(arg);
-            emit::mov_reg_local(self.buf, arg.ty().mode(), REG_RESULT, offset);
+            emit::store_mem(self.buf, arg.ty().mode(), Mem::Local(offset), REG_RESULT);
             temps.push((arg.ty(), offset));
         }
 
@@ -818,7 +822,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
             if ind < REG_PARAMS.len() {
                 let reg = REG_PARAMS[ind];
-                emit::mov_local_reg(self.buf, ty.mode(), offset, reg);
+                emit::load_mem(self.buf, ty.mode(), reg, Mem::Local(offset));
 
                 if ind == 0 {
                     let call_type = self.src.calls.get(&id);
@@ -830,8 +834,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
             } else {
-                emit::mov_local_reg(self.buf, ty.mode(), offset, REG_RESULT);
-                emit::mov_reg_local(self.buf, ty.mode(), REG_RESULT, arg_offset);
+                emit::load_mem(self.buf, ty.mode(), REG_RESULT, Mem::Local(offset));
+                emit::store_mem(self.buf, ty.mode(), Mem::Local(arg_offset), REG_RESULT);
 
                 arg_offset += 8;
             }
@@ -867,7 +871,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if csite.args.len() > 0 {
             if let Arg::SelfieNew(_, _) = csite.args[0] {
                 let (ty, offset) = temps[0];
-                emit::mov_local_reg(self.buf, ty.mode(), offset, dest);
+                emit::load_mem(self.buf, ty.mode(), dest, Mem::Local(offset));
             }
         }
 

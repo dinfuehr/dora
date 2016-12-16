@@ -74,7 +74,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
                               offset_args + ind as i32 * 8);
         }
 
-        emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, REG_FP, REG_PARAMS[0]);
+        emit::copy_reg(&mut self.buf, MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         emit::direct_call(&mut self.buf, start_native_call as *const u8);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {

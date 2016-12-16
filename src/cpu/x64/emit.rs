@@ -54,7 +54,7 @@ pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Re
     assert!(mode == MachineMode::Int32);
 
     emit_addq_imm_reg(buf, IntArray::offset_of_data(), array);
-    mov_array_reg(buf, mode, array, index, mode.size() as u8, dest);
+    load_mem(buf, mode, dest, Mem::Index(array, index, mode.size(), 0));
 }
 
 pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
@@ -278,24 +278,6 @@ pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, d
     }
 }
 
-pub fn mov_array_reg(buf: &mut Buffer, mode: MachineMode, base: Reg,
-                     index: Reg, scale: u8, dest: Reg) {
-    match mode {
-        MachineMode::Int8 => panic!("not supported"),
-        MachineMode::Int32 => emit_movl_ar(buf, base, index, scale, dest),
-        MachineMode::Ptr => emit_movq_ar(buf, base, index, scale, dest),
-    }
-}
-
-pub fn mov_reg_array(buf: &mut Buffer, mode: MachineMode, src: Reg, base: Reg,
-                     index: Reg, scale: u8) {
-    match mode {
-        MachineMode::Int8 => panic!("not supported"),
-        MachineMode::Int32 => emit_movl_ra(buf, src, base, index, scale),
-        MachineMode::Ptr => emit_movq_ra(buf, src, base, index, scale),
-    }
-}
-
 pub fn mov_reg_mem(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg, offset: i32) {
     match mode {
         MachineMode::Int8 => emit_movb_reg_memq(buf, src, dest, offset),
@@ -304,30 +286,7 @@ pub fn mov_reg_mem(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg, off
     }
 }
 
-pub fn mov_local_reg(buf: &mut Buffer, mode: MachineMode, offset: i32, dest: Reg) {
-    match mode {
-        MachineMode::Int8 => emit_movzbl_memq_reg(buf, RBP, offset, dest),
-        MachineMode::Int32 => emit_movl_memq_reg(buf, RBP, offset, dest),
-        MachineMode::Ptr => emit_movq_memq_reg(buf, RBP, offset, dest),
-    }
-}
-
-pub fn mov_reg_local(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32) {
-    match mode {
-        MachineMode::Int8 => emit_movb_reg_memq(buf, src, RBP, offset),
-        MachineMode::Int32 => emit_movl_reg_memq(buf, src, RBP, offset),
-        MachineMode::Ptr => emit_movq_reg_memq(buf, src, RBP, offset),
-    }
-}
-
 pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
-    match mode {
-        MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
-        MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
-    }
-}
-
-pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     match mode {
         MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
         MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
