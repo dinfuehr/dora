@@ -224,6 +224,52 @@ pub fn load_nil(buf: &mut Buffer, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }
 
+pub fn load_mem(buf: &mut Buffer, mode: MachineMode, dest: Reg, mem: Mem) {
+    match mem {
+        Mem::Local(offset) => {
+            match mode {
+                MachineMode::Int8 => emit_movzbl_memq_reg(buf, RBP, offset, dest),
+                MachineMode::Int32 => emit_movl_memq_reg(buf, RBP, offset, dest),
+                MachineMode::Ptr => emit_movq_memq_reg(buf, RBP, offset, dest),
+            }
+        }
+
+        Mem::Base(base, disp) => {
+            match mode {
+                MachineMode::Int8 => emit_movzbl_memq_reg(buf, base, disp, dest),
+                MachineMode::Int32 => emit_movl_memq_reg(buf, base, disp, dest),
+                MachineMode::Ptr => emit_movq_memq_reg(buf, base, disp, dest),
+            }
+        }
+
+        Mem::Index(base, index, scale, disp) =>
+            emit_mov_memindex_reg(buf, mode, base, index, scale, disp, dest)
+    }
+}
+
+pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
+    match mem {
+        Mem::Local(offset) => {
+            match mode {
+                MachineMode::Int8 => emit_movb_reg_memq(buf, src, RBP, offset),
+                MachineMode::Int32 => emit_movl_reg_memq(buf, src, RBP, offset),
+                MachineMode::Ptr => emit_movq_reg_memq(buf, src, RBP, offset),
+            }
+        }
+
+        Mem::Base(base, disp) => {
+            match mode {
+                MachineMode::Int8 => emit_movb_reg_memq(buf, src, base, disp),
+                MachineMode::Int32 => emit_movl_reg_memq(buf, src, base, disp),
+                MachineMode::Ptr => emit_movq_reg_memq(buf, src, base, disp),
+            }
+        }
+
+        Mem::Index(base, index, scale, disp) =>
+            emit_mov_reg_memindex(buf, mode, src, base, index, scale, disp)
+    }
+}
+
 pub fn mov_mem_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32, dest: Reg) {
     match mode {
         MachineMode::Int8 => emit_movzbl_memq_reg(buf, src, offset, dest),

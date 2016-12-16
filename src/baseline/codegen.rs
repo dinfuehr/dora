@@ -10,7 +10,7 @@ use baseline::buffer::*;
 use baseline::expr::*;
 use baseline::fct::{CatchType, JitFct, GcPoint};
 use baseline::info;
-use cpu::{emit, Reg, REG_PARAMS, REG_RESULT, trap};
+use cpu::{emit, Mem, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 
@@ -133,8 +133,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
-            emit::mov_reg_local(&mut self.buf, var.ty.mode(),
-                                REG_PARAMS[0], var.offset);
+            emit::store_mem(&mut self.buf, var.ty.mode(), Mem::Local(var.offset),
+                            REG_PARAMS[0]);
 
             1
 
@@ -161,8 +161,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_expr(expr);
 
             if self.lbl_finally.is_some() {
-                emit::mov_reg_local(&mut self.buf, self.fct.return_type.mode(),
-                                    REG_RESULT, self.src.eh_return_value.unwrap());
+                let mode = self.fct.return_type.mode();
+                let offset = self.src.eh_return_value.unwrap();
+                emit::store_mem(&mut self.buf, mode,
+                                Mem::Local(offset), REG_RESULT);
             }
         }
 
@@ -171,8 +173,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_return_with_value(&mut self) {
         if !self.fct.return_type.is_unit() {
-            emit::mov_local_reg(&mut self.buf, self.fct.return_type.mode(),
-                                self.src.eh_return_value.unwrap(), REG_RESULT);
+            let mode = self.fct.return_type.mode();
+            let offset = self.src.eh_return_value.unwrap();
+            emit::load_mem(&mut self.buf, mode, REG_RESULT, Mem::Local(offset));
         }
 
         self.emit_return();
@@ -414,8 +417,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.visit_stmt(&finally_block.block);
 
-        emit::mov_local_reg(&mut self.buf, MachineMode::Ptr,
-                            finally_block.offset(), REG_RESULT);
+        emit::load_mem(&mut self.buf, MachineMode::Ptr, REG_RESULT,
+                       Mem::Local(finally_block.offset()));
         trap::emit(&mut self.buf, trap::THROW);
 
         self.scopes.pop_scope();
@@ -471,12 +474,12 @@ pub enum CondCode {
 
 pub fn var_store(buf: &mut Buffer, fct: &FctSrc, src: Reg, var_id: VarId) {
     let var = &fct.vars[var_id];
-    emit::mov_reg_local(buf, var.ty.mode(), src, var.offset);
+    emit::store_mem(buf, var.ty.mode(), Mem::Local(var.offset), src);
 }
 
 pub fn var_load(buf: &mut Buffer, fct: &FctSrc, var_id: VarId, dest: Reg) {
     let var = &fct.vars[var_id];
-    emit::mov_local_reg(buf, var.ty.mode(), var.offset, dest);
+    emit::load_mem(buf, var.ty.mode(), dest, Mem::Local(var.offset));
 }
 
 pub struct Scopes {

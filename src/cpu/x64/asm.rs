@@ -466,6 +466,24 @@ pub fn emit_mov_memindex_reg(buf: &mut Buffer, mode: MachineMode,
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
 }
 
+pub fn emit_mov_reg_memindex(buf: &mut Buffer, mode: MachineMode, src: Reg,
+                             base: Reg, index: Reg, scale: i32, disp: i32) {
+    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+
+    let (x64, opcode) = match mode {
+        MachineMode::Int8 => (0, 0x88),
+        MachineMode::Int32 => (0, 0x89),
+        MachineMode::Ptr => (1, 0x89),
+    };
+
+    if x64 != 0 || src.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
+        emit_rex(buf, x64, src.msb(), index.msb(), base.msb());
+    }
+
+    emit_op(buf, opcode);
+    emit_membase_with_index_and_scale(buf, base, index, scale, disp, src);
+}
+
 pub fn emit_cmp_mem_imm(buf: &mut Buffer, mode: MachineMode,
                         base: Reg, disp: i32, imm: i32) {
     let base_msb = if base == RIP { 0 } else { base.msb() };
@@ -1320,5 +1338,18 @@ mod tests {
 
         assert_emit!(0x4f, 0x8b, 0x6c, 0xfe, 0x10;
             emit_mov_memindex_reg(MachineMode::Ptr, R14, R15, 8, 16, R13));
+    }
+
+    #[test]
+    fn test_mov_reg_memindex() {
+        assert_emit!(0x48, 0x89, 0x54, 0x88, 0x0c;
+            emit_mov_reg_memindex(MachineMode::Ptr, RDX, RAX, RCX, 4, 12));
+        assert_emit!(0x89, 0x54, 0x88, 0x0c;
+            emit_mov_reg_memindex(MachineMode::Int32, RDX, RAX, RCX, 4, 12));
+        assert_emit!(0x88, 0x54, 0x88, 0x0c;
+            emit_mov_reg_memindex(MachineMode::Int8, RDX, RAX, RCX, 4, 12));
+
+        assert_emit!(0x4f, 0x89, 0x6c, 0xfe, 0x10;
+            emit_mov_reg_memindex(MachineMode::Ptr, R13, R14, R15, 8, 16));
     }
 }
