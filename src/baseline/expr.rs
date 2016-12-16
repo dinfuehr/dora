@@ -287,7 +287,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             self.free_temp_for_node(&e.object, offset);
 
             if dest != REG_RESULT {
-                emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
+                emit::copy_reg(self.buf, MachineMode::Int32, dest, REG_RESULT);
             }
 
         } else {
@@ -498,7 +498,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest {
-                    emit::mov_reg_reg(self.buf, field.ty.mode(), REG_RESULT, dest);
+                    emit::copy_reg(self.buf, field.ty.mode(), dest, REG_RESULT);
                 }
             }
         }
@@ -691,7 +691,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let ty = e.ty();
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg { emit::mov_reg_reg(self.buf, ty.mode(), reg, dest_reg); }
+        if reg != dest_reg { emit::copy_reg(self.buf, ty.mode(), dest_reg, reg); }
     }
 
     fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
@@ -758,7 +758,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         emit::int_shl(self.buf, dest, REG_RESULT, REG_TMP1);
 
         if REG_RESULT != dest {
-            emit::mov_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, dest);
+            emit::copy_reg(self.buf, MachineMode::Int32, dest, REG_RESULT);
         }
     }
 
@@ -899,7 +899,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.buf.emit_gcpoint(gcpoint);
 
         if REG_RESULT != dest {
-            emit::mov_reg_reg(self.buf, ty.mode(), REG_RESULT, dest);
+            emit::copy_reg(self.buf, ty.mode(), dest, REG_RESULT);
         }
     }
 }

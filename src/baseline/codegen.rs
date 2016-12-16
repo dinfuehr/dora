@@ -323,7 +323,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         emit::nil_ptr_check_bailout(&mut self.buf, s.pos, reg);
 
         if reg != REG_RESULT {
-            emit::mov_reg_reg(&mut self.buf, MachineMode::Ptr, reg, REG_RESULT);
+            emit::copy_reg(&mut self.buf, MachineMode::Ptr, REG_RESULT, reg);
         }
 
         trap::emit(&mut self.buf, trap::THROW);

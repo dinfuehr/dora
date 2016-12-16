@@ -320,6 +320,13 @@ pub fn mov_reg_local(buf: &mut Buffer, mode: MachineMode, src: Reg, offset: i32)
     }
 }
 
+pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
+    match mode {
+        MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
+        MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
+    }
+}
+
 pub fn mov_reg_reg(buf: &mut Buffer, mode: MachineMode, src: Reg, dest: Reg) {
     match mode {
         MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
