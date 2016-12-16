@@ -577,7 +577,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             let op = if op == CmpOp::Is { CondCode::Equal } else { CondCode::NotEqual };
 
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_reg_reg(eg.buf, MachineMode::Ptr, lhs, rhs);
+                emit::cmp_reg(eg.buf, MachineMode::Ptr, lhs, rhs);
                 emit::set(eg.buf, dest, op);
 
                 dest
@@ -589,12 +589,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, e.pos, dest);
             emit::load_int_const(self.buf, REG_TMP1, 0);
-            emit::cmp_reg_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1);
+            emit::cmp_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1);
             emit::set(self.buf, dest, to_cond_code(op));
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                emit::cmp_reg_reg(eg.buf, MachineMode::Int32, lhs, rhs);
+                emit::cmp_reg(eg.buf, MachineMode::Int32, lhs, rhs);
                 emit::set(eg.buf, dest, to_cond_code(op));
 
                 dest
