@@ -1,8 +1,14 @@
 use cpu::arm64::asm::*;
 use cpu::arm64::*;
-use cpu::Reg;
+use cpu::{Mem, Reg, trap};
 use cpu::arm64::reg::*;
 use baseline::buffer::*;
+use baseline::codegen::CondCode;
+use lexer::position::Position;
+use mem::ptr_width;
+use object::IntArray;
+use ty::MachineMode;
+use vtable::VTable;
 
 pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     buf.emit_u32(stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
@@ -32,12 +38,153 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     let pos = buf.pos() as i32;
 
     let scratch = get_scratch();
-    // TODO: load from const pool
-    unimplemented!();
+
+    load_constpool(buf, REG_RESULT, disp + pos);
     br(scratch);
 }
 
 pub fn indirect_call(buf: &mut Buffer, index: u32) {
+    let obj = REG_PARAMS[0];
+
+    // REG_RESULT = [obj] (load vtable)
+    load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
+
+    // calculate offset of VTable entry
+    let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
+
+    // load vtable entry
+    load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(REG_RESULT, disp));
+
+    // call *REG_RESULT
+    buf.emit_u32(blr(REG_RESULT));
+}
+
+pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
+    assert!(mode == MachineMode::Int32);
+
+    load_mem(buf, mode, dest, Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
+}
+
+pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
+    assert!(mode == MachineMode::Int32);
+
+    store_mem(buf, MachineMode::Int32,
+              Mem::Index(array, index, 4, IntArray::offset_of_data()), value);
+}
+
+pub fn test_if_nil_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
+    cmp_reg(buf, MachineMode::Ptr, reg, reg);
+
+    let lbl = buf.create_label();
+    jump_if(buf, CondCode::Zero, lbl);
+    buf.emit_bailout(lbl, trap::NIL, pos);
+}
+
+pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
+    cmp_reg(buf, MachineMode::Ptr, reg, reg);
+
+    let lbl = buf.create_label();
+    jump_if(buf, CondCode::Zero, lbl);
+
+    lbl
+}
+
+pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
+    unimplemented!();
+}
+
+pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
+    unimplemented!();
+}
+
+pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn test_and_jump_if(buf: &mut Buffer, cond: CondCode, reg: Reg, lbl: Label) {
+    assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
+
+    unimplemented!();
+}
+
+pub fn jump_if(buf: &mut Buffer, cond: CondCode, lbl: Label) {
+    unimplemented!();
+}
+
+pub fn jump(buf: &mut Buffer, lbl: Label) {
+    unimplemented!();
+}
+
+pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_and(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+    unimplemented!();
+}
+
+pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
+                                 index: Reg, temp: Reg) {
+    unimplemented!();
+}
+
+pub fn load_nil(buf: &mut Buffer, dest: Reg) {
+    unimplemented!();
+}
+
+pub fn load_mem(buf: &mut Buffer, mode: MachineMode, dest: Reg, mem: Mem) {
+    unimplemented!();
+}
+
+pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
+    unimplemented!();
+}
+
+pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
+    unimplemented!();
+}
+
+pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
+    unimplemented!();
+}
+
+pub fn call_reg(buf: &mut Buffer, reg: Reg) {
+    buf.emit_u32(blr(reg));
+}
+
+pub fn debug(buf: &mut Buffer) {
     unimplemented!();
 }
 

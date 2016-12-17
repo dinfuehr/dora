@@ -31,23 +31,23 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     let pos = buf.pos() as i32;
 
     load_constpool(buf, REG_RESULT, disp + pos);
-    call(buf, REG_RESULT);
+    call_reg(buf, REG_RESULT);
 }
 
 pub fn indirect_call(buf: &mut Buffer, index: u32) {
     let obj = REG_PARAMS[0];
 
     // REG_RESULT = [obj] (load vtable)
-    emit::load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
+    load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
 
     // calculate offset of VTable entry
     let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
     // load vtable entry
-    emit_movq_memq_reg(buf, REG_RESULT, disp, REG_RESULT);
+    load_mem(buf, MachineMode::Ptr, REG_RESULT, Mem::Base(REG_RESULT, disp));
 
     // call *REG_RESULT
-    call(buf, REG_RESULT);
+    call_reg(buf, REG_RESULT);
 }
 
 pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
@@ -67,7 +67,7 @@ pub fn test_if_nil_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, CondCode::Zero, lbl);
+    jump_if(buf, CondCode::Zero, lbl);
     buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
@@ -75,7 +75,7 @@ pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, CondCode::Zero, lbl);
+    jump_if(buf, CondCode::Zero, lbl);
 
     lbl
 }
@@ -282,7 +282,7 @@ pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
     emit_movq_memq_reg(buf, RIP, disp, dest); // 7 bytes
 }
 
-pub fn call(buf: &mut Buffer, reg: Reg) {
+pub fn call_reg(buf: &mut Buffer, reg: Reg) {
     emit_callq_reg(buf, reg);
 }
 
