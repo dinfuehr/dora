@@ -90,7 +90,8 @@ pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
 }
 
 pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
-    unimplemented!();
+    buf.emit_u32(cmp_imm(0, dest, 0, 0));
+    buf.emit_u32(cset(0, dest, CondCode::NotEqual.into()));
 }
 
 pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {

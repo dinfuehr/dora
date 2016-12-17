@@ -1,3 +1,4 @@
+use baseline::codegen::CondCode;
 use cpu::Reg;
 use cpu::arm64::reg::*;
 
@@ -113,8 +114,20 @@ pub fn add_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
     cls_addsub_imm(sf, 0, 0, shift, imm12, rn, rd)
 }
 
+pub fn adds_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
+    cls_addsub_imm(sf, 0, 1, shift, imm12, rn, rd)
+}
+
 pub fn sub_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
     cls_addsub_imm(sf, 1, 0, shift, imm12, rn, rd)
+}
+
+pub fn subs_imm(sf: u32, rd: Reg, rn: Reg, imm12: u32, shift: u32) -> u32 {
+    cls_addsub_imm(sf, 1, 1, shift, imm12, rn, rd)
+}
+
+pub fn cmp_imm(sf: u32, rn: Reg, imm12: u32, shift: u32) -> u32 {
+    subs_imm(sf, REG_ZERO, rn, imm12, shift)
 }
 
 fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd: Reg) -> u32 {
@@ -123,8 +136,8 @@ fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd:
     assert!(fits_bit(s));
     assert!(fits_bit(shift));
     assert!(fits_u12(imm12));
-    assert!(rn.is_gpr());
-    assert!(rd.is_gpr());
+    assert!(rn.is_gpr_or_sp());
+    assert!(rd.is_gpr_or_zero());
 
     (0b10001 as u32) << 24 | sf << 31 | op << 30 | s << 29 |
         shift << 22 | imm12 << 10 | rn.asm() << 5 | rd.asm()
@@ -568,6 +581,25 @@ pub enum Cond {
     LE, // signed less than or equal
 }
 
+impl From<CondCode> for Cond {
+    fn from(c: CondCode) -> Cond {
+        match c {
+            CondCode::Zero => Cond::EQ,
+            CondCode::NonZero => Cond::NE,
+            CondCode::Equal => Cond::EQ,
+            CondCode::NotEqual => Cond::NE,
+            CondCode::Greater => Cond::GT,
+            CondCode::GreaterEq => Cond::GE,
+            CondCode::Less => Cond::LT,
+            CondCode::LessEq => Cond::LE,
+            CondCode::UnsignedGreater => Cond::HI,
+            CondCode::UnsignedGreaterEq => Cond::HS,
+            CondCode::UnsignedLess => Cond::LO,
+            CondCode::UnsignedLessEq => Cond::LS,
+        }
+    }
+}
+
 impl Cond {
     fn invert(self) -> Cond {
         match self {
@@ -878,11 +910,35 @@ mod tests {
     }
 
     #[test]
+    fn test_adds_imm() {
+        assert_emit!(0x31000420; adds_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x31400c62; adds_imm(0, R2, R3, 3, 1));
+        assert_emit!(0xb1000420; adds_imm(1, R0, R1, 1, 0));
+        assert_emit!(0xb1400c62; adds_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
     fn test_sub_imm() {
         assert_emit!(0x51000420; sub_imm(0, R0, R1, 1, 0));
         assert_emit!(0x51400c62; sub_imm(0, R2, R3, 3, 1));
         assert_emit!(0xd1000420; sub_imm(1, R0, R1, 1, 0));
         assert_emit!(0xd1400c62; sub_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_subs_imm() {
+        assert_emit!(0x71000420; subs_imm(0, R0, R1, 1, 0));
+        assert_emit!(0x71400c62; subs_imm(0, R2, R3, 3, 1));
+        assert_emit!(0xf1000420; subs_imm(1, R0, R1, 1, 0));
+        assert_emit!(0xf1400c62; subs_imm(1, R2, R3, 3, 1));
+    }
+
+    #[test]
+    fn test_cmp_imm() {
+        assert_emit!(0x7100043f; cmp_imm(0, R1, 1, 0));
+        assert_emit!(0x71400c5f; cmp_imm(0, R2, 3, 1));
+        assert_emit!(0xf100047f; cmp_imm(1, R3, 1, 0));
+        assert_emit!(0xf1400c9f; cmp_imm(1, R4, 3, 1));
     }
 
     #[test]
