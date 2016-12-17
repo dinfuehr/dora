@@ -210,11 +210,12 @@ pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 
 pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
                                  index: Reg, temp: Reg) {
-    emit_movq_memq_reg(buf, array, IntArray::offset_of_length(), temp);
-    emit_cmpq_reg_reg(buf, temp, index);
+    load_mem(buf, MachineMode::Int32, temp,
+             Mem::Base(array, IntArray::offset_of_length()));
+    cmp_reg(buf, MachineMode::Int32, index, temp);
 
     let lbl = buf.create_label();
-    emit_jcc(buf, CondCode::UnsignedGreaterEq, lbl);
+    jump_if(buf, CondCode::UnsignedGreaterEq, lbl);
     buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 

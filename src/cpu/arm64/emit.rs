@@ -141,7 +141,7 @@ pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 }
 
 pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    buf.emit_u32(lslv(0, dest, lhs, reg));
+    buf.emit_u32(lslv(0, dest, lhs, rhs));
 }
 
 pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -158,11 +158,17 @@ pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 
 pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
                                  index: Reg, temp: Reg) {
-    unimplemented!();
+    load_mem(buf, MachineMode::Int32, temp,
+             Mem::Base(array, IntArray::offset_of_length()));
+    cmp_reg(buf, MachineMode::Int32, temp, index);
+
+    let lbl = buf.create_label();
+    jump_if(buf, CondCode::UnsignedGreaterEq, lbl);
+    buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 
 pub fn load_nil(buf: &mut Buffer, dest: Reg) {
-    unimplemented!();
+    buf.emit_u32(add_imm(1, dest, REG_ZERO, 0, 0));
 }
 
 pub fn load_mem(buf: &mut Buffer, mode: MachineMode, dest: Reg, mem: Mem) {
