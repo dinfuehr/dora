@@ -160,7 +160,7 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
                                  index: Reg, temp: Reg) {
     load_mem(buf, MachineMode::Int32, temp,
              Mem::Base(array, IntArray::offset_of_length()));
-    cmp_reg(buf, MachineMode::Int32, temp, index);
+    cmp_reg(buf, MachineMode::Int32, index, temp);
 
     let lbl = buf.create_label();
     jump_if(buf, CondCode::UnsignedGreaterEq, lbl);
