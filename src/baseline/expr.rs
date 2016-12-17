@@ -148,7 +148,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&e.object, dest);
 
         // return false if object is nil
-        let lbl_nil = emit::nil_ptr_check(self.buf, dest);
+        let lbl_nil = emit::test_if_nil(self.buf, dest);
 
         if e.valid() {
             if e.is {
@@ -831,7 +831,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                     if call_type.is_some() && call_type.unwrap().is_method()
                         && check_for_nil(ty) {
-                        emit::nil_ptr_check_bailout(self.buf, pos, reg);
+                        emit::test_if_nil_bailout(self.buf, pos, reg);
                     }
                 }
 

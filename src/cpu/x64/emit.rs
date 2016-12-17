@@ -63,7 +63,7 @@ pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: 
               Mem::Index(array, index, 4, IntArray::offset_of_data()), value);
 }
 
-pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
+pub fn test_if_nil_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
@@ -71,7 +71,7 @@ pub fn nil_ptr_check_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
-pub fn nil_ptr_check(buf: &mut Buffer, reg: Reg) -> Label {
+pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
