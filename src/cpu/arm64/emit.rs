@@ -103,7 +103,7 @@ pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
 }
 
 pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(cmp_shreg(size_flag(mode), lhs, rhs, Shift::LSL, 0));
 }
 
 pub fn test_and_jump_if(buf: &mut Buffer, cond: CondCode, reg: Reg, lbl: Label) {
@@ -121,7 +121,7 @@ pub fn jump(buf: &mut Buffer, lbl: Label) {
 }
 
 pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(sdiv(0, dest, lhs, rhs));
 }
 
 pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -129,31 +129,31 @@ pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 }
 
 pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(mul(0, dest, lhs, rhs));
 }
 
 pub fn int_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(add_reg(0, dest, lhs, rhs));
 }
 
 pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(sub_reg(0, dest, lhs, rhs));
 }
 
 pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(lslv(0, dest, lhs, reg));
 }
 
 pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(orr_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
 }
 
 pub fn int_and(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(and_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
 }
 
 pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(eor_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
 }
 
 pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
@@ -174,7 +174,7 @@ pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
 }
 
 pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
-    unimplemented!();
+    buf.emit_u32(orr_shreg(0, dest, REG_ZERO, src, Shift::LSL, 0));
 }
 
 pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
@@ -226,6 +226,13 @@ pub fn bool_not(buf: &mut Buffer, dest: Reg, src: Reg) {
     buf.emit_u32(movz(0, scratch, 1, 0));
     buf.emit_u32(eor_shreg(0, dest, src, scratch, Shift::LSL, 0));
     buf.emit_u32(uxtb(dest, dest));
+}
+
+fn size_flag(mode: MachineMode) -> u32 {
+    match mode {
+        MachineMode::Int8 | MachineMode::Int32 => 0,
+        MachineMode::Ptr => 1,
+    }
 }
 
 fn get_scratch() -> Reg {
