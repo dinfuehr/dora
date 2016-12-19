@@ -102,8 +102,7 @@ pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
 }
 
 pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
-    let scratch1 = get_scratch();
-    let scratch2 = get_scratch();
+    let (scratch1, scratch2) = get_scratch_registers();
 
     load_mem(buf, mode, scratch1, mem);
     load_int_const(buf, scratch2, imm);
@@ -190,7 +189,7 @@ pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
 }
 
 pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
-    buf.emit_u32(orr_shreg(0, dest, REG_ZERO, src, Shift::LSL, 0));
+    buf.emit_u32(orr_shreg(size_flag(mode), dest, REG_ZERO, src, Shift::LSL, 0));
 }
 
 pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
@@ -253,4 +252,8 @@ fn size_flag(mode: MachineMode) -> u32 {
 
 fn get_scratch() -> Reg {
     SCRATCH[0]
+}
+
+fn get_scratch_registers() -> (Reg, Reg) {
+    (SCRATCH[0], SCRATCH[1])
 }

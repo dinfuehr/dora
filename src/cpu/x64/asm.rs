@@ -24,13 +24,21 @@ fn emit_alu_reg_reg(buf: &mut Buffer, x64: u8, opcode: u8, src: Reg, dest: Reg) 
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
-pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: u32, reg: Reg) {
+pub fn emit_movl_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
     if reg.msb() != 0 {
         emit_rex(buf, 0, 0, 0, 1);
     }
 
     emit_op(buf, (0xB8 as u8) + reg.and7());
-    emit_u32(buf, imm);
+    emit_u32(buf, imm as u32);
+}
+
+// mov 32bit immediate and sign-extend into 64bit-register
+pub fn emit_movq_imm_reg(buf: &mut Buffer, imm: i32, reg: Reg) {
+    emit_rex(buf, 1, 0, 0, reg.msb());
+    emit_op(buf, 0xc7);
+    emit_modrm(buf, 0b11, 0, reg.and7());
+    emit_u32(buf, imm as u32);
 }
 
 pub fn emit_movb_memq_reg(buf: &mut Buffer, src: Reg, disp: i32, dest: Reg) {
@@ -782,6 +790,12 @@ mod tests {
     fn test_emit_movl_imm_reg() {
         assert_emit!(0xb8, 2, 0, 0, 0; emit_movl_imm_reg(2, RAX));
         assert_emit!(0x41, 0xbe, 3, 0, 0, 0; emit_movl_imm_reg(3, R14));
+    }
+
+    #[test]
+    fn test_emit_movq_imm_reg() {
+        assert_emit!(0x48, 0xc7, 0xc0, 1, 0, 0, 0; emit_movq_imm_reg(1, RAX));
+        assert_emit!(0x49, 0xc7, 0xc7, 0xFF, 0xFF, 0xFF, 0xFF; emit_movq_imm_reg(-1, R15));
     }
 
     #[test]

@@ -293,8 +293,12 @@ pub fn debug(buf: &mut Buffer) {
     emit_op(buf, 0xCC);
 }
 
-pub fn load_int_const(buf: &mut Buffer, dest: Reg, imm: i32) {
-    emit_movl_imm_reg(buf, imm as u32, dest);
+pub fn load_int_const(buf: &mut Buffer, mode: MachineMode, dest: Reg, imm: i32) {
+    match mode {
+        MachineMode::Int8 => unimplemented!(),
+        MachineMode::Int32 => emit_movl_imm_reg(buf, imm, dest),
+        MachineMode::Ptr => emit_movq_imm_reg(buf, imm, dest),
+    }
 }
 
 pub fn load_true(buf: &mut Buffer, dest: Reg) {

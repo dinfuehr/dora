@@ -371,7 +371,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        emit::load_int_const(self.buf, dest, lit.value);
+        emit::load_int_const(self.buf, MachineMode::Int32, dest, lit.value);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {
@@ -589,7 +589,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         if cmp_type == BuiltinType::Str {
             self.emit_universal_call(e.id, e.pos, dest);
-            emit::load_int_const(self.buf, REG_TMP1, 0);
+            emit::load_int_const(self.buf, MachineMode::Ptr, REG_TMP1, 0);
             emit::cmp_reg(self.buf, MachineMode::Int32, REG_RESULT, REG_TMP1);
             emit::set(self.buf, dest, to_cond_code(op));
 
@@ -795,7 +795,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     self.buf.emit_comment(Comment::Alloc(cls_id));
 
                     let cls = self.ctxt.cls_by_id(cls_id);
-                    emit::load_int_const(self.buf, REG_PARAMS[0], cls.size);
+                    emit::load_int_const(self.buf, MachineMode::Int32, REG_PARAMS[0], cls.size);
 
                     let mptr = stdlib::gc_alloc as *mut u8;
                     self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
