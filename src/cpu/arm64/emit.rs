@@ -16,7 +16,7 @@ pub fn prolog(buf: &mut Buffer, stacksize: i32) {
 
     if stacksize > 0 {
         let scratch = get_scratch();
-        load_int_const(buf, scratch, stacksize);
+        load_int_const(buf, MachineMode::Ptr, scratch, stacksize);
         buf.emit_u32(sub_reg(1, REG_SP, REG_SP, scratch));
     }
 }
@@ -24,7 +24,7 @@ pub fn prolog(buf: &mut Buffer, stacksize: i32) {
 pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     if stacksize > 0 {
         let scratch = get_scratch();
-        load_int_const(buf, scratch, stacksize);
+        load_int_const(buf, MachineMode::Ptr, scratch, stacksize);
         buf.emit_u32(add_reg(1, REG_SP, REG_SP, scratch));
     }
 
@@ -105,7 +105,7 @@ pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
     let (scratch1, scratch2) = get_scratch_registers();
 
     load_mem(buf, mode, scratch1, mem);
-    load_int_const(buf, scratch2, imm);
+    load_int_const(buf, mode, scratch2, imm);
 
     cmp_reg(buf, mode, scratch1, scratch2);
 }
@@ -204,15 +204,20 @@ pub fn debug(buf: &mut Buffer) {
     unimplemented!();
 }
 
-pub fn load_int_const(buf: &mut Buffer, dest: Reg, imm: i32) {
-    let register_size = 32;
+pub fn load_int_const(buf: &mut Buffer, mode: MachineMode, dest: Reg, imm: i32) {
+    let sf = size_flag(mode);
+    let register_size = match mode {
+        MachineMode::Int8 => unimplemented!(),
+        MachineMode::Int32 => 32,
+        MachineMode::Ptr => 64,
+    };
     let imm = imm as i64 as u64;
 
     if fits_movz(imm, register_size) {
-        buf.emit_u32(movz(0, dest, imm as u32, 0));
+        buf.emit_u32(movz(sf, dest, imm as u32, shift_movz(imm)));
 
     } else if fits_movn(imm, register_size) {
-        buf.emit_u32(movn(0, dest, imm as u32, 0));
+        buf.emit_u32(movn(sf, dest, imm as u32, shift_movn(imm)));
 
     } else {
         unimplemented!();

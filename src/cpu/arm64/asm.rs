@@ -1304,4 +1304,12 @@ mod tests {
         assert_eq!(0, shift_movz(0xFFFF));
         assert_eq!(1, shift_movz(0x10000));
     }
+
+    #[test]
+    fn test_shift_movn() {
+        assert_eq!(0, shift_movn(!0u64));
+        assert_eq!(0, shift_movn(0));
+        assert_eq!(0, shift_movn(1));
+        assert_eq!(1, shift_movn(0xFFFF));
+    }
 }
