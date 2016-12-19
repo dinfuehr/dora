@@ -174,6 +174,7 @@ impl Comments {
 }
 
 pub enum Comment {
+    Lit(&'static str),
     LoadString(Handle<Str>),
     Alloc(ClassId),
     StoreVTable(ClassId),
@@ -185,6 +186,7 @@ pub enum Comment {
 impl fmt::Display for Comment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
             &Comment::Alloc(_) => write!(f, "allocate object"),
             &Comment::StoreVTable(_) => write!(f, "store vtable"),

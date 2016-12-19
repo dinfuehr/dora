@@ -749,6 +749,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
         let lbl_div = self.buf.create_label();
         self.emit_expr(&e.args[0], REG_RESULT);
+
+        self.buf.emit_comment(Comment::Lit("check assert"));
         emit::test_and_jump_if(self.buf, CondCode::Zero, REG_RESULT, lbl_div);
         self.buf.emit_bailout(lbl_div, trap::ASSERT, e.pos);
     }

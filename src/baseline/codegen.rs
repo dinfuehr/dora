@@ -79,7 +79,7 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
 
     for instr in instrs {
         if let Some(comment) = jit_fct.get_comment((instr.addr - start_addr) as i32) {
-            println!("\t\t; {}", comment);
+            println!("\t\t  ; {}", comment);
         }
 
         println!("  {:#06x}: {}\t\t{}",
