@@ -95,11 +95,20 @@ pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
 }
 
 pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
-    unimplemented!();
+    let scratch = get_scratch();
+
+    load_mem(buf, mode, scratch, mem);
+    cmp_reg(buf, mode, scratch, rhs);
 }
 
 pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
-    unimplemented!();
+    let scratch1 = get_scratch();
+    let scratch2 = get_scratch();
+
+    load_mem(buf, mode, scratch1, mem);
+    load_int_const(buf, scratch2, imm);
+
+    cmp_reg(buf, mode, scratch1, scratch2);
 }
 
 pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
@@ -125,7 +134,8 @@ pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
 }
 
 pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
-    unimplemented!();
+    buf.emit_u32(sdiv(0, dest, lhs, rhs));
+    buf.emit_u32(msub(0, dest, dest, rhs, lhs));
 }
 
 pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {

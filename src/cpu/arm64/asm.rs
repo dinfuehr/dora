@@ -568,6 +568,20 @@ fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Re
         (imms & 0x3F) << 10 | rn.asm() << 5 | rd.asm()
 }
 
+fn cls_logical_imm(sf: u32, opc: u32, n: u32, immr: u32, imms: u32,
+                   rn: Reg, rd: Reg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_u2(opc));
+    assert!(fits_bit(n));
+    assert!(fits_u6(immr));
+    assert!(fits_u6(imms));
+    assert!(rn.is_gpr());
+    assert!(rd.is_gpr());
+
+    sf << 31 | opc << 29 | 0b100100u32 << 23 | n << 22 | immr << 16 |
+        imms << 10 | rn.asm() << 5 | rd.asm()
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
