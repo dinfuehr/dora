@@ -201,7 +201,14 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 write!(f, "allocate object of class {}", &name)
             }
 
-            &Comment::StoreVTable(_) => write!(f, "store vtable"),
+            &Comment::StoreVTable(clsid) => {
+                let cls = self.ctxt.cls_by_id(clsid);
+                let name = cls.name;
+                let name = self.ctxt.interner.str(name);
+
+                write!(f, "store vtable ptr for class {} in object", &name)
+            }
+
             &Comment::CallSuper(fid) => {
                 let fct = self.ctxt.fct_by_id(fid);
                 let name = fct.full_name(self.ctxt);
