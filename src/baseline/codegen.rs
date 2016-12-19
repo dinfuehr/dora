@@ -8,7 +8,7 @@ use ast::visit::*;
 
 use baseline::buffer::*;
 use baseline::expr::*;
-use baseline::fct::{CatchType, JitFct, GcPoint};
+use baseline::fct::{CatchType, CommentFormat, JitFct, GcPoint};
 use baseline::info;
 use cpu::{emit, Mem, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
@@ -41,7 +41,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     }.generate();
 
     if ctxt.args.flag_emit_asm {
-        dump_asm(&jit_fct, &ctxt.interner.str(ast.name),
+        dump_asm(ctxt, &jit_fct,
             ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
     }
 
@@ -51,8 +51,10 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
     fct_ptr
 }
 
-pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
+pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
     use capstone::*;
+
+    let fct = ctxt.fct_by_id(jit_fct.fct_id);
 
     let buf: &[u8] = unsafe {
         slice::from_raw_parts(
@@ -75,16 +77,25 @@ pub fn dump_asm(jit_fct: &JitFct, name: &str, asm_syntax: AsmSyntax) {
     let instrs = engine.disasm(buf, start_addr,
         jit_fct.fct_len()).expect("could not disassemble code");
 
-    println!("fn {} (id {}) {:#x}", name, jit_fct.fct_id().0, start_addr);
+    let name = fct.full_name(ctxt);
+
+    println!("fn {} {:#x}", &name, start_addr);
 
     for instr in instrs {
         if let Some(comment) = jit_fct.get_comment((instr.addr - start_addr) as i32) {
+            let comment = CommentFormat {
+                comment: comment,
+                ctxt: ctxt,
+            };
+
             println!("\t\t  ; {}", comment);
         }
 
         println!("  {:#06x}: {}\t\t{}",
                  instr.addr, instr.mnemonic, instr.op_str);
     }
+
+    println!("");
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {

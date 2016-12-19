@@ -3,7 +3,7 @@ use std::fmt;
 use std::ptr;
 
 use class::ClassId;
-use ctxt::FctId;
+use ctxt::{Context, FctId};
 use dseg::DSeg;
 use mem::{CodeMemory, Ptr};
 use object::{Handle, Str};
@@ -11,7 +11,7 @@ use object::{Handle, Str};
 pub struct JitFct {
     code: CodeMemory,
 
-    fct_id: FctId,
+    pub fct_id: FctId,
 
     // pointer to beginning of function
     pub fct_start: Ptr,
@@ -183,16 +183,45 @@ pub enum Comment {
     CallDirect(FctId),
 }
 
-impl fmt::Display for Comment {
+pub struct CommentFormat<'a, 'ast: 'a> {
+    pub comment: &'a Comment,
+    pub ctxt: &'a Context<'ast>,
+}
+
+impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+        match self.comment {
             &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
-            &Comment::Alloc(_) => write!(f, "allocate object"),
+            &Comment::Alloc(clsid) => {
+                let cls = self.ctxt.cls_by_id(clsid);
+                let name = cls.name;
+                let name = self.ctxt.interner.str(name);
+
+                write!(f, "allocate object of class {}", &name)
+            }
+
             &Comment::StoreVTable(_) => write!(f, "store vtable"),
-            &Comment::CallSuper(fid) => write!(f, "call super {}", fid.0),
-            &Comment::CallVirtual(fid) => write!(f, "call virtual {}", fid.0),
-            &Comment::CallDirect(fid) => write!(f, "call direct {}", fid.0),
+            &Comment::CallSuper(fid) => {
+                let fct = self.ctxt.fct_by_id(fid);
+                let name = fct.full_name(self.ctxt);
+
+                write!(f, "call super {}", &name)
+            }
+
+            &Comment::CallVirtual(fid) => {
+                let fct = self.ctxt.fct_by_id(fid);
+                let name = fct.full_name(self.ctxt);
+
+                write!(f, "call virtual {}", &name)
+            }
+
+            &Comment::CallDirect(fid) => {
+                let fct = self.ctxt.fct_by_id(fid);
+                let name = fct.full_name(self.ctxt);
+
+                write!(f, "call direct {}", &name)
+            }
         }
     }
 }

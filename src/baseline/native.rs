@@ -29,12 +29,13 @@ impl NativeFcts {
     }
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, ptr: *const u8,
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct_id: FctId, ptr: *const u8,
                               return_type: BuiltinType, args: i32) -> JitFct {
     let ngen = NativeGen {
         ctxt: ctxt,
         ptr: ptr,
         buf: Buffer::new(),
+        fct_id: fct_id,
         return_type: return_type,
         args: args,
     };
@@ -46,6 +47,7 @@ struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     ptr: *const u8,
     buf: Buffer,
+    fct_id: FctId,
 
     return_type: BuiltinType,
     args: i32,
@@ -96,7 +98,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
 
         emit::epilog(&mut self.buf, framesize);
 
-        self.buf.jit(FctId(0), framesize)
+        self.buf.jit(self.fct_id, framesize)
     }
 }
 

@@ -717,7 +717,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 }
 
                 FctKind::Native(ptr) => {
-                    ensure_native_stub(self.ctxt, ptr.raw(), fct.return_type, fct.real_args())
+                    ensure_native_stub(self.ctxt, fid, ptr.raw(), fct.return_type, fct.real_args())
                 }
 
                 FctKind::Definition => unreachable!(),
@@ -886,7 +886,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position,
                              ty: BuiltinType, args: i32, dest: Reg) {
-        let ptr = ensure_native_stub(self.ctxt, ptr, ty, args);
+        let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
         self.emit_direct_call_insn(ptr, pos, ty, dest);
     }
 
@@ -922,17 +922,18 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-fn ensure_native_stub(ctxt: &Context, ptr: *const u8, ty: BuiltinType, args: i32) -> *const u8 {
+fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
+                      ty: BuiltinType, args: i32) -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
 
     if let Some(ptr) = native_fcts.find_fct(ptr) {
         ptr
 
     } else {
-        let jit_fct = native::generate(ctxt, ptr, ty, args);
+        let jit_fct = native::generate(ctxt, fct_id, ptr, ty, args);
 
         if ctxt.args.flag_emit_asm {
-            dump_asm(&jit_fct, "native_stub",
+            dump_asm(ctxt, &jit_fct,
                 ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
         }
 
