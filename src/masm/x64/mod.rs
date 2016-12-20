@@ -112,4 +112,102 @@ impl MacroAssembler {
             MachineMode::Ptr => asm::emit_cmpq_reg_reg(self, rhs, lhs),
         }
     }
+
+    pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
+        assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
+
+        asm::emit_testl_reg_reg(self, reg, reg);
+        asm::emit_jcc(self, cond, lbl);
+    }
+
+    pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
+        asm::emit_jcc(self, cond, lbl);
+    }
+
+    pub fn jump(&mut self, lbl: Label) {
+        asm::emit_jmp(self, lbl);
+    }
+
+    pub fn int_div(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        assert_eq!(RAX, lhs);
+
+        asm::emit_cltd(self);
+        asm::emit_idivl_reg_reg(self, rhs);
+
+        if dest != RAX {
+            asm::emit_movl_reg_reg(self, RAX, dest);
+        }
+    }
+
+    pub fn int_mod(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        assert_eq!(RAX, lhs);
+
+        asm::emit_cltd(self);
+        asm::emit_idivl_reg_reg(self, rhs);
+
+        if dest != RDX {
+            asm::emit_movl_reg_reg(self, RDX, dest);
+        }
+    }
+
+    pub fn int_mul(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_imull_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_add(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_addl_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_sub(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_subl_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_shl(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        if rhs != RCX {
+            assert!(lhs != RCX);
+            asm::emit_movq_reg_reg(self, rhs, RCX);
+        }
+
+        asm::emit_shll_reg_cl(self, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_or(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_orl_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_and(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_andl_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_xor(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        asm::emit_xorl_reg_reg(self, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
 }
