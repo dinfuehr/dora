@@ -4,7 +4,6 @@ use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
 use class::Class;
-use mem;
 
 pub const DISPLAY_SIZE: usize = 6;
 
@@ -107,19 +106,20 @@ impl<'ast> VTable<'ast> {
     }
 
     pub fn offset_of_depth() -> i32 {
-        mem::ptr_width()
+        offset_of!(VTable, subtype_depth) as i32
+
     }
 
     pub fn offset_of_display() -> i32 {
-        mem::ptr_width() * 2
+        offset_of!(VTable, subtype_display) as i32
     }
 
     pub fn offset_of_method_table() -> i32 {
-        (4 + DISPLAY_SIZE as i32) * mem::ptr_width()
+        size_of::<VTable>() as i32
     }
 
     pub fn offset_of_overflow() -> i32 {
-        (2 + DISPLAY_SIZE as i32) * mem::ptr_width()
+        offset_of!(VTable, subtype_overflow) as i32
     }
 
     pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable<'ast> {

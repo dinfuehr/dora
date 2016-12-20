@@ -12,6 +12,12 @@ extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
 
+macro_rules! offset_of {
+    ($ty:ty, $field:ident) => {
+        unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
+    }
+}
+
 mod ast;
 mod baseline;
 mod class;

@@ -289,10 +289,10 @@ impl IntArray {
     }
 
     pub fn offset_of_length() -> i32 {
-        Header::size()
+        offset_of!(IntArray, length) as i32
     }
 
     pub fn offset_of_data() -> i32 {
-        Header::size() + mem::ptr_width()
+        offset_of!(IntArray, data) as i32
     }
 }
