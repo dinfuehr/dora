@@ -1,6 +1,5 @@
 use ast::*;
 use ast::Expr::*;
-use baseline::buffer::*;
 use baseline::codegen::{self, dump_asm, CondCode, Scopes, TempOffsets};
 use baseline::fct::{CatchType, Comment};
 use baseline::native;
@@ -12,6 +11,7 @@ use cpu::trap;
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
+use masm::*;
 use mem;
 use mem::ptr::Ptr;
 use object::{Header, Str};

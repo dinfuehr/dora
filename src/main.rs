@@ -30,6 +30,7 @@ mod execstate;
 mod gc;
 mod interner;
 mod lexer;
+mod masm;
 mod mem;
 mod mir;
 mod object;

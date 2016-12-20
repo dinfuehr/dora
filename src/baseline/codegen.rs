@@ -6,13 +6,13 @@ use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
 
-use baseline::buffer::*;
 use baseline::expr::*;
 use baseline::fct::{CatchType, CommentFormat, JitFct, GcPoint};
 use baseline::info;
 use cpu::{emit, Mem, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
+use masm::*;
 
 use mem::ptr::Ptr;
 use os;

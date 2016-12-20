@@ -2,7 +2,6 @@ use ctxt::*;
 
 use mem::ptr::Ptr;
 
-pub mod buffer;
 pub mod codegen;
 pub mod expr;
 pub mod fct;

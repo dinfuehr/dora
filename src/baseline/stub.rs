@@ -1,8 +1,8 @@
 use std::fmt;
 
-use baseline::buffer::MacroAssembler;
 use cpu::trap;
 use ctxt::FctId;
+use masm::MacroAssembler;
 use mem::code::CodeMemory;
 use mem::Ptr;
 

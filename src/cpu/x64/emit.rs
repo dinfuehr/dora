@@ -1,8 +1,8 @@
 use cpu::asm::*;
 use cpu::*;
-use baseline::buffer::*;
 use baseline::codegen::CondCode;
 use lexer::position::Position;
+use masm::*;
 use mem::ptr_width;
 use object::IntArray;
 use ty::MachineMode;
@@ -338,8 +338,8 @@ pub fn bool_not(buf: &mut MacroAssembler, dest: Reg, src: Reg) {
 mod tests {
     use super::*;
 
-    use baseline::buffer::MacroAssembler;
     use cpu::trap;
+    use masm::MacroAssembler;
 
     #[test]
     fn test_debug() {

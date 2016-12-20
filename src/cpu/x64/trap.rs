@@ -1,8 +1,8 @@
-use baseline::buffer::MacroAssembler;
 use cpu::*;
 use cpu::asm::*;
 use ctxt::{Context, FctId};
 use execstate::ExecState;
+use masm::MacroAssembler;
 
 use mem::ptr::Ptr;
 

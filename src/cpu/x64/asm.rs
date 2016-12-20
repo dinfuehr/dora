@@ -1,6 +1,6 @@
 use cpu::*;
-use baseline::buffer::*;
 use baseline::codegen::CondCode;
+use masm::*;
 use ty::MachineMode;
 
 pub fn emit_orl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
@@ -676,8 +676,8 @@ mod tests {
     use super::*;
 
     use cpu::*;
-    use baseline::buffer::MacroAssembler;
     use baseline::codegen::CondCode;
+    use masm::MacroAssembler;
     use ty::MachineMode;
 
     macro_rules! assert_emit {
