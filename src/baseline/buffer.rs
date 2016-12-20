@@ -6,7 +6,7 @@ use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use lexer::position::Position;
 
-pub struct Buffer {
+pub struct MacroAssembler {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
@@ -18,9 +18,9 @@ pub struct Buffer {
     exception_handlers: Vec<ExHandler>,
 }
 
-impl Buffer {
-    pub fn new() -> Buffer {
-        Buffer {
+impl MacroAssembler {
+    pub fn new() -> MacroAssembler {
+        MacroAssembler {
             data: Vec::new(),
             labels: Vec::new(),
             jumps: Vec::new(),
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_label() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
 
         assert_eq!(Label(0), buf.create_label());
         assert_eq!(Label(1), buf.create_label());
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_backward_with_gap() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         buf.bind_label(lbl);
         buf.emit_u8(0x33);
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_backward() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         buf.bind_label(lbl);
         buf.emit_label(lbl);
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_forward_with_gap() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         buf.emit_label(lbl);
         buf.emit_u8(0x11);
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_forward() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
         buf.emit_label(lbl);
         buf.bind_label(lbl);
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_bind_label_twice() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
 
         buf.bind_label(lbl);
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_label_undefined() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         let lbl = buf.create_label();
 
         buf.emit_label(lbl);

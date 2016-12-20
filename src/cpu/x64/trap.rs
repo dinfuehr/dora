@@ -1,4 +1,4 @@
-use baseline::buffer::Buffer;
+use baseline::buffer::MacroAssembler;
 use cpu::*;
 use cpu::asm::*;
 use ctxt::{Context, FctId};
@@ -25,7 +25,7 @@ pub const CAST: TrapId = TrapId(15);
 pub const UNEXPECTED: TrapId = TrapId(16);
 
 // emit stub instruction
-pub fn emit(buf: &mut Buffer, trap: TrapId) {
+pub fn emit(buf: &mut MacroAssembler, trap: TrapId) {
     let dest = R10;
 
     // mov r10, [trap::COMPILER]

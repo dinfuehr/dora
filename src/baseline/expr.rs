@@ -24,7 +24,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
-    buf: &'a mut Buffer,
+    buf: &'a mut MacroAssembler,
     scopes: &'a mut Scopes,
     tempsize: i32,
     temps: TempOffsets,
@@ -36,7 +36,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         fct: &'a Fct<'ast>,
         src: &'a mut FctSrc<'ast>,
         ast: &'ast Function,
-        buf: &'a mut Buffer,
+        buf: &'a mut MacroAssembler,
         scopes: &'a mut Scopes,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {

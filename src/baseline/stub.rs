@@ -1,6 +1,6 @@
 use std::fmt;
 
-use baseline::buffer::Buffer;
+use baseline::buffer::MacroAssembler;
 use cpu::trap;
 use ctxt::FctId;
 use mem::code::CodeMemory;
@@ -12,7 +12,7 @@ pub struct Stub {
 
 impl Stub {
     pub fn new(fct_id: FctId) -> Stub {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         trap::emit(&mut buf, trap::COMPILER);
         let code = buf.jit(fct_id, 0).code();
 

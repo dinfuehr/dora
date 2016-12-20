@@ -8,7 +8,7 @@ use object::IntArray;
 use ty::MachineMode;
 use vtable::VTable;
 
-pub fn prolog(buf: &mut Buffer, stacksize: i32) {
+pub fn prolog(buf: &mut MacroAssembler, stacksize: i32) {
     emit_pushq_reg(buf, RBP);
     emit_movq_reg_reg(buf, RSP, RBP);
 
@@ -17,7 +17,7 @@ pub fn prolog(buf: &mut Buffer, stacksize: i32) {
     }
 }
 
-pub fn epilog(buf: &mut Buffer, stacksize: i32) {
+pub fn epilog(buf: &mut MacroAssembler, stacksize: i32) {
     if stacksize > 0 {
         emit_addq_imm_reg(buf, stacksize, RSP);
     }
@@ -26,7 +26,7 @@ pub fn epilog(buf: &mut Buffer, stacksize: i32) {
     emit_retq(buf);
 }
 
-pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
+pub fn direct_call(buf: &mut MacroAssembler, ptr: *const u8) {
     let disp = buf.add_addr(ptr);
     let pos = buf.pos() as i32;
 
@@ -34,7 +34,7 @@ pub fn direct_call(buf: &mut Buffer, ptr: *const u8) {
     call_reg(buf, REG_RESULT);
 }
 
-pub fn indirect_call(buf: &mut Buffer, index: u32) {
+pub fn indirect_call(buf: &mut MacroAssembler, index: u32) {
     let obj = REG_PARAMS[0];
 
     // REG_RESULT = [obj] (load vtable)
@@ -50,20 +50,20 @@ pub fn indirect_call(buf: &mut Buffer, index: u32) {
     call_reg(buf, REG_RESULT);
 }
 
-pub fn load_array_elem(buf: &mut Buffer, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
+pub fn load_array_elem(buf: &mut MacroAssembler, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
     assert!(mode == MachineMode::Int32);
 
     load_mem(buf, mode, dest, Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
 }
 
-pub fn store_array_elem(buf: &mut Buffer, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
+pub fn store_array_elem(buf: &mut MacroAssembler, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
     assert!(mode == MachineMode::Int32);
 
     store_mem(buf, MachineMode::Int32,
               Mem::Index(array, index, 4, IntArray::offset_of_data()), value);
 }
 
-pub fn test_if_nil_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
+pub fn test_if_nil_bailout(buf: &mut MacroAssembler, pos: Position, reg: Reg) {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
@@ -71,7 +71,7 @@ pub fn test_if_nil_bailout(buf: &mut Buffer, pos: Position, reg: Reg) {
     buf.emit_bailout(lbl, trap::NIL, pos);
 }
 
-pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
+pub fn test_if_nil(buf: &mut MacroAssembler, reg: Reg) -> Label {
     emit_testq_reg_reg(buf, reg, reg);
 
     let lbl = buf.create_label();
@@ -80,12 +80,12 @@ pub fn test_if_nil(buf: &mut Buffer, reg: Reg) -> Label {
     lbl
 }
 
-pub fn set(buf: &mut Buffer, dest: Reg, op: CondCode) {
+pub fn set(buf: &mut MacroAssembler, dest: Reg, op: CondCode) {
     emit_setb_reg(buf, op, dest);
     emit_movzbl_reg_reg(buf, dest, dest);
 }
 
-pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
+pub fn cmp_mem(buf: &mut MacroAssembler, mode: MachineMode, mem: Mem, rhs: Reg) {
     match mem {
         Mem::Local(offset) => emit_cmp_mem_reg(buf, mode, REG_FP, offset, rhs),
         Mem::Base(base, disp) => emit_cmp_mem_reg(buf, mode, base, disp, rhs),
@@ -94,7 +94,7 @@ pub fn cmp_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, rhs: Reg) {
     }
 }
 
-pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
+pub fn cmp_mem_imm(buf: &mut MacroAssembler, mode: MachineMode, mem: Mem, imm: i32) {
     match mem {
         Mem::Local(_) => unimplemented!(),
         Mem::Base(base, disp) => emit_cmp_mem_imm(buf, mode, base, disp, imm),
@@ -102,7 +102,7 @@ pub fn cmp_mem_imm(buf: &mut Buffer, mode: MachineMode, mem: Mem, imm: i32) {
     }
 }
 
-pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
+pub fn cmp_reg(buf: &mut MacroAssembler, mode: MachineMode, lhs: Reg, rhs: Reg) {
     match mode {
         MachineMode::Int8
             | MachineMode::Int32 => emit_cmpl_reg_reg(buf, rhs, lhs),
@@ -110,22 +110,22 @@ pub fn cmp_reg(buf: &mut Buffer, mode: MachineMode, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn test_and_jump_if(buf: &mut Buffer, cond: CondCode, reg: Reg, lbl: Label) {
+pub fn test_and_jump_if(buf: &mut MacroAssembler, cond: CondCode, reg: Reg, lbl: Label) {
     assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
     emit_testl_reg_reg(buf, reg, reg);
     emit_jcc(buf, cond, lbl);
 }
 
-pub fn jump_if(buf: &mut Buffer, cond: CondCode, lbl: Label) {
+pub fn jump_if(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
     emit_jcc(buf, cond, lbl);
 }
 
-pub fn jump(buf: &mut Buffer, lbl: Label) {
+pub fn jump(buf: &mut MacroAssembler, lbl: Label) {
     emit_jmp(buf, lbl);
 }
 
-pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_div(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
@@ -136,7 +136,7 @@ pub fn int_div(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_mod(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     assert_eq!(RAX, lhs);
 
     emit_cltd(buf);
@@ -147,7 +147,7 @@ pub fn int_mod(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_mul(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_imull_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -155,7 +155,7 @@ pub fn int_mul(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_add(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_addl_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -163,7 +163,7 @@ pub fn int_add(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_sub(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_subl_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -171,7 +171,7 @@ pub fn int_sub(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_shl(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     if rhs != RCX {
         assert!(lhs != RCX);
         emit_movq_reg_reg(buf, rhs, RCX);
@@ -184,7 +184,7 @@ pub fn int_shl(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_or(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_orl_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -192,7 +192,7 @@ pub fn int_or(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_and(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_and(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_andl_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -200,7 +200,7 @@ pub fn int_and(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
+pub fn int_xor(buf: &mut MacroAssembler, dest: Reg, lhs: Reg, rhs: Reg) {
     emit_xorl_reg_reg(buf, rhs, lhs);
 
     if dest != lhs {
@@ -208,7 +208,7 @@ pub fn int_xor(buf: &mut Buffer, dest: Reg, lhs: Reg, rhs: Reg) {
     }
 }
 
-pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
+pub fn check_index_out_of_bounds(buf: &mut MacroAssembler, pos: Position, array: Reg,
                                  index: Reg, temp: Reg) {
     load_mem(buf, MachineMode::Int32, temp,
              Mem::Base(array, IntArray::offset_of_length()));
@@ -219,11 +219,11 @@ pub fn check_index_out_of_bounds(buf: &mut Buffer, pos: Position, array: Reg,
     buf.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
 }
 
-pub fn load_nil(buf: &mut Buffer, dest: Reg) {
+pub fn load_nil(buf: &mut MacroAssembler, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }
 
-pub fn load_mem(buf: &mut Buffer, mode: MachineMode, dest: Reg, mem: Mem) {
+pub fn load_mem(buf: &mut MacroAssembler, mode: MachineMode, dest: Reg, mem: Mem) {
     match mem {
         Mem::Local(offset) => {
             match mode {
@@ -246,7 +246,7 @@ pub fn load_mem(buf: &mut Buffer, mode: MachineMode, dest: Reg, mem: Mem) {
     }
 }
 
-pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
+pub fn store_mem(buf: &mut MacroAssembler, mode: MachineMode, mem: Mem, src: Reg) {
     match mem {
         Mem::Local(offset) => {
             match mode {
@@ -269,31 +269,31 @@ pub fn store_mem(buf: &mut Buffer, mode: MachineMode, mem: Mem, src: Reg) {
     }
 }
 
-pub fn copy_reg(buf: &mut Buffer, mode: MachineMode, dest: Reg, src: Reg) {
+pub fn copy_reg(buf: &mut MacroAssembler, mode: MachineMode, dest: Reg, src: Reg) {
     match mode {
         MachineMode::Int8 | MachineMode::Int32 => emit_movl_reg_reg(buf, src, dest),
         MachineMode::Ptr => emit_movq_reg_reg(buf, src, dest),
     }
 }
 
-pub fn load_constpool(buf: &mut Buffer, dest: Reg, disp: i32) {
+pub fn load_constpool(buf: &mut MacroAssembler, dest: Reg, disp: i32) {
     // next instruction has 7 bytes
     let disp = -(disp + 7);
 
     emit_movq_memq_reg(buf, RIP, disp, dest); // 7 bytes
 }
 
-pub fn call_reg(buf: &mut Buffer, reg: Reg) {
+pub fn call_reg(buf: &mut MacroAssembler, reg: Reg) {
     emit_callq_reg(buf, reg);
 }
 
 // emit debug instruction
-pub fn debug(buf: &mut Buffer) {
+pub fn debug(buf: &mut MacroAssembler) {
     // emit int3 = 0xCC
     emit_op(buf, 0xCC);
 }
 
-pub fn load_int_const(buf: &mut Buffer, mode: MachineMode, dest: Reg, imm: i32) {
+pub fn load_int_const(buf: &mut MacroAssembler, mode: MachineMode, dest: Reg, imm: i32) {
     match mode {
         MachineMode::Int8 => unimplemented!(),
         MachineMode::Int32 => emit_movl_imm_reg(buf, imm, dest),
@@ -301,15 +301,15 @@ pub fn load_int_const(buf: &mut Buffer, mode: MachineMode, dest: Reg, imm: i32) 
     }
 }
 
-pub fn load_true(buf: &mut Buffer, dest: Reg) {
+pub fn load_true(buf: &mut MacroAssembler, dest: Reg) {
     emit_movl_imm_reg(buf, 1, dest);
 }
 
-pub fn load_false(buf: &mut Buffer, dest: Reg) {
+pub fn load_false(buf: &mut MacroAssembler, dest: Reg) {
     emit_movl_imm_reg(buf, 0, dest);
 }
 
-pub fn int_neg(buf: &mut Buffer, dest: Reg, src: Reg) {
+pub fn int_neg(buf: &mut MacroAssembler, dest: Reg, src: Reg) {
     emit_negl_reg(buf, src);
 
     if dest != src {
@@ -317,7 +317,7 @@ pub fn int_neg(buf: &mut Buffer, dest: Reg, src: Reg) {
     }
 }
 
-pub fn int_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+pub fn int_not(buf: &mut MacroAssembler, dest: Reg, src: Reg) {
     emit_notl_reg(buf, src);
 
     if dest != src {
@@ -325,7 +325,7 @@ pub fn int_not(buf: &mut Buffer, dest: Reg, src: Reg) {
     }
 }
 
-pub fn bool_not(buf: &mut Buffer, dest: Reg, src: Reg) {
+pub fn bool_not(buf: &mut MacroAssembler, dest: Reg, src: Reg) {
     emit_xorb_imm_reg(buf, 1, src);
     emit_andb_imm_reg(buf, 1, src);
 
@@ -338,12 +338,12 @@ pub fn bool_not(buf: &mut Buffer, dest: Reg, src: Reg) {
 mod tests {
     use super::*;
 
-    use baseline::buffer::Buffer;
+    use baseline::buffer::MacroAssembler;
     use cpu::trap;
 
     #[test]
     fn test_debug() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         debug(&mut buf);
 
         assert_eq!(vec![0xCC], buf.data());
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_trap() {
-        let mut buf = Buffer::new();
+        let mut buf = MacroAssembler::new();
         trap::emit(&mut buf, trap::COMPILER);
 
         assert_eq!(vec![0x4C, 0x8B, 0x14, 0x25, 7, 0, 0, 0], buf.data());

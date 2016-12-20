@@ -31,7 +31,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
         ctxt: ctxt,
         fct: &fct,
         ast: ast,
-        buf: Buffer::new(),
+        buf: MacroAssembler::new(),
         scopes: Scopes::new(),
         src: &mut src,
 
@@ -102,7 +102,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
-    buf: Buffer,
+    buf: MacroAssembler,
     scopes: Scopes,
     src: &'a mut FctSrc<'ast>,
 
@@ -489,12 +489,12 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(buf: &mut Buffer, fct: &FctSrc, src: Reg, var_id: VarId) {
+pub fn var_store(buf: &mut MacroAssembler, fct: &FctSrc, src: Reg, var_id: VarId) {
     let var = &fct.vars[var_id];
     emit::store_mem(buf, var.ty.mode(), Mem::Local(var.offset), src);
 }
 
-pub fn var_load(buf: &mut Buffer, fct: &FctSrc, var_id: VarId, dest: Reg) {
+pub fn var_load(buf: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: Reg) {
     let var = &fct.vars[var_id];
     emit::load_mem(buf, var.ty.mode(), dest, Mem::Local(var.offset));
 }

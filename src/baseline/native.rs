@@ -1,7 +1,7 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use baseline::buffer::Buffer;
+use baseline::buffer::MacroAssembler;
 use baseline::fct::JitFct;
 use cpu::{emit, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, FctId, get_ctxt};
@@ -34,7 +34,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct_id: FctId, ptr: *cons
     let ngen = NativeGen {
         ctxt: ctxt,
         ptr: ptr,
-        buf: Buffer::new(),
+        buf: MacroAssembler::new(),
         fct_id: fct_id,
         return_type: return_type,
         args: args,
@@ -46,7 +46,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct_id: FctId, ptr: *cons
 struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     ptr: *const u8,
-    buf: Buffer,
+    buf: MacroAssembler,
     fct_id: FctId,
 
     return_type: BuiltinType,
