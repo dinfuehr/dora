@@ -9,7 +9,7 @@ use ast::visit::*;
 use baseline::expr::*;
 use baseline::fct::{CatchType, CommentFormat, JitFct, GcPoint};
 use baseline::info;
-use cpu::{emit, Mem, Reg, REG_PARAMS, REG_RESULT, trap};
+use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT, trap};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
@@ -120,7 +120,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
             for dbg_name in dbg_names.split(',') {
                 if *name == dbg_name {
-                    emit::debug(&mut self.masm);
+                    self.masm.debug();
                 }
             }
         }
@@ -150,8 +150,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
-            emit::store_mem(&mut self.masm, var.ty.mode(), Mem::Local(var.offset),
-                            REG_PARAMS[0]);
+            self.masm.store_mem(var.ty.mode(), Mem::Local(var.offset),
+                                REG_PARAMS[0]);
 
             1
 
@@ -180,8 +180,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
                 let offset = self.src.eh_return_value.unwrap();
-                emit::store_mem(&mut self.masm, mode,
-                                Mem::Local(offset), REG_RESULT);
+                self.masm.store_mem(mode,
+                                    Mem::Local(offset), REG_RESULT);
             }
         }
 
@@ -192,7 +192,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
             let offset = self.src.eh_return_value.unwrap();
-            emit::load_mem(&mut self.masm, mode, REG_RESULT, Mem::Local(offset));
+            self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset));
         }
 
         self.emit_return();
@@ -202,7 +202,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // finally block is currently active, plain return is not allowed, finally block
         // needs to be executed
         if let Some(lbl_finally) = self.lbl_finally {
-            emit::jump(&mut self.masm, lbl_finally);
+            self.masm.jump(lbl_finally);
 
         // if no finally-block currently active just exit from the current function
         } else {
@@ -223,13 +223,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             // execute condition, when condition is false jump to
             // end of while
             let reg = self.emit_expr(&s.cond);
-            emit::test_and_jump_if(&mut self.masm, CondCode::Zero, reg, lbl_end);
+            self.masm.test_and_jump_if(CondCode::Zero, reg, lbl_end);
         }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
-            emit::jump(&mut this.masm, lbl_start);
+            this.masm.jump(lbl_start);
         });
 
         self.masm.bind_label(lbl_end);
@@ -242,7 +242,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
-            emit::jump(&mut this.masm, lbl_start);
+            this.masm.jump(lbl_start);
         });
 
         self.masm.bind_label(lbl_end);
@@ -271,12 +271,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         };
 
         let reg = self.emit_expr(&s.cond);
-        emit::test_and_jump_if(&mut self.masm, CondCode::Zero, reg, lbl_else);
+        self.masm.test_and_jump_if(CondCode::Zero, reg, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
         if let Some(ref else_block) = s.else_block {
-            emit::jump(&mut self.masm, lbl_end);
+            self.masm.jump(lbl_end);
             self.masm.bind_label(lbl_else);
 
             self.visit_stmt(else_block);
@@ -286,11 +286,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType)  {
-        emit::jump(&mut self.masm, self.lbl_break.unwrap());
+        self.masm.jump(self.lbl_break.unwrap());
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
-        emit::jump(&mut self.masm, self.lbl_continue.unwrap());
+        self.masm.jump(self.lbl_continue.unwrap());
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
@@ -330,17 +330,17 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
-            emit::load_nil(&mut self.masm, REG_RESULT);
+            self.masm.load_nil(REG_RESULT);
             var_store(&mut self.masm, &self.src, REG_RESULT, s.var());
         }
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         let reg = self.emit_expr(&s.expr);
-        emit::test_if_nil_bailout(&mut self.masm, s.pos, reg);
+        self.masm.test_if_nil_bailout(s.pos, reg);
 
         if reg != REG_RESULT {
-            emit::copy_reg(&mut self.masm, MachineMode::Ptr, REG_RESULT, reg);
+            self.masm.copy_reg(MachineMode::Ptr, REG_RESULT, reg);
         }
 
         trap::emit(&mut self.masm, trap::THROW);
@@ -416,7 +416,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if always_returns(stmt) {
             self.emit_return_with_value();
         } else {
-            emit::jump(&mut self.masm, lbl_after);
+            self.masm.jump(lbl_after);
         }
 
         (start, end)
@@ -434,8 +434,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.visit_stmt(&finally_block.block);
 
-        emit::load_mem(&mut self.masm, MachineMode::Ptr, REG_RESULT,
-                       Mem::Local(finally_block.offset()));
+        self.masm.load_mem(MachineMode::Ptr, REG_RESULT,
+                           Mem::Local(finally_block.offset()));
         trap::emit(&mut self.masm, trap::THROW);
 
         self.scopes.pop_scope();
@@ -489,14 +489,14 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(buf: &mut MacroAssembler, fct: &FctSrc, src: Reg, var_id: VarId) {
+pub fn var_store(masm: &mut MacroAssembler, fct: &FctSrc, src: Reg, var_id: VarId) {
     let var = &fct.vars[var_id];
-    emit::store_mem(buf, var.ty.mode(), Mem::Local(var.offset), src);
+    masm.store_mem(var.ty.mode(), Mem::Local(var.offset), src);
 }
 
-pub fn var_load(buf: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: Reg) {
+pub fn var_load(masm: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: Reg) {
     let var = &fct.vars[var_id];
-    emit::load_mem(buf, var.ty.mode(), dest, Mem::Local(var.offset));
+    masm.load_mem(var.ty.mode(), dest, Mem::Local(var.offset));
 }
 
 pub struct Scopes {

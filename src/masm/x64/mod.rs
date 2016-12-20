@@ -210,4 +210,130 @@ impl MacroAssembler {
             asm::emit_movl_reg_reg(self, lhs, dest);
         }
     }
+
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg,
+                                    index: Reg, temp: Reg) {
+        emit::load_mem(self, MachineMode::Int32, temp,
+                Mem::Base(array, IntArray::offset_of_length()));
+        emit::cmp_reg(self, MachineMode::Int32, index, temp);
+
+        let lbl = self.create_label();
+        emit::jump_if(self, CondCode::UnsignedGreaterEq, lbl);
+        self.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
+    }
+
+    pub fn load_nil(&mut self, dest: Reg) {
+        asm::emit_movl_imm_reg(self, 0, dest);
+    }
+
+    pub fn load_mem(&mut self, mode: MachineMode, dest: Reg, mem: Mem) {
+        match mem {
+            Mem::Local(offset) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest),
+                    MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest),
+                    MachineMode::Ptr => asm::emit_movq_memq_reg(self, RBP, offset, dest),
+                }
+            }
+
+            Mem::Base(base, disp) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest),
+                    MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest),
+                    MachineMode::Ptr => asm::emit_movq_memq_reg(self, base, disp, dest),
+                }
+            }
+
+            Mem::Index(base, index, scale, disp) =>
+                asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest)
+        }
+    }
+
+    pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: Reg) {
+        match mem {
+            Mem::Local(offset) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movb_reg_memq(self, src, RBP, offset),
+                    MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, RBP, offset),
+                    MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, RBP, offset),
+                }
+            }
+
+            Mem::Base(base, disp) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movb_reg_memq(self, src, base, disp),
+                    MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, base, disp),
+                    MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, base, disp),
+                }
+            }
+
+            Mem::Index(base, index, scale, disp) =>
+                asm::emit_mov_reg_memindex(self, mode, src, base, index, scale, disp)
+        }
+    }
+
+    pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        match mode {
+            MachineMode::Int8 | MachineMode::Int32 => asm::emit_movl_reg_reg(self, src, dest),
+            MachineMode::Ptr => asm::emit_movq_reg_reg(self, src, dest),
+        }
+    }
+
+    pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
+        // next instruction has 7 bytes
+        let disp = -(disp + 7);
+
+        asm::emit_movq_memq_reg(self, RIP, disp, dest); // 7 bytes
+    }
+
+    pub fn call_reg(&mut self, reg: Reg) {
+        asm::emit_callq_reg(self, reg);
+    }
+
+    // emit debug instruction
+    pub fn debug(&mut self) {
+        // emit int3 = 0xCC
+        asm::emit_op(self, 0xCC);
+    }
+
+    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i32) {
+        match mode {
+            MachineMode::Int8 => unimplemented!(),
+            MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm, dest),
+            MachineMode::Ptr => asm::emit_movq_imm_reg(self, imm, dest),
+        }
+    }
+
+    pub fn load_true(&mut self, dest: Reg) {
+        asm::emit_movl_imm_reg(self, 1, dest);
+    }
+
+    pub fn load_false(&mut self, dest: Reg) {
+        asm::emit_movl_imm_reg(self, 0, dest);
+    }
+
+    pub fn int_neg(&mut self, dest: Reg, src: Reg) {
+        asm::emit_negl_reg(self, src);
+
+        if dest != src {
+            asm::emit_movl_reg_reg(self, src, dest);
+        }
+    }
+
+    pub fn int_not(&mut self, dest: Reg, src: Reg) {
+        asm::emit_notl_reg(self, src);
+
+        if dest != src {
+            asm::emit_movl_reg_reg(self, src, dest);
+        }
+    }
+
+    pub fn bool_not(&mut self, dest: Reg, src: Reg) {
+        asm::emit_xorb_imm_reg(self, 1, src);
+        asm::emit_andb_imm_reg(self, 1, src);
+
+        if dest != src {
+            asm::emit_movl_reg_reg(self, src, dest);
+        }
+    }
 }
