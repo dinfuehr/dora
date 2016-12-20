@@ -31,7 +31,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
         ctxt: ctxt,
         fct: &fct,
         ast: ast,
-        buf: MacroAssembler::new(),
+        masm: MacroAssembler::new(),
         scopes: Scopes::new(),
         src: &mut src,
 
@@ -102,7 +102,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
-    buf: MacroAssembler,
+    masm: MacroAssembler,
     scopes: Scopes,
     src: &'a mut FctSrc<'ast>,
 
@@ -120,7 +120,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
             for dbg_name in dbg_names.split(',') {
                 if *name == dbg_name {
-                    emit::debug(&mut self.buf);
+                    emit::debug(&mut self.masm);
                 }
             }
         }
@@ -135,7 +135,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.emit_epilog();
         }
 
-        let jit_fct = self.buf.jit(self.fct.id, self.src.stacksize());
+        let jit_fct = self.masm.jit(self.fct.id, self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
         code_map.insert(jit_fct.ptr_start().raw(), jit_fct.ptr_end().raw(), jit_fct.fct_id());
@@ -150,7 +150,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
-            emit::store_mem(&mut self.buf, var.ty.mode(), Mem::Local(var.offset),
+            emit::store_mem(&mut self.masm, var.ty.mode(), Mem::Local(var.offset),
                             REG_PARAMS[0]);
 
             1
@@ -161,16 +161,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         for (&reg, p) in REG_PARAMS.iter().skip(hidden_self)
                         .zip(&self.ast.params) {
-            var_store(&mut self.buf, &self.src, reg, p.var());
+            var_store(&mut self.masm, &self.src, reg, p.var());
         }
     }
 
     fn emit_prolog(&mut self) {
-        emit::prolog(&mut self.buf, self.src.stacksize());
+        self.masm.prolog(self.src.stacksize());
     }
 
     fn emit_epilog(&mut self) {
-        emit::epilog(&mut self.buf, self.src.stacksize());
+        self.masm.epilog(self.src.stacksize());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -180,7 +180,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
                 let offset = self.src.eh_return_value.unwrap();
-                emit::store_mem(&mut self.buf, mode,
+                emit::store_mem(&mut self.masm, mode,
                                 Mem::Local(offset), REG_RESULT);
             }
         }
@@ -192,7 +192,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
             let offset = self.src.eh_return_value.unwrap();
-            emit::load_mem(&mut self.buf, mode, REG_RESULT, Mem::Local(offset));
+            emit::load_mem(&mut self.masm, mode, REG_RESULT, Mem::Local(offset));
         }
 
         self.emit_return();
@@ -202,7 +202,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // finally block is currently active, plain return is not allowed, finally block
         // needs to be executed
         if let Some(lbl_finally) = self.lbl_finally {
-            emit::jump(&mut self.buf, lbl_finally);
+            emit::jump(&mut self.masm, lbl_finally);
 
         // if no finally-block currently active just exit from the current function
         } else {
@@ -211,10 +211,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        let lbl_start = self.buf.create_label();
-        let lbl_end = self.buf.create_label();
+        let lbl_start = self.masm.create_label();
+        let lbl_end = self.masm.create_label();
 
-        self.buf.bind_label(lbl_start);
+        self.masm.bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
             // always true => no condition evaluation
@@ -223,29 +223,29 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             // execute condition, when condition is false jump to
             // end of while
             let reg = self.emit_expr(&s.cond);
-            emit::test_and_jump_if(&mut self.buf, CondCode::Zero, reg, lbl_end);
+            emit::test_and_jump_if(&mut self.masm, CondCode::Zero, reg, lbl_end);
         }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
-            emit::jump(&mut this.buf, lbl_start);
+            emit::jump(&mut this.masm, lbl_start);
         });
 
-        self.buf.bind_label(lbl_end);
+        self.masm.bind_label(lbl_end);
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
-        let lbl_start = self.buf.create_label();
-        let lbl_end = self.buf.create_label();
-        self.buf.bind_label(lbl_start);
+        let lbl_start = self.masm.create_label();
+        let lbl_end = self.masm.create_label();
+        self.masm.bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
-            emit::jump(&mut this.buf, lbl_start);
+            emit::jump(&mut this.masm, lbl_start);
         });
 
-        self.buf.bind_label(lbl_end);
+        self.masm.bind_label(lbl_end);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -263,34 +263,34 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
-        let lbl_end = self.buf.create_label();
+        let lbl_end = self.masm.create_label();
         let lbl_else = if let Some(_) = s.else_block {
-            self.buf.create_label()
+            self.masm.create_label()
         } else {
             lbl_end
         };
 
         let reg = self.emit_expr(&s.cond);
-        emit::test_and_jump_if(&mut self.buf, CondCode::Zero, reg, lbl_else);
+        emit::test_and_jump_if(&mut self.masm, CondCode::Zero, reg, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
         if let Some(ref else_block) = s.else_block {
-            emit::jump(&mut self.buf, lbl_end);
-            self.buf.bind_label(lbl_else);
+            emit::jump(&mut self.masm, lbl_end);
+            self.masm.bind_label(lbl_else);
 
             self.visit_stmt(else_block);
         }
 
-        self.buf.bind_label(lbl_end);
+        self.masm.bind_label(lbl_end);
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType)  {
-        emit::jump(&mut self.buf, self.lbl_break.unwrap());
+        emit::jump(&mut self.masm, self.lbl_break.unwrap());
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
-        emit::jump(&mut self.buf, self.lbl_continue.unwrap());
+        emit::jump(&mut self.masm, self.lbl_continue.unwrap());
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
@@ -314,7 +314,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             let reg = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.buf, &self.src, reg, s.var());
+            var_store(&mut self.masm, &self.src, reg, s.var());
         }
 
         let reference_type = {
@@ -330,38 +330,38 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
-            emit::load_nil(&mut self.buf, REG_RESULT);
-            var_store(&mut self.buf, &self.src, REG_RESULT, s.var());
+            emit::load_nil(&mut self.masm, REG_RESULT);
+            var_store(&mut self.masm, &self.src, REG_RESULT, s.var());
         }
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         let reg = self.emit_expr(&s.expr);
-        emit::test_if_nil_bailout(&mut self.buf, s.pos, reg);
+        emit::test_if_nil_bailout(&mut self.masm, s.pos, reg);
 
         if reg != REG_RESULT {
-            emit::copy_reg(&mut self.buf, MachineMode::Ptr, REG_RESULT, reg);
+            emit::copy_reg(&mut self.masm, MachineMode::Ptr, REG_RESULT, reg);
         }
 
-        trap::emit(&mut self.buf, trap::THROW);
+        trap::emit(&mut self.masm, trap::THROW);
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
-        let lbl_after = self.buf.create_label();
+        let lbl_after = self.masm.create_label();
 
         let try_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
         let catch_spans = self.emit_do_catch_blocks(s, try_span, lbl_after);
         let finally_start = self.emit_do_finally_block(s);
 
-        self.buf.bind_label(lbl_after);
+        self.masm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
             let offset = s.finally_block.as_ref().unwrap().offset();
-            self.buf.emit_exception_handler(try_span, finally_start,
+            self.masm.emit_exception_handler(try_span, finally_start,
                                             Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.buf.emit_exception_handler(catch_span, finally_start,
+                self.masm.emit_exception_handler(catch_span, finally_start,
                                                 Some(offset), CatchType::Any);
             }
         }
@@ -383,7 +383,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.scopes.pop_scope();
 
             let catch_type = CatchType::Class(catch.ty().cls_id(self.ctxt));
-            self.buf.emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
+            self.masm.emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
             ret.push(catch_span);
         }
@@ -394,7 +394,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     fn stmt_with_finally(&mut self, s: &'ast StmtDoType, stmt: &'ast Stmt,
                             lbl_after: Label) -> (usize, usize) {
         let saved_lbl_finally = self.lbl_finally;
-        let lbl_finally = self.buf.create_label();
+        let lbl_finally = self.masm.create_label();
 
         // if finally block given then use label as current finally
         // otherwise lbl_finally is just used at label after all catch blocks
@@ -402,11 +402,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.lbl_finally = Some(lbl_finally);
         }
 
-        let start = self.buf.pos();
+        let start = self.masm.pos();
         self.visit_stmt(stmt);
-        let end = self.buf.pos();
+        let end = self.masm.pos();
 
-        self.buf.bind_label(lbl_finally);
+        self.masm.bind_label(lbl_finally);
         self.lbl_finally = saved_lbl_finally;
 
         if let Some(ref finally_block) = s.finally_block {
@@ -416,7 +416,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if always_returns(stmt) {
             self.emit_return_with_value();
         } else {
-            emit::jump(&mut self.buf, lbl_after);
+            emit::jump(&mut self.masm, lbl_after);
         }
 
         (start, end)
@@ -427,16 +427,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         if s.finally_block.is_none() { return None; }
         let finally_block = s.finally_block.as_ref().unwrap();
 
-        let finally_pos = self.buf.pos();
+        let finally_pos = self.masm.pos();
 
         self.scopes.push_scope();
         self.scopes.add_var_offset(finally_block.offset());
 
         self.visit_stmt(&finally_block.block);
 
-        emit::load_mem(&mut self.buf, MachineMode::Ptr, REG_RESULT,
+        emit::load_mem(&mut self.masm, MachineMode::Ptr, REG_RESULT,
                        Mem::Local(finally_block.offset()));
-        trap::emit(&mut self.buf, trap::THROW);
+        trap::emit(&mut self.masm, trap::THROW);
 
         self.scopes.pop_scope();
 
@@ -445,7 +445,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
         let expr_gen = ExprGen::new(self.ctxt, self.fct, self.src, self.ast,
-                                    &mut self.buf, &mut self.scopes);
+                                    &mut self.masm, &mut self.scopes);
 
         expr_gen.generate(e)
     }

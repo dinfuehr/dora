@@ -6,6 +6,14 @@ use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use lexer::position::Position;
 
+#[cfg(target_arch = "x86_64")]
+pub use self::x64::*;
+
+#[cfg(target_arch = "x86_64")]
+pub mod x64;
+
+pub mod arm64;
+
 pub struct MacroAssembler {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
