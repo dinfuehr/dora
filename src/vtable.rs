@@ -115,7 +115,7 @@ impl<'ast> VTable<'ast> {
     }
 
     pub fn offset_of_method_table() -> i32 {
-        size_of::<VTable>() as i32
+        offset_of!(VTable, table) as i32
     }
 
     pub fn offset_of_overflow() -> i32 {
