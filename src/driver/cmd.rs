@@ -19,7 +19,7 @@ Options:
     --emit-ast              Emits AST to stdout
     --emit-asm              Emits assembly code to stdout
     --emit-stubs            Emits generated stubs
-    --emit-debug            Emits debug instruction at beginning of functions
+    --emit-debug=<fct>      Emits debug instruction at beginning of functions
     --omit-bounds-check     Omit array index out of bounds checks
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
                             Allowed values: intel, att
@@ -39,7 +39,7 @@ pub struct Args {
     pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
     pub flag_version: bool,
-    pub flag_emit_debug: bool,
+    pub flag_emit_debug: Option<String>,
     pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_dump: bool,
     pub flag_gc_stress: bool,
@@ -54,7 +54,7 @@ impl Default for Args {
             flag_emit_ast: false,
             flag_emit_asm: false,
             flag_emit_stubs: false,
-            flag_emit_debug: false,
+            flag_emit_debug: None,
             flag_enable_perf: false,
             flag_omit_bounds_check: false,
             flag_version: false,

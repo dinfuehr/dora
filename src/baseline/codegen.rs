@@ -115,8 +115,14 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn generate(mut self) -> JitFct {
         info::generate(self.ctxt, self.fct, self.src);
 
-        if self.ctxt.args.flag_emit_debug {
-            emit::debug(&mut self.buf);
+        if let Some(ref dbg_names) = self.ctxt.args.flag_emit_debug {
+            let name = self.ctxt.interner.str(self.fct.name);
+
+            for dbg_name in dbg_names.split(',') {
+                if *name == dbg_name {
+                    emit::debug(&mut self.buf);
+                }
+            }
         }
 
         self.emit_prolog();
