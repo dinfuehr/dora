@@ -1,4 +1,5 @@
 use ast::*;
+use ast::Elem::*;
 use ast::Expr::*;
 use ast::Stmt::*;
 use ast::Type::*;

@@ -1,6 +1,6 @@
 use cpu::*;
 use baseline::codegen::CondCode;
-use masm::*;
+use masm::{MacroAssembler, Label};
 use ty::MachineMode;
 
 pub fn emit_orl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
@@ -676,6 +676,7 @@ mod tests {
     use super::*;
 
     use baseline::codegen::CondCode;
+    use cpu::*;
     use masm::MacroAssembler;
     use ty::MachineMode;
 

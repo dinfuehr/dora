@@ -1,5 +1,4 @@
 use baseline::codegen::CondCode;
-use cpu::asm;
 use cpu::*;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
