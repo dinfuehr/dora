@@ -32,33 +32,38 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
     let ctxt = get_ctxt();
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        use cpu::trap::{ASSERT, CAST, COMPILER, INDEX_OUT_OF_BOUNDS, NIL, THROW, UNEXPECTED};
-
         match trap {
-            COMPILER => compile_request(ctxt, &mut es, ucontext),
+            Trap::COMPILER => compile_request(ctxt, &mut es, ucontext),
 
-            ASSERT => {
+            Trap::DIV0 => {
+                println!("division by 0");
+                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe { _exit(101); }
+            }
+
+            Trap::ASSERT => {
                 println!("assert failed");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(101); }
             }
 
-            INDEX_OUT_OF_BOUNDS => {
+            Trap::INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(102); }
             }
 
-            NIL => {
+            Trap::NIL => {
                 println!("nil check failed");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(103); }
             }
 
-            THROW => {
+            Trap::THROW => {
                 let obj : Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
                 let handler_found = cpu::handle_exception(obj, &mut es);
 
@@ -70,23 +75,18 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
                 }
             }
 
-            CAST => {
+            Trap::CAST => {
                 println!("cast failed");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(105); }
             }
 
-            UNEXPECTED => {
+            Trap::UNEXPECTED => {
                 println!("unexpected exception");
                 let stacktrace = cpu::get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(106); }
-            }
-
-            _ => {
-                println!("unknown trap");
-                unsafe { _exit(1); }
             }
         }
 
@@ -121,5 +121,41 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
     } else {
         println!("error: code not found for address {:x}", es.pc);
         unsafe { _exit(200); }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Trap {
+    COMPILER, DIV0, ASSERT,
+    INDEX_OUT_OF_BOUNDS, NIL, THROW,
+    CAST, UNEXPECTED
+}
+
+impl Trap {
+    pub fn int(self) -> u32 {
+        match self {
+            Trap::COMPILER => 0,
+            Trap::DIV0 => 1,
+            Trap::ASSERT => 2,
+            Trap::INDEX_OUT_OF_BOUNDS => 3,
+            Trap::NIL => 4,
+            Trap::THROW => 5,
+            Trap::CAST => 6,
+            Trap::UNEXPECTED => 7,
+        }
+    }
+
+    pub fn from(value: u32) -> Option<Trap> {
+        match value {
+            0 => Some(Trap::COMPILER),
+            1 => Some(Trap::DIV0),
+            2 => Some(Trap::ASSERT),
+            3 => Some(Trap::INDEX_OUT_OF_BOUNDS),
+            4 => Some(Trap::NIL),
+            5 => Some(Trap::THROW),
+            6 => Some(Trap::CAST),
+            7 => Some(Trap::UNEXPECTED),
+            _ => None
+        }
     }
 }

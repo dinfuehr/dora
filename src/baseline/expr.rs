@@ -6,7 +6,6 @@ use baseline::native;
 use baseline::stub::Stub;
 use class::{ClassId, FieldId};
 use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
-use cpu::trap;
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
@@ -14,6 +13,7 @@ use masm::*;
 use mem;
 use mem::ptr::Ptr;
 use object::{Header, Str};
+use os::signal::Trap;
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
@@ -129,7 +129,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
                 let catch_span = {
                     let start = self.masm.pos();
-                    self.masm.emit_bailout_inplace(trap::UNEXPECTED, e.pos);
+                    self.masm.emit_bailout_inplace(Trap::UNEXPECTED, e.pos);
                     let end = self.masm.pos();
 
                     (start, end)
@@ -230,7 +230,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     self.masm.load_false(dest);
                 } else {
                     // bailout
-                    self.masm.emit_bailout_inplace(trap::CAST, e.pos);
+                    self.masm.emit_bailout_inplace(Trap::CAST, e.pos);
                 }
 
                 // lbl_finished:
@@ -251,7 +251,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 } else {
                     let lbl_bailout = self.masm.create_label();
                     self.masm.jump_if(CondCode::NotEqual, lbl_bailout);
-                    self.masm.emit_bailout(lbl_bailout, trap::CAST, e.pos);
+                    self.masm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
 
                     self.masm.load_mem(MachineMode::Ptr, dest, Mem::Local(offset));
                 }
@@ -606,7 +606,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             let lbl_div = eg.masm.create_label();
             eg.masm.test_and_jump_if(CondCode::NonZero, rhs, lbl_div);
-            trap::emit(eg.masm, trap::DIV0);
+            eg.masm.trap(Trap::DIV0);
 
             eg.masm.bind_label(lbl_div);
 
@@ -751,7 +751,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         self.masm.emit_comment(Comment::Lit("check assert"));
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
-        self.masm.emit_bailout(lbl_div, trap::ASSERT, e.pos);
+        self.masm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
     }
 
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {

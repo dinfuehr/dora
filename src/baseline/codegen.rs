@@ -9,13 +9,14 @@ use ast::visit::*;
 use baseline::expr::*;
 use baseline::fct::{CatchType, CommentFormat, JitFct, GcPoint};
 use baseline::info;
-use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT, trap};
+use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
 use mem::ptr::Ptr;
 use os;
+use os::signal::Trap;
 use semck::always_returns;
 use ty::MachineMode;
 
@@ -343,7 +344,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
             self.masm.copy_reg(MachineMode::Ptr, REG_RESULT, reg);
         }
 
-        trap::emit(&mut self.masm, trap::THROW);
+        self.masm.trap(Trap::THROW);
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -436,7 +437,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
 
         self.masm.load_mem(MachineMode::Ptr, REG_RESULT,
                            Mem::Local(finally_block.offset()));
-        trap::emit(&mut self.masm, trap::THROW);
+        self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();
 

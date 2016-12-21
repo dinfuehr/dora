@@ -1,8 +1,8 @@
 use std;
 use libc::{c_void, SIGSEGV};
 
-use cpu::trap::TrapId;
 use execstate::ExecState;
+use os::signal::Trap;
 
 use self::ucontext::ucontext_t;
 use self::ucontext_reg::*;
@@ -73,7 +73,7 @@ fn reg2ucontext(reg: usize) -> usize {
     }
 }
 
-pub fn detect_trap(signo: i32, es: &ExecState) -> Option<TrapId> {
+pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
     use cpu::trap;
 
     if signo == SIGSEGV {

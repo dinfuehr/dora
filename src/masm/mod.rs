@@ -2,9 +2,9 @@ use baseline::fct::{CatchType, Comments, Comment, ExHandler,
                     JitFct, LineNumberTable, GcPoints, GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
-use cpu::trap::{self, TrapId};
 use dseg::DSeg;
 use lexer::position::Position;
+use os::signal::Trap;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -12,13 +12,17 @@ pub use self::x64::*;
 #[cfg(target_arch = "x86_64")]
 pub mod x64;
 
+#[cfg(target_arch = "aarch64")]
+pub use self::arm64::*;
+
+#[cfg(target_arch = "aarch64")]
 pub mod arm64;
 
 pub struct MacroAssembler {
     data: Vec<u8>,
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
-    bailouts: Vec<(Label, TrapId, Position)>,
+    bailouts: Vec<(Label, Trap, Position)>,
     dseg: DSeg,
     gcpoints: GcPoints,
     comments: Comments,
@@ -62,7 +66,7 @@ impl MacroAssembler {
 
             self.bind_label(lbl);
             self.emit_lineno(pos.line as i32);
-            trap::emit(self, trap);
+            self.trap(trap);
         }
 
         self.fix_forward_jumps();
@@ -115,13 +119,13 @@ impl MacroAssembler {
         self.labels[lbl_idx] = Some(self.pos());
     }
 
-    pub fn emit_bailout(&mut self, lbl: Label, trap: TrapId, pos: Position) {
+    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
         self.bailouts.push((lbl, trap, pos));
     }
 
-    pub fn emit_bailout_inplace(&mut self, trap: TrapId, pos: Position) {
+    pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
         self.emit_lineno(pos.line as i32);
-        trap::emit(self, trap);
+        self.trap(trap);
     }
 
     pub fn emit_exception_handler(&mut self, span: (usize, usize), catch: usize,

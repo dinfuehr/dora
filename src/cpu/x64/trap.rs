@@ -1,42 +1,10 @@
-use cpu::*;
-use cpu::asm::*;
 use ctxt::{Context, FctId};
 use execstate::ExecState;
-use masm::MacroAssembler;
 
 use mem::ptr::Ptr;
+use os::signal::Trap;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct TrapId(u32);
-
-impl TrapId {
-    fn int(self) -> u32 {
-        self.0
-    }
-}
-
-pub const COMPILER: TrapId = TrapId(7);
-pub const DIV0: TrapId = TrapId(9);
-pub const ASSERT: TrapId = TrapId(10);
-pub const INDEX_OUT_OF_BOUNDS: TrapId = TrapId(11);
-pub const NIL: TrapId = TrapId(13);
-pub const THROW: TrapId = TrapId(14);
-pub const CAST: TrapId = TrapId(15);
-pub const UNEXPECTED: TrapId = TrapId(16);
-
-// emit stub instruction
-pub fn emit(buf: &mut MacroAssembler, trap: TrapId) {
-    let dest = R10;
-
-    // mov r10, [trap::COMPILER]
-    emit_rex(buf, 1, dest.msb(), 0, 0);
-    emit_op(buf, 0x8b);
-    emit_modrm(buf, 0, dest.and7(), 0b100);
-    emit_sib(buf, 0, 0b100, 0b101);
-    emit_u32(buf, trap.int());
-}
-
-pub fn read(es: &ExecState) -> Option<TrapId> {
+pub fn read(es: &ExecState) -> Option<Trap> {
     let v1;
     let v2;
 
@@ -49,7 +17,7 @@ pub fn read(es: &ExecState) -> Option<TrapId> {
     }
 
     if v1 == 0x25148b4c {
-        Some(TrapId(v2))
+        Trap::from(v2)
     } else {
         None
     }

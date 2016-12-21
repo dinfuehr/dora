@@ -1,10 +1,10 @@
 use std::fmt;
 
-use cpu::trap;
 use ctxt::FctId;
 use masm::MacroAssembler;
 use mem::code::CodeMemory;
 use mem::Ptr;
+use os::signal::Trap;
 
 pub struct Stub {
     mem: CodeMemory,
@@ -12,9 +12,9 @@ pub struct Stub {
 
 impl Stub {
     pub fn new(fct_id: FctId) -> Stub {
-        let mut buf = MacroAssembler::new();
-        trap::emit(&mut buf, trap::COMPILER);
-        let code = buf.jit(fct_id, 0).code();
+        let mut masm = MacroAssembler::new();
+        masm.trap(Trap::COMPILER);
+        let code = masm.jit(fct_id, 0).code();
 
         Stub {
             mem: code

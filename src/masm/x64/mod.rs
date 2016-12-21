@@ -5,6 +5,7 @@ use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
+use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
 
@@ -70,7 +71,7 @@ impl MacroAssembler {
 
         let lbl = self.create_label();
         self.jump_if(CondCode::Zero, lbl);
-        self.emit_bailout(lbl, trap::NIL, pos);
+        self.emit_bailout(lbl, Trap::NIL, pos);
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
@@ -218,7 +219,7 @@ impl MacroAssembler {
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
-        self.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
+        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, pos);
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
@@ -334,5 +335,16 @@ impl MacroAssembler {
         if dest != src {
             asm::emit_movl_reg_reg(self, src, dest);
         }
+    }
+
+    pub fn trap(&mut self, trap: Trap) {
+        let dest = R10;
+
+        // mov r10, [Trap::COMPILER]
+        asm::emit_rex(self, 1, dest.msb(), 0, 0);
+        asm::emit_op(self, 0x8b);
+        asm::emit_modrm(self, 0, dest.and7(), 0b100);
+        asm::emit_sib(self, 0, 0b100, 0b101);
+        asm::emit_u32(self, trap.int());
     }
 }

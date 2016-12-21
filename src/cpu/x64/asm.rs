@@ -675,7 +675,6 @@ pub fn emit_shll_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
 mod tests {
     use super::*;
 
-    use cpu::*;
     use baseline::codegen::CondCode;
     use masm::MacroAssembler;
     use ty::MachineMode;
