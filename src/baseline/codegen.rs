@@ -41,7 +41,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
         lbl_finally: None,
     }.generate();
 
-    if ctxt.args.flag_emit_asm {
+    if should_emit_asm(ctxt, fct) {
         dump_asm(ctxt, &jit_fct,
             ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
     }
@@ -116,14 +116,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
     pub fn generate(mut self) -> JitFct {
         info::generate(self.ctxt, self.fct, self.src);
 
-        if let Some(ref dbg_names) = self.ctxt.args.flag_emit_debug {
-            let name = self.ctxt.interner.str(self.fct.name);
-
-            for dbg_name in dbg_names.split(',') {
-                if *name == dbg_name {
-                    self.masm.debug();
-                }
-            }
+        if should_emit_debug(self.ctxt, self.fct) {
+            self.masm.debug();
         }
 
         self.emit_prolog();
@@ -591,3 +585,36 @@ pub fn create_gcpoint(vars: &Scopes, temps: &TempOffsets) -> GcPoint {
 pub enum Next {
     Flow(Label), Return
 }
+
+pub fn should_emit_debug(ctxt: &Context, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = ctxt.args.flag_emit_debug {
+        fct_pattern_match(ctxt, fct, dbg_names)
+    } else {
+        false
+    }
+}
+
+pub fn should_emit_asm(ctxt: &Context, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = ctxt.args.flag_emit_asm {
+        fct_pattern_match(ctxt, fct, dbg_names)
+    } else {
+        false
+    }
+}
+
+fn fct_pattern_match(ctxt: &Context, fct: &Fct, pattern: &str) -> bool {
+    if pattern == "all" {
+        return true;
+    }
+
+    let name = ctxt.interner.str(fct.name);
+
+    for part in pattern.split(',') {
+        if *name == part {
+            return true;
+        }
+    }
+
+    false
+}
+

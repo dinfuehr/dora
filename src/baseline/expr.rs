@@ -1,6 +1,6 @@
 use ast::*;
 use ast::Expr::*;
-use baseline::codegen::{self, dump_asm, CondCode, Scopes, TempOffsets};
+use baseline::codegen::{self, dump_asm, CondCode, Scopes, should_emit_asm, TempOffsets};
 use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::Stub;
@@ -930,8 +930,9 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
 
     } else {
         let jit_fct = native::generate(ctxt, fct_id, ptr, ty, args);
+        let fct = ctxt.fct_by_id(fct_id);
 
-        if ctxt.args.flag_emit_asm {
+        if should_emit_asm(ctxt, fct) {
             dump_asm(ctxt, &jit_fct,
                 ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
         }
