@@ -1,6 +1,5 @@
 use baseline::codegen::CondCode;
 use cpu::asm;
-use cpu::emit;
 use cpu::*;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
@@ -32,37 +31,37 @@ impl MacroAssembler {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
-        emit::load_constpool(self, REG_RESULT, disp + pos);
-        emit::call_reg(self, REG_RESULT);
+        self.load_constpool(REG_RESULT, disp + pos);
+        self.call_reg(REG_RESULT);
     }
 
     pub fn indirect_call(&mut self, index: u32) {
         let obj = REG_PARAMS[0];
 
         // REG_RESULT = [obj] (load vtable)
-        emit::load_mem(self, MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
+        self.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
         // load vtable entry
-        emit::load_mem(self, MachineMode::Ptr, REG_RESULT, Mem::Base(REG_RESULT, disp));
+        self.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(REG_RESULT, disp));
 
         // call *REG_RESULT
-        emit::call_reg(self, REG_RESULT);
+        self.call_reg(REG_RESULT);
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
         assert!(mode == MachineMode::Int32);
 
-        emit::load_mem(self, mode, dest, Mem::Index(array, index,
+        self.load_mem(mode, dest, Mem::Index(array, index,
                        mode.size(), IntArray::offset_of_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
         assert!(mode == MachineMode::Int32);
 
-        emit::store_mem(self, MachineMode::Int32, Mem::Index(array, index,
+        self.store_mem(MachineMode::Int32, Mem::Index(array, index,
                         4, IntArray::offset_of_data()), value);
     }
 
@@ -70,7 +69,7 @@ impl MacroAssembler {
         asm::emit_testq_reg_reg(self, reg, reg);
 
         let lbl = self.create_label();
-        emit::jump_if(self, CondCode::Zero, lbl);
+        self.jump_if(CondCode::Zero, lbl);
         self.emit_bailout(lbl, trap::NIL, pos);
     }
 
@@ -78,7 +77,7 @@ impl MacroAssembler {
         asm::emit_testq_reg_reg(self, reg, reg);
 
         let lbl = self.create_label();
-        emit::jump_if(self, CondCode::Zero, lbl);
+        self.jump_if(CondCode::Zero, lbl);
 
         lbl
     }
@@ -213,12 +212,12 @@ impl MacroAssembler {
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg,
                                     index: Reg, temp: Reg) {
-        emit::load_mem(self, MachineMode::Int32, temp,
+        self.load_mem(MachineMode::Int32, temp,
                 Mem::Base(array, IntArray::offset_of_length()));
-        emit::cmp_reg(self, MachineMode::Int32, index, temp);
+        self.cmp_reg(MachineMode::Int32, index, temp);
 
         let lbl = self.create_label();
-        emit::jump_if(self, CondCode::UnsignedGreaterEq, lbl);
+        self.jump_if(CondCode::UnsignedGreaterEq, lbl);
         self.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
     }
 

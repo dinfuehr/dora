@@ -6,7 +6,6 @@ use baseline::native;
 use baseline::stub::Stub;
 use class::{ClassId, FieldId};
 use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
-use cpu::emit;
 use cpu::trap;
 use ctxt::*;
 use driver::cmd::AsmSyntax;

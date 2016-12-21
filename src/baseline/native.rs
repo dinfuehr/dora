@@ -2,7 +2,7 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
 use baseline::fct::JitFct;
-use cpu::{emit, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
+use cpu::{Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, FctId, get_ctxt};
 use masm::MacroAssembler;
 use mem;
@@ -34,7 +34,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct_id: FctId, ptr: *cons
     let ngen = NativeGen {
         ctxt: ctxt,
         ptr: ptr,
-        buf: MacroAssembler::new(),
+        masm: MacroAssembler::new(),
         fct_id: fct_id,
         return_type: return_type,
         args: args,
@@ -46,7 +46,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct_id: FctId, ptr: *cons
 struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     ptr: *const u8,
-    buf: MacroAssembler,
+    masm: MacroAssembler,
     fct_id: FctId,
 
     return_type: BuiltinType,
@@ -67,38 +67,38 @@ impl<'a, 'ast> NativeGen<'a, 'ast> where 'ast: 'a  {
         let offset_args = offset_return + if save_return { 8 } else { 0 };
         // let offset_sfi = offset_args + self.args * 8;
 
-        emit::prolog(&mut self.buf, framesize);
+        self.masm.prolog(framesize);
 
         assert!(self.args <= REG_PARAMS.len() as i32);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
-            emit::store_mem(&mut self.buf, MachineMode::Ptr,
+            self.masm.store_mem(MachineMode::Ptr,
                             Mem::Base(REG_SP, offset_args + ind as i32 * 8), reg);
         }
 
-        emit::copy_reg(&mut self.buf, MachineMode::Ptr, REG_PARAMS[0], REG_FP);
-        emit::direct_call(&mut self.buf, start_native_call as *const u8);
+        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
+        self.masm.direct_call(start_native_call as *const u8);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
-            emit::load_mem(&mut self.buf, MachineMode::Ptr, reg,
+            self.masm.load_mem(MachineMode::Ptr, reg,
                            Mem::Base(REG_SP, offset_args + ind as i32 * 8));
         }
 
-        emit::direct_call(&mut self.buf, self.ptr);
+        self.masm.direct_call(self.ptr);
 
         if save_return {
-            emit::store_mem(&mut self.buf, MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT);
+            self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT);
         }
 
-        emit::direct_call(&mut self.buf, finish_native_call as *const u8);
+        self.masm.direct_call(finish_native_call as *const u8);
 
         if save_return {
-            emit::load_mem(&mut self.buf, MachineMode::Ptr, REG_RESULT, Mem::Base(REG_SP, 0));
+            self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(REG_SP, 0));
         }
 
-        emit::epilog(&mut self.buf, framesize);
+        self.masm.epilog(framesize);
 
-        self.buf.jit(self.fct_id, framesize)
+        self.masm.jit(self.fct_id, framesize)
     }
 }
 
