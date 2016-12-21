@@ -8,6 +8,7 @@ use execstate::ExecState;
 use mem::ptr::Ptr;
 use object::{Handle, Obj};
 use os_cpu::*;
+use stacktrace::{handle_exception, get_stacktrace};
 
 pub fn register_signals(ctxt: &Context) {
     unsafe {
@@ -37,35 +38,35 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
 
             Trap::DIV0 => {
                 println!("division by 0");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(101); }
             }
 
             Trap::ASSERT => {
                 println!("assert failed");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(101); }
             }
 
             Trap::INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(102); }
             }
 
             Trap::NIL => {
                 println!("nil check failed");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(103); }
             }
 
             Trap::THROW => {
                 let obj : Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
-                let handler_found = cpu::handle_exception(obj, &mut es);
+                let handler_found = handle_exception(obj, &mut es);
 
                 if handler_found {
                     write_execstate(&es, ucontext as *mut c_void);
@@ -77,14 +78,14 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
 
             Trap::CAST => {
                 println!("cast failed");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(105); }
             }
 
             Trap::UNEXPECTED => {
                 println!("unexpected exception");
-                let stacktrace = cpu::get_stacktrace(ctxt, &es);
+                let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe { _exit(106); }
             }

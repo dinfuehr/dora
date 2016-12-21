@@ -2,8 +2,7 @@ use libc;
 use std::ptr::{self, write_bytes};
 use time;
 
-use cpu::get_rootset;
-use ctxt::get_ctxt;
+use ctxt::{Context, FctKind, get_ctxt};
 use object::Obj;
 
 const INITIAL_THRESHOLD: usize = 128;
@@ -238,4 +237,60 @@ fn sweep(gc: &mut Gc, dump: bool, cur_marked: bool) {
 
     // last survived object is now end of list
     gc.obj_end = last;
+}
+
+pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
+    let mut rootset = Vec::new();
+
+    let mut pc : usize;
+    let mut fp : usize;
+
+    assert!(!ctxt.sfi.borrow().is_null());
+
+    {
+        let sfi = unsafe { &**ctxt.sfi.borrow() };
+
+        pc = sfi.ra;
+        fp = sfi.fp;
+    }
+
+    while fp != 0 {
+        if !determine_rootset(&mut rootset, ctxt, fp, pc) {
+            break;
+        }
+
+        pc = unsafe { *((fp + 8) as *const usize) };
+        fp = unsafe { *(fp as *const usize) };
+    }
+
+    rootset
+}
+
+fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) -> bool {
+    let code_map = ctxt.code_map.lock().unwrap();
+    let fct_id = code_map.get(pc as *const u8);
+
+    if let Some(fct_id) = fct_id {
+        let fct = ctxt.fct_by_id(fct_id);
+
+        if let FctKind::Source(ref src) = fct.kind {
+            let src = src.lock().unwrap();
+            let jit_fct = src.jit_fct.as_ref().expect("no jit information");
+            let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect("no gcpoint");
+
+            for &offset in &gcpoint.offsets {
+                let addr = (fp as isize + offset as isize) as usize;
+                let obj = unsafe { *(addr as *const usize) };
+
+                rootset.push(obj);
+            }
+        } else {
+            panic!("should be FctKind::Source");
+        }
+
+        true
+    } else {
+        false
+    }
 }
