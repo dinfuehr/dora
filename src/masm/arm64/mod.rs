@@ -2,11 +2,12 @@ use baseline::codegen::CondCode;
 use cpu::asm;
 use cpu::arm64::asm::*;
 use cpu::arm64::reg::*;
-use cpu::{Mem, Reg, trap};
+use cpu::{Mem, Reg};
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
+use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
 
@@ -78,7 +79,7 @@ impl MacroAssembler {
 
         let lbl = self.create_label();
         self.jump_if(CondCode::Zero, lbl);
-        self.emit_bailout(lbl, trap::NIL, pos);
+        self.emit_bailout(lbl, Trap::NIL, pos);
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
@@ -174,7 +175,7 @@ impl MacroAssembler {
 
         let lbl = buf.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
-        self.emit_bailout(lbl, trap::INDEX_OUT_OF_BOUNDS, pos);
+        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, pos);
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
