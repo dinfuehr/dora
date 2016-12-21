@@ -11,7 +11,6 @@ use driver::cmd::AsmSyntax;
 use lexer::position::Position;
 use masm::*;
 use mem;
-use mem::ptr::Ptr;
 use object::{Header, Str};
 use os::signal::Trap;
 use stdlib;
@@ -702,7 +701,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt).raw()
+            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
 
         } else {
             let fct = self.ctxt.fct_by_id(fid);
@@ -712,11 +711,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                     let src = fct.src();
                     let mut src = src.lock().unwrap();
 
-                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt).raw()
+                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
                 }
 
                 FctKind::Native(ptr) => {
-                    ensure_native_stub(self.ctxt, fid, ptr.raw(), fct.return_type, fct.real_args())
+                    ensure_native_stub(self.ctxt, fid, ptr, fct.return_type, fct.real_args())
                 }
 
                 FctKind::Definition => unreachable!(),
@@ -866,7 +865,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_native_call_insn(ptr.raw(), pos, csite.return_type,
+                self.emit_native_call_insn(ptr, pos, csite.return_type,
                                            csite.args.len() as i32, dest);
             }
         }
@@ -941,7 +940,7 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> Ptr {
+fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> *const u8 {
     if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
     if let Some(ref stub) = src.stub { return stub.ptr_start(); }
 
@@ -949,11 +948,11 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start().raw(), stub.ptr_end().raw(), fid);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
     }
 
     if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:x}", stub.ptr_start().raw() as usize);
+        println!("create stub at {:x}", stub.ptr_start() as usize);
     }
 
     let ptr = stub.ptr_start();

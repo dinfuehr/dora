@@ -14,8 +14,8 @@ pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {
     let mut options = OpenOptions::new();
     let mut file = options.create(true).append(true).open(&fname).unwrap();
 
-    let code_start = jit_fct.ptr_start().raw() as usize;
-    let code_end = jit_fct.ptr_end().raw() as usize;
+    let code_start = jit_fct.ptr_start() as usize;
+    let code_end = jit_fct.ptr_end() as usize;
     let name = ctxt.interner.str(name);
 
     let line = format!("{:x} {:x} dora::{}\n",

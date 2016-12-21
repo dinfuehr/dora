@@ -16,18 +16,18 @@ use class::{Class, ClassId, Field, FieldId};
 use gc::Gc;
 use interner::*;
 use lexer::position::Position;
-use mem::{self, Ptr};
+use mem;
 use object::{Handle, Str};
 use stacktrace::StackFrameInfo;
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub static mut CTXT: Option<Ptr> = None;
+pub static mut CTXT: Option<*const u8> = None;
 
 pub fn get_ctxt() -> &'static Context<'static> {
     unsafe {
-        &*(CTXT.unwrap().raw() as *const Context)
+        &*(CTXT.unwrap() as *const Context)
     }
 }
 
@@ -349,7 +349,10 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind<'ast> {
-    Source(Arc<Mutex<FctSrc<'ast>>>), Definition, Native(Ptr), Builtin(Intrinsic)
+    Source(Arc<Mutex<FctSrc<'ast>>>),
+    Definition,
+    Native(*const u8),
+    Builtin(Intrinsic)
 }
 
 impl<'ast> FctKind<'ast> {
@@ -557,7 +560,7 @@ pub struct CallSite<'ast> {
 
 #[derive(Clone, Debug)]
 pub enum Callee {
-    Fct(FctId), Ptr(Ptr)
+    Fct(FctId), Ptr(*const u8)
 }
 
 #[derive(Copy, Clone, Debug)]

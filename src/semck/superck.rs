@@ -7,7 +7,6 @@ use class::{Class, ClassId};
 use ctxt::{Context, Fct, FctId};
 use error::msg::Msg;
 use lexer::position::Position;
-use mem::ptr::Ptr;
 use object::Header;
 use vtable::{DISPLAY_SIZE, VTable, VTableBox};
 
@@ -220,7 +219,7 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
             };
 
             if is_src {
-                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, fctid).raw() as usize;
+                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, fctid) as usize;
             }
         }
     }
@@ -230,16 +229,16 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
-fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> Ptr {
+fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> *const u8 {
     let stub = Stub::new(fid);
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start().raw(), stub.ptr_end().raw(), fid);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
     }
 
     if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:x}", stub.ptr_start().raw() as usize);
+        println!("create stub at {:x}", stub.ptr_start() as usize);
     }
 
     let ptr = stub.ptr_start();

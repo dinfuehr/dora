@@ -21,11 +21,11 @@ impl NativeFcts {
     }
 
     pub fn find_fct(&self, ptr: *const u8) -> Option<*const u8> {
-        self.map.get(&ptr).map(|jit_fct| jit_fct.fct_start.raw() as *const u8)
+        self.map.get(&ptr).map(|jit_fct| jit_fct.fct_start as *const u8)
     }
 
     pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFct) -> *const u8 {
-        self.map.entry(ptr).or_insert(fct).fct_start.raw() as *const u8
+        self.map.entry(ptr).or_insert(fct).fct_start as *const u8
     }
 }
 

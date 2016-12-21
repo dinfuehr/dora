@@ -14,13 +14,12 @@ use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
-use mem::ptr::Ptr;
 use os;
 use os::signal::Trap;
 use semck::always_returns;
 use ty::MachineMode;
 
-pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
+pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     let fct = ctxt.fct_by_id(id);
     let src = fct.src();
     let mut src = src.lock().unwrap();
@@ -59,7 +58,7 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
 
     let buf: &[u8] = unsafe {
         slice::from_raw_parts(
-            jit_fct.fct_ptr().raw() as *const u8,
+            jit_fct.fct_ptr(),
             jit_fct.fct_len())
     };
 
@@ -74,7 +73,7 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
         panic!("capstone: syntax couldn't be set");
     }
 
-    let start_addr = jit_fct.fct_ptr().raw() as u64;
+    let start_addr = jit_fct.fct_ptr() as u64;
     let instrs = engine.disasm(buf, start_addr,
         jit_fct.fct_len()).expect("could not disassemble code");
 
@@ -133,7 +132,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
         let jit_fct = self.masm.jit(self.fct.id, self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
-        code_map.insert(jit_fct.ptr_start().raw(), jit_fct.ptr_end().raw(), jit_fct.fct_id());
+        code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), jit_fct.fct_id());
 
         if self.ctxt.args.flag_enable_perf {
             os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);

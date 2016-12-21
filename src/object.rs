@@ -4,7 +4,6 @@ use std::ptr;
 
 use ctxt::get_ctxt;
 use mem;
-use mem::ptr::Ptr;
 use ty::BuiltinType;
 use vtable::VTable;
 
@@ -141,12 +140,6 @@ impl<T> Into<Handle<T>> for usize {
         Handle {
             ptr: self as *const T
         }
-    }
-}
-
-impl<T> Into<Ptr> for Handle<T> {
-    fn into(self) -> Ptr {
-        Ptr::new(self.ptr as *mut u8)
     }
 }
 

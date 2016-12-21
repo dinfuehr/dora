@@ -276,7 +276,7 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
             let jit_fct = src.jit_fct.as_ref().expect("no jit information");
-            let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            let offset = pc - (jit_fct.fct_ptr() as usize);
             let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {

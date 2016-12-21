@@ -5,7 +5,7 @@ use std::ptr;
 use class::ClassId;
 use ctxt::{Context, FctId};
 use dseg::DSeg;
-use mem::{CodeMemory, Ptr};
+use mem::CodeMemory;
 use object::{Handle, Str};
 
 pub struct JitFct {
@@ -14,7 +14,7 @@ pub struct JitFct {
     pub fct_id: FctId,
 
     // pointer to beginning of function
-    pub fct_start: Ptr,
+    pub fct_start: *const u8,
 
     // machine code length in bytes
     fct_len: usize,
@@ -39,17 +39,17 @@ impl JitFct {
         let code = CodeMemory::new(size);
         let ptr = code.ptr_start();
 
-        dseg.finish(ptr.raw());
+        dseg.finish(ptr);
 
         let fct_start;
 
         unsafe {
             fct_start = ptr.offset(dseg.size() as isize);
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.raw() as *mut u8, buffer.len());
+            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start as *mut u8, buffer.len());
         }
 
         for handler in &mut exception_handlers {
-            let fct_start: usize = fct_start.raw() as usize;
+            let fct_start = fct_start as usize;
 
             handler.try_start = fct_start + handler.try_start;
             handler.try_end = fct_start + handler.try_end;
@@ -81,11 +81,11 @@ impl JitFct {
         self.code
     }
 
-    pub fn ptr_start(&self) -> Ptr {
+    pub fn ptr_start(&self) -> *const u8 {
         self.code.ptr_start()
     }
 
-    pub fn ptr_end(&self) -> Ptr {
+    pub fn ptr_end(&self) -> *const u8 {
         self.code.ptr_end()
     }
 
@@ -93,7 +93,7 @@ impl JitFct {
         self.fct_id
     }
 
-    pub fn fct_ptr(&self) -> Ptr {
+    pub fn fct_ptr(&self) -> *const u8 {
         self.fct_start
     }
 

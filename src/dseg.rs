@@ -24,7 +24,7 @@ impl DSeg {
         self.size
     }
 
-    pub fn finish(&self, ptr: *mut u8) {
+    pub fn finish(&self, ptr: *const u8) {
         for entry in &self.entries {
             let offset = self.size - entry.disp;
 

@@ -2,6 +2,7 @@ use std::ptr;
 
 use baseline::fct::ExHandler;
 use cpu::*;
+use ctxt::{Context, FctId};
 use execstate::ExecState;
 use mem;
 use object::{Handle, Obj};
@@ -43,4 +44,44 @@ pub fn resume_with_handler(es: &mut ExecState, handler: &ExHandler, fp: usize, e
 
 pub fn fp_from_execstate(es: &ExecState) -> usize {
     es.regs[RBP.int() as usize]
+}
+
+pub fn patch_fct_call(es: &mut ExecState, fct_ptr: *const u8) {
+    // get return address from top of stack
+    let mut ra : isize = unsafe { *(es.sp as *const isize) };
+
+    // return address is now after `call *%rax` (needs 2 bytes),
+    // we want to be before it
+    ra -= 2;
+
+    // return address is now after `movq (%rip, disp), %rax`, we also
+    // want to be before it to execute it again
+    ra -= 7;
+
+    // get address of function pointer
+    let disp_addr : *const i32 = (ra + 3) as *const i32;
+    let disp : isize = unsafe { *disp_addr } as isize;
+
+    let fct_addr : *mut usize = (ra + 7 + disp) as *mut usize;
+
+    // write function pointer
+    unsafe { *fct_addr = fct_ptr as usize; }
+
+    // execute fct call again
+    es.pc = fct_ptr as usize;
+}
+
+pub fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
+    let fct = ctxt.fct_by_id(fid);
+    let vtable_index = fct.vtable_index.unwrap();
+    let cls_id = fct.owner_class.unwrap();
+
+    let cls = ctxt.cls_by_id(cls_id);
+    let vtable = cls.vtable.as_ref().unwrap();
+
+    let methodtable = vtable.table_mut();
+    methodtable[vtable_index as usize] = fct_ptr as usize;
+
+    // execute fct call again
+    es.pc = fct_ptr as usize;
 }

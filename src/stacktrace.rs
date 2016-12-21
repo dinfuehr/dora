@@ -95,7 +95,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
             let jit_fct = src.jit_fct.as_ref().unwrap();
-            let offset = pc - (jit_fct.fct_ptr().raw() as usize);
+            let offset = pc - (jit_fct.fct_ptr() as usize);
             lineno = jit_fct.lineno_for_offset(offset as i32);
 
             if lineno == 0 {

@@ -8,7 +8,6 @@ use cpu;
 use ctxt::{Arg, Callee, CallSite, Context, Fct, FctSrc, Store, VarId};
 use baseline::expr::is_leaf;
 use mem;
-use mem::ptr::Ptr;
 use stdlib;
 use ty::BuiltinType;
 
@@ -358,7 +357,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
             ];
-            let ptr = Ptr::new(stdlib::strcat as *mut u8);
+            let ptr = stdlib::strcat as *const u8;
 
             self.universal_call(expr.id, args, false,
                 Some(Callee::Ptr(ptr)), Some(BuiltinType::Str));
@@ -370,7 +369,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                 Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
             ];
-            let ptr = Ptr::new(stdlib::strcmp as *mut u8);
+            let ptr = stdlib::strcmp as *const u8;
 
             self.universal_call(expr.id, args, false,
                 Some(Callee::Ptr(ptr)), Some(BuiltinType::Bool));

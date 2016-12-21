@@ -1,7 +1,5 @@
 use ctxt::*;
 
-use mem::ptr::Ptr;
-
 pub mod codegen;
 pub mod expr;
 pub mod fct;
@@ -11,6 +9,6 @@ pub mod native;
 pub mod stub;
 
 
-pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> Ptr {
+pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     codegen::generate(ctxt, id)
 }

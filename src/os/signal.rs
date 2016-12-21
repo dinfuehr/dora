@@ -5,14 +5,13 @@ use baseline;
 use cpu::{self, REG_RESULT};
 use ctxt::{Context, CTXT, get_ctxt};
 use execstate::ExecState;
-use mem::ptr::Ptr;
 use object::{Handle, Obj};
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
 
 pub fn register_signals(ctxt: &Context) {
     unsafe {
-        let ptr = Ptr::new(ctxt as *const Context as *mut u8);
+        let ptr = ctxt as *const Context as *const u8;
         CTXT = Some(ptr);
 
         let mut sa: sigaction = std::mem::uninitialized();
@@ -112,9 +111,9 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
             let fct = ctxt.fct_by_id(fct_id);
 
             if fct.is_virtual() {
-                cpu::trap::patch_vtable_call(ctxt, es, fct_id, jit_fct);
+                cpu::patch_vtable_call(ctxt, es, fct_id, jit_fct);
             } else {
-                cpu::trap::patch_fct_call(es, jit_fct);
+                cpu::patch_fct_call(es, jit_fct);
             }
 
             write_execstate(es, ucontext as *mut c_void);
