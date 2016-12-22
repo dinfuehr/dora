@@ -54,15 +54,17 @@ impl MacroAssembler {
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
         assert!(mode == MachineMode::Int32);
 
-        self.load_mem(mode, dest, Mem::Index(array, index,
-                       mode.size(), IntArray::offset_of_data()));
+        self.load_mem(mode,
+                      dest,
+                      Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
         assert!(mode == MachineMode::Int32);
 
-        self.store_mem(MachineMode::Int32, Mem::Index(array, index,
-                        4, IntArray::offset_of_data()), value);
+        self.store_mem(MachineMode::Int32,
+                       Mem::Index(array, index, 4, IntArray::offset_of_data()),
+                       value);
     }
 
     pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg) {
@@ -91,8 +93,9 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => asm::emit_cmp_mem_reg(self, mode, REG_FP, offset, rhs),
             Mem::Base(base, disp) => asm::emit_cmp_mem_reg(self, mode, base, disp, rhs),
-            Mem::Index(base, index, scale, disp) =>
+            Mem::Index(base, index, scale, disp) => {
                 asm::emit_cmp_memindex_reg(self, mode, base, index, scale, disp, rhs)
+            }
         }
     }
 
@@ -106,8 +109,8 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int8
-                | MachineMode::Int32 => asm::emit_cmpl_reg_reg(self, rhs, lhs),
+            MachineMode::Int8 |
+            MachineMode::Int32 => asm::emit_cmpl_reg_reg(self, rhs, lhs),
             MachineMode::Ptr => asm::emit_cmpq_reg_reg(self, rhs, lhs),
         }
     }
@@ -210,10 +213,10 @@ impl MacroAssembler {
         }
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg,
-                                    index: Reg, temp: Reg) {
-        self.load_mem(MachineMode::Int32, temp,
-                Mem::Base(array, IntArray::offset_of_length()));
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
+        self.load_mem(MachineMode::Int32,
+                      temp,
+                      Mem::Base(array, IntArray::offset_of_length()));
         self.cmp_reg(MachineMode::Int32, index, temp);
 
         let lbl = self.create_label();
@@ -243,8 +246,9 @@ impl MacroAssembler {
                 }
             }
 
-            Mem::Index(base, index, scale, disp) =>
+            Mem::Index(base, index, scale, disp) => {
                 asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest)
+            }
         }
     }
 
@@ -266,14 +270,16 @@ impl MacroAssembler {
                 }
             }
 
-            Mem::Index(base, index, scale, disp) =>
+            Mem::Index(base, index, scale, disp) => {
                 asm::emit_mov_reg_memindex(self, mode, src, base, index, scale, disp)
+            }
         }
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
-            MachineMode::Int8 | MachineMode::Int32 => asm::emit_movl_reg_reg(self, src, dest),
+            MachineMode::Int8 |
+            MachineMode::Int32 => asm::emit_movl_reg_reg(self, src, dest),
             MachineMode::Ptr => asm::emit_movq_reg_reg(self, src, dest),
         }
     }

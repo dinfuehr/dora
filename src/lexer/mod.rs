@@ -15,7 +15,7 @@ pub mod token;
 pub mod position;
 mod charpos;
 
-pub struct Lexer<T : CodeReader> {
+pub struct Lexer<T: CodeReader> {
     reader: T,
     position: Position,
     eof_reached: bool,
@@ -23,11 +23,12 @@ pub struct Lexer<T : CodeReader> {
     state: State,
     keywords: HashMap<&'static str, TokenType>,
 
-    buffer: VecDeque<Result<CharPos, MsgWithPos>>
+    buffer: VecDeque<Result<CharPos, MsgWithPos>>,
 }
 
 enum State {
-    Initial, String
+    Initial,
+    String,
 }
 
 #[cfg(test)]
@@ -64,7 +65,7 @@ impl Lexer<FileReader> {
 //     "trait" => TokenType::Trait,
 // };
 
-impl<T : CodeReader> Lexer<T> {
+impl<T: CodeReader> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
         Lexer::new_with_tabwidth(reader, 4)
     }
@@ -115,7 +116,7 @@ impl<T : CodeReader> Lexer<T> {
             keywords: keywords,
             state: State::Initial,
 
-            buffer: VecDeque::with_capacity(10)
+            buffer: VecDeque::with_capacity(10),
         };
         lexer.fill_buffer();
 
@@ -181,11 +182,11 @@ impl<T : CodeReader> Lexer<T> {
         self.read_char();
 
         while !self.is_eof() && !self.is_multi_comment_end() {
-          self.read_char();
+            self.read_char();
         }
 
         if self.is_eof() {
-          return Err(MsgWithPos::new(pos, Msg::UnclosedComment));
+            return Err(MsgWithPos::new(pos, Msg::UnclosedComment));
         }
 
         self.read_char();
@@ -276,10 +277,18 @@ impl<T : CodeReader> Lexer<T> {
         let ch = try!(self.read_char().unwrap()).value;
 
         let nch = self.top();
-        let nch = if nch.is_some() { nch.unwrap().value } else { 'x' };
+        let nch = if nch.is_some() {
+            nch.unwrap().value
+        } else {
+            'x'
+        };
 
         let nnch = self.at(1);
-        let nnch = if nnch.is_some() { nnch.unwrap().value } else { 'x' };
+        let nnch = if nnch.is_some() {
+            nnch.unwrap().value
+        } else {
+            'x'
+        };
 
         tok.token_type = match ch {
             '+' => TokenType::Add,
@@ -426,31 +435,31 @@ impl<T : CodeReader> Lexer<T> {
                 ReaderResult::Char(ch) => {
                     self.buffer.push_back(Ok(CharPos {
                         value: ch,
-                        position: self.position
+                        position: self.position,
                     }));
 
                     match ch {
                         '\n' => {
                             self.position.line += 1;
                             self.position.column = 1;
-                        },
-
-                        '\t' => {
-                            let tabdepth = (self.position.column-1)/self.tabwidth;
-
-                            self.position.column = 1 + self.tabwidth * (tabdepth+1);
                         }
 
-                        _ => self.position.column += 1
+                        '\t' => {
+                            let tabdepth = (self.position.column - 1) / self.tabwidth;
+
+                            self.position.column = 1 + self.tabwidth * (tabdepth + 1);
+                        }
+
+                        _ => self.position.column += 1,
                     }
-                },
+                }
 
                 ReaderResult::Eof => self.eof_reached = true,
 
                 ReaderResult::Err => {
                     let msg = MsgWithPos::new(self.position, Msg::IoError);
                     self.buffer.push_back(Err(msg))
-                },
+                }
             }
         }
     }
@@ -459,30 +468,29 @@ impl<T : CodeReader> Lexer<T> {
         let top = self.top();
         let ntop = self.at(1);
 
-        top.is_some() && top.unwrap().value == '/' &&
-            ntop.is_some() && ntop.unwrap().value == '/'
+        top.is_some() && top.unwrap().value == '/' && ntop.is_some() && ntop.unwrap().value == '/'
     }
 
     fn is_multi_comment_start(&self) -> bool {
         let top = self.top();
         let ntop = self.at(1);
 
-        top.is_some() && top.unwrap().value == '/' &&
-            ntop.is_some() && ntop.unwrap().value == '*'
+        top.is_some() && top.unwrap().value == '/' && ntop.is_some() && ntop.unwrap().value == '*'
     }
 
     fn is_multi_comment_end(&self) -> bool {
         let top = self.top();
         let ntop = self.at(1);
 
-        top.is_some() && top.unwrap().value == '*' &&
-            ntop.is_some() && ntop.unwrap().value == '/'
+        top.is_some() && top.unwrap().value == '*' && ntop.is_some() && ntop.unwrap().value == '/'
     }
 
     fn is_operator(&self) -> bool {
         let top = self.top();
 
-        if top.is_none() { return false; }
+        if top.is_none() {
+            return false;
+        }
 
         "^+-*/%&|,=!~;:.()[]{}<>".contains(top.unwrap().value)
     }
@@ -501,11 +509,13 @@ impl<T : CodeReader> Lexer<T> {
 
     fn is_identifier_start(&self) -> bool {
         let top = self.top();
-        if top.is_none() { return false; }
+        if top.is_none() {
+            return false;
+        }
 
         let ch = top.unwrap().value;
 
-        ( ch >= 'a' && ch <= 'z' ) || ( ch >= 'A' && ch <= 'Z' ) || ch == '_'
+        (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
     }
 
     fn is_identifier(&self) -> bool {
@@ -540,8 +550,11 @@ mod tests {
         assert_tok(reader, TokenType::End, "", l, c);
     }
 
-    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, token_type: TokenType,
-                                 val: &'static str, l: u32, c: u32) {
+    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>,
+                                 token_type: TokenType,
+                                 val: &'static str,
+                                 l: u32,
+                                 c: u32) {
         let tok = reader.read_token().unwrap();
         assert_eq!(token_type, tok.token_type);
         assert_eq!(val, tok.value);

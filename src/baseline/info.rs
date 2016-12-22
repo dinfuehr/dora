@@ -11,7 +11,8 @@ use mem;
 use stdlib;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: &Fct<'ast>,
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
+                              fct: &Fct<'ast>,
                               src: &'a mut FctSrc<'ast>) {
     let mut ig = InfoGenerator {
         ctxt: ctxt,
@@ -59,8 +60,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         if idx < cpu::REG_PARAMS.len() {
             self.reserve_stack_for_node(p.var());
 
-        // the rest of the parameters are already stored on the stack
-        // just use the current offset
+            // the rest of the parameters are already stored on the stack
+            // just use the current offset
         } else {
             let var = &mut self.src.vars[p.var()];
             var.offset = self.param_offset;
@@ -79,8 +80,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             let ret = self.fct.return_type;
 
             if !ret.is_unit() {
-                self.eh_return_value = Some(self.eh_return_value.unwrap_or_else(
-                    || self.reserve_stack_for_type(ret)));
+                self.eh_return_value = Some(self.eh_return_value
+                    .unwrap_or_else(|| self.reserve_stack_for_type(ret)));
             }
 
             // we also need space for catch block parameters
@@ -112,7 +113,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprConv(ref expr) => self.expr_conv(expr),
 
-            _ => visit::walk_expr(self, e)
+            _ => visit::walk_expr(self, e),
         }
     }
 }
@@ -158,13 +159,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.reserve_temp_for_node(&expr.object);
 
         } else {
-            let args = vec![
-                Arg::Expr(&expr.object, BuiltinType::Unit, 0),
-                Arg::Expr(&expr.index, BuiltinType::Unit, 0)
-            ];
+            let args = vec![Arg::Expr(&expr.object, BuiltinType::Unit, 0),
+                            Arg::Expr(&expr.index, BuiltinType::Unit, 0)];
 
-            self.universal_call(expr.id, args, true,
-                None, None);
+            self.universal_call(expr.id, args, true, None, None);
         }
     }
 
@@ -180,7 +178,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fid = self.src.calls.get(&id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
-        if self.fct.id == fid { return false; }
+        if self.fct.id == fid {
+            return false;
+        }
 
         self.ctxt.fct_by_id(fid).kind.is_intrinsic()
     }
@@ -201,9 +201,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let call_type = *self.src.calls.get(&expr.id).unwrap();
 
-        let mut args = expr.args.iter().map(|arg| {
-            Arg::Expr(arg, BuiltinType::Unit, 0)
-        }).collect::<Vec<_>>();
+        let mut args = expr.args
+            .iter()
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
+            .collect::<Vec<_>>();
 
         let mut in_class = true;
 
@@ -222,25 +223,30 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
-        let mut args = expr.args.iter().map(|arg| {
-            Arg::Expr(arg, BuiltinType::Unit, 0)
-        }).collect::<Vec<_>>();
+        let mut args = expr.args
+            .iter()
+            .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
+            .collect::<Vec<_>>();
 
         args.insert(0, Arg::Selfie(expr.class_id(), 0));
 
         self.universal_call(expr.id, args, true, None, None);
     }
 
-    fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>, in_class: bool,
-                      callee: Option<Callee>, return_type: Option<BuiltinType>) {
+    fn universal_call(&mut self,
+                      id: NodeId,
+                      args: Vec<Arg<'ast>>,
+                      in_class: bool,
+                      callee: Option<Callee>,
+                      return_type: Option<BuiltinType>) {
         // function invokes another function
         self.leaf = false;
 
         for arg in &args {
             match *arg {
                 Arg::Expr(ast, _, _) => self.visit_expr(ast),
-                Arg::Selfie(_, _)
-                | Arg::SelfieNew(_, _) => {}
+                Arg::Selfie(_, _) |
+                Arg::SelfieNew(_, _) => {}
             }
         }
 
@@ -260,31 +266,34 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let mut super_call = false;
 
-        let args = args.iter().enumerate().map(|(ind, arg)| {
-            match *arg {
-                Arg::Expr(ast, mut ty, _) => {
-                    if let Some(fid) = fid {
-                        ty = if ind == 0 && in_class {
-                            if ast.is_super() {
-                                super_call = true;
+        let args = args.iter()
+            .enumerate()
+            .map(|(ind, arg)| {
+                match *arg {
+                    Arg::Expr(ast, mut ty, _) => {
+                        if let Some(fid) = fid {
+                            ty = if ind == 0 && in_class {
+                                if ast.is_super() {
+                                    super_call = true;
+                                }
+
+                                let cid = self.ctxt.fct_by_id(fid).owner_class.unwrap();
+                                self.ctxt.cls_by_id(cid).ty
+
+                            } else {
+                                let ind = if in_class { ind - 1 } else { ind };
+                                self.ctxt.fct_by_id(fid).params_types[ind]
                             }
-
-                            let cid = self.ctxt.fct_by_id(fid).owner_class.unwrap();
-                            self.ctxt.cls_by_id(cid).ty
-
-                        } else {
-                            let ind = if in_class { ind-1 } else { ind };
-                            self.ctxt.fct_by_id(fid).params_types[ind]
                         }
+
+                        Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
                     }
 
-                    Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
+                    Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
+                    Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
                 }
-
-                Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
-                Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id))
-            }
-        }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
 
         let return_type = return_type.unwrap_or_else(|| {
             let fid = fid.unwrap();
@@ -297,7 +306,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             callee: callee,
             args: args,
             super_call: super_call,
-            return_type: return_type
+            return_type: return_type,
         };
 
         // remember args
@@ -337,11 +346,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.reserve_temp_for_node_with_type(e.rhs.id(), BuiltinType::Int);
 
             } else {
-                let args = vec![
-                    Arg::Expr(&array.object, BuiltinType::Unit, 0),
-                    Arg::Expr(&array.index, BuiltinType::Unit, 0),
-                    Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
-                ];
+                let args = vec![Arg::Expr(&array.object, BuiltinType::Unit, 0),
+                                Arg::Expr(&array.index, BuiltinType::Unit, 0),
+                                Arg::Expr(&e.rhs, BuiltinType::Unit, 0)];
 
                 self.universal_call(e.id, args, true, None, None);
             }
@@ -353,26 +360,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.rhs);
 
         if expr.op == BinOp::Add && BuiltinType::Str == expr.ty() {
-            let args = vec![
-                Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
-                Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
-            ];
+            let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
+                            Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
             let ptr = stdlib::strcat as *const u8;
 
-            self.universal_call(expr.id, args, false,
-                Some(Callee::Ptr(ptr)), Some(BuiltinType::Str));
+            self.universal_call(expr.id,
+                                args,
+                                false,
+                                Some(Callee::Ptr(ptr)),
+                                Some(BuiltinType::Str));
 
-        } else if expr.op.is_compare()
-                  && (expr.lhs.ty().is_str()
-                      || expr.rhs.ty().is_str()) {
-            let args = vec![
-                Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
-                Arg::Expr(&expr.rhs, BuiltinType::Str, 0)
-            ];
+        } else if expr.op.is_compare() && (expr.lhs.ty().is_str() || expr.rhs.ty().is_str()) {
+            let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
+                            Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
             let ptr = stdlib::strcmp as *const u8;
 
-            self.universal_call(expr.id, args, false,
-                Some(Callee::Ptr(ptr)), Some(BuiltinType::Bool));
+            self.universal_call(expr.id,
+                                args,
+                                false,
+                                Some(Callee::Ptr(ptr)),
+                                Some(BuiltinType::Bool));
 
         } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(&expr.lhs);
@@ -405,7 +412,9 @@ mod tests {
     use ctxt::*;
     use test;
 
-    fn info<F>(code: &'static str, f: F) where F: FnOnce(&FctSrc) {
+    fn info<F>(code: &'static str, f: F)
+        where F: FnOnce(&FctSrc)
+    {
         test::parse(code, |ctxt| {
             let ast = ctxt.ast.fct0();
 
@@ -420,29 +429,38 @@ mod tests {
 
     #[test]
     fn test_tempsize() {
-        info("fun f() { 1+2*3; }", |fct| { assert_eq!(4, fct.tempsize); });
-        info("fun f() { 2*3+4+5; }", |fct| { assert_eq!(0, fct.tempsize); });
-        info("fun f() { 1+(2+(3+4)); }", |fct| { assert_eq!(8, fct.tempsize); })
+        info("fun f() { 1+2*3; }", |fct| {
+            assert_eq!(4, fct.tempsize);
+        });
+        info("fun f() { 2*3+4+5; }", |fct| {
+            assert_eq!(0, fct.tempsize);
+        });
+        info("fun f() { 1+(2+(3+4)); }", |fct| {
+            assert_eq!(8, fct.tempsize);
+        })
     }
 
     #[test]
     fn test_tempsize_for_fct_call() {
         info("fun f() { g(1,2,3,4,5,6); }
-              fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}", |fct| {
-            assert_eq!(24, fct.tempsize);
-        });
+              fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}",
+             |fct| {
+                 assert_eq!(24, fct.tempsize);
+             });
 
         info("fun f() { g(1,2,3,4,5,6,7,8); }
-              fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}", |fct| {
-            assert_eq!(32, fct.tempsize);
-        });
+              fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}",
+             |fct| {
+                 assert_eq!(32, fct.tempsize);
+             });
 
         info("fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
-              }", |fct| {
-            assert_eq!(36, fct.tempsize);
-        });
+              }",
+             |fct| {
+                 assert_eq!(36, fct.tempsize);
+             });
     }
 
     #[test]
@@ -472,7 +490,8 @@ mod tests {
         info("fun f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int) {
                   let i : int = 1;
-              }", |fct| {
+              }",
+             |fct| {
             assert_eq!(28, fct.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
@@ -484,7 +503,8 @@ mod tests {
 
     #[test]
     fn test_var_offset() {
-        info("fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }", |fct| {
+        info("fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
+             |fct| {
             assert_eq!(16, fct.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {

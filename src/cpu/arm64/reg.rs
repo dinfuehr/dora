@@ -50,7 +50,7 @@ impl Reg {
         match self {
             REG_SP => 31,
             REG_ZERO => 31,
-            _ => self.0 as u32
+            _ => self.0 as u32,
         }
     }
 

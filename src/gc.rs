@@ -49,7 +49,7 @@ impl Gc {
             // useful for testing
             self.collect();
 
-        // do we pass threshold with this allocation?
+            // do we pass threshold with this allocation?
         } else if self.bytes_allocated + size > self.threshold {
             // collect garbage
             self.collect();
@@ -62,14 +62,17 @@ impl Gc {
 
                 if ctxt.args.flag_gc_dump {
                     println!("GC: increase threshold from {} to {}",
-                             saved_threshold, self.threshold);
+                             saved_threshold,
+                             self.threshold);
                 }
             }
         }
 
         let malloc_start = time::precise_time_ns();
         let ptr = unsafe { libc::malloc(size) as *mut Obj };
-        unsafe { write_bytes(ptr as *mut u8, 0, size); }
+        unsafe {
+            write_bytes(ptr as *mut u8, 0, size);
+        }
         self.malloc_duration += time::precise_time_ns() - malloc_start;
 
         {
@@ -96,8 +99,10 @@ impl Gc {
 
         if ctxt.args.flag_gc_dump {
             println!("GC: allocate {} bytes: {:x} (total {} bytes, threshold {})",
-                     size, ptr as usize,
-                     self.bytes_allocated, self.threshold);
+                     size,
+                     ptr as usize,
+                     self.bytes_allocated,
+                     self.threshold);
         }
 
         self.duration += time::precise_time_ns() - alloc_start;
@@ -163,7 +168,9 @@ fn mark_rootset(rootset: &Vec<usize>, cur_marked: bool) {
 }
 
 fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
-    if obj.is_null() { return; }
+    if obj.is_null() {
+        return;
+    }
 
     let mut elements: Vec<*mut Obj> = vec![obj];
 
@@ -180,7 +187,9 @@ fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
                     let addr = ptr as isize + field.offset as isize;
                     let obj = unsafe { *(addr as *const usize) } as *mut Obj;
 
-                    if obj.is_null() { continue; }
+                    if obj.is_null() {
+                        continue;
+                    }
 
                     elements.push(obj);
                 }
@@ -242,8 +251,8 @@ fn sweep(gc: &mut Gc, dump: bool, cur_marked: bool) {
 pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
     let mut rootset = Vec::new();
 
-    let mut pc : usize;
-    let mut fp : usize;
+    let mut pc: usize;
+    let mut fp: usize;
 
     assert!(!ctxt.sfi.borrow().is_null());
 

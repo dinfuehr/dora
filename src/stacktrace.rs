@@ -7,14 +7,12 @@ use object::{Handle, Obj};
 use execstate::ExecState;
 
 pub struct Stacktrace {
-    elems: Vec<StackElem>
+    elems: Vec<StackElem>,
 }
 
 impl Stacktrace {
     pub fn new() -> Stacktrace {
-        Stacktrace {
-            elems: Vec::new()
-        }
+        Stacktrace { elems: Vec::new() }
     }
 
     pub fn len(&self) -> usize {
@@ -24,7 +22,7 @@ impl Stacktrace {
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
         self.elems.push(StackElem {
             fct_id: fct_id,
-            lineno: lineno
+            lineno: lineno,
         });
     }
 
@@ -44,7 +42,7 @@ impl Stacktrace {
 
 struct StackElem {
     fct_id: FctId,
-    lineno: i32
+    lineno: i32,
 }
 
 pub struct StackFrameInfo {
@@ -77,7 +75,9 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
         let ra = unsafe { *((fp + 8) as *const usize) };
         let cont = determine_stack_entry(&mut stacktrace, ctxt, ra);
 
-        if !cont { break; }
+        if !cont {
+            break;
+        }
 
         fp = unsafe { *(fp as *const usize) };
     }
@@ -113,8 +113,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
 }
 
 pub fn handle_exception(es: &mut ExecState) -> bool {
-    let mut pc : usize = es.pc;
-    let mut fp : usize = fp_from_execstate(es);
+    let mut pc: usize = es.pc;
+    let mut fp: usize = fp_from_execstate(es);
 
     let exception = get_exception_object(es);
 
@@ -122,10 +122,16 @@ pub fn handle_exception(es: &mut ExecState) -> bool {
         let found = find_handler(exception, es, pc, fp);
 
         match found {
-            HandlerFound::Yes => { return true; }
-            HandlerFound::Stop => { return false; }
+            HandlerFound::Yes => {
+                return true;
+            }
+            HandlerFound::Stop => {
+                return false;
+            }
             HandlerFound::No => {
-                if fp == 0 { return false; }
+                if fp == 0 {
+                    return false;
+                }
             }
         }
 
@@ -135,7 +141,11 @@ pub fn handle_exception(es: &mut ExecState) -> bool {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-enum HandlerFound { Yes, No, Stop }
+enum HandlerFound {
+    Yes,
+    No,
+    Stop,
+}
 
 fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize) -> HandlerFound {
     let ctxt = get_ctxt();
@@ -160,9 +170,9 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                     // println!("entry = {:x} to {:x} for {:?}",
                     //          entry.try_start, entry.try_end, entry.catch_type);
 
-                    if entry.try_start < pc && pc <= entry.try_end
-                        && (entry.catch_type == CatchType::Any
-                            || entry.catch_type == CatchType::Class(cls_id)) {
+                    if entry.try_start < pc && pc <= entry.try_end &&
+                       (entry.catch_type == CatchType::Any ||
+                        entry.catch_type == CatchType::Class(cls_id)) {
                         let stacksize = src.stacksize() as usize;
                         resume_with_handler(es, entry, fp, exception, stacksize);
 

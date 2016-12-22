@@ -11,15 +11,13 @@ use sym::Sym::{self, SymClass};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
-    let mut gdef = GlobalDef {
-        ctxt: ctxt
-    };
+    let mut gdef = GlobalDef { ctxt: ctxt };
 
     gdef.visit_ast(ctxt.ast);
 }
 
 struct GlobalDef<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>
+    ctxt: &'x mut Context<'ast>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {

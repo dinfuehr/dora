@@ -13,7 +13,7 @@ impl Mir {
 
         Mir {
             name: name,
-            blocks: vec![entry, exit]
+            blocks: vec![entry, exit],
         }
     }
 
@@ -69,10 +69,13 @@ pub enum Opnd {
 }
 
 pub enum UnaryOp {
-    Neg
+    Neg,
 }
 
 pub enum BinaryOp {
-    Add, Sub, Mul, Div, Mod,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
 }
-

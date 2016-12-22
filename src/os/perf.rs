@@ -19,7 +19,9 @@ pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {
     let name = ctxt.interner.str(name);
 
     let line = format!("{:x} {:x} dora::{}\n",
-        code_start, code_end - code_start, name);
+                       code_start,
+                       code_end - code_start,
+                       name);
     file.write_all(line.as_bytes()).unwrap();
 }
 

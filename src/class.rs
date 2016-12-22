@@ -86,8 +86,7 @@ impl<'ast> Class<'ast> {
         }
     }
 
-    pub fn find_method(&self, ctxt: &Context, name: Name,
-                       args: &[BuiltinType]) -> Option<FctId> {
+    pub fn find_method(&self, ctxt: &Context, name: Name, args: &[BuiltinType]) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
@@ -110,8 +109,9 @@ impl<'ast> Class<'ast> {
         }
     }
 
-    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name,
-                                f: F) -> Vec<FctId> where F: Fn(&Fct) -> bool {
+    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name, f: F) -> Vec<FctId>
+        where F: Fn(&Fct) -> bool
+    {
         let mut classid = self.id;
         let mut candidates = Vec::new();
         let mut ignores = HashSet::new();
@@ -155,7 +155,9 @@ impl<'ast> Class<'ast> {
                     class = ctxt.cls_by_id(id);
                 }
 
-                None => { return false; }
+                None => {
+                    return false;
+                }
             }
         }
     }
@@ -164,7 +166,7 @@ impl<'ast> Class<'ast> {
 pub struct FieldIterator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     class: &'a Class<'ast>,
-    field_idx: usize
+    field_idx: usize,
 }
 
 impl<'a, 'ast> Iterator for FieldIterator<'a, 'ast> {

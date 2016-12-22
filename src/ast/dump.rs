@@ -17,7 +17,7 @@ macro_rules! dump {
 pub fn dump(ast: &Ast, interner: &Interner) {
     let mut dumper = AstDumper {
         interner: interner,
-        indent: 0
+        indent: 0,
     };
 
     dumper.dump_ast(ast);
@@ -26,7 +26,7 @@ pub fn dump(ast: &Ast, interner: &Interner) {
 pub fn dump_expr<'a>(expr: &'a Expr, interner: &'a Interner) {
     let mut dumper = AstDumper {
         interner: interner,
-        indent: 0
+        indent: 0,
     };
 
     dumper.dump_expr(expr);
@@ -58,13 +58,20 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_class(&mut self, cls: &Class) {
-        dump!(self, "class {} @ {} {}", self.str(cls.name), cls.pos, cls.id);
+        dump!(self,
+              "class {} @ {} {}",
+              self.str(cls.name),
+              cls.pos,
+              cls.id);
 
         self.indent(|d| {
             dump!(d, "open = {}", cls.has_open);
 
             if let Some(ref parent_class) = cls.parent_class {
-                dump!(d, "super (name={} @ {})", d.str(parent_class.name), parent_class.pos);
+                dump!(d,
+                      "super (name={} @ {})",
+                      d.str(parent_class.name),
+                      parent_class.pos);
             }
 
             dump!(d, "fields");
@@ -90,7 +97,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_field(&mut self, field: &Field) {
-        dump!(self, "field {} @ {} {}", self.str(field.name), field.pos, field.id);
+        dump!(self,
+              "field {} @ {} {}",
+              self.str(field.name),
+              field.pos,
+              field.id);
         self.indent(|d| d.dump_type(&field.data_type));
     }
 
@@ -131,14 +142,21 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_param(&mut self, param: &Param) {
-        dump!(self, "param {} @ {} {}",
-            self.str(param.name), param.pos, param.id);
+        dump!(self,
+              "param {} @ {} {}",
+              self.str(param.name),
+              param.pos,
+              param.id);
 
         self.indent(|d| d.dump_type(&param.data_type));
     }
 
     fn dump_type(&mut self, ty: &Type) {
-        dump!(self, "type `{}` @ {:?} {}", ty.to_string(self.interner), ty.pos(), ty.id());
+        dump!(self,
+              "type `{}` @ {:?} {}",
+              ty.to_string(self.interner),
+              ty.pos(),
+              ty.id());
     }
 
     fn dump_stmt(&mut self, stmt: &Stmt) {
@@ -158,7 +176,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_var(&mut self, stmt: &StmtVarType) {
-        dump!(self, "let {} @ {} {}", self.str(stmt.name), stmt.pos, stmt.id);
+        dump!(self,
+              "let {} @ {} {}",
+              self.str(stmt.name),
+              stmt.pos,
+              stmt.id);
 
         self.indent(|d| {
             dump!(d, "type");
@@ -186,38 +208,55 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             dump!(d, "cond");
-            d.indent(|d| { d.dump_expr(&stmt.cond); });
+            d.indent(|d| {
+                d.dump_expr(&stmt.cond);
+            });
 
             dump!(d, "body");
-            d.indent(|d| { d.dump_stmt(&stmt.block); });
+            d.indent(|d| {
+                d.dump_stmt(&stmt.block);
+            });
         });
     }
 
     fn dump_stmt_loop(&mut self, stmt: &StmtLoopType) {
         dump!(self, "loop @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| { d.dump_stmt(&stmt.block); });
+        self.indent(|d| {
+            d.dump_stmt(&stmt.block);
+        });
     }
 
     fn dump_stmt_if(&mut self, stmt: &StmtIfType) {
         dump!(self, "if @ {} {}", stmt.pos, stmt.id);
 
         self.indent(|d| {
-            d.indent(|d| { d.dump_expr(&stmt.cond); });
+            d.indent(|d| {
+                d.dump_expr(&stmt.cond);
+            });
             dump!(d, "then");
-            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+            d.indent(|d| {
+                d.dump_stmt(&stmt.then_block);
+            });
             dump!(d, "else");
-            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+            d.indent(|d| {
+                d.dump_stmt(&stmt.then_block);
+            });
         });
     }
 
     fn dump_stmt_expr(&mut self, stmt: &StmtExprType) {
         dump!(self, "expr stmt @ {} {}", stmt.pos, stmt.id);
-        self.indent(|d| { d.dump_expr(&stmt.expr); });
+        self.indent(|d| {
+            d.dump_expr(&stmt.expr);
+        });
     }
 
     fn dump_stmt_block(&mut self, block: &StmtBlockType) {
-        dump!(self, "block ({} statement(s)) @ {} {}",
-            block.stmts.len(), block.pos, block.id);
+        dump!(self,
+              "block ({} statement(s)) @ {} {}",
+              block.stmts.len(),
+              block.pos,
+              block.id);
 
         self.indent(|d| {
             if block.stmts.is_empty() {
@@ -343,7 +382,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_ident(&mut self, ident: &ExprIdentType) {
-        dump!(self, "ident {} @ {} {}", self.str(ident.name), ident.pos, ident.id);
+        dump!(self,
+              "ident {} @ {} {}",
+              self.str(ident.name),
+              ident.pos,
+              ident.id);
     }
 
     fn dump_expr_un(&mut self, expr: &ExprUnType) {
@@ -364,7 +407,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_field(&mut self, field: &ExprFieldType) {
-        dump!(self, "field {} @ {} {}", self.str(field.name), field.pos, field.id);
+        dump!(self,
+              "field {} @ {} {}",
+              self.str(field.name),
+              field.pos,
+              field.id);
         self.indent(|d| d.dump_expr(&field.object));
     }
 
@@ -375,8 +422,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
-        dump!(self, "call {} @ {} {}", self.str(expr.name),
-              expr.pos, expr.id);
+        dump!(self,
+              "call {} @ {} {}",
+              self.str(expr.name),
+              expr.pos,
+              expr.id);
 
         self.indent(|d| {
             if let Some(ref object) = expr.object {
@@ -390,9 +440,11 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn indent<F>(&mut self, fct: F) where F: Fn(&mut AstDumper) -> () {
+    fn indent<F>(&mut self, fct: F)
+        where F: Fn(&mut AstDumper) -> ()
+    {
         let old = self.indent;
-        self.indent = old+1;
+        self.indent = old + 1;
 
         fct(self);
 

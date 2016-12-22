@@ -16,7 +16,11 @@ pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
     unimplemented!();
 }
 
-pub fn resume_with_handler(es: &mut ExecState, handler: &ExHandler, fp: usize, exception: Handle<Obj>, stacksize: usize) {
+pub fn resume_with_handler(es: &mut ExecState,
+                           handler: &ExHandler,
+                           fp: usize,
+                           exception: Handle<Obj>,
+                           stacksize: usize) {
     unimplemented!();
 }
 

@@ -4,14 +4,12 @@ use std::collections::BTreeMap;
 use ctxt::FctId;
 
 pub struct CodeMap {
-    tree: BTreeMap<CodeSpan, FctId>
+    tree: BTreeMap<CodeSpan, FctId>,
 }
 
 impl CodeMap {
     pub fn new() -> CodeMap {
-        CodeMap {
-            tree: BTreeMap::new()
-        }
+        CodeMap { tree: BTreeMap::new() }
     }
 
     pub fn dump(&self) {
@@ -32,7 +30,7 @@ impl CodeMap {
     pub fn get(&self, ptr: *const u8) -> Option<FctId> {
         let span = CodeSpan::new(ptr, unsafe { ptr.offset(1) });
 
-        self.tree.get(&span).map(|el| { *el })
+        self.tree.get(&span).map(|el| *el)
     }
 }
 
@@ -45,8 +43,8 @@ struct CodeSpan {
 impl CodeSpan {
     fn intersect(&self, other: &CodeSpan) -> bool {
         (self.start <= other.start && other.start < self.end) ||
-            (self.start < other.end && other.end <= self.end) ||
-            (other.start <= self.start && self.end <= other.end)
+        (self.start < other.end && other.end <= self.end) ||
+        (other.start <= self.start && self.end <= other.end)
     }
 }
 
@@ -82,7 +80,10 @@ impl CodeSpan {
     fn new(start: *const u8, end: *const u8) -> CodeSpan {
         assert!(start < end);
 
-        CodeSpan { start: start, end: end }
+        CodeSpan {
+            start: start,
+            end: end,
+        }
     }
 }
 

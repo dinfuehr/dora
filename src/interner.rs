@@ -45,14 +45,14 @@ impl Deref for RcStr {
 
 pub struct Interner {
     map: RefCell<HashMap<RcStr, Name>>,
-    vec: RefCell<Vec<RcStr>>
+    vec: RefCell<Vec<RcStr>>,
 }
 
 impl Interner {
     pub fn new() -> Interner {
         Interner {
             map: RefCell::new(HashMap::new()),
-            vec: RefCell::new(Vec::new())
+            vec: RefCell::new(Vec::new()),
         }
     }
 

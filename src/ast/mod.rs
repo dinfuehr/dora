@@ -29,7 +29,7 @@ impl Ast {
 
     pub fn generate_id(&mut self) -> NodeId {
         let ret = self.next_id;
-        self.next_id = NodeId(ret.0+1);
+        self.next_id = NodeId(ret.0 + 1);
 
         ret
     }
@@ -93,14 +93,14 @@ impl Elem {
     pub fn to_function(&self) -> Option<&Function> {
         match *self {
             ElemFunction(ref fct) => Some(fct),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_class(&self) -> Option<&Class> {
         match *self {
             ElemClass(ref class) => Some(class),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -117,7 +117,7 @@ pub enum Type {
 pub struct TypeTupleType {
     pub id: NodeId,
     pub pos: Position,
-    pub subtypes: Vec<Box<Type>>
+    pub subtypes: Vec<Box<Type>>,
 }
 
 #[derive(Clone, Debug)]
@@ -154,7 +154,7 @@ impl Type {
         Type::TypePtr(TypePtrType {
             id: id,
             pos: pos,
-            subtype: subtype
+            subtype: subtype,
         })
     }
 
@@ -162,7 +162,7 @@ impl Type {
         Type::TypeArray(TypeArrayType {
             id: id,
             pos: pos,
-            subtype: subtype
+            subtype: subtype,
         })
     }
 
@@ -170,57 +170,52 @@ impl Type {
         Type::TypeTuple(TypeTupleType {
             id: id,
             pos: pos,
-            subtypes: subtypes
+            subtypes: subtypes,
         })
     }
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
         match *self {
             Type::TypeBasic(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_ptr(&self) -> Option<&TypePtrType> {
         match *self {
             Type::TypePtr(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_array(&self) -> Option<&TypeArrayType> {
         match *self {
             Type::TypeArray(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&TypeTupleType> {
         match *self {
             Type::TypeTuple(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
-            Type::TypeBasic(ref val) => {
-                format!("{}", *interner.str(val.name))
-            }
+            Type::TypeBasic(ref val) => format!("{}", *interner.str(val.name)),
 
             Type::TypeTuple(ref val) => {
-                let types : Vec<String> = val.subtypes.iter().map(|t| t.to_string(interner)).collect();
+                let types: Vec<String> =
+                    val.subtypes.iter().map(|t| t.to_string(interner)).collect();
 
                 format!("({})", types.join(", "))
             }
 
-            Type::TypePtr(ref val) => {
-                format!("*{}", val.subtype.to_string(interner))
-            }
+            Type::TypePtr(ref val) => format!("*{}", val.subtype.to_string(interner)),
 
-            Type::TypeArray(ref val) => {
-                format!("[{}]", val.subtype.to_string(interner))
-            }
+            Type::TypeArray(ref val) => format!("[{}]", val.subtype.to_string(interner)),
         }
     }
 
@@ -356,7 +351,7 @@ impl Modifiers {
     pub fn add(&mut self, modifier: Modifier, pos: Position) {
         self.0.push(ModifierElement {
             value: modifier,
-            pos: pos
+            pos: pos,
         });
     }
 
@@ -372,7 +367,12 @@ pub struct ModifierElement {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Modifier { Override, Open, Final, Internal }
+pub enum Modifier {
+    Override,
+    Open,
+    Final,
+    Internal,
+}
 
 impl Modifier {
     pub fn name(&self) -> &'static str {
@@ -422,8 +422,13 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn create_var(id: NodeId, pos: Position, name: Name, reassignable: bool,
-                      data_type: Option<Type>, expr: Option<Box<Expr>>) -> Stmt {
+    pub fn create_var(id: NodeId,
+                      pos: Position,
+                      name: Name,
+                      reassignable: bool,
+                      data_type: Option<Type>,
+                      expr: Option<Box<Expr>>)
+                      -> Stmt {
         Stmt::StmtVar(StmtVarType {
             id: id,
             pos: pos,
@@ -435,8 +440,7 @@ impl Stmt {
         })
     }
 
-    pub fn create_while(id: NodeId, pos: Position, cond: Box<Expr>,
-                        block: Box<Stmt>) -> Stmt {
+    pub fn create_while(id: NodeId, pos: Position, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
         Stmt::StmtWhile(StmtWhileType {
             id: id,
             pos: pos,
@@ -453,8 +457,12 @@ impl Stmt {
         })
     }
 
-    pub fn create_if(id: NodeId, pos: Position, cond: Box<Expr>,
-                 then_block: Box<Stmt>, else_block: Option<Box<Stmt>>) -> Stmt {
+    pub fn create_if(id: NodeId,
+                     pos: Position,
+                     cond: Box<Expr>,
+                     then_block: Box<Stmt>,
+                     else_block: Option<Box<Stmt>>)
+                     -> Stmt {
         Stmt::StmtIf(StmtIfType {
             id: id,
             pos: pos,
@@ -481,17 +489,11 @@ impl Stmt {
     }
 
     pub fn create_break(id: NodeId, pos: Position) -> Stmt {
-        Stmt::StmtBreak(StmtBreakType {
-            id: id,
-            pos: pos,
-        })
+        Stmt::StmtBreak(StmtBreakType { id: id, pos: pos })
     }
 
     pub fn create_continue(id: NodeId, pos: Position) -> Stmt {
-        Stmt::StmtContinue(StmtContinueType {
-            id: id,
-            pos: pos,
-        })
+        Stmt::StmtContinue(StmtContinueType { id: id, pos: pos })
     }
 
     pub fn create_return(id: NodeId, pos: Position, expr: Option<Box<Expr>>) -> Stmt {
@@ -510,9 +512,12 @@ impl Stmt {
         })
     }
 
-    pub fn create_do(id: NodeId, pos: Position, do_block: Box<Stmt>,
+    pub fn create_do(id: NodeId,
+                     pos: Position,
+                     do_block: Box<Stmt>,
                      catch_blocks: Vec<CatchBlock>,
-                     finally_block: Option<FinallyBlock>) -> Stmt {
+                     finally_block: Option<FinallyBlock>)
+                     -> Stmt {
         Stmt::StmtDo(StmtDoType {
             id: id,
             pos: pos,
@@ -557,154 +562,154 @@ impl Stmt {
     pub fn to_throw(&self) -> Option<&StmtThrowType> {
         match *self {
             Stmt::StmtThrow(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_throw(&self) -> bool {
         match *self {
             Stmt::StmtThrow(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_do(&self) -> Option<&StmtDoType> {
         match *self {
             Stmt::StmtDo(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_try(&self) -> bool {
         match *self {
             Stmt::StmtDo(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_var(&self) -> Option<&StmtVarType> {
         match *self {
             Stmt::StmtVar(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_var(&self) -> bool {
         match *self {
             Stmt::StmtVar(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_while(&self) -> Option<&StmtWhileType> {
         match *self {
             Stmt::StmtWhile(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_while(&self) -> bool {
         match *self {
             Stmt::StmtWhile(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_loop(&self) -> Option<&StmtLoopType> {
         match *self {
             Stmt::StmtLoop(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_loop(&self) -> bool {
         match *self {
             Stmt::StmtLoop(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_if(&self) -> Option<&StmtIfType> {
         match *self {
             Stmt::StmtIf(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_if(&self) -> bool {
         match *self {
             Stmt::StmtIf(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_expr(&self) -> Option<&StmtExprType> {
         match *self {
             Stmt::StmtExpr(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_expr(&self) -> bool {
         match *self {
             Stmt::StmtExpr(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_block(&self) -> Option<&StmtBlockType> {
         match *self {
             Stmt::StmtBlock(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_block(&self) -> bool {
         match *self {
             Stmt::StmtBlock(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_return(&self) -> Option<&StmtReturnType> {
         match *self {
             Stmt::StmtReturn(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_return(&self) -> bool {
         match *self {
             Stmt::StmtReturn(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_break(&self) -> Option<&StmtBreakType> {
         match *self {
             Stmt::StmtBreak(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_break(&self) -> bool {
         match *self {
             Stmt::StmtBreak(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_continue(&self) -> Option<&StmtContinueType> {
         match *self {
             Stmt::StmtContinue(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_continue(&self) -> bool {
         match *self {
             Stmt::StmtContinue(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -823,7 +828,7 @@ impl CatchBlock {
             data_type: data_type,
             ty: RefCell::new(None),
             var: RefCell::new(None),
-            block: block
+            block: block,
         }
     }
 
@@ -872,7 +877,7 @@ pub enum UnOp {
     Plus,
     Neg,
     Not,
-    BitNot
+    BitNot,
 }
 
 impl UnOp {
@@ -881,7 +886,7 @@ impl UnOp {
             UnOp::Plus => "+",
             UnOp::Neg => "-",
             UnOp::Not => "!",
-            UnOp::BitNot => "~"
+            UnOp::BitNot => "~",
         }
     }
 }
@@ -941,14 +946,14 @@ impl BinOp {
             BinOp::And => "&&",
             BinOp::BitOr => "|",
             BinOp::BitAnd => "&",
-            BinOp::BitXor => "^"
+            BinOp::BitXor => "^",
         }
     }
 
     pub fn is_compare(&self) -> bool {
         match *self {
             BinOp::Cmp(cmp) if cmp != CmpOp::Is && cmp != CmpOp::IsNot => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -994,8 +999,12 @@ impl Expr {
         })
     }
 
-    pub fn create_bin(id: NodeId, pos: Position, op: BinOp,
-                      lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
+    pub fn create_bin(id: NodeId,
+                      pos: Position,
+                      op: BinOp,
+                      lhs: Box<Expr>,
+                      rhs: Box<Expr>)
+                      -> Expr {
         Expr::ExprBin(ExprBinType {
             id: id,
             pos: pos,
@@ -1006,8 +1015,12 @@ impl Expr {
         })
     }
 
-    pub fn create_conv(id: NodeId, pos: Position, object: Box<Expr>,
-                       data_type: Box<Type>, is: bool) -> Expr {
+    pub fn create_conv(id: NodeId,
+                       pos: Position,
+                       object: Box<Expr>,
+                       data_type: Box<Type>,
+                       is: bool)
+                       -> Expr {
         Expr::ExprConv(ExprConvType {
             id: id,
             pos: pos,
@@ -1019,8 +1032,7 @@ impl Expr {
         })
     }
 
-    pub fn create_array(id: NodeId, pos: Position,
-                        object: Box<Expr>, index: Box<Expr>) -> Expr {
+    pub fn create_array(id: NodeId, pos: Position, object: Box<Expr>, index: Box<Expr>) -> Expr {
         Expr::ExprArray(ExprArrayType {
             id: id,
             pos: pos,
@@ -1090,8 +1102,12 @@ impl Expr {
         })
     }
 
-    pub fn create_call(id: NodeId, pos: Position, name: Name,
-                       object: Option<Box<Expr>>, args: Vec<Box<Expr>>) -> Expr {
+    pub fn create_call(id: NodeId,
+                       pos: Position,
+                       name: Name,
+                       object: Option<Box<Expr>>,
+                       args: Vec<Box<Expr>>)
+                       -> Expr {
         Expr::ExprCall(ExprCallType {
             id: id,
             pos: pos,
@@ -1102,8 +1118,11 @@ impl Expr {
         })
     }
 
-    pub fn create_delegation(id: NodeId, pos: Position, ty: DelegationType,
-                             args: Vec<Box<Expr>>) -> Expr {
+    pub fn create_delegation(id: NodeId,
+                             pos: Position,
+                             ty: DelegationType,
+                             args: Vec<Box<Expr>>)
+                             -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
             id: id,
             pos: pos,
@@ -1114,8 +1133,7 @@ impl Expr {
         })
     }
 
-    pub fn create_assign(id: NodeId, pos: Position,
-                         lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
+    pub fn create_assign(id: NodeId, pos: Position, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
         Expr::ExprAssign(ExprAssignType {
             id: id,
             pos: pos,
@@ -1125,8 +1143,7 @@ impl Expr {
         })
     }
 
-    pub fn create_field(id: NodeId, pos: Position,
-                       object: Box<Expr>, name: Name) -> Expr {
+    pub fn create_field(id: NodeId, pos: Position, object: Box<Expr>, name: Name) -> Expr {
         Expr::ExprField(ExprFieldType {
             id: id,
             pos: pos,
@@ -1140,105 +1157,105 @@ impl Expr {
     pub fn to_un(&self) -> Option<&ExprUnType> {
         match *self {
             Expr::ExprUn(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_un(&self) -> bool {
         match *self {
             Expr::ExprUn(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_bin(&self) -> Option<&ExprBinType> {
         match *self {
             Expr::ExprBin(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_bin(&self) -> bool {
         match *self {
             Expr::ExprBin(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_assign(&self) -> Option<&ExprAssignType> {
         match *self {
             Expr::ExprAssign(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_assign(&self) -> bool {
         match *self {
             Expr::ExprAssign(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_ident(&self) -> Option<&ExprIdentType> {
         match *self {
             Expr::ExprIdent(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_ident(&self) -> bool {
         match *self {
             Expr::ExprIdent(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_call(&self) -> Option<&ExprCallType> {
         match *self {
             Expr::ExprCall(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_call(&self) -> bool {
         match *self {
             Expr::ExprCall(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
             Expr::ExprLitInt(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_lit_int(&self) -> bool {
         match *self {
             Expr::ExprLitInt(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
         match *self {
             Expr::ExprLitStr(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
         match *self {
             Expr::ExprLitBool(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_lit_bool(&self) -> bool {
         match *self {
             Expr::ExprLitBool(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -1252,98 +1269,98 @@ impl Expr {
     pub fn to_field(&self) -> Option<&ExprFieldType> {
         match *self {
             Expr::ExprField(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_field(&self) -> bool {
         match *self {
             Expr::ExprField(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_array(&self) -> Option<&ExprArrayType> {
         match *self {
             Expr::ExprArray(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_array(&self) -> bool {
         match *self {
             Expr::ExprArray(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_delegation(&self) -> Option<&ExprDelegationType> {
         match *self {
             Expr::ExprDelegation(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_delegation(&self) -> bool {
         match *self {
             Expr::ExprDelegation(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_this(&self) -> bool {
         match *self {
             Expr::ExprSelf(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_super(&self) -> bool {
         match *self {
             Expr::ExprSuper(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_super(&self) -> Option<&ExprSuperType> {
         match *self {
             Expr::ExprSuper(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_nil(&self) -> bool {
         match *self {
             Expr::ExprNil(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
             Expr::ExprConv(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_conv(&self) -> bool {
         match *self {
             Expr::ExprConv(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_try(&self) -> Option<&ExprTryType> {
         match *self {
             Expr::ExprTry(ref val) => Some(val),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_try(&self) -> bool {
         match *self {
             Expr::ExprTry(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -1385,11 +1402,13 @@ impl Expr {
             Expr::ExprNil(ref val) => val.ty(),
             Expr::ExprArray(ref val) => val.ty(),
             Expr::ExprTry(ref val) => val.ty(),
-            Expr::ExprConv(ref val) => if val.is {
+            Expr::ExprConv(ref val) => {
+                if val.is {
                     BuiltinType::Bool
                 } else {
                     panic!("unimplemented");
-                },
+                }
+            }
         }
     }
 
@@ -1410,11 +1429,13 @@ impl Expr {
             Expr::ExprNil(ref val) => val.set_ty(ty),
             Expr::ExprArray(ref val) => val.set_ty(ty),
             Expr::ExprTry(ref val) => val.set_ty(ty),
-            Expr::ExprConv(ref val) => if val.is {
+            Expr::ExprConv(ref val) => {
+                if val.is {
                     panic!("unimplemented")
                 } else {
                     panic!("TODO")
-                },
+                }
+            }
         }
     }
 }
@@ -1469,35 +1490,38 @@ impl ExprTryType {
 
 #[derive(Clone, Debug)]
 pub enum TryMode {
-    Normal, Else(Box<Expr>), Opt, Force
+    Normal,
+    Else(Box<Expr>),
+    Opt,
+    Force,
 }
 
 impl TryMode {
     pub fn is_normal(&self) -> bool {
         match self {
-          &TryMode::Normal => true,
-          _ => false,
+            &TryMode::Normal => true,
+            _ => false,
         }
     }
 
     pub fn is_else(&self) -> bool {
         match self {
-          &TryMode::Else(_) => true,
-          _ => false,
+            &TryMode::Else(_) => true,
+            _ => false,
         }
     }
 
     pub fn is_force(&self) -> bool {
         match self {
-          &TryMode::Force => true,
-          _ => false,
+            &TryMode::Force => true,
+            _ => false,
         }
     }
 
     pub fn is_opt(&self) -> bool {
         match self {
-          &TryMode::Opt => true,
-          _ => false,
+            &TryMode::Opt => true,
+            _ => false,
         }
     }
 }
@@ -1532,21 +1556,22 @@ impl ExprDelegationType {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DelegationType {
-    This, Super
+    This,
+    Super,
 }
 
 impl DelegationType {
     pub fn is_this(&self) -> bool {
         match *self {
             DelegationType::This => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_super(&self) -> bool {
         match *self {
             DelegationType::Super => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -1732,7 +1757,7 @@ impl ExprIdentType {
     pub fn var(&self) -> VarId {
         match self.ident_type() {
             IdentType::Var(var_id) => var_id,
-            _ => unreachable!("var expected")
+            _ => unreachable!("var expected"),
         }
     }
 }

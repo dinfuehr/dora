@@ -8,7 +8,8 @@ pub enum BuiltinType {
     Unit,
 
     // value types
-    Int, Bool,
+    Int,
+    Bool,
 
     // type Nil, only used in typeck until final type is known
     Nil,
@@ -37,7 +38,7 @@ impl BuiltinType {
     pub fn is_nil(&self) -> bool {
         match *self {
             BuiltinType::Nil => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -51,7 +52,7 @@ impl BuiltinType {
     pub fn is_str(&self) -> bool {
         match *self {
             BuiltinType::Str => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -61,7 +62,7 @@ impl BuiltinType {
             BuiltinType::Str => ctxt.primitive_classes.str_class,
             BuiltinType::IntArray => ctxt.primitive_classes.int_array,
 
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -71,16 +72,18 @@ impl BuiltinType {
 
     pub fn value_type(&self) -> bool {
         match *self {
-            BuiltinType::Unit
-                | BuiltinType::Bool
-                | BuiltinType::Int => true,
-            _ => false
+            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Int => true,
+            _ => false,
         }
     }
 
     pub fn subclass_from(&self, ctxt: &Context, ty: BuiltinType) -> bool {
-        if !self.reference_type() { return false; }
-        if !ty.reference_type() { return false; }
+        if !self.reference_type() {
+            return false;
+        }
+        if !ty.reference_type() {
+            return false;
+        }
 
         let cls = ctxt.cls_by_id(self.cls_id(ctxt));
         cls.subclass_from(ctxt, ty.cls_id(ctxt))
@@ -105,14 +108,12 @@ impl BuiltinType {
 
     pub fn allows(&self, ctxt: &Context, other: BuiltinType) -> bool {
         match *self {
-            BuiltinType::Unit
-                | BuiltinType::Bool
-                | BuiltinType::Int => *self == other,
+            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Int => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
-            BuiltinType::Str
-                | BuiltinType::IntArray
-                | BuiltinType::Class(_) => {
+            BuiltinType::Str |
+            BuiltinType::IntArray |
+            BuiltinType::Class(_) => {
                 if *self == other || other.is_nil() {
                     return true;
                 }
@@ -123,11 +124,7 @@ impl BuiltinType {
     }
 
     pub fn if_nil(&self, other: BuiltinType) -> BuiltinType {
-        if self.is_nil() {
-            other
-        } else {
-            *self
-        }
+        if self.is_nil() { other } else { *self }
     }
 
     pub fn size(&self) -> i32 {
@@ -136,10 +133,10 @@ impl BuiltinType {
             BuiltinType::Bool => 1,
             BuiltinType::Int => 4,
             BuiltinType::Nil => panic!("no size for nil."),
-            BuiltinType::Str
-                | BuiltinType::IntArray
-                | BuiltinType::Class(_)
-                | BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Str |
+            BuiltinType::IntArray |
+            BuiltinType::Class(_) |
+            BuiltinType::Ptr => mem::ptr_width(),
         }
     }
 
@@ -149,17 +146,19 @@ impl BuiltinType {
             BuiltinType::Bool => MachineMode::Int8,
             BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Nil => panic!("no machine mode for nil."),
-            BuiltinType::Str
-                | BuiltinType::IntArray
-                | BuiltinType::Class(_)
-                | BuiltinType::Ptr => MachineMode::Ptr,
+            BuiltinType::Str |
+            BuiltinType::IntArray |
+            BuiltinType::Class(_) |
+            BuiltinType::Ptr => MachineMode::Ptr,
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MachineMode {
-    Int8, Int32, Ptr
+    Int8,
+    Int32,
+    Ptr,
 }
 
 impl MachineMode {
@@ -167,7 +166,7 @@ impl MachineMode {
         match self {
             MachineMode::Int8 => 1,
             MachineMode::Int32 => 4,
-            MachineMode::Ptr => mem::ptr_width()
+            MachineMode::Ptr => mem::ptr_width(),
         }
     }
 }

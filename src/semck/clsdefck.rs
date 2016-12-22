@@ -184,27 +184,32 @@ mod tests {
     use semck::tests::*;
 
     fn class_size(code: &'static str) -> i32 {
-        ok_with_test(code, |ctxt| {
-            ctxt.classes[4].size
-        })
+        ok_with_test(code, |ctxt| ctxt.classes[4].size)
     }
 
     #[test]
     fn test_class_size() {
         assert_eq!(Header::size(), class_size("class Foo"));
         assert_eq!(Header::size() + 4, class_size("class Foo(let a: int)"));
-        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: Str)"));
+        assert_eq!(Header::size() + mem::ptr_width(),
+                   class_size("class Foo(let a: Str)"));
     }
 
     #[test]
     fn test_multiple_definition() {
-        err("class Foo class Foo", pos(1, 11), Msg::ShadowClass("Foo".into()));
+        err("class Foo class Foo",
+            pos(1, 11),
+            Msg::ShadowClass("Foo".into()));
     }
 
     #[test]
     fn test_class_and_function() {
-        err("fun Foo() {} class Foo", pos(1, 14), Msg::ShadowFunction("Foo".into()));
-        err("class Foo fun Foo() {}", pos(1, 11), Msg::ShadowClass("Foo".into()));
+        err("fun Foo() {} class Foo",
+            pos(1, 14),
+            Msg::ShadowFunction("Foo".into()));
+        err("class Foo fun Foo() {}",
+            pos(1, 11),
+            Msg::ShadowClass("Foo".into()));
     }
 
     #[test]
@@ -215,22 +220,32 @@ mod tests {
         ok("class Foo(let a: int, let b:int)");
         ok("class Foo(let a: Foo)");
         ok("class Foo(let a: Bar) class Bar");
-        err("class Foo(let a: Unknown)", pos(1, 18), Msg::UnknownType("Unknown".into()));
-        err("class Foo(let a: int, let a: int)", pos(1, 27), Msg::ShadowField("a".to_string()));
+        err("class Foo(let a: Unknown)",
+            pos(1, 18),
+            Msg::UnknownType("Unknown".into()));
+        err("class Foo(let a: int, let a: int)",
+            pos(1, 27),
+            Msg::ShadowField("a".to_string()));
     }
 
     #[test]
     fn class_with_unknown_super_class() {
         err("class B : A {}", pos(1, 11), Msg::UnknownClass("A".into()));
-        err("open class B : A {}", pos(1, 16), Msg::UnknownClass("A".into()));
-        err("class B : int {}", pos(1, 11), Msg::UnderivableType("int".into()));
+        err("open class B : A {}",
+            pos(1, 16),
+            Msg::UnknownClass("A".into()));
+        err("class B : int {}",
+            pos(1, 11),
+            Msg::UnderivableType("int".into()));
     }
 
     #[test]
     fn class_with_open_modifier() {
         ok("open class A {}");
         ok("open class A {} class B : A {}");
-        err("class A {} class B : A {}", pos(1, 22), Msg::UnderivableType("A".into()));
+        err("class A {} class B : A {}",
+            pos(1, 22),
+            Msg::UnderivableType("A".into()));
     }
 
     #[test]
@@ -238,10 +253,17 @@ mod tests {
         ok("class Foo(a: int, b: int)");
         ok("class Foo(let a: int, b: int)");
         ok("class Foo(a: int, var b: int)");
-        err("class Foo(a: int, a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
-        err("class Foo(a: int, let a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
-        err("class Foo(let a: int, a: int)", pos(1, 1), Msg::ShadowParam("a".into()));
-        err("class Foo(a: int) fun f(x: Foo) { x.a = 1; }", pos(1, 36),
+        err("class Foo(a: int, a: int)",
+            pos(1, 1),
+            Msg::ShadowParam("a".into()));
+        err("class Foo(a: int, let a: int)",
+            pos(1, 1),
+            Msg::ShadowParam("a".into()));
+        err("class Foo(let a: int, a: int)",
+            pos(1, 1),
+            Msg::ShadowParam("a".into()));
+        err("class Foo(a: int) fun f(x: Foo) { x.a = 1; }",
+            pos(1, 36),
             Msg::UnknownField("a".into(), "Foo".into()));
 
         ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
@@ -249,19 +271,26 @@ mod tests {
 
     #[test]
     fn field_defined_twice() {
-        err("class Foo { var a: int; var a: int; }", pos(1, 25), Msg::ShadowField("a".into()));
-        err("class Foo(let a: int) { var a: int; }", pos(1, 25), Msg::ShadowField("a".into()));
+        err("class Foo { var a: int; var a: int; }",
+            pos(1, 25),
+            Msg::ShadowField("a".into()));
+        err("class Foo(let a: int) { var a: int; }",
+            pos(1, 25),
+            Msg::ShadowField("a".into()));
 
     }
 
     #[test]
     fn let_field_without_initialization() {
-        err("class Foo { let a: int; }", pos(1, 13), Msg::LetMissingInitialization);
+        err("class Foo { let a: int; }",
+            pos(1, 13),
+            Msg::LetMissingInitialization);
     }
 
     #[test]
     fn field_self_assignment() {
         err("class Foo(a: int) { var b: int = b; }",
-            pos(1, 34), Msg::UnknownIdentifier("b".into()));
+            pos(1, 34),
+            Msg::UnknownIdentifier("b".into()));
     }
 }

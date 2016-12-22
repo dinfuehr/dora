@@ -14,7 +14,9 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
-        if !fct.is_src() { continue; }
+        if !fct.is_src() {
+            continue;
+        }
 
         let src = fct.src();
         let mut src = src.lock().unwrap();
@@ -47,7 +49,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.add_hidden_parameter_self();
         }
 
-        for p in &self.ast.params { self.visit_param(p); }
+        for p in &self.ast.params {
+            self.visit_param(p);
+        }
         self.visit_stmt(self.ast.block());
 
         self.ctxt.sym.borrow_mut().pop_level();
@@ -64,22 +68,29 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             ty: BuiltinType::Class(cls_id),
             reassignable: false,
             node_id: ast_id,
-            offset: 0
+            offset: 0,
         };
 
         self.src.vars.push(var);
     }
 
-    pub fn add_var<F>(&mut self, mut var: Var, replacable: F) ->
-            Result<VarId, Sym> where F: FnOnce(&Sym) -> bool {
+    pub fn add_var<F>(&mut self, mut var: Var, replacable: F) -> Result<VarId, Sym>
+        where F: FnOnce(&Sym) -> bool
+    {
         let name = var.name;
         let var_id = VarId(self.src.vars.len());
 
         var.id = var_id;
 
         let result = match self.ctxt.sym.borrow().get(name) {
-            Some(sym) => if replacable(&sym) { Ok(var_id) } else { Err(sym) },
-            None => Ok(var_id)
+            Some(sym) => {
+                if replacable(&sym) {
+                    Ok(var_id)
+                } else {
+                    Err(sym)
+                }
+            }
+            None => Ok(var_id),
         };
 
         if result.is_ok() {
@@ -98,7 +109,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             reassignable: var.reassignable,
             ty: BuiltinType::Unit,
             node_id: var.id,
-            offset: 0
+            offset: 0,
         };
 
         // variables are not allowed to replace types, other variables
@@ -131,7 +142,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 ty: BuiltinType::Unit,
                 reassignable: false,
                 node_id: try.id,
-                offset: 0
+                offset: 0,
             };
 
             // variables are not allowed to replace types, other variables
@@ -158,7 +169,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
         self.ctxt.sym.borrow_mut().push_level();
-        for stmt in &block.stmts { self.visit_stmt(stmt); }
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
         self.ctxt.sym.borrow_mut().pop_level();
     }
 
@@ -269,7 +282,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // no need to handle rest of statements
-            _ => visit::walk_stmt(self, s)
+            _ => visit::walk_stmt(self, s),
         }
     }
 
@@ -279,7 +292,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             ExprCall(ref call) => self.check_expr_call(call),
 
             // no need to handle rest of expressions
-            _ => visit::walk_expr(self, e)
+            _ => visit::walk_expr(self, e),
         }
     }
 }
@@ -304,32 +317,35 @@ mod tests {
 
     #[test]
     fn redefine_function() {
-        err("fun f() {}\nfun f() {}", pos(2, 1),
+        err("fun f() {}\nfun f() {}",
+            pos(2, 1),
             Msg::ShadowFunction("f".into()));
     }
 
     #[test]
     fn shadow_type_with_function() {
-        err("fun int() {}", pos(1, 1),
-            Msg::ShadowClass("int".into()));
+        err("fun int() {}", pos(1, 1), Msg::ShadowClass("int".into()));
     }
 
     #[test]
     fn shadow_type_with_param() {
-        err("fun test(bool: Str) {}", pos(1, 10),
+        err("fun test(bool: Str) {}",
+            pos(1, 10),
             Msg::ShadowClass("bool".into()));
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err("fun test() { let Str = 3; }", pos(1, 14),
+        err("fun test() { let Str = 3; }",
+            pos(1, 14),
             Msg::ShadowClass("Str".into()));
     }
 
     #[test]
     fn shadow_function() {
         ok("fun f() { let f = 1; }");
-        err("fun f() { let f = 1; f(); }", pos(1, 22),
+        err("fun f() { let f = 1; f(); }",
+            pos(1, 22),
             Msg::UnknownFunction("f".into()));
     }
 
@@ -340,7 +356,8 @@ mod tests {
 
     #[test]
     fn shadow_param() {
-        err("fun f(a: int, b: int, a: Str) {}", pos(1, 23),
+        err("fun f(a: int, b: int, a: Str) {}",
+            pos(1, 23),
             Msg::ShadowParam("a".into()));
     }
 
@@ -351,13 +368,18 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fun f() { let b = a; }", pos(1, 19), Msg::UnknownIdentifier("a".into()));
-        err("fun f() { a; }", pos(1, 11), Msg::UnknownIdentifier("a".into()));
+        err("fun f() { let b = a; }",
+            pos(1, 19),
+            Msg::UnknownIdentifier("a".into()));
+        err("fun f() { a; }",
+            pos(1, 11),
+            Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]
     fn undefined_function() {
-        err("fun f() { foo(); }", pos(1, 11),
+        err("fun f() { foo(); }",
+            pos(1, 11),
             Msg::UnknownFunction("foo".into()));
     }
 
@@ -376,7 +398,8 @@ mod tests {
 
     #[test]
     fn variable_outside_of_scope() {
-        err("fun f() -> int { { let a = 1; } return a; }", pos(1, 40),
+        err("fun f() -> int { { let a = 1; } return a; }",
+            pos(1, 40),
             Msg::UnknownIdentifier("a".into()));
 
         ok("fun f() -> int { let a = 1; { let a = 2; } return a; }");

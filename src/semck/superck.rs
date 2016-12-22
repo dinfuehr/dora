@@ -12,10 +12,14 @@ use vtable::{DISPLAY_SIZE, VTable, VTableBox};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
-    if ctxt.diag.borrow().has_errors() { return; }
+    if ctxt.diag.borrow().has_errors() {
+        return;
+    }
 
     check_override(ctxt);
-    if ctxt.diag.borrow().has_errors() { return; }
+    if ctxt.diag.borrow().has_errors() {
+        return;
+    }
 
     determine_sizes(ctxt);
     create_vtables(ctxt);
@@ -68,7 +72,8 @@ fn determine_sizes<'ast>(ctxt: &mut Context<'ast>) {
 
 fn determine_recursive_size<'ast>(ctxt: &Context<'ast>,
                                   super_sizes: &mut HashMap<ClassId, i32>,
-                                  id: ClassId) -> i32 {
+                                  id: ClassId)
+                                  -> i32 {
     if let Some(&val) = super_sizes.get(&id) {
         return val;
     }
@@ -104,7 +109,9 @@ fn check_override<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &Fct<'ast>,
+fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
+                            cls: &Class,
+                            fct: &Fct<'ast>,
                             updates: &mut Vec<(FctId, FctId)>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
@@ -293,8 +300,9 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
                                              depth as usize - DISPLAY_SIZE);
                 }
 
-                let ptr = vtable.subtype_overflow.offset(
-                            depth as isize - DISPLAY_SIZE as isize) as *mut _;
+                let ptr = vtable.subtype_overflow
+                    .offset(depth as isize -
+                            DISPLAY_SIZE as isize) as *mut _;
                 *ptr = vtable as *const _;
             }
 
@@ -305,8 +313,8 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_display[0..depth_fixed].
-            clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
+        vtable.subtype_display[0..depth_fixed]
+            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
 
         depth
 
@@ -347,63 +355,71 @@ mod tests {
     fn test_super_size() {
         ok_with_test("open class A { var a: int; }
             open class B: A { var b1: int; var b2: int; }
-            class C: B { var c: Str; }", |ctxt| {
+            class C: B { var c: Str; }",
+                     |ctxt| {
             check_class(ctxt, "A", 4, None);
             check_field(ctxt, "A", "a", Header::size());
-            check_class(ctxt, "B", 4*3, Some("A"));
+            check_class(ctxt, "B", 4 * 3, Some("A"));
             check_field(ctxt, "B", "b1", Header::size() + 4);
-            check_class(ctxt, "C", 4*3+8, Some("B"));
+            check_class(ctxt, "C", 4 * 3 + 8, Some("B"));
             check_field(ctxt, "C", "c", Header::size() + 4 * 3);
         });
     }
 
     #[test]
     fn test_cycle() {
-        errors("open class A: B open class B: A", &[
-            (pos(1, 6), Msg::CycleInHierarchy),
-            (pos(1, 22), Msg::CycleInHierarchy)
-        ]);
+        errors("open class A: B open class B: A",
+               &[(pos(1, 6), Msg::CycleInHierarchy), (pos(1, 22), Msg::CycleInHierarchy)]);
     }
 
     #[test]
     fn test_superfluous_override() {
         err("class A { override fun f() {} }",
-            pos(1, 20), Msg::SuperfluousOverride("f".into()));
+            pos(1, 20),
+            Msg::SuperfluousOverride("f".into()));
         err("open class B { } class A: B { override fun f() {} }",
-            pos(1, 40), Msg::SuperfluousOverride("f".into()));
+            pos(1, 40),
+            Msg::SuperfluousOverride("f".into()));
         err("open class B { fun g() {} } class A: B { override fun f() {} }",
-            pos(1, 51), Msg::SuperfluousOverride("f".into()));
+            pos(1, 51),
+            Msg::SuperfluousOverride("f".into()));
         err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
-            pos(1, 57), Msg::SuperfluousOverride("f".into()));
+            pos(1, 57),
+            Msg::SuperfluousOverride("f".into()));
     }
 
     #[test]
     fn test_override() {
         err("open class A { fun f() {} } class B: A { override fun f() {} }",
-            pos(1, 51), Msg::MethodNotOverridable("f".into()));
+            pos(1, 51),
+            Msg::MethodNotOverridable("f".into()));
         ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
         ok("open class A { open fun f() {} }
             open class B: A { override fun f() {} }
             open class C: B { override fun f() {} }");
         err("open class A { open fun f() {} } class B: A { fun f() {} }",
-            pos(1, 47), Msg::MissingOverride("f".into()));
+            pos(1, 47),
+            Msg::MissingOverride("f".into()));
         err("open class A { open fun f() {} }
              open class B: A { final override fun f() {} }
              class C: B { override fun f() {} }",
-            pos(3, 36), Msg::MethodNotOverridable("f".into()));
+            pos(3, 36),
+            Msg::MethodNotOverridable("f".into()));
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err("open class A { open fun f() {} }
              class B: A { override fun f() -> int { return 1; } }",
-            pos(2, 36), Msg::ReturnTypeMismatch("int".into(), "()".into()));
+            pos(2, 36),
+            Msg::ReturnTypeMismatch("int".into(), "()".into()));
     }
 
     #[test]
     fn test_override_with_missing_throws() {
         err("open class A { open fun f() throws {} }
-             class B: A { override fun f() {} }", pos(2, 36),
+             class B: A { override fun f() {} }",
+            pos(2, 36),
             Msg::ThrowsDifference("f".into()));
     }
 
@@ -415,7 +431,8 @@ mod tests {
     #[test]
     fn test_superfluous_open() {
         err("class A { open fun f() {} }",
-            pos(1, 16), Msg::SuperfluousOpen("f".into()));
+            pos(1, 16),
+            Msg::SuperfluousOpen("f".into()));
     }
 
     #[test]
@@ -434,7 +451,8 @@ mod tests {
     #[test]
     fn test_depth_with_multiple_levels() {
         ok_with_test("open class A { } open class B: A { }
-                      class C: B { }", |ctxt| {
+                      class C: B { }",
+                     |ctxt| {
             assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
             assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 1);
             assert_eq!(vtable_by_name(ctxt, "C").subtype_depth, 2);
@@ -476,7 +494,8 @@ mod tests {
                         open class L4: L3 { }
                         open class L5: L4 { }
                         open class L6: L5 { }
-                        class L7: L6 { }", |ctxt| {
+                        class L7: L6 { }",
+                     |ctxt| {
             assert_eq!(vtable_by_name(ctxt, "L1").subtype_depth, 0);
             assert_eq!(vtable_by_name(ctxt, "L2").subtype_depth, 1);
             assert_eq!(vtable_by_name(ctxt, "L3").subtype_depth, 2);
@@ -494,7 +513,8 @@ mod tests {
             assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
 
             assert!(!vtable.subtype_overflow.is_null());
-            assert_eq!(vtable_by_name(ctxt, "L7") as *const _, vtable.get_subtype_overflow(0));
+            assert_eq!(vtable_by_name(ctxt, "L7") as *const _,
+                       vtable.get_subtype_overflow(0));
         });
     }
 
@@ -533,14 +553,14 @@ mod tests {
     }
 
     fn check_class<'ast>(ctxt: &Context<'ast>,
-                        name: &'static str,
-                        size: i32,
-                        parent: Option<&'static str>) {
+                         name: &'static str,
+                         size: i32,
+                         parent: Option<&'static str>) {
         let name = ctxt.interner.intern(name);
         let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
 
         let parent_id = parent.map(|name| ctxt.interner.intern(name))
-                            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
+            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
 
         let cls = ctxt.cls_by_id(cls_id);
         assert_eq!(parent_id, cls.parent_class);
@@ -548,9 +568,9 @@ mod tests {
     }
 
     fn check_field<'ast>(ctxt: &Context<'ast>,
-                        cls_name: &'static str,
-                        field_name: &'static str,
-                        offset: i32) {
+                         cls_name: &'static str,
+                         field_name: &'static str,
+                         offset: i32) {
         let cls_name = ctxt.interner.intern(cls_name);
         let field_name = ctxt.interner.intern(field_name);
         let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();

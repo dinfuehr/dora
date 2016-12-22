@@ -15,11 +15,7 @@ pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
 }
 
 pub extern "C" fn bool_to_string(val: bool) -> Handle<Str> {
-    let val = if val {
-        "true"
-    } else {
-        "false"
-    };
+    let val = if val { "true" } else { "false" };
 
     Str::from(val.as_bytes())
 }

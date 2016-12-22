@@ -7,12 +7,14 @@ use ast::visit::*;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
-        if !fct.is_src() { continue; }
+        if !fct.is_src() {
+            continue;
+        }
 
         let src = fct.src();
         let mut src = src.lock().unwrap();
         let ast = fct.ast;
-        
+
         let mut flowck = FlowCheck {
             ctxt: ctxt,
             fct: &fct,
@@ -61,7 +63,7 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
             StmtBreak(_) => self.handle_flow(s),
             StmtContinue(_) => self.handle_flow(s),
 
-            _ => visit::walk_stmt(self, s)
+            _ => visit::walk_stmt(self, s),
         }
     }
 }
@@ -79,8 +81,12 @@ mod tests {
         ok("fun a() { loop { if true { break; } } }");
         err("fun a() { break; }", pos(1, 11), Msg::OutsideLoop);
         err("fun a() { loop { } break; }", pos(1, 20), Msg::OutsideLoop);
-        err("fun a() { while true { } break; }", pos(1, 26), Msg::OutsideLoop);
-        err("fun a() { if true { } break; }", pos(1, 23), Msg::OutsideLoop);
+        err("fun a() { while true { } break; }",
+            pos(1, 26),
+            Msg::OutsideLoop);
+        err("fun a() { if true { } break; }",
+            pos(1, 23),
+            Msg::OutsideLoop);
     }
 
     #[test]
@@ -90,8 +96,14 @@ mod tests {
         ok("fun a() { loop { continue; } }");
         ok("fun a() { loop { if true { continue; } } }");
         err("fun a() { continue; }", pos(1, 11), Msg::OutsideLoop);
-        err("fun a() { loop { } continue; }", pos(1, 20), Msg::OutsideLoop);
-        err("fun a() { while true { } continue; }", pos(1, 26), Msg::OutsideLoop);
-        err("fun a() { if true { } continue; }", pos(1, 23), Msg::OutsideLoop);
+        err("fun a() { loop { } continue; }",
+            pos(1, 20),
+            Msg::OutsideLoop);
+        err("fun a() { while true { } continue; }",
+            pos(1, 26),
+            Msg::OutsideLoop);
+        err("fun a() { if true { } continue; }",
+            pos(1, 23),
+            Msg::OutsideLoop);
     }
 }

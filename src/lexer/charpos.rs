@@ -4,7 +4,7 @@ use lexer::position::Position;
 #[derive(Copy,Clone)]
 pub struct CharPos {
     pub value: char,
-    pub position: Position
+    pub position: Position,
 }
 
 impl fmt::Display for CharPos {

@@ -31,9 +31,15 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn from_buffer(fct_id: FctId, dseg: &DSeg, buffer: &[u8], gcpoints: GcPoints,
-                framesize: i32, comments: Comments, linenos: LineNumberTable,
-                mut exception_handlers: Vec<ExHandler>) -> JitFct {
+    pub fn from_buffer(fct_id: FctId,
+                       dseg: &DSeg,
+                       buffer: &[u8],
+                       gcpoints: GcPoints,
+                       framesize: i32,
+                       comments: Comments,
+                       linenos: LineNumberTable,
+                       mut exception_handlers: Vec<ExHandler>)
+                       -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
         let code = CodeMemory::new(size);
@@ -108,21 +114,21 @@ impl JitFct {
 
 impl fmt::Debug for JitFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "JitFct {{ start: {:?}, end: {:?} }}",
-            self.ptr_start(), self.ptr_end())
+        write!(f,
+               "JitFct {{ start: {:?}, end: {:?} }}",
+               self.ptr_start(),
+               self.ptr_end())
     }
 }
 
 #[derive(Debug)]
 pub struct GcPoints {
-    points: HashMap<i32, GcPoint>
+    points: HashMap<i32, GcPoint>,
 }
 
 impl GcPoints {
     pub fn new() -> GcPoints {
-        GcPoints {
-            points: HashMap::new()
-        }
+        GcPoints { points: HashMap::new() }
     }
 
     pub fn get(&self, offset: i32) -> Option<&GcPoint> {
@@ -136,32 +142,26 @@ impl GcPoints {
 
 #[derive(Debug)]
 pub struct GcPoint {
-    pub offsets: Vec<i32>
+    pub offsets: Vec<i32>,
 }
 
 impl GcPoint {
     pub fn new() -> GcPoint {
-        GcPoint {
-            offsets: Vec::new()
-        }
+        GcPoint { offsets: Vec::new() }
     }
 
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
-        GcPoint {
-            offsets: offsets
-        }
+        GcPoint { offsets: offsets }
     }
 }
 
 pub struct Comments {
-    comments: HashMap<i32, Comment>
+    comments: HashMap<i32, Comment>,
 }
 
 impl Comments {
     pub fn new() -> Comments {
-        Comments {
-            comments: HashMap::new(),
-        }
+        Comments { comments: HashMap::new() }
     }
 
     pub fn get(&self, pos: i32) -> Option<&Comment> {
@@ -240,9 +240,7 @@ pub struct LineNumberTable {
 
 impl LineNumberTable {
     pub fn new() -> LineNumberTable {
-        LineNumberTable {
-            map: HashMap::new()
-        }
+        LineNumberTable { map: HashMap::new() }
     }
 
     pub fn insert(&mut self, offset: i32, lineno: i32) {
@@ -269,5 +267,6 @@ pub struct ExHandler {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CatchType {
-    Any, Class(ClassId),
+    Any,
+    Class(ClassId),
 }

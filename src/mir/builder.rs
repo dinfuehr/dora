@@ -1,6 +1,4 @@
-use ast::{Stmt,
-          StmtBlockType,
-          StmtReturnType};
+use ast::{Stmt, StmtBlockType, StmtReturnType};
 use ctxt::Fct;
 use mir::repr::{BasicBlockId, BasicBlock, Mir};
 
@@ -43,7 +41,7 @@ impl<'a, 'ast> Builder<'a, 'ast> {
         match *stmt {
             Stmt::StmtReturn(ref stmt) => self.stmt_return(stmt),
             Stmt::StmtBlock(ref stmt) => self.stmt_block(stmt),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 

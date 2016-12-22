@@ -24,5 +24,5 @@ impl From<Reg> for u32 {
 pub enum Mem {
     Local(i32),
     Base(Reg, i32),
-    Index(Reg, Reg, i32, i32)
+    Index(Reg, Reg, i32, i32),
 }

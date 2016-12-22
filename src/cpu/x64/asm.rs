@@ -42,7 +42,11 @@ pub fn emit_movq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
 }
 
 pub fn emit_movb_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
-    let rex_prefix = if dest != RAX && dest != RBX && dest != RCX && dest != RDX { 1 } else { 0 };
+    let rex_prefix = if dest != RAX && dest != RBX && dest != RCX && dest != RDX {
+        1
+    } else {
+        0
+    };
 
     emit_mov_memq_reg(buf, rex_prefix, 0, 0x8a, src, disp, dest);
 }
@@ -67,8 +71,13 @@ pub fn emit_movq_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: R
     emit_mov_memq_reg(buf, 0, 1, 0x8b, src, disp, dest);
 }
 
-fn emit_mov_memq_reg(buf: &mut MacroAssembler, rex_prefix: u8, x64: u8,
-        opcode: u8, src: Reg, disp: i32, dest: Reg) {
+fn emit_mov_memq_reg(buf: &mut MacroAssembler,
+                     rex_prefix: u8,
+                     x64: u8,
+                     opcode: u8,
+                     src: Reg,
+                     disp: i32,
+                     dest: Reg) {
     let src_msb = if src == RIP { 0 } else { src.msb() };
 
     if src_msb != 0 || dest.msb() != 0 || x64 != 0 || rex_prefix != 0 {
@@ -90,9 +99,7 @@ pub fn emit_movl_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i
 pub fn emit_movb_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i32) {
     let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
-    if dest_msb != 0
-        || src.msb() != 0
-        || (src != RAX && src != RBX && src != RCX && src != RDX) {
+    if dest_msb != 0 || src.msb() != 0 || (src != RAX && src != RBX && src != RCX && src != RDX) {
         emit_rex(buf, 0, src.msb(), 0, dest.msb());
     }
 
@@ -116,8 +123,13 @@ pub fn emit_movl_ra(buf: &mut MacroAssembler, src: Reg, base: Reg, index: Reg, s
     emit_mov_ar(buf, 0, 0x89, base, index, scale, src);
 }
 
-fn emit_mov_ar(buf: &mut MacroAssembler, x64: u8, opcode: u8, base: Reg, index: Reg,
-               scale: u8, dest: Reg) {
+fn emit_mov_ar(buf: &mut MacroAssembler,
+               x64: u8,
+               opcode: u8,
+               base: Reg,
+               index: Reg,
+               scale: u8,
+               dest: Reg) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -136,12 +148,15 @@ fn emit_mov_ar(buf: &mut MacroAssembler, x64: u8, opcode: u8, base: Reg, index: 
     emit_sib(buf, scale, index.and7(), base.and7());
 }
 
-fn emit_mov_reg_memq(buf: &mut MacroAssembler, opcode: u8, x64: u8, src: Reg, dest: Reg, disp: i32) {
+fn emit_mov_reg_memq(buf: &mut MacroAssembler,
+                     opcode: u8,
+                     x64: u8,
+                     src: Reg,
+                     dest: Reg,
+                     disp: i32) {
     let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
-    if dest_msb != 0
-        || src.msb() != 0
-        || x64 != 0 {
+    if dest_msb != 0 || src.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, src.msb(), 0, dest_msb);
     }
 
@@ -248,8 +263,12 @@ pub fn emit_andb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_alub_imm_reg(buf, 0x80, 0x24, 0b100, imm, dest);
 }
 
-fn emit_alub_imm_reg(buf: &mut MacroAssembler, opcode: u8, rax_opcode: u8,
-                     modrm_reg: u8, imm: u8, dest: Reg) {
+fn emit_alub_imm_reg(buf: &mut MacroAssembler,
+                     opcode: u8,
+                     rax_opcode: u8,
+                     modrm_reg: u8,
+                     imm: u8,
+                     dest: Reg) {
     if dest == RAX {
         emit_op(buf, rax_opcode);
         emit_u8(buf, imm);
@@ -437,8 +456,11 @@ pub fn emit_cmpq_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
     emit_alu_reg_reg(buf, 1, 0x39, src, dest);
 }
 
-pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler, mode: MachineMode,
-                        base: Reg, disp: i32, dest: Reg) {
+pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
+                        mode: MachineMode,
+                        base: Reg,
+                        disp: i32,
+                        dest: Reg) {
     let base_msb = if base == RIP { 0 } else { base.msb() };
 
     let (x64, opcode) = match mode {
@@ -455,8 +477,12 @@ pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler, mode: MachineMode,
     emit_membase(buf, base, disp, dest);
 }
 
-pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler, mode: MachineMode,
-                             base: Reg, index: Reg, scale: i32, disp: i32,
+pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
+                             mode: MachineMode,
+                             base: Reg,
+                             index: Reg,
+                             scale: i32,
+                             disp: i32,
                              dest: Reg) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
@@ -474,8 +500,13 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler, mode: MachineMode,
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
 }
 
-pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler, mode: MachineMode, src: Reg,
-                             base: Reg, index: Reg, scale: i32, disp: i32) {
+pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
+                             mode: MachineMode,
+                             src: Reg,
+                             base: Reg,
+                             index: Reg,
+                             scale: i32,
+                             disp: i32) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     let (x64, opcode) = match mode {
@@ -492,15 +523,14 @@ pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler, mode: MachineMode, src: R
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, src);
 }
 
-pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler, mode: MachineMode,
-                        base: Reg, disp: i32, imm: i32) {
+pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
+                        mode: MachineMode,
+                        base: Reg,
+                        disp: i32,
+                        imm: i32) {
     let base_msb = if base == RIP { 0 } else { base.msb() };
 
-    let opcode = if fits_i8(imm) {
-        0x83
-    } else {
-        0x81
-    };
+    let opcode = if fits_i8(imm) { 0x83 } else { 0x81 };
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x80),
@@ -526,8 +556,12 @@ pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler, mode: MachineMode,
     }
 }
 
-pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler, mode: MachineMode,
-                             base: Reg, index: Reg, scale: i32, disp: i32,
+pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
+                             mode: MachineMode,
+                             base: Reg,
+                             index: Reg,
+                             scale: i32,
+                             disp: i32,
                              dest: Reg) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
@@ -546,7 +580,10 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler, mode: MachineMode,
 }
 
 fn emit_membase_with_index_and_scale(buf: &mut MacroAssembler,
-                                     base: Reg, index: Reg, scale: i32, disp: i32,
+                                     base: Reg,
+                                     index: Reg,
+                                     scale: i32,
+                                     disp: i32,
                                      dest: Reg) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 

@@ -64,14 +64,17 @@ impl MacroAssembler {
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
         assert!(mode == MachineMode::Int32);
 
-        self.load_mem(mode, dest, Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
+        self.load_mem(mode,
+                      dest,
+                      Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
         assert!(mode == MachineMode::Int32);
 
         self.store_mem(MachineMode::Int32,
-                Mem::Index(array, index, 4, IntArray::offset_of_data()), value);
+                       Mem::Index(array, index, 4, IntArray::offset_of_data()),
+                       value);
     }
 
     pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg) {
@@ -167,10 +170,10 @@ impl MacroAssembler {
         self.emit_u32(asm::eor_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg,
-                                    index: Reg, temp: Reg) {
-        self.load_mem(MachineMode::Int32, temp,
-                Mem::Base(array, IntArray::offset_of_length()));
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
+        self.load_mem(MachineMode::Int32,
+                      temp,
+                      Mem::Base(array, IntArray::offset_of_length()));
         self.cmp_reg(MachineMode::Int32, index, temp);
 
         let lbl = self.create_label();
@@ -257,7 +260,8 @@ impl MacroAssembler {
 
 fn size_flag(mode: MachineMode) -> u32 {
     match mode {
-        MachineMode::Int8 | MachineMode::Int32 => 0,
+        MachineMode::Int8 |
+        MachineMode::Int32 => 0,
         MachineMode::Ptr => 1,
     }
 }

@@ -88,8 +88,11 @@ impl Msg {
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
             UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
-                format!("no method with definition `{}({})` in class `{}`.", name, args, cls)
-            },
+                format!("no method with definition `{}({})` in class `{}`.",
+                        name,
+                        args,
+                        cls)
+            }
             UnknownCtor(ref name, ref args) => {
                 let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
@@ -97,82 +100,110 @@ impl Msg {
             MethodExists(ref cls, ref name, ref args, pos) => {
                 let args = args.join(", ");
 
-                format!(
-                    "method with definition `{}({})` already exists in class `{}` at line {}.",
-                    name, args, cls, pos)
-            },
+                format!("method with definition `{}({})` already exists in class `{}` at line {}.",
+                        name,
+                        args,
+                        cls,
+                        pos)
+            }
             IncompatibleWithNil(ref ty) => format!("cannot assign `nil` to type `{}`.", ty),
-            UnknownField(ref field, ref ty) =>
-                format!("unknown field `{}` for type `{}`", field, ty),
+            UnknownField(ref field, ref ty) => {
+                format!("unknown field `{}` for type `{}`", field, ty)
+            }
             IdentifierExists(ref name) => format!("can not redefine identifier `{}`.", name),
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
             ShadowField(ref name) => format!("field with name `{}` already exists.", name),
-            VarNeedsTypeInfo(ref name) =>
-                format!("variable `{}` needs either type declaration or expression.", name),
+            VarNeedsTypeInfo(ref name) => {
+                format!("variable `{}` needs either type declaration or expression.",
+                        name)
+            }
             ParamTypesIncompatible(ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
                 format!("function `{}({})` cannot be called as `{}({})`",
-                    name, def, name, expr)
-            },
-            WhileCondType(ref ty) =>
-                format!("`while` expects condition of type `bool` but got `{}`.", ty),
-            IfCondType(ref ty) =>
-                format!("`if` expects condition of type `bool` but got `{}`.", ty),
-            ReturnType(ref def, ref expr) =>
+                        name,
+                        def,
+                        name,
+                        expr)
+            }
+            WhileCondType(ref ty) => {
+                format!("`while` expects condition of type `bool` but got `{}`.", ty)
+            }
+            IfCondType(ref ty) => {
+                format!("`if` expects condition of type `bool` but got `{}`.", ty)
+            }
+            ReturnType(ref def, ref expr) => {
                 format!("`return` expects value of type `{}` but got `{}`.",
-                    def, expr),
+                        def,
+                        expr)
+            }
             LvalueExpected => format!("lvalue expected for assignment"),
             AssignType(ref name, ref def, ref expr) => {
-                format!("cannot assign `{}` to variable `{}` of type `{}`.", expr, name, def)
-            },
+                format!("cannot assign `{}` to variable `{}` of type `{}`.",
+                        expr,
+                        name,
+                        def)
+            }
             AssignField(ref name, ref cls, ref def, ref expr) => {
                 format!("cannot assign `{}` to field `{}`.`{}` of type `{}`.",
-                        expr, cls, name, def)
-            },
-            UnOpType(ref op, ref expr) =>
-                format!("unary operator `{}` can not handle value of type `{} {}`.", op, op,
-                    expr),
-            BinOpType(ref op, ref lhs, ref rhs) =>
+                        expr,
+                        cls,
+                        name,
+                        def)
+            }
+            UnOpType(ref op, ref expr) => {
+                format!("unary operator `{}` can not handle value of type `{} {}`.",
+                        op,
+                        op,
+                        expr)
+            }
+            BinOpType(ref op, ref lhs, ref rhs) => {
                 format!("binary operator `{}` can not handle expression of type `{} {} {}`",
-                    op, lhs, op, rhs),
+                        op,
+                        lhs,
+                        op,
+                        rhs)
+            }
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             ThisUnavailable => "`self` can only be used in methods not functions".into(),
-            SuperUnavailable => "`super` only available in methods of classes with parent class".into(),
+            SuperUnavailable => {
+                "`super` only available in methods of classes with parent class".into()
+            }
             SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
             MultipleCandidates(ref cls, ref name, ref call_types) => {
                 let call_types = call_types.join(", ");
 
                 format!("multiple candidates for invocation `{}({})` in class `{}`.",
-                    name, call_types, cls)
-            },
-            ReferenceTypeExpected(ref name) => {
-                format!("`{}` is not a reference type.", name)
+                        name,
+                        call_types,
+                        cls)
             }
+            ReferenceTypeExpected(ref name) => format!("`{}` is not a reference type.", name),
             ThrowNil => "throwing `nil` is not allowed.".into(),
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),
             LetMissingInitialization => "`let` binding is missing initialization.".into(),
             LetReassigned => "`let` binding cannot be reassigned.".into(),
-            UnderivableType(ref name) => {
-                format!("type `{}` cannot be used as super class.", name)
-            }
+            UnderivableType(ref name) => format!("type `{}` cannot be used as super class.", name),
             CycleInHierarchy => "cycle in type hierarchy detected.".into(),
-            SuperfluousOverride(_) =>
-                "method `{}` uses modifier `override` without overriding a function.".into(),
-            MissingOverride(_) =>
-                "method `{}` is missing modifier `override`.".into(),
-            SuperfluousOpen(_) =>
-                "method `{}` uses modifier `open` but class allows no subclasses.".into(),
-            ThrowsDifference(_) =>
-                "use of `throws` in method `{}`needs to match super class".into(),
-            MethodNotOverridable(ref name) =>
-                format!("method `{}` in super class not overridable.", name),
+            SuperfluousOverride(_) => {
+                "method `{}` uses modifier `override` without overriding a function.".into()
+            }
+            MissingOverride(_) => "method `{}` is missing modifier `override`.".into(),
+            SuperfluousOpen(_) => {
+                "method `{}` uses modifier `open` but class allows no subclasses.".into()
+            }
+            ThrowsDifference(_) => {
+                "use of `throws` in method `{}`needs to match super class".into()
+            }
+            MethodNotOverridable(ref name) => {
+                format!("method `{}` in super class not overridable.", name)
+            }
             TypesIncompatible(ref na, ref nb) => {
                 format!("types `{}` and `{}` incompatible.", na, nb)
             }
@@ -186,12 +217,13 @@ impl Msg {
             ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             ExpectedType(ref got) => format!("type expected but got {}.", got),
             ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),
-            MisplacedModifier(ref modifier) =>
-                format!("misplaced modifier `{}`.", modifier),
-            ExpectedTopLevelElement(ref token) =>
-                format!("expected function or class but got {}.", token),
-            ExpectedClassElement(ref token) =>
-                format!("field or method expected but got {}.", token),
+            MisplacedModifier(ref modifier) => format!("misplaced modifier `{}`.", modifier),
+            ExpectedTopLevelElement(ref token) => {
+                format!("expected function or class but got {}.", token)
+            }
+            ExpectedClassElement(ref token) => {
+                format!("field or method expected but got {}.", token)
+            }
             RedundantModifier(ref token) => format!("redundant modifier {}.", token),
             UnknownChar(ch) => format!("unknown character {} (codepoint {}).", ch, ch as usize),
             UnclosedComment => "unclosed comment.".into(),
@@ -199,14 +231,18 @@ impl Msg {
             UnclosedString => "unclosed string.".into(),
             IoError => "error reading from file.".into(),
             MissingFctBody => "missing function body.".into(),
-            ThisOrSuperExpected(ref val) =>
-                format!("`self` or `super` expected but got {}.", val),
-            NoSuperDelegationWithPrimaryCtor(ref name) =>
-                format!("no `super` delegation allowed for ctor in class {}, because class has primary ctor.", name),
+            ThisOrSuperExpected(ref val) => format!("`self` or `super` expected but got {}.", val),
+            NoSuperDelegationWithPrimaryCtor(ref name) => {
+                format!("no `super` delegation allowed for ctor in class {}, because class has \
+                         primary ctor.",
+                        name)
+            }
             NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
             TryNeedsCall => "`try` expects function or method call.".into(),
             TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
-            ThrowingCallWithoutTry => "function or method call that is able to throw, nees `try`.".into(),
+            ThrowingCallWithoutTry => {
+                "function or method call that is able to throw, nees `try`.".into()
+            }
         }
     }
 }
@@ -221,7 +257,7 @@ impl MsgWithPos {
     pub fn new(pos: Position, msg: Msg) -> MsgWithPos {
         MsgWithPos {
             pos: pos,
-            msg: msg
+            msg: msg,
         }
     }
 

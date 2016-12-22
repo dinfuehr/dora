@@ -110,7 +110,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
             }
         }
 
-        _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos())
+        _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos()),
     }
 
     None
@@ -145,7 +145,9 @@ mod tests {
         });
     }
 
-    pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R where F: FnOnce(&Context) -> R {
+    pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
+        where F: FnOnce(&Context) -> R
+    {
         test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.borrow();
             let errors = diag.errors();

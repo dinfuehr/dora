@@ -1,5 +1,5 @@
-use baseline::fct::{CatchType, Comments, Comment, ExHandler,
-                    JitFct, LineNumberTable, GcPoints, GcPoint};
+use baseline::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints,
+                    GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use dseg::DSeg;
@@ -48,8 +48,14 @@ impl MacroAssembler {
     pub fn jit(mut self, id: FctId, stacksize: i32) -> JitFct {
         self.finish();
 
-        JitFct::from_buffer(id, &self.dseg, &self.data, self.gcpoints, stacksize,
-                            self.comments, self.linenos, self.exception_handlers)
+        JitFct::from_buffer(id,
+                            &self.dseg,
+                            &self.data,
+                            self.gcpoints,
+                            stacksize,
+                            self.comments,
+                            self.linenos,
+                            self.exception_handlers)
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -128,14 +134,17 @@ impl MacroAssembler {
         self.trap(trap);
     }
 
-    pub fn emit_exception_handler(&mut self, span: (usize, usize), catch: usize,
-                                  offset: Option<i32>, catch_type: CatchType) {
+    pub fn emit_exception_handler(&mut self,
+                                  span: (usize, usize),
+                                  catch: usize,
+                                  offset: Option<i32>,
+                                  catch_type: CatchType) {
         self.exception_handlers.push(ExHandler {
             try_start: span.0,
             try_end: span.1,
             catch: catch,
             offset: offset,
-            catch_type: catch_type
+            catch_type: catch_type,
         });
     }
 
@@ -157,10 +166,7 @@ impl MacroAssembler {
             None => {
                 let pos = self.pos();
                 self.emit_u32(0);
-                self.jumps.push(ForwardJump {
-                    at: pos,
-                    to: lbl
-                });
+                self.jumps.push(ForwardJump { at: pos, to: lbl });
             }
         }
     }
@@ -177,7 +183,7 @@ impl MacroAssembler {
 #[derive(Debug)]
 struct ForwardJump {
     at: usize,
-    to: Label
+    to: Label,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

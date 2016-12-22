@@ -15,9 +15,7 @@ impl Stub {
         masm.trap(Trap::COMPILER);
         let code = masm.jit(fct_id, 0).code();
 
-        Stub {
-            mem: code
-        }
+        Stub { mem: code }
     }
 
     pub fn ptr_start(&self) -> *const u8 {
@@ -31,7 +29,9 @@ impl Stub {
 
 impl fmt::Debug for Stub {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Stub {{ start: {:x}, end: {:x} }}",
-            self.ptr_start() as usize, self.ptr_end() as usize)
+        write!(f,
+               "Stub {{ start: {:x}, end: {:x} }}",
+               self.ptr_start() as usize,
+               self.ptr_end() as usize)
     }
 }

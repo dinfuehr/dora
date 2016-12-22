@@ -27,7 +27,7 @@ pub fn start() -> i32 {
     let mut ast = Ast::new();
 
     if let Err(code) = parse_file("stdlib/prelude.dora", &mut ast, &mut interner)
-                        .and_then(|_| parse_file(&args.arg_file, &mut ast, &mut interner)) {
+        .and_then(|_| parse_file(&args.arg_file, &mut ast, &mut interner)) {
         return code;
     }
 
@@ -62,12 +62,10 @@ pub fn start() -> i32 {
     let fct_ptr = {
         let mut sfi = StackFrameInfo::new();
 
-        ctxt.use_sfi(&mut sfi, || {
-            baseline::generate(&ctxt, main)
-        })
+        ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, main))
     };
 
-    let fct : extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
+    let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
 
     if ctxt.args.flag_gc_stats {
@@ -87,7 +85,7 @@ pub fn start() -> i32 {
     if is_unit {
         0
 
-    // else use return value of main for exit status
+        // else use return value of main for exit status
     } else {
         res
     }
@@ -104,7 +102,7 @@ fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<
             return Err(1);
         }
 
-        Ok(parser) => parser
+        Ok(parser) => parser,
     };
 
     if let Err(error) = parser.parse() {
@@ -128,8 +126,7 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
     let fct = ctxt.fct_by_id(fctid);
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int)
-        || fct.params_types.len() > 0 {
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_types.len() > 0 {
         let pos = fct.ast.pos;
         ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
         return None;

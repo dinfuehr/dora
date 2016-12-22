@@ -7,7 +7,7 @@ use class::Class;
 
 pub const DISPLAY_SIZE: usize = 6;
 
-pub struct VTableBox<'ast>(*mut VTable <'ast>);
+pub struct VTableBox<'ast>(*mut VTable<'ast>);
 
 impl<'ast> VTableBox<'ast> {
     pub fn new(classptr: *mut Class<'ast>, entries: &[usize]) -> VTableBox<'ast> {
@@ -60,7 +60,8 @@ impl<'ast> Drop for VTableBox<'ast> {
             let len = (&*self.0).table_length;
             ptr::drop_in_place(self.0);
 
-            heap::deallocate(self.0 as *mut u8, VTable::size_of(len),
+            heap::deallocate(self.0 as *mut u8,
+                             VTable::size_of(len),
                              align_of::<VTable<'ast>>());
         }
     }
@@ -92,17 +93,13 @@ impl<'ast> VTable<'ast> {
     pub fn table(&self) -> &[usize] {
         let ptr: *const usize = self.table.as_ptr();
 
-        unsafe {
-            slice::from_raw_parts(ptr, self.table_length)
-        }
+        unsafe { slice::from_raw_parts(ptr, self.table_length) }
     }
 
     pub fn table_mut(&self) -> &mut [usize] {
         let ptr = self.table.as_ptr() as *mut usize;
 
-        unsafe {
-            slice::from_raw_parts_mut(ptr, self.table_length)
-        }
+        unsafe { slice::from_raw_parts_mut(ptr, self.table_length) }
     }
 
     pub fn offset_of_depth() -> i32 {
@@ -136,9 +133,11 @@ impl<'ast> VTable<'ast> {
     pub fn allocate_overflow(&mut self, num: usize) {
         assert!(self.subtype_overflow.is_null());
 
+        let size = num * size_of::<*const VTable<'ast>>();
+        let align = align_of::<*const VTable<'ast>>();
+
         unsafe {
-            self.subtype_overflow = heap::allocate(num * size_of::<*const VTable<'ast>>(),
-                                                   align_of::<*const VTable<'ast>>()) as *mut VTable<'ast>;
+            self.subtype_overflow = heap::allocate(size, align) as *mut VTable<'ast>;
         }
     }
 

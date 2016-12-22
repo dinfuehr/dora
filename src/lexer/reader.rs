@@ -11,7 +11,7 @@ pub trait CodeReader {
 pub enum ReaderResult {
     Char(char),
     Eof,
-    Err
+    Err,
 }
 
 #[cfg(test)]
@@ -53,7 +53,7 @@ impl FileReader {
         // TODO: use chars instead of bytes when it is stable
         Ok(FileReader {
             filename: filename.to_string(),
-            rest: reader.bytes()
+            rest: reader.bytes(),
         })
     }
 }

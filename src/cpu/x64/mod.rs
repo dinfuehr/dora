@@ -23,11 +23,15 @@ pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
         fp: es.regs[RBP.int() as usize],
         sp: es.sp + mem::ptr_width() as usize,
         ra: ra,
-        xpc: ra-1,
+        xpc: ra - 1,
     }
 }
 
-pub fn resume_with_handler(es: &mut ExecState, handler: &ExHandler, fp: usize, exception: Handle<Obj>, stacksize: usize) {
+pub fn resume_with_handler(es: &mut ExecState,
+                           handler: &ExHandler,
+                           fp: usize,
+                           exception: Handle<Obj>,
+                           stacksize: usize) {
     if let Some(offset) = handler.offset {
         let arg = (fp as isize + offset as isize) as usize;
 
@@ -42,7 +46,7 @@ pub fn resume_with_handler(es: &mut ExecState, handler: &ExHandler, fp: usize, e
 }
 
 pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
-    let obj : Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
+    let obj: Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
 
     obj
 }
@@ -53,7 +57,7 @@ pub fn fp_from_execstate(es: &ExecState) -> usize {
 
 pub fn patch_fct_call(es: &mut ExecState, fct_ptr: *const u8) {
     // get return address from top of stack
-    let mut ra : isize = unsafe { *(es.sp as *const isize) };
+    let mut ra: isize = unsafe { *(es.sp as *const isize) };
 
     // return address is now after `call *%rax` (needs 2 bytes),
     // we want to be before it
@@ -64,13 +68,15 @@ pub fn patch_fct_call(es: &mut ExecState, fct_ptr: *const u8) {
     ra -= 7;
 
     // get address of function pointer
-    let disp_addr : *const i32 = (ra + 3) as *const i32;
-    let disp : isize = unsafe { *disp_addr } as isize;
+    let disp_addr: *const i32 = (ra + 3) as *const i32;
+    let disp: isize = unsafe { *disp_addr } as isize;
 
-    let fct_addr : *mut usize = (ra + 7 + disp) as *mut usize;
+    let fct_addr: *mut usize = (ra + 7 + disp) as *mut usize;
 
     // write function pointer
-    unsafe { *fct_addr = fct_ptr as usize; }
+    unsafe {
+        *fct_addr = fct_ptr as usize;
+    }
 
     // execute fct call again
     es.pc = fct_ptr as usize;

@@ -14,7 +14,9 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
 
         let ast = {
             let fct = ctxt.fct_by_id(id);
-            if !fct.is_src() && !fct.kind.is_definition() { continue; }
+            if !fct.is_src() && !fct.kind.is_definition() {
+                continue;
+            }
 
             fct.ast
         };
@@ -43,7 +45,9 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
 
         let src = {
             let fct = ctxt.fct_by_id(id);
-            if !fct.is_src() { continue; }
+            if !fct.is_src() {
+                continue;
+            }
 
             fct.src()
         };
@@ -92,20 +96,21 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
             let cls = self.ctxt.cls_by_id(clsid);
 
             for &method in &cls.methods {
-                if method == self.fct().id { continue; }
+                if method == self.fct().id {
+                    continue;
+                }
                 let method = self.ctxt.fct_by_id(method);
 
-                if method.initialized
-                   && method.name == self.fct().name
-                   && method.params_types == self.fct().params_types {
+                if method.initialized && method.name == self.fct().name &&
+                   method.params_types == self.fct().params_types {
                     let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
-                    let param_names = method.params_types.iter()
-                        .map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
+                    let param_names = method.params_types
+                        .iter()
+                        .map(|a| a.name(self.ctxt))
+                        .collect::<Vec<String>>();
                     let method_name = self.ctxt.interner.str(method.name).to_string();
 
-                    let msg = Msg::MethodExists(
-                        cls_name, method_name,
-                        param_names, method.pos);
+                    let msg = Msg::MethodExists(cls_name, method_name, param_names, method.pos);
                     self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
                     return;
                 }
@@ -143,8 +148,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
                     if !self.current_type.reference_type() {
                         let ty = self.current_type.name(self.ctxt);
-                        self.ctxt.diag.borrow_mut().report(catch.data_type.pos(),
-                            Msg::ReferenceTypeExpected(ty));
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(catch.data_type.pos(), Msg::ReferenceTypeExpected(ty));
                     }
                 }
 
@@ -155,7 +162,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 visit::walk_stmt(self, s);
             }
 
-            _ => visit::walk_stmt(self, s)
+            _ => visit::walk_stmt(self, s),
         }
     }
 

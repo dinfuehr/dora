@@ -8,14 +8,12 @@ use interner::Name;
 
 #[derive(Debug)]
 pub struct SymTable {
-    levels: Vec<SymLevel>
+    levels: Vec<SymLevel>,
 }
 
 impl SymTable {
     pub fn new() -> SymTable {
-        SymTable {
-            levels: vec![SymLevel::new()]
-        }
+        SymTable { levels: vec![SymLevel::new()] }
     }
 
     pub fn push_level(&mut self) {
@@ -57,15 +55,13 @@ impl SymTable {
 
 #[derive(Debug)]
 struct SymLevel {
-    map: HashMap<Name, Sym>
+    map: HashMap<Name, Sym>,
 }
 
 impl SymLevel {
     // creates a new table
     fn new() -> SymLevel {
-        SymLevel {
-            map: HashMap::new()
-        }
+        SymLevel { map: HashMap::new() }
     }
 
     // finds symbol in table
@@ -89,42 +85,42 @@ impl Sym {
     pub fn is_fct(&self) -> bool {
         match *self {
             SymFct(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_fct(&self) -> Option<FctId> {
         match *self {
             SymFct(id) => Some(id),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_var(&self) -> bool {
         match *self {
             SymVar(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_var(&self) -> Option<VarId> {
         match *self {
             SymVar(id) => Some(id),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_class(&self) -> bool {
         match *self {
             SymClass(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn to_class(&self) -> Option<ClassId> {
         match *self {
             SymClass(id) => Some(id),
-            _ => None
+            _ => None,
         }
     }
 }

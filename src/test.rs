@@ -5,7 +5,9 @@ use interner::Interner;
 use parser::Parser;
 use semck;
 
-pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
+pub fn parse<F, T>(code: &'static str, f: F) -> T
+    where F: FnOnce(&Context) -> T
+{
     parse_with_errors(code, |ctxt| {
         if ctxt.diag.borrow().has_errors() {
             ctxt.diag.borrow().dump();
@@ -17,14 +19,15 @@ pub fn parse<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T
     })
 }
 
-pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T where F: FnOnce(&Context) -> T {
+pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
+    where F: FnOnce(&Context) -> T
+{
     let mut interner = Interner::new();
     let mut ast = Ast::new();
-    let args : Args = Default::default();
+    let args: Args = Default::default();
 
     {
-        let mut parser = Parser::from_file("stdlib/prelude.dora",
-                                           &mut ast, &mut interner).unwrap();
+        let mut parser = Parser::from_file("stdlib/prelude.dora", &mut ast, &mut interner).unwrap();
         parser.parse().unwrap()
     }
 

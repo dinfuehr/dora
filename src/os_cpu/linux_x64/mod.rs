@@ -11,7 +11,7 @@ mod ucontext;
 mod ucontext_reg;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
-    let mut es : ExecState = unsafe { std::mem::uninitialized() };
+    let mut es: ExecState = unsafe { std::mem::uninitialized() };
 
     unsafe {
         let uc = uc as *mut ucontext_t;
@@ -69,7 +69,7 @@ fn reg2ucontext(reg: usize) -> usize {
         13 => REG_R13,
         14 => REG_R14,
         15 => REG_R15,
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 

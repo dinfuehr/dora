@@ -6,7 +6,7 @@ pub struct ExecState {
     pub sp: usize,
     pub ra: usize,
 
-    pub regs: [usize; REG_COUNT]
+    pub regs: [usize; REG_COUNT],
 }
 
 impl fmt::Debug for ExecState {

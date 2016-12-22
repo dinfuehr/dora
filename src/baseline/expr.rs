@@ -28,15 +28,16 @@ pub struct ExprGen<'a, 'ast: 'a> {
     temps: TempOffsets,
 }
 
-impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
-    pub fn new(
-        ctxt: &'a Context<'ast>,
-        fct: &'a Fct<'ast>,
-        src: &'a mut FctSrc<'ast>,
-        ast: &'ast Function,
-        masm: &'a mut MacroAssembler,
-        scopes: &'a mut Scopes,
-    ) -> ExprGen<'a, 'ast> {
+impl<'a, 'ast> ExprGen<'a, 'ast>
+    where 'ast: 'a
+{
+    pub fn new(ctxt: &'a Context<'ast>,
+               fct: &'a Fct<'ast>,
+               src: &'a mut FctSrc<'ast>,
+               ast: &'ast Function,
+               masm: &'a mut MacroAssembler,
+               scopes: &'a mut Scopes)
+               -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
@@ -45,7 +46,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             masm: masm,
             tempsize: 0,
             scopes: scopes,
-            temps: TempOffsets::new()
+            temps: TempOffsets::new(),
         }
     }
 
@@ -86,7 +87,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         match e.mode {
             TryMode::Normal => {
                 self.emit_expr(&e.expr, dest);
-            },
+            }
 
             TryMode::Else(ref alt_expr) => {
                 let lbl_after = self.masm.create_label();
@@ -194,16 +195,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.masm.jump_if(CondCode::Less, lbl_false);
 
                 // tmp1 = tmp1.subtype_overflow
-                self.masm.load_mem(MachineMode::Ptr, REG_TMP1,
-                               Mem::Base(REG_TMP1, VTable::offset_of_overflow()));
+                self.masm.load_mem(MachineMode::Ptr,
+                                   REG_TMP1,
+                                   Mem::Base(REG_TMP1, VTable::offset_of_overflow()));
 
                 let overflow_offset = mem::ptr_width() *
-                                        (vtable.subtype_depth - DISPLAY_SIZE as i32);
+                                      (vtable.subtype_depth - DISPLAY_SIZE as i32);
 
                 // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
                 self.masm.cmp_mem(MachineMode::Ptr,
-                              Mem::Base(REG_TMP1, overflow_offset),
-                              REG_TMP2);
+                                  Mem::Base(REG_TMP1, overflow_offset),
+                                  REG_TMP2);
 
                 if e.is {
                     // dest = if zero then true else false
@@ -235,14 +237,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 // lbl_finished:
                 self.masm.bind_label(lbl_finished);
             } else {
-                let display_entry = VTable::offset_of_display()
-                                    + vtable.subtype_depth * mem::ptr_width();
+                let display_entry = VTable::offset_of_display() +
+                                    vtable.subtype_depth * mem::ptr_width();
 
                 // tmp1 = vtable of object
                 // tmp2 = vtable of T
                 // cmp [tmp1 + offset], tmp2
-                self.masm.cmp_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, display_entry),
-                               REG_TMP2);
+                self.masm.cmp_mem(MachineMode::Ptr,
+                                  Mem::Base(REG_TMP1, display_entry),
+                                  REG_TMP2);
 
                 if e.is {
                     self.masm.set(dest, CondCode::Equal);
@@ -335,7 +338,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let fid = self.src.calls.get(&id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
-        if self.fct.id == fid { return None; }
+        if self.fct.id == fid {
+            return None;
+        }
 
         let fct = self.ctxt.fct_by_id(fid);
 
@@ -393,9 +398,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
         match e.ident_type() {
-            IdentType::Var(_) => {
-                codegen::var_load(self.masm, self.src, e.var(), dest)
-            }
+            IdentType::Var(_) => codegen::var_load(self.masm, self.src, e.var(), dest),
 
             IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
@@ -408,10 +411,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         self.emit_expr(&e.opnd, dest);
 
         match e.op {
-            UnOp::Plus => {},
+            UnOp::Plus => {}
             UnOp::Neg => self.masm.int_neg(dest, dest),
             UnOp::BitNot => self.masm.int_not(dest, dest),
-            UnOp::Not => self.masm.bool_not(dest, dest)
+            UnOp::Not => self.masm.bool_not(dest, dest),
         }
     }
 
@@ -421,30 +424,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 let array = e.lhs.to_array().unwrap();
                 self.emit_expr(&array.object, REG_RESULT);
                 let offset_object = self.reserve_temp_for_node(&array.object);
-                self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object),
-                                REG_RESULT);
+                self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT);
 
                 self.emit_expr(&array.index, REG_RESULT);
                 let offset_index = self.reserve_temp_for_node(&array.index);
-                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index),
-                                REG_RESULT);
+                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT);
 
                 self.emit_expr(&e.rhs, REG_RESULT);
                 let offset_value = self.reserve_temp_for_node(&e.rhs);
-                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_value),
-                                REG_RESULT);
+                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_value), REG_RESULT);
 
                 self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(offset_object));
                 self.masm.load_mem(MachineMode::Int32, REG_TMP2, Mem::Local(offset_index));
 
                 if !self.ctxt.args.flag_omit_bounds_check {
-                    self.masm.check_index_out_of_bounds(e.pos, REG_TMP1,
-                                                    REG_TMP2, REG_RESULT);
+                    self.masm.check_index_out_of_bounds(e.pos, REG_TMP1, REG_TMP2, REG_RESULT);
                 }
 
                 self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset_value));
-                self.masm.store_array_elem(MachineMode::Int32, REG_TMP1, REG_TMP2,
-                                       REG_RESULT);
+                self.masm.store_array_elem(MachineMode::Int32, REG_TMP1, REG_TMP2, REG_RESULT);
 
 
                 self.free_temp_for_node(&array.object, offset_object);
@@ -498,7 +496,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
 
                 self.masm.store_mem(field.ty.mode(),
-                                Mem::Base(REG_TMP1, field.offset), REG_RESULT);
+                                    Mem::Base(REG_TMP1, field.offset),
+                                    REG_RESULT);
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest {
@@ -513,8 +512,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             BinOp::Add => self.emit_bin_add(e, dest),
             BinOp::Sub => self.emit_bin_sub(e, dest),
             BinOp::Mul => self.emit_bin_mul(e, dest),
-            BinOp::Div
-                | BinOp::Mod => self.emit_bin_divmod(e, dest),
+            BinOp::Div | BinOp::Mod => self.emit_bin_divmod(e, dest),
             BinOp::Cmp(op) => self.emit_bin_cmp(e, dest, op),
             BinOp::BitOr => self.emit_bin_bit_or(e, dest),
             BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
@@ -573,7 +571,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         let cmp_type = lhs_type.if_nil(rhs_type);
 
         if op == CmpOp::Is || op == CmpOp::IsNot {
-            let op = if op == CmpOp::Is { CondCode::Equal } else { CondCode::NotEqual };
+            let op = if op == CmpOp::Is {
+                CondCode::Equal
+            } else {
+                CondCode::NotEqual
+            };
 
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
                 eg.masm.cmp_reg(MachineMode::Ptr, lhs, rhs);
@@ -673,7 +675,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
     }
 
     fn emit_binop<F>(&mut self, e: &'ast ExprBinType, dest_reg: Reg, emit_action: F)
-            where F: FnOnce(&mut ExprGen, Reg, Reg, Reg) -> Reg {
+        where F: FnOnce(&mut ExprGen, Reg, Reg, Reg) -> Reg
+    {
         let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
@@ -695,7 +698,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
         let ty = e.ty();
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg { self.masm.copy_reg(ty.mode(), dest_reg, reg); }
+        if reg != dest_reg {
+            self.masm.copy_reg(ty.mode(), dest_reg, reg);
+        }
     }
 
     fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
@@ -741,7 +746,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
-        self.masm.load_mem(MachineMode::Ptr, dest, Mem::Base(REG_RESULT, Header::size()));
+        self.masm.load_mem(MachineMode::Ptr,
+                           dest,
+                           Mem::Base(REG_RESULT, Header::size()));
     }
 
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
@@ -778,7 +785,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
         let csite = self.src.call_sites.get(&id).unwrap().clone();
-        let mut temps : Vec<(BuiltinType, i32)> = Vec::new();
+        let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
         for arg in &csite.args {
             match *arg {
@@ -829,8 +836,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
                 if ind == 0 {
                     let call_type = self.src.calls.get(&id);
 
-                    if call_type.is_some() && call_type.unwrap().is_method()
-                        && check_for_nil(ty) {
+                    if call_type.is_some() && call_type.unwrap().is_method() && check_for_nil(ty) {
                         self.masm.test_if_nil_bailout(pos, reg);
                     }
                 }
@@ -865,8 +871,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
             }
 
             Callee::Ptr(ptr) => {
-                self.emit_native_call_insn(ptr, pos, csite.return_type,
-                                           csite.args.len() as i32, dest);
+                self.emit_native_call_insn(ptr,
+                                           pos,
+                                           csite.return_type,
+                                           csite.args.len() as i32,
+                                           dest);
             }
         }
 
@@ -882,13 +891,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast> where 'ast: 'a {
         }
     }
 
-    fn emit_native_call_insn(&mut self, ptr: *const u8, pos: Position,
-                             ty: BuiltinType, args: i32, dest: Reg) {
+    fn emit_native_call_insn(&mut self,
+                             ptr: *const u8,
+                             pos: Position,
+                             ty: BuiltinType,
+                             args: i32,
+                             dest: Reg) {
         let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
         self.emit_direct_call_insn(ptr, pos, ty, dest);
     }
 
-    fn emit_direct_call_insn(&mut self, ptr: *const u8, pos: Position, ty: BuiltinType, dest: Reg) {
+    fn emit_direct_call_insn(&mut self,
+                             ptr: *const u8,
+                             pos: Position,
+                             ty: BuiltinType,
+                             dest: Reg) {
         self.masm.direct_call(ptr);
         self.emit_after_call_insns(pos, ty, dest);
     }
@@ -916,12 +933,16 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Str => true,
         BuiltinType::Int | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::IntArray => true,
-        BuiltinType::Class(_) => true
+        BuiltinType::Class(_) => true,
     }
 }
 
-fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
-                      ty: BuiltinType, args: i32) -> *const u8 {
+fn ensure_native_stub(ctxt: &Context,
+                      fct_id: FctId,
+                      ptr: *const u8,
+                      ty: BuiltinType,
+                      args: i32)
+                      -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
 
     if let Some(ptr) = native_fcts.find_fct(ptr) {
@@ -932,8 +953,9 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
         let fct = ctxt.fct_by_id(fct_id);
 
         if should_emit_asm(ctxt, fct) {
-            dump_asm(ctxt, &jit_fct,
-                ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+            dump_asm(ctxt,
+                     &jit_fct,
+                     ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
         }
 
         native_fcts.insert_fct(ptr, jit_fct)
@@ -941,8 +963,12 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, ptr: *const u8,
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> *const u8 {
-    if let Some(ref jit) = src.jit_fct { return jit.fct_ptr(); }
-    if let Some(ref stub) = src.stub { return stub.ptr_start(); }
+    if let Some(ref jit) = src.jit_fct {
+        return jit.fct_ptr();
+    }
+    if let Some(ref stub) = src.stub {
+        return stub.ptr_start();
+    }
 
     let stub = Stub::new(fid);
 

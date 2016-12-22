@@ -11,7 +11,7 @@ pub struct CodeMemory {
     ptr_start: *const u8,
 
     // end of full memory area
-    ptr_end: *const u8
+    ptr_end: *const u8,
 }
 
 impl CodeMemory {
@@ -19,14 +19,12 @@ impl CodeMemory {
         let size = mem::align_usize(size, os::page_size() as usize);
         let ptr = os::mmap(size, os::Executable);
 
-        let ptr_end = unsafe {
-            ptr.offset(size as isize)
-        };
+        let ptr_end = unsafe { ptr.offset(size as isize) };
 
         CodeMemory {
             size: size,
             ptr_start: ptr,
-            ptr_end: ptr_end
+            ptr_end: ptr_end,
         }
     }
 
@@ -34,8 +32,7 @@ impl CodeMemory {
         let code = CodeMemory::new(buffer.len());
 
         unsafe {
-            ptr::copy_nonoverlapping(buffer.as_ptr(),
-                code.ptr_start() as *mut u8, buffer.len());
+            ptr::copy_nonoverlapping(buffer.as_ptr(), code.ptr_start() as *mut u8, buffer.len());
         }
 
         code

@@ -184,12 +184,16 @@ impl TokenType {
 pub struct Token {
     pub token_type: TokenType,
     pub value: String,
-    pub position: Position
+    pub position: Position,
 }
 
 impl Token {
-    pub fn new( tok: TokenType, pos: Position ) -> Token {
-        Token { token_type: tok, value: "".to_string(), position: pos }
+    pub fn new(tok: TokenType, pos: Position) -> Token {
+        Token {
+            token_type: tok,
+            value: "".to_string(),
+            position: pos,
+        }
     }
 
     pub fn is_eof(&self) -> bool {
@@ -206,7 +210,7 @@ impl Token {
             TokenType::String => format!("\"{}\"", &self.value),
             TokenType::Identifier => self.value.clone(),
 
-            _ => self.token_type.name().into()
+            _ => self.token_type.name().into(),
         }
     }
 }

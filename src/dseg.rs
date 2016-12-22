@@ -16,7 +16,7 @@ impl DSeg {
     pub fn new() -> DSeg {
         DSeg {
             entries: Vec::new(),
-            size: 0
+            size: 0,
         }
     }
 
@@ -44,7 +44,10 @@ impl DSeg {
 
         self.size = mem::align_i32(self.size + mem::ptr_width(), mem::ptr_width());
 
-        let entry = Entry { disp: self.size, value: ptr };
+        let entry = Entry {
+            disp: self.size,
+            value: ptr,
+        };
         self.entries.push(entry);
 
         self.size

@@ -9,9 +9,7 @@ pub struct Diagnostic {
 
 impl Diagnostic {
     pub fn new() -> Diagnostic {
-        Diagnostic {
-            errors: Vec::new()
-        }
+        Diagnostic { errors: Vec::new() }
     }
 
     pub fn errors(&self) -> &[MsgWithPos] {

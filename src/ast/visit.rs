@@ -4,7 +4,7 @@ use ast::Expr::*;
 use ast::Stmt::*;
 use ast::Type::*;
 
-pub trait Visitor<'v> : Sized {
+pub trait Visitor<'v>: Sized {
     fn visit_ast(&mut self, a: &'v Ast) {
         walk_ast(self, a);
     }
@@ -107,7 +107,7 @@ pub fn walk_param<'v, V: Visitor<'v>>(v: &mut V, p: &'v Param) {
 
 pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
     match *t {
-        TypeBasic(_) => { },
+        TypeBasic(_) => {}
         TypeTuple(ref tuple) => {
             for ty in &tuple.subtypes {
                 v.visit_type(ty);
@@ -187,8 +187,8 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
         }
 
-        StmtBreak(_) => { }
-        StmtContinue(_) => { }
+        StmtBreak(_) => {}
+        StmtContinue(_) => {}
     }
 }
 

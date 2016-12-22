@@ -68,5 +68,6 @@ impl Default for Args {
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]
 pub enum AsmSyntax {
-    Intel, Att
+    Intel,
+    Att,
 }

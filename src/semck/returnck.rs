@@ -9,7 +9,9 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
-        if !fct.is_src() { continue; }
+        if !fct.is_src() {
+            continue;
+        }
 
         let src = fct.src();
         let mut src = src.lock().unwrap();
@@ -83,7 +85,7 @@ fn if_returns_value(s: &StmtIfType) -> Result<(), Position> {
 
     match s.else_block {
         Some(ref block) => returns_value(block),
-        None => Err(s.pos)
+        None => Err(s.pos),
     }
 }
 
@@ -93,7 +95,7 @@ fn block_returns_value(s: &StmtBlockType) -> Result<(), Position> {
     for stmt in &s.stmts {
         match returns_value(stmt) {
             Ok(_) => return Ok(()),
-            Err(err_pos) => pos = err_pos
+            Err(err_pos) => pos = err_pos,
         }
     }
 
@@ -157,9 +159,15 @@ mod tests {
     #[test]
     fn returns_int() {
         err("fun f() -> int { }", pos(1, 16), Msg::NoReturnValue);
-        err("fun f() -> int { if true { return 1; } }", pos(1, 18), Msg::NoReturnValue);
-        err("fun f() -> int { if true { } else { return 1; } }", pos(1, 26), Msg::NoReturnValue);
-        err("fun f() -> int { while true { return 1; } }", pos(1, 18), Msg::NoReturnValue);
+        err("fun f() -> int { if true { return 1; } }",
+            pos(1, 18),
+            Msg::NoReturnValue);
+        err("fun f() -> int { if true { } else { return 1; } }",
+            pos(1, 26),
+            Msg::NoReturnValue);
+        err("fun f() -> int { while true { return 1; } }",
+            pos(1, 18),
+            Msg::NoReturnValue);
         ok("fun f() -> int { loop { return 1; } }");
         ok("fun f() -> int { if true { return 1; } else { return 2; } }");
         ok("fun f() -> int { return 1; 1+2; }");
@@ -174,8 +182,10 @@ mod tests {
         ok("fun f() -> int { do { } catch x: Str { } return 1; }");
         ok("fun f() -> int { do { } catch x: Str { } finally { return 1; } }");
         err("fun f() -> int { do { return 1; } catch x: Str { } }",
-            pos(1, 48), Msg::NoReturnValue);
+            pos(1, 48),
+            Msg::NoReturnValue);
         err("fun f() -> int { do { } catch x: Str { return 1; } }",
-            pos(1, 21), Msg::NoReturnValue);
+            pos(1, 21),
+            Msg::NoReturnValue);
     }
 }

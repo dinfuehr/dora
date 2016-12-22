@@ -41,11 +41,7 @@ impl Header {
     }
 
     pub fn marked(&self) -> bool {
-        if (self.info & 1) != 0 {
-            true
-        } else {
-            false
-        }
+        if (self.info & 1) != 0 { true } else { false }
     }
 
     pub fn set_succ(&mut self, ptr: *mut Obj) {
@@ -60,7 +56,7 @@ impl Header {
 // is used to reference any object
 pub struct Obj {
     header: Header,
-    data: u8
+    data: u8,
 }
 
 impl Obj {
@@ -78,32 +74,31 @@ impl Obj {
 
     pub fn size(&self) -> usize {
         let size = self.header().vtbl().class().size;
-        if size > 0 { return size as usize; }
+        if size > 0 {
+            return size as usize;
+        }
 
         let ty = self.header().vtbl().class().ty;
 
         match ty {
             BuiltinType::Str => {
-                let handle: Handle<Str> = Handle {
-                    ptr: self as *const Obj as *const Str
-                };
+                let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
                 handle.size()
             }
 
             BuiltinType::IntArray => {
-                let handle: Handle<IntArray> = Handle {
-                    ptr: self as *const Obj as *const IntArray
-                };
+                let handle: Handle<IntArray> =
+                    Handle { ptr: self as *const Obj as *const IntArray };
                 handle.size()
             }
 
-            _ => panic!("size unknown")
+            _ => panic!("size unknown"),
         }
     }
 }
 
 pub struct Handle<T> {
-    ptr: *const T
+    ptr: *const T,
 }
 
 impl<T> Handle<T> {
@@ -137,16 +132,14 @@ impl<T> DerefMut for Handle<T> {
 
 impl<T> Into<Handle<T>> for usize {
     fn into(self) -> Handle<T> {
-        Handle {
-            ptr: self as *const T
-        }
+        Handle { ptr: self as *const T }
     }
 }
 
 pub struct Str {
     header: Header,
     length: usize,
-    data: u8
+    data: u8,
 }
 
 impl Str {
@@ -182,7 +175,7 @@ impl Str {
 
         let clsid = ctxt.primitive_classes.str_class;
         let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
-        let mut handle : Handle<Str> = ptr.into();
+        let mut handle: Handle<Str> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable<'static>;
 
         handle
@@ -214,7 +207,8 @@ impl Str {
 
             ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
             ptr::copy_nonoverlapping(rhs.data(),
-                handle.data().offset(lhs.len() as isize) as *mut u8, rhs.len());
+                                     handle.data().offset(lhs.len() as isize) as *mut u8,
+                                     rhs.len());
 
             *(handle.data().offset(len as isize) as *mut u8) = 0;
         }
@@ -226,7 +220,7 @@ impl Str {
 pub struct IntArray {
     header: Header,
     length: usize,
-    data: u8
+    data: u8,
 }
 
 impl IntArray {
@@ -270,12 +264,14 @@ impl IntArray {
 
         let clsid = ctxt.primitive_classes.int_array;
         let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
-        let mut handle : Handle<IntArray> = ptr.into();
+        let mut handle: Handle<IntArray> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable<'static>;
         handle.length = len;
 
         for i in 0..handle.len() {
-            unsafe { *handle.data_mut().offset(i as isize) = elem; }
+            unsafe {
+                *handle.data_mut().offset(i as isize) = elem;
+            }
         }
 
         handle

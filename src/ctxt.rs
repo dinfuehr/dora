@@ -26,9 +26,7 @@ use ty::BuiltinType;
 pub static mut CTXT: Option<*const u8> = None;
 
 pub fn get_ctxt() -> &'static Context<'static> {
-    unsafe {
-        &*(CTXT.unwrap() as *const Context)
-    }
+    unsafe { &*(CTXT.unwrap() as *const Context) }
 }
 
 pub struct Context<'ast> {
@@ -41,7 +39,7 @@ pub struct Context<'ast> {
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
-                                                 // node id to FctId
+    // node id to FctId
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
@@ -78,7 +76,9 @@ impl<'ast> Context<'ast> {
         }
     }
 
-    pub fn use_sfi<F, R>(&self, sfi: &mut StackFrameInfo, fct: F) -> R where F: FnOnce() -> R {
+    pub fn use_sfi<F, R>(&self, sfi: &mut StackFrameInfo, fct: F) -> R
+        where F: FnOnce() -> R
+    {
         sfi.last = *self.sfi.borrow();
 
         *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
@@ -211,21 +211,22 @@ impl PrimitiveClasses {
             BuiltinType::Str => Some(self.str_class),
             BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::IntArray => Some(self.int_array),
-            _ => None
+            _ => None,
         }
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CtorType {
-    None, Primary, Secondary
+    None,
+    Primary,
+    Secondary,
 }
 
 impl CtorType {
     pub fn is(&self) -> bool {
         match *self {
-            CtorType::Primary
-            | CtorType::Secondary => true,
+            CtorType::Primary | CtorType::Secondary => true,
             _ => false,
         }
     }
@@ -292,7 +293,9 @@ impl<'ast> Fct<'ast> {
         repr.push_str("(");
 
         for (ind, ty) in self.params_types.iter().enumerate() {
-            if ind > 0 { repr.push_str(", "); }
+            if ind > 0 {
+                repr.push_str(", ");
+            }
 
             let name = ty.name(ctxt);
             repr.push_str(&name);
@@ -313,7 +316,7 @@ impl<'ast> Fct<'ast> {
     pub fn is_src(&self) -> bool {
         match self.kind {
             FctKind::Source(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -324,7 +327,7 @@ impl<'ast> Fct<'ast> {
     pub fn src(&self) -> Arc<Mutex<FctSrc<'ast>>> {
         match self.kind {
             FctKind::Source(ref src) => src.clone(),
-            _ => panic!("source expected")
+            _ => panic!("source expected"),
         }
     }
 
@@ -352,42 +355,46 @@ pub enum FctKind<'ast> {
     Source(Arc<Mutex<FctSrc<'ast>>>),
     Definition,
     Native(*const u8),
-    Builtin(Intrinsic)
+    Builtin(Intrinsic),
 }
 
 impl<'ast> FctKind<'ast> {
     pub fn is_src(&self) -> bool {
         match *self {
             FctKind::Source(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn src(&self) -> MutexGuard<FctSrc<'ast>> {
         match *self {
             FctKind::Source(ref src) => src.lock().unwrap(),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
     pub fn is_intrinsic(&self) -> bool {
         match *self {
             FctKind::Builtin(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_definition(&self) -> bool {
         match *self {
             FctKind::Definition => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum Intrinsic {
-    IntArrayLen, IntArrayGet, IntArraySet, Assert, Shl
+    IntArrayLen,
+    IntArrayGet,
+    IntArraySet,
+    Assert,
+    Shl,
 }
 
 #[derive(Debug)]
@@ -401,7 +408,7 @@ pub struct FctSrc<'ast> {
     pub leaf: bool, // false if fct calls other functions
     pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
-                              // false if function execution could reach the closing } of this function
+    // false if function execution could reach the closing } of this function
     pub jit_fct: Option<JitFct>, // compile function
     pub stub: Option<Stub>, // compiler stub
     pub eh_return_value: Option<i32>, // stack slot for return value storage
@@ -447,35 +454,37 @@ impl<'ast> FctSrc<'ast> {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Store {
-    Reg, Temp(i32, BuiltinType)
+    Reg,
+    Temp(i32, BuiltinType),
 }
 
 impl Store {
     pub fn offset(&self) -> i32 {
         match *self {
             Store::Temp(offset, _) => offset,
-            Store::Reg => panic!()
+            Store::Reg => panic!(),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum IdentType {
-    Var(VarId), Field(ClassId, FieldId)
+    Var(VarId),
+    Field(ClassId, FieldId),
 }
 
 impl IdentType {
     pub fn var_id(&self) -> VarId {
         match *self {
             IdentType::Var(varid) => varid,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
     pub fn cls_id(&self) -> ClassId {
         match *self {
             IdentType::Field(clsid, _) => clsid,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -496,7 +505,7 @@ impl IdentType {
     pub fn field_id(&self) -> FieldId {
         match *self {
             IdentType::Field(_, fieldid) => fieldid,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }
@@ -536,7 +545,7 @@ impl CallType {
             CallType::Method(clsid, _) => clsid,
             CallType::CtorNew(clsid, _) => clsid,
             CallType::Ctor(clsid, _) => clsid,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -560,7 +569,8 @@ pub struct CallSite<'ast> {
 
 #[derive(Clone, Debug)]
 pub enum Callee {
-    Fct(FctId), Ptr(*const u8)
+    Fct(FctId),
+    Ptr(*const u8),
 }
 
 #[derive(Copy, Clone, Debug)]

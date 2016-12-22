@@ -19,7 +19,8 @@ pub fn register_signals(ctxt: &Context) {
         libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);
         sa.sa_flags = libc::SA_SIGINFO;
 
-        if libc::sigaction(libc::SIGSEGV, &sa as *const libc::sigaction,
+        if libc::sigaction(libc::SIGSEGV,
+                           &sa as *const libc::sigaction,
                            0 as *mut libc::sigaction) == -1 {
             libc::perror("sigaction failed".as_ptr() as *const libc::c_char);
         }
@@ -39,28 +40,36 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
                 println!("division by 0");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(101); }
+                unsafe {
+                    libc::_exit(101);
+                }
             }
 
             Trap::ASSERT => {
                 println!("assert failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(101); }
+                unsafe {
+                    libc::_exit(101);
+                }
             }
 
             Trap::INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(102); }
+                unsafe {
+                    libc::_exit(102);
+                }
             }
 
             Trap::NIL => {
                 println!("nil check failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(103); }
+                unsafe {
+                    libc::_exit(103);
+                }
             }
 
             Trap::THROW => {
@@ -70,7 +79,9 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
                     write_execstate(&es, ucontext as *mut u8);
                 } else {
                     println!("uncaught exception");
-                    unsafe { libc::_exit(104); }
+                    unsafe {
+                        libc::_exit(104);
+                    }
                 }
             }
 
@@ -78,21 +89,27 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
                 println!("cast failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(105); }
+                unsafe {
+                    libc::_exit(105);
+                }
             }
 
             Trap::UNEXPECTED => {
                 println!("unexpected exception");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { libc::_exit(106); }
+                unsafe {
+                    libc::_exit(106);
+                }
             }
         }
 
-    // could not recognize trap -> crash vm
+        // could not recognize trap -> crash vm
     } else {
         println!("error: trap not detected (signal {}).", signo);
-        unsafe { libc::_exit(1); }
+        unsafe {
+            libc::_exit(1);
+        }
     }
 }
 
@@ -119,15 +136,22 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
         });
     } else {
         println!("error: code not found for address {:x}", es.pc);
-        unsafe { libc::_exit(200); }
+        unsafe {
+            libc::_exit(200);
+        }
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Trap {
-    COMPILER, DIV0, ASSERT,
-    INDEX_OUT_OF_BOUNDS, NIL, THROW,
-    CAST, UNEXPECTED
+    COMPILER,
+    DIV0,
+    ASSERT,
+    INDEX_OUT_OF_BOUNDS,
+    NIL,
+    THROW,
+    CAST,
+    UNEXPECTED,
 }
 
 impl Trap {
@@ -154,7 +178,7 @@ impl Trap {
             5 => Some(Trap::THROW),
             6 => Some(Trap::CAST),
             7 => Some(Trap::UNEXPECTED),
-            _ => None
+            _ => None,
         }
     }
 }
