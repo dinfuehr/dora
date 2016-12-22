@@ -14,7 +14,6 @@ pub use self::reg::*;
 pub mod asm;
 pub mod param;
 pub mod reg;
-pub mod trap;
 
 pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
     let ra = unsafe { *(es.sp as *const usize) };
