@@ -1,5 +1,5 @@
 use std;
-use libc::*;
+use libc;
 
 use baseline;
 use cpu;
@@ -13,20 +13,21 @@ pub fn register_signals(ctxt: &Context) {
         let ptr = ctxt as *const Context as *const u8;
         CTXT = Some(ptr);
 
-        let mut sa: sigaction = std::mem::uninitialized();
+        let mut sa: libc::sigaction = std::mem::uninitialized();
 
         sa.sa_sigaction = handler as usize;
-        sigemptyset(&mut sa.sa_mask as *mut sigset_t);
-        sa.sa_flags = SA_SIGINFO;
+        libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);
+        sa.sa_flags = libc::SA_SIGINFO;
 
-        if sigaction(SIGSEGV, &sa as *const sigaction, 0 as *mut sigaction) == -1 {
-            perror("sigaction failed".as_ptr() as *const i8);
+        if libc::sigaction(libc::SIGSEGV, &sa as *const libc::sigaction,
+                           0 as *mut libc::sigaction) == -1 {
+            libc::perror("sigaction failed".as_ptr() as *const libc::c_char);
         }
     }
 }
 
 // signal handler function
-fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
+fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
     let mut es = read_execstate(ucontext);
     let ctxt = get_ctxt();
 
@@ -38,38 +39,38 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
                 println!("division by 0");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(101); }
+                unsafe { libc::_exit(101); }
             }
 
             Trap::ASSERT => {
                 println!("assert failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(101); }
+                unsafe { libc::_exit(101); }
             }
 
             Trap::INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(102); }
+                unsafe { libc::_exit(102); }
             }
 
             Trap::NIL => {
                 println!("nil check failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(103); }
+                unsafe { libc::_exit(103); }
             }
 
             Trap::THROW => {
                 let handler_found = handle_exception(&mut es);
 
                 if handler_found {
-                    write_execstate(&es, ucontext as *mut c_void);
+                    write_execstate(&es, ucontext as *mut u8);
                 } else {
                     println!("uncaught exception");
-                    unsafe { _exit(104); }
+                    unsafe { libc::_exit(104); }
                 }
             }
 
@@ -77,25 +78,25 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
                 println!("cast failed");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(105); }
+                unsafe { libc::_exit(105); }
             }
 
             Trap::UNEXPECTED => {
                 println!("unexpected exception");
                 let stacktrace = get_stacktrace(ctxt, &es);
                 stacktrace.dump(ctxt);
-                unsafe { _exit(106); }
+                unsafe { libc::_exit(106); }
             }
         }
 
     // could not recognize trap -> crash vm
     } else {
         println!("error: trap not detected (signal {}).", signo);
-        unsafe { _exit(1); }
+        unsafe { libc::_exit(1); }
     }
 }
 
-fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) {
+fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
         code_map.get(es.pc as *const u8)
@@ -114,11 +115,11 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const c_void) 
                 cpu::patch_fct_call(es, jit_fct);
             }
 
-            write_execstate(es, ucontext as *mut c_void);
+            write_execstate(es, ucontext as *mut u8);
         });
     } else {
         println!("error: code not found for address {:x}", es.pc);
-        unsafe { _exit(200); }
+        unsafe { libc::_exit(200); }
     }
 }
 

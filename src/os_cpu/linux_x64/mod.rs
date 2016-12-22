@@ -1,5 +1,5 @@
 use std;
-use libc::{c_void, SIGSEGV};
+use libc::SIGSEGV;
 
 use execstate::ExecState;
 use os::signal::Trap;
@@ -10,7 +10,7 @@ use self::ucontext_reg::*;
 mod ucontext;
 mod ucontext_reg;
 
-pub fn read_execstate(uc: *const c_void) -> ExecState {
+pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es : ExecState = unsafe { std::mem::uninitialized() };
 
     unsafe {
@@ -32,7 +32,7 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
     es
 }
 
-pub fn write_execstate(es: &ExecState, uc: *mut c_void) {
+pub fn write_execstate(es: &ExecState, uc: *mut u8) {
     unsafe {
         let uc = uc as *mut ucontext_t;
         let mc = &mut (*uc).uc_mcontext;

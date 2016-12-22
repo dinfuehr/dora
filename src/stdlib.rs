@@ -42,7 +42,8 @@ pub extern "C" fn println(val: Handle<Str>) {
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
-        libc::strcmp(lhs.data() as *const i8, rhs.data() as *const i8)
+        libc::strcmp(lhs.data() as *const libc::c_char,
+                     rhs.data() as *const libc::c_char)
     }
 }
 
