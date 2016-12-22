@@ -41,6 +41,12 @@ pub fn resume_with_handler(es: &mut ExecState, handler: &ExHandler, fp: usize, e
     es.pc = handler.catch;
 }
 
+pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
+    let obj : Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
+
+    obj
+}
+
 pub fn fp_from_execstate(es: &ExecState) -> usize {
     es.regs[RBP.int() as usize]
 }

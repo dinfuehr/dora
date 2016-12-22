@@ -173,7 +173,7 @@ impl MacroAssembler {
                 Mem::Base(array, IntArray::offset_of_length()));
         self.cmp_reg(MachineMode::Int32, index, temp);
 
-        let lbl = buf.create_label();
+        let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
         self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, pos);
     }
@@ -248,6 +248,10 @@ impl MacroAssembler {
         self.emit_u32(movz(0, scratch, 1, 0));
         self.emit_u32(eor_shreg(0, dest, src, scratch, Shift::LSL, 0));
         self.emit_u32(uxtb(dest, dest));
+    }
+
+    pub fn trap(&mut self, trap: Trap) {
+        unimplemented!();
     }
 }
 

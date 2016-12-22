@@ -1,7 +1,7 @@
 use std::ptr;
 
 use baseline::fct::CatchType;
-use cpu::{resume_with_handler, fp_from_execstate};
+use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
 use ctxt::{Context, FctKind, FctId, get_ctxt};
 use object::{Handle, Obj};
 use execstate::ExecState;
@@ -112,9 +112,11 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
     }
 }
 
-pub fn handle_exception(exception: Handle<Obj>, es: &mut ExecState) -> bool {
+pub fn handle_exception(es: &mut ExecState) -> bool {
     let mut pc : usize = es.pc;
     let mut fp : usize = fp_from_execstate(es);
+
+    let exception = get_exception_object(es);
 
     loop {
         let found = find_handler(exception, es, pc, fp);

@@ -2,10 +2,9 @@ use std;
 use libc::*;
 
 use baseline;
-use cpu::{self, REG_RESULT};
+use cpu;
 use ctxt::{Context, CTXT, get_ctxt};
 use execstate::ExecState;
-use object::{Handle, Obj};
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
 
@@ -64,8 +63,7 @@ fn handler(signo: c_int, _: *const u8, ucontext: *const c_void) {
             }
 
             Trap::THROW => {
-                let obj : Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
-                let handler_found = handle_exception(obj, &mut es);
+                let handler_found = handle_exception(&mut es);
 
                 if handler_found {
                     write_execstate(&es, ucontext as *mut c_void);
