@@ -1,11 +1,13 @@
-pub use self::param::*;
-pub use self::reg::*;
+use std::ptr;
 
 use baseline::fct::ExHandler;
 use ctxt::{Context, FctId};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use stacktrace::StackFrameInfo;
+
+pub use self::param::*;
+pub use self::reg::*;
 
 pub mod asm;
 pub mod param;
@@ -37,7 +39,7 @@ pub fn fp_from_execstate(es: &ExecState) -> usize {
 }
 
 pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
-    let obj: Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
+    let obj: Handle<Obj> = es.regs[REG_RESULT.asm() as usize].into();
 
     obj
 }
