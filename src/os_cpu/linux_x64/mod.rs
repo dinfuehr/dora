@@ -17,15 +17,15 @@ pub fn read_execstate(uc: *const u8) -> ExecState {
         let uc = uc as *mut ucontext_t;
         let mc = &(*uc).uc_mcontext;
 
-        es.pc = mc.gregs[REG_RIP] as usize;
-        es.sp = mc.gregs[REG_RSP] as usize;
+        es.pc = mc.regs[REG_RIP];
+        es.sp = mc.regs[REG_RSP];
         es.ra = 0;
 
         for i in 0..es.regs.len() {
             let src = reg2ucontext(i);
             let dest = i;
 
-            es.regs[dest] = mc.gregs[src] as usize;
+            es.regs[dest] = mc.regs[src];
         }
     }
 
@@ -37,14 +37,14 @@ pub fn write_execstate(es: &ExecState, uc: *mut u8) {
         let uc = uc as *mut ucontext_t;
         let mc = &mut (*uc).uc_mcontext;
 
-        mc.gregs[REG_RIP] = es.pc as i64;
-        mc.gregs[REG_RSP] = es.sp as i64;
+        mc.regs[REG_RIP] = es.pc;
+        mc.regs[REG_RSP] = es.sp;
 
         for i in 0..es.regs.len() {
             let src = i;
             let dest = reg2ucontext(i);
 
-            mc.gregs[dest] = es.regs[src] as i64;
+            mc.regs[dest] = es.regs[src];
         }
     }
 }
