@@ -4,11 +4,9 @@ use libc::SIGSEGV;
 use execstate::ExecState;
 use os::signal::Trap;
 
-use self::ucontext::ucontext_t;
-use self::ucontext_reg::*;
+use self::ucontext::*;
 
 mod ucontext;
-mod ucontext_reg;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };

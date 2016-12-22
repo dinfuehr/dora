@@ -1,7 +1,11 @@
 use std;
+use libc;
 
 use execstate::ExecState;
 use os::signal::Trap;
+use self::ucontext::ucontext_t;
+
+mod ucontext;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };
@@ -16,6 +20,8 @@ pub fn read_execstate(uc: *const u8) -> ExecState {
     for i in 0..es.regs.len() {
         es.regs[i] = mc.regs[i];
     }
+
+    es
 }
 
 pub fn write_execstate(es: &ExecState, uc: *mut u8) {
@@ -31,7 +37,7 @@ pub fn write_execstate(es: &ExecState, uc: *mut u8) {
 }
 
 pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
-    if signo == SIGILL {
+    if signo == libc::SIGILL {
         read_trap(&es)
     } else {
         None
