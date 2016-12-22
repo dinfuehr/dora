@@ -1,7 +1,7 @@
 use baseline::codegen::CondCode;
 use cpu::asm;
-use cpu::arm64::asm::*;
-use cpu::arm64::reg::*;
+use cpu::asm::*;
+use cpu::reg::*;
 use cpu::{Mem, Reg};
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
@@ -186,11 +186,113 @@ impl MacroAssembler {
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: Reg, mem: Mem) {
-        unimplemented!();
+        match mem {
+            Mem::Local(offset) => {
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, offset);
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::ldrb_ind(dest, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::ldrw_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr =>
+                        asm::ldrx_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
+                };
+
+                self.emit_u32(inst);
+            }
+
+            Mem::Base(base, disp) => {
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, disp);
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::ldrb_ind(dest, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::ldrw_ind(dest, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr =>
+                        asm::ldrx_ind(dest, base, scratch, LdStExtend::LSL, 0),
+                };
+
+                self.emit_u32(inst);
+            }
+
+            Mem::Index(base, index, scale, disp) => {
+                assert!(mode.size() == scale);
+
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, disp);
+                self.emit_u32(asm::add_reg(1, scratch, scratch, base));
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::ldrb_ind(dest, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::ldrw_ind(dest, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr =>
+                        asm::ldrx_ind(dest, scratch, index, LdStExtend::LSL, 1),
+                };
+
+                self.emit_u32(inst);
+            }
+        }
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: Reg) {
-        unimplemented!();
+        match mem {
+            Mem::Local(offset) => {
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, offset);
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::strb_ind(src, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::strw_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr =>
+                        asm::strx_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
+                };
+
+                self.emit_u32(inst);
+            }
+
+            Mem::Base(base, disp) => {
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, disp);
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::strb_ind(src, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::strw_ind(src, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr =>
+                        asm::strx_ind(src, base, scratch, LdStExtend::LSL, 0),
+                };
+
+                self.emit_u32(inst);
+            }
+
+            Mem::Index(base, index, scale, disp) => {
+                assert!(mode.size() == scale);
+
+                let scratch = get_scratch();
+                self.load_int_const(MachineMode::Ptr, scratch, disp);
+                self.emit_u32(asm::add_reg(1, scratch, scratch, base));
+
+                let inst = match mode {
+                    MachineMode::Int8 =>
+                        asm::strb_ind(src, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 =>
+                        asm::strw_ind(src, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr =>
+                        asm::strx_ind(src, scratch, index, LdStExtend::LSL, 1),
+                };
+
+                self.emit_u32(inst);
+            }
+        }
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
@@ -198,11 +300,11 @@ impl MacroAssembler {
     }
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
-        unimplemented!();
+        self.emit_u32(asm::adr(dest, -disp));
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
-        self.emit_u32(blr(reg));
+        self.emit_u32(asm::blr(reg));
     }
 
     pub fn debug(&mut self) {
