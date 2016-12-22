@@ -3,9 +3,6 @@ use libc;
 
 use execstate::ExecState;
 use os::signal::Trap;
-use self::ucontext::ucontext_t;
-
-mod ucontext;
 
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };
@@ -60,4 +57,18 @@ fn read_trap(es: &ExecState) -> Option<Trap> {
     } else {
         None
     }
+}
+
+#[repr(C)]
+struct ucontext_t {
+    _ignore: [u64; 22],
+    pub uc_mcontext: mcontext_t,
+}
+
+#[repr(C)]
+struct mcontext_t {
+    _ignore: u64,
+    pub regs: [usize; 31],
+    pub sp: usize,
+    pub pc: usize,
 }

@@ -4,10 +4,6 @@ use libc::SIGSEGV;
 use execstate::ExecState;
 use os::signal::Trap;
 
-use self::ucontext::*;
-
-mod ucontext;
-
 pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };
 
@@ -97,3 +93,32 @@ fn read_trap(es: &ExecState) -> Option<Trap> {
         None
     }
 }
+
+#[repr(C)]
+struct ucontext_t {
+    _ignore: [u64; 5],
+    pub uc_mcontext: mcontext_t,
+}
+
+#[repr(C)]
+struct mcontext_t {
+    pub regs: [usize; 23],
+}
+
+const REG_R8: usize = 0;
+const REG_R9: usize = 1;
+const REG_R10: usize = 2;
+const REG_R11: usize = 3;
+const REG_R12: usize = 4;
+const REG_R13: usize = 5;
+const REG_R14: usize = 6;
+const REG_R15: usize = 7;
+const REG_RDI: usize = 8;
+const REG_RSI: usize = 9;
+const REG_RBP: usize = 10;
+const REG_RBX: usize = 11;
+const REG_RDX: usize = 12;
+const REG_RAX: usize = 13;
+const REG_RCX: usize = 14;
+const REG_RSP: usize = 15;
+const REG_RIP: usize = 16;
