@@ -148,7 +148,7 @@ impl MacroAssembler {
                 self.jumps.push(ForwardJump {
                     at: pos,
                     to: lbl,
-                    ty: JumpType::JumpIf(cond)
+                    ty: JumpType::JumpIf(cond),
                 });
             }
         }
@@ -173,7 +173,7 @@ impl MacroAssembler {
                 self.jumps.push(ForwardJump {
                     at: pos,
                     to: lbl,
-                    ty: JumpType::Jump
+                    ty: JumpType::Jump,
                 });
             }
         }
@@ -238,12 +238,9 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, offset);
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::ldrb_ind(dest, REG_FP, scratch, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::ldrw_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
-                    MachineMode::Ptr =>
-                        asm::ldrx_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::ldrw_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => asm::ldrx_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
                 };
 
                 self.emit_u32(inst);
@@ -254,12 +251,9 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, disp);
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::ldrb_ind(dest, base, scratch, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::ldrw_ind(dest, base, scratch, LdStExtend::LSL, 0),
-                    MachineMode::Ptr =>
-                        asm::ldrx_ind(dest, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::ldrw_ind(dest, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => asm::ldrx_ind(dest, base, scratch, LdStExtend::LSL, 0),
                 };
 
                 self.emit_u32(inst);
@@ -273,12 +267,9 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, scratch, scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::ldrb_ind(dest, scratch, index, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::ldrw_ind(dest, scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Ptr =>
-                        asm::ldrx_ind(dest, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::ldrw_ind(dest, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr => asm::ldrx_ind(dest, scratch, index, LdStExtend::LSL, 1),
                 };
 
                 self.emit_u32(inst);
@@ -293,12 +284,9 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, offset);
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::strb_ind(src, REG_FP, scratch, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::strw_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
-                    MachineMode::Ptr =>
-                        asm::strx_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => asm::strb_ind(src, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::strw_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => asm::strx_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
                 };
 
                 self.emit_u32(inst);
@@ -309,12 +297,9 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, disp);
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::strb_ind(src, base, scratch, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::strw_ind(src, base, scratch, LdStExtend::LSL, 0),
-                    MachineMode::Ptr =>
-                        asm::strx_ind(src, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => asm::strb_ind(src, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::strw_ind(src, base, scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => asm::strx_ind(src, base, scratch, LdStExtend::LSL, 0),
                 };
 
                 self.emit_u32(inst);
@@ -328,12 +313,9 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, scratch, scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 =>
-                        asm::strb_ind(src, scratch, index, LdStExtend::UXTW, 0),
-                    MachineMode::Int32 =>
-                        asm::strw_ind(src, scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Ptr =>
-                        asm::strx_ind(src, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int8 => asm::strb_ind(src, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int32 => asm::strw_ind(src, scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr => asm::strx_ind(src, scratch, index, LdStExtend::LSL, 1),
                 };
 
                 self.emit_u32(inst);
@@ -378,7 +360,7 @@ impl MacroAssembler {
 
         } else {
             let (halfword, invert) = if count_empty_half_words(!imm, register_size) >
-                    count_empty_half_words(imm, register_size) {
+                                        count_empty_half_words(imm, register_size) {
                 (0xFFFF, true)
             } else {
                 (0, false)
@@ -447,8 +429,7 @@ impl MacroAssembler {
 
             let insn = match jmp.ty {
                 JumpType::Jump => asm::b_imm(diff),
-                JumpType::JumpIf(cond) =>
-                    asm::b_cond_imm(cond.into(), diff)
+                JumpType::JumpIf(cond) => asm::b_cond_imm(cond.into(), diff),
             };
 
             let mut slice = &mut self.data[jmp.at..];

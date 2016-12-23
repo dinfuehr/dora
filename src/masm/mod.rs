@@ -1,7 +1,5 @@
-use baseline::fct::{CatchType, Comments,
-                    Comment, ExHandler,
-                    JitFct, LineNumberTable,
-                    GcPoints, GcPoint};
+use baseline::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints,
+                    GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use dseg::DSeg;
