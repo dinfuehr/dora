@@ -123,7 +123,8 @@ impl MacroAssembler {
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        unimplemented!();
+        self.cmp_reg(MachineMode::Int32, reg, reg);
+        self.jump_if(cond, lbl);
     }
 
     pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
@@ -376,7 +377,36 @@ impl MacroAssembler {
             self.emit_u32(movn(sf, dest, imm, shift));
 
         } else {
-            unimplemented!();
+            let (halfword, invert) = if count_empty_half_words(!imm, register_size) >
+                    count_empty_half_words(imm, register_size) {
+                (0xFFFF, true)
+            } else {
+                (0, false)
+            };
+
+            let mut imm = imm;
+            let mut first = true;
+
+            for ind in 0..(register_size / 16) {
+                let cur_shift = 16 * ind;
+                let cur_halfword = ((imm >> cur_shift) & 0xFFFF) as u32;
+
+                if cur_halfword != halfword {
+                    if first {
+                        let insn = if invert {
+                            asm::movn(sf, dest, (!cur_halfword) & 0xFFFF, ind)
+                        } else {
+                            asm::movz(sf, dest, cur_halfword, ind)
+                        };
+
+                        self.emit_u32(insn);
+                        first = false;
+                    } else {
+                        let insn = asm::movk(sf, dest, cur_halfword, ind);
+                        self.emit_u32(insn);
+                    }
+                }
+            }
         }
     }
 
@@ -587,5 +617,16 @@ mod tests {
         let mut masm = MacroAssembler::new();
         masm.load_int_const(Ptr, R0, -1);
         assert_emit!(0x92800000; masm);
+    }
+
+    #[test]
+    fn test_load_int_const_multiple_halfwords() {
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Int32, R0, 0x10001);
+        assert_emit!(0x52800020, 0x72a00020; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Ptr, R0, !0x10001);
+        assert_emit!(0x92800020, 0xF2BFFFC0; masm);
     }
 }
