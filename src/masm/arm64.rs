@@ -387,7 +387,7 @@ mod tests {
         masm.jump(lbl);
         masm.emit_label(lbl);
 
-        assert_eq!(vec![0, 0, 0, 0], masm.data());
+        assert_eq!(vec![0x14, 0, 0, 1], masm.data());
     }
 
     #[test]
@@ -397,6 +397,6 @@ mod tests {
         masm.emit_label(lbl);
         masm.jump(lbl);
 
-        assert_eq!(vec![0, 0, 0, 0], masm.data());
+        assert_eq!(vec![0x14, 0, 0, 0], masm.data());
     }
 }
