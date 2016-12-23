@@ -2,7 +2,7 @@ use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
 use lexer::position::Position;
-use masm::{ForwardJump, MacroAssembler, Label};
+use masm::{MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
 use os::signal::Trap;
