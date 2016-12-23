@@ -120,7 +120,7 @@ impl MacroAssembler {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
         asm::emit_testl_reg_reg(self, reg, reg);
-        asm::emit_jcc(self, cond, lbl);
+        self.jump_if(cond, lbl);
     }
 
     pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
