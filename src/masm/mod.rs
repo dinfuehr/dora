@@ -148,29 +148,6 @@ impl MacroAssembler {
         });
     }
 
-    pub fn emit_label(&mut self, lbl: Label) {
-        let value = self.labels[lbl.index()];
-
-        match value {
-            // backward jumps already know their target
-            Some(idx) => {
-                let current = self.pos() + 4;
-                let target = idx;
-
-                let diff = -((current - target) as i32);
-                self.emit_u32(diff as u32);
-            }
-
-            // forward jumps do not know their target yet
-            // we need to do this later...
-            None => {
-                let pos = self.pos();
-                self.emit_u32(0);
-                self.jumps.push(ForwardJump { at: pos, to: lbl });
-            }
-        }
-    }
-
     pub fn emit_u8(&mut self, value: u8) {
         self.data.write_u8(value).unwrap();
     }
@@ -198,75 +175,22 @@ impl Label {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctxt::FctId;
 
     #[test]
     fn test_label() {
-        let mut buf = MacroAssembler::new();
+        let mut masm = MacroAssembler::new();
 
-        assert_eq!(Label(0), buf.create_label());
-        assert_eq!(Label(1), buf.create_label());
-    }
-
-    #[test]
-    fn test_backward_with_gap() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        buf.bind_label(lbl);
-        buf.emit_u8(0x33);
-        buf.emit_label(lbl);
-
-        assert_eq!(vec![0x33, 0xfb, 0xff, 0xff, 0xff], buf.data());
-    }
-
-    #[test]
-    fn test_backward() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        buf.bind_label(lbl);
-        buf.emit_label(lbl);
-
-        assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], buf.data());
-    }
-
-    #[test]
-    fn test_forward_with_gap() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        buf.emit_label(lbl);
-        buf.emit_u8(0x11);
-        buf.bind_label(lbl);
-
-        assert_eq!(vec![1, 0, 0, 0, 0x11], buf.data());
-    }
-
-    #[test]
-    fn test_forward() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-        buf.emit_label(lbl);
-        buf.bind_label(lbl);
-
-        assert_eq!(vec![0, 0, 0, 0], buf.data());
+        assert_eq!(Label(0), masm.create_label());
+        assert_eq!(Label(1), masm.create_label());
     }
 
     #[test]
     #[should_panic]
     fn test_bind_label_twice() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
 
-        buf.bind_label(lbl);
-        buf.bind_label(lbl);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_label_undefined() {
-        let mut buf = MacroAssembler::new();
-        let lbl = buf.create_label();
-
-        buf.emit_label(lbl);
-        buf.jit(FctId(1), 0);
+        masm.bind_label(lbl);
+        masm.bind_label(lbl);
     }
 }

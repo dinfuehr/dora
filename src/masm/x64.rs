@@ -1,7 +1,7 @@
 use baseline::codegen::CondCode;
 use cpu::*;
 use lexer::position::Position;
-use masm::{MacroAssembler, Label};
+use masm::{ForwardJump, MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
 use os::signal::Trap;
@@ -351,5 +351,86 @@ impl MacroAssembler {
         asm::emit_modrm(self, 0, dest.and7(), 0b100);
         asm::emit_sib(self, 0, 0b100, 0b101);
         asm::emit_u32(self, trap.int());
+    }
+
+    pub fn emit_label(&mut self, lbl: Label) {
+        let value = self.labels[lbl.index()];
+
+        match value {
+            // backward jumps already know their target
+            Some(idx) => {
+                let current = self.pos() + 4;
+                let target = idx;
+
+                let diff = -((current - target) as i32);
+                self.emit_u32(diff as u32);
+            }
+
+            // forward jumps do not know their target yet
+            // we need to do this later...
+            None => {
+                let pos = self.pos();
+                self.emit_u32(0);
+                self.jumps.push(ForwardJump { at: pos, to: lbl });
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ctxt::FctId;
+
+    #[test]
+    fn test_backward() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.bind_label(lbl);
+        masm.emit_label(lbl);
+
+        assert_eq!(vec![0xfc, 0xff, 0xff, 0xff], masm.data());
+    }
+
+    #[test]
+    fn test_forward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.emit_label(lbl);
+        masm.emit_u8(0x11);
+        masm.bind_label(lbl);
+
+        assert_eq!(vec![1, 0, 0, 0, 0x11], masm.data());
+    }
+
+    #[test]
+    fn test_forward() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.emit_label(lbl);
+        masm.bind_label(lbl);
+
+        assert_eq!(vec![0, 0, 0, 0], masm.data());
+    }
+
+    #[test]
+    fn test_backward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.bind_label(lbl);
+        masm.emit_u8(0x33);
+        masm.emit_label(lbl);
+
+        assert_eq!(vec![0x33, 0xfb, 0xff, 0xff, 0xff], masm.data());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_label_undefined() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+
+        masm.emit_label(lbl);
+        masm.jit(FctId(1), 0);
     }
 }

@@ -375,3 +375,28 @@ fn get_scratch() -> Reg {
 fn get_scratch_registers() -> (Reg, Reg) {
     (SCRATCH[0], SCRATCH[1])
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_jump_after() {
+        let masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.jump(lbl);
+        masm.emit_label(lbl);
+
+        assert_eq!(vec![0, 0, 0, 0], masm.data());
+    }
+
+    #[test]
+    fn test_jump_before() {
+        let masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.emit_label(lbl);
+        masm.jump(lbl);
+
+        assert_eq!(vec![0, 0, 0, 0], masm.data());
+    }
+}
