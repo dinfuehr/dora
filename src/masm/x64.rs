@@ -1,4 +1,5 @@
 use baseline::codegen::CondCode;
+use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
 use lexer::position::Position;
 use masm::{ForwardJump, MacroAssembler, Label};
@@ -373,6 +374,16 @@ impl MacroAssembler {
                 self.emit_u32(0);
                 self.jumps.push(ForwardJump { at: pos, to: lbl });
             }
+        }
+    }
+
+    pub fn fix_forward_jumps(&mut self) {
+        for jmp in &self.jumps {
+            let target = self.labels[jmp.to.0].expect("label not defined");
+            let diff = (target - jmp.at - 4) as i32;
+
+            let mut slice = &mut self.data[jmp.at..];
+            slice.write_u32::<LittleEndian>(diff as u32).unwrap();
         }
     }
 }

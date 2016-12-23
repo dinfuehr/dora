@@ -1,5 +1,7 @@
-use baseline::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints,
-                    GcPoint};
+use baseline::fct::{CatchType, Comments,
+                    Comment, ExHandler,
+                    JitFct, LineNumberTable,
+                    GcPoints, GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use dseg::DSeg;
@@ -94,16 +96,6 @@ impl MacroAssembler {
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
         let pos = self.pos() as i32;
         self.gcpoints.insert(pos, gcpoint);
-    }
-
-    fn fix_forward_jumps(&mut self) {
-        for jmp in &self.jumps {
-            let target = self.labels[jmp.to.0].expect("label not defined");
-            let diff = (target - jmp.at - 4) as i32;
-
-            let mut slice = &mut self.data[jmp.at..];
-            slice.write_u32::<LittleEndian>(diff as u32).unwrap();
-        }
     }
 
     pub fn create_label(&mut self) -> Label {

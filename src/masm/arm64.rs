@@ -1,10 +1,11 @@
 use baseline::codegen::CondCode;
+use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{Mem, Reg};
 use lexer::position::Position;
-use masm::{MacroAssembler, Label};
+use masm::{ForwardJump, MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
 use os::signal::Trap;
@@ -130,7 +131,24 @@ impl MacroAssembler {
     }
 
     pub fn jump(&mut self, lbl: Label) {
-        unimplemented!();
+        let value = self.labels[lbl.index()];
+
+        match value {
+            Some(idx) => {
+                let current = self.pos();
+                let target = idx;
+
+                let diff = -((current - target) as i32);
+                assert!(diff % 4 == 0);
+                self.emit_u32(asm::b_imm(diff / 4));
+            }
+
+            None => {
+                let pos = self.pos();
+                self.emit_u32(0);
+                self.jumps.push(ForwardJump { at: pos, to: lbl });
+            }
+        }
     }
 
     pub fn int_div(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -358,6 +376,20 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap) {
         unimplemented!();
     }
+
+    pub fn fix_forward_jumps(&mut self) {
+        for jmp in &self.jumps {
+            let target = self.labels[jmp.to.0].expect("label not defined");
+            let diff = (target - jmp.at) as i32;
+            assert!(diff % 4 == 0);
+            let diff = diff / 4;
+
+            let insn = asm::b_imm(diff);
+
+            let mut slice = &mut self.data[jmp.at..];
+            slice.write_u32::<LittleEndian>(insn).unwrap();
+        }
+    }
 }
 
 fn size_flag(mode: MachineMode) -> u32 {
@@ -380,14 +412,31 @@ fn get_scratch_registers() -> (Reg, Reg) {
 mod tests {
     use super::*;
 
+    macro_rules! assert_emit {
+        (
+            $($expr:expr),*;
+            $name:ident
+        ) => {{
+            $name.finish();
+            let expected: Vec<u32> = vec![$($expr,)*];
+            let mut buffer: Vec<u8> = Vec::new();
+
+            for insn in expected {
+                buffer.write_u32::<LittleEndian>(insn).unwrap();
+            }
+
+            assert_eq!(buffer, $name.data());
+        }};
+    }
+
     #[test]
     fn test_jump_forward() {
-        let masm = MacroAssembler::new();
+        let mut masm = MacroAssembler::new();
         let lbl = masm.create_label();
         masm.jump(lbl);
         masm.bind_label(lbl);
 
-        assert_eq!(vec![0x14, 0, 0, 1], masm.data());
+        assert_emit!(0x14000001; masm);
     }
 
     #[test]
@@ -398,17 +447,17 @@ mod tests {
         masm.emit_u32(0);
         masm.bind_label(lbl);
 
-        assert_eq!(vec![0x14, 0, 0, 2, 0, 0, 0, 0], masm.data());
+        assert_emit!(0x14000002, 0; masm);
     }
 
     #[test]
     fn test_jump_backward() {
-        let masm = MacroAssembler::new();
+        let mut masm = MacroAssembler::new();
         let lbl = masm.create_label();
         masm.bind_label(lbl);
         masm.jump(lbl);
 
-        assert_eq!(vec![0x14, 0, 0, 0], masm.data());
+        assert_emit!(0x14000000; masm);
     }
 
     #[test]
@@ -419,6 +468,6 @@ mod tests {
         masm.emit_u32(0);
         masm.jump(lbl);
 
-        assert_eq!(vec![0, 0, 0, 0, 0x17, 0xFF, 0xFF, 0xFF], masm.data());
+        assert_emit!(0, 0x17FFFFFF; masm);
     }
 }
