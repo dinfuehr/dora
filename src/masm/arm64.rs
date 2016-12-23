@@ -381,22 +381,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_jump_after() {
+    fn test_jump_forward() {
         let masm = MacroAssembler::new();
         let lbl = masm.create_label();
         masm.jump(lbl);
-        masm.emit_label(lbl);
+        masm.bind_label(lbl);
 
         assert_eq!(vec![0x14, 0, 0, 1], masm.data());
     }
 
     #[test]
-    fn test_jump_before() {
+    fn test_jump_forward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.jump(lbl);
+        masm.emit_u32(0);
+        masm.bind_label(lbl);
+
+        assert_eq!(vec![0x14, 0, 0, 2, 0, 0, 0, 0], masm.data());
+    }
+
+    #[test]
+    fn test_jump_backward() {
         let masm = MacroAssembler::new();
         let lbl = masm.create_label();
-        masm.emit_label(lbl);
+        masm.bind_label(lbl);
         masm.jump(lbl);
 
         assert_eq!(vec![0x14, 0, 0, 0], masm.data());
+    }
+
+    #[test]
+    fn test_jump_backward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.bind_label(lbl);
+        masm.emit_u32(0);
+        masm.jump(lbl);
+
+        assert_eq!(vec![0, 0, 0, 0, 0x17, 0xFF, 0xFF, 0xFF], masm.data());
     }
 }
