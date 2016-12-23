@@ -149,12 +149,6 @@ impl MacroAssembler {
     }
 }
 
-#[derive(Debug)]
-struct ForwardJump {
-    at: usize,
-    to: Label,
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Label(usize);
 

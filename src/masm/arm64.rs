@@ -5,7 +5,7 @@ use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{Mem, Reg};
 use lexer::position::Position;
-use masm::{ForwardJump, MacroAssembler, Label};
+use masm::{MacroAssembler, Label};
 use mem::ptr_width;
 use object::IntArray;
 use os::signal::Trap;
@@ -127,7 +127,30 @@ impl MacroAssembler {
     }
 
     pub fn jump_if(&mut self, cond: CondCode, lbl: Label) {
-        unimplemented!();
+        let value = self.labels[lbl.index()];
+
+        match value {
+            Some(idx) => {
+                let current = self.pos();
+                let target = idx;
+
+                let diff = -((current - target) as i32);
+                assert!(diff % 4 == 0);
+                let diff = diff / 4;
+
+                self.emit_u32(asm::b_cond_imm(cond.into(), diff));
+            }
+
+            None => {
+                let pos = self.pos();
+                self.emit_u32(0);
+                self.jumps.push(ForwardJump {
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::JumpIf(cond)
+                });
+            }
+        }
     }
 
     pub fn jump(&mut self, lbl: Label) {
@@ -146,7 +169,11 @@ impl MacroAssembler {
             None => {
                 let pos = self.pos();
                 self.emit_u32(0);
-                self.jumps.push(ForwardJump { at: pos, to: lbl });
+                self.jumps.push(ForwardJump {
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::Jump
+                });
             }
         }
     }
@@ -339,10 +366,14 @@ impl MacroAssembler {
         let imm = imm as i64 as u64;
 
         if fits_movz(imm, register_size) {
-            self.emit_u32(movz(sf, dest, imm as u32, shift_movz(imm)));
+            let shift = shift_movz(imm);
+            let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
+            self.emit_u32(movz(sf, dest, imm, shift));
 
         } else if fits_movn(imm, register_size) {
-            self.emit_u32(movn(sf, dest, imm as u32, shift_movn(imm)));
+            let shift = shift_movn(imm);
+            let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
+            self.emit_u32(movn(sf, dest, imm, shift));
 
         } else {
             unimplemented!();
@@ -384,12 +415,29 @@ impl MacroAssembler {
             assert!(diff % 4 == 0);
             let diff = diff / 4;
 
-            let insn = asm::b_imm(diff);
+            let insn = match jmp.ty {
+                JumpType::Jump => asm::b_imm(diff),
+                JumpType::JumpIf(cond) =>
+                    asm::b_cond_imm(cond.into(), diff)
+            };
 
             let mut slice = &mut self.data[jmp.at..];
             slice.write_u32::<LittleEndian>(insn).unwrap();
         }
     }
+}
+
+#[derive(Debug)]
+pub struct ForwardJump {
+    at: usize,
+    to: Label,
+    ty: JumpType,
+}
+
+#[derive(Debug)]
+enum JumpType {
+    Jump,
+    JumpIf(CondCode),
 }
 
 fn size_flag(mode: MachineMode) -> u32 {
@@ -411,6 +459,7 @@ fn get_scratch_registers() -> (Reg, Reg) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ty::MachineMode::{Int32, Ptr};
 
     macro_rules! assert_emit {
         (
@@ -440,6 +489,16 @@ mod tests {
     }
 
     #[test]
+    fn test_jump_if_forward() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.jump_if(CondCode::Zero, lbl);
+        masm.bind_label(lbl);
+
+        assert_emit!(0x54000020; masm);
+    }
+
+    #[test]
     fn test_jump_forward_with_gap() {
         let mut masm = MacroAssembler::new();
         let lbl = masm.create_label();
@@ -448,6 +507,17 @@ mod tests {
         masm.bind_label(lbl);
 
         assert_emit!(0x14000002, 0; masm);
+    }
+
+    #[test]
+    fn test_jump_if_forward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.jump_if(CondCode::NonZero, lbl);
+        masm.emit_u32(0);
+        masm.bind_label(lbl);
+
+        assert_emit!(0x54000041, 0; masm);
     }
 
     #[test]
@@ -461,6 +531,16 @@ mod tests {
     }
 
     #[test]
+    fn test_jump_if_backward() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.bind_label(lbl);
+        masm.jump_if(CondCode::Less, lbl);
+
+        assert_emit!(0x5400000B; masm);
+    }
+
+    #[test]
     fn test_jump_backward_with_gap() {
         let mut masm = MacroAssembler::new();
         let lbl = masm.create_label();
@@ -469,5 +549,43 @@ mod tests {
         masm.jump(lbl);
 
         assert_emit!(0, 0x17FFFFFF; masm);
+    }
+
+    #[test]
+    fn test_jump_if_backward_with_gap() {
+        let mut masm = MacroAssembler::new();
+        let lbl = masm.create_label();
+        masm.bind_label(lbl);
+        masm.emit_u32(0);
+        masm.jump_if(CondCode::LessEq, lbl);
+
+        assert_emit!(0, 0x54FFFFED; masm);
+    }
+
+    #[test]
+    fn test_load_int_const() {
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Int32, R0, 0);
+        assert_emit!(0x52800000; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Int32, R0, 0xFFFF);
+        assert_emit!(0x529FFFE0; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Int32, R0, 1i32 << 16);
+        assert_emit!(0x52a00020; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Ptr, R0, 0);
+        assert_emit!(0xD2800000; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Int32, R0, -1);
+        assert_emit!(0x12800000; masm);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_int_const(Ptr, R0, -1);
+        assert_emit!(0x92800000; masm);
     }
 }

@@ -388,6 +388,12 @@ impl MacroAssembler {
     }
 }
 
+#[derive(Debug)]
+pub struct ForwardJump {
+    at: usize,
+    to: Label,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
