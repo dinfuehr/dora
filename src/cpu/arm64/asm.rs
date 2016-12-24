@@ -1,6 +1,7 @@
 use baseline::codegen::CondCode;
 use cpu::Reg;
 use cpu::arm64::reg::*;
+use os::signal::Trap;
 
 pub fn ret() -> u32 {
     cls_uncond_branch_reg(0b0010, 0b11111, 0, REG_LR, 0)
@@ -598,6 +599,10 @@ fn cls_logical_imm(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd:
 
     sf << 31 | opc << 29 | 0b100100u32 << 23 | n << 22 | immr << 16 | imms << 10 | rn.asm() << 5 |
     rd.asm()
+}
+
+pub fn trap(trap: Trap) -> u32 {
+    0xE7000000u32 | trap.int()
 }
 
 #[derive(Copy, Clone)]
@@ -1341,5 +1346,11 @@ mod tests {
         assert_eq!(0, shift_movn(0));
         assert_eq!(0, shift_movn(1));
         assert_eq!(1, shift_movn(0xFFFF));
+    }
+
+    #[test]
+    fn test_trap() {
+        assert_eq!(0xE7000000, trap(Trap::COMPILER));
+        assert_eq!(0xE7000001, trap(Trap::DIV0));
     }
 }

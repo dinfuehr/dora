@@ -417,7 +417,7 @@ impl MacroAssembler {
     }
 
     pub fn trap(&mut self, trap: Trap) {
-        unimplemented!();
+        self.emit_u32(asm::trap(trap));
     }
 
     pub fn fix_forward_jumps(&mut self) {
@@ -470,7 +470,7 @@ fn get_scratch_registers() -> (Reg, Reg) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ty::MachineMode::{Int32, Ptr};
+    use ty::MachineMode::{Int8, Int32, Ptr};
 
     macro_rules! assert_emit {
         (
@@ -609,5 +609,98 @@ mod tests {
         let mut masm = MacroAssembler::new();
         masm.load_int_const(Ptr, R0, !0x10001);
         assert_emit!(0x92800020, 0xF2BFFFC0; masm);
+    }
+
+    #[test]
+    fn test_load_mem_local_ptr() {
+        let i1 = asm::movz(1, R16, 1, 0);
+        let i2 = asm::ldrx_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Ptr, R1, Mem::Local(1));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_local_int32() {
+        let i1 = asm::movz(1, R16, 2, 0);
+        let i2 = asm::ldrw_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int32, R1, Mem::Local(2));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_local_int8() {
+        let i1 = asm::movz(1, R16, 3, 0);
+        let i2 = asm::ldrb_ind(R1, REG_FP, R16, LdStExtend::UXTW, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int8, R1, Mem::Local(3));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_base_ptr() {
+        let i1 = asm::movz(1, R16, 1, 0);
+        let i2 = asm::ldrx_ind(R1, R10, R16, LdStExtend::LSL, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Ptr, R1, Mem::Base(R10, 1));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_base_int32() {
+        let i1 = asm::movz(1, R16, 2, 0);
+        let i2 = asm::ldrw_ind(R1, R2, R16, LdStExtend::LSL, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int32, R1, Mem::Base(R2, 2));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_base_int8() {
+        let i1 = asm::movz(1, R16, 3, 0);
+        let i2 = asm::ldrb_ind(R1, R3, R16, LdStExtend::UXTW, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int8, R1, Mem::Base(R3, 3));
+        assert_emit!(i1, i2; masm);
+    }
+
+    #[test]
+    fn test_load_mem_index_ptr() {
+        let i1 = asm::movz(1, R16, 1, 0);
+        let i2 = asm::add_reg(1, R16, R16, R10);
+        let i3 = asm::ldrx_ind(R1, R16, R11, LdStExtend::LSL, 1);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Ptr, R1, Mem::Index(R10, R11, 8, 1));
+        assert_emit!(i1, i2, i3; masm);
+    }
+
+    #[test]
+    fn test_load_mem_index_int32() {
+        let i1 = asm::movz(1, R16, 2, 0);
+        let i2 = asm::add_reg(1, R16, R16, R2);
+        let i3 = asm::ldrw_ind(R1, R16, R12, LdStExtend::LSL, 1);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int32, R1, Mem::Index(R2, R12, 4, 2));
+        assert_emit!(i1, i2, i3; masm);
+    }
+
+    #[test]
+    fn test_load_mem_index_int8() {
+        let i1 = asm::movz(1, R16, 3, 0);
+        let i2 = asm::add_reg(1, R16, R16, R3);
+        let i3 = asm::ldrb_ind(R1, R16, R13, LdStExtend::UXTW, 0);
+
+        let mut masm = MacroAssembler::new();
+        masm.load_mem(Int8, R1, Mem::Index(R3, R13, 1, 3));
+        assert_emit!(i1, i2, i3; masm);
     }
 }
