@@ -42,7 +42,7 @@ fn cls_addsub_extreg(sf: u32, op: u32, s: u32, opt: u32, rm: Reg, option: Extend
     assert!(fits_bit(op));
     assert!(fits_bit(s));
     assert!(opt == 0);
-    assert!(rm.is_gpr());
+    assert!(rm.is_gpr_or_zero());
     assert!(fits_u2(imm3));
     assert!(rn.is_gpr_or_sp());
     assert!(rd.is_gpr_or_sp());
@@ -280,7 +280,7 @@ fn cls_ldst_regoffset(size: u32,
     assert!(fits_u2(opc));
     assert!(rm.is_gpr());
     assert!(fits_bit(s));
-    assert!(rn.is_gpr());
+    assert!(rn.is_gpr_or_sp());
     assert!(rt.is_gpr());
 
     0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 | v << 26 | opc << 22 |
@@ -393,9 +393,9 @@ fn cls_logical_shreg(sf: u32,
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
     assert!(fits_bit(n));
-    assert!(rm.is_gpr());
+    assert!(rm.is_gpr_or_zero());
     assert!(fits_u5(imm6));
-    assert!(rn.is_gpr());
+    assert!(rn.is_gpr_or_zero());
     assert!(rd.is_gpr());
 
     0b01010u32 << 24 | sf << 31 | opc << 29 | shift.u32() << 22 | n << 21 | rm.asm() << 16 |
@@ -1375,5 +1375,13 @@ mod tests {
     fn test_trap() {
         assert_eq!(0xE7000000, trap(Trap::COMPILER));
         assert_eq!(0xE7000001, trap(Trap::DIV0));
+    }
+
+    #[test]
+    fn test_add_extreg() {
+        assert_eq!(0x8b22643f, add_extreg(1, REG_SP, R1, R2, Extend::UXTX, 1));
+        assert_eq!(0x8b226be1, add_extreg(1, R1, REG_SP, R2, Extend::UXTX, 2));
+        assert_eq!(0x0b22443f, add_extreg(0, REG_SP, R1, R2, Extend::UXTW, 1));
+        assert_eq!(0x0b2243e1, add_extreg(0, R1, REG_SP, R2, Extend::UXTW, 0));
     }
 }

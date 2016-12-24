@@ -68,7 +68,7 @@ struct ucontext_t {
 #[repr(C)]
 struct mcontext_t {
     _ignore: u64,
-    pub regs: [usize; 31],
+    pub regs: [usize; 32],
     pub sp: usize,
     pub pc: usize,
 }

@@ -15,12 +15,12 @@ use vtable::VTable;
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
         self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
-        self.emit_u32(asm::add_reg(1, REG_FP, REG_SP, REG_ZERO));
+        self.emit_u32(asm::add_extreg(1, REG_FP, REG_SP, REG_ZERO, Extend::UXTX, 0));
 
         if stacksize > 0 {
             let scratch = get_scratch();
             self.load_int_const(MachineMode::Ptr, scratch, stacksize);
-            self.emit_u32(asm::sub_reg(1, REG_SP, REG_SP, scratch));
+            self.emit_u32(asm::sub_extreg(1, REG_SP, REG_SP, scratch, Extend::UXTX, 0));
         }
     }
 
@@ -28,10 +28,10 @@ impl MacroAssembler {
         if stacksize > 0 {
             let scratch = get_scratch();
             self.load_int_const(MachineMode::Ptr, scratch, stacksize);
-            self.emit_u32(asm::add_reg(1, REG_SP, REG_SP, scratch));
+            self.emit_u32(asm::add_extreg(1, REG_SP, REG_SP, scratch, Extend::UXTX, 0));
         }
 
-        self.emit_u32(asm::add_reg(1, REG_SP, REG_FP, REG_ZERO));
+        self.emit_u32(asm::add_extreg(1, REG_SP, REG_FP, REG_ZERO, Extend::UXTX, 0));
         self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
         self.emit_u32(asm::ret());
     }
