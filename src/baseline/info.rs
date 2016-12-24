@@ -511,7 +511,7 @@ mod tests {
                   let k : int = 1;
               }",
              |fct| {
-            assert_eq!(28, fct.localsize);
+            assert_eq!(36, fct.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
