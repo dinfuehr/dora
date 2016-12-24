@@ -486,6 +486,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_arch = "x86_64")]
     fn test_params_over_6_offset() {
         info("fun f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int) {
@@ -494,6 +495,24 @@ mod tests {
              |fct| {
             assert_eq!(28, fct.localsize);
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
+
+            for (var, offset) in fct.vars.iter().zip(&offsets) {
+                assert_eq!(*offset, var.offset);
+            }
+        });
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_params_over_8_offset() {
+        info("fun f(a: int, b: int, c: int, d: int,
+                   e: int, f: int, g: int, h: int,
+                   i: int, j: int) {
+                  let k : int = 1;
+              }",
+             |fct| {
+            assert_eq!(28, fct.localsize);
+            let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
                 assert_eq!(*offset, var.offset);
