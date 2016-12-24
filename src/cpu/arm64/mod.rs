@@ -34,6 +34,46 @@ pub fn resume_with_handler(es: &mut ExecState,
     unimplemented!();
 }
 
+pub fn flush_icache(start: *const u8, len: usize) {
+    let start = start as usize;
+    let end = start + len;
+
+    let icacheline_size = 64;
+    let dcacheline_size = 64;
+
+    let istart = start & !(icacheline_size - 1);
+    let dstart = start & !(dcacheline_size - 1);
+
+    let mut ptr = dstart;
+
+    while ptr < end {
+        unsafe {
+            asm!("dc civac, $0":: "r"(ptr) : "memory" : "volatile");
+        }
+
+        ptr += dcacheline_size;
+    }
+
+    unsafe {
+        asm!("dsb ish" ::: "memory" : "volatile");
+    }
+
+    ptr = istart;
+
+    while ptr < end {
+        unsafe {
+            asm!("ic ivau, $0":: "r"(ptr) : "memory" : "volatile");
+        }
+
+        ptr += icacheline_size;
+    }
+
+    unsafe {
+        asm!("dsb ish
+              isb" ::: "memory" : "volatile");
+    }
+}
+
 pub fn fp_from_execstate(es: &ExecState) -> usize {
     es.regs[REG_FP.asm() as usize]
 }

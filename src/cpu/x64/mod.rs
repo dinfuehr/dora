@@ -45,6 +45,14 @@ pub fn resume_with_handler(es: &mut ExecState,
     es.pc = handler.catch;
 }
 
+pub fn flush_icache(_: *const u8, _: usize) {
+    // no flushing needed on x86_64, but use compiler barrier
+
+    unsafe {
+        asm!("" ::: "memory" : "volatile");
+    }
+}
+
 pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
     let obj: Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
 

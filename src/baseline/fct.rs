@@ -3,6 +3,7 @@ use std::fmt;
 use std::ptr;
 
 use class::ClassId;
+use cpu::flush_icache;
 use ctxt::{Context, FctId};
 use dseg::DSeg;
 use mem::CodeMemory;
@@ -53,6 +54,8 @@ impl JitFct {
             fct_start = ptr.offset(dseg.size() as isize);
             ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start as *mut u8, buffer.len());
         }
+
+        flush_icache(ptr, size);
 
         for handler in &mut exception_handlers {
             let fct_start = fct_start as usize;
