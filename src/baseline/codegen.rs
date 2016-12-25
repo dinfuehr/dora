@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::slice;
 
+use capstone::{Engine, Error};
+
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
@@ -55,6 +57,20 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     fct_ptr
 }
 
+#[cfg(target_arch = "x86_64")]
+fn get_engine() -> Result<Engine, Error> {
+    use capstone::{Arch, MODE_64};
+
+    Engine::new(Arch::X86, MODE_64)
+}
+
+#[cfg(target_arch = "aarch64")]
+fn get_engine() -> Result<Engine, Error> {
+    use capstone::{Arch, MODE_64};
+
+    Engine::new(Arch::Arm64, MODE_64)
+}
+
 pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
     use capstone::*;
 
@@ -67,7 +83,7 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
         AsmSyntax::Att => 2,
     };
 
-    let engine = Engine::new(Arch::X86, MODE_64).expect("cannot create capstone engine");
+    let engine = get_engine().expect("cannot create capstone engine");
     if let Err(_) = engine.set_option(Opt::Syntax, asm_syntax) {
         panic!("capstone: syntax couldn't be set");
     }
