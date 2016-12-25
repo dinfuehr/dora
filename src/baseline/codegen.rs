@@ -66,9 +66,9 @@ fn get_engine() -> Result<Engine, Error> {
 
 #[cfg(target_arch = "aarch64")]
 fn get_engine() -> Result<Engine, Error> {
-    use capstone::{Arch, MODE_64};
+    use capstone::{Arch, MODE_ARM};
 
-    Engine::new(Arch::Arm64, MODE_64)
+    Engine::new(Arch::Arm64, MODE_ARM)
 }
 
 pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {

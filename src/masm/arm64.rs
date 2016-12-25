@@ -42,7 +42,7 @@ impl MacroAssembler {
 
         let scratch = get_scratch();
 
-        self.load_constpool(REG_RESULT, disp + pos);
+        self.load_constpool(scratch, disp + pos);
         self.emit_u32(asm::br(scratch));
     }
 
