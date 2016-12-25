@@ -110,7 +110,7 @@ impl JitFct {
         self.fct_len
     }
 
-    pub fn get_comment(&self, pos: i32) -> Option<&Comment> {
+    pub fn get_comment(&self, pos: i32) -> Option<&[Comment]> {
         self.comments.get(pos)
     }
 }
@@ -159,7 +159,7 @@ impl GcPoint {
 }
 
 pub struct Comments {
-    comments: HashMap<i32, Comment>,
+    comments: HashMap<i32, Vec<Comment>>,
 }
 
 impl Comments {
@@ -167,12 +167,12 @@ impl Comments {
         Comments { comments: HashMap::new() }
     }
 
-    pub fn get(&self, pos: i32) -> Option<&Comment> {
-        self.comments.get(&pos)
+    pub fn get(&self, pos: i32) -> Option<&[Comment]> {
+        self.comments.get(&pos).map(|c| c.as_slice())
     }
 
     pub fn insert(&mut self, pos: i32, comment: Comment) {
-        self.comments.insert(pos, comment);
+        self.comments.entry(pos).or_insert(Vec::new()).push(comment);
     }
 }
 

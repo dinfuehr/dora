@@ -9,7 +9,7 @@ use ast::Stmt::*;
 use ast::visit::*;
 
 use baseline::expr::*;
-use baseline::fct::{CatchType, CommentFormat, JitFct, GcPoint};
+use baseline::fct::{CatchType, Comment, CommentFormat, JitFct, GcPoint};
 use baseline::info;
 use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
@@ -97,13 +97,17 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
     println!("fn {} {:#x}", &name, start_addr);
 
     for instr in instrs {
-        if let Some(comment) = jit_fct.get_comment((instr.addr - start_addr) as i32) {
-            let comment = CommentFormat {
-                comment: comment,
-                ctxt: ctxt,
-            };
+        let addr = (instr.addr - start_addr) as i32;
 
-            println!("\t\t  ; {}", comment);
+        if let Some(comments) = jit_fct.get_comment(addr) {
+            for comment in comments {
+                let cfmt = CommentFormat {
+                    comment: comment,
+                    ctxt: ctxt,
+                };
+
+                println!("\t\t  ; {}", cfmt);
+            }
         }
 
         println!("  {:#06x}: {}\t\t{}",
@@ -180,9 +184,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_prolog(&mut self) {
         self.masm.prolog(self.src.stacksize());
+        self.masm.emit_comment(Comment::Lit("prolog end"));
     }
 
     fn emit_epilog(&mut self) {
+        self.masm.emit_comment(Comment::Lit("epilog"));
         self.masm.epilog(self.src.stacksize());
     }
 
