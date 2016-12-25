@@ -40,10 +40,11 @@ impl MacroAssembler {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
-        let scratch = get_scratch();
+        let (_, scratch) = get_scratch_registers();
 
         self.load_constpool(scratch, disp + pos);
-        self.emit_u32(asm::br(scratch));
+        self.load_mem(MachineMode::Ptr, scratch, Mem::Base(scratch, 0));
+        self.emit_u32(asm::blr(scratch));
     }
 
     pub fn indirect_call(&mut self, index: u32) {
@@ -336,7 +337,7 @@ impl MacroAssembler {
     }
 
     pub fn debug(&mut self) {
-        unimplemented!();
+        self.emit_u32(asm::brk(0));
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i32) {
