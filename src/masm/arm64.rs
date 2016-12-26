@@ -242,7 +242,7 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, offset);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
                     MachineMode::Ptr => asm::ldrx_ind(dest, REG_FP, scratch, LdStExtend::LSL, 0),
                 };
@@ -255,7 +255,7 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, disp);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, base, scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, base, scratch, LdStExtend::LSL, 0),
                     MachineMode::Ptr => asm::ldrx_ind(dest, base, scratch, LdStExtend::LSL, 0),
                 };
@@ -271,7 +271,7 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, scratch, scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::ldrb_ind(dest, scratch, index, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, scratch, index, LdStExtend::LSL, 1),
                     MachineMode::Ptr => asm::ldrx_ind(dest, scratch, index, LdStExtend::LSL, 1),
                 };
@@ -288,7 +288,7 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, offset);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src, REG_FP, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::strb_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
                     MachineMode::Ptr => asm::strx_ind(src, REG_FP, scratch, LdStExtend::LSL, 0),
                 };
@@ -301,7 +301,7 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, scratch, disp);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src, base, scratch, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::strb_ind(src, base, scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, base, scratch, LdStExtend::LSL, 0),
                     MachineMode::Ptr => asm::strx_ind(src, base, scratch, LdStExtend::LSL, 0),
                 };
@@ -317,7 +317,7 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, scratch, scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src, scratch, index, LdStExtend::UXTW, 0),
+                    MachineMode::Int8 => asm::strb_ind(src, scratch, index, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, scratch, index, LdStExtend::LSL, 1),
                     MachineMode::Ptr => asm::strx_ind(src, scratch, index, LdStExtend::LSL, 1),
                 };
@@ -639,7 +639,7 @@ mod tests {
     #[test]
     fn test_load_mem_local_int8() {
         let i1 = asm::movz(1, R16, 3, 0);
-        let i2 = asm::ldrb_ind(R1, REG_FP, R16, LdStExtend::UXTW, 0);
+        let i2 = asm::ldrb_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1, Mem::Local(3));
@@ -669,7 +669,7 @@ mod tests {
     #[test]
     fn test_load_mem_base_int8() {
         let i1 = asm::movz(1, R16, 3, 0);
-        let i2 = asm::ldrb_ind(R1, R3, R16, LdStExtend::UXTW, 0);
+        let i2 = asm::ldrb_ind(R1, R3, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1, Mem::Base(R3, 3));
@@ -702,7 +702,7 @@ mod tests {
     fn test_load_mem_index_int8() {
         let i1 = asm::movz(1, R16, 3, 0);
         let i2 = asm::add_reg(1, R16, R16, R3);
-        let i3 = asm::ldrb_ind(R1, R16, R13, LdStExtend::UXTW, 0);
+        let i3 = asm::ldrb_ind(R1, R16, R13, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1, Mem::Index(R3, R13, 1, 3));
