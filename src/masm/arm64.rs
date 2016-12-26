@@ -97,8 +97,7 @@ impl MacroAssembler {
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
-        self.emit_u32(asm::cmp_imm(0, dest, 0, 0));
-        self.emit_u32(asm::cset(0, dest, CondCode::NotEqual.into()));
+        self.emit_u32(asm::cset(0, dest, op.into()));
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
