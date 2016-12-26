@@ -367,7 +367,6 @@ impl MacroAssembler {
                 (0, false)
             };
 
-            let mut imm = imm;
             let mut first = true;
 
             for ind in 0..(register_size / 16) {

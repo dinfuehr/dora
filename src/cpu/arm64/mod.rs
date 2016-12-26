@@ -1,7 +1,6 @@
 use std::ptr;
 
 use baseline::fct::ExHandler;
-use ctxt::{Context, FctId};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use stacktrace::StackFrameInfo;

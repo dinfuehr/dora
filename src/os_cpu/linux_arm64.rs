@@ -45,7 +45,7 @@ fn read_trap(es: &ExecState) -> Option<Trap> {
     let v: u32;
 
     unsafe {
-        let mut ptr: *const u32 = es.pc as *const u32;
+        let ptr: *const u32 = es.pc as *const u32;
 
         v = *ptr;
     }
