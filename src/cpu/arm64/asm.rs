@@ -37,7 +37,16 @@ pub fn sub_extreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u3
     cls_addsub_extreg(sf, 1, 0, 0, rm, extend, amount, rn, rd)
 }
 
-fn cls_addsub_extreg(sf: u32, op: u32, s: u32, opt: u32, rm: Reg, option: Extend, imm3: u32, rn: Reg, rd: Reg) -> u32 {
+fn cls_addsub_extreg(sf: u32,
+                     op: u32,
+                     s: u32,
+                     opt: u32,
+                     rm: Reg,
+                     option: Extend,
+                     imm3: u32,
+                     rn: Reg,
+                     rd: Reg)
+                     -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(op));
     assert!(fits_bit(s));
@@ -47,9 +56,8 @@ fn cls_addsub_extreg(sf: u32, op: u32, s: u32, opt: u32, rm: Reg, option: Extend
     assert!(rn.is_gpr_or_sp());
     assert!(rd.is_gpr_or_sp());
 
-    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 |
-        1u32 << 21 | rm.asm() << 16 | option.u32() << 13 | imm3 << 10 |
-        rn.asm() << 5 | rd.asm()
+    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 | 1u32 << 21 |
+    rm.asm() << 16 | option.u32() << 13 | imm3 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn stp_pre(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {

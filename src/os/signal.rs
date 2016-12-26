@@ -2,8 +2,9 @@ use std;
 use libc;
 
 use baseline;
+use baseline::fct::BailoutInfo;
 use cpu;
-use ctxt::{Context, CTXT, get_ctxt};
+use ctxt::{Context, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
@@ -127,9 +128,9 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
             let fct = ctxt.fct_by_id(fct_id);
 
             if fct.is_virtual() {
-                cpu::patch_vtable_call(ctxt, es, fct_id, jit_fct);
+                patch_vtable_call(ctxt, es, fct_id, jit_fct);
             } else {
-                cpu::patch_fct_call(es, jit_fct);
+                patch_fct_call(ctxt, es, jit_fct);
             }
 
             write_execstate(es, ucontext as *mut u8);
@@ -140,6 +141,54 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
             libc::_exit(200);
         }
     }
+}
+
+fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
+    let fct = ctxt.fct_by_id(fid);
+    let vtable_index = fct.vtable_index.unwrap();
+    let cls_id = fct.owner_class.unwrap();
+
+    let cls = ctxt.cls_by_id(cls_id);
+    let vtable = cls.vtable.as_ref().unwrap();
+
+    let methodtable = vtable.table_mut();
+    methodtable[vtable_index as usize] = fct_ptr as usize;
+
+    // execute fct call again
+    es.pc = fct_ptr as usize;
+}
+
+pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
+    // get return address from top of stack
+    let mut ra = cpu::ra_from_execstate(es);
+
+    let fct_id = {
+        let code_map = ctxt.code_map.lock().unwrap();
+        code_map.get(ra as *const u8).expect("return address not found")
+    };
+
+    let fct = ctxt.fct_by_id(fct_id);
+    let src = fct.src();
+    let mut src = src.lock().unwrap();
+    let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
+
+    let offset = ra - jit_fct.fct_ptr() as usize;
+    let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
+
+    // get address of function pointer
+    let disp = match bailout {
+        &BailoutInfo::Compile(disp) => disp as isize,
+    };
+
+    let fct_addr: *mut usize = (ra as isize - disp) as *mut _;
+
+    // write function pointer
+    unsafe {
+        *fct_addr = fct_ptr as usize;
+    }
+
+    // execute fct call again
+    es.pc = fct_ptr as usize;
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

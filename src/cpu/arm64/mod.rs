@@ -85,10 +85,6 @@ pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
     obj
 }
 
-pub fn patch_fct_call(es: &mut ExecState, fct_ptr: *const u8) {
-    unimplemented!();
-}
-
-pub fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
-    unimplemented!();
+pub fn ra_from_execstate(es: &ExecState) -> usize {
+    es.regs[REG_LR.asm() as usize]
 }

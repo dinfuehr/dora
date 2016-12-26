@@ -22,6 +22,8 @@ pub struct JitFct {
 
     pub framesize: i32,
 
+    pub bailouts: Bailouts,
+
     gcpoints: GcPoints,
 
     comments: Comments,
@@ -35,6 +37,7 @@ impl JitFct {
     pub fn from_buffer(fct_id: FctId,
                        dseg: &DSeg,
                        buffer: &[u8],
+                       bailouts: Bailouts,
                        gcpoints: GcPoints,
                        framesize: i32,
                        comments: Comments,
@@ -68,6 +71,7 @@ impl JitFct {
         JitFct {
             fct_id: fct_id,
             code: code,
+            bailouts: bailouts,
             gcpoints: gcpoints,
             comments: comments,
             framesize: framesize,
@@ -272,4 +276,28 @@ pub struct ExHandler {
 pub enum CatchType {
     Any,
     Class(ClassId),
+}
+
+#[derive(Debug)]
+pub struct Bailouts {
+    map: HashMap<i32, BailoutInfo>,
+}
+
+impl Bailouts {
+    pub fn new() -> Bailouts {
+        Bailouts { map: HashMap::new() }
+    }
+
+    pub fn insert(&mut self, offset: i32, info: BailoutInfo) {
+        assert!(self.map.insert(offset, info).is_none());
+    }
+
+    pub fn get(&self, offset: i32) -> Option<&BailoutInfo> {
+        self.map.get(&offset)
+    }
+}
+
+#[derive(Debug)]
+pub enum BailoutInfo {
+    Compile(i32),
 }

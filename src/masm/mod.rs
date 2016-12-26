@@ -1,5 +1,5 @@
-use baseline::fct::{CatchType, Comments, Comment, ExHandler, JitFct, LineNumberTable, GcPoints,
-                    GcPoint};
+use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
+                    LineNumberTable, GcPoints, GcPoint};
 use byteorder::{LittleEndian, WriteBytesExt};
 use ctxt::FctId;
 use dseg::DSeg;
@@ -23,6 +23,7 @@ pub struct MacroAssembler {
     labels: Vec<Option<usize>>,
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, Trap, Position)>,
+    bailout_infos: Bailouts,
     dseg: DSeg,
     gcpoints: GcPoints,
     comments: Comments,
@@ -37,6 +38,7 @@ impl MacroAssembler {
             labels: Vec::new(),
             jumps: Vec::new(),
             bailouts: Vec::new(),
+            bailout_infos: Bailouts::new(),
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
             comments: Comments::new(),
@@ -51,6 +53,7 @@ impl MacroAssembler {
         JitFct::from_buffer(id,
                             &self.dseg,
                             &self.data,
+                            self.bailout_infos,
                             self.gcpoints,
                             stacksize,
                             self.comments,
@@ -94,6 +97,11 @@ impl MacroAssembler {
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
         let pos = self.pos() as i32;
         self.gcpoints.insert(pos, gcpoint);
+    }
+
+    pub fn emit_bailout_info(&mut self, info: BailoutInfo) {
+        let pos = self.pos() as i32;
+        self.bailout_infos.insert(pos, info);
     }
 
     pub fn create_label(&mut self) -> Label {

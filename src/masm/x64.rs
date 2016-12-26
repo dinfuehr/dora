@@ -1,3 +1,4 @@
+use baseline::fct::BailoutInfo;
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
@@ -34,6 +35,9 @@ impl MacroAssembler {
 
         self.load_constpool(REG_RESULT, disp + pos);
         self.call_reg(REG_RESULT);
+
+        let pos = self.pos() as i32;
+        self.emit_bailout_info(BailoutInfo::Compile(disp + pos));
     }
 
     pub fn indirect_call(&mut self, index: u32) {
