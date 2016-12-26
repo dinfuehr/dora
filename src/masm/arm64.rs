@@ -82,20 +82,6 @@ impl MacroAssembler {
                        value);
     }
 
-    pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg) {
-        let lbl = self.test_if_nil(reg);
-        self.emit_bailout(lbl, Trap::NIL, pos);
-    }
-
-    pub fn test_if_nil(&mut self, reg: Reg) -> Label {
-        self.emit_u32(asm::cmp_imm(1, reg, 0, 0));
-
-        let lbl = self.create_label();
-        self.jump_if(CondCode::Equal, lbl);
-
-        lbl
-    }
-
     pub fn set(&mut self, dest: Reg, op: CondCode) {
         self.emit_u32(asm::cset(0, dest, op.into()));
     }
@@ -118,6 +104,10 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         self.emit_u32(asm::cmp_shreg(size_flag(mode), lhs, rhs, Shift::LSL, 0));
+    }
+
+    pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
+        self.emit_u32(asm::cmp_imm(size_flag(mode), lhs, 0, 0));
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {

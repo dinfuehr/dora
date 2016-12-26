@@ -605,11 +605,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            let lbl_div = eg.masm.create_label();
-            eg.masm.test_and_jump_if(CondCode::NonZero, rhs, lbl_div);
-            eg.masm.trap(Trap::DIV0);
-
-            eg.masm.bind_label(lbl_div);
+            let lbl_div0 = eg.masm.create_label();
+            eg.masm.cmp_zero(MachineMode::Int32, rhs);
+            eg.masm.jump_if(CondCode::Zero, lbl_div0);
+            eg.masm.emit_bailout(lbl_div0, Trap::DIV0, e.pos);
 
             if e.op == BinOp::Div {
                 eg.masm.int_div(dest, lhs, rhs)
@@ -833,7 +832,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let call_type = self.src.calls.get(&id);
 
                     if call_type.is_some() && call_type.unwrap().is_method() && check_for_nil(ty) {
-                        self.masm.test_if_nil_bailout(pos, reg);
+                        self.masm.test_if_nil_bailout(pos, reg, Trap::NIL);
                     }
                 }
 

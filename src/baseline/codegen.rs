@@ -356,7 +356,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         let reg = self.emit_expr(&s.expr);
-        self.masm.test_if_nil_bailout(s.pos, reg);
+        self.masm.test_if_nil_bailout(s.pos, reg, Trap::NIL);
 
         if reg != REG_RESULT {
             self.masm.copy_reg(MachineMode::Ptr, REG_RESULT, reg);

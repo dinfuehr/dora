@@ -196,24 +196,40 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
     }
 }
 
+pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, reg: Reg) {
+    let x64 = match mode {
+        MachineMode::Int8 |
+        MachineMode::Int32 => 0,
+        MachineMode::Ptr => 1,
+    };
+
+    emit_aluq_imm_reg(buf, x64, imm, reg, 0x3d, 0b111);
+}
+
 pub fn emit_subq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, imm, reg, 0x2d, 0b101);
+    emit_aluq_imm_reg(buf, 1, imm, reg, 0x2d, 0b101);
 }
 
 pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
-    emit_aluq_imm_reg(buf, imm, reg, 0x05, 0);
+    emit_aluq_imm_reg(buf, 1, imm, reg, 0x05, 0);
 }
 
-fn emit_aluq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
-    emit_rex(buf, 1, 0, 0, reg.msb());
+fn emit_aluq_imm_reg(buf: &mut MacroAssembler, x64: u8, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
+    assert!(x64 == 0 || x64 == 1);
+
+    if x64 != 0 || reg.msb() != 0 {
+        emit_rex(buf, x64, 0, 0, reg.msb());
+    }
 
     if fits_i8(imm) {
         emit_op(buf, 0x83);
         emit_modrm(buf, 0b11, modrm_reg, reg.and7());
         emit_u8(buf, imm as u8);
+
     } else if reg == RAX {
         emit_op(buf, rax_opcode);
         emit_u32(buf, imm as u32);
+
     } else {
         emit_op(buf, 0x81);
         emit_modrm(buf, 0b11, modrm_reg, reg.and7());
@@ -1402,5 +1418,15 @@ mod tests {
 
         assert_emit!(0x4f, 0x89, 0x6c, 0xfe, 0x10;
             emit_mov_reg_memindex(MachineMode::Ptr, R13, R14, R15, 8, 16));
+    }
+
+    #[test]
+    fn test_cmp_reg_imm() {
+        assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, RAX));
+        assert_emit!(0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, RAX));
+        assert_emit!(0x49, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R15));
+        assert_emit!(0x41, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R15));
+        assert_emit!(0x49, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R9));
+        assert_emit!(0x41, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R9));
     }
 }

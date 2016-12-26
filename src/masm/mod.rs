@@ -1,10 +1,13 @@
 use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
                     LineNumberTable, GcPoints, GcPoint};
+use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
+use cpu::Reg;
 use ctxt::FctId;
 use dseg::DSeg;
 use lexer::position::Position;
 use os::signal::Trap;
+use ty::MachineMode;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -87,6 +90,20 @@ impl MacroAssembler {
 
     pub fn pos(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg, trap: Trap) {
+        let lbl = self.test_if_nil(reg);
+        self.emit_bailout(lbl, trap, pos);
+    }
+
+    pub fn test_if_nil(&mut self, reg: Reg) -> Label {
+        self.cmp_zero(MachineMode::Ptr, reg);
+
+        let lbl = self.create_label();
+        self.jump_if(CondCode::Equal, lbl);
+
+        lbl
     }
 
     pub fn emit_lineno(&mut self, lineno: i32) {

@@ -72,23 +72,6 @@ impl MacroAssembler {
                        value);
     }
 
-    pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg) {
-        asm::emit_testq_reg_reg(self, reg, reg);
-
-        let lbl = self.create_label();
-        self.jump_if(CondCode::Zero, lbl);
-        self.emit_bailout(lbl, Trap::NIL, pos);
-    }
-
-    pub fn test_if_nil(&mut self, reg: Reg) -> Label {
-        asm::emit_testq_reg_reg(self, reg, reg);
-
-        let lbl = self.create_label();
-        self.jump_if(CondCode::Zero, lbl);
-
-        lbl
-    }
-
     pub fn set(&mut self, dest: Reg, op: CondCode) {
         asm::emit_setb_reg(self, op, dest);
         asm::emit_movzbl_reg_reg(self, dest, dest);
@@ -118,6 +101,10 @@ impl MacroAssembler {
             MachineMode::Int32 => asm::emit_cmpl_reg_reg(self, rhs, lhs),
             MachineMode::Ptr => asm::emit_cmpq_reg_reg(self, rhs, lhs),
         }
+    }
+
+    pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
+        asm::emit_cmp_imm_reg(self, mode, 0, lhs);
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
