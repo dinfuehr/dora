@@ -38,6 +38,7 @@ pub fn flush_icache(start: *const u8, len: usize) {
     let start = start as usize;
     let end = start + len;
 
+    // FIXME: get real data/insn cache-line size
     let icacheline_size = 64;
     let dcacheline_size = 64;
 
