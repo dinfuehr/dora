@@ -88,9 +88,7 @@ impl MacroAssembler {
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
-        let scratch = get_scratch();
-        self.load_int_const(MachineMode::Ptr, scratch, 0);
-        self.cmp_reg(MachineMode::Ptr, reg, scratch);
+        self.emit_u32(asm::cmp_imm(1, reg, 0, 0));
 
         let lbl = self.create_label();
         self.jump_if(CondCode::Equal, lbl);
@@ -126,9 +124,7 @@ impl MacroAssembler {
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        let scratch = get_scratch();
-        self.load_int_const(MachineMode::Int32, scratch, 0);
-        self.cmp_reg(MachineMode::Int32, reg, scratch);
+        self.emit_u32(asm::cmp_imm(0, reg, 0, 0));
         self.jump_if(cond, lbl);
     }
 
