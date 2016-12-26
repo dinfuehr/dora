@@ -1,8 +1,7 @@
 use std::ptr;
 
-use baseline::fct::{BailoutInfo, ExHandler};
+use baseline::fct::ExHandler;
 use cpu::*;
-use ctxt::{Context, FctId};
 use execstate::ExecState;
 use mem;
 use object::{Handle, Obj};
@@ -65,16 +64,4 @@ pub fn fp_from_execstate(es: &ExecState) -> usize {
 
 pub fn ra_from_execstate(es: &ExecState) -> usize {
     unsafe { *(es.sp as *const usize) }
-}
-
-pub fn constpool_address(mut ra: usize, disp: isize) -> usize {
-    // return address is right after `call *%rax` (needs 2 bytes),
-    // we want to be before it
-    ra -= 2;
-
-    // return address is now after `movq (%rip, disp), %rax`, we also
-    // want to be before it to execute it again
-    ra -= 7;
-
-    (ra as isize - disp) as usize
 }

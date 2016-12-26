@@ -166,7 +166,7 @@ fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *c
 
 pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
     // get return address from top of stack
-    let mut ra = cpu::ra_from_execstate(es);
+    let ra = cpu::ra_from_execstate(es);
 
     let fct_id = {
         let code_map = ctxt.code_map.lock().unwrap();
@@ -175,7 +175,7 @@ pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
 
     let fct = ctxt.fct_by_id(fct_id);
     let src = fct.src();
-    let mut src = src.lock().unwrap();
+    let src = src.lock().unwrap();
     let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
 
     let offset = ra - jit_fct.fct_ptr() as usize;
