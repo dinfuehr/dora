@@ -43,7 +43,6 @@ impl MacroAssembler {
         let (_, scratch) = get_scratch_registers();
 
         self.load_constpool(scratch, disp + pos);
-        self.load_mem(MachineMode::Ptr, scratch, Mem::Base(scratch, 0));
         self.emit_u32(asm::blr(scratch));
     }
 
@@ -330,6 +329,7 @@ impl MacroAssembler {
 
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
         self.emit_u32(asm::adr(dest, -disp));
+        self.load_mem(MachineMode::Ptr, dest, Mem::Base(dest, 0));
     }
 
     pub fn call_reg(&mut self, reg: Reg) {
