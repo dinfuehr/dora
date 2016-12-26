@@ -31,7 +31,17 @@ pub fn resume_with_handler(es: &mut ExecState,
                            fp: usize,
                            exception: Handle<Obj>,
                            stacksize: usize) {
-    unimplemented!();
+    if let Some(offset) = handler.offset {
+        let arg = (fp as isize + offset as isize) as usize;
+
+        unsafe {
+            *(arg as *mut usize) = exception.raw() as usize;
+        }
+    }
+
+    es.sp = fp - stacksize;
+    es.regs[REG_FP.asm() as usize] = fp;
+    es.pc = handler.catch;
 }
 
 pub fn flush_icache(start: *const u8, len: usize) {
