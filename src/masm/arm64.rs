@@ -174,8 +174,9 @@ impl MacroAssembler {
     }
 
     pub fn int_mod(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::sdiv(0, dest, lhs, rhs));
-        self.emit_u32(asm::msub(0, dest, dest, rhs, lhs));
+        let scratch = get_scratch();
+        self.emit_u32(asm::sdiv(0, scratch, lhs, rhs));
+        self.emit_u32(asm::msub(0, dest, scratch, rhs, lhs));
     }
 
     pub fn int_mul(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
