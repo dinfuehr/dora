@@ -1,6 +1,6 @@
 use cpu::Reg;
 
-pub const REG_COUNT: usize = 32;
+pub const REG_COUNT: usize = 31;
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub static SCRATCH: [Reg; 2] = [R16, R17];
 
