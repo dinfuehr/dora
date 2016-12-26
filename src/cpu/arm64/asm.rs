@@ -234,7 +234,7 @@ fn cls_addsub_shreg(sf: u32,
     assert!(!shift.is_ror());
     assert!(rm.is_gpr());
     assert!(fits_u5(imm6));
-    assert!(rn.is_gpr());
+    assert!(rn.is_gpr_or_zero());
     assert!(rd.is_gpr_or_zero());
 
     0b01011u32 << 24 | sf << 31 | op << 30 | s << 29 | shift.u32() << 22 | rm.asm() << 16 |
