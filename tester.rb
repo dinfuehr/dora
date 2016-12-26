@@ -5,6 +5,7 @@ require 'tempfile'
 
 $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
+$no_capture = $ARGS.delete("--no-capture") != nil
 
 $temp_out = Tempfile.new('runner_out')
 $temp_err = Tempfile.new('runner_err')
@@ -43,6 +44,7 @@ def run_tests
     tests += 1
 
     print "test #{file} ... "
+    puts if $no_capture
 
     res = run_test(file)
     if res == true
@@ -77,7 +79,13 @@ def run_test(file)
   target = $release ? "release" : "debug"
   testfile = expectation.file || file
 
-  system("target/#{target}/dora #{testfile} #{args} >#{$temp_out.path} 2>&1")
+  if $no_capture
+    out_args = "2>&1 | tee #{$temp_out.path}"
+  else
+    out_args = "2>&1 >#{$temp_out.path}"
+  end
+
+  system("target/#{target}/dora #{testfile} #{args} #{out_args}")
   process = $?
   exit_code = process.exitstatus
 
