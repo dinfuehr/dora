@@ -83,18 +83,17 @@ impl MacroAssembler {
     }
 
     pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg) {
-        self.cmp_reg(MachineMode::Ptr, reg, reg);
-
-        let lbl = self.create_label();
-        self.jump_if(CondCode::Zero, lbl);
+        let lbl = self.test_if_nil(reg);
         self.emit_bailout(lbl, Trap::NIL, pos);
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
-        self.cmp_reg(MachineMode::Ptr, reg, reg);
+        let scratch = get_scratch();
+        self.load_int_const(MachineMode::Ptr, scratch, 0);
+        self.cmp_reg(MachineMode::Ptr, reg, scratch);
 
         let lbl = self.create_label();
-        self.jump_if(CondCode::Zero, lbl);
+        self.jump_if(CondCode::Equal, lbl);
 
         lbl
     }
@@ -127,7 +126,9 @@ impl MacroAssembler {
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        self.cmp_reg(MachineMode::Int32, reg, reg);
+        let scratch = get_scratch();
+        self.load_int_const(MachineMode::Int32, scratch, 0);
+        self.cmp_reg(MachineMode::Int32, reg, scratch);
         self.jump_if(cond, lbl);
     }
 
@@ -232,7 +233,7 @@ impl MacroAssembler {
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
-        self.emit_u32(add_imm(1, dest, REG_ZERO, 0, 0));
+        self.emit_u32(movz(1, dest, 0, 0));
     }
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: Reg, mem: Mem) {

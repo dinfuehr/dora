@@ -167,7 +167,7 @@ fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd:
     assert!(fits_bit(s));
     assert!(fits_bit(shift));
     assert!(fits_u12(imm12));
-    assert!(rn.is_gpr_or_zero());
+    assert!(rn.is_gpr_or_sp());
 
     if s != 0 {
         assert!(rd.is_gpr_or_zero());
