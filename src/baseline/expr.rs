@@ -769,10 +769,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset));
 
         self.masm.int_shl(dest, REG_RESULT, REG_TMP1);
-
-        if REG_RESULT != dest {
-            self.masm.copy_reg(MachineMode::Int32, dest, REG_RESULT);
-        }
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {
