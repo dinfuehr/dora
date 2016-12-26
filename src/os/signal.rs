@@ -23,7 +23,13 @@ pub fn register_signals(ctxt: &Context) {
         if libc::sigaction(libc::SIGSEGV,
                            &sa as *const libc::sigaction,
                            0 as *mut libc::sigaction) == -1 {
-            libc::perror("sigaction failed".as_ptr() as *const libc::c_char);
+            libc::perror("sigaction for SIGSEGV failed".as_ptr() as *const libc::c_char);
+        }
+
+        if libc::sigaction(libc::SIGILL,
+                           &sa as *const libc::sigaction,
+                           0 as *mut libc::sigaction) == -1 {
+            libc::perror("sigaction for SIGILL failed".as_ptr() as *const libc::c_char);
         }
     }
 }
