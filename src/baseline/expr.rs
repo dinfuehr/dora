@@ -353,6 +353,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_self(&mut self, dest: Reg) {
         let var = self.src.var_self();
 
+        self.masm.emit_comment(Comment::LoadSelf(var.id));
         self.masm.load_mem(var.ty.mode(), dest, Mem::Local(var.offset));
     }
 
@@ -400,7 +401,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
         match e.ident_type() {
-            IdentType::Var(_) => codegen::var_load(self.masm, self.src, e.var(), dest),
+            IdentType::Var(_) => {
+                let varid = e.var();
+
+                self.masm.emit_comment(Comment::LoadVar(varid));
+                codegen::var_load(self.masm, self.src, varid, dest)
+            }
 
             IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
@@ -473,7 +479,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             IdentType::Var(_) => {
                 self.emit_expr(&e.rhs, dest);
                 let lhs = e.lhs.to_ident().unwrap();
-                codegen::var_store(&mut self.masm, self.src, dest, lhs.var());
+
+                let varid = lhs.var();
+                self.masm.emit_comment(Comment::StoreVar(varid));
+                codegen::var_store(&mut self.masm, self.src, dest, varid);
             }
 
             IdentType::Field(clsid, fieldid) => {

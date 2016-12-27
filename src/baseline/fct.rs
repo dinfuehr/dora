@@ -192,6 +192,9 @@ pub enum Comment {
     Newline,
     StoreField(ClassId, FieldId),
     LoadField(ClassId, FieldId),
+    StoreVar(VarId),
+    LoadVar(VarId),
+    LoadSelf(VarId),
 }
 
 impl Comment {
@@ -284,6 +287,27 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let fname = self.ctxt.interner.str(fname);
 
                 write!(f, "load from {}.{}", cname, fname)
+            }
+
+            &Comment::StoreVar(vid) => {
+                let var = &self.fct_src.unwrap().vars[vid];
+                let name = self.ctxt.interner.str(var.name);
+
+                write!(f, "store var {} in offset {}", name, var.offset)
+            }
+
+            &Comment::LoadVar(vid) => {
+                let var = &self.fct_src.unwrap().vars[vid];
+                let name = self.ctxt.interner.str(var.name);
+
+                write!(f, "load var {} from offset {}", name, var.offset)
+            }
+
+            &Comment::LoadSelf(vid) => {
+                let var = &self.fct_src.unwrap().vars[vid];
+                let name = self.ctxt.interner.str(var.name);
+
+                write!(f, "load self from offset {}", var.offset)
             }
         }
     }
