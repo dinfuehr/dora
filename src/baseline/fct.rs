@@ -189,6 +189,16 @@ pub enum Comment {
     CallVirtual(FctId),
     CallDirect(FctId),
     StoreParam(VarId),
+    Newline,
+}
+
+impl Comment {
+    pub fn is_newline(&self) -> bool {
+        match self {
+            &Comment::Newline => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct CommentFormat<'a, 'ast: 'a> {
@@ -244,6 +254,10 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let name = self.ctxt.interner.str(var.name);
 
                 write!(f, "store param {} at offset {}", name, var.offset)
+            }
+
+            &Comment::Newline => {
+                write!(f, "")
             }
         }
     }

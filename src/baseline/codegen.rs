@@ -113,6 +113,11 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>, jit_fct: &JitFct, fct_src: Option<&F
 
         if let Some(comments) = jit_fct.get_comment(addr) {
             for comment in comments {
+                if comment.is_newline() {
+                    println!();
+                    continue;
+                }
+
                 let cfmt = CommentFormat {
                     comment: comment,
                     ctxt: ctxt,
@@ -196,14 +201,18 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             self.masm.emit_comment(Comment::StoreParam(var));
             var_store(&mut self.masm, &self.src, reg, var);
         }
+
+        self.masm.emit_comment(Comment::Newline);
     }
 
     fn emit_prolog(&mut self) {
         self.masm.prolog(self.src.stacksize());
         self.masm.emit_comment(Comment::Lit("prolog end"));
+        self.masm.emit_comment(Comment::Newline);
     }
 
     fn emit_epilog(&mut self) {
+        self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
         self.masm.epilog(self.src.stacksize());
     }
