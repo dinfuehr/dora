@@ -367,9 +367,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_field_access(cls, field, REG_RESULT, dest);
     }
 
-    fn emit_field_access(&mut self, cls: ClassId, field: FieldId, src: Reg, dest: Reg) {
-        let cls = self.ctxt.cls_by_id(cls);
-        let field = &cls.fields[field];
+    fn emit_field_access(&mut self, clsid: ClassId, fieldid: FieldId, src: Reg, dest: Reg) {
+        let cls = self.ctxt.cls_by_id(clsid);
+        let field = &cls.fields[fieldid];
+
+        self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
         self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
 
@@ -495,6 +497,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_expr(&e.rhs, REG_RESULT);
                 self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
 
+                self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
                 self.masm.store_mem(field.ty.mode(),
                                     Mem::Base(REG_TMP1, field.offset),
                                     REG_RESULT);

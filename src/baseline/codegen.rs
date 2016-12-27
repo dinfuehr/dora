@@ -100,7 +100,8 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>, jit_fct: &JitFct, fct_src: Option<&F
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
-            println!("  var `{}`: offset {} type {}", name, var.offset, var.ty.name(ctxt));
+            let op = if var.offset < 0 { "-" } else { "" };
+            println!("  var `{}`: offset {} ({}0x{:02x}) type {}", name, var.offset, op, var.offset.abs(), var.ty.name(ctxt));
         }
 
         if fct_src.vars.len() > 0 {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
 
-use class::ClassId;
+use class::{ClassId, FieldId};
 use cpu::flush_icache;
 use ctxt::{Context, FctId, FctSrc, VarId};
 use dseg::DSeg;
@@ -190,6 +190,8 @@ pub enum Comment {
     CallDirect(FctId),
     StoreParam(VarId),
     Newline,
+    StoreField(ClassId, FieldId),
+    LoadField(ClassId, FieldId),
 }
 
 impl Comment {
@@ -258,6 +260,30 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
 
             &Comment::Newline => {
                 write!(f, "")
+            }
+
+            &Comment::StoreField(clsid, fid) => {
+                let cls = self.ctxt.cls_by_id(clsid);
+                let cname = cls.name;
+                let cname = self.ctxt.interner.str(cname);
+
+                let field = &cls.fields[fid];
+                let fname = field.name;
+                let fname = self.ctxt.interner.str(fname);
+
+                write!(f, "store in {}.{}", cname, fname)
+            }
+
+            &Comment::LoadField(clsid, fid) => {
+                let cls = self.ctxt.cls_by_id(clsid);
+                let cname = cls.name;
+                let cname = self.ctxt.interner.str(cname);
+
+                let field = &cls.fields[fid];
+                let fname = field.name;
+                let fname = self.ctxt.interner.str(fname);
+
+                write!(f, "load from {}.{}", cname, fname)
             }
         }
     }
