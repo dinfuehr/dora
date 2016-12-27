@@ -849,8 +849,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
             } else {
-                self.masm.load_mem(ty.mode(), REG_RESULT, Mem::Local(offset));
-                self.masm.store_mem(ty.mode(), Mem::Local(arg_offset), REG_RESULT);
+                self.masm.load_mem(ty.mode(), REG_TMP1, Mem::Local(offset));
+                self.masm.store_mem(ty.mode(), Mem::Local(arg_offset), REG_TMP1);
 
                 arg_offset += 8;
             }
