@@ -12,12 +12,12 @@ pub struct ExecState {
 impl fmt::Debug for ExecState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(writeln!(f, "ExecState {{"));
-        try!(writeln!(f, "    pc = {:x}", self.pc));
-        try!(writeln!(f, "    sp = {:x}", self.sp));
-        try!(writeln!(f, "    ra = {:x}", self.ra));
+        try!(writeln!(f, "    pc = {:?}", self.pc as *const u8));
+        try!(writeln!(f, "    sp = {:?}", self.sp as *const u8));
+        try!(writeln!(f, "    ra = {:?}", self.ra as *const u8));
 
         for (ind, &val) in self.regs.iter().enumerate() {
-            try!(writeln!(f, "    regs[{}] = {:x}", ind, val));
+            try!(writeln!(f, "    regs[{}] = {:?} {}", ind, val as *const u8, val));
         }
 
         write!(f, "}}")

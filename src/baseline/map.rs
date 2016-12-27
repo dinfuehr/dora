@@ -19,7 +19,7 @@ impl CodeMap {
             let fct = ctxt.fct_by_id(fctid);
             let fct_name = fct.full_name(ctxt);
 
-            println!("  {:?} => {} (id {})", key, fct_name, fct.id.0);
+            println!("  {:?} - {:?} => {} (id {})", key.start, key.end, fct_name, fct.id.0);
         }
 
         println!("}}");
