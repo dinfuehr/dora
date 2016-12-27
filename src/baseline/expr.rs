@@ -950,6 +950,7 @@ fn ensure_native_stub(ctxt: &Context,
         if should_emit_asm(ctxt, fct) {
             dump_asm(ctxt,
                      &jit_fct,
+                     None,
                      ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
         }
 

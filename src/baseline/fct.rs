@@ -4,7 +4,7 @@ use std::ptr;
 
 use class::ClassId;
 use cpu::flush_icache;
-use ctxt::{Context, FctId};
+use ctxt::{Context, FctId, FctSrc, VarId};
 use dseg::DSeg;
 use mem::CodeMemory;
 use object::{Handle, Str};
@@ -188,10 +188,12 @@ pub enum Comment {
     CallSuper(FctId),
     CallVirtual(FctId),
     CallDirect(FctId),
+    StoreParam(VarId),
 }
 
 pub struct CommentFormat<'a, 'ast: 'a> {
     pub comment: &'a Comment,
+    pub fct_src: Option<&'a FctSrc<'ast>>,
     pub ctxt: &'a Context<'ast>,
 }
 
@@ -235,6 +237,13 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let name = fct.full_name(self.ctxt);
 
                 write!(f, "call direct {}", &name)
+            }
+
+            &Comment::StoreParam(vid) => {
+                let var = &self.fct_src.unwrap().vars[vid];
+                let name = self.ctxt.interner.str(var.name);
+
+                write!(f, "store param {} at offset {}", name, var.offset)
             }
         }
     }

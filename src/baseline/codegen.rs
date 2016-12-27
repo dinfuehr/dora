@@ -9,7 +9,7 @@ use ast::Stmt::*;
 use ast::visit::*;
 
 use baseline::expr::*;
-use baseline::fct::{CatchType, Comment, CommentFormat, JitFct, GcPoint};
+use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info;
 use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
@@ -48,6 +48,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     if should_emit_asm(ctxt, fct) {
         dump_asm(ctxt,
                  &jit_fct,
+                 Some(&src),
                  ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
     }
 
@@ -71,7 +72,7 @@ fn get_engine() -> Result<Engine, Error> {
     Engine::new(Arch::Arm64, MODE_ARM)
 }
 
-pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
+pub fn dump_asm<'ast>(ctxt: &Context<'ast>, jit_fct: &JitFct, fct_src: Option<&FctSrc<'ast>>, asm_syntax: AsmSyntax) {
     use capstone::*;
 
     let fct = ctxt.fct_by_id(jit_fct.fct_id);
@@ -96,6 +97,17 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
 
     println!("fn {} {:#x}", &name, start_addr);
 
+    if let Some(fct_src) = fct_src {
+        for var in &fct_src.vars {
+            let name = ctxt.interner.str(var.name);
+            println!("  var `{}`: offset {} type {}", name, var.offset, var.ty.name(ctxt));
+        }
+
+        if fct_src.vars.len() > 0 {
+            println!();
+        }
+    }
+
     for instr in instrs {
         let addr = (instr.addr - start_addr) as i32;
 
@@ -104,6 +116,7 @@ pub fn dump_asm(ctxt: &Context, jit_fct: &JitFct, asm_syntax: AsmSyntax) {
                 let cfmt = CommentFormat {
                     comment: comment,
                     ctxt: ctxt,
+                    fct_src: fct_src,
                 };
 
                 println!("\t\t  ; {}", cfmt);
@@ -167,6 +180,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn store_register_params_on_stack(&mut self) {
         let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
+            self.masm.emit_comment(Comment::StoreParam(var.id));
             self.masm.store_mem(var.ty.mode(), Mem::Local(var.offset), REG_PARAMS[0]);
 
             1
@@ -178,7 +192,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         for (&reg, p) in REG_PARAMS.iter()
             .skip(hidden_self)
             .zip(&self.ast.params) {
-            var_store(&mut self.masm, &self.src, reg, p.var());
+            let var = p.var();
+            self.masm.emit_comment(Comment::StoreParam(var));
+            var_store(&mut self.masm, &self.src, reg, var);
         }
     }
 
