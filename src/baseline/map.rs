@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::FctId;
+use ctxt::{Context, FctId};
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, FctId>,
@@ -12,11 +12,14 @@ impl CodeMap {
         CodeMap { tree: BTreeMap::new() }
     }
 
-    pub fn dump(&self) {
+    pub fn dump(&self, ctxt: &Context) {
         println!("CodeMap {{");
 
-        for (key, fctid) in &self.tree {
-            println!("  {:?} => {:?}", key, fctid);
+        for (key, &fctid) in &self.tree {
+            let fct = ctxt.fct_by_id(fctid);
+            let fct_name = fct.full_name(ctxt);
+
+            println!("  {:?} => {} (id {})", key, fct_name, fct.id.0);
         }
 
         println!("}}");

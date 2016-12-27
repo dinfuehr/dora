@@ -305,7 +305,6 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
 
             &Comment::LoadSelf(vid) => {
                 let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.ctxt.interner.str(var.name);
 
                 write!(f, "load self from offset {}", var.offset)
             }

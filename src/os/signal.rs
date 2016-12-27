@@ -114,6 +114,15 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
         // could not recognize trap -> crash vm
     } else {
         println!("error: trap not detected (signal {}).", signo);
+        println!();
+        println!("{:?}", &es);
+        println!();
+
+        {
+            let code_map = ctxt.code_map.lock().unwrap();
+            code_map.dump(ctxt);
+        }
+
         unsafe {
             libc::_exit(1);
         }
