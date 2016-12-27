@@ -117,7 +117,7 @@ impl Gc {
         let rootset = get_rootset(ctxt);
 
         if ctxt.args.flag_gc_dump {
-            println!("GC: collect garbage");
+            println!("GC: collect garbage ({} bytes)", self.bytes_allocated);
         }
 
         mark_literals(self.cur_marked);
@@ -127,6 +127,10 @@ impl Gc {
         let cur_marked = self.cur_marked;
         sweep(self, ctxt.args.flag_gc_dump, cur_marked);
         self.sweep_duration += time::precise_time_ns() - sweep_start;
+
+        if ctxt.args.flag_gc_dump {
+            println!("GC: collect finished ({} bytes)", self.bytes_allocated);
+        }
 
         // switch cur_marked value, so that I don't have to unmark all
         // objects in the beginning of the next collection
@@ -140,13 +144,14 @@ impl Gc {
 impl Drop for Gc {
     fn drop(&mut self) {
         let mut obj = self.obj_start;
+        let ctxt = get_ctxt();
 
         while !obj.is_null() {
-            let curr = obj;
+            let curr = unsafe { &mut *obj };
             obj = unsafe { &mut *obj }.header().succ();
 
             unsafe {
-                libc::free(curr as *mut libc::c_void);
+                libc::free(curr as *mut _ as *mut libc::c_void);
             }
         }
     }
@@ -220,7 +225,7 @@ fn sweep(gc: &mut Gc, dump: bool, cur_marked: bool) {
             gc.bytes_allocated -= size;
 
             if dump {
-                println!("sweep {:x} with {} bytes", obj as usize, size);
+                println!("GC: sweep {:x} with {} bytes", obj as usize, size);
             }
 
         } else {
