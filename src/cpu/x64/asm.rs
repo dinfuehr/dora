@@ -214,7 +214,12 @@ pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_aluq_imm_reg(buf, 1, imm, reg, 0x05, 0);
 }
 
-fn emit_aluq_imm_reg(buf: &mut MacroAssembler, x64: u8, imm: i32, reg: Reg, rax_opcode: u8, modrm_reg: u8) {
+fn emit_aluq_imm_reg(buf: &mut MacroAssembler,
+                     x64: u8,
+                     imm: i32,
+                     reg: Reg,
+                     rax_opcode: u8,
+                     modrm_reg: u8) {
     assert!(x64 == 0 || x64 == 1);
 
     if x64 != 0 || reg.msb() != 0 {

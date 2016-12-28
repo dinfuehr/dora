@@ -72,7 +72,10 @@ fn get_engine() -> Result<Engine, Error> {
     Engine::new(Arch::Arm64, MODE_ARM)
 }
 
-pub fn dump_asm<'ast>(ctxt: &Context<'ast>, jit_fct: &JitFct, fct_src: Option<&FctSrc<'ast>>, asm_syntax: AsmSyntax) {
+pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
+                      jit_fct: &JitFct,
+                      fct_src: Option<&FctSrc<'ast>>,
+                      asm_syntax: AsmSyntax) {
     use capstone::*;
 
     let fct = ctxt.fct_by_id(jit_fct.fct_id);
@@ -101,7 +104,12 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>, jit_fct: &JitFct, fct_src: Option<&F
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
             let op = if var.offset < 0 { "-" } else { "" };
-            println!("  var `{}`: offset {} ({}0x{:02x}) type {}", name, var.offset, op, var.offset.abs(), var.ty.name(ctxt));
+            println!("  var `{}`: offset {} ({}0x{:02x}) type {}",
+                     name,
+                     var.offset,
+                     op,
+                     var.offset.abs(),
+                     var.ty.name(ctxt));
         }
 
         if fct_src.vars.len() > 0 {

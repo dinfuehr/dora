@@ -261,9 +261,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 write!(f, "store param {} at offset {}", name, var.offset)
             }
 
-            &Comment::Newline => {
-                write!(f, "")
-            }
+            &Comment::Newline => write!(f, ""),
 
             &Comment::StoreField(clsid, fid) => {
                 let cls = self.ctxt.cls_by_id(clsid);

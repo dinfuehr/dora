@@ -17,7 +17,11 @@ impl fmt::Debug for ExecState {
         try!(writeln!(f, "    ra = {:?}", self.ra as *const u8));
 
         for (ind, &val) in self.regs.iter().enumerate() {
-            try!(writeln!(f, "    regs[{:2}] = {:-20?} {:-20}", ind, val as *const u8, val));
+            try!(writeln!(f,
+                          "    regs[{:2}] = {:-20?} {:-20}",
+                          ind,
+                          val as *const u8,
+                          val));
         }
 
         write!(f, "}}")
