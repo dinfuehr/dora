@@ -1,6 +1,7 @@
 {
     "files.exclude": {
         "target/**": true,
+        "**/*.un~": true,
         "experiments/raise/target/**": true
     }
 }

@@ -1,10 +1,11 @@
 use std;
-use libc::{c_void, SIGSEGV};
+use libc::SIGSEGV;
 
-use cpu::trap::TrapId;
+use cpu;
 use execstate::ExecState;
+use os::signal::Trap;
 
-pub fn read_execstate(uc: *const c_void) -> ExecState {
+pub fn read_execstate(uc: *const u8) -> ExecState {
     let mut es: ExecState = unsafe { std::mem::uninitialized() };
 
     unsafe {
@@ -27,7 +28,7 @@ pub fn read_execstate(uc: *const c_void) -> ExecState {
     es
 }
 
-pub fn write_execstate(es: &ExecState, uc: *mut c_void) {
+pub fn write_execstate(es: &ExecState, uc: *mut u8) {
     unsafe {
         let uc = uc as *mut ucontext_t;
         let mc = (*uc).uc_mcontext;
@@ -69,11 +70,9 @@ fn reg2ucontext(reg: usize) -> usize {
     }
 }
 
-pub fn detect_trap(signo: i32, es: &ExecState) -> Option<TrapId> {
-    use cpu::trap;
-
+pub fn detect_trap(signo: i32, es: &ExecState) -> Option<Trap> {
     if signo == SIGSEGV {
-        trap::read(&es)
+        cpu::read_trap(&es)
     } else {
         None
     }
