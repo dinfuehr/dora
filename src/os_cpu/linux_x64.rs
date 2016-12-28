@@ -1,6 +1,7 @@
 use std;
 use libc::SIGSEGV;
 
+use cpu;
 use execstate::ExecState;
 use os::signal::Trap;
 
