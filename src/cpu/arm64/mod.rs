@@ -47,9 +47,7 @@ pub fn flush_icache(start: *const u8, len: usize) {
     let start = start as usize;
     let end = start + len;
 
-    // FIXME: get real data/insn cache-line size
-    let icacheline_size = 64;
-    let dcacheline_size = 64;
+    let (icacheline_size, dcacheline_size) = cacheline_sizes();
 
     let istart = start & !(icacheline_size - 1);
     let dstart = start & !(dcacheline_size - 1);
@@ -82,6 +80,19 @@ pub fn flush_icache(start: *const u8, len: usize) {
         asm!("dsb ish
               isb" ::: "memory" : "volatile");
     }
+}
+
+pub fn cacheline_sizes() -> (usize, usize) {
+    let value : usize;
+
+    unsafe {
+        asm!("mrs $0, ctr_el0": "=r"(value)::: "volatile");
+    }
+
+    let insn = 4 << (value & 0xF);
+    let data = 4 << ((value >> 16) & 0xF);
+
+    (insn, data)
 }
 
 pub fn fp_from_execstate(es: &ExecState) -> usize {
