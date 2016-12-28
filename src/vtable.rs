@@ -142,8 +142,10 @@ impl<'ast> VTable<'ast> {
     }
 
     pub fn deallocate_overflow(&mut self, num: usize) {
+        assert!(!self.subtype_overflow.is_null());
+
         unsafe {
-            heap::deallocate(self.subtype_overflow as *const u8 as *mut u8,
+            heap::deallocate(self.subtype_overflow as *const u8 as *mut _,
                              num * size_of::<*const VTable<'ast>>(),
                              align_of::<*const VTable<'ast>>());
         }

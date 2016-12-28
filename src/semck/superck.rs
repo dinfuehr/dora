@@ -495,7 +495,10 @@ mod tests {
                         open class L4: L3 { }
                         open class L5: L4 { }
                         open class L6: L5 { }
-                        class L7: L6 { }",
+                        open class L7: L6 { }
+                        open class L8: L7 { }
+                        open class L9: L8 { }
+                        class L10: L9 { }",
                      |ctxt| {
             assert_eq!(vtable_by_name(ctxt, "L1").subtype_depth, 0);
             assert_eq!(vtable_by_name(ctxt, "L2").subtype_depth, 1);
@@ -516,6 +519,24 @@ mod tests {
             assert!(!vtable.subtype_overflow.is_null());
             assert_eq!(vtable_by_name(ctxt, "L7") as *const _,
                        vtable.get_subtype_overflow(0));
+
+            let vtable = vtable_by_name(ctxt, "L10");
+            assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
+            assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
+            assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
+            assert_name(ctxt, vtable_display_name(vtable, 3), "L4");
+            assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
+            assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
+
+            assert!(!vtable.subtype_overflow.is_null());
+            assert_eq!(vtable_by_name(ctxt, "L7") as *const _,
+                       vtable.get_subtype_overflow(0));
+            assert_eq!(vtable_by_name(ctxt, "L8") as *const _,
+                       vtable.get_subtype_overflow(1));
+            assert_eq!(vtable_by_name(ctxt, "L9") as *const _,
+                       vtable.get_subtype_overflow(2));
+            assert_eq!(vtable_by_name(ctxt, "L10") as *const _,
+                       vtable.get_subtype_overflow(3));
         });
     }
 
