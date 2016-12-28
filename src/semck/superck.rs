@@ -303,6 +303,7 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
                 let ptr = vtable.subtype_overflow
                     .offset(depth as isize -
                             DISPLAY_SIZE as isize) as *mut _;
+
                 *ptr = vtable as *const _;
             }
 

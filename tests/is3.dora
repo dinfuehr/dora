@@ -20,4 +20,6 @@ open class L4: L3 {}
 open class L5: L4 {}
 open class L6: L5 {}
 open class L7: L6 {}
-class L8: L7 {}
+open class L8: L7 {}
+open class L9: L8 {}
+class L10: L9 {}

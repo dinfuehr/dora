@@ -144,7 +144,6 @@ impl Gc {
 impl Drop for Gc {
     fn drop(&mut self) {
         let mut obj = self.obj_start;
-        let ctxt = get_ctxt();
 
         while !obj.is_null() {
             let curr = unsafe { &mut *obj };

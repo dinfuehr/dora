@@ -72,7 +72,7 @@ pub struct VTable<'ast> {
     pub classptr: *mut Class<'ast>,
     pub subtype_depth: i32,
     pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE],
-    pub subtype_overflow: *const VTable<'ast>,
+    pub subtype_overflow: *const *const VTable<'ast>,
     pub table_length: usize,
     pub table: [usize; 1],
 }
@@ -137,7 +137,7 @@ impl<'ast> VTable<'ast> {
         let align = align_of::<*const VTable<'ast>>();
 
         unsafe {
-            self.subtype_overflow = heap::allocate(size, align) as *mut VTable<'ast>;
+            self.subtype_overflow = heap::allocate(size, align) as *const _;
         }
     }
 
