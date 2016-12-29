@@ -9,6 +9,9 @@ use execstate::ExecState;
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
 
+#[cfg(target_family = "windows")]
+use winapi::winnt::EXCEPTION_POINTERS;
+
 #[cfg(target_family = "unix")]
 pub fn register_signals(ctxt: &Context) {
     unsafe {
@@ -37,10 +40,35 @@ pub fn register_signals(ctxt: &Context) {
 
 #[cfg(target_family = "windows")]
 pub fn register_signals(ctxt: &Context) {
-    unimplemented!()
+    use kernel32::AddVectoredExceptionHandler;
+
+    unsafe {
+        AddVectoredExceptionHandler(1, Some(handler));
+    }
 }
 
-// signal handler function
+#[cfg(target_family = "windows")]
+extern "system" fn handler(exception: *mut EXCEPTION_POINTERS) -> i32 {
+    use winapi::excpt;
+
+    if fault_handler(exception) {
+        return excpt::ExceptionContinueExecution.0 as i32;
+    }
+
+    excpt::ExceptionContinueSearch.0 as i32
+}
+
+#[cfg(target_family = "windows")]
+fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
+    unsafe {
+        let record = (*exception).ExceptionRecord;
+        let context = (*exception).ContextRecord;
+    }
+
+    false
+}
+
+#[cfg(target_family = "unix")]
 fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
     let mut es = read_execstate(ucontext);
     let ctxt = get_ctxt();
