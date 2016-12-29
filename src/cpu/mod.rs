@@ -13,7 +13,7 @@ pub use self::arm64::*;
 pub mod arm64;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Reg(u8);
+pub struct Reg(pub u8);
 
 impl From<Reg> for u32 {
     fn from(reg: Reg) -> u32 {

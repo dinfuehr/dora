@@ -1,8 +1,11 @@
+use std::cell::Cell;
+use std::rc::Rc;
+
 use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
                     LineNumberTable, GcPoints, GcPoint};
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
-use cpu::Reg;
+use cpu::{Reg, SCRATCH};
 use ctxt::FctId;
 use dseg::DSeg;
 use lexer::position::Position;
@@ -32,6 +35,7 @@ pub struct MacroAssembler {
     comments: Comments,
     linenos: LineNumberTable,
     exception_handlers: Vec<ExHandler>,
+    scratch_registers: ScratchRegisters,
 }
 
 impl MacroAssembler {
@@ -47,6 +51,7 @@ impl MacroAssembler {
             comments: Comments::new(),
             linenos: LineNumberTable::new(),
             exception_handlers: Vec::new(),
+            scratch_registers: ScratchRegisters::new(),
         }
     }
 
@@ -163,6 +168,10 @@ impl MacroAssembler {
         });
     }
 
+    pub fn get_scratch(&self) -> ScratchReg {
+        self.scratch_registers.get()
+    }
+
     pub fn emit_u8(&mut self, value: u8) {
         self.data.write_u8(value).unwrap();
     }
@@ -178,6 +187,80 @@ pub struct Label(usize);
 impl Label {
     pub fn index(&self) -> usize {
         self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ScratchRegisters {
+    regs: &'static [Reg],
+    value: Rc<Cell<u32>>,
+}
+
+impl ScratchRegisters {
+    pub fn new() -> ScratchRegisters {
+        ScratchRegisters {
+            regs: &SCRATCH,
+            value: Rc::new(Cell::new(0))
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_regs(regs: &'static [Reg]) -> ScratchRegisters {
+        ScratchRegisters {
+            regs: regs,
+            value: Rc::new(Cell::new(0))
+        }
+    }
+
+    pub fn get(&self) -> ScratchReg {
+        let value = self.value.get();
+
+        for (ind, &reg) in self.regs.iter().enumerate() {
+            if (value >> ind) & 1 == 0 {
+                let bitmask = 1 << ind;
+                self.value.set(value | bitmask);
+
+                return ScratchReg {
+                    ind: ind as u32,
+                    reg: reg,
+                    scratch: self.clone(),
+                };
+            }
+        }
+
+        panic!("all scratch registers used");
+    }
+
+    fn free(&self, reg: &ScratchReg) {
+        let value = self.value.get();
+        let bitmask = !(1 << reg.ind);
+
+        self.value.set(value & bitmask);
+    }
+}
+
+#[derive(Debug)]
+pub struct ScratchReg {
+    ind: u32,
+    reg: Reg,
+    scratch: ScratchRegisters,
+}
+
+impl ScratchReg {
+    pub fn reg(&self) -> Reg {
+        self.reg
+    }
+}
+
+impl Drop for ScratchReg {
+    fn drop(&mut self) {
+        self.scratch.free(self);
+    }
+}
+
+impl<'a> From<&'a ScratchReg> for Reg {
+    fn from(value: &'a ScratchReg) -> Reg {
+        value.reg
     }
 }
 
@@ -201,5 +284,34 @@ mod tests {
 
         masm.bind_label(lbl);
         masm.bind_label(lbl);
+    }
+
+    static SCRATCH_REGS1: [Reg; 1] = [Reg(0)];
+    static SCRATCH_REGS2: [Reg; 1] = [Reg(1)];
+
+    #[test]
+    #[should_panic]
+    #[allow(unused_variables)]
+    fn test_scratch_fail() {
+        let masm = ScratchRegisters::with_regs(&SCRATCH_REGS1);
+
+        let scratch1 = masm.get();
+        let scratch2 = masm.get();
+    }
+
+    #[test]
+    fn test_scratch_drop() {
+        let masm = ScratchRegisters::with_regs(&SCRATCH_REGS2);
+
+        {
+            let scratch1 = masm.get();
+            assert_eq!(scratch1.reg(), Reg(1));
+        }
+
+
+        {
+            let scratch1 = masm.get();
+            assert_eq!(scratch1.reg(), Reg(1));
+        }
     }
 }
