@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::ops::Deref;
 use std::rc::Rc;
 
 use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
@@ -258,9 +259,11 @@ impl Drop for ScratchReg {
     }
 }
 
-impl<'a> From<&'a ScratchReg> for Reg {
-    fn from(value: &'a ScratchReg) -> Reg {
-        value.reg
+impl Deref for ScratchReg {
+    type Target = Reg;
+
+    fn deref(&self) -> &Reg {
+        &self.reg
     }
 }
 
@@ -305,13 +308,13 @@ mod tests {
 
         {
             let scratch1 = masm.get();
-            assert_eq!(scratch1.reg(), Reg(1));
+            assert_eq!(*scratch1, Reg(1));
         }
 
 
         {
             let scratch1 = masm.get();
-            assert_eq!(scratch1.reg(), Reg(1));
+            assert_eq!(*scratch1, Reg(1));
         }
     }
 }
