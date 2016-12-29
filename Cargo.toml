@@ -9,6 +9,8 @@ docopt = "*"
 byteorder = "*"
 libc = "*"
 time = "*"
+winapi = "*"
+kernel32-sys = "*"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

@@ -9,6 +9,7 @@ use execstate::ExecState;
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
 
+#[cfg(target_family = "unix")]
 pub fn register_signals(ctxt: &Context) {
     unsafe {
         let ptr = ctxt as *const Context as *const u8;
@@ -32,6 +33,11 @@ pub fn register_signals(ctxt: &Context) {
             libc::perror("sigaction for SIGILL failed".as_ptr() as *const libc::c_char);
         }
     }
+}
+
+#[cfg(target_family = "windows")]
+pub fn register_signals(ctxt: &Context) {
+    unimplemented!()
 }
 
 // signal handler function

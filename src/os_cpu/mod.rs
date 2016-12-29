@@ -21,3 +21,11 @@ pub use self::darwin_x64::*;
 #[cfg(target_arch = "x86_64")]
 #[cfg(target_os="macos")]
 pub mod darwin_x64;
+
+#[cfg(target_arch = "x86_64")]
+#[cfg(target_os = "windows")]
+pub use self::win_x64::*;
+
+#[cfg(target_arch = "x86_64")]
+#[cfg(target_os="windows")]
+pub mod win_x64;
