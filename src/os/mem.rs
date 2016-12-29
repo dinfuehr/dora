@@ -44,7 +44,7 @@ pub fn mmap(size: usize, exec: ProtType) -> *const u8 {
     };
 
     let ptr = unsafe {
-        libc::mmap(0 as *mut libc::c_void,
+        libc::mmap(ptr::null_mut(),
                    size,
                    libc::PROT_READ | libc::PROT_WRITE | prot_exec,
                    libc::MAP_PRIVATE | libc::MAP_ANON,
