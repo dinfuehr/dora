@@ -291,6 +291,7 @@ mod tests {
 
     static SCRATCH_REGS1: [Reg; 1] = [Reg(0)];
     static SCRATCH_REGS2: [Reg; 1] = [Reg(1)];
+    static SCRATCH_REGS3: [Reg; 3] = [Reg(2), Reg(3), Reg(4)];
 
     #[test]
     #[should_panic]
@@ -300,6 +301,25 @@ mod tests {
 
         let scratch1 = masm.get();
         let scratch2 = masm.get();
+    }
+
+    #[test]
+    fn tets_scratch_multiple() {
+        let masm = ScratchRegisters::with_regs(&SCRATCH_REGS3);
+
+        let scratch1 = masm.get();
+        let scratch2 = masm.get();
+
+        assert_eq!(*scratch1, Reg(2));
+        assert_eq!(*scratch2, Reg(3));
+
+        {
+            let scratch3 = masm.get();
+            assert_eq!(*scratch3, Reg(4));
+        }
+
+        let scratch3 = masm.get();
+        assert_eq!(*scratch3, Reg(4));
     }
 
     #[test]
