@@ -810,23 +810,13 @@ impl CatchBlock {
 #[derive(Clone, Debug)]
 pub struct FinallyBlock {
     pub block: Box<Stmt>,
-    pub offset: RefCell<Option<i32>>,
 }
 
 impl FinallyBlock {
     pub fn new(block: Box<Stmt>) -> FinallyBlock {
         FinallyBlock {
             block: block,
-            offset: RefCell::new(None),
         }
-    }
-
-    pub fn offset(&self) -> i32 {
-        self.offset.borrow().unwrap()
-    }
-
-    pub fn set_offset(&self, offset: i32) {
-        *self.offset.borrow_mut() = Some(offset);
     }
 }
 

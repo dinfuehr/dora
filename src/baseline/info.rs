@@ -92,9 +92,9 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
                 self.reserve_stack_for_node(var);
             }
 
-            if let Some(ref finally_block) = try.finally_block {
+            if try.finally_block.is_some() {
                 let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-                finally_block.set_offset(offset);
+                self.src.map_offsets.insert(try.id, offset);
             }
         }
 

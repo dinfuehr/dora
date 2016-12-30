@@ -410,7 +410,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.masm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            let offset = s.finally_block.as_ref().unwrap().offset();
+            let offset = *self.src.map_offsets.get(s.id).unwrap();
             self.masm.emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
@@ -492,13 +492,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let finally_pos = self.masm.pos();
 
         self.scopes.push_scope();
-        self.scopes.add_var_offset(finally_block.offset());
+
+        let offset = *self.src.map_offsets.get(s.id).unwrap();
+        self.scopes.add_var_offset(offset);
 
         self.visit_stmt(&finally_block.block);
 
         self.masm.load_mem(MachineMode::Ptr,
                            REG_RESULT,
-                           Mem::Local(finally_block.offset()));
+                           Mem::Local(offset));
         self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();
