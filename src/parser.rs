@@ -797,235 +797,149 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_expression_l0()
+        self.parse_binary(0)
     }
 
-    fn parse_expression_l0(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l1());
+    fn parse_binary(&mut self, precedence: u32) -> ExprResult {
+        let mut left = self.parse_unary()?;
 
-        while self.token.is(TokenType::Or) {
-            let tok = try!(self.read_token());
-            let op = BinOp::Or;
-
-            let right = try!(self.parse_expression_l1());
-            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l1(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l2());
-
-        while self.token.is(TokenType::And) {
-            let tok = try!(self.read_token());
-            let op = BinOp::And;
-
-            let right = try!(self.parse_expression_l2());
-            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l2(&mut self) -> ExprResult {
-        let left = try!(self.parse_expression_l3());
-
-        if self.token.is(TokenType::Eq) {
-            let tok = try!(self.read_token());
-            let right = try!(self.parse_expression_l3());
-
-            Ok(Box::new(Expr::create_assign(self.generate_id(), tok.position, left, right)))
-        } else {
-            Ok(left)
-        }
-    }
-
-    fn parse_expression_l3(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l4());
-
-        while self.token.is(TokenType::EqEq) || self.token.is(TokenType::Ne) {
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::EqEq => CmpOp::Eq,
-                _ => CmpOp::Ne,
+        loop {
+            let right_precedence = match self.token.token_type {
+                TokenType::Or => 1,
+                TokenType::And => 2,
+                TokenType::Eq => 3,
+                TokenType::EqEq | TokenType::Ne => 4,
+                TokenType::Lt
+                    | TokenType::Le
+                    | TokenType::Gt
+                    | TokenType::Ge => 5,
+                TokenType::EqEqEq
+                    | TokenType::NeEqEq => 6,
+                TokenType::BitOr
+                    | TokenType::BitAnd
+                    | TokenType::Caret => 7,
+                TokenType::Add
+                    | TokenType::Sub => 8,
+                TokenType::Mul
+                    | TokenType::Div
+                    | TokenType::Mod => 9,
+                TokenType::Is
+                    | TokenType::As => 10,
+                TokenType::Dot
+                    | TokenType::LBracket => 11,
+                _ => {
+                    return Ok(left);
+                }
             };
 
-            let right = try!(self.parse_expression_l4());
-            left = Box::new(Expr::create_bin(self.generate_id(),
-                                             tok.position,
-                                             BinOp::Cmp(op),
-                                             left,
-                                             right));
-        }
+            if precedence >= right_precedence {
+                return Ok(left);
+            }
 
-        Ok(left)
-    }
+            let tok = self.read_token()?;
 
-    fn parse_expression_l4(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l5());
+            left = match tok.token_type {
+                TokenType::Is | TokenType::As => {
+                    let is = tok.is(TokenType::Is);
 
-        while self.token.is(TokenType::Lt) || self.token.is(TokenType::Le) ||
-              self.token.is(TokenType::Gt) || self.token.is(TokenType::Ge) {
+                    let right = Box::new(self.parse_type()?);
+                    let expr = Expr::create_conv(self.generate_id(), tok.position, left, right, is);
 
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::Lt => CmpOp::Lt,
-                TokenType::Le => CmpOp::Le,
-                TokenType::Gt => CmpOp::Gt,
-                _ => CmpOp::Ge,
-            };
-
-            let right = try!(self.parse_expression_l5());
-            left = Box::new(Expr::create_bin(self.generate_id(),
-                                             tok.position,
-                                             BinOp::Cmp(op),
-                                             left,
-                                             right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l5(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l6());
-
-        while self.token.is(TokenType::EqEqEq) || self.token.is(TokenType::NeEqEq) {
-
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::EqEqEq => CmpOp::Is,
-                _ => CmpOp::IsNot,
-            };
-
-            let right = try!(self.parse_expression_l6());
-            left = Box::new(Expr::create_bin(self.generate_id(),
-                                             tok.position,
-                                             BinOp::Cmp(op),
-                                             left,
-                                             right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l6(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l7());
-
-        while self.token.is(TokenType::BitOr) || self.token.is(TokenType::BitAnd) ||
-              self.token.is(TokenType::Caret) {
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::BitOr => BinOp::BitOr,
-                TokenType::BitAnd => BinOp::BitAnd,
-                TokenType::Caret => BinOp::BitXor,
-                _ => unreachable!(),
-            };
-
-            let right = try!(self.parse_expression_l7());
-            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l7(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l8());
-
-        while self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) {
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::Add => BinOp::Add,
-                _ => BinOp::Sub,
-            };
-
-            let right = try!(self.parse_expression_l8());
-            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l8(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l9());
-
-        while self.token.is(TokenType::Mul) || self.token.is(TokenType::Div) ||
-              self.token.is(TokenType::Mod) {
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::Mul => BinOp::Mul,
-                TokenType::Div => BinOp::Div,
-                _ => BinOp::Mod,
-            };
-
-            let right = try!(self.parse_expression_l9());
-            left = Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right));
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l9(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_expression_l10());
-
-        while self.token.is(TokenType::Is) || self.token.is(TokenType::As) {
-            let is = self.token.is(TokenType::Is);
-
-            let tok = try!(self.read_token());
-            let right = Box::new(try!(self.parse_type()));
-            let id = self.generate_id();
-
-            let expr = Expr::create_conv(id, tok.position, left, right, is);
-            left = Box::new(expr);
-        }
-
-        Ok(left)
-    }
-
-    fn parse_expression_l10(&mut self) -> ExprResult {
-        if self.token.is(TokenType::Add) || self.token.is(TokenType::Sub) ||
-           self.token.is(TokenType::Not) || self.token.is(TokenType::Tilde) {
-            let tok = try!(self.read_token());
-            let op = match tok.token_type {
-                TokenType::Add => UnOp::Plus,
-                TokenType::Sub => UnOp::Neg,
-                TokenType::Not => UnOp::Not,
-                TokenType::Tilde => UnOp::BitNot,
-                _ => unreachable!(),
-            };
-
-            let expr = try!(self.parse_expression_l11());
-            Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
-        } else {
-            self.parse_expression_l11()
-        }
-    }
-
-    fn parse_expression_l11(&mut self) -> ExprResult {
-        let mut left = try!(self.parse_factor());
-
-        while self.token.is(TokenType::Dot) || self.token.is(TokenType::LBracket) {
-            left = if self.token.is(TokenType::Dot) {
-                let tok = try!(self.read_token());
-                let ident = try!(self.expect_identifier());
-
-                if self.token.is(TokenType::LParen) {
-                    try!(self.parse_call(tok.position, Some(left), ident))
-
-                } else {
-                    Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
+                    Box::new(expr)
                 }
 
-            } else {
-                let tok = try!(self.read_token());
-                let index = try!(self.parse_expression());
-                try!(self.expect_token(TokenType::RBracket));
-
-                Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
+                _ => {
+                    let right = self.parse_binary(right_precedence)?;
+                    self.create_binary(tok, left, right)
+                }
             };
         }
+    }
 
-        Ok(left)
+    fn parse_unary(&mut self) -> ExprResult {
+        match self.token.token_type {
+            TokenType::Add
+                | TokenType::Sub
+                | TokenType::Not
+                | TokenType::Tilde => {
+
+                let tok = self.read_token()?;
+                let op = match tok.token_type {
+                    TokenType::Add => UnOp::Plus,
+                    TokenType::Sub => UnOp::Neg,
+                    TokenType::Not => UnOp::Not,
+                    TokenType::Tilde => UnOp::BitNot,
+                    _ => unreachable!(),
+                };
+
+                let expr = self.parse_primary()?;
+                Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
+            }
+
+            _ => self.parse_primary()
+        }
+    }
+
+    fn parse_primary(&mut self) -> ExprResult {
+        let mut left = self.parse_factor()?;
+
+        loop {
+            left = match self.token.token_type {
+                TokenType::Dot => {
+                    let tok = self.read_token()?;
+                    let ident = self.expect_identifier()?;
+
+                    if self.token.is(TokenType::LParen) {
+                        self.parse_call(tok.position, Some(left), ident)?
+
+                    } else {
+                        Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
+                    }
+                }
+
+                TokenType::LBracket => {
+                    let tok = self.read_token()?;
+                    let index = self.parse_expression()?;
+                    self.expect_token(TokenType::RBracket)?;
+
+                    Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
+                }
+
+                _ => {
+                    return Ok(left);
+                }
+            }
+        }
+    }
+
+    fn create_binary(&mut self, tok: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
+        let op = match tok.token_type {
+            TokenType::Eq => {
+                return Box::new(Expr::create_assign(self.generate_id(), tok.position, left, right));
+            }
+
+            TokenType::Or => BinOp::Or,
+            TokenType::And => BinOp::And,
+            TokenType::EqEq => BinOp::Cmp(CmpOp::Eq),
+            TokenType::Ne => BinOp::Cmp(CmpOp::Ne),
+            TokenType::Lt => BinOp::Cmp(CmpOp::Lt),
+            TokenType::Le => BinOp::Cmp(CmpOp::Le),
+            TokenType::Gt => BinOp::Cmp(CmpOp::Gt),
+            TokenType::Ge => BinOp::Cmp(CmpOp::Ge),
+            TokenType::EqEqEq => BinOp::Cmp(CmpOp::Is),
+            TokenType::NeEqEq => BinOp::Cmp(CmpOp::IsNot),
+            TokenType::BitOr => BinOp::BitOr,
+            TokenType::BitAnd => BinOp::BitAnd,
+            TokenType::Caret => BinOp::BitXor,
+            TokenType::Add => BinOp::Add,
+            TokenType::Sub => BinOp::Sub,
+            TokenType::Mul => BinOp::Mul,
+            TokenType::Div => BinOp::Div,
+            TokenType::Mod => BinOp::Mod,
+            _ => panic!("unimplemented token {:?}", tok)
+        };
+
+        Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right))
     }
 
     fn parse_factor(&mut self) -> ExprResult {
