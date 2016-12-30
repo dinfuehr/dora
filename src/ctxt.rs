@@ -402,6 +402,7 @@ pub struct FctSrc<'ast> {
     pub calls: HashMap<ast::NodeId, CallType>, // maps function call to FctId
     pub storage: HashMap<ast::NodeId, Store>,
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
+    pub idents: NodeMap<IdentType>,
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub argsize: i32, // size of arguments on stack (need to be on bottom)
@@ -420,6 +421,7 @@ impl<'ast> FctSrc<'ast> {
             calls: HashMap::new(),
             storage: HashMap::new(),
             call_sites: HashMap::new(),
+            idents: NodeMap::new(),
             tempsize: 0,
             localsize: 0,
             argsize: 0,
@@ -449,6 +451,36 @@ impl<'ast> FctSrc<'ast> {
 
     pub fn var_self_mut(&mut self) -> &mut Var {
         &mut self.vars[0]
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeMap<V> {
+    map: HashMap<ast::NodeId, V>,
+}
+
+impl<V> NodeMap<V> {
+    fn new() -> NodeMap<V> {
+        NodeMap {
+            map: HashMap::new()
+        }
+    }
+
+    fn get(&self, id: ast::NodeId) -> Option<&V> {
+        self.map.get(&id)
+    }
+
+    fn get_mut(&mut self, id: ast::NodeId) -> Option<&mut V> {
+        self.map.get_mut(&id)
+    }
+
+    fn insert(&mut self, id: ast::NodeId, data: V) {
+        let old = self.map.insert(id, data);
+        assert!(old.is_none());
+    }
+
+    fn clear(&mut self) {
+        self.map.clear();
     }
 }
 
