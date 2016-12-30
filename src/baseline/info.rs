@@ -228,7 +228,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        args.insert(0, Arg::Selfie(expr.class_id(), 0));
+        let cls_id = *self.src.map_cls.get(expr.id).unwrap();
+        args.insert(0, Arg::Selfie(cls_id, 0));
 
         self.universal_call(expr.id, args, true, None, None);
     }

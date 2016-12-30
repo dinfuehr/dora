@@ -82,7 +82,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
-                    parent_class.set_cls(clsid);
                     let has_open = self.ctxt.cls_by_id(clsid).has_open;
 
                     if has_open {

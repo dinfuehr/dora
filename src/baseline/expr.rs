@@ -159,7 +159,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
         } else {
-            let cls_id = e.cls_id();
+            let cls_id = *self.src.map_cls.get(e.id).unwrap();
             let cls = self.ctxt.cls_by_id(cls_id);
             let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
 

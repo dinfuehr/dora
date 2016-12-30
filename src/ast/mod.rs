@@ -4,7 +4,6 @@ use std::hash::*;
 use std::slice::Iter;
 
 use ast::Elem::*;
-use class::ClassId;
 use ctxt::{CtorType, FctId, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
@@ -278,7 +277,6 @@ pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
     pub params: Vec<Box<Expr>>,
-    pub cls: RefCell<Option<ClassId>>,
 }
 
 impl ParentClass {
@@ -286,17 +284,8 @@ impl ParentClass {
         ParentClass {
             name: name,
             pos: pos,
-            cls: RefCell::new(None),
             params: params,
         }
-    }
-
-    pub fn set_cls(&self, cls: ClassId) {
-        *self.cls.borrow_mut() = Some(cls);
-    }
-
-    pub fn cls(&self) -> ClassId {
-        self.cls.borrow().unwrap()
     }
 }
 
@@ -1027,7 +1016,6 @@ impl Expr {
             object: object,
             data_type: data_type,
             is: is,
-            cls_id: RefCell::new(None),
             valid: Cell::new(false),
         })
     }
@@ -1128,7 +1116,6 @@ impl Expr {
             ty: ty,
             args: args,
             fct_id: RefCell::new(None),
-            cls_id: RefCell::new(None),
         })
     }
 
@@ -1445,19 +1432,10 @@ pub struct ExprConvType {
     pub object: Box<Expr>,
     pub is: bool,
     pub data_type: Box<Type>,
-    pub cls_id: RefCell<Option<ClassId>>,
     pub valid: Cell<bool>,
 }
 
 impl ExprConvType {
-    pub fn cls_id(&self) -> ClassId {
-        self.cls_id.borrow().unwrap()
-    }
-
-    pub fn set_cls_id(&self, cls_id: ClassId) {
-        *self.cls_id.borrow_mut() = Some(cls_id);
-    }
-
     pub fn valid(&self) -> bool {
         self.valid.get()
     }
@@ -1531,7 +1509,6 @@ pub struct ExprDelegationType {
     pub ty: DelegationType, // true for this class, false for super class
     pub args: Vec<Box<Expr>>,
     pub fct_id: RefCell<Option<FctId>>,
-    pub cls_id: RefCell<Option<ClassId>>,
 }
 
 impl ExprDelegationType {
@@ -1541,14 +1518,6 @@ impl ExprDelegationType {
 
     pub fn set_fct_id(&self, id: FctId) {
         *self.fct_id.borrow_mut() = Some(id);
-    }
-
-    pub fn class_id(&self) -> ClassId {
-        self.cls_id.borrow().unwrap()
-    }
-
-    pub fn set_class_id(&self, id: ClassId) {
-        *self.cls_id.borrow_mut() = Some(id);
     }
 }
 

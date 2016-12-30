@@ -602,7 +602,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
                 e.set_fct_id(ctor_id);
-                e.set_class_id(cls.id);
+                self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);
                 assert!(self.src.calls.insert(e.id, call_type).is_none());
@@ -824,7 +824,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        e.set_cls_id(check_type.cls_id(self.ctxt));
+        self.src.map_cls.insert(e.id, check_type.cls_id(self.ctxt));
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
 }
