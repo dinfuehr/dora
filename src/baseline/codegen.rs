@@ -206,7 +206,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         for (&reg, p) in REG_PARAMS.iter()
             .skip(hidden_self)
             .zip(&self.ast.params) {
-            let var = p.var();
+            let var = *self.src.map_vars.get(p.id).unwrap();
             self.masm.emit_comment(Comment::StoreParam(var));
             var_store(&mut self.masm, &self.src, reg, var);
         }
@@ -362,16 +362,17 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
+        let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
             let reg = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.masm, &self.src, reg, s.var());
+            var_store(&mut self.masm, &self.src, reg, var);
         }
 
         let reference_type = {
-            let var = &self.src.vars[s.var()];
+            let var = &self.src.vars[var];
 
             if var.ty.reference_type() {
                 self.scopes.add_var(var.id, var.offset);
@@ -384,7 +385,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
-            var_store(&mut self.masm, &self.src, REG_RESULT, s.var());
+            var_store(&mut self.masm, &self.src, REG_RESULT, var);
         }
     }
 
@@ -429,7 +430,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let mut ret = Vec::new();
 
         for catch in &s.catch_blocks {
-            let varid = catch.var();
+            let varid = *self.src.map_vars.get(catch.id).unwrap();
             let offset = self.src.vars[varid].offset;
 
             self.scopes.push_scope();

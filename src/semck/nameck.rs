@@ -116,7 +116,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         // and functions can be replaced
         match self.add_var(var_ctxt, |sym| !sym.is_class()) {
             Ok(var_id) => {
-                var.set_var(var_id);
+                self.src.map_vars.insert(var.id, var_id);
             }
 
             Err(_) => {
@@ -149,7 +149,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             // and functions can be replaced
             match self.add_var(var_ctxt, |sym| !sym.is_class()) {
                 Ok(var_id) => {
-                    catch.set_var(var_id);
+                    self.src.map_vars.insert(catch.id, var_id);
                 }
 
                 Err(_) => {
@@ -260,7 +260,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         // types and vars cannot be replaced
         match self.add_var(var_ctxt, |sym| sym.is_fct()) {
             Ok(var_id) => {
-                p.set_var(var_id);
+                self.src.map_vars.insert(p.id, var_id);
             }
 
             Err(sym) => {

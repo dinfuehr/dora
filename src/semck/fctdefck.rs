@@ -32,7 +32,8 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
                     let src = fct.src();
                     let mut src = src.lock().unwrap();
 
-                    src.vars[p.var()].ty = ty;
+                    let var = *src.map_vars.get(p.id).unwrap();
+                    src.vars[var].ty = ty;
                 }
             }
 
@@ -130,7 +131,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 if let Some(ref data_type) = var.data_type {
                     self.visit_type(data_type);
 
-                    let varid = var.var();
+                    let varid = *self.src.map_vars.get(var.id).unwrap();
                     self.src.vars[varid].ty = self.current_type;
                 }
 
@@ -144,7 +145,9 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 for catch in &try.catch_blocks {
                     self.visit_type(&catch.data_type);
                     catch.set_ty(self.current_type);
-                    self.src.vars[catch.var()].ty = self.current_type;
+
+                    let var = *self.src.map_vars.get(catch.id).unwrap();
+                    self.src.vars[var].ty = self.current_type;
 
                     if !self.current_type.reference_type() {
                         let ty = self.current_type.name(self.ctxt);

@@ -405,6 +405,7 @@ pub struct FctSrc<'ast> {
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
     pub map_cls: NodeMap<ClassId>,
+    pub map_vars: NodeMap<VarId>,
 
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -427,6 +428,7 @@ impl<'ast> FctSrc<'ast> {
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
             map_cls: NodeMap::new(),
+            map_vars: NodeMap::new(),
 
             tempsize: 0,
             localsize: 0,

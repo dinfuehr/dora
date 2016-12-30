@@ -554,7 +554,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             name: name,
             pos: pos,
             data_type: data_type,
-            info: RefCell::new(None),
         })
     }
 
@@ -654,13 +653,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_catch(&mut self) -> Result<CatchBlock, MsgWithPos> {
+        let id = self.generate_id();
         let pos = self.expect_token(TokenType::Catch)?.position;
         let name = self.expect_identifier()?;
         self.expect_token(TokenType::Colon)?;
         let data_type = self.parse_type()?;
         let block = self.parse_block()?;
 
-        Ok(CatchBlock::new(name, pos, data_type, block))
+        Ok(CatchBlock::new(id, name, pos, data_type, block))
     }
 
     fn parse_finally(&mut self) -> Result<FinallyBlock, MsgWithPos> {
@@ -1180,7 +1180,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             reassignable: false,
             pos: Position::new(1, 1),
             data_type: ty,
-            info: RefCell::new(None),
         }
     }
 

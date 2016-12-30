@@ -54,16 +54,17 @@ struct InfoGenerator<'a, 'ast: 'a> {
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         let idx = (p.idx as usize) + if self.fct.in_class() { 1 } else { 0 };
+        let var = *self.src.map_vars.get(p.id).unwrap();
 
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
         if idx < cpu::REG_PARAMS.len() {
-            self.reserve_stack_for_node(p.var());
+            self.reserve_stack_for_node(var);
 
             // the rest of the parameters are already stored on the stack
             // just use the current offset
         } else {
-            let var = &mut self.src.vars[p.var()];
+            let var = &mut self.src.vars[var];
             var.offset = self.param_offset;
 
             // determine next `param_offset`
@@ -73,7 +74,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            self.reserve_stack_for_node(var.var());
+            let var = *self.src.map_vars.get(var.id).unwrap();
+            self.reserve_stack_for_node(var);
         }
 
         if let StmtDo(ref try) = *s {
@@ -86,7 +88,8 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             // we also need space for catch block parameters
             for catch in &try.catch_blocks {
-                self.reserve_stack_for_node(catch.var());
+                let var = *self.src.map_vars.get(catch.id).unwrap();
+                self.reserve_stack_for_node(var);
             }
 
             if let Some(ref finally_block) = try.finally_block {

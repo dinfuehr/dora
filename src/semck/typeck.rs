@@ -47,13 +47,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
+        let var = *self.src.map_vars.get(s.id).unwrap();
+
         let expr_type = s.expr.as_ref().map(|expr| {
             self.visit_expr(&expr);
             self.expr_type
         });
 
         let defined_type = if let Some(_) = s.data_type {
-            let ty = self.src.vars[s.var()].ty;
+            let ty = self.src.vars[var].ty;
             if ty == BuiltinType::Unit {
                 None
             } else {
@@ -75,7 +77,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // update type of variable, necessary when variable is only initialized with
         // an expression
-        self.src.vars[s.var()].ty = defined_type;
+        self.src.vars[var].ty = defined_type;
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(self.ctxt, expr_type) {

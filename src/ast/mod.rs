@@ -4,7 +4,7 @@ use std::hash::*;
 use std::slice::Iter;
 
 use ast::Elem::*;
-use ctxt::{CtorType, FctId, VarId};
+use ctxt::{CtorType, FctId};
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -382,17 +382,6 @@ pub struct Param {
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
-    pub info: RefCell<Option<VarId>>,
-}
-
-impl Param {
-    pub fn var(&self) -> VarId {
-        self.info.borrow().unwrap()
-    }
-
-    pub fn set_var(&self, var: VarId) {
-        *self.info.borrow_mut() = Some(var);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -425,7 +414,6 @@ impl Stmt {
             reassignable: reassignable,
             data_type: data_type,
             expr: expr,
-            info: RefCell::new(None),
         })
     }
 
@@ -712,17 +700,6 @@ pub struct StmtVarType {
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
-    pub info: RefCell<Option<VarId>>,
-}
-
-impl StmtVarType {
-    pub fn var(&self) -> VarId {
-        self.info.borrow().unwrap()
-    }
-
-    pub fn set_var(&self, var: VarId) {
-        *self.info.borrow_mut() = Some(var);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -801,22 +778,22 @@ pub struct StmtDoType {
 
 #[derive(Clone, Debug)]
 pub struct CatchBlock {
+    pub id: NodeId,
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
     pub ty: RefCell<Option<BuiltinType>>,
-    pub var: RefCell<Option<VarId>>,
     pub block: Box<Stmt>,
 }
 
 impl CatchBlock {
-    pub fn new(name: Name, pos: Position, data_type: Type, block: Box<Stmt>) -> CatchBlock {
+    pub fn new(id: NodeId, name: Name, pos: Position, data_type: Type, block: Box<Stmt>) -> CatchBlock {
         CatchBlock {
+            id: id,
             name: name,
             pos: pos,
             data_type: data_type,
             ty: RefCell::new(None),
-            var: RefCell::new(None),
             block: block,
         }
     }
@@ -827,14 +804,6 @@ impl CatchBlock {
 
     pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
-    }
-
-    pub fn set_var(&self, var: VarId) {
-        *self.var.borrow_mut() = Some(var);
-    }
-
-    pub fn var(&self) -> VarId {
-        self.var.borrow().unwrap()
     }
 }
 
