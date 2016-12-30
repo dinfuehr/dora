@@ -362,7 +362,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: Reg) {
-        let (cls, field) = expr.cls_and_field();
+        let (cls, field) = {
+            let ident_type = self.src.map_idents.get(expr.id).unwrap();
+
+            match ident_type {
+                &IdentType::Field(cls, field) => (cls, field),
+                _ => unreachable!()
+            }
+        };
 
         self.emit_expr(&expr.object, REG_RESULT);
         self.emit_field_access(cls, field, REG_RESULT, dest);
@@ -400,10 +407,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
-        match e.ident_type() {
-            IdentType::Var(_) => {
-                let varid = e.var();
+        let &ident = self.src.map_idents.get(e.id).unwrap();
 
+        match ident {
+            IdentType::Var(varid) => {
                 self.masm.emit_comment(Comment::LoadVar(varid));
                 codegen::var_load(self.masm, self.src, varid, dest)
             }
@@ -463,24 +470,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             return;
         }
 
-        let ident_type = if e.lhs.is_ident() {
-            e.lhs.to_ident().unwrap().ident_type()
-
-        } else if e.lhs.is_field() {
-            let (cls, field) = e.lhs.to_field().unwrap().cls_and_field();
-
-            IdentType::Field(cls, field)
-
-        } else {
-            unreachable!();
-        };
+        let &ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
 
         match ident_type {
-            IdentType::Var(_) => {
+            IdentType::Var(varid) => {
                 self.emit_expr(&e.rhs, dest);
-                let lhs = e.lhs.to_ident().unwrap();
 
-                let varid = lhs.var();
                 self.masm.emit_comment(Comment::StoreVar(varid));
                 codegen::var_store(&mut self.masm, self.src, dest, varid);
             }

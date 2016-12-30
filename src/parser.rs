@@ -1211,7 +1211,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             pos: Position::new(1, 1),
             name: name,
-            info: RefCell::new(None),
             ty: RefCell::new(None),
         }))
     }
@@ -1246,7 +1245,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             object: object,
             name: name,
-            info: RefCell::new(None),
             ty: RefCell::new(None),
         }))
     }

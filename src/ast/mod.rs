@@ -4,8 +4,8 @@ use std::hash::*;
 use std::slice::Iter;
 
 use ast::Elem::*;
-use class::{ClassId, FieldId};
-use ctxt::{CtorType, FctId, IdentType, VarId};
+use class::ClassId;
+use ctxt::{CtorType, FctId, VarId};
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -1097,7 +1097,6 @@ impl Expr {
             id: id,
             pos: pos,
             name: name,
-            info: RefCell::new(None),
             ty: RefCell::new(None),
         })
     }
@@ -1149,7 +1148,6 @@ impl Expr {
             pos: pos,
             object: object,
             name: name,
-            info: RefCell::new(None),
             ty: RefCell::new(None),
         })
     }
@@ -1727,7 +1725,6 @@ pub struct ExprIdentType {
     pub pos: Position,
 
     pub name: Name,
-    pub info: RefCell<Option<IdentType>>,
     pub ty: RefCell<Option<BuiltinType>>,
 }
 
@@ -1738,27 +1735,6 @@ impl ExprIdentType {
 
     pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
-    }
-
-    pub fn ident_type(&self) -> IdentType {
-        self.info.borrow().unwrap()
-    }
-
-    pub fn set_field(&self, cls: ClassId, field: FieldId) {
-        let info = IdentType::Field(cls, field);
-        *self.info.borrow_mut() = Some(info);
-    }
-
-    pub fn set_var(&self, var: VarId) {
-        let info = IdentType::Var(var);
-        *self.info.borrow_mut() = Some(info);
-    }
-
-    pub fn var(&self) -> VarId {
-        match self.ident_type() {
-            IdentType::Var(var_id) => var_id,
-            _ => unreachable!("var expected"),
-        }
     }
 }
 
@@ -1810,7 +1786,6 @@ pub struct ExprFieldType {
 
     pub object: Box<Expr>,
     pub name: Name,
-    pub info: RefCell<Option<(ClassId, FieldId)>>,
     pub ty: RefCell<Option<BuiltinType>>,
 }
 
@@ -1821,17 +1796,5 @@ impl ExprFieldType {
 
     pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
-    }
-
-    pub fn has_cls_and_field(&self) -> bool {
-        self.info.borrow().is_some()
-    }
-
-    pub fn cls_and_field(&self) -> (ClassId, FieldId) {
-        self.info.borrow().unwrap()
-    }
-
-    pub fn set_cls_and_field(&self, class: ClassId, field: FieldId) {
-        *self.info.borrow_mut() = Some((class, field));
     }
 }

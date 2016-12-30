@@ -175,7 +175,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        match e.ident_type() {
+        let ident_type = self.src.map_idents.get(e.id).unwrap();
+
+        match *ident_type {
             IdentType::Var(varid) => {
                 let ty = self.src.vars[varid].ty;
                 e.set_ty(ty);
@@ -230,66 +232,54 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.visit_expr(&e.rhs);
             let rhs_type = self.expr_type;
 
-            // check if variable is reassignable
-            if e.lhs.is_ident() {
-                let ident = e.lhs.to_ident().unwrap();
-                let ident_type = ident.ident_type();
-
-                if let IdentType::Var(varid) = ident_type {
-                    if !self.src.vars[varid].reassignable {
-                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+            let assign_type = if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
+                match ident_type {
+                    &IdentType::Var(varid) => {
+                        if !self.src.vars[varid].reassignable {
+                            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                        }
                     }
 
-                } else if let IdentType::Field(clsid, fieldid) = ident_type {
-                    if !self.fct.ctor.is() &&
-                       !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
-                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                    &IdentType::Field(clsid, fieldid) => {
+                        if !self.fct.ctor.is() &&
+                        !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
+                            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                        }
                     }
                 }
 
-                // check if field is reassignable, assignment only allowed in ctor
-            } else if !self.fct.ctor.is() {
-                let lhs = e.lhs.to_field().unwrap();
+                if !lhs_type.allows(self.ctxt, rhs_type) {
+                    let msg = if e.lhs.is_ident() {
+                        let ident = e.lhs.to_ident().unwrap();
+                        let name = self.ctxt.interner.str(ident.name).to_string();
+                        let lhs_type = lhs_type.name(self.ctxt);
+                        let rhs_type = rhs_type.name(self.ctxt);
 
-                if lhs.has_cls_and_field() {
-                    let (cls, fieldid) = lhs.cls_and_field();
+                        Msg::AssignType(name, lhs_type, rhs_type)
 
-                    if !self.ctxt.cls_by_id(cls).fields[fieldid].reassignable {
-                        self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
-                    }
+                    } else {
+                        let field = e.lhs.to_field().unwrap();
+                        let name = self.ctxt.interner.str(field.name).to_string();
 
-                } else {
-                    return;
+                        let field_type = field.object.ty();
+                        let field_type = field_type.name(self.ctxt);
+
+                        let lhs_type = lhs_type.name(self.ctxt);
+                        let rhs_type = rhs_type.name(self.ctxt);
+
+                        Msg::AssignField(name, field_type, lhs_type, rhs_type)
+                    };
+
+                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
-            }
 
-            if !lhs_type.allows(self.ctxt, rhs_type) {
-                let msg = if e.lhs.is_ident() {
-                    let ident = e.lhs.to_ident().unwrap();
-                    let name = self.ctxt.interner.str(ident.name).to_string();
-                    let lhs_type = lhs_type.name(self.ctxt);
-                    let rhs_type = rhs_type.name(self.ctxt);
+                lhs_type
+            } else {
+                rhs_type
+            };
 
-                    Msg::AssignType(name, lhs_type, rhs_type)
-
-                } else {
-                    let field = e.lhs.to_field().unwrap();
-                    let name = self.ctxt.interner.str(field.name).to_string();
-
-                    let field_type = field.object.ty();
-                    let field_type = field_type.name(self.ctxt);
-
-                    let lhs_type = lhs_type.name(self.ctxt);
-                    let rhs_type = rhs_type.name(self.ctxt);
-
-                    Msg::AssignField(name, field_type, lhs_type, rhs_type)
-                };
-
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            }
-
-            e.set_ty(lhs_type);
-            self.expr_type = lhs_type;
+            e.set_ty(assign_type);
+            self.expr_type = assign_type;
 
         } else {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
@@ -672,7 +662,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.ctxt.cls_by_id(class_id);
 
             if let Some((class_id, field_id)) = cls.find_field(self.ctxt, e.name) {
-                e.set_cls_and_field(class_id, field_id);
+                let ident_type = IdentType::Field(class_id, field_id);
+                self.src.map_idents.insert(e.id, ident_type);
 
                 let field = self.ctxt.field(class_id, field_id);
                 e.set_ty(field.ty);

@@ -177,7 +177,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
         if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-            ident.set_var(id);
+            self.src.map_idents.insert(ident.id, IdentType::Var(id));
             return;
         }
 
@@ -189,7 +189,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
                 for field in &cls.fields {
                     if field.name == ident.name {
-                        ident.set_field(clsid, field.id);
+                        let ident_type = IdentType::Field(clsid, field.id);
+                        self.src.map_idents.insert(ident.id, ident_type);
                         return;
                     }
                 }
@@ -204,8 +205,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         let mut found = false;
 
         // do not check method calls yet
-        if call.object.is_some() {
-            self.visit_expr(call.object.as_ref().unwrap());
+        if let Some(ref object) = call.object {
+            self.visit_expr(object);
 
             for arg in &call.args {
                 self.visit_expr(arg);
@@ -287,9 +288,9 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 
     fn visit_expr(&mut self, e: &'ast Expr) {
-        match *e {
-            ExprIdent(ref ident) => self.check_expr_ident(ident),
-            ExprCall(ref call) => self.check_expr_call(call),
+        match e {
+            &ExprIdent(ref ident) => self.check_expr_ident(ident),
+            &ExprCall(ref call) => self.check_expr_call(call),
 
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e),

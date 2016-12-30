@@ -318,9 +318,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             let lhs = e.lhs.to_ident().unwrap();
-            let ident_type = lhs.ident_type();
+            let field = self.src.map_idents.get(lhs.id).unwrap().is_field();
 
-            if ident_type.is_field() {
+            if field {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
             }
 
