@@ -620,12 +620,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_method_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
         let object = e.object.as_ref().unwrap();
 
-        if let Some(ref expr) = object.to_super() {
-            self.src.map_method.insert(expr.id, true);
-        }
+        let object_type = if object.is_super() {
+            self.super_type(e.pos)
 
-        self.visit_expr(object);
-        let object_type = self.expr_type;
+        } else {
+            self.visit_expr(object);
+
+            self.expr_type
+        };
 
         let call_types: Vec<BuiltinType> = e.args
             .iter()
@@ -654,6 +656,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             e.set_ty(BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
+    }
+
+    fn super_type(&self, pos: Position) -> BuiltinType {
+        if let Some(clsid) = self.fct.owner_class {
+            let cls = self.ctxt.cls_by_id(clsid);
+
+            if let Some(superid) = cls.parent_class {
+                return BuiltinType::Class(superid);
+            }
+        }
+
+        let msg = Msg::SuperUnavailable;
+        self.ctxt.diag.borrow_mut().report(pos, msg);
+
+        BuiltinType::Unit
     }
 
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
@@ -698,28 +715,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
-        let is_method = self.src.map_method.get(e.id).cloned().unwrap_or(false);
-
-        if !is_method {
-            let msg = Msg::SuperNeedsMethodCall;
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            e.set_ty(BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
-        }
-
-        if let Some(clsid) = self.fct.owner_class {
-            let cls = self.ctxt.cls_by_id(clsid);
-
-            if let Some(superid) = cls.parent_class {
-                let ty = BuiltinType::Class(superid);
-                e.set_ty(ty);
-                self.expr_type = ty;
-
-                return;
-            }
-        }
-
-        let msg = Msg::SuperUnavailable;
+        let msg = Msg::SuperNeedsMethodCall;
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         e.set_ty(BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
