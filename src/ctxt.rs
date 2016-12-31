@@ -374,10 +374,10 @@ pub struct FctSrc<'ast> {
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
-    pub map_cls: NodeMap<ClassId>,
     pub map_vars: NodeMap<VarId>,
     pub map_offsets: NodeMap<i32>,
-    pub map_valid: NodeMap<bool>,
+    pub map_convs: NodeMap<ConvInfo>,
+    pub map_cls: NodeMap<ClassId>,
 
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -399,10 +399,10 @@ impl<'ast> FctSrc<'ast> {
             call_sites: HashMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
-            map_cls: NodeMap::new(),
             map_vars: NodeMap::new(),
             map_offsets: NodeMap::new(),
-            map_valid: NodeMap::new(),
+            map_convs: NodeMap::new(),
+            map_cls: NodeMap::new(),
 
             tempsize: 0,
             localsize: 0,
@@ -464,6 +464,12 @@ impl<V> NodeMap<V> {
     pub fn clear(&mut self) {
         self.map.clear();
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct ConvInfo {
+    pub cls_id: ClassId,
+    pub valid: bool,
 }
 
 #[derive(Debug, Copy, Clone)]

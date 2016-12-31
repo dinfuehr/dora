@@ -1,4 +1,4 @@
-use ctxt::{CallType, Context, Fct, FctId, FctSrc, IdentType};
+use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctSrc, IdentType};
 use class::ClassId;
 use error::msg::Msg;
 
@@ -807,11 +807,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
+        let mut valid = false;
+
         if object_type.subclass_from(self.ctxt, check_type) {
             // open class A { } class B: A { }
             // (b is A) is valid
 
-            self.src.map_valid.insert(e.id, true);
+            valid = true;
 
         } else if check_type.subclass_from(self.ctxt, object_type) {
             // normal check
@@ -823,7 +825,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        self.src.map_cls.insert(e.id, check_type.cls_id(self.ctxt));
+        self.src.map_convs.insert(e.id, ConvInfo {
+            cls_id: check_type.cls_id(self.ctxt),
+            valid: valid
+        });
+
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
 }

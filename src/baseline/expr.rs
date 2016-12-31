@@ -148,9 +148,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         // return false if object is nil
         let lbl_nil = self.masm.test_if_nil(dest);
-        let is_valid = self.src.map_valid.get(e.id).cloned().unwrap_or(false);
+        let conv = *self.src.map_convs.get(e.id).unwrap();
 
-        if is_valid {
+        if conv.valid {
             if e.is {
                 // return true for object is T
                 self.masm.load_true(dest);
@@ -160,7 +160,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
         } else {
-            let cls_id = *self.src.map_cls.get(e.id).unwrap();
+            let cls_id = conv.cls_id;
             let cls = self.ctxt.cls_by_id(cls_id);
             let vtable: &VTable<'ast> = cls.vtable.as_ref().unwrap();
 

@@ -171,7 +171,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
-        let is_valid = self.src.map_valid.get(e.id).cloned().unwrap_or(false);
+        let is_valid = self.src.map_convs.get(e.id).unwrap().valid;
 
         if !e.is && !is_valid {
             self.reserve_temp_for_node(&e.object);
