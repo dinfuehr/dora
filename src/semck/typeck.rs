@@ -603,7 +603,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ctor = self.ctxt.fct_by_id(ctor_id);
 
             if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
-                e.set_fct_id(ctor_id);
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);

@@ -4,7 +4,7 @@ use std::hash::*;
 use std::slice::Iter;
 
 use ast::Elem::*;
-use ctxt::{CtorType, FctId};
+use ctxt::CtorType;
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -1074,7 +1074,6 @@ impl Expr {
             pos: pos,
             ty: ty,
             args: args,
-            fct_id: RefCell::new(None),
         })
     }
 
@@ -1467,17 +1466,6 @@ pub struct ExprDelegationType {
     pub pos: Position,
     pub ty: DelegationType, // true for this class, false for super class
     pub args: Vec<Box<Expr>>,
-    pub fct_id: RefCell<Option<FctId>>,
-}
-
-impl ExprDelegationType {
-    pub fn fct_id(&self) -> FctId {
-        self.fct_id.borrow().unwrap()
-    }
-
-    pub fn set_fct_id(&self, id: FctId) {
-        *self.fct_id.borrow_mut() = Some(id);
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
