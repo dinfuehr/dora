@@ -4,7 +4,6 @@ use std::io::Error;
 
 use ast::*;
 use ast::Elem::*;
-use ctxt::CtorType;
 use error::msg::*;
 
 use interner::*;

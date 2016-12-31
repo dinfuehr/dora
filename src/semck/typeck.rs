@@ -621,7 +621,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object = e.object.as_ref().unwrap();
 
         if let Some(ref expr) = object.to_super() {
-            expr.set_method(true);
+            self.src.map_method.insert(expr.id, true);
         }
 
         self.visit_expr(object);
@@ -698,7 +698,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
-        if !e.method() {
+        let is_method = self.src.map_method.get(e.id).cloned().unwrap_or(false);
+
+        if !is_method {
             let msg = Msg::SuperNeedsMethodCall;
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
             e.set_ty(BuiltinType::Unit);
@@ -813,7 +815,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             // open class A { } class B: A { }
             // (b is A) is valid
 
-            e.set_valid(true);
+            self.src.map_valid.insert(e.id, true);
 
         } else if check_type.subclass_from(self.ctxt, object_type) {
             // normal check

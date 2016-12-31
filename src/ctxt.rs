@@ -216,36 +216,6 @@ impl PrimitiveClasses {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum CtorType {
-    None,
-    Primary,
-    Secondary,
-}
-
-impl CtorType {
-    pub fn is(&self) -> bool {
-        match *self {
-            CtorType::Primary | CtorType::Secondary => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_primary(&self) -> bool {
-        match *self {
-            CtorType::Primary => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_secondary(&self) -> bool {
-        match *self {
-            CtorType::Secondary => true,
-            _ => false,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
 
@@ -263,7 +233,7 @@ pub struct Fct<'ast> {
     pub overrides: Option<FctId>,
     pub params_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
-    pub ctor: CtorType,
+    pub ctor: ast::CtorType,
     pub vtable_index: Option<u32>,
     pub initialized: bool,
     pub throws: bool,
@@ -407,6 +377,8 @@ pub struct FctSrc<'ast> {
     pub map_cls: NodeMap<ClassId>,
     pub map_vars: NodeMap<VarId>,
     pub map_offsets: NodeMap<i32>,
+    pub map_valid: NodeMap<bool>,
+    pub map_method: NodeMap<bool>,
 
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
@@ -431,6 +403,8 @@ impl<'ast> FctSrc<'ast> {
             map_cls: NodeMap::new(),
             map_vars: NodeMap::new(),
             map_offsets: NodeMap::new(),
+            map_valid: NodeMap::new(),
+            map_method: NodeMap::new(),
 
             tempsize: 0,
             localsize: 0,

@@ -148,8 +148,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         // return false if object is nil
         let lbl_nil = self.masm.test_if_nil(dest);
+        let is_valid = self.src.map_valid.get(e.id).cloned().unwrap_or(false);
 
-        if e.valid() {
+        if is_valid {
             if e.is {
                 // return true for object is T
                 self.masm.load_true(dest);

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use ast;
 use ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{Context, CtorType, Fct, FctId, FctKind, FctSrc};
+use ctxt::{Context, Fct, FctId, FctKind, FctSrc};
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
@@ -159,7 +159,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
             internal: f.internal,
             overrides: None,
             throws: f.throws,
-            ctor: CtorType::None,
+            ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
             kind: kind,

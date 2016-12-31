@@ -4,7 +4,6 @@ use std::hash::*;
 use std::slice::Iter;
 
 use ast::Elem::*;
-use ctxt::CtorType;
 use lexer::position::Position;
 use interner::{Interner, Name};
 use ty::BuiltinType;
@@ -322,6 +321,36 @@ pub struct Function {
 impl Function {
     pub fn block(&self) -> &Stmt {
         self.block.as_ref().unwrap()
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum CtorType {
+    None,
+    Primary,
+    Secondary,
+}
+
+impl CtorType {
+    pub fn is(&self) -> bool {
+        match *self {
+            CtorType::Primary | CtorType::Secondary => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_primary(&self) -> bool {
+        match *self {
+            CtorType::Primary => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_secondary(&self) -> bool {
+        match *self {
+            CtorType::Secondary => true,
+            _ => false,
+        }
     }
 }
 
@@ -975,7 +1004,6 @@ impl Expr {
             object: object,
             data_type: data_type,
             is: is,
-            valid: Cell::new(false),
         })
     }
 
@@ -1027,7 +1055,6 @@ impl Expr {
             id: id,
             pos: pos,
             ty: RefCell::new(None),
-            method: Cell::new(false),
         })
     }
 
@@ -1390,17 +1417,6 @@ pub struct ExprConvType {
     pub object: Box<Expr>,
     pub is: bool,
     pub data_type: Box<Type>,
-    pub valid: Cell<bool>,
-}
-
-impl ExprConvType {
-    pub fn valid(&self) -> bool {
-        self.valid.get()
-    }
-
-    pub fn set_valid(&self, val: bool) {
-        self.valid.set(val);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1580,7 +1596,6 @@ pub struct ExprSuperType {
     pub id: NodeId,
     pub pos: Position,
     pub ty: RefCell<Option<BuiltinType>>,
-    pub method: Cell<bool>,
 }
 
 impl ExprSuperType {
@@ -1590,14 +1605,6 @@ impl ExprSuperType {
 
     pub fn set_ty(&self, ty: BuiltinType) {
         *self.ty.borrow_mut() = Some(ty);
-    }
-
-    pub fn method(&self) -> bool {
-        self.method.get()
-    }
-
-    pub fn set_method(&self, val: bool) {
-        self.method.set(val);
     }
 }
 
