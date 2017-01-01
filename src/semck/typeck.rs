@@ -216,7 +216,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if let Some((cls_id, fct_id, _)) =
                 self.find_method(e.pos, object_type, name, &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
-                assert!(self.src.calls.insert(e.id, call_type).is_none());
+                self.src.map_calls.insert(e.id, call_type);
 
                 let index_type = self.ctxt.fct_by_id(fct_id).params_types[1];
 
@@ -489,7 +489,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src.calls.get(&e.id).unwrap();
+        let call_type = *self.src.map_calls.get(e.id).unwrap();
 
         let call_types: Vec<BuiltinType> = e.args
             .iter()
@@ -511,7 +511,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if args_compatible(self.ctxt, &ctor.params_types, &call_types) {
                         let call_type = CallType::CtorNew(cls_id, ctor.id);
-                        assert!(self.src.calls.insert(e.id, call_type).is_some());
+                        self.src.map_calls.replace(e.id, call_type);
 
                         found = true;
                         break;
@@ -606,7 +606,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);
-                assert!(self.src.calls.insert(e.id, call_type).is_none());
+                self.src.map_calls.insert(e.id, call_type);
                 return;
             }
         }
@@ -640,7 +640,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) =
             self.find_method(e.pos, object_type, e.name, &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            assert!(self.src.calls.insert(e.id, call_type).is_none());
+            self.src.map_calls.insert(e.id, call_type);
             e.set_ty(return_type);
             self.expr_type = return_type;
 
@@ -739,7 +739,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) =
             self.find_method(e.pos, object_type, name, &args, None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            assert!(self.src.calls.insert(e.id, call_type).is_none());
+            self.src.map_calls.insert(e.id, call_type);
 
             e.set_ty(return_type);
             self.expr_type = return_type;
@@ -755,7 +755,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let e_type = self.expr_type;
             e.set_ty(e_type);
 
-            let fct_id = self.src.calls.get(&call.id).unwrap().fct_id();
+            let fct_id = self.src.map_calls.get(call.id).unwrap().fct_id();
             let throws = self.ctxt.fct_by_id(fct_id).throws;
 
             if !throws {

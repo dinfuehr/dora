@@ -219,13 +219,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id);
-                    self.src.calls.insert(call.id, call_type);
+                    self.src.map_calls.insert(call.id, call_type);
                     found = true;
                 }
 
                 SymClass(cls_id) => {
                     let call_type = CallType::CtorNew(cls_id, FctId(0));
-                    self.src.calls.insert(call.id, call_type);
+                    self.src.map_calls.insert(call.id, call_type);
                     found = true;
                 }
 

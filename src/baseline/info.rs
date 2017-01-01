@@ -179,7 +179,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
-        let fid = self.src.calls.get(&id).unwrap().fct_id();
+        let fid = self.src.map_calls.get(id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -203,7 +203,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src.calls.get(&expr.id).unwrap();
+        let call_type = *self.src.map_calls.get(expr.id).unwrap();
 
         let mut args = expr.args
             .iter()
@@ -264,7 +264,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         let fid = if callee.is_none() {
-            Some(self.src.calls.get(&id).unwrap().fct_id())
+            Some(self.src.map_calls.get(id).unwrap().fct_id())
         } else {
             None
         };

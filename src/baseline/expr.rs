@@ -336,7 +336,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let fid = self.src.calls.get(&id).unwrap().fct_id();
+        let fid = self.src.map_calls.get(id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -837,7 +837,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.load_mem(ty.mode(), reg, Mem::Local(offset));
 
                 if ind == 0 {
-                    let call_type = self.src.calls.get(&id);
+                    let call_type = self.src.map_calls.get(id);
 
                     if call_type.is_some() && call_type.unwrap().is_method() && check_for_nil(ty) {
                         self.masm.test_if_nil_bailout(pos, reg, Trap::NIL);
