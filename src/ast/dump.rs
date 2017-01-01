@@ -53,8 +53,28 @@ impl<'a> AstDumper<'a> {
             match *el {
                 ElemFunction(ref fct) => self.dump_fct(fct),
                 ElemClass(ref cls) => self.dump_class(cls),
+                ElemStruct(ref struc) => self.dump_struct(struc),
             }
         }
+    }
+
+    fn dump_struct(&mut self, struc: &Struct) {
+        dump!(self, "struct {} @ {} {}", self.str(struc.name), struc.pos, struc.id);
+
+        self.indent(|d| {
+            for field in &struc.fields {
+                d.dump_struct_field(field);
+            }
+        });
+    }
+
+    fn dump_struct_field(&mut self, field: &StructField) {
+        dump!(self,
+              "field {} @ {} {}",
+              self.str(field.name),
+              field.pos,
+              field.id);
+        self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_class(&mut self, cls: &Class) {

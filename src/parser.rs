@@ -111,11 +111,47 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 Ok(ElemClass(class))
             }
 
+            TokenType::Struct => {
+                self.ban_modifiers(&modifiers)?;
+                let struc = self.parse_struct()?;
+                Ok(ElemStruct(struc))
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 Err(MsgWithPos::new(self.token.position, msg))
             }
         }
+    }
+
+    fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
+        let pos = self.expect_token(TokenType::Struct)?.position;
+        let ident = self.expect_identifier()?;
+
+        self.expect_token(TokenType::LBrace)?;
+        let fields = self.parse_comma_list(TokenType::RBrace, |p| p.parse_struct_field())?;
+
+        Ok(Struct {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            fields: fields,
+        })
+    }
+
+    fn parse_struct_field(&mut self) -> Result<StructField, MsgWithPos> {
+        let pos = self.token.position;
+        let ident = self.expect_identifier()?;
+
+        self.expect_token(TokenType::Colon)?;
+        let ty = self.parse_type()?;
+
+        Ok(StructField {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            data_type: ty,
+        })
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
@@ -2419,5 +2455,43 @@ mod tests {
         let try = expr.to_try().unwrap();
 
         assert!(try.mode.is_opt());
+    }
+
+    #[test]
+    fn parse_struct_empty() {
+        let (prog, interner) = parse("struct Foo {}");
+        let struc = prog.struc0();
+        assert_eq!(0, struc.fields.len());
+        assert_eq!("Foo", *interner.str(struc.name));
+    }
+
+    #[test]
+    fn parse_struct_one_field() {
+        let (prog, interner) = parse("struct Bar {
+            f1: Foo1,
+        }");
+        let struc = prog.struc0();
+        assert_eq!(1, struc.fields.len());
+        assert_eq!("Bar", *interner.str(struc.name));
+
+        let f1 = &struc.fields[0];
+        assert_eq!("f1", *interner.str(f1.name));
+    }
+
+    #[test]
+    fn parse_struct_multiple_fields() {
+        let (prog, interner) = parse("struct FooBar {
+            fa: Foo1,
+            fb: Foo2,
+        }");
+        let struc = prog.struc0();
+        assert_eq!(2, struc.fields.len());
+        assert_eq!("FooBar", *interner.str(struc.name));
+
+        let f1 = &struc.fields[0];
+        assert_eq!("fa", *interner.str(f1.name));
+
+        let f2 = &struc.fields[1];
+        assert_eq!("fb", *interner.str(f2.name));
     }
 }

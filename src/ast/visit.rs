@@ -17,6 +17,14 @@ pub trait Visitor<'v>: Sized {
         walk_class(self, c);
     }
 
+    fn visit_struct(&mut self, s: &'v Struct) {
+        walk_struct(self, s);
+    }
+
+    fn visit_struct_field(&mut self, f: &'v StructField) {
+        walk_struct_field(self, f);
+    }
+
     fn visit_ctor(&mut self, m: &'v Function) {
         walk_fct(self, m);
     }
@@ -65,6 +73,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, a: &'v File) {
         match *e {
             ElemFunction(ref f) => v.visit_fct(f),
             ElemClass(ref c) => v.visit_class(c),
+            ElemStruct(ref s) => v.visit_struct(s),
         }
     }
 }
@@ -81,6 +90,16 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
     for m in &c.methods {
         v.visit_method(m);
     }
+}
+
+pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {
+    for f in &s.fields {
+        v.visit_struct_field(f);
+    }
+}
+
+pub fn walk_struct_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v StructField) {
+    v.visit_type(&f.data_type);
 }
 
 pub fn walk_field<'v, V: Visitor<'v>>(v: &mut V, f: &'v Field) {

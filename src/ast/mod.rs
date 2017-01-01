@@ -49,6 +49,11 @@ impl Ast {
     pub fn cls(&self, index: usize) -> &Class {
         self.files.last().unwrap().elements[index].to_class().unwrap()
     }
+
+    #[cfg(test)]
+    pub fn struc0(&self) -> &Struct {
+        self.files.last().unwrap().elements[0].to_struc().unwrap()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -76,29 +81,54 @@ impl fmt::Display for NodeId {
 pub enum Elem {
     ElemFunction(Function),
     ElemClass(Class),
+    ElemStruct(Struct),
 }
 
 impl Elem {
     pub fn id(&self) -> NodeId {
-        match *self {
-            ElemFunction(ref fct) => fct.id,
-            ElemClass(ref class) => class.id,
+        match self {
+            &ElemFunction(ref fct) => fct.id,
+            &ElemClass(ref class) => class.id,
+            &ElemStruct(ref s) => s.id,
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
-        match *self {
-            ElemFunction(ref fct) => Some(fct),
+        match self {
+            &ElemFunction(ref fct) => Some(fct),
             _ => None,
         }
     }
 
     pub fn to_class(&self) -> Option<&Class> {
-        match *self {
-            ElemClass(ref class) => Some(class),
+        match self {
+            &ElemClass(ref class) => Some(class),
             _ => None,
         }
     }
+
+    pub fn to_struc(&self) -> Option<&Struct> {
+        match self {
+            &ElemStruct(ref struc) => Some(struc),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Struct {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StructField {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+    pub data_type: Type,
 }
 
 #[derive(Clone, Debug)]
