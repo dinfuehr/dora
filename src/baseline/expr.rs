@@ -687,7 +687,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let lhs_reg = REG_RESULT;
         let rhs_reg = REG_TMP1;
 
-        if let Some(&Store::Temp(_, _)) = self.src.storage.get(&e.lhs.id()) {
+        if let Some(&Store::Temp(_, _)) = self.src.map_stores.get(e.lhs.id()) {
             let offset = self.reserve_temp_for_node(&e.lhs);
             let ty = e.lhs.ty();
 

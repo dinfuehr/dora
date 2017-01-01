@@ -370,7 +370,7 @@ pub enum Intrinsic {
 #[derive(Debug)]
 pub struct FctSrc<'ast> {
     pub map_calls: NodeMap<CallType>, // maps function call to FctId
-    pub storage: HashMap<ast::NodeId, Store>,
+    pub map_stores: NodeMap<Store>,
     pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
@@ -395,7 +395,7 @@ impl<'ast> FctSrc<'ast> {
     pub fn new() -> FctSrc<'ast> {
         FctSrc {
             map_calls: NodeMap::new(),
-            storage: HashMap::new(),
+            map_stores: NodeMap::new(),
             call_sites: HashMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
@@ -417,7 +417,7 @@ impl<'ast> FctSrc<'ast> {
     }
 
     pub fn get_store(&self, id: ast::NodeId) -> Store {
-        match self.storage.get(&id) {
+        match self.map_stores.get(id) {
             Some(store) => *store,
             None => Store::Reg,
         }
@@ -464,6 +464,10 @@ impl<V> NodeMap<V> {
     pub fn replace(&mut self, id: ast::NodeId, data: V) {
         let old = self.map.insert(id, data);
         assert!(old.is_some());
+    }
+
+    pub fn insert_or_replace(&mut self, id: ast::NodeId, data: V) {
+        self.map.insert(id, data);
     }
 
     pub fn clear(&mut self) {

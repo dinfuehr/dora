@@ -403,8 +403,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = ty.size();
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.src.storage.insert(id, Store::Temp(self.cur_tempsize, ty));
-        // println!("temp on {} with type {:?}", self.cur_tempsize, ty);
+        self.src.map_stores.insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
 
         self.cur_tempsize
     }
