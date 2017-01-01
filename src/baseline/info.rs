@@ -315,7 +315,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         };
 
         // remember args
-        self.src.call_sites.insert(id, csite);
+        self.src.map_csites.insert_or_replace(id, csite);
     }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {

@@ -783,11 +783,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
-        self.src.call_sites.get(&id).is_some()
+        self.src.map_csites.get(id).is_some()
     }
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
-        let csite = self.src.call_sites.get(&id).unwrap().clone();
+        let csite = self.src.map_csites.get(id).unwrap().clone();
         let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
         for arg in &csite.args {

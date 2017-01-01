@@ -371,7 +371,7 @@ pub enum Intrinsic {
 pub struct FctSrc<'ast> {
     pub map_calls: NodeMap<CallType>, // maps function call to FctId
     pub map_stores: NodeMap<Store>,
-    pub call_sites: HashMap<ast::NodeId, CallSite<'ast>>,
+    pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
     pub map_vars: NodeMap<VarId>,
@@ -396,7 +396,7 @@ impl<'ast> FctSrc<'ast> {
         FctSrc {
             map_calls: NodeMap::new(),
             map_stores: NodeMap::new(),
-            call_sites: HashMap::new(),
+            map_csites: NodeMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
