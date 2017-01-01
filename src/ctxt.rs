@@ -423,6 +423,14 @@ impl<'ast> FctSrc<'ast> {
         }
     }
 
+    pub fn set_ty(&mut self, id: ast::NodeId, ty: BuiltinType) {
+        self.map_tys.insert_or_replace(id, ty);
+    }
+
+    pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
+        self.map_tys.get(id).unwrap().clone()
+    }
+
     pub fn stacksize(&self) -> i32 {
         mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
     }

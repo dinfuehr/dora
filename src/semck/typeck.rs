@@ -177,12 +177,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let ident_type = self.src.map_idents.get(e.id).unwrap();
+        let ident_type = *self.src.map_idents.get(e.id).unwrap();
 
-        match *ident_type {
+        match ident_type {
             IdentType::Var(varid) => {
                 let ty = self.src.vars[varid].ty;
-                e.set_ty(ty);
+                self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
 
@@ -190,7 +190,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let cls = self.ctxt.cls_by_id(clsid);
                 let field = &cls.fields[fieldid];
 
-                e.set_ty(field.ty);
+                self.src.set_ty(e.id, field.ty);
                 self.expr_type = field.ty;
             }
         }
@@ -220,10 +220,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 let index_type = self.ctxt.fct_by_id(fct_id).params_types[1];
 
-                e.set_ty(index_type);
+                self.src.set_ty(e.id, index_type);
                 self.expr_type = index_type;
             } else {
-                e.set_ty(BuiltinType::Unit);
+                self.src.set_ty(e.id, BuiltinType::Unit);
                 self.expr_type = BuiltinType::Unit;
             }
 
@@ -263,7 +263,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let field = e.lhs.to_field().unwrap();
                         let name = self.ctxt.interner.str(field.name).to_string();
 
-                        let field_type = field.object.ty();
+                        let field_type = self.src.ty(field.object.id());
                         let field_type = field_type.name(self.ctxt);
 
                         let lhs_type = lhs_type.name(self.ctxt);
@@ -280,12 +280,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 rhs_type
             };
 
-            e.set_ty(assign_type);
+            self.src.set_ty(e.id, assign_type);
             self.expr_type = assign_type;
 
         } else {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
     }
@@ -353,11 +353,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
 
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
 
         } else {
-            e.set_ty(expected_type);
+            self.src.set_ty(e.id, expected_type);
             self.expr_type = expected_type;
         }
     }
@@ -383,7 +383,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                            lhs_type: BuiltinType,
                            rhs_type: BuiltinType) {
         self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Bool);
-        e.set_ty(BuiltinType::Bool);
+        self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
     }
 
@@ -393,7 +393,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                           lhs_type: BuiltinType,
                           rhs_type: BuiltinType) {
         self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Int);
-        e.set_ty(BuiltinType::Int);
+        self.src.set_ty(e.id, BuiltinType::Int);
         self.expr_type = BuiltinType::Int;
     }
 
@@ -404,7 +404,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                           rhs_type: BuiltinType) {
         if lhs_type == BuiltinType::Str {
             self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Str);
-            e.set_ty(BuiltinType::Str);
+            self.src.set_ty(e.id, BuiltinType::Str);
             self.expr_type = BuiltinType::Str;
         } else {
             self.check_expr_bin_int(e, op, lhs_type, rhs_type);
@@ -440,7 +440,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         .report(e.pos, Msg::TypesIncompatible(lhs_type, rhs_type));
                 }
 
-                e.set_ty(BuiltinType::Bool);
+                self.src.set_ty(e.id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
                 return;
             }
@@ -462,7 +462,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         self.check_type(e, BinOp::Cmp(cmp), lhs_type, rhs_type, expected_type);
-        e.set_ty(BuiltinType::Bool);
+        self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
     }
 
@@ -502,7 +502,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         match call_type {
             CallType::CtorNew(cls_id, _) => {
                 let cls = self.ctxt.cls_by_id(cls_id);
-                e.set_ty(cls.ty);
+                self.src.set_ty(e.id, cls.ty);
                 self.expr_type = cls.ty;
                 let mut found = false;
 
@@ -530,8 +530,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             CallType::Fct(callee_id) => {
                 let callee = &self.ctxt.fcts[callee_id];
-
-                e.set_ty(callee.return_type);
+                self.src.set_ty(e.id, callee.return_type);
                 self.expr_type = callee.return_type;
 
                 if !args_compatible(self.ctxt, &callee.params_types, &call_types) {
@@ -641,7 +640,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.find_method(e.pos, object_type, e.name, &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
-            e.set_ty(return_type);
+            self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
 
             if !in_try {
@@ -653,7 +652,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
         } else {
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
     }
@@ -684,7 +683,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_idents.insert(e.id, ident_type);
 
                 let field = self.ctxt.field(class_id, field_id);
-                e.set_ty(field.ty);
+                self.src.set_ty(e.id, field.ty);
                 self.expr_type = field.ty;
                 return;
             }
@@ -696,20 +695,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = Msg::UnknownField(field_name, expr_name);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         // we don't know the type of the field, just assume ()
-        e.set_ty(BuiltinType::Unit);
+        self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
         if let Some(clsid) = self.fct.owner_class {
             let ty = BuiltinType::Class(clsid);
-            e.set_ty(ty);
+            self.src.set_ty(e.id, ty);
             self.expr_type = ty;
 
         } else {
             let msg = Msg::ThisUnavailable;
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
     }
@@ -717,12 +716,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
         let msg = Msg::SuperNeedsMethodCall;
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        e.set_ty(BuiltinType::Unit);
+        self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_nil(&mut self, e: &'ast ExprNilType) {
-        e.set_ty(BuiltinType::Nil);
+        self.src.set_ty(e.id, BuiltinType::Nil);
         self.expr_type = BuiltinType::Nil;
     }
 
@@ -741,10 +740,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
 
-            e.set_ty(return_type);
+            self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
         } else {
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
     }
@@ -753,7 +752,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some(call) = e.expr.to_call() {
             self.check_expr_call(call, true);
             let e_type = self.expr_type;
-            e.set_ty(e_type);
+            self.src.set_ty(e.id, e_type);
 
             let fct_id = self.src.map_calls.get(call.id).unwrap().fct_id();
             let throws = self.ctxt.fct_by_id(fct_id).throws;
@@ -785,14 +784,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryNeedsCall);
 
             self.expr_type = BuiltinType::Unit;
-            e.set_ty(BuiltinType::Unit);
+            self.src.set_ty(e.id, BuiltinType::Unit);
         }
     }
 
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
         let object_type = self.expr_type;
-        e.object.set_ty(self.expr_type);
+        self.src.set_ty(e.object.id(), self.expr_type);
 
         let check_type = match read_type(self.ctxt, &e.data_type) {
             Some(ty) => ty,
@@ -837,13 +836,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(_) => {
+            ExprLitInt(ExprLitIntType { id, .. }) => {
+                self.src.set_ty(id, BuiltinType::Int);
                 self.expr_type = BuiltinType::Int;
             }
-            ExprLitStr(_) => {
+            ExprLitStr(ExprLitStrType { id, .. }) => {
+                self.src.set_ty(id, BuiltinType::Str);
                 self.expr_type = BuiltinType::Str;
             }
-            ExprLitBool(_) => {
+            ExprLitBool(ExprLitBoolType { id, .. }) => {
+                self.src.set_ty(id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
             }
             ExprIdent(ref expr) => self.check_expr_ident(expr),

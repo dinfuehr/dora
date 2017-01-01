@@ -300,7 +300,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
-        let ty = expr.ty();
+        let ty = self.src.ty(id);
         let offset = -(self.src.localsize + self.src.get_store(id).offset());
 
         if ty.reference_type() {
@@ -322,7 +322,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn free_temp_for_node(&mut self, expr: &Expr, offset: i32) {
-        let ty = expr.ty();
+        let ty = self.src.ty(expr.id());
 
         if ty.reference_type() {
             self.temps.remove(offset);
@@ -573,8 +573,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        let lhs_type = e.lhs.ty();
-        let rhs_type = e.rhs.ty();
+        let lhs_type = self.src.ty(e.lhs.id());
+        let rhs_type = self.src.ty(e.rhs.id());
 
         let cmp_type = lhs_type.if_nil(rhs_type);
 
@@ -689,7 +689,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if let Some(&Store::Temp(_, _)) = self.src.map_stores.get(e.lhs.id()) {
             let offset = self.reserve_temp_for_node(&e.lhs);
-            let ty = e.lhs.ty();
+            let ty = self.src.ty(e.lhs.id());
 
             self.emit_expr(&e.lhs, REG_RESULT);
             self.masm.store_mem(ty.mode(), Mem::Local(offset), REG_RESULT);
@@ -703,7 +703,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             self.emit_expr(&e.rhs, rhs_reg);
         }
 
-        let ty = e.ty();
+        let ty = self.src.ty(e.id);
         let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
         if reg != dest_reg {
             self.masm.copy_reg(ty.mode(), dest_reg, reg);

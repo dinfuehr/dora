@@ -364,7 +364,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        if expr.op == BinOp::Add && BuiltinType::Str == expr.ty() {
+        let expr_ty = self.src.ty(expr.id);
+        let lhs_ty = self.src.ty(expr.lhs.id());
+        let rhs_ty = self.src.ty(expr.rhs.id());
+
+        if expr.op == BinOp::Add && expr_ty.is_str() {
             let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                             Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
             let ptr = stdlib::strcat as *const u8;
@@ -374,8 +378,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                 false,
                                 Some(Callee::Ptr(ptr)),
                                 Some(BuiltinType::Str));
-
-        } else if expr.op.is_compare() && (expr.lhs.ty().is_str() || expr.rhs.ty().is_str()) {
+        } else if expr.op.is_compare() && (lhs_ty.is_str() || rhs_ty.is_str()) {
             let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
                             Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
             let ptr = stdlib::strcmp as *const u8;
@@ -392,7 +395,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
-        self.reserve_temp_for_node_with_type(expr.id(), expr.ty())
+        let ty = self.src.ty(expr.id());
+        self.reserve_temp_for_node_with_type(expr.id(), ty)
     }
 
     fn reserve_temp_for_ctor(&mut self, id: NodeId) -> i32 {

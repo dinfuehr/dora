@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::fmt;
 use std::hash::*;
 use std::slice::Iter;
@@ -6,7 +5,6 @@ use std::slice::Iter;
 use ast::Elem::*;
 use lexer::position::Position;
 use interner::{Interner, Name};
-use ty::BuiltinType;
 
 pub mod visit;
 pub mod dump;
@@ -258,17 +256,6 @@ pub struct PrimaryCtorParam {
     pub data_type: Type,
     pub field: bool,
     pub reassignable: bool,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl PrimaryCtorParam {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -811,7 +798,6 @@ pub struct CatchBlock {
     pub name: Name,
     pub pos: Position,
     pub data_type: Type,
-    pub ty: RefCell<Option<BuiltinType>>,
     pub block: Box<Stmt>,
 }
 
@@ -822,17 +808,8 @@ impl CatchBlock {
             name: name,
             pos: pos,
             data_type: data_type,
-            ty: RefCell::new(None),
             block: block,
         }
-    }
-
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
     }
 }
 
@@ -962,7 +939,6 @@ impl Expr {
             pos: pos,
             op: op,
             opnd: opnd,
-            ty: RefCell::new(None),
         })
     }
 
@@ -972,7 +948,6 @@ impl Expr {
             pos: pos,
             expr: expr,
             mode: mode,
-            ty: RefCell::new(None),
         })
     }
 
@@ -988,7 +963,6 @@ impl Expr {
             op: op,
             lhs: lhs,
             rhs: rhs,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1013,7 +987,6 @@ impl Expr {
             pos: pos,
             object: object,
             index: index,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1046,7 +1019,6 @@ impl Expr {
         Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: pos,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1054,7 +1026,6 @@ impl Expr {
         Expr::ExprSuper(ExprSuperType {
             id: id,
             pos: pos,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1062,7 +1033,6 @@ impl Expr {
         Expr::ExprNil(ExprNilType {
             id: id,
             pos: pos,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1071,7 +1041,6 @@ impl Expr {
             id: id,
             pos: pos,
             name: name,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1087,7 +1056,6 @@ impl Expr {
             name: name,
             args: args,
             object: object,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1110,7 +1078,6 @@ impl Expr {
             pos: pos,
             lhs: lhs,
             rhs: rhs,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1120,7 +1087,6 @@ impl Expr {
             pos: pos,
             object: object,
             name: name,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1354,60 +1320,6 @@ impl Expr {
             Expr::ExprTry(ref val) => val.id,
         }
     }
-
-    pub fn ty(&self) -> BuiltinType {
-        match *self {
-            Expr::ExprUn(ref val) => val.ty(),
-            Expr::ExprBin(ref val) => val.ty(),
-            Expr::ExprLitInt(_) => BuiltinType::Int,
-            Expr::ExprLitStr(_) => BuiltinType::Str,
-            Expr::ExprLitBool(_) => BuiltinType::Bool,
-            Expr::ExprIdent(ref val) => val.ty(),
-            Expr::ExprAssign(ref val) => val.ty(),
-            Expr::ExprCall(ref val) => val.ty(),
-            Expr::ExprDelegation(_) => BuiltinType::Unit,
-            Expr::ExprField(ref val) => val.ty(),
-            Expr::ExprSelf(ref val) => val.ty(),
-            Expr::ExprSuper(ref val) => val.ty(),
-            Expr::ExprNil(ref val) => val.ty(),
-            Expr::ExprArray(ref val) => val.ty(),
-            Expr::ExprTry(ref val) => val.ty(),
-            Expr::ExprConv(ref val) => {
-                if val.is {
-                    BuiltinType::Bool
-                } else {
-                    panic!("unimplemented");
-                }
-            }
-        }
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        match *self {
-            Expr::ExprUn(ref val) => val.set_ty(ty),
-            Expr::ExprBin(ref val) => val.set_ty(ty),
-            Expr::ExprLitInt(_) => panic!("unimplemented"),
-            Expr::ExprLitStr(_) => panic!("unimplemented"),
-            Expr::ExprLitBool(_) => panic!("unimplemented"),
-            Expr::ExprIdent(ref val) => val.set_ty(ty),
-            Expr::ExprAssign(ref val) => val.set_ty(ty),
-            Expr::ExprCall(ref val) => val.set_ty(ty),
-            Expr::ExprDelegation(_) => panic!("unimplemented"),
-            Expr::ExprField(ref val) => val.set_ty(ty),
-            Expr::ExprSelf(ref val) => val.set_ty(ty),
-            Expr::ExprSuper(ref val) => val.set_ty(ty),
-            Expr::ExprNil(ref val) => val.set_ty(ty),
-            Expr::ExprArray(ref val) => val.set_ty(ty),
-            Expr::ExprTry(ref val) => val.set_ty(ty),
-            Expr::ExprConv(ref val) => {
-                if val.is {
-                    panic!("unimplemented")
-                } else {
-                    panic!("TODO")
-                }
-            }
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1425,17 +1337,6 @@ pub struct ExprTryType {
     pub pos: Position,
     pub expr: Box<Expr>,
     pub mode: TryMode,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprTryType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1513,17 +1414,6 @@ pub struct ExprUnType {
 
     pub op: UnOp,
     pub opnd: Box<Expr>,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprUnType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1534,17 +1424,6 @@ pub struct ExprBinType {
     pub op: BinOp,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprBinType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1554,17 +1433,6 @@ pub struct ExprArrayType {
 
     pub object: Box<Expr>,
     pub index: Box<Expr>,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprArrayType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1595,51 +1463,18 @@ pub struct ExprLitBoolType {
 pub struct ExprSuperType {
     pub id: NodeId,
     pub pos: Position,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprSuperType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprSelfType {
     pub id: NodeId,
     pub pos: Position,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprSelfType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprNilType {
     pub id: NodeId,
     pub pos: Position,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprNilType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1648,17 +1483,6 @@ pub struct ExprIdentType {
     pub pos: Position,
 
     pub name: Name,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprIdentType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1669,17 +1493,6 @@ pub struct ExprCallType {
     pub name: Name,
     pub object: Option<Box<Expr>>,
     pub args: Vec<Box<Expr>>,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprCallType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1689,17 +1502,6 @@ pub struct ExprAssignType {
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprAssignType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1709,15 +1511,4 @@ pub struct ExprFieldType {
 
     pub object: Box<Expr>,
     pub name: Name,
-    pub ty: RefCell<Option<BuiltinType>>,
-}
-
-impl ExprFieldType {
-    pub fn ty(&self) -> BuiltinType {
-        self.ty.borrow().unwrap()
-    }
-
-    pub fn set_ty(&self, ty: BuiltinType) {
-        *self.ty.borrow_mut() = Some(ty);
-    }
 }

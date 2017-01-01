@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::mem;
 use std::io::Error;
 
@@ -258,7 +257,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             data_type: data_type,
             field: field,
             reassignable: reassignable,
-            ty: RefCell::new(None),
         })
     }
 
@@ -1209,7 +1207,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             id: id,
             pos: Position::new(1, 1),
             name: name,
-            ty: RefCell::new(None),
         }))
     }
 
@@ -1219,7 +1216,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Box::new(Expr::ExprSelf(ExprSelfType {
             id: id,
             pos: Position::new(1, 1),
-            ty: RefCell::new(None),
         }))
     }
 
@@ -1231,7 +1227,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             lhs: lhs,
             rhs: rhs,
-            ty: RefCell::new(None),
         }))
     }
 
@@ -1243,7 +1238,6 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             pos: Position::new(1, 1),
             object: object,
             name: name,
-            ty: RefCell::new(None),
         }))
     }
 }

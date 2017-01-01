@@ -144,7 +144,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
             StmtDo(ref try) => {
                 for catch in &try.catch_blocks {
                     self.visit_type(&catch.data_type);
-                    catch.set_ty(self.current_type);
+                    self.src.set_ty(catch.id, self.current_type);
 
                     let var = *self.src.map_vars.get(catch.id).unwrap();
                     self.src.vars[var].ty = self.current_type;
