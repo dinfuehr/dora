@@ -368,7 +368,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             match ident_type {
                 &IdentType::Field(cls, field) => (cls, field),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
@@ -937,6 +937,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Int | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::IntArray => true,
         BuiltinType::Class(_) => true,
+        BuiltinType::Struct(_) => false,
     }
 }
 

@@ -59,7 +59,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_struct(&mut self, struc: &Struct) {
-        dump!(self, "struct {} @ {} {}", self.str(struc.name), struc.pos, struc.id);
+        dump!(self,
+              "struct {} @ {} {}",
+              self.str(struc.name),
+              struc.pos,
+              struc.id);
 
         self.indent(|d| {
             for field in &struc.fields {

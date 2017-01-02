@@ -2,6 +2,7 @@ use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
 use ctxt::Context;
 use error::msg::Msg;
+use sym::Sym::{SymClass, SymStruct};
 use ty::BuiltinType;
 
 mod clsdefck;
@@ -98,10 +99,23 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeBasic(ref basic) => {
-            if let Some(cls_id) = ctxt.sym.borrow().get_class(basic.name) {
-                let cls = ctxt.cls_by_id(cls_id);
+            if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
+                match sym {
+                    SymClass(cls_id) => {
+                        let cls = ctxt.cls_by_id(cls_id);
+                        return Some(cls.ty);
+                    }
 
-                return Some(cls.ty);
+                    SymStruct(struct_id) => {
+                        return Some(BuiltinType::Struct(struct_id));
+                    }
+
+                    _ => {
+                        let name = ctxt.interner.str(basic.name).to_string();
+                        let msg = Msg::ExpectedType(name);
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
+                }
 
             } else {
                 let name = ctxt.interner.str(basic.name).to_string();

@@ -511,9 +511,7 @@ pub struct NodeMap<V> {
 
 impl<V> NodeMap<V> {
     pub fn new() -> NodeMap<V> {
-        NodeMap {
-            map: HashMap::new()
-        }
+        NodeMap { map: HashMap::new() }
     }
 
     pub fn get(&self, id: ast::NodeId) -> Option<&V> {

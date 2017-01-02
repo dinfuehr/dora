@@ -244,7 +244,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     &IdentType::Field(clsid, fieldid) => {
                         if !self.fct.ctor.is() &&
-                        !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
+                           !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
                             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                         }
                     }
@@ -824,10 +824,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        self.src.map_convs.insert(e.id, ConvInfo {
-            cls_id: check_type.cls_id(self.ctxt),
-            valid: valid
-        });
+        self.src.map_convs.insert(e.id,
+                                  ConvInfo {
+                                      cls_id: check_type.cls_id(self.ctxt),
+                                      valid: valid,
+                                  });
 
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }

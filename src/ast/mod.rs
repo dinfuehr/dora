@@ -832,7 +832,12 @@ pub struct CatchBlock {
 }
 
 impl CatchBlock {
-    pub fn new(id: NodeId, name: Name, pos: Position, data_type: Type, block: Box<Stmt>) -> CatchBlock {
+    pub fn new(id: NodeId,
+               name: Name,
+               pos: Position,
+               data_type: Type,
+               block: Box<Stmt>)
+               -> CatchBlock {
         CatchBlock {
             id: id,
             name: name,
@@ -850,9 +855,7 @@ pub struct FinallyBlock {
 
 impl FinallyBlock {
     pub fn new(block: Box<Stmt>) -> FinallyBlock {
-        FinallyBlock {
-            block: block,
-        }
+        FinallyBlock { block: block }
     }
 }
 
@@ -1046,24 +1049,15 @@ impl Expr {
     }
 
     pub fn create_this(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprSelf(ExprSelfType {
-            id: id,
-            pos: pos,
-        })
+        Expr::ExprSelf(ExprSelfType { id: id, pos: pos })
     }
 
     pub fn create_super(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprSuper(ExprSuperType {
-            id: id,
-            pos: pos,
-        })
+        Expr::ExprSuper(ExprSuperType { id: id, pos: pos })
     }
 
     pub fn create_nil(id: NodeId, pos: Position) -> Expr {
-        Expr::ExprNil(ExprNilType {
-            id: id,
-            pos: pos,
-        })
+        Expr::ExprNil(ExprNilType { id: id, pos: pos })
     }
 
     pub fn create_ident(id: NodeId, pos: Position, name: Name) -> Expr {

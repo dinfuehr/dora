@@ -252,8 +252,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         self.expect_token(TokenType::LParen)?;
 
-        let params =
-            self.parse_comma_list(TokenType::RParen, |p| p.parse_primary_ctor_param(cls))?;
+        let params = self.parse_comma_list(TokenType::RParen, |p| p.parse_primary_ctor_param(cls))?;
 
         Ok(params)
     }
@@ -526,10 +525,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         self.param_idx = 0;
 
         let params = self.parse_comma_list(TokenType::RParen, |p| {
-            p.param_idx += 1;
+                p.param_idx += 1;
 
-            p.parse_function_param()
-        })?;
+                p.parse_function_param()
+            })?;
 
         Ok(params)
     }
@@ -625,10 +624,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::LParen => {
                 let token = self.advance_token()?;
                 let subtypes = self.parse_comma_list(TokenType::RParen, |p| {
-                    let ty = p.parse_type()?;
+                        let ty = p.parse_type()?;
 
-                    Ok(Box::new(ty))
-                })?;
+                        Ok(Box::new(ty))
+                    })?;
 
                 Ok(Type::create_tuple(self.generate_id(), token.position, subtypes))
             }
@@ -842,24 +841,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 TokenType::And => 2,
                 TokenType::Eq => 3,
                 TokenType::EqEq | TokenType::Ne => 4,
-                TokenType::Lt
-                    | TokenType::Le
-                    | TokenType::Gt
-                    | TokenType::Ge => 5,
-                TokenType::EqEqEq
-                    | TokenType::NeEqEq => 6,
-                TokenType::BitOr
-                    | TokenType::BitAnd
-                    | TokenType::Caret => 7,
-                TokenType::Add
-                    | TokenType::Sub => 8,
-                TokenType::Mul
-                    | TokenType::Div
-                    | TokenType::Mod => 9,
-                TokenType::Is
-                    | TokenType::As => 10,
-                TokenType::Dot
-                    | TokenType::LBracket => 11,
+                TokenType::Lt | TokenType::Le | TokenType::Gt | TokenType::Ge => 5,
+                TokenType::EqEqEq | TokenType::NeEqEq => 6,
+                TokenType::BitOr | TokenType::BitAnd | TokenType::Caret => 7,
+                TokenType::Add | TokenType::Sub => 8,
+                TokenType::Mul | TokenType::Div | TokenType::Mod => 9,
+                TokenType::Is | TokenType::As => 10,
+                TokenType::Dot | TokenType::LBracket => 11,
                 _ => {
                     return Ok(left);
                 }
@@ -891,10 +879,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_unary(&mut self) -> ExprResult {
         match self.token.token_type {
-            TokenType::Add
-                | TokenType::Sub
-                | TokenType::Not
-                | TokenType::Tilde => {
+            TokenType::Add | TokenType::Sub | TokenType::Not | TokenType::Tilde => {
 
                 let tok = self.advance_token()?;
                 let op = match tok.token_type {
@@ -909,7 +894,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
             }
 
-            _ => self.parse_primary()
+            _ => self.parse_primary(),
         }
     }
 
@@ -969,7 +954,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Mul => BinOp::Mul,
             TokenType::Div => BinOp::Div,
             TokenType::Mod => BinOp::Mod,
-            _ => panic!("unimplemented token {:?}", tok)
+            _ => panic!("unimplemented token {:?}", tok),
         };
 
         Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right))

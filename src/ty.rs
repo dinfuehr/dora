@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::Context;
+use ctxt::{Context, StructId};
 use mem;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -25,6 +25,9 @@ pub enum BuiltinType {
 
     // some class
     Class(ClassId),
+
+    // some struct
+    Struct(StructId),
 }
 
 impl BuiltinType {
@@ -103,12 +106,20 @@ impl BuiltinType {
 
                 ctxt.interner.str(cls.name).to_string()
             }
+            BuiltinType::Struct(sid) => {
+                let struc = ctxt.struct_by_id(sid);
+
+                ctxt.interner.str(struc.name).to_string()
+            }
         }
     }
 
     pub fn allows(&self, ctxt: &Context, other: BuiltinType) -> bool {
         match *self {
-            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Int => *self == other,
+            BuiltinType::Unit |
+            BuiltinType::Bool |
+            BuiltinType::Int |
+            BuiltinType::Struct(_) => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str |
@@ -137,6 +148,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Struct(_) => unimplemented!(),
         }
     }
 
@@ -150,6 +162,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
+            BuiltinType::Struct(_) => unimplemented!(),
         }
     }
 }

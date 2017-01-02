@@ -24,8 +24,8 @@ pub fn read_execstate(uc: *const u8) -> ExecState {
         es.regs[cpu::RBP] = uc.Rbp as usize;
         es.regs[cpu::RSI] = uc.Rsi as usize;
         es.regs[cpu::RDI] = uc.Rdi as usize;
-        es.regs[cpu::R8 ] = uc.R8 as usize;
-        es.regs[cpu::R9 ] = uc.R9 as usize;
+        es.regs[cpu::R8] = uc.R8 as usize;
+        es.regs[cpu::R9] = uc.R9 as usize;
         es.regs[cpu::R10] = uc.R10 as usize;
         es.regs[cpu::R11] = uc.R11 as usize;
         es.regs[cpu::R12] = uc.R12 as usize;
@@ -53,8 +53,8 @@ pub fn write_execstate(es: &ExecState, uc: *mut u8) {
         uc.Rbp = es.regs[cpu::RBP] as u64;
         uc.Rsi = es.regs[cpu::RSI] as u64;
         uc.Rdi = es.regs[cpu::RDI] as u64;
-        uc.R8  = es.regs[cpu::R8 ] as u64;
-        uc.R9  = es.regs[cpu::R9 ] as u64;
+        uc.R8 = es.regs[cpu::R8] as u64;
+        uc.R9 = es.regs[cpu::R9] as u64;
         uc.R10 = es.regs[cpu::R10] as u64;
         uc.R11 = es.regs[cpu::R11] as u64;
         uc.R12 = es.regs[cpu::R12] as u64;

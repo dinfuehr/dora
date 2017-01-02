@@ -201,7 +201,7 @@ impl ScratchRegisters {
     pub fn new() -> ScratchRegisters {
         ScratchRegisters {
             regs: &SCRATCH,
-            value: Rc::new(Cell::new(0))
+            value: Rc::new(Cell::new(0)),
         }
     }
 
@@ -209,7 +209,7 @@ impl ScratchRegisters {
     pub fn with_regs(regs: &'static [Reg]) -> ScratchRegisters {
         ScratchRegisters {
             regs: regs,
-            value: Rc::new(Cell::new(0))
+            value: Rc::new(Cell::new(0)),
         }
     }
 

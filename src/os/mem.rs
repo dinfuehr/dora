@@ -22,7 +22,7 @@ pub fn page_size() -> u32 {
     use std::mem;
 
     unsafe {
-        let mut system_info : SYSTEM_INFO = mem::uninitialized();
+        let mut system_info: SYSTEM_INFO = mem::uninitialized();
         GetSystemInfo(&mut system_info);
 
         system_info.dwPageSize
@@ -70,12 +70,7 @@ pub fn mmap(size: usize, exec: ProtType) -> *const u8 {
         PAGE_READWRITE
     };
 
-    let ptr = unsafe {
-        VirtualAlloc(ptr::null_mut(),
-                     size as u64,
-                     MEM_COMMIT | MEM_RESERVE,
-                     prot)
-    };
+    let ptr = unsafe { VirtualAlloc(ptr::null_mut(), size as u64, MEM_COMMIT | MEM_RESERVE, prot) };
 
     if ptr.is_null() {
         panic!("VirtualAlloc failed");

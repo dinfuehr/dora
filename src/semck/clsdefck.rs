@@ -336,9 +336,12 @@ mod tests {
         ok("struct Foo { a: int }");
         ok("struct Foo { a: int, b: int }");
         ok("struct Foo { a: int } struct Bar { a: int }");
-        err("struct Bar { a: Unknown }", pos(1, 17),
+        ok("struct Foo { a: int, bar: Bar } struct Bar { a: int }");
+        err("struct Bar { a: Unknown }",
+            pos(1, 17),
             Msg::UnknownType("Unknown".into()));
-        err("struct Foo { a: int, a: int }", pos(1, 22),
+        err("struct Foo { a: int, a: int }",
+            pos(1, 22),
             Msg::ShadowField("a".into()));
     }
 }

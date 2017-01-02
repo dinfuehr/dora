@@ -124,11 +124,14 @@ mod tests {
         use error::msg::Msg;
 
         ok("struct Foo {}");
-        err("struct Foo {} struct Foo {}", pos(1, 15),
+        err("struct Foo {} struct Foo {}",
+            pos(1, 15),
             Msg::ShadowStruct("Foo".into()));
-        err("struct Foo {} class Foo {}", pos(1, 15),
+        err("struct Foo {} class Foo {}",
+            pos(1, 15),
             Msg::ShadowStruct("Foo".into()));
-        err("struct Foo {} fun Foo() {}", pos(1, 15),
+        err("struct Foo {} fun Foo() {}",
+            pos(1, 15),
             Msg::ShadowStruct("Foo".into()));
     }
 }

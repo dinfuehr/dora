@@ -499,9 +499,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.visit_stmt(&finally_block.block);
 
-        self.masm.load_mem(MachineMode::Ptr,
-                           REG_RESULT,
-                           Mem::Local(offset));
+        self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
         self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();

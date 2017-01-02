@@ -83,7 +83,7 @@ pub fn flush_icache(start: *const u8, len: usize) {
 }
 
 pub fn cacheline_sizes() -> (usize, usize) {
-    let value : usize;
+    let value: usize;
 
     unsafe {
         asm!("mrs $0, ctr_el0": "=r"(value)::: "volatile");
