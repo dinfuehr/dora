@@ -152,6 +152,20 @@ impl BuiltinType {
         }
     }
 
+    pub fn align(&self) -> i32 {
+        match *self {
+            BuiltinType::Unit => 0,
+            BuiltinType::Bool => 1,
+            BuiltinType::Int => 4,
+            BuiltinType::Nil => panic!("no size for nil."),
+            BuiltinType::Str |
+            BuiltinType::IntArray |
+            BuiltinType::Class(_) |
+            BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Struct(_) => unimplemented!(),
+        }
+    }
+
     pub fn mode(&self) -> MachineMode {
         match *self {
             BuiltinType::Unit => panic!("no machine mode for ()."),

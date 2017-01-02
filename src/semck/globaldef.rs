@@ -54,9 +54,11 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let id: StructId = (self.ctxt.structs.len() as u32).into();
         let struc = StructData {
             id: id,
+            pos: s.pos,
             name: s.name,
             fields: Vec::new(),
             size: 0,
+            align: 0,
         };
 
         self.ctxt.structs.push(Box::new(struc));

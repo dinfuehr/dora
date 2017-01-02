@@ -48,6 +48,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_fct())
     }
 
+    pub fn get_struct(&self, name: Name) -> Option<StructId> {
+        self.get(name).and_then(|n| n.to_struct())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }

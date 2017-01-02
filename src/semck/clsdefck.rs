@@ -132,6 +132,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
 
         let field = StructFieldData {
             id: (struc.fields.len() as u32).into(),
+            pos: f.pos,
             name: f.name,
             ty: ty,
             offset: 0,

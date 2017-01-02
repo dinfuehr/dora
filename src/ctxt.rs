@@ -181,6 +181,17 @@ impl<'ast> Context<'ast> {
         &mut self.structs[id]
     }
 
+    pub fn struct_field_by_id(&self, id: StructId, fid: StructFieldId) -> &StructFieldData {
+        &self.structs[id].fields[fid.0 as usize]
+    }
+
+    pub fn struct_field_by_id_mut(&mut self,
+                                  id: StructId,
+                                  fid: StructFieldId)
+                                  -> &mut StructFieldData {
+        &mut self.structs[id].fields[fid.0 as usize]
+    }
+
     pub fn fct_by_node_id(&self, id: ast::NodeId) -> &Fct<'ast> {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
@@ -208,7 +219,7 @@ impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
 impl Index<StructId> for Vec<Box<StructData>> {
@@ -234,9 +245,11 @@ impl From<u32> for StructId {
 #[derive(Debug)]
 pub struct StructData {
     pub id: StructId,
+    pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
     pub size: i32,
+    pub align: i32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -251,6 +264,7 @@ impl From<u32> for StructFieldId {
 #[derive(Debug)]
 pub struct StructFieldData {
     pub id: StructFieldId,
+    pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
     pub offset: i32,

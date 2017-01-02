@@ -4,10 +4,12 @@ use std::ptr;
 
 use baseline::stub::Stub;
 use class::{Class, ClassId};
-use ctxt::{Context, Fct, FctId};
+use ctxt::{Context, Fct, FctId, StructId};
 use error::msg::Msg;
 use lexer::position::Position;
+use mem;
 use object::Header;
+use ty::BuiltinType;
 use vtable::{DISPLAY_SIZE, VTable, VTableBox};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
@@ -21,6 +23,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         return;
     }
 
+    determine_struct_sizes(ctxt);
     determine_sizes(ctxt);
     create_vtables(ctxt);
 
@@ -51,6 +54,72 @@ fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
         }
 
     }
+}
+
+fn determine_struct_sizes<'ast>(ctxt: &mut Context<'ast>) {
+    let mut path = Vec::new();
+    let mut sizes = HashMap::new();
+
+    for sid in 0..ctxt.structs.len() {
+        let sid = (sid as u32).into();
+        determine_struct_size(ctxt, None, &mut path, &mut sizes, sid);
+    }
+}
+
+fn determine_struct_size<'ast>(ctxt: &mut Context<'ast>,
+                               pos: Option<Position>,
+                               path: &mut Vec<StructId>,
+                               sizes: &mut HashMap<StructId, (i32, i32)>,
+                               id: StructId)
+                               -> (i32, i32) {
+    let mut size = 0;
+    let mut align = 0;
+
+    if path.iter().find(|&&x| x == id).is_some() {
+        ctxt.diag.borrow_mut().report(pos.unwrap(), Msg::RecursiveStructure);
+        return (0, 0);
+    }
+
+    let fields = ctxt.struct_by_id(id).fields.len();
+
+    for fid in 0..fields {
+        let fid = (fid as u32).into();
+        let ty = ctxt.struct_field_by_id(id, fid).ty;
+
+        let (field_size, field_align) = match ty {
+            BuiltinType::Struct(sid) => {
+                if let Some(&(size, align)) = sizes.get(&id) {
+                    (size, align)
+
+                } else {
+                    path.push(id);
+                    let pos = ctxt.struct_field_by_id(id, fid).pos;
+                    let (size, align) = determine_struct_size(ctxt, Some(pos), path, sizes, sid);
+                    path.pop();
+
+                    (size, align)
+                }
+            }
+
+            _ => (ty.size(), ty.align()),
+        };
+
+        let offset = mem::align_i32(size, field_align);
+        ctxt.struct_field_by_id_mut(id, fid).offset = offset;
+
+        size = offset + field_size;
+        align = max(align, field_align);
+    }
+
+    size = mem::align_i32(size, align);
+
+    let struc = ctxt.struct_by_id_mut(id);
+    struc.size = size;
+    struc.align = align;
+
+    sizes.insert(id, (size, align));
+
+    (size, align)
 }
 
 fn determine_sizes<'ast>(ctxt: &mut Context<'ast>) {
@@ -538,6 +607,45 @@ mod tests {
             assert_eq!(vtable_by_name(ctxt, "L10") as *const _,
                        vtable.get_subtype_overflow(3));
         });
+    }
+
+    #[test]
+    fn test_struct_size() {
+        ok_with_test("struct Foo { a: int, b: int }
+                      struct Foo1 { a: bool, b: int, c: bool }
+                      struct Bar { }",
+                     |ctxt| {
+            let struc = ctxt.struct_by_id(0.into());
+            assert_eq!(8, struc.size);
+
+            let struc = ctxt.struct_by_id(1.into());
+            assert_eq!(12, struc.size);
+
+            let struc = ctxt.struct_by_id(2.into());
+            assert_eq!(0, struc.size);
+        });
+    }
+
+    #[test]
+    fn test_struct_in_struct() {
+        ok_with_test("struct Foo { a: bool, bar: Bar }
+                      struct Bar { a: int }",
+                     |ctxt| {
+                         let struc = ctxt.struct_by_id(0.into());
+                         assert_eq!(8, struc.size);
+                     });
+
+        ok_with_test("struct Bar { a: int }
+                      struct Foo { a: bool, bar: Bar }",
+                     |ctxt| {
+                         let struc = ctxt.struct_by_id(1.into());
+                         assert_eq!(8, struc.size);
+                     });
+
+        err("struct Foo { a: int, bar: Bar }
+             struct Bar { b: int, foo: Foo }",
+            pos(2, 35),
+            Msg::RecursiveStructure);
     }
 
     fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
