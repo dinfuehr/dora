@@ -29,7 +29,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // define internal classes
     prelude::internal_classes(ctxt);
 
-    // checks class definitions/bodies
+    // checks class/struct definitions/bodies
     clsdefck::check(ctxt);
     return_on_error!(ctxt);
 

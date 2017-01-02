@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use ast;
 use ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{Context, Fct, FctId, FctKind, FctSrc};
+use ctxt::{Context, Fct, FctId, FctKind, FctSrc, StructFieldData, StructId};
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
@@ -17,6 +17,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         ctxt: ctxt,
         ast: ctxt.ast,
         cls_id: None,
+        struct_id: None,
     };
 
     clsck.check();
@@ -26,6 +27,7 @@ struct ClsDefCheck<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
     cls_id: Option<ClassId>,
+    struct_id: Option<StructId>,
 }
 
 impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
@@ -72,7 +74,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
-        self.cls_id = Some(*self.ctxt.cls_defs.get(&c.id).unwrap());
+        self.cls_id = Some(*self.ctxt.map_cls_defs.get(c.id).unwrap());
 
         visit::walk_class(self, c);
 
@@ -100,6 +102,42 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
+    }
+
+    fn visit_struct(&mut self, s: &'ast ast::Struct) {
+        self.struct_id = Some(*self.ctxt.map_struct_defs.get(s.id).unwrap());
+
+        visit::walk_struct(self, s);
+
+        self.struct_id = None;
+    }
+
+    fn visit_struct_field(&mut self, f: &'ast ast::StructField) {
+        let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
+        let id = self.struct_id.unwrap();
+
+        {
+            let struc = self.ctxt.struct_by_id(id);
+
+            for field in &struc.fields {
+                if field.name == f.name {
+                    let name = self.ctxt.interner.str(f.name).to_string();
+                    report(self.ctxt, f.pos, Msg::ShadowField(name));
+                    return;
+                }
+            }
+        }
+
+        let mut struc = self.ctxt.struct_by_id_mut(id);
+
+        let field = StructFieldData {
+            id: (struc.fields.len() as u32).into(),
+            name: f.name,
+            ty: ty,
+            offset: 0,
+        };
+
+        struc.fields.push(field);
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
@@ -291,5 +329,16 @@ mod tests {
         err("class Foo(a: int) { var b: int = b; }",
             pos(1, 34),
             Msg::UnknownIdentifier("b".into()));
+    }
+
+    #[test]
+    fn struct_field() {
+        ok("struct Foo { a: int }");
+        ok("struct Foo { a: int, b: int }");
+        ok("struct Foo { a: int } struct Bar { a: int }");
+        err("struct Bar { a: Unknown }", pos(1, 17),
+            Msg::UnknownType("Unknown".into()));
+        err("struct Foo { a: int, a: int }", pos(1, 22),
+            Msg::ShadowField("a".into()));
     }
 }

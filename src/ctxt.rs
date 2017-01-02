@@ -38,7 +38,8 @@ pub struct Context<'ast> {
     pub primitive_classes: PrimitiveClasses,
     pub structs: Vec<Box<StructData>>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
-    pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
+    pub map_cls_defs: NodeMap<ClassId>, // get ClassId from ast node
+    pub map_struct_defs: NodeMap<StructId>, // get StructId from ast node
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
     // node id to FctId
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
@@ -57,7 +58,8 @@ impl<'ast> Context<'ast> {
             args: args,
             structs: Vec::new(),
             classes: Vec::new(),
-            cls_defs: HashMap::new(),
+            map_cls_defs: NodeMap::new(),
+            map_struct_defs: NodeMap::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 int_class: empty_class_id,
@@ -171,6 +173,14 @@ impl<'ast> Context<'ast> {
         &mut self.classes[id]
     }
 
+    pub fn struct_by_id(&self, id: StructId) -> &StructData {
+        &self.structs[id]
+    }
+
+    pub fn struct_by_id_mut(&mut self, id: StructId) -> &mut StructData {
+        &mut self.structs[id]
+    }
+
     pub fn fct_by_node_id(&self, id: ast::NodeId) -> &Fct<'ast> {
         let fct_id = *self.fct_defs.get(&id).unwrap();
 
@@ -201,6 +211,20 @@ impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct StructId(u32);
 
+impl Index<StructId> for Vec<Box<StructData>> {
+    type Output = StructData;
+
+    fn index(&self, index: StructId) -> &StructData {
+        &self[index.0 as usize]
+    }
+}
+
+impl IndexMut<StructId> for Vec<Box<StructData>> {
+    fn index_mut(&mut self, index: StructId) -> &mut StructData {
+        &mut self[index.0 as usize]
+    }
+}
+
 impl From<u32> for StructId {
     fn from(data: u32) -> StructId {
         StructId(data)
@@ -211,6 +235,25 @@ impl From<u32> for StructId {
 pub struct StructData {
     pub id: StructId,
     pub name: Name,
+    pub fields: Vec<StructFieldData>,
+    pub size: i32,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct StructFieldId(u32);
+
+impl From<u32> for StructFieldId {
+    fn from(data: u32) -> StructFieldId {
+        StructFieldId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct StructFieldData {
+    pub id: StructFieldId,
+    pub name: Name,
+    pub ty: BuiltinType,
+    pub offset: i32,
 }
 
 #[derive(Debug)]

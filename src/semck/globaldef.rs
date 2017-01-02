@@ -7,7 +7,7 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use sym::Sym::{self, SymClass, SymStruct};
+use sym::Sym::{self, SymClass, SymFct, SymStruct};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
@@ -43,7 +43,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.ctxt.classes.push(Box::new(cls));
         let sym = SymClass(id);
 
-        assert!(self.ctxt.cls_defs.insert(c.id, id).is_none());
+        self.ctxt.map_cls_defs.insert(c.id, id);
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);
@@ -55,10 +55,14 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let struc = StructData {
             id: id,
             name: s.name,
+            fields: Vec::new(),
+            size: 0,
         };
 
         self.ctxt.structs.push(Box::new(struc));
         let sym = SymStruct(id);
+
+        self.ctxt.map_struct_defs.insert(s.id, id);
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(s.name, sym) {
             report(self.ctxt, s.name, s.pos, sym);
@@ -101,12 +105,11 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
     let name = ctxt.interner.str(name).to_string();
 
-    let msg = if sym.is_class() {
-        Msg::ShadowClass(name)
-    } else if sym.is_struct() {
-        Msg::ShadowStruct(name)
-    } else {
-        Msg::ShadowFunction(name)
+    let msg = match sym {
+        SymClass(_) => Msg::ShadowClass(name),
+        SymStruct(_) => Msg::ShadowStruct(name),
+        SymFct(_) => Msg::ShadowFunction(name),
+        _ => unimplemented!(),
     };
 
     ctxt.diag.borrow_mut().report(pos, msg);
