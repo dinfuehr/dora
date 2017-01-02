@@ -79,6 +79,7 @@ pub enum Sym {
     SymFct(FctId),
     SymVar(VarId),
     SymClass(ClassId),
+    SymStruct(StructId),
 }
 
 impl Sym {
@@ -120,6 +121,20 @@ impl Sym {
     pub fn to_class(&self) -> Option<ClassId> {
         match *self {
             SymClass(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_struct(&self) -> bool {
+        match *self {
+            SymStruct(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_struct(&self) -> Option<StructId> {
+        match *self {
+            SymStruct(id) => Some(id),
             _ => None,
         }
     }

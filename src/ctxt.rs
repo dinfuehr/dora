@@ -36,6 +36,7 @@ pub struct Context<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
+    pub structs: Vec<Box<StructData>>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub cls_defs: HashMap<ast::NodeId, ClassId>, // points from AST class to ClassId
     pub fct_defs: HashMap<ast::NodeId, FctId>, // points from AST function definition
@@ -54,6 +55,7 @@ impl<'ast> Context<'ast> {
 
         Context {
             args: args,
+            structs: Vec::new(),
             classes: Vec::new(),
             cls_defs: HashMap::new(),
             interner: interner,
@@ -194,6 +196,21 @@ impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
     fn index_mut(&mut self, index: FctId) -> &mut Fct<'ast> {
         &mut self[index.0]
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct StructId(u32);
+
+impl From<u32> for StructId {
+    fn from(data: u32) -> StructId {
+        StructId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct StructData {
+    pub id: StructId,
+    pub name: Name,
 }
 
 #[derive(Debug)]

@@ -7,7 +7,7 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use sym::Sym::{self, SymClass};
+use sym::Sym::{self, SymClass, SymStruct};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
@@ -50,6 +50,21 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         }
     }
 
+    fn visit_struct(&mut self, s: &'ast Struct) {
+        let id: StructId = (self.ctxt.structs.len() as u32).into();
+        let struc = StructData {
+            id: id,
+            name: s.name,
+        };
+
+        self.ctxt.structs.push(Box::new(struc));
+        let sym = SymStruct(id);
+
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(s.name, sym) {
+            report(self.ctxt, s.name, s.pos, sym);
+        }
+    }
+
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
             FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
@@ -88,9 +103,29 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
 
     let msg = if sym.is_class() {
         Msg::ShadowClass(name)
+    } else if sym.is_struct() {
+        Msg::ShadowStruct(name)
     } else {
         Msg::ShadowFunction(name)
     };
 
     ctxt.diag.borrow_mut().report(pos, msg);
+}
+
+#[cfg(test)]
+mod tests {
+    use semck::tests::*;
+
+    #[test]
+    fn test_struct() {
+        use error::msg::Msg;
+
+        ok("struct Foo {}");
+        err("struct Foo {} struct Foo {}", pos(1, 15),
+            Msg::ShadowStruct("Foo".into()));
+        err("struct Foo {} class Foo {}", pos(1, 15),
+            Msg::ShadowStruct("Foo".into()));
+        err("struct Foo {} fun Foo() {}", pos(1, 15),
+            Msg::ShadowStruct("Foo".into()));
+    }
 }

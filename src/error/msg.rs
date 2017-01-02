@@ -20,6 +20,7 @@ pub enum Msg {
     ShadowFunction(String),
     ShadowParam(String),
     ShadowClass(String),
+    ShadowStruct(String),
     ShadowField(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
@@ -114,6 +115,7 @@ impl Msg {
             ShadowFunction(ref name) => format!("can not shadow function `{}`.", name),
             ShadowParam(ref name) => format!("can not shadow param `{}`.", name),
             ShadowClass(ref name) => format!("can not shadow class `{}`.", name),
+            ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
             ShadowField(ref name) => format!("field with name `{}` already exists.", name),
             VarNeedsTypeInfo(ref name) => {
                 format!("variable `{}` needs either type declaration or expression.",
