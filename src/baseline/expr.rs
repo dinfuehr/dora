@@ -65,6 +65,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest),
+            ExprLitStruct(_) => unimplemented!(),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr, dest),
@@ -1015,6 +1016,7 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprLitInt(_) => true,
         ExprLitStr(_) => true,
         ExprLitBool(_) => true,
+        ExprLitStruct(_) => false,
         ExprIdent(_) => true,
         ExprAssign(_) => false,
         ExprCall(_) => false,
@@ -1026,27 +1028,5 @@ pub fn is_leaf(expr: &Expr) -> bool {
         ExprArray(_) => false,
         ExprConv(_) => false,
         ExprTry(_) => false,
-    }
-}
-
-/// Returns `true` if the given expression `expr` contains a function call
-pub fn contains_fct_call(expr: &Expr) -> bool {
-    match *expr {
-        ExprUn(ref e) => contains_fct_call(&e.opnd),
-        ExprBin(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
-        ExprLitInt(_) => false,
-        ExprLitStr(_) => false,
-        ExprLitBool(_) => false,
-        ExprIdent(_) => false,
-        ExprAssign(ref e) => contains_fct_call(&e.lhs) || contains_fct_call(&e.rhs),
-        ExprCall(_) => true,
-        ExprDelegation(_) => true,
-        ExprField(ref e) => contains_fct_call(&e.object),
-        ExprSelf(_) => false,
-        ExprSuper(_) => false,
-        ExprNil(_) => false,
-        ExprArray(ref e) => contains_fct_call(&e.object) || contains_fct_call(&e.index),
-        ExprConv(ref e) => contains_fct_call(&e.object),
-        ExprTry(ref e) => contains_fct_call(&e.expr),
     }
 }

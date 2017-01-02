@@ -849,6 +849,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
                 self.src.set_ty(id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
             }
+            ExprLitStruct(_) => unimplemented!(),
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),

@@ -952,6 +952,7 @@ pub enum Expr {
     ExprLitInt(ExprLitIntType),
     ExprLitStr(ExprLitStrType),
     ExprLitBool(ExprLitBoolType),
+    ExprLitStruct(ExprLitStructType),
     ExprIdent(ExprIdentType),
     ExprCall(ExprCallType),
     ExprDelegation(ExprDelegationType),
@@ -1045,6 +1046,15 @@ impl Expr {
             id: id,
             pos: pos,
             value: value,
+        })
+    }
+
+    pub fn create_lit_struct(id: NodeId, pos: Position, name: Name, args: Vec<StructArg>) -> Expr {
+        Expr::ExprLitStruct(ExprLitStructType {
+            id: id,
+            pos: pos,
+            name: name,
+            args: args,
         })
     }
 
@@ -1331,6 +1341,7 @@ impl Expr {
             Expr::ExprLitInt(ref val) => val.id,
             Expr::ExprLitStr(ref val) => val.id,
             Expr::ExprLitBool(ref val) => val.id,
+            Expr::ExprLitStruct(ref val) => val.id,
             Expr::ExprIdent(ref val) => val.id,
             Expr::ExprAssign(ref val) => val.id,
             Expr::ExprCall(ref val) => val.id,
@@ -1344,6 +1355,22 @@ impl Expr {
             Expr::ExprTry(ref val) => val.id,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprLitStructType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+    pub args: Vec<StructArg>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StructArg {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

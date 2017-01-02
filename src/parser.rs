@@ -994,6 +994,29 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
+    fn parse_lit_struct(&mut self, pos: Position, name: Name) -> ExprResult {
+        self.expect_token(TokenType::LBrace)?;
+        let args = self.parse_comma_list(TokenType::RBrace, |p| p.parse_lit_struct_arg())?;
+
+        Ok(Box::new(Expr::create_lit_struct(self.generate_id(), pos, name, args)))
+    }
+
+    fn parse_lit_struct_arg(&mut self) -> Result<StructArg, MsgWithPos> {
+        let pos = self.token.position;
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenType::Colon)?;
+
+        let expr = self.parse_expression()?;
+
+        Ok(StructArg {
+            id: self.generate_id(),
+            pos: pos,
+            name: name,
+            expr: expr,
+        })
+    }
+
     fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
         self.expect_token(TokenType::LParen)?;
 
