@@ -165,6 +165,10 @@ impl<'ast> Context<'ast> {
         &self.classes[cid].fields[fid]
     }
 
+    pub fn field_mut(&mut self, cid: ClassId, fid: FieldId) -> &mut Field {
+        &mut self.classes[cid].fields[fid]
+    }
+
     pub fn cls_by_id(&self, id: ClassId) -> &Class<'ast> {
         &self.classes[id]
     }

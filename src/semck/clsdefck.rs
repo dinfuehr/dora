@@ -7,7 +7,6 @@ use ctxt::{Context, Fct, FctId, FctKind, FctSrc, StructFieldData, StructId};
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use mem;
 use semck;
 use sym::Sym;
 use ty::BuiltinType;
@@ -51,24 +50,16 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             }
         }
 
-        let size = ty.size(self.ctxt);
         let mut class = self.cls_mut();
-
-        let offset = if size > 0 {
-            mem::align_i32(class.size, size)
-        } else {
-            class.size
-        };
 
         let field = Field {
             id: class.fields.len().into(),
             name: name,
             ty: ty,
-            offset: offset,
+            offset: 0,
             reassignable: reassignable,
         };
 
-        class.size = offset + size;
         class.fields.push(field);
     }
 }

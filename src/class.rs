@@ -218,3 +218,9 @@ impl Index<FieldId> for Vec<Field> {
         &self[index.0]
     }
 }
+
+impl IndexMut<FieldId> for Vec<Field> {
+    fn index_mut(&mut self, index: FieldId) -> &mut Field {
+        &mut self[index.0]
+    }
+}

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::ptr;
 
 use baseline::stub::Stub;
-use class::{Class, ClassId};
+use class::{Class, ClassId, FieldId};
 use ctxt::{Context, Fct, FctId, StructId};
 use error::msg::Msg;
 use lexer::position::Position;
@@ -24,6 +24,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     }
 
     determine_struct_sizes(ctxt);
+    determine_class_sizes(ctxt);
+
     determine_sizes(ctxt);
     create_vtables(ctxt);
 
@@ -120,6 +122,36 @@ fn determine_struct_size<'ast>(ctxt: &mut Context<'ast>,
     sizes.insert(id, (size, align));
 
     (size, align)
+}
+
+fn determine_class_sizes<'ast>(ctxt: &mut Context<'ast>) {
+    let classes = ctxt.classes.len();
+
+    for id in 0..classes {
+        let id: ClassId = id.into();
+        let mut size = 0;
+        let mut align = 0;
+
+        let fields = ctxt.cls_by_id(id).fields.len();
+
+        for fid in 0..fields {
+            let fid: FieldId = fid.into();
+            let ty = ctxt.field(id, fid).ty;
+
+            let field_size = ty.size(ctxt);
+            let field_align = ty.align(ctxt);
+
+            let offset = mem::align_i32(size, field_align);
+
+            ctxt.field_mut(id, fid).offset = offset;
+
+            size = offset + field_size;
+            align = max(align, field_align);
+        }
+
+        let size = mem::align_i32(size, align);
+        ctxt.cls_by_id_mut(id).size = size;
+    }
 }
 
 fn determine_sizes<'ast>(ctxt: &mut Context<'ast>) {
@@ -664,6 +696,9 @@ mod tests {
         ok_with_test("class Foo { var bar: Bar; }
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
+                         let cls = cls_by_name(ctxt, "Foo");
+                         assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
+
                          let struc = ctxt.struct_by_id(0.into());
                          assert_eq!(2 * mem::ptr_width(), struc.size);
                      });
