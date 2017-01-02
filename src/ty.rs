@@ -138,7 +138,7 @@ impl BuiltinType {
         if self.is_nil() { other } else { *self }
     }
 
-    pub fn size(&self) -> i32 {
+    pub fn size(&self, ctxt: &Context) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -148,11 +148,14 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(_) => unimplemented!(),
+            BuiltinType::Struct(id) => {
+                let struc = ctxt.struct_by_id(id);
+                struc.size
+            },
         }
     }
 
-    pub fn align(&self) -> i32 {
+    pub fn align(&self, ctxt: &Context) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -162,7 +165,10 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(_) => unimplemented!(),
+            BuiltinType::Struct(id) => {
+                let struc = ctxt.struct_by_id(id);
+                struc.size
+            },
         }
     }
 

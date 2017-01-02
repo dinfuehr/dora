@@ -4,10 +4,13 @@ use stdlib;
 use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
+    let size = BuiltinType::Int.size(ctxt);
     ctxt.primitive_classes.int_class =
-        internal_class(ctxt, "int", BuiltinType::Int, BuiltinType::Int.size());
+        internal_class(ctxt, "int", BuiltinType::Int, size);
+
+    let size = BuiltinType::Bool.size(ctxt);
     ctxt.primitive_classes.bool_class =
-        internal_class(ctxt, "bool", BuiltinType::Bool, BuiltinType::Bool.size());
+        internal_class(ctxt, "bool", BuiltinType::Bool, size);
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
     ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
 }

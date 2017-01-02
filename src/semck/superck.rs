@@ -101,7 +101,7 @@ fn determine_struct_size<'ast>(ctxt: &mut Context<'ast>,
                 }
             }
 
-            _ => (ty.size(), ty.align()),
+            _ => (ty.size(ctxt), ty.align(ctxt)),
         };
 
         let offset = mem::align_i32(size, field_align);
@@ -418,6 +418,7 @@ mod tests {
     use error::msg::Msg;
     use interner::Name;
     use object::Header;
+    use mem;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
     use vtable::VTable;
 
@@ -646,6 +647,26 @@ mod tests {
              struct Bar { b: int, foo: Foo }",
             pos(2, 35),
             Msg::RecursiveStructure);
+    }
+
+    #[test]
+    fn test_class_in_struct() {
+        ok_with_test("class Foo(a: bool, b: int)
+                      struct Bar { a: int, foo: Foo }",
+                     |ctxt| {
+                         let struc = ctxt.struct_by_id(0.into());
+                         assert_eq!(2 * mem::ptr_width(), struc.size);
+                     });
+    }
+
+    #[test]
+    fn test_struct_in_class() {
+        ok_with_test("class Foo { var bar: Bar; }
+                      struct Bar { a: int, foo: Foo }",
+                     |ctxt| {
+                         let struc = ctxt.struct_by_id(0.into());
+                         assert_eq!(2 * mem::ptr_width(), struc.size);
+                     });
     }
 
     fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {

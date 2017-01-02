@@ -148,7 +148,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size();
+        let ty_size = ty.size(self.ctxt);
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
 
         -self.localsize
@@ -404,7 +404,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size();
+        let ty_size = ty.size(self.ctxt);
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
         self.src.map_stores.insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));

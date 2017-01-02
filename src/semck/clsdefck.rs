@@ -51,10 +51,11 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             }
         }
 
+        let size = ty.size(self.ctxt);
         let mut class = self.cls_mut();
 
-        let offset = if ty.size() > 0 {
-            mem::align_i32(class.size, ty.size())
+        let offset = if size > 0 {
+            mem::align_i32(class.size, size)
         } else {
             class.size
         };
@@ -67,7 +68,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
             reassignable: reassignable,
         };
 
-        class.size = offset + ty.size();
+        class.size = offset + size;
         class.fields.push(field);
     }
 }
