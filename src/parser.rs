@@ -542,7 +542,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let mut data = vec![];
         let mut comma = true;
 
-        while !self.token.is(stop) && !self.token.is_eof() {
+        while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
                 return Err(MsgWithPos::new(self.token.position,
                                            Msg::ExpectedToken(TokenType::Comma.name().into(),
@@ -614,11 +614,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_type(&mut self) -> Result<Type, MsgWithPos> {
         match self.token.token_type {
-            TokenType::Identifier => {
-                let token = self.advance_token()?;
-                let name = self.interner.intern(&token.value);
+            TokenType::Identifier(_) => {
+                let pos = self.token.position;
+                let name = self.expect_identifier()?;
 
-                Ok(Type::create_basic(self.generate_id(), token.position, name))
+                Ok(Type::create_basic(self.generate_id(), pos, name))
             }
 
             TokenType::LParen => {
@@ -963,9 +963,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_factor(&mut self) -> ExprResult {
         match self.token.token_type {
             TokenType::LParen => self.parse_parentheses(),
-            TokenType::Number => self.parse_number(),
-            TokenType::String => self.parse_string(),
-            TokenType::Identifier => self.parse_identifier_or_call(),
+            TokenType::Number(_) => self.parse_number(),
+            TokenType::String(_) => self.parse_string(),
+            TokenType::Identifier(_) => self.parse_identifier_or_call(),
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
@@ -1064,17 +1064,26 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_number(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
+        let pos = tok.position;
 
-        match tok.value.parse() {
-            Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), tok.position, num))),
-            _ => Err(MsgWithPos::new(tok.position, Msg::NumberOverflow(tok.name().clone()))),
+        if let TokenType::Number(value) = tok.token_type {
+            match value.parse() {
+                Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), pos, num))),
+                _ => Err(MsgWithPos::new(pos, Msg::NumberOverflow(value))),
+            }
+        } else {
+            unreachable!();
         }
     }
 
     fn parse_string(&mut self) -> ExprResult {
         let string = self.advance_token()?;
 
-        Ok(Box::new(Expr::create_lit_str(self.generate_id(), string.position, string.value)))
+        if let TokenType::String(value) = string.token_type {
+            Ok(Box::new(Expr::create_lit_str(self.generate_id(), string.position, value)))
+        } else {
+            unreachable!();
+        }
     }
 
     fn parse_bool_literal(&mut self) -> ExprResult {
@@ -1103,14 +1112,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
-        if self.token.token_type == TokenType::Identifier {
-            let ident = self.advance_token()?;
-            let interned = self.interner.intern(&ident.value);
+        let tok = self.advance_token()?;
+
+        if let TokenType::Identifier(ref value) = tok.token_type {
+            let interned = self.interner.intern(value);
 
             Ok(interned)
+
         } else {
-            Err(MsgWithPos::new(self.token.position,
-                                Msg::ExpectedIdentifier(self.token.name())))
+            Err(MsgWithPos::new(tok.position,
+                                Msg::ExpectedIdentifier(tok.name())))
         }
     }
 

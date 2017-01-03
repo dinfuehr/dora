@@ -3,11 +3,11 @@ use std::result::Result;
 
 use lexer::position::Position;
 
-#[derive(PartialEq,Eq,Debug,Copy,Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenType {
-    String,
-    Number,
-    Identifier,
+    String(String),
+    Number(String),
+    Identifier(String),
     End,
 
     LQuote,
@@ -93,9 +93,9 @@ pub enum TokenType {
 impl TokenType {
     pub fn name(&self) -> &str {
         match *self {
-            TokenType::String => "string",
-            TokenType::Number => "number",
-            TokenType::Identifier => "identifier",
+            TokenType::String(_) => "string",
+            TokenType::Number(_) => "number",
+            TokenType::Identifier(_) => "identifier",
             TokenType::End => "<<EOF>>",
 
             TokenType::LQuote => "<",
@@ -183,7 +183,6 @@ impl TokenType {
 #[derive(PartialEq,Eq,Debug)]
 pub struct Token {
     pub token_type: TokenType,
-    pub value: String,
     pub position: Position,
 }
 
@@ -191,7 +190,6 @@ impl Token {
     pub fn new(tok: TokenType, pos: Position) -> Token {
         Token {
             token_type: tok,
-            value: "".to_string(),
             position: pos,
         }
     }
@@ -206,9 +204,9 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.token_type {
-            TokenType::Number => self.value.clone(),
-            TokenType::String => format!("\"{}\"", &self.value),
-            TokenType::Identifier => self.value.clone(),
+            TokenType::Number(ref val) => val.clone(),
+            TokenType::String(ref val) => format!("\"{}\"", &val),
+            TokenType::Identifier(ref val) => val.clone(),
 
             _ => self.token_type.name().into(),
         }
@@ -217,6 +215,6 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{:?} (with value {:?})", self.token_type, self.value)
+        write!(f, "{}", self.name())
     }
 }
