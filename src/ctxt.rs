@@ -38,8 +38,6 @@ pub struct Context<'ast> {
     pub primitive_classes: PrimitiveClasses,
     pub structs: Vec<Box<StructData>>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
-    pub map_cls_defs: NodeMap<ClassId>, // get ClassId from ast node
-    pub map_struct_defs: NodeMap<StructId>, // get StructId from ast node
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
@@ -56,8 +54,6 @@ impl<'ast> Context<'ast> {
             args: args,
             structs: Vec::new(),
             classes: Vec::new(),
-            map_cls_defs: NodeMap::new(),
-            map_struct_defs: NodeMap::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 int_class: empty_class_id,

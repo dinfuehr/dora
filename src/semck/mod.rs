@@ -1,6 +1,6 @@
 use ast::{Stmt, Type};
 use ast::Type::TypeBasic;
-use ctxt::Context;
+use ctxt::{Context, NodeMap};
 use error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct};
 use ty::BuiltinType;
@@ -22,16 +22,19 @@ macro_rules! return_on_error {
 }
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+    let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
+    let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
+
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies
-    globaldef::check(ctxt);
+    globaldef::check(ctxt, &mut map_cls_defs, &mut map_struct_defs);
     return_on_error!(ctxt);
 
     // define internal classes
     prelude::internal_classes(ctxt);
 
     // checks class/struct definitions/bodies
-    clsdefck::check(ctxt);
+    clsdefck::check(ctxt, &mut map_cls_defs, &mut map_struct_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables

@@ -151,7 +151,7 @@ impl BuiltinType {
             BuiltinType::Struct(id) => {
                 let struc = ctxt.struct_by_id(id);
                 struc.size
-            },
+            }
         }
     }
 
@@ -168,7 +168,7 @@ impl BuiltinType {
             BuiltinType::Struct(id) => {
                 let struc = ctxt.struct_by_id(id);
                 struc.size
-            },
+            }
         }
     }
 

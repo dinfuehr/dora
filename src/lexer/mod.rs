@@ -560,10 +560,7 @@ mod tests {
         assert_tok(reader, TokenType::End, l, c);
     }
 
-    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>,
-                                 token_type: TokenType,
-                                 l: u32,
-                                 c: u32) {
+    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, token_type: TokenType, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
         assert_eq!(token_type, tok.token_type);
         assert_eq!(l, tok.position.line);

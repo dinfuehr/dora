@@ -1120,8 +1120,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             Ok(interned)
 
         } else {
-            Err(MsgWithPos::new(tok.position,
-                                Msg::ExpectedIdentifier(tok.name())))
+            Err(MsgWithPos::new(tok.position, Msg::ExpectedIdentifier(tok.name())))
         }
     }
 

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use ast;
 use ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{Context, Fct, FctId, FctKind, FctSrc, StructFieldData, StructId};
+use ctxt::{Context, Fct, FctId, FctKind, FctSrc, NodeMap, StructFieldData, StructId};
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
@@ -11,12 +11,16 @@ use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>,
+                   map_cls_defs: &mut NodeMap<ClassId>,
+                   map_struct_defs: &mut NodeMap<StructId>) {
     let mut clsck = ClsDefCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
         cls_id: None,
         struct_id: None,
+        map_cls_defs: map_cls_defs,
+        map_struct_defs: map_struct_defs,
     };
 
     clsck.check();
@@ -25,6 +29,9 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 struct ClsDefCheck<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
+    map_cls_defs: &'x mut NodeMap<ClassId>,
+    map_struct_defs: &'x mut NodeMap<StructId>,
+
     cls_id: Option<ClassId>,
     struct_id: Option<StructId>,
 }
@@ -66,7 +73,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
 impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
-        self.cls_id = Some(*self.ctxt.map_cls_defs.get(c.id).unwrap());
+        self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
         visit::walk_class(self, c);
 
@@ -97,7 +104,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
     }
 
     fn visit_struct(&mut self, s: &'ast ast::Struct) {
-        self.struct_id = Some(*self.ctxt.map_struct_defs.get(s.id).unwrap());
+        self.struct_id = Some(*self.map_struct_defs.get(s.id).unwrap());
 
         visit::walk_struct(self, s);
 

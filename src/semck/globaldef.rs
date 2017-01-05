@@ -10,14 +10,22 @@ use lexer::position::Position;
 use sym::Sym::{self, SymClass, SymFct, SymStruct};
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>) {
-    let mut gdef = GlobalDef { ctxt: ctxt };
+pub fn check<'ast>(ctxt: &mut Context<'ast>,
+                   map_cls_defs: &mut NodeMap<ClassId>,
+                   map_struct_defs: &mut NodeMap<StructId>) {
+    let mut gdef = GlobalDef {
+        ctxt: ctxt,
+        map_cls_defs: map_cls_defs,
+        map_struct_defs: map_struct_defs,
+    };
 
     gdef.visit_ast(ctxt.ast);
 }
 
 struct GlobalDef<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
+    map_cls_defs: &'x mut NodeMap<ClassId>,
+    map_struct_defs: &'x mut NodeMap<StructId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -43,7 +51,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.ctxt.classes.push(Box::new(cls));
         let sym = SymClass(id);
 
-        self.ctxt.map_cls_defs.insert(c.id, id);
+        self.map_cls_defs.insert(c.id, id);
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);
@@ -64,7 +72,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.ctxt.structs.push(Box::new(struc));
         let sym = SymStruct(id);
 
-        self.ctxt.map_struct_defs.insert(s.id, id);
+        self.map_struct_defs.insert(s.id, id);
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(s.name, sym) {
             report(self.ctxt, s.name, s.pos, sym);

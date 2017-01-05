@@ -407,7 +407,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_lit_struct(&mut self, lit: &ExprLitStructType) {
-        dump!(self, "lit struct {} @ {} {}", self.str(lit.name), lit.pos, lit.id);
+        dump!(self,
+              "lit struct {} @ {} {}",
+              self.str(lit.name),
+              lit.pos,
+              lit.id);
 
         self.indent(|d| {
             for arg in &lit.args {

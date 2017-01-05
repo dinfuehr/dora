@@ -696,12 +696,12 @@ mod tests {
         ok_with_test("class Foo { var bar: Bar; }
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
-                         let cls = cls_by_name(ctxt, "Foo");
-                         assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
+            let cls = cls_by_name(ctxt, "Foo");
+            assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
 
-                         let struc = ctxt.struct_by_id(0.into());
-                         assert_eq!(2 * mem::ptr_width(), struc.size);
-                     });
+            let struc = ctxt.struct_by_id(0.into());
+            assert_eq!(2 * mem::ptr_width(), struc.size);
+        });
     }
 
     fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
