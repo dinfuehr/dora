@@ -71,11 +71,81 @@ fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
 #[cfg(target_family = "unix")]
 fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
     let mut es = read_execstate(ucontext);
+    let ctxt = get_ctxt();
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        handle_trap(trap, &mut es);
+        match trap {
+            Trap::COMPILER => compile_request(ctxt, &mut es, ucontext),
 
-    // could not recognize trap -> crash vm
+            Trap::DIV0 => {
+                println!("division by 0");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(101);
+                }
+            }
+
+            Trap::ASSERT => {
+                println!("assert failed");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(101);
+                }
+            }
+
+            Trap::INDEX_OUT_OF_BOUNDS => {
+                println!("array index out of bounds");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(102);
+                }
+            }
+
+            Trap::NIL => {
+                println!("nil check failed");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(103);
+                }
+            }
+
+            Trap::THROW => {
+                let handler_found = handle_exception(&mut es);
+
+                if handler_found {
+                    write_execstate(&es, ucontext as *mut u8);
+                } else {
+                    println!("uncaught exception");
+                    unsafe {
+                        libc::_exit(104);
+                    }
+                }
+            }
+
+            Trap::CAST => {
+                println!("cast failed");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(105);
+                }
+            }
+
+            Trap::UNEXPECTED => {
+                println!("unexpected exception");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(106);
+                }
+            }
+        }
+
+        // could not recognize trap -> crash vm
     } else {
         println!("error: trap not detected (signal {}).", signo);
         println!();
@@ -89,81 +159,6 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
 
         unsafe {
             libc::_exit(1);
-        }
-    }
-}
-
-fn handle_trap(trap: Trap, es: &mut ExecState) {
-    let ctxt = get_ctxt();
-
-    match trap {
-        Trap::COMPILER => compile_request(ctxt, &mut es, ucontext),
-
-        Trap::DIV0 => {
-            println!("division by 0");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(101);
-            }
-        }
-
-        Trap::ASSERT => {
-            println!("assert failed");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(101);
-            }
-        }
-
-        Trap::INDEX_OUT_OF_BOUNDS => {
-            println!("array index out of bounds");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(102);
-            }
-        }
-
-        Trap::NIL => {
-            println!("nil check failed");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(103);
-            }
-        }
-
-        Trap::THROW => {
-            let handler_found = handle_exception(&mut es);
-
-            if handler_found {
-                write_execstate(&es, ucontext as *mut u8);
-            } else {
-                println!("uncaught exception");
-                unsafe {
-                    libc::_exit(104);
-                }
-            }
-        }
-
-        Trap::CAST => {
-            println!("cast failed");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(105);
-            }
-        }
-
-        Trap::UNEXPECTED => {
-            println!("unexpected exception");
-            let stacktrace = get_stacktrace(ctxt, &es);
-            stacktrace.dump(ctxt);
-            unsafe {
-                libc::_exit(106);
-            }
         }
     }
 }
