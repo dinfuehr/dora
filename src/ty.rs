@@ -103,13 +103,11 @@ impl BuiltinType {
             BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.cls_by_id(cid);
-
                 ctxt.interner.str(cls.name).to_string()
             }
             BuiltinType::Struct(sid) => {
-                let struc = ctxt.struct_by_id(sid);
-
-                ctxt.interner.str(struc.name).to_string()
+                let name = ctxt.structs[sid].borrow().name;
+                ctxt.interner.str(name).to_string()
             }
         }
     }
@@ -148,10 +146,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => {
-                let struc = ctxt.struct_by_id(id);
-                struc.size
-            }
+            BuiltinType::Struct(id) => ctxt.structs[id].borrow().size
         }
     }
 
@@ -165,10 +160,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => {
-                let struc = ctxt.struct_by_id(id);
-                struc.size
-            }
+            BuiltinType::Struct(id) => ctxt.structs[id].borrow().align
         }
     }
 

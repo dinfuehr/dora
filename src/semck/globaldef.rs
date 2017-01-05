@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 use ast::*;
@@ -69,7 +70,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             align: 0,
         };
 
-        self.ctxt.structs.push(Box::new(struc));
+        self.ctxt.structs.push(RefCell::new(struc));
         let sym = SymStruct(id);
 
         self.map_struct_defs.insert(s.id, id);

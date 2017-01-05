@@ -115,19 +115,15 @@ impl<'x, 'ast> Visitor<'ast> for ClsDefCheck<'x, 'ast> {
         let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
         let id = self.struct_id.unwrap();
 
-        {
-            let struc = self.ctxt.struct_by_id(id);
+        let mut struc = self.ctxt.structs[id].borrow_mut();
 
-            for field in &struc.fields {
-                if field.name == f.name {
-                    let name = self.ctxt.interner.str(f.name).to_string();
-                    report(self.ctxt, f.pos, Msg::ShadowField(name));
-                    return;
-                }
+        for field in &struc.fields {
+            if field.name == f.name {
+                let name = self.ctxt.interner.str(f.name).to_string();
+                report(self.ctxt, f.pos, Msg::ShadowField(name));
+                return;
             }
         }
-
-        let mut struc = self.ctxt.struct_by_id_mut(id);
 
         let field = StructFieldData {
             id: (struc.fields.len() as u32).into(),

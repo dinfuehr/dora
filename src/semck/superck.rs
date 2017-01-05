@@ -1,10 +1,11 @@
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
+use std::ops::DerefMut;
 use std::ptr;
 
 use baseline::stub::Stub;
 use class::{Class, ClassId, FieldId};
-use ctxt::{Context, Fct, FctId, StructId};
+use ctxt::{Context, Fct, FctId, StructId, StructData};
 use error::msg::Msg;
 use lexer::position::Position;
 use mem;
@@ -58,68 +59,59 @@ fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn determine_struct_sizes<'ast>(ctxt: &mut Context<'ast>) {
+fn determine_struct_sizes<'ast>(ctxt: &Context<'ast>) {
     let mut path = Vec::new();
     let mut sizes = HashMap::new();
 
-    for sid in 0..ctxt.structs.len() {
-        let sid = (sid as u32).into();
-        determine_struct_size(ctxt, None, &mut path, &mut sizes, sid);
+    for struc in &ctxt.structs {
+        let mut struc = struc.borrow_mut();
+        determine_struct_size(ctxt, &mut path, &mut sizes, struc.deref_mut());
     }
 }
 
-fn determine_struct_size<'ast>(ctxt: &mut Context<'ast>,
-                               pos: Option<Position>,
+fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
                                path: &mut Vec<StructId>,
                                sizes: &mut HashMap<StructId, (i32, i32)>,
-                               id: StructId)
+                               struc: &mut StructData)
                                -> (i32, i32) {
     let mut size = 0;
     let mut align = 0;
 
-    if path.iter().find(|&&x| x == id).is_some() {
-        ctxt.diag.borrow_mut().report(pos.unwrap(), Msg::RecursiveStructure);
-        return (0, 0);
-    }
+    path.push(struc.id);
 
-    let fields = ctxt.struct_by_id(id).fields.len();
+    for field in &mut struc.fields {
+        let (field_size, field_align) = if let BuiltinType::Struct(id) = field.ty {
+            if let Some(&(size, align)) = sizes.get(&id) {
+                (size, align)
 
-    for fid in 0..fields {
-        let fid = (fid as u32).into();
-        let ty = ctxt.struct_field_by_id(id, fid).ty;
-
-        let (field_size, field_align) = match ty {
-            BuiltinType::Struct(sid) => {
-                if let Some(&(size, align)) = sizes.get(&id) {
-                    (size, align)
-
-                } else {
-                    path.push(id);
-                    let pos = ctxt.struct_field_by_id(id, fid).pos;
-                    let (size, align) = determine_struct_size(ctxt, Some(pos), path, sizes, sid);
-                    path.pop();
-
-                    (size, align)
+            } else {
+                if path.iter().find(|&&x| x == id).is_some() {
+                    ctxt.diag.borrow_mut().report(field.pos, Msg::RecursiveStructure);
+                    return (0, 0);
                 }
-            }
 
-            _ => (ty.size(ctxt), ty.align(ctxt)),
+                let mut struc = ctxt.structs[id].borrow_mut();
+                determine_struct_size(ctxt, path, sizes, struc.deref_mut())
+            }
+        } else {
+            let ty = field.ty;
+
+            (ty.size(ctxt), ty.align(ctxt))
         };
 
-        let offset = mem::align_i32(size, field_align);
-        ctxt.struct_field_by_id_mut(id, fid).offset = offset;
+        field.offset = mem::align_i32(size, field_align);
 
-        size = offset + field_size;
+        size = field.offset + field_size;
         align = max(align, field_align);
     }
 
     size = mem::align_i32(size, align);
 
-    let struc = ctxt.struct_by_id_mut(id);
     struc.size = size;
     struc.align = align;
 
-    sizes.insert(id, (size, align));
+    sizes.insert(struc.id, (size, align));
+    path.pop();
 
     (size, align)
 }
@@ -445,8 +437,10 @@ fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use class::Class;
-    use ctxt::Context;
+    use ctxt::{Context, StructData};
     use error::msg::Msg;
     use interner::Name;
     use object::Header;
@@ -648,14 +642,9 @@ mod tests {
                       struct Foo1 { a: bool, b: int, c: bool }
                       struct Bar { }",
                      |ctxt| {
-            let struc = ctxt.struct_by_id(0.into());
-            assert_eq!(8, struc.size);
-
-            let struc = ctxt.struct_by_id(1.into());
-            assert_eq!(12, struc.size);
-
-            let struc = ctxt.struct_by_id(2.into());
-            assert_eq!(0, struc.size);
+            assert_eq!(8, struct_at(ctxt, 0).borrow().size);
+            assert_eq!(12, struct_at(ctxt, 1).borrow().size);
+            assert_eq!(0, struct_at(ctxt, 2).borrow().size);
         });
     }
 
@@ -664,15 +653,13 @@ mod tests {
         ok_with_test("struct Foo { a: bool, bar: Bar }
                       struct Bar { a: int }",
                      |ctxt| {
-                         let struc = ctxt.struct_by_id(0.into());
-                         assert_eq!(8, struc.size);
+                         assert_eq!(8, struct_at(ctxt, 0).borrow().size);
                      });
 
         ok_with_test("struct Bar { a: int }
                       struct Foo { a: bool, bar: Bar }",
                      |ctxt| {
-                         let struc = ctxt.struct_by_id(1.into());
-                         assert_eq!(8, struc.size);
+                         assert_eq!(8, struct_at(ctxt, 1).borrow().size);
                      });
 
         err("struct Foo { a: int, bar: Bar }
@@ -686,8 +673,7 @@ mod tests {
         ok_with_test("class Foo(a: bool, b: int)
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
-                         let struc = ctxt.struct_by_id(0.into());
-                         assert_eq!(2 * mem::ptr_width(), struc.size);
+                         assert_eq!(2 * mem::ptr_width(), struct_at(ctxt, 0).borrow().size);
                      });
     }
 
@@ -698,9 +684,7 @@ mod tests {
                      |ctxt| {
             let cls = cls_by_name(ctxt, "Foo");
             assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
-
-            let struc = ctxt.struct_by_id(0.into());
-            assert_eq!(2 * mem::ptr_width(), struc.size);
+            assert_eq!(2 * mem::ptr_width(), struct_at(ctxt, 0).borrow().size);
         });
     }
 
@@ -725,6 +709,10 @@ mod tests {
 
             cls.name
         }
+    }
+
+    fn struct_at<'a, 'ast>(ctxt: &'a Context<'ast>, ind: usize) -> &'a RefCell<StructData> {
+        &ctxt.structs[ind]
     }
 
     fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable<'ast> {

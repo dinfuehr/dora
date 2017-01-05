@@ -36,7 +36,7 @@ pub struct Context<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
-    pub structs: Vec<Box<StructData>>,
+    pub structs: Vec<RefCell<StructData>>,
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
@@ -165,25 +165,6 @@ impl<'ast> Context<'ast> {
     pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class<'ast> {
         &mut self.classes[id]
     }
-
-    pub fn struct_by_id(&self, id: StructId) -> &StructData {
-        &self.structs[id]
-    }
-
-    pub fn struct_by_id_mut(&mut self, id: StructId) -> &mut StructData {
-        &mut self.structs[id]
-    }
-
-    pub fn struct_field_by_id(&self, id: StructId, fid: StructFieldId) -> &StructFieldData {
-        &self.structs[id].fields[fid.0 as usize]
-    }
-
-    pub fn struct_field_by_id_mut(&mut self,
-                                  id: StructId,
-                                  fid: StructFieldId)
-                                  -> &mut StructFieldData {
-        &mut self.structs[id].fields[fid.0 as usize]
-    }
 }
 
 impl<'ast> Index<FctId> for Vec<Fct<'ast>> {
@@ -203,17 +184,11 @@ impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl Index<StructId> for Vec<Box<StructData>> {
-    type Output = StructData;
+impl Index<StructId> for Vec<RefCell<StructData>> {
+    type Output = RefCell<StructData>;
 
-    fn index(&self, index: StructId) -> &StructData {
+    fn index(&self, index: StructId) -> &RefCell<StructData> {
         &self[index.0 as usize]
-    }
-}
-
-impl IndexMut<StructId> for Vec<Box<StructData>> {
-    fn index_mut(&mut self, index: StructId) -> &mut StructData {
-        &mut self[index.0 as usize]
     }
 }
 
