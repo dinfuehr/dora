@@ -424,9 +424,7 @@ mod tests {
         where F: FnOnce(&FctSrc)
     {
         test::parse(code, |ctxt| {
-            let ast = ctxt.ast.fct0();
-
-            let fct = ctxt.fct_by_node_id(ast.id);
+            let fct = ctxt.fct_by_name("f").unwrap();
             let src = fct.src();
             let mut src = src.lock().unwrap();
             generate(ctxt, &fct, &mut src);

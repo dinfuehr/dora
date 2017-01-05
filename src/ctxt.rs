@@ -40,7 +40,6 @@ pub struct Context<'ast> {
     pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
     pub map_cls_defs: NodeMap<ClassId>, // get ClassId from ast node
     pub map_struct_defs: NodeMap<StructId>, // get StructId from ast node
-    pub map_fct_defs: NodeMap<FctId>, // points to function definition
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
@@ -59,7 +58,6 @@ impl<'ast> Context<'ast> {
             classes: Vec::new(),
             map_cls_defs: NodeMap::new(),
             map_struct_defs: NodeMap::new(),
-            map_fct_defs: NodeMap::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 int_class: empty_class_id,
@@ -114,10 +112,6 @@ impl<'ast> Context<'ast> {
         let fctid = FctId(self.fcts.len());
 
         fct.id = fctid;
-
-        if fct.kind.is_src() {
-            self.map_fct_defs.insert(fct.ast.id, fctid);
-        }
 
         self.fcts.push(fct);
 
@@ -193,18 +187,6 @@ impl<'ast> Context<'ast> {
                                   fid: StructFieldId)
                                   -> &mut StructFieldData {
         &mut self.structs[id].fields[fid.0 as usize]
-    }
-
-    pub fn fct_by_node_id(&self, id: ast::NodeId) -> &Fct<'ast> {
-        let fct_id = *self.map_fct_defs.get(id).unwrap();
-
-        self.fct_by_id(fct_id)
-    }
-
-    pub fn fct_by_node_id_mut(&mut self, id: ast::NodeId) -> &mut Fct<'ast> {
-        let fct_id = *self.map_fct_defs.get(id).unwrap();
-
-        self.fct_by_id_mut(fct_id)
     }
 }
 
