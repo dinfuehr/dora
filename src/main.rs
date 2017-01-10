@@ -47,6 +47,7 @@ mod semck;
 mod stacktrace;
 mod stdlib;
 mod sym;
+mod timer;
 mod ty;
 mod vtable;
 

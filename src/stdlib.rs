@@ -58,7 +58,7 @@ pub extern "C" fn gc_collect() {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
 
-    gc.collect();
+    gc.collect(ctxt);
 }
 
 pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {

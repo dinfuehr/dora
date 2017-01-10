@@ -13,6 +13,7 @@ use os;
 use parser::Parser;
 use semck;
 use stacktrace::StackFrameInfo;
+use timer::in_ms;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -71,10 +72,9 @@ pub fn start() -> i32 {
     if ctxt.args.flag_gc_stats {
         let gc = ctxt.gc.lock().unwrap();
 
-        println!("GC stats: {} ms duration", in_ms(gc.duration));
-        println!("\tmalloc duration: {} ms", in_ms(gc.malloc_duration));
+        println!("GC stats:");
         println!("\tcollect duration: {} ms", in_ms(gc.collect_duration));
-        println!("\tsweep duration: {} ms", in_ms(gc.sweep_duration));
+        println!("\t{} allocations", gc.allocations);
         println!("\t{} collections", gc.collections);
         println!("\t{} bytes allocated", gc.total_allocated);
     }
@@ -89,10 +89,6 @@ pub fn start() -> i32 {
     } else {
         res
     }
-}
-
-fn in_ms(ns: u64) -> u64 {
-    ns / 1000 / 1000
 }
 
 fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<(), i32> {
