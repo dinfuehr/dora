@@ -41,11 +41,11 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
         self.visit_ast(self.ast);
     }
 
-    fn cls(&self) -> &Class<'ast> {
+    fn cls(&self) -> &Class {
         self.ctxt.cls_by_id(self.cls_id.unwrap())
     }
 
-    fn cls_mut(&mut self) -> &mut Class<'ast> {
+    fn cls_mut(&mut self) -> &mut Class {
         self.ctxt.cls_by_id_mut(self.cls_id.unwrap())
     }
 

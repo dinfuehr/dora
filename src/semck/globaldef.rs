@@ -35,6 +35,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let cls = class::Class {
             id: id,
             name: c.name,
+            pos: c.pos,
             ty: BuiltinType::Class(id),
             parent_class: None,
             has_open: c.has_open,
@@ -44,7 +45,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
-            ast: Some(c),
             size: 0,
             vtable: None,
         };

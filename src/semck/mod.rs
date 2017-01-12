@@ -82,7 +82,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
 
     for cls in &ctxt.classes {
         if cls.internal {
-            ctxt.diag.borrow_mut().report(cls.ast.unwrap().pos, Msg::UnresolvedInternal);
+            ctxt.diag.borrow_mut().report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {

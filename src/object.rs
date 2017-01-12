@@ -9,7 +9,7 @@ use vtable::VTable;
 
 pub struct Header {
     // ptr to class
-    vtable: *mut VTable<'static>,
+    vtable: *mut VTable,
 
     // additional information>
     // bit 0 - marked flag
@@ -24,11 +24,11 @@ impl Header {
         std::mem::size_of::<Header>() as i32
     }
 
-    pub fn vtblptr(&self) -> *mut VTable<'static> {
+    pub fn vtblptr(&self) -> *mut VTable {
         self.vtable
     }
 
-    pub fn vtbl(&self) -> &mut VTable<'static> {
+    pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtable }
     }
 
@@ -174,9 +174,9 @@ impl Str {
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let clsid = ctxt.primitive_classes.str_class;
-        let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
+        let vtable: *const VTable = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
         let mut handle: Handle<Str> = ptr.into();
-        handle.header_mut().vtable = vtable as *mut VTable<'static>;
+        handle.header_mut().vtable = vtable as *mut VTable;
 
         handle
     }
@@ -263,9 +263,9 @@ impl IntArray {
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let clsid = ctxt.primitive_classes.int_array;
-        let vtable: *const VTable<'static> = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
+        let vtable: *const VTable = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
         let mut handle: Handle<IntArray> = ptr.into();
-        handle.header_mut().vtable = vtable as *mut VTable<'static>;
+        handle.header_mut().vtable = vtable as *mut VTable;
         handle.length = len;
 
         for i in 0..handle.len() {

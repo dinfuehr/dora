@@ -7,7 +7,6 @@ use baseline::stub::Stub;
 use class::{Class, ClassId, FieldId};
 use ctxt::{Context, Fct, FctId, StructId, StructData};
 use error::msg::Msg;
-use lexer::position::Position;
 use mem;
 use object::Header;
 use ty::BuiltinType;
@@ -38,13 +37,12 @@ fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
         let mut map: HashSet<ClassId> = HashSet::new();
         map.insert(cls.id);
 
-        let mut cur: &Class<'ast> = cls;
+        let mut cur: &Class = cls;
 
         loop {
             if let Some(parent) = cur.parent_class {
                 if !map.insert(parent) {
-                    let pos = cls.ast.map(|ast| ast.pos).unwrap_or(Position::new(1, 1));
-                    ctxt.diag.borrow_mut().report(pos, Msg::CycleInHierarchy);
+                    ctxt.diag.borrow_mut().report(cls.pos, Msg::CycleInHierarchy);
 
                     break;
                 }
@@ -325,7 +323,7 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
     }
 
     let cls = ctxt.cls_by_id_mut(clsid);
-    let classptr: *mut Class<'ast> = &mut *cls;
+    let classptr: *mut Class = &mut *cls;
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
@@ -377,8 +375,8 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
 
         let (cls, parent) = index_twice(&mut ctxt.classes, clsid.into(), parent_id.into());
 
-        let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
-        let parent_vtable: &mut VTable<'ast> = parent.vtable.as_mut().unwrap();
+        let vtable: &mut VTable = cls.vtable.as_mut().unwrap();
+        let parent_vtable: &mut VTable = parent.vtable.as_mut().unwrap();
         let depth_fixed;
 
         if depth >= DISPLAY_SIZE {
@@ -414,7 +412,7 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
 
     } else {
         let cls = ctxt.cls_by_id_mut(clsid);
-        let vtable: &mut VTable<'ast> = cls.vtable.as_mut().unwrap();
+        let vtable: &mut VTable = cls.vtable.as_mut().unwrap();
 
         vtable.subtype_depth = 0;
         vtable.subtype_display[0] = vtable as *const _;
@@ -437,10 +435,8 @@ fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-
     use class::Class;
-    use ctxt::{Context, StructData};
+    use ctxt::Context;
     use error::msg::Msg;
     use interner::Name;
     use object::Header;
@@ -642,9 +638,9 @@ mod tests {
                       struct Foo1 { a: bool, b: int, c: bool }
                       struct Bar { }",
                      |ctxt| {
-            assert_eq!(8, struct_at(ctxt, 0).borrow().size);
-            assert_eq!(12, struct_at(ctxt, 1).borrow().size);
-            assert_eq!(0, struct_at(ctxt, 2).borrow().size);
+            assert_eq!(8, ctxt.structs[0].borrow().size);
+            assert_eq!(12, ctxt.structs[1].borrow().size);
+            assert_eq!(0, ctxt.structs[2].borrow().size);
         });
     }
 
@@ -653,13 +649,13 @@ mod tests {
         ok_with_test("struct Foo { a: bool, bar: Bar }
                       struct Bar { a: int }",
                      |ctxt| {
-                         assert_eq!(8, struct_at(ctxt, 0).borrow().size);
+                         assert_eq!(8, ctxt.structs[0].borrow().size);
                      });
 
         ok_with_test("struct Bar { a: int }
                       struct Foo { a: bool, bar: Bar }",
                      |ctxt| {
-                         assert_eq!(8, struct_at(ctxt, 1).borrow().size);
+                         assert_eq!(8, ctxt.structs[1].borrow().size);
                      });
 
         err("struct Foo { a: int, bar: Bar }
@@ -673,7 +669,7 @@ mod tests {
         ok_with_test("class Foo(a: bool, b: int)
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
-                         assert_eq!(2 * mem::ptr_width(), struct_at(ctxt, 0).borrow().size);
+                         assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
                      });
     }
 
@@ -684,7 +680,7 @@ mod tests {
                      |ctxt| {
             let cls = cls_by_name(ctxt, "Foo");
             assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
-            assert_eq!(2 * mem::ptr_width(), struct_at(ctxt, 0).borrow().size);
+            assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
         });
     }
 
@@ -696,30 +692,26 @@ mod tests {
         assert_eq!(a, bname);
     }
 
-    fn vtable_name<'ast>(vtable: *const VTable<'ast>) -> Name {
+    fn vtable_name(vtable: *const VTable) -> Name {
         let cls = unsafe { &*(*vtable).classptr };
 
         cls.name
     }
 
-    fn vtable_display_name<'ast>(vtable: *const VTable<'ast>, ind: usize) -> Name {
+    fn vtable_display_name(vtable: *const VTable, ind: usize) -> Name {
         unsafe {
-            let vtable = (*vtable).subtype_display[ind] as *const VTable<'ast>;
+            let vtable = (*vtable).subtype_display[ind] as *const VTable;
             let cls = &*(*vtable).classptr;
 
             cls.name
         }
     }
 
-    fn struct_at<'a, 'ast>(ctxt: &'a Context<'ast>, ind: usize) -> &'a RefCell<StructData> {
-        &ctxt.structs[ind]
-    }
-
-    fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable<'ast> {
+    fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable {
         cls_by_name(ctxt, name).vtable.as_ref().unwrap()
     }
 
-    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a Class<'ast> {
+    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a Class {
         let name = ctxt.interner.intern(name);
         let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
 

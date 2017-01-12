@@ -7,10 +7,10 @@ use class::Class;
 
 pub const DISPLAY_SIZE: usize = 6;
 
-pub struct VTableBox<'ast>(*mut VTable<'ast>);
+pub struct VTableBox(*mut VTable);
 
-impl<'ast> VTableBox<'ast> {
-    pub fn new(classptr: *mut Class<'ast>, entries: &[usize]) -> VTableBox<'ast> {
+impl VTableBox {
+    pub fn new(classptr: *mut Class, entries: &[usize]) -> VTableBox {
         let size = VTable::size_of(entries.len());
         let vtable = VTable {
             classptr: classptr,
@@ -22,7 +22,7 @@ impl<'ast> VTableBox<'ast> {
         };
 
         unsafe {
-            let ptr = heap::allocate(size, align_of::<VTable<'ast>>()) as *mut VTable<'ast>;
+            let ptr = heap::allocate(size, align_of::<VTable>()) as *mut VTable;
             ptr::write(ptr, vtable);
 
             ptr::copy(entries.as_ptr(), &mut (&mut *ptr).table[0], entries.len());
@@ -32,7 +32,7 @@ impl<'ast> VTableBox<'ast> {
     }
 }
 
-impl<'ast> fmt::Debug for VTableBox<'ast> {
+impl fmt::Debug for VTableBox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let vtable = self.deref();
 
@@ -40,21 +40,21 @@ impl<'ast> fmt::Debug for VTableBox<'ast> {
     }
 }
 
-impl<'ast> Deref for VTableBox<'ast> {
-    type Target = VTable<'ast>;
+impl Deref for VTableBox {
+    type Target = VTable;
 
-    fn deref(&self) -> &VTable<'ast> {
+    fn deref(&self) -> &VTable {
         unsafe { &*self.0 }
     }
 }
 
-impl<'ast> DerefMut for VTableBox<'ast> {
-    fn deref_mut(&mut self) -> &mut VTable<'ast> {
+impl DerefMut for VTableBox {
+    fn deref_mut(&mut self) -> &mut VTable {
         unsafe { &mut *self.0 }
     }
 }
 
-impl<'ast> Drop for VTableBox<'ast> {
+impl Drop for VTableBox {
     fn drop(&mut self) {
         unsafe {
             let len = (&*self.0).table_length;
@@ -62,31 +62,31 @@ impl<'ast> Drop for VTableBox<'ast> {
 
             heap::deallocate(self.0 as *mut u8,
                              VTable::size_of(len),
-                             align_of::<VTable<'ast>>());
+                             align_of::<VTable>());
         }
     }
 }
 
 #[derive(Debug)]
-pub struct VTable<'ast> {
-    pub classptr: *mut Class<'ast>,
+pub struct VTable {
+    pub classptr: *mut Class,
     pub subtype_depth: i32,
-    pub subtype_display: [*const VTable<'ast>; DISPLAY_SIZE],
-    pub subtype_overflow: *const *const VTable<'ast>,
+    pub subtype_display: [*const VTable; DISPLAY_SIZE],
+    pub subtype_overflow: *const *const VTable,
     pub table_length: usize,
     pub table: [usize; 1],
 }
 
-impl<'ast> VTable<'ast> {
+impl VTable {
     pub fn size_of(table_length: usize) -> usize {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn classptr(&self) -> *mut Class<'ast> {
+    pub fn classptr(&self) -> *mut Class {
         self.classptr
     }
 
-    pub fn class(&self) -> &mut Class<'ast> {
+    pub fn class(&self) -> &mut Class {
         unsafe { &mut *self.classptr }
     }
 
@@ -119,7 +119,7 @@ impl<'ast> VTable<'ast> {
         offset_of!(VTable, subtype_overflow) as i32
     }
 
-    pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable<'ast> {
+    pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable {
         assert!(self.subtype_depth as usize >= DISPLAY_SIZE &&
                 ind < self.subtype_depth as usize - DISPLAY_SIZE + 1);
 
@@ -133,8 +133,8 @@ impl<'ast> VTable<'ast> {
     pub fn allocate_overflow(&mut self, num: usize) {
         assert!(self.subtype_overflow.is_null());
 
-        let size = num * size_of::<*const VTable<'ast>>();
-        let align = align_of::<*const VTable<'ast>>();
+        let size = num * size_of::<*const VTable>();
+        let align = align_of::<*const VTable>();
 
         unsafe {
             self.subtype_overflow = heap::allocate(size, align) as *const _;
@@ -146,13 +146,13 @@ impl<'ast> VTable<'ast> {
 
         unsafe {
             heap::deallocate(self.subtype_overflow as *const u8 as *mut _,
-                             num * size_of::<*const VTable<'ast>>(),
-                             align_of::<*const VTable<'ast>>());
+                             num * size_of::<*const VTable>(),
+                             align_of::<*const VTable>());
         }
     }
 }
 
-impl<'ast> Drop for VTable<'ast> {
+impl Drop for VTable {
     fn drop(&mut self) {
         if !self.subtype_overflow.is_null() {
             let elems = self.subtype_depth as usize - DISPLAY_SIZE + 1;

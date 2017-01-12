@@ -37,7 +37,7 @@ pub struct Context<'ast> {
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
     pub structs: Vec<RefCell<StructData>>,
-    pub classes: Vec<Box<Class<'ast>>>, // stores all class definitions
+    pub classes: Vec<Box<Class>>, // stores all class definitions
     pub fcts: Vec<Fct<'ast>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
@@ -158,11 +158,11 @@ impl<'ast> Context<'ast> {
         &mut self.classes[cid].fields[fid]
     }
 
-    pub fn cls_by_id(&self, id: ClassId) -> &Class<'ast> {
+    pub fn cls_by_id(&self, id: ClassId) -> &Class {
         &self.classes[id]
     }
 
-    pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class<'ast> {
+    pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class {
         &mut self.classes[id]
     }
 }

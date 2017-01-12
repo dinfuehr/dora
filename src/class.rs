@@ -2,9 +2,9 @@ use std::collections::HashSet;
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
-use ast;
 use ctxt::{Context, Fct, FctId};
 use interner::Name;
+use lexer::position::Position;
 use vtable::VTableBox;
 use ty::BuiltinType;
 
@@ -23,16 +23,16 @@ impl From<usize> for ClassId {
     }
 }
 
-impl<'ast> Index<ClassId> for Vec<Box<Class<'ast>>> {
-    type Output = Class<'ast>;
+impl Index<ClassId> for Vec<Box<Class>> {
+    type Output = Class;
 
-    fn index(&self, index: ClassId) -> &Class<'ast> {
+    fn index(&self, index: ClassId) -> &Class {
         &self[index.0]
     }
 }
 
-impl<'ast> IndexMut<ClassId> for Vec<Box<Class<'ast>>> {
-    fn index_mut(&mut self, index: ClassId) -> &mut Class<'ast> {
+impl IndexMut<ClassId> for Vec<Box<Class>> {
+    fn index_mut(&mut self, index: ClassId) -> &mut Class {
         &mut self[index.0]
     }
 }
@@ -40,8 +40,9 @@ impl<'ast> IndexMut<ClassId> for Vec<Box<Class<'ast>>> {
 pub static DISPLAY_SIZE: usize = 6;
 
 #[derive(Debug)]
-pub struct Class<'ast> {
+pub struct Class {
     pub id: ClassId,
+    pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,
@@ -53,12 +54,11 @@ pub struct Class<'ast> {
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,
     pub size: i32,
-    pub ast: Option<&'ast ast::Class>,
-    pub vtable: Option<VTableBox<'ast>>,
+    pub vtable: Option<VTableBox>,
 }
 
-impl<'ast> Class<'ast> {
-    pub fn all_fields<'a>(&'a self, ctxt: &'a Context<'ast>) -> FieldIterator<'a, 'ast> {
+impl Class {
+    pub fn all_fields<'a, 'ast: 'a>(&'a self, ctxt: &'a Context<'ast>) -> FieldIterator<'a, 'ast> {
         FieldIterator {
             ctxt: ctxt,
             class: self,
@@ -142,7 +142,7 @@ impl<'ast> Class<'ast> {
         }
     }
 
-    pub fn subclass_from(&self, ctxt: &Context<'ast>, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {
         let mut class = self;
 
         loop {
@@ -165,7 +165,7 @@ impl<'ast> Class<'ast> {
 
 pub struct FieldIterator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    class: &'a Class<'ast>,
+    class: &'a Class,
     field_idx: usize,
 }
 
