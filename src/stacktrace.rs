@@ -28,7 +28,7 @@ impl Stacktrace {
 
     pub fn dump(&self, ctxt: &Context) {
         for (ind, elem) in self.elems.iter().rev().enumerate() {
-            let name = ctxt.fct_by_id(elem.fct_id).full_name(ctxt);
+            let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
             print!("  {}: {}:", ind, name);
 
             if elem.lineno == 0 {
@@ -91,7 +91,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
 
     if let Some(fct_id) = fct_id {
         let mut lineno = 0;
-        let fct = ctxt.fct_by_id(fct_id);
+        let fct = ctxt.fcts[fct_id].borrow();
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
             let jit_fct = src.jit_fct.as_ref().unwrap();
@@ -158,7 +158,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     // println!("find {:x}", pc);
 
     if let Some(fct_id) = fct_id {
-        let fct = ctxt.fct_by_id(fct_id);
+        let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();

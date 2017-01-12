@@ -22,14 +22,12 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>,
     let clsid = ctxt.sym.borrow().get_class(iname);
 
     if let Some(clsid) = clsid {
-        {
-            let cls = ctxt.cls_by_id_mut(clsid);
+        let mut cls = ctxt.classes[clsid].borrow_mut();
 
-            if cls.internal {
-                cls.ty = ty;
-                cls.size = size;
-                cls.internal = false;
-            }
+        if cls.internal {
+            cls.ty = ty;
+            cls.size = size;
+            cls.internal = false;
         }
 
         clsid
@@ -86,11 +84,11 @@ fn internal_method<'ast>(ctxt: &mut Context<'ast>,
                          clsid: ClassId,
                          name: &str,
                          kind: FctKind<'ast>) {
-    let methods = ctxt.cls_by_id(clsid).methods.clone();
+    let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 
-    for mid in &methods {
-        let mtd = ctxt.fct_by_id_mut(*mid);
+    for &mid in &cls.methods {
+        let mut mtd = ctxt.fcts[mid].borrow_mut();
 
         if mtd.name == name && mtd.internal {
             mtd.kind = kind;
@@ -113,7 +111,7 @@ fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind<'ast>)
     let fctid = ctxt.sym.borrow().get_fct(name);
 
     if let Some(fctid) = fctid {
-        let fct = ctxt.fct_by_id_mut(fctid);
+        let mut fct = ctxt.fcts[fctid].borrow_mut();
 
         if fct.internal {
             fct.kind = kind;

@@ -88,7 +88,8 @@ impl BuiltinType {
             return false;
         }
 
-        let cls = ctxt.cls_by_id(self.cls_id(ctxt));
+        let cls_id = self.cls_id(ctxt);
+        let cls = ctxt.classes[cls_id].borrow();
         cls.subclass_from(ctxt, ty.cls_id(ctxt))
     }
 
@@ -102,7 +103,7 @@ impl BuiltinType {
             BuiltinType::Str => "Str".into(),
             BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::Class(cid) => {
-                let cls = ctxt.cls_by_id(cid);
+                let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
             }
             BuiltinType::Struct(sid) => {

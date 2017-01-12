@@ -49,7 +49,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             vtable: None,
         };
 
-        self.ctxt.classes.push(Box::new(cls));
+        self.ctxt.classes.push(RefCell::new(box cls));
         let sym = SymClass(id);
 
         self.map_cls_defs.insert(c.id, id);

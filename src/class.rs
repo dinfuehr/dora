@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::convert::From;
 use std::ops::{Index, IndexMut};
@@ -23,17 +24,11 @@ impl From<usize> for ClassId {
     }
 }
 
-impl Index<ClassId> for Vec<Box<Class>> {
-    type Output = Class;
+impl Index<ClassId> for Vec<RefCell<Box<Class>>> {
+    type Output = RefCell<Box<Class>>;
 
-    fn index(&self, index: ClassId) -> &Class {
+    fn index(&self, index: ClassId) -> &RefCell<Box<Class>> {
         &self[index.0]
-    }
-}
-
-impl IndexMut<ClassId> for Vec<Box<Class>> {
-    fn index_mut(&mut self, index: ClassId) -> &mut Class {
-        &mut self[index.0]
     }
 }
 
@@ -58,18 +53,11 @@ pub struct Class {
 }
 
 impl Class {
-    pub fn all_fields<'a, 'ast: 'a>(&'a self, ctxt: &'a Context<'ast>) -> FieldIterator<'a, 'ast> {
-        FieldIterator {
-            ctxt: ctxt,
-            class: self,
-            field_idx: 0,
-        }
-    }
     pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
         loop {
-            let cls = ctxt.cls_by_id(classid);
+            let cls = ctxt.classes[classid].borrow();
 
             for field in &cls.fields {
                 if field.name == name {
@@ -90,10 +78,10 @@ impl Class {
         let mut classid = self.id;
 
         loop {
-            let cls = ctxt.cls_by_id(classid);
+            let cls = ctxt.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = ctxt.fct_by_id(method);
+                let method = ctxt.fcts[method].borrow();
 
                 if method.name == name && method.params_types == args {
                     return Some(method.id);
@@ -117,12 +105,12 @@ impl Class {
         let mut ignores = HashSet::new();
 
         loop {
-            let cls = ctxt.cls_by_id(classid);
+            let cls = ctxt.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = ctxt.fct_by_id(method);
+                let method = ctxt.fcts[method].borrow();
 
-                if method.name == name && f(method) {
+                if method.name == name && f(&*method) {
                     if let Some(overrides) = method.overrides {
                         ignores.insert(overrides);
                     }
@@ -143,16 +131,18 @@ impl Class {
     }
 
     pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {
-        let mut class = self;
+        let mut cls_id = self.id;
 
         loop {
-            if class.id == super_id {
+            if cls_id == super_id {
                 return true;
             }
 
-            match class.parent_class {
+            let cls = ctxt.classes[cls_id].borrow();
+
+            match cls.parent_class {
                 Some(id) => {
-                    class = ctxt.cls_by_id(id);
+                    cls_id = id;
                 }
 
                 None => {
@@ -160,36 +150,6 @@ impl Class {
                 }
             }
         }
-    }
-}
-
-pub struct FieldIterator<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
-    class: &'a Class,
-    field_idx: usize,
-}
-
-impl<'a, 'ast> Iterator for FieldIterator<'a, 'ast> {
-    type Item = &'a Field;
-
-    fn next(&mut self) -> Option<&'a Field> {
-        if self.field_idx < self.class.fields.len() {
-            let idx = self.field_idx;
-            self.field_idx = idx + 1;
-            return Some(&self.class.fields[idx]);
-
-        } else if let Some(parent_class) = self.class.parent_class {
-            self.class = self.ctxt.cls_by_id(parent_class);
-            let number_fields = self.class.fields.len();
-
-            if number_fields > 0 {
-                self.field_idx = 1;
-                return Some(&self.class.fields[0]);
-
-            }
-        }
-
-        None
     }
 }
 

@@ -16,7 +16,7 @@ impl CodeMap {
         println!("CodeMap {{");
 
         for (key, &fctid) in &self.tree {
-            let fct = ctxt.fct_by_id(fctid);
+            let fct = ctxt.fcts[fctid].borrow();
             let fct_name = fct.full_name(ctxt);
 
             println!("  {:?} - {:?} => {} (id {})",

@@ -71,6 +71,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
 fn internalck<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
+        let fct = fct.borrow();
+
         if fct.internal {
             ctxt.diag.borrow_mut().report(fct.pos, Msg::UnresolvedInternal);
         }
@@ -81,12 +83,14 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
     }
 
     for cls in &ctxt.classes {
+        let cls = cls.borrow();
+
         if cls.internal {
             ctxt.diag.borrow_mut().report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
-            let method = ctxt.fct_by_id(*method);
+            let method = ctxt.fcts[*method].borrow();
 
             if method.internal {
                 ctxt.diag.borrow_mut().report(method.pos, Msg::UnresolvedInternal);
@@ -105,7 +109,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
             if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
                 match sym {
                     SymClass(cls_id) => {
-                        let cls = ctxt.cls_by_id(cls_id);
+                        let cls = ctxt.classes[cls_id].borrow();
                         return Some(cls.ty);
                     }
 

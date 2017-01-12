@@ -174,7 +174,8 @@ impl Str {
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let clsid = ctxt.primitive_classes.str_class;
-        let vtable: *const VTable = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
+        let cls = ctxt.classes[clsid].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Str> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable;
 
@@ -263,7 +264,8 @@ impl IntArray {
         let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
 
         let clsid = ctxt.primitive_classes.int_array;
-        let vtable: *const VTable = &**ctxt.cls_by_id(clsid).vtable.as_ref().unwrap();
+        let cls = ctxt.classes[clsid].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<IntArray> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable;
         handle.length = len;

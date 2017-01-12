@@ -72,7 +72,9 @@ mod tests {
     #[test]
     fn generate_empty() {
         parse("fun f() {}", |ctxt| {
-            let mir = generate(ctxt.fct_by_name("f").unwrap()).unwrap();
+            let fid = ctxt.fct_by_name("f").unwrap();
+            let fct = ctxt.fcts[fid].borrow();
+            let mir = generate(&*fct).unwrap();
             assert_eq!("f", *ctxt.interner.str(mir.name));
         });
     }

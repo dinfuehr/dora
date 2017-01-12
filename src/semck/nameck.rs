@@ -14,6 +14,8 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
+        let fct = fct.borrow();
+
         if !fct.is_src() {
             continue;
         }
@@ -185,7 +187,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         // otherwise `let b: int = b;` would be possible
         if !self.fct.ctor.is_primary() {
             if let Some(clsid) = self.fct.owner_class {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
 
                 for field in &cls.fields {
                     if field.name == ident.name {

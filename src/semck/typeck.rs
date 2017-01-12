@@ -13,6 +13,8 @@ use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
+        let fct = fct.borrow();
+
         if !fct.is_src() {
             continue;
         }
@@ -187,7 +189,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Field(clsid, fieldid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
 
                 self.src.set_ty(e.id, field.ty);
@@ -218,7 +220,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(cls_id, fct_id);
                 self.src.map_calls.insert(e.id, call_type);
 
-                let index_type = self.ctxt.fct_by_id(fct_id).params_types[1];
+                let index_type = self.ctxt.fcts[fct_id].borrow().params_types[1];
 
                 self.src.set_ty(e.id, index_type);
                 self.expr_type = index_type;
@@ -244,7 +246,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     &IdentType::Field(clsid, fieldid) => {
                         if !self.fct.ctor.is() &&
-                           !self.ctxt.cls_by_id(clsid).fields[fieldid].reassignable {
+                           !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable {
                             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                         }
                     }
@@ -303,7 +305,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         if let Some(cls_id) = cls_id {
-            let cls = self.ctxt.cls_by_id(cls_id);
+            let cls = self.ctxt.classes[cls_id].borrow();
             let ctxt = self.ctxt;
 
             let candidates = cls.find_methods_with(ctxt, name, |method| {
@@ -313,7 +315,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if candidates.len() == 1 {
                 let candidate = candidates[0];
-                let fct = self.ctxt.fct_by_id(candidate);
+                let fct = self.ctxt.fcts[candidate].borrow();
 
                 return Some((fct.owner_class.unwrap(), candidate, fct.return_type));
 
@@ -501,13 +503,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match call_type {
             CallType::CtorNew(cls_id, _) => {
-                let cls = self.ctxt.cls_by_id(cls_id);
+                let cls = self.ctxt.classes[cls_id].borrow();
                 self.src.set_ty(e.id, cls.ty);
                 self.expr_type = cls.ty;
                 let mut found = false;
 
                 for &ctor in &cls.ctors {
-                    let ctor = self.ctxt.fct_by_id(ctor);
+                    let ctor = self.ctxt.fcts[ctor].borrow();
 
                     if args_compatible(self.ctxt, &ctor.params_types, &call_types) {
                         let call_type = CallType::CtorNew(cls_id, ctor.id);
@@ -529,7 +531,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             CallType::Fct(callee_id) => {
-                let callee = &self.ctxt.fcts[callee_id];
+                let callee = self.ctxt.fcts[callee_id].borrow();
                 self.src.set_ty(e.id, callee.return_type);
                 self.expr_type = callee.return_type;
 
@@ -552,7 +554,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !in_try {
             let fct_id = call_type.fct_id();
-            let throws = self.ctxt.fct_by_id(fct_id).throws;
+            let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
             if throws {
                 let msg = Msg::ThrowingCallWithoutTry;
@@ -570,7 +572,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             })
             .collect();
 
-        let owner = self.ctxt.cls_by_id(self.fct.owner_class.unwrap());
+        let owner = self.ctxt.classes[self.fct.owner_class.unwrap()].borrow();
 
         // init(..) : super(..) is not allowed for classes with primary ctor
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
@@ -596,10 +598,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             owner.id
         };
 
-        let cls = self.ctxt.cls_by_id(cls_id);
+        let cls = self.ctxt.classes[cls_id].borrow();
 
         for &ctor_id in &cls.ctors {
-            let ctor = self.ctxt.fct_by_id(ctor_id);
+            let ctor = self.ctxt.fcts[ctor_id].borrow();
 
             if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
                 self.src.map_cls.insert(e.id, cls.id);
@@ -644,7 +646,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type = return_type;
 
             if !in_try {
-                let throws = self.ctxt.fct_by_id(fct_id).throws;
+                let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
                 if throws {
                     let msg = Msg::ThrowingCallWithoutTry;
@@ -659,7 +661,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn super_type(&self, pos: Position) -> BuiltinType {
         if let Some(clsid) = self.fct.owner_class {
-            let cls = self.ctxt.cls_by_id(clsid);
+            let cls = self.ctxt.classes[clsid].borrow();
 
             if let Some(superid) = cls.parent_class {
                 return BuiltinType::Class(superid);
@@ -675,14 +677,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
         self.visit_expr(&e.object);
 
-        if let BuiltinType::Class(class_id) = self.expr_type {
-            let cls = self.ctxt.cls_by_id(class_id);
+        if let BuiltinType::Class(cls_id) = self.expr_type {
+            let cls = self.ctxt.classes[cls_id].borrow();
 
-            if let Some((class_id, field_id)) = cls.find_field(self.ctxt, e.name) {
-                let ident_type = IdentType::Field(class_id, field_id);
+            if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
+                let cls = self.ctxt.classes[cls_id].borrow();
+                let ident_type = IdentType::Field(cls_id, field_id);
                 self.src.map_idents.insert(e.id, ident_type);
 
-                let field = self.ctxt.field(class_id, field_id);
+                let field = &cls.fields[field_id];
                 self.src.set_ty(e.id, field.ty);
                 self.expr_type = field.ty;
                 return;
@@ -755,7 +758,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.src.set_ty(e.id, e_type);
 
             let fct_id = self.src.map_calls.get(call.id).unwrap().fct_id();
-            let throws = self.ctxt.fct_by_id(fct_id).throws;
+            let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
             if !throws {
                 self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryCallNonThrowing);

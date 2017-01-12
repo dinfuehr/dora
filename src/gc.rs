@@ -100,8 +100,8 @@ impl Gc {
         let mut timer = Timer::new(active_timer);
         let rootset = get_rootset(ctxt);
 
-        mark_literals(self.cur_marked);
-        mark_rootset(&rootset, self.cur_marked);
+        mark_literals(ctxt, self.cur_marked);
+        mark_rootset(ctxt, &rootset, self.cur_marked);
 
         let cur_marked = self.cur_marked;
         sweep(self, cur_marked);
@@ -136,22 +136,21 @@ impl Drop for Gc {
     }
 }
 
-fn mark_literals(cur_marked: bool) {
-    let ctxt = get_ctxt();
+fn mark_literals(ctxt: &Context, cur_marked: bool) {
     let literals = ctxt.literals.lock().unwrap();
 
     for lit in literals.iter() {
-        mark_recursive(lit.raw() as *mut Obj, cur_marked);
+        mark_recursive(ctxt, lit.raw() as *mut Obj, cur_marked);
     }
 }
 
-fn mark_rootset(rootset: &Vec<usize>, cur_marked: bool) {
+fn mark_rootset(ctxt: &Context, rootset: &Vec<usize>, cur_marked: bool) {
     for &root in rootset {
-        mark_recursive(root as *mut Obj, cur_marked);
+        mark_recursive(ctxt, root as *mut Obj, cur_marked);
     }
 }
 
-fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
+fn mark_recursive(ctxt: &Context, obj: *mut Obj, cur_marked: bool) {
     if obj.is_null() {
         return;
     }
@@ -164,18 +163,29 @@ fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
 
         if obj.header().marked() != cur_marked {
             obj.header_mut().set_mark(cur_marked);
-            let class = obj.header().vtbl().class();
+            let mut classid = obj.header().vtbl().class().id;
 
-            for field in class.all_fields(get_ctxt()) {
-                if field.ty.reference_type() {
-                    let addr = ptr as isize + field.offset as isize;
-                    let obj = unsafe { *(addr as *const usize) } as *mut Obj;
+            loop {
+                let cls = ctxt.classes[classid].borrow();
 
-                    if obj.is_null() {
-                        continue;
+                for field in &cls.fields {
+                    if field.ty.reference_type() {
+                        let addr = ptr as isize + field.offset as isize;
+                        let obj = unsafe { *(addr as *const usize) } as *mut Obj;
+
+                        if obj.is_null() {
+                            continue;
+                        }
+
+                        elements.push(obj);
                     }
+                }
 
-                    elements.push(obj);
+                if let Some(parent_class) = cls.parent_class {
+                    classid = parent_class;
+
+                } else {
+                    break;
                 }
             }
         }
@@ -260,7 +270,7 @@ fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: us
     let fct_id = code_map.get(pc as *const u8);
 
     if let Some(fct_id) = fct_id {
-        let fct = ctxt.fct_by_id(fct_id);
+        let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();

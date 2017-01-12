@@ -174,7 +174,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
 
         ctxt.use_sfi(&mut sfi, || {
             let jit_fct = baseline::generate(ctxt, fct_id);
-            let fct = ctxt.fct_by_id(fct_id);
+            let fct = ctxt.fcts[fct_id].borrow();
 
             if fct.is_virtual() {
                 patch_vtable_call(ctxt, es, fct_id, jit_fct);
@@ -193,11 +193,11 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
 }
 
 fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
-    let fct = ctxt.fct_by_id(fid);
+    let fct = ctxt.fcts[fid].borrow();
     let vtable_index = fct.vtable_index.unwrap();
     let cls_id = fct.owner_class.unwrap();
 
-    let cls = ctxt.cls_by_id(cls_id);
+    let cls = ctxt.classes[cls_id].borrow();
     let vtable = cls.vtable.as_ref().unwrap();
 
     let methodtable = vtable.table_mut();
@@ -216,7 +216,7 @@ pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
         code_map.get(ra as *const u8).expect("return address not found")
     };
 
-    let fct = ctxt.fct_by_id(fct_id);
+    let fct = ctxt.fcts[fct_id].borrow();
     let src = fct.src();
     let src = src.lock().unwrap();
     let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");

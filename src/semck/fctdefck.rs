@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct, FctId, FctSrc};
+use ctxt::{Context, FctId, FctSrc};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
@@ -13,7 +13,7 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
         let id = FctId(id);
 
         let ast = {
-            let fct = ctxt.fct_by_id(id);
+            let fct = ctxt.fcts[id].borrow();
             if !fct.is_src() && !fct.kind.is_definition() {
                 continue;
             }
@@ -25,7 +25,7 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
             for p in &ast.params {
                 let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
 
-                let fct = ctxt.fct_by_id_mut(id);
+                let mut fct = ctxt.fcts[id].borrow_mut();
                 fct.params_types.push(ty);
 
                 if fct.is_src() {
@@ -39,13 +39,13 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
 
             if let Some(ret) = ast.return_type.as_ref() {
                 let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
-                let fct = ctxt.fct_by_id_mut(id);
+                let mut fct = ctxt.fcts[id].borrow_mut();
                 fct.return_type = ty;
             }
         }
 
         let src = {
-            let fct = ctxt.fct_by_id(id);
+            let fct = ctxt.fcts[id].borrow();
             if !fct.is_src() {
                 continue;
             }
@@ -76,14 +76,6 @@ struct FctDefCheck<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
-    fn fct(&self) -> &Fct<'ast> {
-        &self.ctxt.fcts[self.fct_id]
-    }
-
-    fn fct_mut(&mut self) -> &mut Fct<'ast> {
-        &mut self.ctxt.fcts[self.fct_id]
-    }
-
     fn check(&mut self) {
         self.visit_fct(self.ast);
 
@@ -91,19 +83,20 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
             return;
         }
 
-        self.fct_mut().initialized = true;
+        let mut fct = self.ctxt.fcts[self.fct_id].borrow_mut();
+        fct.initialized = true;
 
-        if let Some(clsid) = self.fct().owner_class {
-            let cls = self.ctxt.cls_by_id(clsid);
+        if let Some(clsid) = fct.owner_class {
+            let cls = self.ctxt.classes[clsid].borrow();
 
             for &method in &cls.methods {
-                if method == self.fct().id {
+                if method == fct.id {
                     continue;
                 }
-                let method = self.ctxt.fct_by_id(method);
+                let method = self.ctxt.fcts[method].borrow();
 
-                if method.initialized && method.name == self.fct().name &&
-                   method.params_types == self.fct().params_types {
+                if method.initialized && method.name == fct.name &&
+                   method.params_types == fct.params_types {
                     let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
                     let param_names = method.params_types
                         .iter()

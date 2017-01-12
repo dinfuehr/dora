@@ -12,7 +12,7 @@ use baseline::fct::JitFct;
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
-use class::{Class, ClassId, Field, FieldId};
+use class::{Class, ClassId, FieldId};
 use gc::Gc;
 use interner::*;
 use lexer::position::Position;
@@ -37,8 +37,8 @@ pub struct Context<'ast> {
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
     pub structs: Vec<RefCell<StructData>>,
-    pub classes: Vec<Box<Class>>, // stores all class definitions
-    pub fcts: Vec<Fct<'ast>>, // stores all function definitions
+    pub classes: Vec<RefCell<Box<Class>>>, // stores all class definitions
+    pub fcts: Vec<RefCell<Fct<'ast>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
     pub literals: Mutex<Vec<Handle<Str>>>, // string literals
@@ -109,7 +109,7 @@ impl<'ast> Context<'ast> {
 
         fct.id = fctid;
 
-        self.fcts.push(fct);
+        self.fcts.push(RefCell::new(fct));
 
         fctid
     }
@@ -130,54 +130,18 @@ impl<'ast> Context<'ast> {
         }
     }
 
-    pub fn fct_by_id(&self, id: FctId) -> &Fct<'ast> {
-        &self.fcts[id]
-    }
-
-    pub fn fct_by_id_mut(&mut self, id: FctId) -> &mut Fct<'ast> {
-        &mut self.fcts[id]
-    }
-
     #[cfg(test)]
-    pub fn fct_by_name(&self, name: &str) -> Option<&Fct<'ast>> {
+    pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
-        let fctid = self.sym.borrow().get_fct(name);
-
-        if let Some(fctid) = fctid {
-            Some(self.fct_by_id(fctid))
-        } else {
-            None
-        }
-    }
-
-    pub fn field(&self, cid: ClassId, fid: FieldId) -> &Field {
-        &self.classes[cid].fields[fid]
-    }
-
-    pub fn field_mut(&mut self, cid: ClassId, fid: FieldId) -> &mut Field {
-        &mut self.classes[cid].fields[fid]
-    }
-
-    pub fn cls_by_id(&self, id: ClassId) -> &Class {
-        &self.classes[id]
-    }
-
-    pub fn cls_by_id_mut(&mut self, id: ClassId) -> &mut Class {
-        &mut self.classes[id]
+        self.sym.borrow().get_fct(name)
     }
 }
 
-impl<'ast> Index<FctId> for Vec<Fct<'ast>> {
-    type Output = Fct<'ast>;
+impl<'ast> Index<FctId> for Vec<RefCell<Fct<'ast>>> {
+    type Output = RefCell<Fct<'ast>>;
 
-    fn index(&self, index: FctId) -> &Fct<'ast> {
+    fn index(&self, index: FctId) -> &RefCell<Fct<'ast>> {
         &self[index.0]
-    }
-}
-
-impl<'ast> IndexMut<FctId> for Vec<Fct<'ast>> {
-    fn index_mut(&mut self, index: FctId) -> &mut Fct<'ast> {
-        &mut self[index.0]
     }
 }
 
@@ -284,7 +248,7 @@ impl<'ast> Fct<'ast> {
         let mut repr = String::new();
 
         if let Some(class_id) = self.owner_class {
-            let name = ctxt.cls_by_id(class_id).name;
+            let name = ctxt.classes[class_id].borrow().name;
             repr.push_str(&ctxt.interner.str(name));
             repr.push_str(".");
         }

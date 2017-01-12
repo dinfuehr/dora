@@ -79,7 +79,7 @@ pub fn start() -> i32 {
         println!("\t{} bytes allocated", gc.total_allocated);
     }
 
-    let is_unit = ctxt.fct_by_id(main).return_type.is_unit();
+    let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
 
     // main-fct without return value exits with status 0
     if is_unit {
@@ -119,7 +119,7 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
         }
     };
 
-    let fct = ctxt.fct_by_id(fctid);
+    let fct = ctxt.fcts[fctid].borrow();
     let ret = fct.return_type;
 
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_types.len() > 0 {

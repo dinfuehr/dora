@@ -1,16 +1,15 @@
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
-use std::ops::DerefMut;
 use std::ptr;
 
 use baseline::stub::Stub;
-use class::{Class, ClassId, FieldId};
-use ctxt::{Context, Fct, FctId, StructId, StructData};
+use class::{Class, ClassId};
+use ctxt::{Context, Fct, StructId, StructData};
 use error::msg::Msg;
 use mem;
 use object::Header;
 use ty::BuiltinType;
-use vtable::{DISPLAY_SIZE, VTable, VTableBox};
+use vtable::{DISPLAY_SIZE, VTableBox};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
@@ -26,32 +25,28 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     determine_struct_sizes(ctxt);
     determine_class_sizes(ctxt);
 
-    determine_sizes(ctxt);
     create_vtables(ctxt);
-
     create_displays(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
     for cls in &ctxt.classes {
+        let cls = cls.borrow();
+
         let mut map: HashSet<ClassId> = HashSet::new();
         map.insert(cls.id);
 
-        let mut cur: &Class = cls;
+        let mut parent = cls.parent_class;
 
-        loop {
-            if let Some(parent) = cur.parent_class {
-                if !map.insert(parent) {
-                    ctxt.diag.borrow_mut().report(cls.pos, Msg::CycleInHierarchy);
+        while parent.is_some() {
+            let p = parent.unwrap();
 
-                    break;
-                }
-
-                cur = ctxt.cls_by_id(parent);
-
-            } else {
+            if !map.insert(p) {
+                ctxt.diag.borrow_mut().report(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
+
+            parent = ctxt.classes[p].borrow().parent_class;
         }
 
     }
@@ -63,7 +58,7 @@ fn determine_struct_sizes<'ast>(ctxt: &Context<'ast>) {
 
     for struc in &ctxt.structs {
         let mut struc = struc.borrow_mut();
-        determine_struct_size(ctxt, &mut path, &mut sizes, struc.deref_mut());
+        determine_struct_size(ctxt, &mut path, &mut sizes, &mut *struc);
     }
 }
 
@@ -89,7 +84,7 @@ fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
                 }
 
                 let mut struc = ctxt.structs[id].borrow_mut();
-                determine_struct_size(ctxt, path, sizes, struc.deref_mut())
+                determine_struct_size(ctxt, path, sizes, &mut *struc)
             }
         } else {
             let ty = field.ty;
@@ -114,96 +109,67 @@ fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
     (size, align)
 }
 
-fn determine_class_sizes<'ast>(ctxt: &mut Context<'ast>) {
-    let classes = ctxt.classes.len();
-
-    for id in 0..classes {
-        let id: ClassId = id.into();
-        let mut size = 0;
-        let mut align = 0;
-
-        let fields = ctxt.cls_by_id(id).fields.len();
-
-        for fid in 0..fields {
-            let fid: FieldId = fid.into();
-            let ty = ctxt.field(id, fid).ty;
-
-            let field_size = ty.size(ctxt);
-            let field_align = ty.align(ctxt);
-
-            let offset = mem::align_i32(size, field_align);
-
-            ctxt.field_mut(id, fid).offset = offset;
-
-            size = offset + field_size;
-            align = max(align, field_align);
-        }
-
-        let size = mem::align_i32(size, align);
-        ctxt.cls_by_id_mut(id).size = size;
-    }
-}
-
-fn determine_sizes<'ast>(ctxt: &mut Context<'ast>) {
-    let mut super_sizes: HashMap<ClassId, i32> = HashMap::new();
+fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
+    let mut sizes = HashMap::new();
 
     for cls in &ctxt.classes {
-        determine_recursive_size(ctxt, &mut super_sizes, cls.id);
-    }
+        let mut cls = cls.borrow_mut();
 
-    for cls in &mut ctxt.classes {
-        let super_size = *super_sizes.get(&cls.id).unwrap();
-        cls.size += super_size;
-
-        for field in &mut cls.fields {
-            field.offset += super_size;
-        }
+        determine_class_size(ctxt, &mut *cls, &mut sizes);
     }
 }
 
-fn determine_recursive_size<'ast>(ctxt: &Context<'ast>,
-                                  super_sizes: &mut HashMap<ClassId, i32>,
-                                  id: ClassId)
-                                  -> i32 {
-    if let Some(&val) = super_sizes.get(&id) {
-        return val;
-    }
+fn determine_class_size<'ast>(ctxt: &Context<'ast>, cls: &mut Class,
+                              sizes: &mut HashMap<ClassId, i32>) -> i32 {
+    let mut size = if let Some(parent) = cls.parent_class {
+        if let Some(&size) = sizes.get(&parent) {
+            size
 
-    let cls = ctxt.cls_by_id(id);
+        } else {
+            let mut cls = ctxt.classes[parent].borrow_mut();
+            let size = determine_class_size(ctxt, &mut *cls, sizes);
 
-    let super_size = if let Some(parent_class) = cls.parent_class {
-        let super_class = ctxt.cls_by_id(parent_class);
-        super_class.size + determine_recursive_size(ctxt, super_sizes, parent_class)
+            size
+        }
 
     } else {
         Header::size()
     };
 
-    super_sizes.insert(id, super_size);
+    let mut align = 0;
 
-    super_size
-}
+    for f in &mut cls.fields {
+        let field_size = f.ty.size(ctxt);
+        let field_align = f.ty.align(ctxt);
 
-fn check_override<'ast>(ctxt: &mut Context<'ast>) {
-    let mut updates: Vec<(FctId, FctId)> = Vec::new();
+        let offset = mem::align_i32(size, field_align);
 
-    for class in &ctxt.classes {
-        for &fct_id in &class.methods {
-            let fct = ctxt.fct_by_id(fct_id);
-            check_fct_modifier(ctxt, class, fct, &mut updates);
-        }
+        f.offset = offset;
+
+        size = offset + field_size;
+        align = max(align, field_align);
     }
 
-    for update in updates {
-        let fct = ctxt.fct_by_id_mut(update.0);
-        fct.overrides = Some(update.1);
+    cls.size = mem::align_i32(size, align);
+    sizes.insert(cls.id, cls.size);
+
+    cls.size
+}
+
+fn check_override<'ast>(ctxt: &Context<'ast>) {
+    for cls in &ctxt.classes {
+        let cls = cls.borrow();
+
+        for &fct_id in &cls.methods {
+            let mut fct = ctxt.fcts[fct_id].borrow_mut();
+            check_fct_modifier(ctxt, &*cls, &mut *fct);
+        }
     }
 }
 
 fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
                             cls: &Class,
-                            fct: &Fct<'ast>,
-                            updates: &mut Vec<(FctId, FctId)>) {
+                            fct: &mut Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -223,12 +189,12 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
     }
 
     let parent = cls.parent_class.unwrap();
-    let parent = ctxt.cls_by_id(parent);
+    let parent = ctxt.classes[parent].borrow();
 
     let super_method = parent.find_method(ctxt, fct.name, &fct.params_types);
 
     if let Some(super_method) = super_method {
-        let super_method = ctxt.fct_by_id(super_method);
+        let super_method = ctxt.fcts[super_method].borrow();
 
         if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
@@ -252,7 +218,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
             ctxt.diag.borrow_mut().report(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
 
-        updates.push((fct.id, super_method.id));
+        fct.overrides = Some(super_method.id);
     } else {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
@@ -261,46 +227,39 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
     }
 }
 
-fn create_vtables<'ast>(ctxt: &mut Context<'ast>) {
-    for clsid in 0..ctxt.classes.len() {
-        let clsid: ClassId = clsid.into();
-
-        ensure_super_vtables(ctxt, clsid);
+fn create_vtables<'ast>(ctxt: &Context<'ast>) {
+    for cls in &ctxt.classes {
+        let mut cls = cls.borrow_mut();
+        ensure_super_vtables(ctxt, &mut *cls);
     }
 }
 
-fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
-    if ctxt.cls_by_id(clsid).vtable.is_some() {
+fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
+    if cls.vtable.is_some() {
         return;
     }
 
     let mut vtable_entries: Vec<usize> = Vec::new();
 
-    if let Some(superid) = ctxt.cls_by_id(clsid).parent_class {
-        ensure_super_vtables(ctxt, superid);
+    if let Some(superid) = cls.parent_class {
+        let mut sup = ctxt.classes[superid].borrow_mut();
+        ensure_super_vtables(ctxt, &mut sup);
 
-        let cls = ctxt.cls_by_id(superid);
-        let vtable = cls.vtable.as_ref().unwrap();
+        let vtable = sup.vtable.as_ref().unwrap();
 
         vtable_entries.extend_from_slice(vtable.table());
     }
 
-    for ind in 0..ctxt.cls_by_id_mut(clsid).methods.len() {
-        let fctid = ctxt.cls_by_id_mut(clsid).methods[ind];
-        let is_virtual = {
-            let fct = ctxt.fct_by_id(fctid);
+    for &mid in &cls.methods {
+        let mut fct = ctxt.fcts[mid].borrow_mut();
 
-            if fct.vtable_index.is_some() {
-                continue;
-            }
+        if fct.vtable_index.is_some() {
+            continue;
+        }
 
-            fct.is_virtual()
-        };
-
-        if is_virtual {
-            let overrides = ctxt.fct_by_id(fctid).overrides;
-            let vtable_index = if let Some(overrides) = overrides {
-                ctxt.fct_by_id(overrides).vtable_index.unwrap()
+        if fct.is_virtual() {
+            let vtable_index = if let Some(overrides) = fct.overrides {
+                ctxt.fcts[overrides].borrow().vtable_index.unwrap()
 
             } else {
                 let vtable_index = vtable_entries.len();
@@ -309,30 +268,24 @@ fn ensure_super_vtables<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) {
                 vtable_index as u32
             };
 
-            let is_src = {
-                let fct = ctxt.fct_by_id_mut(fctid);
-                fct.vtable_index = Some(vtable_index);
+            fct.vtable_index = Some(vtable_index);
 
-                fct.is_src()
-            };
-
-            if is_src {
-                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, fctid) as usize;
+            if fct.is_src() {
+                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, &mut *fct) as usize;
             }
         }
     }
 
-    let cls = ctxt.cls_by_id_mut(clsid);
     let classptr: *mut Class = &mut *cls;
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
-fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> *const u8 {
-    let stub = Stub::new(fid);
+fn ensure_stub<'ast>(ctxt: &Context<'ast>, fct: &mut Fct<'ast>) -> *const u8 {
+    let stub = Stub::new(fct.id);
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), fct.id);
     }
 
     if ctxt.args.flag_emit_stubs {
@@ -341,7 +294,7 @@ fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> *const u8 {
 
     let ptr = stub.ptr_start();
 
-    let src = ctxt.fct_by_id_mut(fid).src();
+    let src = fct.src();
     let mut src = src.lock().unwrap();
     assert!(src.stub.is_none());
     src.stub = Some(stub);
@@ -349,34 +302,27 @@ fn ensure_stub<'ast>(ctxt: &mut Context<'ast>, fid: FctId) -> *const u8 {
     ptr
 }
 
-fn create_displays<'ast>(ctxt: &mut Context<'ast>) {
-    for clsid in 0..ctxt.classes.len() {
-        let clsid: ClassId = clsid.into();
+fn create_displays<'ast>(ctxt: &Context<'ast>) {
+    for cls in &ctxt.classes {
+        let mut cls = cls.borrow_mut();
 
-        ensure_display(ctxt, clsid);
+        ensure_display(ctxt, &mut *cls);
     }
 }
 
-fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
-    let parent_id = {
-        let cls = ctxt.cls_by_id(clsid);
-        let vtable = cls.vtable.as_ref().unwrap();
+fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
+    let vtable = cls.vtable.as_mut().unwrap();
 
-        // if subtype_display[0] is set, vtable was already initialized
-        if !vtable.subtype_display[0].is_null() {
-            return vtable.subtype_depth as usize;
-        }
+    // if subtype_display[0] is set, vtable was already initialized
+    if !vtable.subtype_display[0].is_null() {
+        return vtable.subtype_depth as usize;
+    }
 
-        cls.parent_class
-    };
+    if let Some(parent_id) = cls.parent_class {
+        let mut parent = ctxt.classes[parent_id].borrow_mut();
+        let depth = 1 + ensure_display(ctxt, &mut *parent);
 
-    if let Some(parent_id) = parent_id {
-        let depth = 1 + ensure_display(ctxt, parent_id);
-
-        let (cls, parent) = index_twice(&mut ctxt.classes, clsid.into(), parent_id.into());
-
-        let vtable: &mut VTable = cls.vtable.as_mut().unwrap();
-        let parent_vtable: &mut VTable = parent.vtable.as_mut().unwrap();
+        let parent_vtable = parent.vtable.as_ref().unwrap();
         let depth_fixed;
 
         if depth >= DISPLAY_SIZE {
@@ -395,13 +341,13 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
                     .offset(depth as isize -
                             DISPLAY_SIZE as isize) as *mut _;
 
-                *ptr = vtable as *const _;
+                *ptr = &**vtable as *const _;
             }
 
         } else {
             depth_fixed = depth;
 
-            vtable.subtype_display[depth] = vtable as *const _;
+            vtable.subtype_display[depth] = &**vtable as *const _;
         }
 
         vtable.subtype_depth = depth as i32;
@@ -411,11 +357,8 @@ fn ensure_display<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId) -> usize {
         depth
 
     } else {
-        let cls = ctxt.cls_by_id_mut(clsid);
-        let vtable: &mut VTable = cls.vtable.as_mut().unwrap();
-
         vtable.subtype_depth = 0;
-        vtable.subtype_display[0] = vtable as *const _;
+        vtable.subtype_display[0] = &**vtable as *const _;
 
         0
     }
@@ -435,7 +378,7 @@ fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 
 #[cfg(test)]
 mod tests {
-    use class::Class;
+    use class::ClassId;
     use ctxt::Context;
     use error::msg::Msg;
     use interner::Name;
@@ -443,6 +386,24 @@ mod tests {
     use mem;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
     use vtable::VTable;
+
+    #[test]
+    fn test_class_size() {
+        assert_eq!(Header::size(), class_size("class Foo"));
+        assert_eq!(Header::size() + 4, class_size("class Foo(let a: int)"));
+        assert_eq!(Header::size() + mem::ptr_width(),
+                   class_size("class Foo(let a: Str)"));
+    }
+
+    fn class_size(code: &'static str) -> i32 {
+        ok_with_test(code, |ctxt| {
+            let name = ctxt.interner.intern("Foo");
+            let cid = ctxt.sym.borrow().get_class(name).unwrap();
+            let cls = ctxt.classes[cid].borrow();
+
+            cls.size
+        })
+    }
 
     #[test]
     fn test_super_size() {
@@ -454,8 +415,8 @@ mod tests {
             check_field(ctxt, "A", "a", Header::size());
             check_class(ctxt, "B", 4 * 3, Some("A"));
             check_field(ctxt, "B", "b1", Header::size() + 4);
-            check_class(ctxt, "C", 4 * 3 + 8, Some("B"));
-            check_field(ctxt, "C", "c", Header::size() + 4 * 3);
+            check_class(ctxt, "C", 4 * 4 + 8, Some("B"));
+            check_field(ctxt, "C", "c", Header::size() + 4 * 4);
         });
     }
 
@@ -536,8 +497,8 @@ mod tests {
     #[test]
     fn test_depth() {
         ok_with_test("class A { } class B { }", |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
-            assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 0);
+            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 0);
+            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 0);
         });
     }
 
@@ -546,35 +507,41 @@ mod tests {
         ok_with_test("open class A { } open class B: A { }
                       class C: B { }",
                      |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "A").subtype_depth, 0);
-            assert_eq!(vtable_by_name(ctxt, "B").subtype_depth, 1);
-            assert_eq!(vtable_by_name(ctxt, "C").subtype_depth, 2);
+            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 0);
+            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 1);
+            assert_eq!(vtable_by_name(ctxt, "C", |f| f.subtype_depth), 2);
 
             {
-                let vtable = vtable_by_name(ctxt, "C");
+                let vtable = vtable_by_name(ctxt, "C", |vtable| {
+                    assert!(vtable.subtype_display[3].is_null());
+                    vtable as *const _
+                });
 
                 assert_name(ctxt, vtable_name(vtable), "C");
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
                 assert_name(ctxt, vtable_display_name(vtable, 2), "C");
-                assert!(vtable.subtype_display[3].is_null());
             }
 
             {
-                let vtable = vtable_by_name(ctxt, "B");
+                let vtable = vtable_by_name(ctxt, "B", |vtable| {
+                    assert!(vtable.subtype_display[2].is_null());
+                    vtable as *const _
+                });
 
                 assert_name(ctxt, vtable_name(vtable), "B");
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 1), "B");
-                assert!(vtable.subtype_display[2].is_null());
             }
 
             {
-                let vtable = vtable_by_name(ctxt, "A");
+                let vtable = vtable_by_name(ctxt, "A", |vtable| {
+                    assert!(vtable.subtype_display[1].is_null());
+                    vtable as *const _
+                });
 
                 assert_name(ctxt, vtable_name(vtable), "A");
                 assert_name(ctxt, vtable_display_name(vtable, 0), "A");
-                assert!(vtable.subtype_display[1].is_null());
             }
         });
     }
@@ -592,15 +559,22 @@ mod tests {
                         open class L9: L8 { }
                         class L10: L9 { }",
                      |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "L1").subtype_depth, 0);
-            assert_eq!(vtable_by_name(ctxt, "L2").subtype_depth, 1);
-            assert_eq!(vtable_by_name(ctxt, "L3").subtype_depth, 2);
-            assert_eq!(vtable_by_name(ctxt, "L4").subtype_depth, 3);
-            assert_eq!(vtable_by_name(ctxt, "L5").subtype_depth, 4);
-            assert_eq!(vtable_by_name(ctxt, "L6").subtype_depth, 5);
-            assert_eq!(vtable_by_name(ctxt, "L7").subtype_depth, 6);
+            assert_eq!(vtable_by_name(ctxt, "L1", |f| f.subtype_depth), 0);
+            assert_eq!(vtable_by_name(ctxt, "L2", |f| f.subtype_depth), 1);
+            assert_eq!(vtable_by_name(ctxt, "L3", |f| f.subtype_depth), 2);
+            assert_eq!(vtable_by_name(ctxt, "L4", |f| f.subtype_depth), 3);
+            assert_eq!(vtable_by_name(ctxt, "L5", |f| f.subtype_depth), 4);
+            assert_eq!(vtable_by_name(ctxt, "L6", |f| f.subtype_depth), 5);
+            assert_eq!(vtable_by_name(ctxt, "L7", |f| f.subtype_depth), 6);
 
-            let vtable = vtable_by_name(ctxt, "L7");
+            let vtable = vtable_by_name(ctxt, "L7", |vtable| {
+                assert!(!vtable.subtype_overflow.is_null());
+                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+                        vtable.get_subtype_overflow(0));
+
+                vtable as *const _
+            });
+
             assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
             assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
             assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
@@ -608,27 +582,26 @@ mod tests {
             assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
             assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
 
-            assert!(!vtable.subtype_overflow.is_null());
-            assert_eq!(vtable_by_name(ctxt, "L7") as *const _,
-                       vtable.get_subtype_overflow(0));
+            let vtable = vtable_by_name(ctxt, "L10", |vtable| {
+                assert!(!vtable.subtype_overflow.is_null());
+                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+                        vtable.get_subtype_overflow(0));
+                assert_eq!(vtable_by_name(ctxt, "L8", |v| v as *const _),
+                        vtable.get_subtype_overflow(1));
+                assert_eq!(vtable_by_name(ctxt, "L9", |v| v as *const _),
+                        vtable.get_subtype_overflow(2));
+                assert_eq!(vtable_by_name(ctxt, "L10", |v| v as *const _),
+                        vtable.get_subtype_overflow(3));
 
-            let vtable = vtable_by_name(ctxt, "L10");
+                vtable as *const _
+            });
+
             assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
             assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
             assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
             assert_name(ctxt, vtable_display_name(vtable, 3), "L4");
             assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
             assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
-
-            assert!(!vtable.subtype_overflow.is_null());
-            assert_eq!(vtable_by_name(ctxt, "L7") as *const _,
-                       vtable.get_subtype_overflow(0));
-            assert_eq!(vtable_by_name(ctxt, "L8") as *const _,
-                       vtable.get_subtype_overflow(1));
-            assert_eq!(vtable_by_name(ctxt, "L9") as *const _,
-                       vtable.get_subtype_overflow(2));
-            assert_eq!(vtable_by_name(ctxt, "L10") as *const _,
-                       vtable.get_subtype_overflow(3));
         });
     }
 
@@ -679,6 +652,7 @@ mod tests {
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
             let cls = cls_by_name(ctxt, "Foo");
+            let cls = ctxt.classes[cls].borrow();
             assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
             assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
         });
@@ -707,15 +681,20 @@ mod tests {
         }
     }
 
-    fn vtable_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a VTable {
-        cls_by_name(ctxt, name).vtable.as_ref().unwrap()
+    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a Context<'ast>,
+                                          name: &'static str,
+                                          fct: F) -> R
+                                         where F: FnOnce(&VTable) -> R {
+        let cid = cls_by_name(ctxt, name);
+        let cls = ctxt.classes[cid].borrow();
+        let vtable = cls.vtable.as_ref().unwrap();
+
+        fct(vtable)
     }
 
-    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> &'a Class {
+    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> ClassId {
         let name = ctxt.interner.intern(name);
-        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
-
-        ctxt.cls_by_id(cls_id)
+        ctxt.sym.borrow().get_class(name).unwrap()
     }
 
     fn check_class<'ast>(ctxt: &Context<'ast>,
@@ -728,7 +707,7 @@ mod tests {
         let parent_id = parent.map(|name| ctxt.interner.intern(name))
             .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
 
-        let cls = ctxt.cls_by_id(cls_id);
+        let cls = ctxt.classes[cls_id].borrow();
         assert_eq!(parent_id, cls.parent_class);
         assert_eq!(Header::size() + size, cls.size);
     }
@@ -740,7 +719,7 @@ mod tests {
         let cls_name = ctxt.interner.intern(cls_name);
         let field_name = ctxt.interner.intern(field_name);
         let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
-        let cls = ctxt.cls_by_id(cls_id);
+        let cls = ctxt.classes[cls_id].borrow();
 
         for field in &cls.fields {
             if field_name == field.name {

@@ -162,7 +162,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         } else {
             let cls_id = conv.cls_id;
-            let cls = self.ctxt.cls_by_id(cls_id);
+            let cls = self.ctxt.classes[cls_id].borrow();
             let vtable: &VTable = cls.vtable.as_ref().unwrap();
 
             let offset = if e.is {
@@ -344,7 +344,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             return None;
         }
 
-        let fct = self.ctxt.fct_by_id(fid);
+        let fct = self.ctxt.fcts[fid].borrow();
 
         match fct.kind {
             FctKind::Builtin(intrinsic) => Some(intrinsic),
@@ -378,7 +378,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_field_access(&mut self, clsid: ClassId, fieldid: FieldId, src: Reg, dest: Reg) {
-        let cls = self.ctxt.cls_by_id(clsid);
+        let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
         self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
@@ -483,7 +483,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
             IdentType::Field(clsid, fieldid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
@@ -717,7 +717,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
 
         } else {
-            let fct = self.ctxt.fct_by_id(fid);
+            let fct = self.ctxt.fcts[fid].borrow();
 
             match fct.kind {
                 FctKind::Source(_) => {
@@ -805,7 +805,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     // allocate storage for object
                     self.masm.emit_comment(Comment::Alloc(cls_id));
 
-                    let cls = self.ctxt.cls_by_id(cls_id);
+                    let cls = self.ctxt.classes[cls_id].borrow();
                     self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size);
 
                     let mptr = stdlib::gc_alloc as *mut u8;
@@ -855,7 +855,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         match csite.callee {
             Callee::Fct(fid) => {
-                let fct = self.ctxt.fct_by_id(fid);
+                let fct = self.ctxt.fcts[fid].borrow();
 
                 if csite.super_call {
                     let ptr = self.ptr_for_fct_id(fid);
@@ -955,9 +955,9 @@ fn ensure_native_stub(ctxt: &Context,
 
     } else {
         let jit_fct = native::generate(ctxt, fct_id, ptr, ty, args);
-        let fct = ctxt.fct_by_id(fct_id);
+        let fct = ctxt.fcts[fct_id].borrow();
 
-        if should_emit_asm(ctxt, fct) {
+        if should_emit_asm(ctxt, &*fct) {
             dump_asm(ctxt,
                      &jit_fct,
                      None,

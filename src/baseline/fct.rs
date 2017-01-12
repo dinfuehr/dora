@@ -218,7 +218,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
             &Comment::Alloc(clsid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let name = cls.name;
                 let name = self.ctxt.interner.str(name);
 
@@ -226,7 +226,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::StoreVTable(clsid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let name = cls.name;
                 let name = self.ctxt.interner.str(name);
 
@@ -234,21 +234,21 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::CallSuper(fid) => {
-                let fct = self.ctxt.fct_by_id(fid);
+                let fct = self.ctxt.fcts[fid].borrow();
                 let name = fct.full_name(self.ctxt);
 
                 write!(f, "call super {}", &name)
             }
 
             &Comment::CallVirtual(fid) => {
-                let fct = self.ctxt.fct_by_id(fid);
+                let fct = self.ctxt.fcts[fid].borrow();
                 let name = fct.full_name(self.ctxt);
 
                 write!(f, "call virtual {}", &name)
             }
 
             &Comment::CallDirect(fid) => {
-                let fct = self.ctxt.fct_by_id(fid);
+                let fct = self.ctxt.fcts[fid].borrow();
                 let name = fct.full_name(self.ctxt);
 
                 write!(f, "call direct {}", &name)
@@ -264,7 +264,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Newline => write!(f, ""),
 
             &Comment::StoreField(clsid, fid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let cname = cls.name;
                 let cname = self.ctxt.interner.str(cname);
 
@@ -276,7 +276,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::LoadField(clsid, fid) => {
-                let cls = self.ctxt.cls_by_id(clsid);
+                let cls = self.ctxt.classes[clsid].borrow();
                 let cname = cls.name;
                 let cname = self.ctxt.interner.str(cname);
 

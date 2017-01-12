@@ -186,7 +186,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return false;
         }
 
-        self.ctxt.fct_by_id(fid).kind.is_intrinsic()
+        self.ctxt.fcts[fid].borrow().kind.is_intrinsic()
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
@@ -282,12 +282,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                     super_call = true;
                                 }
 
-                                let cid = self.ctxt.fct_by_id(fid).owner_class.unwrap();
-                                self.ctxt.cls_by_id(cid).ty
+                                let cid = self.ctxt.fcts[fid].borrow().owner_class.unwrap();
+                                let cls = self.ctxt.classes[cid].borrow();
+                                cls.ty
 
                             } else {
                                 let ind = if in_class { ind - 1 } else { ind };
-                                self.ctxt.fct_by_id(fid).params_types[ind]
+                                self.ctxt.fcts[fid].borrow().params_types[ind]
                             }
                         }
 
@@ -302,7 +303,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let return_type = return_type.unwrap_or_else(|| {
             let fid = fid.unwrap();
-            self.ctxt.fct_by_id(fid).return_type
+            self.ctxt.fcts[fid].borrow().return_type
         });
 
         let callee = callee.unwrap_or_else(|| Callee::Fct(fid.unwrap()));
@@ -424,7 +425,8 @@ mod tests {
         where F: FnOnce(&FctSrc)
     {
         test::parse(code, |ctxt| {
-            let fct = ctxt.fct_by_name("f").unwrap();
+            let fid = ctxt.fct_by_name("f").unwrap();
+            let fct = ctxt.fcts[fid].borrow();
             let src = fct.src();
             let mut src = src.lock().unwrap();
             generate(ctxt, &fct, &mut src);

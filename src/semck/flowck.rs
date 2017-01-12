@@ -7,6 +7,8 @@ use ast::visit::*;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
+        let fct = fct.borrow();
+
         if !fct.is_src() {
             continue;
         }

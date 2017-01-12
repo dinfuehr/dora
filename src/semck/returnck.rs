@@ -9,6 +9,8 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
+        let fct = fct.borrow();
+
         if !fct.is_src() {
             continue;
         }
@@ -132,7 +134,7 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
 
-            let fct = ctxt.fct_by_id(fct_id);
+            let fct = ctxt.fcts[fct_id].borrow();
             let src = fct.src();
             let src = src.lock().unwrap();
 

@@ -22,7 +22,7 @@ use semck::always_returns;
 use ty::MachineMode;
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
-    let fct = ctxt.fct_by_id(id);
+    let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.lock().unwrap();
     if let Some(ref jit) = src.jit_fct {
@@ -45,7 +45,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
         }
         .generate();
 
-    if should_emit_asm(ctxt, fct) {
+    if should_emit_asm(ctxt, &*fct) {
         dump_asm(ctxt,
                  &jit_fct,
                  Some(&src),
@@ -78,7 +78,7 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
                       asm_syntax: AsmSyntax) {
     use capstone::*;
 
-    let fct = ctxt.fct_by_id(jit_fct.fct_id);
+    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
 
     let buf: &[u8] = unsafe { slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
 
