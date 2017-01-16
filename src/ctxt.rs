@@ -213,6 +213,12 @@ impl PrimitiveClasses {
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctId(pub usize);
 
+impl From<usize> for FctId {
+    fn from(id: usize) -> FctId {
+        FctId(id)
+    }
+}
+
 #[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,

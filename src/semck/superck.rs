@@ -2,6 +2,7 @@ use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::ptr;
 
+use baseline::map::CodeData;
 use baseline::stub::Stub;
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, StructId, StructData};
@@ -285,7 +286,7 @@ fn ensure_stub<'ast>(ctxt: &Context<'ast>, fct: &mut Fct<'ast>) -> *const u8 {
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fct.id);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::Fct(fct.id));
     }
 
     if ctxt.args.flag_emit_stubs {

@@ -1,6 +1,7 @@
 use libc;
 use std::ptr::{self, write_bytes};
 
+use baseline::map::CodeData;
 use ctxt::{Context, FctKind, get_ctxt};
 use object::Obj;
 use timer::{in_ms, Timer};
@@ -267,9 +268,13 @@ pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
 
 fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
-    let fct_id = code_map.get(pc as *const u8);
+    let data = code_map.get(pc as *const u8);
 
-    if let Some(fct_id) = fct_id {
+    if data.is_none() {
+        return false;
+    }
+
+    if let CodeData::Fct(fct_id) = data.unwrap() {
         let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {

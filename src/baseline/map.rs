@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use ctxt::{Context, FctId};
 
 pub struct CodeMap {
-    tree: BTreeMap<CodeSpan, FctId>,
+    tree: BTreeMap<CodeSpan, CodeData>,
 }
 
 impl CodeMap {
@@ -15,30 +15,42 @@ impl CodeMap {
     pub fn dump(&self, ctxt: &Context) {
         println!("CodeMap {{");
 
-        for (key, &fctid) in &self.tree {
-            let fct = ctxt.fcts[fctid].borrow();
-            let fct_name = fct.full_name(ctxt);
+        for (key, data) in &self.tree {
+            print!("  {:?} - {:?} => ", key.start, key.end);
 
-            println!("  {:?} - {:?} => {} (id {})",
-                     key.start,
-                     key.end,
-                     fct_name,
-                     fct.id.0);
+            match data {
+                &CodeData::CompileStub => println!("compile stub"),
+                &CodeData::VirtCompileStub => println!("virtual compile stub"),
+                &CodeData::Fct(id) => {
+                    let fct = ctxt.fcts[id].borrow();
+                    let fct_name = fct.full_name(ctxt);
+
+                    println!("{} (id {})", fct_name, id.0);
+                }
+            }
+
         }
 
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: *const u8, end: *const u8, fct: FctId) {
+    pub fn insert(&mut self, start: *const u8, end: *const u8, data: CodeData) {
         let span = CodeSpan::new(start, end);
-        assert!(self.tree.insert(span, fct).is_none());
+        assert!(self.tree.insert(span, data).is_none());
     }
 
-    pub fn get(&self, ptr: *const u8) -> Option<FctId> {
+    pub fn get(&self, ptr: *const u8) -> Option<CodeData> {
         let span = CodeSpan::new(ptr, unsafe { ptr.offset(1) });
 
         self.tree.get(&span).map(|el| *el)
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum CodeData {
+    CompileStub,
+    VirtCompileStub,
+    Fct(FctId),
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -128,20 +140,19 @@ pub fn ptr(val: usize) -> *const u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctxt::FctId;
 
     #[test]
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctId(1));
-        map.insert(ptr(7), ptr(9), FctId(2));
+        map.insert(ptr(5), ptr(7), CodeData::Fct(1.into()));
+        map.insert(ptr(7), ptr(9), CodeData::Fct(2.into()));
 
         assert_eq!(None, map.get(ptr(4)));
-        assert_eq!(Some(FctId(1)), map.get(ptr(5)));
-        assert_eq!(Some(FctId(1)), map.get(ptr(6)));
-        assert_eq!(Some(FctId(2)), map.get(ptr(7)));
-        assert_eq!(Some(FctId(2)), map.get(ptr(8)));
+        assert_eq!(Some(CodeData::Fct(1.into())), map.get(ptr(5)));
+        assert_eq!(Some(CodeData::Fct(1.into())), map.get(ptr(6)));
+        assert_eq!(Some(CodeData::Fct(2.into())), map.get(ptr(7)));
+        assert_eq!(Some(CodeData::Fct(2.into())), map.get(ptr(8)));
         assert_eq!(None, map.get(ptr(9)));
     }
 
@@ -150,7 +161,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), FctId(1));
-        map.insert(ptr(6), ptr(7), FctId(2));
+        map.insert(ptr(5), ptr(7), CodeData::Fct(1.into()));
+        map.insert(ptr(6), ptr(7), CodeData::Fct(2.into()));
     }
 }

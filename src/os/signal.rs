@@ -3,6 +3,7 @@ use libc;
 
 use baseline;
 use baseline::fct::BailoutInfo;
+use baseline::map::CodeData;
 use cpu;
 use ctxt::{Context, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
@@ -164,12 +165,12 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
 }
 
 fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
-    let fct_id = {
+    let data = {
         let code_map = ctxt.code_map.lock().unwrap();
         code_map.get(es.pc as *const u8)
     };
 
-    if let Some(fct_id) = fct_id {
+    if let CodeData::Fct(fct_id) = data.expect("no code found for compilation") {
         let mut sfi = cpu::sfi_from_execution_state(es);
 
         ctxt.use_sfi(&mut sfi, || {
@@ -211,9 +212,14 @@ pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
     // get return address from top of stack
     let ra = cpu::ra_from_execstate(es);
 
-    let fct_id = {
+    let data = {
         let code_map = ctxt.code_map.lock().unwrap();
         code_map.get(ra as *const u8).expect("return address not found")
+    };
+
+    let fct_id = match data {
+        CodeData::Fct(fct_id) => fct_id,
+        _ => panic!("expected function for code")
     };
 
     let fct = ctxt.fcts[fct_id].borrow();

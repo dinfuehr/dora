@@ -11,6 +11,7 @@ use ast::visit::*;
 use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info;
+use baseline::map::CodeData;
 use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
@@ -182,7 +183,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let jit_fct = self.masm.jit(self.fct.id, self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
-        code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), jit_fct.fct_id());
+        let cdata = CodeData::Fct(jit_fct.fct_id());
+        code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
 
         if self.ctxt.args.flag_enable_perf {
             os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);

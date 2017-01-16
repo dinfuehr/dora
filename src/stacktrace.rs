@@ -1,6 +1,7 @@
 use std::ptr;
 
 use baseline::fct::CatchType;
+use baseline::map::CodeData;
 use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
 use ctxt::{Context, FctKind, FctId, get_ctxt};
 use object::{Handle, Obj};
@@ -87,9 +88,13 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
 
 fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
-    let fct_id = code_map.get(pc as *const u8);
+    let data = code_map.get(pc as *const u8);
 
-    if let Some(fct_id) = fct_id {
+    if data.is_none() {
+        return false;
+    }
+
+    if let CodeData::Fct(fct_id) = data.unwrap() {
         let mut lineno = 0;
         let fct = ctxt.fcts[fct_id].borrow();
         if let FctKind::Source(ref src) = fct.kind {
@@ -149,15 +154,16 @@ enum HandlerFound {
 
 fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize) -> HandlerFound {
     let ctxt = get_ctxt();
-    let fct_id = {
+    let data = {
         let code_map = ctxt.code_map.lock().unwrap();
         code_map.get(pc as *const u8)
     };
 
-    // println!("------------");
-    // println!("find {:x}", pc);
+    if data.is_none() {
+        return HandlerFound::No;
+    }
 
-    if let Some(fct_id) = fct_id {
+    if let CodeData::Fct(fct_id) = data.unwrap() {
         let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {

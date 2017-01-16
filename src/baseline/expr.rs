@@ -2,6 +2,7 @@ use ast::*;
 use ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, Scopes, should_emit_asm, TempOffsets};
 use baseline::fct::{CatchType, Comment};
+use baseline::map::CodeData;
 use baseline::native;
 use baseline::stub::Stub;
 use class::{ClassId, FieldId};
@@ -980,7 +981,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), fid);
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::Fct(fid));
     }
 
     if ctxt.args.flag_emit_stubs {
