@@ -5,6 +5,7 @@ use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{Mem, Reg};
+use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
@@ -37,7 +38,7 @@ impl MacroAssembler {
         self.emit_u32(asm::ret());
     }
 
-    pub fn direct_call(&mut self, ptr: *const u8) {
+    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -47,7 +48,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(disp + pos));
+        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos));
     }
 
     pub fn indirect_call(&mut self, index: u32) {

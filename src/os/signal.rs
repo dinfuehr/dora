@@ -170,25 +170,37 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
         code_map.get(es.pc as *const u8)
     };
 
-    if let CodeData::Fct(fct_id) = data.expect("no code found for compilation") {
-        let mut sfi = cpu::sfi_from_execution_state(es);
+    match data {
+        Some(CodeData::CompileStub) => {
+            let mut sfi = cpu::sfi_from_execution_state(es);
 
-        ctxt.use_sfi(&mut sfi, || {
-            let jit_fct = baseline::generate(ctxt, fct_id);
-            let fct = ctxt.fcts[fct_id].borrow();
-
-            if fct.is_virtual() {
-                patch_vtable_call(ctxt, es, fct_id, jit_fct);
-            } else {
-                patch_fct_call(ctxt, es, jit_fct);
-            }
+            ctxt.use_sfi(&mut sfi, || {
+                patch_fct_call(ctxt, es);
+            });
 
             write_execstate(es, ucontext as *mut u8);
-        });
-    } else {
-        println!("error: code not found for address {:x}", es.pc);
-        unsafe {
-            libc::_exit(200);
+        }
+
+        Some(CodeData::Fct(fct_id)) => {
+            let mut sfi = cpu::sfi_from_execution_state(es);
+
+            ctxt.use_sfi(&mut sfi, || {
+                let fct = ctxt.fcts[fct_id].borrow();
+
+                assert!(fct.is_virtual());
+
+                let jit_fct = baseline::generate(ctxt, fct_id);
+                patch_vtable_call(ctxt, es, fct_id, jit_fct);
+
+                write_execstate(es, ucontext as *mut u8);
+            });
+        }
+
+        _ => {
+            println!("error: code not found for address {:x}", es.pc);
+            unsafe {
+                libc::_exit(200);
+            }
         }
     }
 }
@@ -208,7 +220,7 @@ fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *c
     es.pc = fct_ptr as usize;
 }
 
-pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
+pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState) {
     // get return address from top of stack
     let ra = cpu::ra_from_execstate(es);
 
@@ -222,20 +234,22 @@ pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, fct_ptr: *const u8) {
         _ => panic!("expected function for code")
     };
 
-    let fct = ctxt.fcts[fct_id].borrow();
-    let src = fct.src();
-    let src = src.lock().unwrap();
-    let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
+    let (fct_id, disp) = {
+        let fct = ctxt.fcts[fct_id].borrow();
+        let src = fct.src();
+        let src = src.lock().unwrap();
+        let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
 
-    let offset = ra - jit_fct.fct_ptr() as usize;
-    let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
+        let offset = ra - jit_fct.fct_ptr() as usize;
+        let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
 
-    // get address of function pointer
-    let disp = match bailout {
-        &BailoutInfo::Compile(disp) => disp as isize,
+        match bailout {
+            &BailoutInfo::Compile(fct_id, disp) => (fct_id, disp)
+        }
     };
 
-    let fct_addr: *mut usize = (ra as isize - disp) as *mut _;
+    let fct_ptr = baseline::generate(ctxt, fct_id);
+    let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // write function pointer
     unsafe {

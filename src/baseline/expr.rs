@@ -861,7 +861,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 if csite.super_call {
                     let ptr = self.ptr_for_fct_id(fid);
                     self.masm.emit_comment(Comment::CallSuper(fid));
-                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+                    self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
 
                 } else if fct.is_virtual() {
                     let vtable_index = fct.vtable_index.unwrap();
@@ -871,7 +871,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 } else {
                     let ptr = self.ptr_for_fct_id(fid);
                     self.masm.emit_comment(Comment::CallDirect(fid));
-                    self.emit_direct_call_insn(ptr, pos, csite.return_type, dest);
+                    self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
                 }
             }
 
@@ -903,15 +903,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                              args: i32,
                              dest: Reg) {
         let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
-        self.emit_direct_call_insn(ptr, pos, ty, dest);
+        self.emit_direct_call_insn(FctId(0), ptr, pos, ty, dest);
     }
 
     fn emit_direct_call_insn(&mut self,
+                             fid: FctId,
                              ptr: *const u8,
                              pos: Position,
                              ty: BuiltinType,
                              dest: Reg) {
-        self.masm.direct_call(ptr);
+        self.masm.direct_call(fid, ptr);
         self.emit_after_call_insns(pos, ty, dest);
     }
 
@@ -981,7 +982,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::Fct(fid));
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::CompileStub);
     }
 
     if ctxt.args.flag_emit_stubs {

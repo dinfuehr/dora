@@ -81,7 +81,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         }
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
-        self.masm.direct_call(start_native_call as *const u8);
+        self.masm.direct_call(FctId(0), start_native_call as *const u8);
 
         for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
             self.masm.load_mem(MachineMode::Ptr,
@@ -89,13 +89,13 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
                                Mem::Base(REG_SP, offset_args + ind as i32 * 8));
         }
 
-        self.masm.direct_call(self.ptr);
+        self.masm.direct_call(FctId(0), self.ptr);
 
         if save_return {
             self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT);
         }
 
-        self.masm.direct_call(finish_native_call as *const u8);
+        self.masm.direct_call(FctId(0), finish_native_call as *const u8);
 
         if save_return {
             self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(REG_SP, 0));

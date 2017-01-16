@@ -367,7 +367,7 @@ impl Bailouts {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum BailoutInfo {
-    Compile(i32),
+    Compile(FctId, i32),
 }

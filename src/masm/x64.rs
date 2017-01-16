@@ -2,6 +2,7 @@ use baseline::fct::BailoutInfo;
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
+use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
@@ -29,7 +30,7 @@ impl MacroAssembler {
         asm::emit_retq(self);
     }
 
-    pub fn direct_call(&mut self, ptr: *const u8) {
+    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -37,7 +38,7 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(disp + pos));
+        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos));
     }
 
     pub fn indirect_call(&mut self, index: u32) {
