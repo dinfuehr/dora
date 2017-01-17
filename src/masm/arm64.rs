@@ -53,18 +53,21 @@ impl MacroAssembler {
 
     pub fn indirect_call(&mut self, index: u32) {
         let obj = REG_PARAMS[0];
+
+        // need to use scratch register instead of REG_RESULT for calculations
+        // since REG_RESULT (x0) is also the first parameter
         let scratch = self.get_scratch();
 
-        // REG_RESULT = [obj] (load vtable)
+        // scratch = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, *scratch, Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
-        // load vtable entry
+        // load vtable entry into scratch
         self.load_mem(MachineMode::Ptr, *scratch, Mem::Base(*scratch, disp));
 
-        // call *REG_RESULT
+        // call *scratch
         self.emit_u32(asm::blr(*scratch));
         self.emit_bailout_info(BailoutInfo::VirtCompile(index));
     }
