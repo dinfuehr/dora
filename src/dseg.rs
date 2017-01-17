@@ -35,13 +35,17 @@ impl DSeg {
         }
     }
 
-    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
+    pub fn add_addr_reuse(&mut self, ptr: *const u8) -> i32 {
         for entry in &self.entries {
             if entry.value == ptr {
                 return entry.disp;
             }
         }
 
+        self.add_addr(ptr)
+    }
+
+    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
         self.size = mem::align_i32(self.size + mem::ptr_width(), mem::ptr_width());
 
         let entry = Entry {
@@ -51,5 +55,24 @@ impl DSeg {
         self.entries.push(entry);
 
         self.size
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_addr() {
+        let mut dseg = DSeg::new();
+        assert_eq!(mem::ptr_width(), dseg.add_addr(1 as *const u8));
+        assert_eq!(2 * mem::ptr_width(), dseg.add_addr(1 as *const u8));
+    }
+
+    #[test]
+    fn test_add_addr_reuse() {
+        let mut dseg = DSeg::new();
+        assert_eq!(mem::ptr_width(), dseg.add_addr_reuse(1 as *const u8));
+        assert_eq!(mem::ptr_width(), dseg.add_addr_reuse(1 as *const u8));
     }
 }

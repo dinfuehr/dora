@@ -976,15 +976,11 @@ fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc<'ast>, ctxt: &Context) -> *cons
         return jit.fct_ptr();
     }
 
-    if let Some(ref stub) = src.stub {
+    let mut compile_stub = ctxt.compile_stub.borrow_mut();
+
+    if let Some(ref stub) = *compile_stub {
         return stub.ptr_start();
     }
-
-    // let mut compile_stub = ctxt.compile_stub.borrow_mut();
-
-    // if let Some(ref stub) = *compile_stub {
-    //     return stub.ptr_start();
-    // }
 
     let stub = Stub::new();
 
@@ -998,9 +994,7 @@ fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc<'ast>, ctxt: &Context) -> *cons
     }
 
     let ptr = stub.ptr_start();
-
-    src.stub = Some(stub);
-    // *compile_stub = Some(stub);
+    *compile_stub = Some(stub);
 
     ptr
 }
