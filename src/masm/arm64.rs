@@ -53,18 +53,19 @@ impl MacroAssembler {
 
     pub fn indirect_call(&mut self, index: u32) {
         let obj = REG_PARAMS[0];
+        let scratch = self.get_scratch();
 
         // REG_RESULT = [obj] (load vtable)
-        self.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(obj, 0));
+        self.load_mem(MachineMode::Ptr, *scratch, Mem::Base(obj, 0));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
         // load vtable entry
-        self.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Base(REG_RESULT, disp));
+        self.load_mem(MachineMode::Ptr, *scratch, Mem::Base(*scratch, disp));
 
         // call *REG_RESULT
-        self.emit_u32(asm::blr(REG_RESULT));
+        self.emit_u32(asm::blr(*scratch));
         self.emit_bailout_info(BailoutInfo::VirtCompile(index));
     }
 
