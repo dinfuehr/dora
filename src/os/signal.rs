@@ -6,7 +6,7 @@ use baseline;
 use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
-use ctxt::{Context, CTXT, FctId, get_ctxt};
+use ctxt::{Context, CTXT, get_ctxt};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
@@ -187,25 +187,10 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
             let mut sfi = cpu::sfi_from_execution_state(es);
 
             ctxt.use_sfi(&mut sfi, || {
-                patch_vtable_call2(ctxt, es);
+                patch_vtable_call(ctxt, es);
             });
 
             write_execstate(es, ucontext as *mut u8);
-        }
-
-        Some(CodeData::Fct(fct_id)) => {
-            let mut sfi = cpu::sfi_from_execution_state(es);
-
-            ctxt.use_sfi(&mut sfi, || {
-                let fct = ctxt.fcts[fct_id].borrow();
-
-                assert!(fct.is_virtual());
-
-                let jit_fct = baseline::generate(ctxt, fct_id);
-                patch_vtable_call(ctxt, es, fct_id, jit_fct);
-
-                write_execstate(es, ucontext as *mut u8);
-            });
         }
 
         _ => {
@@ -217,7 +202,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
     }
 }
 
-fn patch_vtable_call2(ctxt: &Context, es: &mut ExecState) {
+fn patch_vtable_call(ctxt: &Context, es: &mut ExecState) {
     let vtable_index = {
         // get return address from top of stack
         let ra = cpu::ra_from_execstate(es);
@@ -262,21 +247,6 @@ fn patch_vtable_call2(ctxt: &Context, es: &mut ExecState) {
             break;
         }
     }
-
-    let methodtable = vtable.table_mut();
-    methodtable[vtable_index as usize] = fct_ptr as usize;
-
-    // execute fct call again
-    es.pc = fct_ptr as usize;
-}
-
-fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
-    let fct = ctxt.fcts[fid].borrow();
-    let vtable_index = fct.vtable_index.unwrap();
-    let cls_id = fct.owner_class.unwrap();
-
-    let cls = ctxt.classes[cls_id].borrow();
-    let vtable = cls.vtable.as_ref().unwrap();
 
     let methodtable = vtable.table_mut();
     methodtable[vtable_index as usize] = fct_ptr as usize;

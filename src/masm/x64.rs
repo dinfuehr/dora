@@ -55,8 +55,6 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-
-        let pos = self.pos() as i32;
         self.emit_bailout_info(BailoutInfo::VirtCompile(index));
     }
 

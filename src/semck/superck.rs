@@ -272,7 +272,7 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
             fct.vtable_index = Some(vtable_index);
 
             if fct.is_src() {
-                vtable_entries[vtable_index as usize] = ensure_stub(ctxt, &mut *fct) as usize;
+                vtable_entries[vtable_index as usize] = ensure_stub(ctxt) as usize;
             }
         }
     }
@@ -281,7 +281,13 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
-fn ensure_stub<'ast>(ctxt: &Context<'ast>, fct: &mut Fct<'ast>) -> *const u8 {
+fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
+    let mut virt_compile_stub = ctxt.virt_compile_stub.borrow_mut();
+
+    if let Some(ref stub) = *virt_compile_stub {
+        return stub.ptr_start();
+    }
+
     let stub = Stub::new();
 
     {
@@ -294,11 +300,7 @@ fn ensure_stub<'ast>(ctxt: &Context<'ast>, fct: &mut Fct<'ast>) -> *const u8 {
     }
 
     let ptr = stub.ptr_start();
-
-    let src = fct.src();
-    let mut src = src.lock().unwrap();
-    assert!(src.stub.is_none());
-    src.stub = Some(stub);
+    *virt_compile_stub = Some(stub);
 
     ptr
 }

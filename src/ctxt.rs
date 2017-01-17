@@ -45,6 +45,7 @@ pub struct Context<'ast> {
     pub sfi: RefCell<*const StackFrameInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
+    pub virt_compile_stub: RefCell<Option<Stub>>,
 }
 
 impl<'ast> Context<'ast> {
@@ -72,6 +73,7 @@ impl<'ast> Context<'ast> {
             sfi: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
             compile_stub: RefCell::new(None),
+            virt_compile_stub: RefCell::new(None),
         }
     }
 
