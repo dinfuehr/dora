@@ -12,8 +12,6 @@ use object::{Handle, Str};
 pub struct JitFct {
     code: CodeMemory,
 
-    pub fct_id: FctId,
-
     // pointer to beginning of function
     pub fct_start: *const u8,
 
@@ -34,8 +32,7 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn from_buffer(fct_id: FctId,
-                       dseg: &DSeg,
+    pub fn from_buffer(dseg: &DSeg,
                        buffer: &[u8],
                        bailouts: Bailouts,
                        gcpoints: GcPoints,
@@ -69,7 +66,6 @@ impl JitFct {
         }
 
         JitFct {
-            fct_id: fct_id,
             code: code,
             bailouts: bailouts,
             gcpoints: gcpoints,
@@ -100,10 +96,6 @@ impl JitFct {
 
     pub fn ptr_end(&self) -> *const u8 {
         self.code.ptr_end()
-    }
-
-    pub fn fct_id(&self) -> FctId {
-        self.fct_id
     }
 
     pub fn fct_ptr(&self) -> *const u8 {

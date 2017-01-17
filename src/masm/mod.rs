@@ -7,7 +7,6 @@ use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandl
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
-use ctxt::FctId;
 use dseg::DSeg;
 use lexer::position::Position;
 use os::signal::Trap;
@@ -56,11 +55,10 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(mut self, id: FctId, stacksize: i32) -> JitFct {
+    pub fn jit(mut self, stacksize: i32) -> JitFct {
         self.finish();
 
-        JitFct::from_buffer(id,
-                            &self.dseg,
+        JitFct::from_buffer(&self.dseg,
                             &self.data,
                             self.bailout_infos,
                             self.gcpoints,

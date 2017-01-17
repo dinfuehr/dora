@@ -53,6 +53,7 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>, src: &mut FctSr
 
     if should_emit_asm(ctxt, &*fct) {
         dump_asm(ctxt,
+                 &*fct,
                  &jit_fct,
                  Some(&src),
                  ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
@@ -79,12 +80,11 @@ fn get_engine() -> Result<Engine, Error> {
 }
 
 pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
+                      fct: &Fct<'ast>,
                       jit_fct: &JitFct,
                       fct_src: Option<&FctSrc<'ast>>,
                       asm_syntax: AsmSyntax) {
     use capstone::*;
-
-    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
 
     let buf: &[u8] = unsafe { slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
 
@@ -185,10 +185,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.jit(self.fct.id, self.src.stacksize());
+        let jit_fct = self.masm.jit(self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
-        let cdata = CodeData::Fct(jit_fct.fct_id());
+        let cdata = CodeData::Fct(self.fct.id);
         code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
 
         if self.ctxt.args.flag_enable_perf {

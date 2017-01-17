@@ -389,7 +389,6 @@ pub struct ForwardJump {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctxt::FctId;
 
     #[test]
     fn test_backward() {
@@ -440,6 +439,6 @@ mod tests {
         let lbl = masm.create_label();
 
         masm.emit_label(lbl);
-        masm.jit(FctId(1), 0);
+        masm.jit(0);
     }
 }

@@ -382,7 +382,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
-        self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
+        self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
         self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
 
@@ -715,7 +715,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(fid, self.src, self.ctxt)
+            ensure_jit_or_stub_ptr(self.src, self.ctxt)
 
         } else {
             let fct = self.ctxt.fcts[fid].borrow();
@@ -725,7 +725,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let src = fct.src();
                     let mut src = src.lock().unwrap();
 
-                    ensure_jit_or_stub_ptr(fid, &mut src, self.ctxt)
+                    ensure_jit_or_stub_ptr(&mut src, self.ctxt)
                 }
 
                 FctKind::Native(ptr) => {
@@ -961,6 +961,7 @@ fn ensure_native_stub(ctxt: &Context,
 
         if should_emit_asm(ctxt, &*fct) {
             dump_asm(ctxt,
+                     &*fct,
                      &jit_fct,
                      None,
                      ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
@@ -970,15 +971,22 @@ fn ensure_native_stub(ctxt: &Context,
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Context) -> *const u8 {
+fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc<'ast>, ctxt: &Context) -> *const u8 {
     if let Some(ref jit) = src.jit_fct {
         return jit.fct_ptr();
     }
+
     if let Some(ref stub) = src.stub {
         return stub.ptr_start();
     }
 
-    let stub = Stub::new(fid);
+    // let mut compile_stub = ctxt.compile_stub.borrow_mut();
+
+    // if let Some(ref stub) = *compile_stub {
+    //     return stub.ptr_start();
+    // }
+
+    let stub = Stub::new();
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
@@ -992,6 +1000,7 @@ fn ensure_jit_or_stub_ptr<'ast>(fid: FctId, src: &mut FctSrc<'ast>, ctxt: &Conte
     let ptr = stub.ptr_start();
 
     src.stub = Some(stub);
+    // *compile_stub = Some(stub);
 
     ptr
 }

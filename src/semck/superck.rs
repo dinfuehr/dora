@@ -282,7 +282,7 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
 }
 
 fn ensure_stub<'ast>(ctxt: &Context<'ast>, fct: &mut Fct<'ast>) -> *const u8 {
-    let stub = Stub::new(fct.id);
+    let stub = Stub::new();
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();

@@ -1,6 +1,5 @@
 use std::fmt;
 
-use ctxt::FctId;
 use masm::MacroAssembler;
 use mem::code::CodeMemory;
 use os::signal::Trap;
@@ -10,10 +9,10 @@ pub struct Stub {
 }
 
 impl Stub {
-    pub fn new(fct_id: FctId) -> Stub {
+    pub fn new() -> Stub {
         let mut masm = MacroAssembler::new();
         masm.trap(Trap::COMPILER);
-        let code = masm.jit(fct_id, 0).code();
+        let code = masm.jit(0).code();
 
         Stub { mem: code }
     }

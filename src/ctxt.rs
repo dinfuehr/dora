@@ -44,6 +44,7 @@ pub struct Context<'ast> {
     pub literals: Mutex<Vec<Handle<Str>>>, // string literals
     pub sfi: RefCell<*const StackFrameInfo>,
     pub native_fcts: Mutex<NativeFcts>,
+    pub compile_stub: RefCell<Option<Stub>>,
 }
 
 impl<'ast> Context<'ast> {
@@ -70,6 +71,7 @@ impl<'ast> Context<'ast> {
             code_map: Mutex::new(CodeMap::new()),
             sfi: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
+            compile_stub: RefCell::new(None),
         }
     }
 
