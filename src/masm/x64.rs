@@ -55,6 +55,9 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
+
+        let pos = self.pos() as i32;
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {

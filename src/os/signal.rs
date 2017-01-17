@@ -1,4 +1,5 @@
 use std;
+use std::ptr::null;
 use libc;
 
 use baseline;
@@ -7,6 +8,7 @@ use baseline::map::CodeData;
 use cpu;
 use ctxt::{Context, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
+use object::{Handle, Obj};
 use os_cpu::*;
 use stacktrace::{handle_exception, get_stacktrace};
 
@@ -181,6 +183,16 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
             write_execstate(es, ucontext as *mut u8);
         }
 
+        Some(CodeData::VirtCompileStub) => {
+            let mut sfi = cpu::sfi_from_execution_state(es);
+
+            ctxt.use_sfi(&mut sfi, || {
+                patch_vtable_call2(ctxt, es);
+            });
+
+            write_execstate(es, ucontext as *mut u8);
+        }
+
         Some(CodeData::Fct(fct_id)) => {
             let mut sfi = cpu::sfi_from_execution_state(es);
 
@@ -203,6 +215,59 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
             }
         }
     }
+}
+
+fn patch_vtable_call2(ctxt: &Context, es: &mut ExecState) {
+    let vtable_index = {
+        // get return address from top of stack
+        let ra = cpu::ra_from_execstate(es);
+
+        let data = {
+            let code_map = ctxt.code_map.lock().unwrap();
+            code_map.get(ra as *const u8).expect("return address not found")
+        };
+
+        let fct_id = match data {
+            CodeData::Fct(fct_id) => fct_id,
+            _ => panic!("expected function for code")
+        };
+
+        let fct = ctxt.fcts[fct_id].borrow();
+        let src = fct.src();
+        let src = src.lock().unwrap();
+        let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
+
+        let offset = ra - jit_fct.fct_ptr() as usize;
+        let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
+
+        match bailout {
+            &BailoutInfo::VirtCompile(fct_id) => fct_id,
+            _ => panic!("no info for virtual call found")
+        }
+    };
+
+    let obj : Handle<Obj> = cpu::receiver_from_execstate(es).into();
+
+    let vtable = obj.header().vtbl();
+    let cls_id = vtable.class().id;
+    let cls = ctxt.classes[cls_id].borrow();
+
+    let mut fct_ptr = null();
+
+    for &fct_id in &cls.methods {
+        let fct = ctxt.fcts[fct_id].borrow();
+
+        if Some(vtable_index) == fct.vtable_index {
+            fct_ptr = baseline::generate(ctxt, fct_id);
+            break;
+        }
+    }
+
+    let methodtable = vtable.table_mut();
+    methodtable[vtable_index as usize] = fct_ptr as usize;
+
+    // execute fct call again
+    es.pc = fct_ptr as usize;
 }
 
 fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, fid: FctId, fct_ptr: *const u8) {
@@ -244,7 +309,8 @@ pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState) {
         let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
 
         match bailout {
-            &BailoutInfo::Compile(fct_id, disp) => (fct_id, disp)
+            &BailoutInfo::Compile(fct_id, disp) => (fct_id, disp),
+            _ => panic!("no info for direct call found")
         }
     };
 

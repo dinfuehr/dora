@@ -27,6 +27,10 @@ pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
     }
 }
 
+pub fn receiver_from_execstate(es: &ExecState) -> usize {
+    es.regs[REG_PARAMS[0].int() as usize]
+}
+
 pub fn resume_with_handler(es: &mut ExecState,
                            handler: &ExHandler,
                            fp: usize,
