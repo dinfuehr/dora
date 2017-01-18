@@ -2,9 +2,8 @@ use ast::*;
 use ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, Scopes, should_emit_asm, TempOffsets};
 use baseline::fct::{CatchType, Comment};
-use baseline::map::CodeData;
 use baseline::native;
-use baseline::stub::Stub;
+use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
 use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use ctxt::*;
@@ -976,27 +975,7 @@ fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc<'ast>, ctxt: &Context) -> *cons
         return jit.fct_ptr();
     }
 
-    let mut compile_stub = ctxt.compile_stub.borrow_mut();
-
-    if let Some(ref stub) = *compile_stub {
-        return stub.ptr_start();
-    }
-
-    let stub = Stub::new();
-
-    {
-        let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::CompileStub);
-    }
-
-    if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:x}", stub.ptr_start() as usize);
-    }
-
-    let ptr = stub.ptr_start();
-    *compile_stub = Some(stub);
-
-    ptr
+    ensure_stub(ctxt)
 }
 
 fn to_cond_code(cmp: CmpOp) -> CondCode {

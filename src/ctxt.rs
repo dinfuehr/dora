@@ -45,7 +45,6 @@ pub struct Context<'ast> {
     pub sfi: RefCell<*const StackFrameInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
-    pub virt_compile_stub: RefCell<Option<Stub>>,
 }
 
 impl<'ast> Context<'ast> {
@@ -73,7 +72,6 @@ impl<'ast> Context<'ast> {
             sfi: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
             compile_stub: RefCell::new(None),
-            virt_compile_stub: RefCell::new(None),
         }
     }
 
@@ -391,7 +389,6 @@ pub struct FctSrc<'ast> {
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub jit_fct: Option<JitFct>, // compile function
-    pub stub: Option<Stub>, // compiler stub
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 }
 
@@ -415,7 +412,6 @@ impl<'ast> FctSrc<'ast> {
             vars: Vec::new(),
             always_returns: false,
             jit_fct: None,
-            stub: None,
             eh_return_value: None,
         }
     }

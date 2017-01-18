@@ -6,7 +6,7 @@ use baseline;
 use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
-use ctxt::{Context, CTXT, get_ctxt};
+use ctxt::{Context, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
@@ -167,46 +167,10 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
 }
 
 fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
-    let data = {
-        let code_map = ctxt.code_map.lock().unwrap();
-        code_map.get(es.pc as *const u8)
-    };
+    // get return address from top of stack
+    let ra = cpu::ra_from_execstate(es);
 
-    match data {
-        Some(CodeData::CompileStub) => {
-            let mut sfi = cpu::sfi_from_execution_state(es);
-
-            ctxt.use_sfi(&mut sfi, || {
-                patch_fct_call(ctxt, es);
-            });
-
-            write_execstate(es, ucontext as *mut u8);
-        }
-
-        Some(CodeData::VirtCompileStub) => {
-            let mut sfi = cpu::sfi_from_execution_state(es);
-
-            ctxt.use_sfi(&mut sfi, || {
-                patch_vtable_call(ctxt, es);
-            });
-
-            write_execstate(es, ucontext as *mut u8);
-        }
-
-        _ => {
-            println!("error: code not found for address {:x}", es.pc);
-            unsafe {
-                libc::_exit(200);
-            }
-        }
-    }
-}
-
-fn patch_vtable_call(ctxt: &Context, es: &mut ExecState) {
-    let vtable_index = {
-        // get return address from top of stack
-        let ra = cpu::ra_from_execstate(es);
-
+    let bailout = {
         let data = {
             let code_map = ctxt.code_map.lock().unwrap();
             code_map.get(ra as *const u8).expect("return address not found")
@@ -223,14 +187,22 @@ fn patch_vtable_call(ctxt: &Context, es: &mut ExecState) {
         let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
 
         let offset = ra - jit_fct.fct_ptr() as usize;
-        let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
-
-        match bailout {
-            &BailoutInfo::VirtCompile(fct_id) => fct_id,
-            _ => panic!("no info for virtual call found")
-        }
+        jit_fct.bailouts.get(offset as i32).expect("bailout info not found").clone()
     };
 
+    let mut sfi = cpu::sfi_from_execution_state(es);
+
+    ctxt.use_sfi(&mut sfi, || {
+        match bailout {
+            BailoutInfo::Compile(fct_id, disp) => patch_fct_call(ctxt, es, ra, fct_id, disp),
+            BailoutInfo::VirtCompile(vtable_index) => patch_vtable_call(ctxt, es, vtable_index),
+        }
+    });
+
+    write_execstate(es, ucontext as *mut u8);
+}
+
+fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, vtable_index: u32) {
     let obj : Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
@@ -255,35 +227,7 @@ fn patch_vtable_call(ctxt: &Context, es: &mut ExecState) {
     es.pc = fct_ptr as usize;
 }
 
-pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState) {
-    // get return address from top of stack
-    let ra = cpu::ra_from_execstate(es);
-
-    let data = {
-        let code_map = ctxt.code_map.lock().unwrap();
-        code_map.get(ra as *const u8).expect("return address not found")
-    };
-
-    let fct_id = match data {
-        CodeData::Fct(fct_id) => fct_id,
-        _ => panic!("expected function for code")
-    };
-
-    let (fct_id, disp) = {
-        let fct = ctxt.fcts[fct_id].borrow();
-        let src = fct.src();
-        let src = src.lock().unwrap();
-        let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
-
-        let offset = ra - jit_fct.fct_ptr() as usize;
-        let bailout = jit_fct.bailouts.get(offset as i32).expect("bailout info not found");
-
-        match bailout {
-            &BailoutInfo::Compile(fct_id, disp) => (fct_id, disp),
-            _ => panic!("no info for direct call found")
-        }
-    };
-
+pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, ra: usize, fct_id: FctId, disp: i32) {
     let fct_ptr = baseline::generate(ctxt, fct_id);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 

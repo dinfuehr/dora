@@ -2,8 +2,7 @@ use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::ptr;
 
-use baseline::map::CodeData;
-use baseline::stub::Stub;
+use baseline::stub::ensure_stub;
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, StructId, StructData};
 use error::msg::Msg;
@@ -279,30 +278,6 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
 
     let classptr: *mut Class = &mut *cls;
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
-}
-
-fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
-    let mut virt_compile_stub = ctxt.virt_compile_stub.borrow_mut();
-
-    if let Some(ref stub) = *virt_compile_stub {
-        return stub.ptr_start();
-    }
-
-    let stub = Stub::new();
-
-    {
-        let mut code_map = ctxt.code_map.lock().unwrap();
-        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::VirtCompileStub);
-    }
-
-    if ctxt.args.flag_emit_stubs {
-        println!("create stub at {:x}", stub.ptr_start() as usize);
-    }
-
-    let ptr = stub.ptr_start();
-    *virt_compile_stub = Some(stub);
-
-    ptr
 }
 
 fn create_displays<'ast>(ctxt: &Context<'ast>) {

@@ -1,5 +1,7 @@
 use std::fmt;
 
+use baseline::map::CodeData;
+use ctxt::Context;
 use masm::MacroAssembler;
 use mem::code::CodeMemory;
 use os::signal::Trap;
@@ -34,3 +36,28 @@ impl fmt::Debug for Stub {
                self.ptr_end() as usize)
     }
 }
+
+pub fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
+    let mut compile_stub = ctxt.compile_stub.borrow_mut();
+
+    if let Some(ref stub) = *compile_stub {
+        return stub.ptr_start();
+    }
+
+    let stub = Stub::new();
+
+    {
+        let mut code_map = ctxt.code_map.lock().unwrap();
+        code_map.insert(stub.ptr_start(), stub.ptr_end(), CodeData::CompileStub);
+    }
+
+    if ctxt.args.flag_emit_stubs {
+        println!("create stub at {:x}", stub.ptr_start() as usize);
+    }
+
+    let ptr = stub.ptr_start();
+    *compile_stub = Some(stub);
+
+    ptr
+}
+
