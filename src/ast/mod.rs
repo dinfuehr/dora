@@ -1201,6 +1201,20 @@ impl Expr {
         }
     }
 
+    pub fn to_lit_struct(&self) -> Option<&ExprLitStructType> {
+        match *self {
+            Expr::ExprLitStruct(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_lit_struct(&self) -> bool {
+        match *self {
+            Expr::ExprLitStruct(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
         match *self {
             Expr::ExprLitStr(ref val) => Some(val),

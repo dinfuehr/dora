@@ -763,7 +763,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_if(&mut self) -> StmtResult {
         let pos = self.expect_token(TokenType::If)?.position;
-        let cond = self.parse_expression()?;
+
+        let mut opts = ExprParsingOpts::new();
+        opts.parse_struct_lit(false);
+        let cond = self.parse_expression_with_opts(&opts)?;
 
         let then_block = self.parse_block()?;
         let mut else_block = None;
@@ -778,7 +781,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_while(&mut self) -> StmtResult {
         let pos = self.expect_token(TokenType::While)?.position;
-        let expr = self.parse_expression()?;
+
+        let mut opts = ExprParsingOpts::new();
+        opts.parse_struct_lit(false);
+        let expr = self.parse_expression_with_opts(&opts)?;
 
         let block = self.parse_block()?;
 
@@ -829,11 +835,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_expression(&mut self) -> ExprResult {
-        self.parse_binary(0)
+        let opts = ExprParsingOpts::new();
+        self.parse_binary(0, &opts)
     }
 
-    fn parse_binary(&mut self, precedence: u32) -> ExprResult {
-        let mut left = self.parse_unary()?;
+    fn parse_expression_with_opts(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+        self.parse_binary(0, opts)
+    }
+
+    fn parse_binary(&mut self, precedence: u32, opts: &ExprParsingOpts) -> ExprResult {
+        let mut left = self.parse_unary(opts)?;
 
         loop {
             let right_precedence = match self.token.token_type {
@@ -870,14 +881,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 }
 
                 _ => {
-                    let right = self.parse_binary(right_precedence)?;
+                    let right = self.parse_binary(right_precedence, opts)?;
                     self.create_binary(tok, left, right)
                 }
             };
         }
     }
 
-    fn parse_unary(&mut self) -> ExprResult {
+    fn parse_unary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.token_type {
             TokenType::Add | TokenType::Sub | TokenType::Not | TokenType::Tilde => {
 
@@ -890,16 +901,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                     _ => unreachable!(),
                 };
 
-                let expr = self.parse_primary()?;
+                let expr = self.parse_primary(opts)?;
                 Ok(Box::new(Expr::create_un(self.generate_id(), tok.position, op, expr)))
             }
 
-            _ => self.parse_primary(),
+            _ => self.parse_primary(opts),
         }
     }
 
-    fn parse_primary(&mut self) -> ExprResult {
-        let mut left = self.parse_factor()?;
+    fn parse_primary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
+        let mut left = self.parse_factor(opts)?;
 
         loop {
             left = match self.token.token_type {
@@ -960,12 +971,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         Box::new(Expr::create_bin(self.generate_id(), tok.position, op, left, right))
     }
 
-    fn parse_factor(&mut self) -> ExprResult {
+    fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.token_type {
             TokenType::LParen => self.parse_parentheses(),
             TokenType::Number(_) => self.parse_number(),
             TokenType::String(_) => self.parse_string(),
-            TokenType::Identifier(_) => self.parse_identifier_or_call(),
+            TokenType::Identifier(_) => self.parse_identifier_or_call(opts),
             TokenType::True => self.parse_bool_literal(),
             TokenType::False => self.parse_bool_literal(),
             TokenType::Nil => self.parse_nil(),
@@ -980,13 +991,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         }
     }
 
-    fn parse_identifier_or_call(&mut self) -> ExprResult {
+    fn parse_identifier_or_call(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         let pos = self.token.position;
         let ident = self.expect_identifier()?;
 
         // is this a function call?
         if self.token.is(TokenType::LParen) {
             self.parse_call(pos, None, ident)
+
+        } else if self.token.is(TokenType::LBrace) && opts.parse_struct_lit {
+            self.parse_lit_struct(pos, ident)
 
             // if not we have a simple variable
         } else {
@@ -1293,6 +1307,23 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             object: object,
             name: name,
         }))
+    }
+}
+
+struct ExprParsingOpts {
+    parse_struct_lit: bool,
+}
+
+impl ExprParsingOpts {
+    pub fn new() -> ExprParsingOpts {
+        ExprParsingOpts {
+            parse_struct_lit: true,
+        }
+    }
+
+    pub fn parse_struct_lit(&mut self, val: bool) -> &mut ExprParsingOpts {
+        self.parse_struct_lit = val;
+        self
     }
 }
 
@@ -2511,5 +2542,31 @@ mod tests {
 
         let f2 = &struc.fields[1];
         assert_eq!("fb", *interner.str(f2.name));
+    }
+
+    #[test]
+    fn parse_struct_lit() {
+        let (expr, _) = parse_expr("Foo { a: 1, b: 2 }");
+        assert!(expr.is_lit_struct());
+    }
+
+    #[test]
+    fn parse_struct_lit_while() {
+        let stmt = parse_stmt("while i < n { }");
+        let while_stmt = stmt.to_while().unwrap();
+        let bin = while_stmt.cond.to_bin().unwrap();
+
+        assert!(bin.lhs.is_ident());
+        assert!(bin.rhs.is_ident());
+    }
+
+    #[test]
+    fn parse_struct_lit_if() {
+        let stmt = parse_stmt("if i < n { }");
+        let ifstmt = stmt.to_if().unwrap();
+        let bin = ifstmt.cond.to_bin().unwrap();
+
+        assert!(bin.lhs.is_ident());
+        assert!(bin.rhs.is_ident());
     }
 }
