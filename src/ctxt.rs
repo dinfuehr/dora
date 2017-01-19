@@ -524,6 +524,13 @@ impl IdentType {
         }
     }
 
+    pub fn struct_id(&self) -> StructId {
+        match self {
+            &IdentType::Struct(sid) => sid,
+            _ => panic!()
+        }
+    }
+
     pub fn is_var(&self) -> bool {
         match *self {
             IdentType::Var(_) => true,

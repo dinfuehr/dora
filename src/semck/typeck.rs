@@ -196,8 +196,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = field.ty;
             }
 
-            IdentType::Struct(_) => {
-                unimplemented!();
+            IdentType::Struct(sid) => {
+                let ty = BuiltinType::Struct(sid);
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
             }
         }
     }
@@ -844,8 +846,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
 
-    fn check_expr_lit_struct(&mut self, _: &'ast ExprLitStructType) {
-        unimplemented!();
+    fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
+        let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
+
+        let ty = BuiltinType::Struct(sid);
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 }
 
@@ -1607,5 +1613,16 @@ mod tests {
              fun me() -> int { return try one() else false; }",
             pos(2, 39),
             Msg::TypesIncompatible("int".into(), "bool".into()));
+    }
+
+    #[test]
+    fn struct_lit() {
+        ok("struct Foo {} fun foo() -> Foo { return Foo; }");
+        ok("struct Foo {} fun foo() { let x = Foo; }");
+        ok("struct Foo {} fun foo() { let x: Foo = Foo; }");
+        err("struct Foo {} fun foo() { let x: int = Foo; }",
+            pos(1, 27), Msg::AssignType("x".into(), "int".into(), "Foo".into()));
+        err("struct Foo {} fun foo() -> int { return Foo; }",
+            pos(1, 34), Msg::ReturnType("int".into(), "Foo".into()));
     }
 }
