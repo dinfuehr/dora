@@ -195,6 +195,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, field.ty);
                 self.expr_type = field.ty;
             }
+
+            IdentType::Struct(_) => {
+                unimplemented!();
+            }
         }
     }
 
@@ -249,6 +253,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                            !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable {
                             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                         }
+                    }
+
+                    &IdentType::Struct(_) => {
+                        unimplemented!();
                     }
                 }
 
@@ -835,6 +843,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
+
+    fn check_expr_lit_struct(&mut self, _: &'ast ExprLitStructType) {
+        unimplemented!();
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
@@ -852,7 +864,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
                 self.src.set_ty(id, BuiltinType::Bool);
                 self.expr_type = BuiltinType::Bool;
             }
-            ExprLitStruct(_) => unimplemented!(),
+            ExprLitStruct(ref expr) => self.check_expr_lit_struct(expr),
             ExprIdent(ref expr) => self.check_expr_ident(expr),
             ExprAssign(ref expr) => self.check_expr_assign(expr),
             ExprUn(ref expr) => self.check_expr_un(expr),

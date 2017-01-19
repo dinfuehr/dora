@@ -178,22 +178,37 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
-        if let Some(id) = self.ctxt.sym.borrow().get_var(ident.name) {
-            self.src.map_idents.insert(ident.id, IdentType::Var(id));
-            return;
-        }
+        let sym = self.ctxt.sym.borrow().get(ident.name);
 
-        // don't expand <var> to self.<var> in primary ctors
-        // otherwise `let b: int = b;` would be possible
-        if !self.fct.ctor.is_primary() {
-            if let Some(clsid) = self.fct.owner_class {
-                let cls = self.ctxt.classes[clsid].borrow();
+        match sym {
+            Some(SymVar(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Var(id));
+                return;
+            }
 
-                for field in &cls.fields {
-                    if field.name == ident.name {
-                        let ident_type = IdentType::Field(clsid, field.id);
-                        self.src.map_idents.insert(ident.id, ident_type);
-                        return;
+            Some(SymStruct(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Struct(id));
+                return;
+            }
+
+            Some(_) => {
+                // do nothing
+            }
+
+            None => {
+                // don't expand <var> to self.<var> in primary ctors
+                // otherwise `let b: int = b;` would be possible
+                if !self.fct.ctor.is_primary() {
+                    if let Some(clsid) = self.fct.owner_class {
+                        let cls = self.ctxt.classes[clsid].borrow();
+
+                        for field in &cls.fields {
+                            if field.name == ident.name {
+                                let ident_type = IdentType::Field(clsid, field.id);
+                                self.src.map_idents.insert(ident.id, ident_type);
+                                return;
+                            }
+                        }
                     }
                 }
             }
@@ -245,6 +260,16 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             self.visit_expr(arg);
         }
     }
+
+    fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
+        if let Some(sid) = self.ctxt.sym.borrow().get_struct(struc.name) {
+            self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
+
+        } else {
+            let name = self.ctxt.interner.str(struc.name).to_string();
+            report(self.ctxt, struc.pos, Msg::UnknownStruct(name));
+        }
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
@@ -293,6 +318,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
         match e {
             &ExprIdent(ref ident) => self.check_expr_ident(ident),
             &ExprCall(ref call) => self.check_expr_call(call),
+            &ExprLitStruct(ref lit) => self.check_expr_struct(lit),
 
             // no need to handle rest of expressions
             _ => visit::walk_expr(self, e),
@@ -406,5 +432,15 @@ mod tests {
             Msg::UnknownIdentifier("a".into()));
 
         ok("fun f() -> int { let a = 1; { let a = 2; } return a; }");
+    }
+
+    #[test]
+    fn struct_lit() {
+        err("fun foo() { let x = Foo { a: 1 }; }",
+            pos(1, 21), Msg::UnknownStruct("Foo".into()));
+
+        // Struct literal without any field initializers
+        err("fun foo() { let x = Foo; }",
+            pos(1, 21), Msg::UnknownIdentifier("Foo".into()));
     }
 }

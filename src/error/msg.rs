@@ -10,6 +10,7 @@ pub enum Msg {
     UnknownClass(String),
     UnknownType(String),
     UnknownIdentifier(String),
+    UnknownStruct(String),
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
@@ -87,6 +88,7 @@ impl Msg {
             UnknownClass(ref name) => format!("class `{}` does not exist.", name),
             UnknownType(ref name) => format!("type `{}` does not exist.", name),
             UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
+            UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
             UnknownFunction(ref name) => format!("unknown function `{}`", name),
             UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");

@@ -421,6 +421,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_self(REG_RESULT);
                 self.emit_field_access(cls, field, REG_RESULT, dest);
             }
+
+            IdentType::Struct(_) => {
+                unimplemented!();
+            }
         }
     }
 
@@ -512,6 +516,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 if REG_RESULT != dest {
                     self.masm.copy_reg(field.ty.mode(), dest, REG_RESULT);
                 }
+            }
+
+            IdentType::Struct(_) => {
+                unimplemented!();
             }
         }
     }

@@ -506,6 +506,7 @@ impl Store {
 pub enum IdentType {
     Var(VarId),
     Field(ClassId, FieldId),
+    Struct(StructId),
 }
 
 impl IdentType {
