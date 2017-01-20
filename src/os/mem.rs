@@ -32,7 +32,7 @@ pub fn page_size() -> u32 {
 #[derive(PartialEq, Eq)]
 pub enum ProtType {
     Executable,
-    NonExecutable,
+    Writable,
 }
 
 #[cfg(target_family = "unix")]

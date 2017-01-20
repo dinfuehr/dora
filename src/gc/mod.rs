@@ -6,6 +6,8 @@ use ctxt::{Context, FctKind, get_ctxt};
 use object::Obj;
 use timer::{in_ms, Timer};
 
+mod semi;
+
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
 
