@@ -26,7 +26,7 @@ impl SemiSpace {
     }
 
     fn allocate(&mut self, size: usize) -> *const u8 {
-        if self.end - self.free > size {
+        if self.end as usize - self.free as usize > size {
             let next = unsafe { self.free.offset(size as isize) };
             let addr = self.free;
             self.free = next;
