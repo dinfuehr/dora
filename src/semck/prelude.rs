@@ -65,8 +65,6 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::IntArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::IntArraySet);
-
-    intrinsic_fct(ctxt, "shl", Intrinsic::Shl);
 }
 
 fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {

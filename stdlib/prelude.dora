@@ -14,7 +14,6 @@ internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 internal fun intArrayWith(len: int, val: int) -> IntArray;
 internal fun emptyIntArray() -> IntArray;
-internal fun shl(lhs: int, rhs: int) -> int;
 
 internal class int {
   internal fun toString() -> Str;

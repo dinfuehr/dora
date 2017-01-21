@@ -21,7 +21,7 @@ fun trees(maxDepth: int) {
   var depth = 4;
 
   while depth <= maxDepth {
-    let iterations = shl(16, (maxDepth - depth));
+    let iterations = 16 << (maxDepth - depth);
 
     loops(iterations, depth);
     depth = depth + 2;
@@ -42,7 +42,7 @@ fun loops(iterations: int, depth: int) {
     item = item + 1;
   }
 
-  println(shl(iterations, 1).toString() + "\t trees of depth " +
+  println((iterations << 1).toString() + "\t trees of depth " +
     depth.toString() + "\t check: " + check.toString());
 }
 
