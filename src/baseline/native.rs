@@ -103,7 +103,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm.epilog(framesize);
 
-        self.masm.jit(framesize)
+        self.masm.jit(self.ctxt, framesize)
     }
 }
 

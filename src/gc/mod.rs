@@ -56,6 +56,10 @@ impl Gc {
         }
     }
 
+    pub fn alloc_code(&mut self, size: usize) -> *mut u8 {
+        self.code_space.alloc(size)
+    }
+
     pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut Obj {
         if ctxt.args.flag_gc_stress {
             minor_collect(ctxt, &mut self.from_space, &mut self.to_space);

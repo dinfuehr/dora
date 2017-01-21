@@ -6,11 +6,11 @@ use class::{ClassId, FieldId};
 use cpu::flush_icache;
 use ctxt::{Context, FctId, FctSrc, VarId};
 use dseg::DSeg;
-use mem::CodeMemory;
 use object::{Handle, Str};
 
 pub struct JitFct {
-    code: CodeMemory,
+    code_start: *const u8,
+    code_end: *const u8,
 
     // pointer to beginning of function
     pub fct_start: *const u8,
@@ -32,7 +32,8 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn from_buffer(dseg: &DSeg,
+    pub fn from_buffer(ctxt: &Context,
+                       dseg: &DSeg,
                        buffer: &[u8],
                        bailouts: Bailouts,
                        gcpoints: GcPoints,
@@ -43,8 +44,10 @@ impl JitFct {
                        -> JitFct {
         let size = dseg.size() as usize + buffer.len();
 
-        let code = CodeMemory::new(size);
-        let ptr = code.ptr_start();
+        let ptr = {
+            let mut gc = ctxt.gc.lock().unwrap();
+            gc.alloc_code(size)
+        };
 
         dseg.finish(ptr);
 
@@ -66,7 +69,8 @@ impl JitFct {
         }
 
         JitFct {
-            code: code,
+            code_start: ptr,
+            code_end: unsafe { ptr.offset(size as isize) },
             bailouts: bailouts,
             gcpoints: gcpoints,
             comments: comments,
@@ -86,16 +90,12 @@ impl JitFct {
         self.gcpoints.get(offset)
     }
 
-    pub fn code(self) -> CodeMemory {
-        self.code
-    }
-
     pub fn ptr_start(&self) -> *const u8 {
-        self.code.ptr_start()
+        self.code_start
     }
 
     pub fn ptr_end(&self) -> *const u8 {
-        self.code.ptr_end()
+        self.code_end
     }
 
     pub fn fct_ptr(&self) -> *const u8 {

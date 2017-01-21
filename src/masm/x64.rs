@@ -440,6 +440,6 @@ mod tests {
         let lbl = masm.create_label();
 
         masm.emit_label(lbl);
-        masm.jit(0);
+        masm.data();
     }
 }

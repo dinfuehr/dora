@@ -3,28 +3,31 @@ use std::fmt;
 use baseline::map::CodeData;
 use ctxt::Context;
 use masm::MacroAssembler;
-use mem::code::CodeMemory;
 use os::signal::Trap;
 
 pub struct Stub {
-    mem: CodeMemory,
+    start: *const u8,
+    end: *const u8,
 }
 
 impl Stub {
-    pub fn new() -> Stub {
+    pub fn new(ctxt: &Context) -> Stub {
         let mut masm = MacroAssembler::new();
         masm.trap(Trap::COMPILER);
-        let code = masm.jit(0).code();
+        let jit_fct = masm.jit(ctxt, 0);
 
-        Stub { mem: code }
+        Stub {
+            start: jit_fct.ptr_start(),
+            end: jit_fct.ptr_end(),
+        }
     }
 
     pub fn ptr_start(&self) -> *const u8 {
-        self.mem.ptr_start()
+        self.start
     }
 
     pub fn ptr_end(&self) -> *const u8 {
-        self.mem.ptr_end()
+        self.end
     }
 }
 
@@ -44,7 +47,7 @@ pub fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
         return stub.ptr_start();
     }
 
-    let stub = Stub::new();
+    let stub = Stub::new(ctxt);
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();

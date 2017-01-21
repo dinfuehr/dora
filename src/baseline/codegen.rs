@@ -185,7 +185,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.jit(self.src.stacksize());
+        let jit_fct = self.masm.jit(self.ctxt, self.src.stacksize());
 
         let mut code_map = self.ctxt.code_map.lock().unwrap();
         let cdata = CodeData::Fct(self.fct.id);
