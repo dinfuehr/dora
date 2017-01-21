@@ -202,6 +202,14 @@ impl MacroAssembler {
         self.emit_u32(asm::lslv(0, dest, lhs, rhs));
     }
 
+    pub fn int_shr(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.emit_u32(asm::lsrv(0, dest, lhs, rhs));
+    }
+
+    pub fn int_sar(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.emit_u32(asm::asrv(0, dest, lhs, rhs));
+    }
+
     pub fn int_or(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
         self.emit_u32(asm::orr_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
     }
