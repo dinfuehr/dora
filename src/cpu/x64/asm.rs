@@ -729,6 +729,24 @@ pub fn emit_shll_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
     emit_modrm(buf, 0b11, 0b100, dest.and7());
 }
 
+pub fn emit_shrl_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
+    if dest.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xD3);
+    emit_modrm(buf, 0b11, 0b101, dest.and7());
+}
+
+pub fn emit_sarl_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
+    if dest.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xD3);
+    emit_modrm(buf, 0b11, 0b111, dest.and7());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1260,6 +1278,18 @@ mod tests {
     fn test_shll_reg_reg() {
         assert_emit!(0xD3, 0xE0; emit_shll_reg_cl(RAX));
         assert_emit!(0x41, 0xD3, 0xE1; emit_shll_reg_cl(R9));
+    }
+
+    #[test]
+    fn test_shrl_reg_reg() {
+        assert_emit!(0xD3, 0xE8; emit_shrl_reg_cl(RAX));
+        assert_emit!(0x41, 0xD3, 0xE9; emit_shrl_reg_cl(R9));
+    }
+
+    #[test]
+    fn test_sarl_reg_reg() {
+        assert_emit!(0xD3, 0xF8; emit_sarl_reg_cl(RAX));
+        assert_emit!(0x41, 0xD3, 0xF9; emit_sarl_reg_cl(R9));
     }
 
     #[test]

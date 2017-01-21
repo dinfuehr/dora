@@ -536,8 +536,34 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
             BinOp::Or => self.emit_bin_or(e, dest),
             BinOp::And => self.emit_bin_and(e, dest),
-            BinOp::ShiftL | BinOp::ShiftR | BinOp::UnShiftR => unimplemented!(),
+            BinOp::ShiftL => self.emit_bin_shl(e, dest),
+            BinOp::ShiftR => self.emit_bin_sar(e, dest),
+            BinOp::UnShiftR => self.emit_bin_shr(e, dest),
         }
+    }
+
+    fn emit_bin_shl(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+            eg.masm.int_shl(dest, lhs, rhs);
+
+            dest
+        });
+    }
+
+    fn emit_bin_sar(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+            eg.masm.int_sar(dest, lhs, rhs);
+
+            dest
+        });
+    }
+
+    fn emit_bin_shr(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+            eg.masm.int_shr(dest, lhs, rhs);
+
+            dest
+        });
     }
 
     fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {

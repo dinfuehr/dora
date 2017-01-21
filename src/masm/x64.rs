@@ -183,6 +183,32 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_shr(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        if rhs != RCX {
+            assert!(lhs != RCX);
+            asm::emit_movq_reg_reg(self, rhs, RCX);
+        }
+
+        asm::emit_shrl_reg_cl(self, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
+    pub fn int_sar(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+        if rhs != RCX {
+            assert!(lhs != RCX);
+            asm::emit_movq_reg_reg(self, rhs, RCX);
+        }
+
+        asm::emit_sarl_reg_cl(self, lhs);
+
+        if dest != lhs {
+            asm::emit_movl_reg_reg(self, lhs, dest);
+        }
+    }
+
     pub fn int_or(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
         asm::emit_orl_reg_reg(self, rhs, lhs);
 
