@@ -1,8 +1,4 @@
-pub use self::code::*;
-
 use std::mem::size_of;
-
-pub mod code;
 
 pub fn ptr_width() -> i32 {
     size_of::<*const u8>() as i32
