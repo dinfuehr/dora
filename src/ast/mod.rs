@@ -1023,7 +1023,7 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_int(id: NodeId, pos: Position, value: i32) -> Expr {
+    pub fn create_lit_int(id: NodeId, pos: Position, value: i64) -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
             id: id,
             pos: pos,
@@ -1038,7 +1038,6 @@ impl Expr {
             value: value,
         })
     }
-
 
     pub fn create_lit_bool(id: NodeId, pos: Position, value: bool) -> Expr {
         Expr::ExprLitBool(ExprLitBoolType {
@@ -1504,7 +1503,7 @@ pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
 
-    pub value: i32,
+    pub value: i64,
 }
 
 #[derive(Clone, Debug)]

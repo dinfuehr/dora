@@ -386,7 +386,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        self.masm.load_int_const(MachineMode::Int32, dest, lit.value);
+        self.masm.load_int_const(MachineMode::Int32, dest, lit.value as i32);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {

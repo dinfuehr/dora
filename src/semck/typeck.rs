@@ -8,6 +8,7 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
+use mem::fits_i32;
 use semck::read_type;
 use ty::BuiltinType;
 
@@ -858,9 +859,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(ExprLitIntType { id, .. }) => {
-                self.src.set_ty(id, BuiltinType::Int);
-                self.expr_type = BuiltinType::Int;
+            ExprLitInt(ExprLitIntType { id, value, .. }) => {
+                let ty = BuiltinType::Int;
+
+                if !fits_i32(value) {
+                    unimplemented!();
+                }
+
+                // let ty = if fits_u8(value) {
+                //     BuiltinType::Byte
+                // } else if fits_i32(value) {
+                //     BuiltinType::Int
+                // } else {
+                //     BuiltinType::Long
+                // };
+
+                self.src.set_ty(id, ty);
+                self.expr_type = ty;
             }
             ExprLitStr(ExprLitStrType { id, .. }) => {
                 self.src.set_ty(id, BuiltinType::Str);
