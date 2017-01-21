@@ -9,7 +9,17 @@ use std::str;
 use ctxt::get_ctxt;
 use object::{Handle, IntArray, Obj, Str};
 
+pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
+    let buffer = val.to_string();
+    Str::from(buffer.as_bytes())
+}
+
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
+    let buffer = val.to_string();
+    Str::from(buffer.as_bytes())
+}
+
+pub extern "C" fn long_to_string(val: i64) -> Handle<Str> {
     let buffer = val.to_string();
     Str::from(buffer.as_bytes())
 }

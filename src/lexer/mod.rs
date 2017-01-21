@@ -46,25 +46,6 @@ impl Lexer<FileReader> {
     }
 }
 
-// static KEYWORDS: phf::Map<&'static str,TokenType> = phf_map! {
-//     "fn" => TokenType::Fn,
-//     "var" => TokenType::Var,
-//     "while" => TokenType::While,
-//     "if" => TokenType::If,
-//     "else" => TokenType::Else,
-//     "loop" => TokenType::Loop,
-//     "break" => TokenType::Break,
-//     "continue" => TokenType::Continue,
-//     "return" => TokenType::Return,
-//     "true" => TokenType::True,
-//     "false" => TokenType::False,
-//     "enum" => TokenType::Enum,
-//     "type" => TokenType::Type,
-//     "alias" => TokenType::Alias,
-//     "struct" => TokenType::Struct,
-//     "trait" => TokenType::Trait,
-// };
-
 impl<T: CodeReader> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
         Lexer::new_with_tabwidth(reader, 4)

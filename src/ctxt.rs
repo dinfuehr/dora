@@ -57,7 +57,9 @@ impl<'ast> Context<'ast> {
             classes: Vec::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
+                byte_class: empty_class_id,
                 int_class: empty_class_id,
+                long_class: empty_class_id,
                 str_class: empty_class_id,
                 bool_class: empty_class_id,
                 int_array: empty_class_id,
@@ -194,7 +196,9 @@ pub struct StructFieldData {
 
 #[derive(Debug)]
 pub struct PrimitiveClasses {
+    pub byte_class: ClassId,
     pub int_class: ClassId,
+    pub long_class: ClassId,
     pub str_class: ClassId,
     pub bool_class: ClassId,
     pub int_array: ClassId,
@@ -203,7 +207,9 @@ pub struct PrimitiveClasses {
 impl PrimitiveClasses {
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
+            BuiltinType::Byte => Some(self.byte_class),
             BuiltinType::Int => Some(self.int_class),
+            BuiltinType::Long => Some(self.long_class),
             BuiltinType::Str => Some(self.str_class),
             BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::IntArray => Some(self.int_array),

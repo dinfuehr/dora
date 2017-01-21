@@ -15,12 +15,20 @@ internal fun forceCollect();
 internal fun intArrayWith(len: int, val: int) -> IntArray;
 internal fun emptyIntArray() -> IntArray;
 
+internal class bool {
+  internal fun toInt() -> int;
+  internal fun toString() -> Str;
+}
+
+internal class byte {
+  internal fun toString() -> Str;
+}
+
 internal class int {
   internal fun toString() -> Str;
 }
 
-internal class bool {
-  internal fun toInt() -> int;
+internal class long {
   internal fun toString() -> Str;
 }
 

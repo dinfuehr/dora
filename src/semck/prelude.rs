@@ -4,11 +4,18 @@ use stdlib;
 use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
+    let size = BuiltinType::Byte.size(ctxt);
+    ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", BuiltinType::Byte, size);
+
     let size = BuiltinType::Int.size(ctxt);
     ctxt.primitive_classes.int_class = internal_class(ctxt, "int", BuiltinType::Int, size);
 
+    let size = BuiltinType::Long.size(ctxt);
+    ctxt.primitive_classes.long_class = internal_class(ctxt, "long", BuiltinType::Long, size);
+
     let size = BuiltinType::Bool.size(ctxt);
     ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool, size);
+
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
     ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
 }
@@ -50,8 +57,14 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
                "emptyIntArray",
                stdlib::ctor_int_array_empty as *const u8);
 
+    let clsid = ctxt.primitive_classes.byte_class;
+    native_method(ctxt, clsid, "toString", stdlib::byte_to_string as *const u8);
+
     let clsid = ctxt.primitive_classes.int_class;
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
+
+    let clsid = ctxt.primitive_classes.long_class;
+    native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
 
     let clsid = ctxt.primitive_classes.bool_class;
     native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *const u8);
