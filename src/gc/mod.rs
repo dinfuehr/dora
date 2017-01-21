@@ -3,13 +3,17 @@ use std::ptr::{self, write_bytes};
 
 use baseline::map::CodeData;
 use ctxt::{Context, FctKind, get_ctxt};
+use gc::copy::{minor_collect, SemiSpace};
 use object::Obj;
 use timer::{in_ms, Timer};
 
-mod semi;
+mod copy;
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
+
+const INITIAL_SIZE: usize = 64 * 1024;
+const LARGE_OBJECT_SIZE: usize = 64 * 1024;
 
 pub struct Gc {
     obj_start: *mut Obj,
@@ -22,6 +26,9 @@ pub struct Gc {
     pub total_allocated: u64,
     pub collections: u64,
     pub allocations: u64,
+
+    from_space: SemiSpace,
+    to_space: SemiSpace,
 }
 
 impl Gc {
@@ -37,7 +44,34 @@ impl Gc {
             total_allocated: 0,
             collections: 0,
             allocations: 0,
+
+            from_space: SemiSpace::new(INITIAL_SIZE),
+            to_space: SemiSpace::new(INITIAL_SIZE),
         }
+    }
+
+    pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut Obj {
+        if ctxt.args.flag_gc_stress {
+            minor_collect(ctxt, &mut self.from_space, &mut self.to_space);
+        }
+
+        if size > LARGE_OBJECT_SIZE {
+            panic!("large object heap not implemented yet.");
+        }
+
+        let mut ptr = self.to_space.allocate(size);
+
+        if ptr.is_null() {
+            minor_collect(ctxt, &mut self.from_space, &mut self.to_space);
+
+            ptr = self.to_space.allocate(size);
+
+            if ptr.is_null() {
+                panic!("out of memory");
+            }
+        }
+
+        ptr as *mut Obj
     }
 
     pub fn alloc(&mut self, size: usize) -> *mut Obj {
