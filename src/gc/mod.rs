@@ -2,11 +2,13 @@ use libc;
 use std::ptr::{self, write_bytes};
 
 use ctxt::{Context, get_ctxt};
+use gc::code::CodeSpace;
 use gc::copy::{minor_collect, SemiSpace};
 use gc::root::{get_rootset, IndirectObj};
 use object::Obj;
 use timer::{in_ms, Timer};
 
+mod code;
 mod copy;
 mod root;
 
@@ -30,6 +32,8 @@ pub struct Gc {
 
     from_space: SemiSpace,
     to_space: SemiSpace,
+
+    code_space: CodeSpace,
 }
 
 impl Gc {
@@ -48,6 +52,7 @@ impl Gc {
 
             from_space: SemiSpace::new(INITIAL_SIZE),
             to_space: SemiSpace::new(INITIAL_SIZE),
+            code_space: CodeSpace::new(),
         }
     }
 
