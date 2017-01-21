@@ -246,6 +246,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::ldrb_ind(dest, REG_FP, *scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::ldrx_ind(dest, REG_FP, *scratch, LdStExtend::LSL, 0),
                 };
 
@@ -259,6 +260,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::ldrb_ind(dest, base, *scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::ldrx_ind(dest, base, *scratch, LdStExtend::LSL, 0),
                 };
 
@@ -275,6 +277,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::ldrb_ind(dest, *scratch, index, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::ldrw_ind(dest, *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::ldrx_ind(dest, *scratch, index, LdStExtend::LSL, 1),
                 };
 
@@ -292,6 +295,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::strb_ind(src, REG_FP, *scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::strx_ind(src, REG_FP, *scratch, LdStExtend::LSL, 0),
                 };
 
@@ -305,6 +309,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::strb_ind(src, base, *scratch, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::strx_ind(src, base, *scratch, LdStExtend::LSL, 0),
                 };
 
@@ -321,6 +326,7 @@ impl MacroAssembler {
                 let inst = match mode {
                     MachineMode::Int8 => asm::strb_ind(src, *scratch, index, LdStExtend::LSL, 0),
                     MachineMode::Int32 => asm::strw_ind(src, *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int64 => unimplemented!(),
                     MachineMode::Ptr => asm::strx_ind(src, *scratch, index, LdStExtend::LSL, 1),
                 };
 
@@ -351,6 +357,7 @@ impl MacroAssembler {
         let register_size = match mode {
             MachineMode::Int8 => unimplemented!(),
             MachineMode::Int32 => 32,
+            MachineMode::Int64 => 64,
             MachineMode::Ptr => 64,
         };
         let imm = imm as i64 as u64;
@@ -459,9 +466,8 @@ enum JumpType {
 
 fn size_flag(mode: MachineMode) -> u32 {
     match mode {
-        MachineMode::Int8 |
-        MachineMode::Int32 => 0,
-        MachineMode::Ptr => 1,
+        MachineMode::Int8 | MachineMode::Int32 => 0,
+        MachineMode::Ptr | MachineMode::Int64 => 1,
     }
 }
 
