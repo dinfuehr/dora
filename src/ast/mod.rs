@@ -911,6 +911,9 @@ pub enum BinOp {
     BitOr,
     BitAnd,
     BitXor,
+    ShiftL,
+    ShiftR,
+    UnShiftR,
 }
 
 impl BinOp {
@@ -927,6 +930,9 @@ impl BinOp {
             BinOp::BitOr => "|",
             BinOp::BitAnd => "&",
             BinOp::BitXor => "^",
+            BinOp::ShiftL => "<<",
+            BinOp::ShiftR => ">>",
+            BinOp::UnShiftR => ">>>",
         }
     }
 

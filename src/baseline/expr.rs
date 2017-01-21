@@ -536,6 +536,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
             BinOp::Or => self.emit_bin_or(e, dest),
             BinOp::And => self.emit_bin_and(e, dest),
+            BinOp::ShiftL | BinOp::ShiftR | BinOp::UnShiftR => unimplemented!(),
         }
     }
 

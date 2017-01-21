@@ -147,7 +147,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => ctxt.structs[id].borrow().size
+            BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
         }
     }
 
@@ -161,7 +161,7 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => ctxt.structs[id].borrow().align
+            BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
         }
     }
 

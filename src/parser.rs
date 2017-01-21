@@ -851,14 +851,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                 TokenType::Or => 1,
                 TokenType::And => 2,
                 TokenType::Eq => 3,
-                TokenType::EqEq | TokenType::Ne => 4,
-                TokenType::Lt | TokenType::Le | TokenType::Gt | TokenType::Ge => 5,
-                TokenType::EqEqEq | TokenType::NeEqEq => 6,
-                TokenType::BitOr | TokenType::BitAnd | TokenType::Caret => 7,
+                TokenType::EqEq | TokenType::Ne | TokenType::Lt | TokenType::Le |
+                TokenType::Gt | TokenType::Ge => 4,
+                TokenType::EqEqEq | TokenType::NeEqEq => 5,
+                TokenType::BitOr | TokenType::BitAnd | TokenType::Caret => 6,
+                TokenType::LtLt | TokenType::GtGt | TokenType::GtGtGt => 7,
                 TokenType::Add | TokenType::Sub => 8,
                 TokenType::Mul | TokenType::Div | TokenType::Mod => 9,
                 TokenType::Is | TokenType::As => 10,
-                TokenType::Dot | TokenType::LBracket => 11,
                 _ => {
                     return Ok(left);
                 }
@@ -965,6 +965,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             TokenType::Mul => BinOp::Mul,
             TokenType::Div => BinOp::Div,
             TokenType::Mod => BinOp::Mod,
+            TokenType::LtLt => BinOp::ShiftL,
+            TokenType::GtGt => BinOp::ShiftR,
+            TokenType::GtGtGt => BinOp::UnShiftR,
             _ => panic!("unimplemented token {:?}", tok),
         };
 
@@ -1316,9 +1319,7 @@ struct ExprParsingOpts {
 
 impl ExprParsingOpts {
     pub fn new() -> ExprParsingOpts {
-        ExprParsingOpts {
-            parse_struct_lit: true,
-        }
+        ExprParsingOpts { parse_struct_lit: true }
     }
 
     pub fn parse_struct_lit(&mut self, val: bool) -> &mut ExprParsingOpts {
@@ -1781,6 +1782,30 @@ mod tests {
         let assign = expr.to_assign().unwrap();
         assert!(assign.lhs.is_ident());
         assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
+    }
+
+    #[test]
+    fn parse_shift_right() {
+        let (expr, _) = parse_expr("a>>4");
+
+        let bin = expr.to_bin().unwrap();
+        assert_eq!(BinOp::ShiftR, bin.op);
+    }
+
+    #[test]
+    fn parse_unsigned_shift_right() {
+        let (expr, _) = parse_expr("a>>>4");
+
+        let bin = expr.to_bin().unwrap();
+        assert_eq!(BinOp::UnShiftR, bin.op);
+    }
+
+    #[test]
+    fn parse_left() {
+        let (expr, _) = parse_expr("a<<4");
+
+        let bin = expr.to_bin().unwrap();
+        assert_eq!(BinOp::ShiftL, bin.op);
     }
 
     #[test]

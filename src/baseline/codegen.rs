@@ -30,7 +30,10 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     generate_fct(ctxt, &fct, &mut src)
 }
 
-pub fn generate_fct<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>, src: &mut FctSrc<'ast>) -> *const u8 {
+pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
+                          fct: &Fct<'ast>,
+                          src: &mut FctSrc<'ast>)
+                          -> *const u8 {
     if let Some(ref jit) = src.jit_fct {
         return jit.fct_ptr();
     }

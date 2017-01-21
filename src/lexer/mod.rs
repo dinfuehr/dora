@@ -360,20 +360,40 @@ impl<T: CodeReader> Lexer<T> {
             }
 
             '<' => {
-                if nch == '=' {
-                    self.read_char();
-                    TokenType::Le
-                } else {
-                    TokenType::Lt
+                match nch {
+                    '=' => {
+                        self.read_char();
+                        TokenType::Le
+                    }
+
+                    '<' => {
+                        self.read_char();
+                        TokenType::LtLt
+                    }
+
+                    _ => TokenType::Lt,
                 }
             }
 
             '>' => {
-                if nch == '=' {
-                    self.read_char();
-                    TokenType::Ge
-                } else {
-                    TokenType::Gt
+                match nch {
+                    '=' => {
+                        self.read_char();
+                        TokenType::Ge
+                    }
+
+                    '>' => {
+                        self.read_char();
+
+                        if nnch == '>' {
+                            self.read_char();
+                            TokenType::GtGtGt
+                        } else {
+                            TokenType::GtGt
+                        }
+                    }
+
+                    _ => TokenType::Gt,
                 }
             }
 
@@ -780,5 +800,10 @@ mod tests {
         assert_tok(&mut reader, TokenType::TryForce, 1, 1);
         assert_tok(&mut reader, TokenType::TryOpt, 1, 5);
         assert_tok(&mut reader, TokenType::Number("1".into()), 1, 9);
+
+        let mut reader = Lexer::from_str(">><<>>>");
+        assert_tok(&mut reader, TokenType::GtGt, 1, 1);
+        assert_tok(&mut reader, TokenType::LtLt, 1, 3);
+        assert_tok(&mut reader, TokenType::GtGtGt, 1, 5);
     }
 }

@@ -178,7 +178,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
 
         let fct_id = match data {
             CodeData::Fct(fct_id) => fct_id,
-            _ => panic!("expected function for code")
+            _ => panic!("expected function for code"),
         };
 
         let fct = ctxt.fcts[fct_id].borrow();
@@ -203,7 +203,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
 }
 
 fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, vtable_index: u32) {
-    let obj : Handle<Obj> = cpu::receiver_from_execstate(es).into();
+    let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().id;

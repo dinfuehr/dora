@@ -119,8 +119,10 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn determine_class_size<'ast>(ctxt: &Context<'ast>, cls: &mut Class,
-                              sizes: &mut HashMap<ClassId, i32>) -> i32 {
+fn determine_class_size<'ast>(ctxt: &Context<'ast>,
+                              cls: &mut Class,
+                              sizes: &mut HashMap<ClassId, i32>)
+                              -> i32 {
     let mut size = if let Some(parent) = cls.parent_class {
         if let Some(&size) = sizes.get(&parent) {
             size
@@ -167,9 +169,7 @@ fn check_override<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &Context<'ast>,
-                            cls: &Class,
-                            fct: &mut Fct<'ast>) {
+fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -548,7 +548,7 @@ mod tests {
             let vtable = vtable_by_name(ctxt, "L7", |vtable| {
                 assert!(!vtable.subtype_overflow.is_null());
                 assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
-                        vtable.get_subtype_overflow(0));
+                           vtable.get_subtype_overflow(0));
 
                 vtable as *const _
             });
@@ -563,13 +563,13 @@ mod tests {
             let vtable = vtable_by_name(ctxt, "L10", |vtable| {
                 assert!(!vtable.subtype_overflow.is_null());
                 assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
-                        vtable.get_subtype_overflow(0));
+                           vtable.get_subtype_overflow(0));
                 assert_eq!(vtable_by_name(ctxt, "L8", |v| v as *const _),
-                        vtable.get_subtype_overflow(1));
+                           vtable.get_subtype_overflow(1));
                 assert_eq!(vtable_by_name(ctxt, "L9", |v| v as *const _),
-                        vtable.get_subtype_overflow(2));
+                           vtable.get_subtype_overflow(2));
                 assert_eq!(vtable_by_name(ctxt, "L10", |v| v as *const _),
-                        vtable.get_subtype_overflow(3));
+                           vtable.get_subtype_overflow(3));
 
                 vtable as *const _
             });
@@ -589,10 +589,10 @@ mod tests {
                       struct Foo1 { a: bool, b: int, c: bool }
                       struct Bar { }",
                      |ctxt| {
-            assert_eq!(8, ctxt.structs[0].borrow().size);
-            assert_eq!(12, ctxt.structs[1].borrow().size);
-            assert_eq!(0, ctxt.structs[2].borrow().size);
-        });
+                         assert_eq!(8, ctxt.structs[0].borrow().size);
+                         assert_eq!(12, ctxt.structs[1].borrow().size);
+                         assert_eq!(0, ctxt.structs[2].borrow().size);
+                     });
     }
 
     #[test]
@@ -629,11 +629,11 @@ mod tests {
         ok_with_test("class Foo { var bar: Bar; }
                       struct Bar { a: int, foo: Foo }",
                      |ctxt| {
-            let cls = cls_by_name(ctxt, "Foo");
-            let cls = ctxt.classes[cls].borrow();
-            assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
-            assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
-        });
+                         let cls = cls_by_name(ctxt, "Foo");
+                         let cls = ctxt.classes[cls].borrow();
+                         assert_eq!(Header::size() + 2 * mem::ptr_width(), cls.size);
+                         assert_eq!(2 * mem::ptr_width(), ctxt.structs[0].borrow().size);
+                     });
     }
 
     fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
@@ -659,10 +659,9 @@ mod tests {
         }
     }
 
-    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a Context<'ast>,
-                                          name: &'static str,
-                                          fct: F) -> R
-                                         where F: FnOnce(&VTable) -> R {
+    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a Context<'ast>, name: &'static str, fct: F) -> R
+        where F: FnOnce(&VTable) -> R
+    {
         let cid = cls_by_name(ctxt, name);
         let cls = ctxt.classes[cid].borrow();
         let vtable = cls.vtable.as_ref().unwrap();

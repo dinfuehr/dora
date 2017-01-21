@@ -527,7 +527,7 @@ impl IdentType {
     pub fn struct_id(&self) -> StructId {
         match self {
             &IdentType::Struct(sid) => sid,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 

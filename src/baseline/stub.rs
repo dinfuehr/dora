@@ -63,4 +63,3 @@ pub fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
 
     ptr
 }
-

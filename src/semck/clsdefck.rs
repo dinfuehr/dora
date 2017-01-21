@@ -43,7 +43,7 @@ impl<'x, 'ast> ClsDefCheck<'x, 'ast> {
 
     fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
         let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
-        
+
         for field in &cls.fields {
             if field.name == name {
                 let name = self.ctxt.interner.str(name).to_string();

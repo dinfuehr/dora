@@ -88,6 +88,10 @@ pub enum TokenType {
     NeEqEq,
     Is,
     As,
+
+    GtGt,
+    GtGtGt,
+    LtLt,
 }
 
 impl TokenType {
@@ -172,6 +176,11 @@ impl TokenType {
             TokenType::Le => "<=",
             TokenType::Gt => ">",
             TokenType::Ge => ">=",
+
+            TokenType::GtGt => ">>",
+            TokenType::GtGtGt => ">>>",
+            TokenType::LtLt => "<<",
+
             TokenType::EqEqEq => "===",
             TokenType::NeEqEq => "!==",
             TokenType::Is => "is",
