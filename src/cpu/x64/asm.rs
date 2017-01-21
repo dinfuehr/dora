@@ -200,6 +200,7 @@ pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, r
     let x64 = match mode {
         MachineMode::Int8 |
         MachineMode::Int32 => 0,
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => 1,
     };
 
@@ -308,6 +309,7 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
     let (x64, opcode) = match mode {
         MachineMode::Ptr => (1, 0x83),
         MachineMode::Int32 => (0, 0x83),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Int8 => (0, 0x80),
     };
 
@@ -487,6 +489,7 @@ pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x38),
         MachineMode::Int32 => (0, 0x39),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x39),
     };
 
@@ -510,6 +513,7 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x8a),
         MachineMode::Int32 => (0, 0x8b),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x8b),
     };
 
@@ -533,6 +537,7 @@ pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x88),
         MachineMode::Int32 => (0, 0x89),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x89),
     };
 
@@ -556,6 +561,7 @@ pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x80),
         MachineMode::Int32 => (0, opcode),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, opcode),
     };
 
@@ -589,6 +595,7 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x38),
         MachineMode::Int32 => (0, 0x39),
+        MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x39),
     };
 

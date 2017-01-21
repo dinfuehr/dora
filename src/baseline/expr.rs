@@ -971,8 +971,13 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Unit => false,
         BuiltinType::Str => true,
-        BuiltinType::Int | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::IntArray => true,
+        BuiltinType::Byte
+            | BuiltinType::Int
+            | BuiltinType::Long
+            | BuiltinType::Bool => false,
+        BuiltinType::Nil
+            | BuiltinType::Ptr
+            | BuiltinType::IntArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
     }
