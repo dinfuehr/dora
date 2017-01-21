@@ -1,13 +1,14 @@
 use libc;
 use std::ptr::{self, write_bytes};
 
-use baseline::map::CodeData;
-use ctxt::{Context, FctKind, get_ctxt};
+use ctxt::{Context, get_ctxt};
 use gc::copy::{minor_collect, SemiSpace};
+use gc::root::{get_rootset, IndirectObj};
 use object::Obj;
 use timer::{in_ms, Timer};
 
 mod copy;
+mod root;
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
@@ -138,7 +139,7 @@ impl Gc {
         let rootset = get_rootset(ctxt);
 
         mark_literals(ctxt, self.cur_marked);
-        mark_rootset(ctxt, &rootset, self.cur_marked);
+        mark_rootset(ctxt, rootset, self.cur_marked);
 
         let cur_marked = self.cur_marked;
         sweep(self, cur_marked);
@@ -181,9 +182,9 @@ fn mark_literals(ctxt: &Context, cur_marked: bool) {
     }
 }
 
-fn mark_rootset(ctxt: &Context, rootset: &Vec<usize>, cur_marked: bool) {
-    for &root in rootset {
-        mark_recursive(ctxt, root as *mut Obj, cur_marked);
+fn mark_rootset(ctxt: &Context, rootset: Vec<IndirectObj>, cur_marked: bool) {
+    for root in rootset {
+        mark_recursive(ctxt, root.obj_ptr(), cur_marked);
     }
 }
 
@@ -273,64 +274,4 @@ fn sweep(gc: &mut Gc, cur_marked: bool) {
 
     // last survived object is now end of list
     gc.obj_end = last;
-}
-
-pub fn get_rootset(ctxt: &Context) -> Vec<usize> {
-    let mut rootset = Vec::new();
-
-    let mut pc: usize;
-    let mut fp: usize;
-
-    assert!(!ctxt.sfi.borrow().is_null());
-
-    {
-        let sfi = unsafe { &**ctxt.sfi.borrow() };
-
-        pc = sfi.ra;
-        fp = sfi.fp;
-    }
-
-    while fp != 0 {
-        if !determine_rootset(&mut rootset, ctxt, fp, pc) {
-            break;
-        }
-
-        pc = unsafe { *((fp + 8) as *const usize) };
-        fp = unsafe { *(fp as *const usize) };
-    }
-
-    rootset
-}
-
-fn determine_rootset(rootset: &mut Vec<usize>, ctxt: &Context, fp: usize, pc: usize) -> bool {
-    let code_map = ctxt.code_map.lock().unwrap();
-    let data = code_map.get(pc as *const u8);
-
-    if data.is_none() {
-        return false;
-    }
-
-    if let CodeData::Fct(fct_id) = data.unwrap() {
-        let fct = ctxt.fcts[fct_id].borrow();
-
-        if let FctKind::Source(ref src) = fct.kind {
-            let src = src.lock().unwrap();
-            let jit_fct = src.jit_fct.as_ref().expect("no jit information");
-            let offset = pc - (jit_fct.fct_ptr() as usize);
-            let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect("no gcpoint");
-
-            for &offset in &gcpoint.offsets {
-                let addr = (fp as isize + offset as isize) as usize;
-                let obj = unsafe { *(addr as *const usize) };
-
-                rootset.push(obj);
-            }
-        } else {
-            panic!("should be FctKind::Source");
-        }
-
-        true
-    } else {
-        false
-    }
 }
