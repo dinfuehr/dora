@@ -6,7 +6,7 @@ use os;
 pub struct SemiSpace {
     start: *const u8,
     end: *const u8,
-    free: *const u8,
+    next: *const u8,
 }
 
 impl SemiSpace {
@@ -21,15 +21,15 @@ impl SemiSpace {
         SemiSpace {
             start: ptr,
             end: unsafe { ptr.offset(size as isize) },
-            free: ptr,
+            next: ptr,
         }
     }
 
     fn allocate(&mut self, size: usize) -> *const u8 {
-        if self.end as usize - self.free as usize > size {
-            let next = unsafe { self.free.offset(size as isize) };
-            let addr = self.free;
-            self.free = next;
+        if self.end as usize - self.next as usize > size {
+            let next = unsafe { self.next.offset(size as isize) };
+            let addr = self.next;
+            self.next = next;
 
             addr
 
