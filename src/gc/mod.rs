@@ -48,12 +48,14 @@ impl Gc {
             prot: os::Executable,
             chunk_size: CHUNK_SIZE,
             limit: CODE_SPACE_LIMIT,
+            align: 64,
         };
 
         let perm_config = SpaceConfig {
             prot: os::Writable,
             chunk_size: CHUNK_SIZE,
             limit: PERM_SPACE_LIMIT,
+            align: 8,
         };
 
         Gc {

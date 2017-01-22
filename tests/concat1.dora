@@ -1,0 +1,4 @@
+fun main() {
+    let x = "hello " + "world";
+    assert(x.len() == 11);
+}

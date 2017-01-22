@@ -8,6 +8,7 @@ pub struct SpaceConfig {
     pub prot: os::ProtType,
     pub chunk_size: usize,
     pub limit: usize,
+    pub align: usize,
 }
 
 pub struct Space {
@@ -32,7 +33,7 @@ impl Space {
     }
 
     pub fn alloc(&mut self, size: usize) -> *mut u8 {
-        let size = mem::align_usize(size, 64);
+        let size = mem::align_usize(size, self.config.align);
         let mut ptr = self.chunks.last_mut().unwrap().alloc(size);
 
         if ptr.is_null() {
