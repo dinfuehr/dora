@@ -29,7 +29,7 @@ pub fn page_size() -> u32 {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ProtType {
     Executable,
     Writable,

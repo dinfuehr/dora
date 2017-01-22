@@ -2,21 +2,27 @@ use libc;
 use std::ptr::{self, write_bytes};
 
 use ctxt::{Context, get_ctxt};
-use gc::code::CodeSpace;
 use gc::copy::{minor_collect, SemiSpace};
 use gc::root::{get_rootset, IndirectObj};
+use gc::space::{Space, SpaceConfig};
+use mem;
 use object::Obj;
+use os;
 use timer::{in_ms, Timer};
 
-mod code;
 mod copy;
 mod root;
+mod space;
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
 
 const INITIAL_SIZE: usize = 64 * 1024;
 const LARGE_OBJECT_SIZE: usize = 64 * 1024;
+
+const CHUNK_SIZE: usize = 8 * 1024;
+const CODE_SPACE_LIMIT: usize = 128 * 1024;
+const PERM_SPACE_LIMIT: usize = 16 * 1024;
 
 pub struct Gc {
     obj_start: *mut Obj,
@@ -33,11 +39,24 @@ pub struct Gc {
     from_space: SemiSpace,
     to_space: SemiSpace,
 
-    code_space: CodeSpace,
+    code_space: Space,
+    perm_space: Space,
 }
 
 impl Gc {
     pub fn new() -> Gc {
+        let code_config = SpaceConfig {
+            prot: os::Executable,
+            chunk_size: CHUNK_SIZE,
+            limit: CODE_SPACE_LIMIT,
+        };
+
+        let perm_config = SpaceConfig {
+            prot: os::Writable,
+            chunk_size: CHUNK_SIZE,
+            limit: PERM_SPACE_LIMIT,
+        };
+
         Gc {
             obj_start: ptr::null_mut(),
             obj_end: ptr::null_mut(),
@@ -52,7 +71,8 @@ impl Gc {
 
             from_space: SemiSpace::new(INITIAL_SIZE),
             to_space: SemiSpace::new(INITIAL_SIZE),
-            code_space: CodeSpace::new(),
+            code_space: Space::new(code_config),
+            perm_space: Space::new(perm_config),
         }
     }
 

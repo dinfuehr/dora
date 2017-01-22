@@ -40,6 +40,10 @@ impl SemiSpace {
         }
     }
 
+    pub fn includes(&self, ptr: *const u8) -> bool {
+        self.start <= ptr && ptr < self.end
+    }
+
     pub fn reset(&mut self) {
         self.next = self.start;
     }
