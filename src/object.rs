@@ -97,7 +97,9 @@ impl Obj {
         }
     }
 
-    pub fn visit_reference_fields<F>(&mut self, mut f: F) where F: FnMut(IndirectObj) {
+    pub fn visit_reference_fields<F>(&mut self, mut f: F)
+        where F: FnMut(IndirectObj)
+    {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 

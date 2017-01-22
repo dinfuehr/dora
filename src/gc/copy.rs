@@ -61,7 +61,10 @@ impl Drop for SemiSpace {
     }
 }
 
-pub fn minor_collect(_: &Context, from_space: &mut SemiSpace, to_space: &mut SemiSpace, rootset: Vec<IndirectObj>) {
+pub fn minor_collect(_: &Context,
+                     from_space: &mut SemiSpace,
+                     to_space: &mut SemiSpace,
+                     rootset: Vec<IndirectObj>) {
     swap_spaces(from_space, to_space);
 
     // empty to-space
@@ -135,9 +138,7 @@ pub fn forwarding_address(obj: *const u8) -> *const u8 {
 }
 
 pub fn get_forwarding_address(obj: &Obj) -> *const u8 {
-    unsafe {
-        *(obj as *const Obj as *const *const u8)
-    }
+    unsafe { *(obj as *const Obj as *const *const u8) }
 }
 
 pub fn set_forwarding_address(obj: &mut Obj, addr: *const u8) {

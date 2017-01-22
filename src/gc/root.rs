@@ -71,7 +71,9 @@ impl IndirectObj {
     }
 
     pub fn set(self, obj: *mut Obj) {
-        unsafe { *self.0 = obj; }
+        unsafe {
+            *self.0 = obj;
+        }
     }
 }
 

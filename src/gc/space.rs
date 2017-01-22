@@ -21,8 +21,8 @@ pub struct Space {
 impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let mut code = Space {
-            name,
-            config,
+            name: name,
+            config: config,
             chunks: Vec::new(),
             size: 0,
         };
