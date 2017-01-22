@@ -4,7 +4,7 @@ use std::result::Result;
 use lexer::position::Position;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum TokenType {
+pub enum TokenKind {
     String(String),
     Number(String),
     Identifier(String),
@@ -96,132 +96,132 @@ pub enum TokenType {
     LtLt,
 }
 
-impl TokenType {
+impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
-            TokenType::String(_) => "string",
-            TokenType::Number(_) => "number",
-            TokenType::Identifier(_) => "identifier",
-            TokenType::End => "<<EOF>>",
+            TokenKind::String(_) => "string",
+            TokenKind::Number(_) => "number",
+            TokenKind::Identifier(_) => "identifier",
+            TokenKind::End => "<<EOF>>",
 
-            TokenType::LQuote => "<",
-            TokenType::RQuote => ">",
+            TokenKind::LQuote => "<",
+            TokenKind::RQuote => ">",
 
             // Keywords
-            TokenType::Class => "class",
-            TokenType::This => "this",
-            TokenType::Super => "super",
-            TokenType::Fun => "fun",
-            TokenType::Let => "let",
-            TokenType::Var => "var",
-            TokenType::While => "while",
-            TokenType::If => "if",
-            TokenType::Else => "else",
-            TokenType::Loop => "loop",
-            TokenType::Break => "break",
-            TokenType::Continue => "continue",
-            TokenType::Return => "return",
-            TokenType::True => "true",
-            TokenType::False => "false",
-            TokenType::Nil => "nil",
-            TokenType::Throws => "throws",
-            TokenType::Throw => "throw",
-            TokenType::Try => "try",
-            TokenType::TryForce => "try!",
-            TokenType::TryOpt => "try?",
-            TokenType::Do => "do",
-            TokenType::Catch => "catch",
-            TokenType::Finally => "finally",
-            TokenType::Final => "final",
-            TokenType::Init => "init",
+            TokenKind::Class => "class",
+            TokenKind::This => "this",
+            TokenKind::Super => "super",
+            TokenKind::Fun => "fun",
+            TokenKind::Let => "let",
+            TokenKind::Var => "var",
+            TokenKind::While => "while",
+            TokenKind::If => "if",
+            TokenKind::Else => "else",
+            TokenKind::Loop => "loop",
+            TokenKind::Break => "break",
+            TokenKind::Continue => "continue",
+            TokenKind::Return => "return",
+            TokenKind::True => "true",
+            TokenKind::False => "false",
+            TokenKind::Nil => "nil",
+            TokenKind::Throws => "throws",
+            TokenKind::Throw => "throw",
+            TokenKind::Try => "try",
+            TokenKind::TryForce => "try!",
+            TokenKind::TryOpt => "try?",
+            TokenKind::Do => "do",
+            TokenKind::Catch => "catch",
+            TokenKind::Finally => "finally",
+            TokenKind::Final => "final",
+            TokenKind::Init => "init",
 
-            TokenType::Enum => "enum",
-            TokenType::Type => "type",
-            TokenType::Alias => "alias",
-            TokenType::Struct => "struct",
-            TokenType::Trait => "trait",
+            TokenKind::Enum => "enum",
+            TokenKind::Type => "type",
+            TokenKind::Alias => "alias",
+            TokenKind::Struct => "struct",
+            TokenKind::Trait => "trait",
 
-            TokenType::Underscore => "_",
+            TokenKind::Underscore => "_",
 
             // Modifiers
-            TokenType::Open => "open",
-            TokenType::Override => "override",
+            TokenKind::Open => "open",
+            TokenKind::Override => "override",
 
             // Operators
-            TokenType::Add => "+",
-            TokenType::Sub => "-",
-            TokenType::Mul => "*",
-            TokenType::Div => "/",
-            TokenType::Mod => "%",
-            TokenType::Not => "!",
-            TokenType::LParen => "(",
-            TokenType::RParen => ")",
-            TokenType::LBracket => "[",
-            TokenType::RBracket => "]",
-            TokenType::LBrace => "{",
-            TokenType::RBrace => "}",
-            TokenType::Comma => ",",
-            TokenType::Semicolon => ";",
-            TokenType::Dot => ".",
-            TokenType::Colon => ":",
-            TokenType::Arrow => "=>",
-            TokenType::Tilde => "~",
-            TokenType::BitOr => "|",
-            TokenType::BitAnd => "&",
-            TokenType::Caret => "^",
-            TokenType::And => "&&",
-            TokenType::Or => "||",
-            TokenType::Internal => "internal",
+            TokenKind::Add => "+",
+            TokenKind::Sub => "-",
+            TokenKind::Mul => "*",
+            TokenKind::Div => "/",
+            TokenKind::Mod => "%",
+            TokenKind::Not => "!",
+            TokenKind::LParen => "(",
+            TokenKind::RParen => ")",
+            TokenKind::LBracket => "[",
+            TokenKind::RBracket => "]",
+            TokenKind::LBrace => "{",
+            TokenKind::RBrace => "}",
+            TokenKind::Comma => ",",
+            TokenKind::Semicolon => ";",
+            TokenKind::Dot => ".",
+            TokenKind::Colon => ":",
+            TokenKind::Arrow => "=>",
+            TokenKind::Tilde => "~",
+            TokenKind::BitOr => "|",
+            TokenKind::BitAnd => "&",
+            TokenKind::Caret => "^",
+            TokenKind::And => "&&",
+            TokenKind::Or => "||",
+            TokenKind::Internal => "internal",
 
-            TokenType::Eq => "=",
-            TokenType::EqEq => "==",
-            TokenType::Ne => "!=",
-            TokenType::Lt => "<",
-            TokenType::Le => "<=",
-            TokenType::Gt => ">",
-            TokenType::Ge => ">=",
+            TokenKind::Eq => "=",
+            TokenKind::EqEq => "==",
+            TokenKind::Ne => "!=",
+            TokenKind::Lt => "<",
+            TokenKind::Le => "<=",
+            TokenKind::Gt => ">",
+            TokenKind::Ge => ">=",
 
-            TokenType::GtGt => ">>",
-            TokenType::GtGtGt => ">>>",
-            TokenType::LtLt => "<<",
+            TokenKind::GtGt => ">>",
+            TokenKind::GtGtGt => ">>>",
+            TokenKind::LtLt => "<<",
 
-            TokenType::EqEqEq => "===",
-            TokenType::NeEqEq => "!==",
-            TokenType::Is => "is",
-            TokenType::As => "as",
+            TokenKind::EqEqEq => "===",
+            TokenKind::NeEqEq => "!==",
+            TokenKind::Is => "is",
+            TokenKind::As => "as",
         }
     }
 }
 
 #[derive(PartialEq,Eq,Debug)]
 pub struct Token {
-    pub token_type: TokenType,
+    pub kind: TokenKind,
     pub position: Position,
 }
 
 impl Token {
-    pub fn new(tok: TokenType, pos: Position) -> Token {
+    pub fn new(tok: TokenKind, pos: Position) -> Token {
         Token {
-            token_type: tok,
+            kind: tok,
             position: pos,
         }
     }
 
     pub fn is_eof(&self) -> bool {
-        self.token_type == TokenType::End
+        self.kind == TokenKind::End
     }
 
-    pub fn is(&self, token_type: TokenType) -> bool {
-        self.token_type == token_type
+    pub fn is(&self, kind: TokenKind) -> bool {
+        self.kind == kind
     }
 
     pub fn name(&self) -> String {
-        match self.token_type {
-            TokenType::Number(ref val) => val.clone(),
-            TokenType::String(ref val) => format!("\"{}\"", &val),
-            TokenType::Identifier(ref val) => val.clone(),
+        match self.kind {
+            TokenKind::Number(ref val) => val.clone(),
+            TokenKind::String(ref val) => format!("\"{}\"", &val),
+            TokenKind::Identifier(ref val) => val.clone(),
 
-            _ => self.token_type.name().into(),
+            _ => self.kind.name().into(),
         }
     }
 }

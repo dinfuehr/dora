@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::io::Error;
 
 use lexer::reader::{CodeReader, FileReader, ReaderResult};
-use lexer::token::{Token, TokenType};
+use lexer::token::{Token, TokenKind};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
 use error::msg::{Msg, MsgWithPos};
@@ -21,7 +21,7 @@ pub struct Lexer<T: CodeReader> {
     eof_reached: bool,
     tabwidth: u32,
     state: State,
-    keywords: HashMap<&'static str, TokenType>,
+    keywords: HashMap<&'static str, TokenKind>,
 
     buffer: VecDeque<Result<CharPos, MsgWithPos>>,
 }
@@ -54,40 +54,40 @@ impl<T: CodeReader> Lexer<T> {
     pub fn new_with_tabwidth(reader: T, tabwidth: u32) -> Lexer<T> {
         // TODO: replace HashMap with phf when it is stable
         let mut keywords = HashMap::new();
-        keywords.insert("class", TokenType::Class);
-        keywords.insert("self", TokenType::This);
-        keywords.insert("super", TokenType::Super);
-        keywords.insert("fun", TokenType::Fun);
-        keywords.insert("let", TokenType::Let);
-        keywords.insert("var", TokenType::Var);
-        keywords.insert("while", TokenType::While);
-        keywords.insert("if", TokenType::If);
-        keywords.insert("else", TokenType::Else);
-        keywords.insert("loop", TokenType::Loop);
-        keywords.insert("break", TokenType::Break);
-        keywords.insert("continue", TokenType::Continue);
-        keywords.insert("return", TokenType::Return);
-        keywords.insert("true", TokenType::True);
-        keywords.insert("false", TokenType::False);
-        keywords.insert("nil", TokenType::Nil);
-        keywords.insert("enum", TokenType::Enum);
-        keywords.insert("type", TokenType::Type);
-        keywords.insert("alias", TokenType::Alias);
-        keywords.insert("struct", TokenType::Struct);
-        keywords.insert("trait", TokenType::Trait);
-        keywords.insert("throws", TokenType::Throws);
-        keywords.insert("throw", TokenType::Throw);
-        keywords.insert("try", TokenType::Try);
-        keywords.insert("do", TokenType::Do);
-        keywords.insert("catch", TokenType::Catch);
-        keywords.insert("finally", TokenType::Finally);
-        keywords.insert("open", TokenType::Open);
-        keywords.insert("override", TokenType::Override);
-        keywords.insert("final", TokenType::Final);
-        keywords.insert("is", TokenType::Is);
-        keywords.insert("as", TokenType::As);
-        keywords.insert("internal", TokenType::Internal);
-        keywords.insert("init", TokenType::Init);
+        keywords.insert("class", TokenKind::Class);
+        keywords.insert("self", TokenKind::This);
+        keywords.insert("super", TokenKind::Super);
+        keywords.insert("fun", TokenKind::Fun);
+        keywords.insert("let", TokenKind::Let);
+        keywords.insert("var", TokenKind::Var);
+        keywords.insert("while", TokenKind::While);
+        keywords.insert("if", TokenKind::If);
+        keywords.insert("else", TokenKind::Else);
+        keywords.insert("loop", TokenKind::Loop);
+        keywords.insert("break", TokenKind::Break);
+        keywords.insert("continue", TokenKind::Continue);
+        keywords.insert("return", TokenKind::Return);
+        keywords.insert("true", TokenKind::True);
+        keywords.insert("false", TokenKind::False);
+        keywords.insert("nil", TokenKind::Nil);
+        keywords.insert("enum", TokenKind::Enum);
+        keywords.insert("type", TokenKind::Type);
+        keywords.insert("alias", TokenKind::Alias);
+        keywords.insert("struct", TokenKind::Struct);
+        keywords.insert("trait", TokenKind::Trait);
+        keywords.insert("throws", TokenKind::Throws);
+        keywords.insert("throw", TokenKind::Throw);
+        keywords.insert("try", TokenKind::Try);
+        keywords.insert("do", TokenKind::Do);
+        keywords.insert("catch", TokenKind::Catch);
+        keywords.insert("finally", TokenKind::Finally);
+        keywords.insert("open", TokenKind::Open);
+        keywords.insert("override", TokenKind::Override);
+        keywords.insert("final", TokenKind::Final);
+        keywords.insert("is", TokenKind::Is);
+        keywords.insert("as", TokenKind::As);
+        keywords.insert("internal", TokenKind::Internal);
+        keywords.insert("init", TokenKind::Init);
 
         let mut lexer = Lexer::<T> {
             reader: reader,
@@ -113,7 +113,7 @@ impl<T: CodeReader> Lexer<T> {
             self.skip_white();
 
             if let None = self.top() {
-                return Ok(Token::new(TokenType::End, self.position));
+                return Ok(Token::new(TokenKind::End, self.position));
             }
 
             if self.is_digit() {
@@ -191,7 +191,7 @@ impl<T: CodeReader> Lexer<T> {
         if let Some(tok_type) = lookup {
             ttype = tok_type;
 
-            if ttype == TokenType::Try {
+            if ttype == TokenKind::Try {
                 if let Some(ch) = self.top() {
                     let ch = ch.value;
 
@@ -199,18 +199,18 @@ impl<T: CodeReader> Lexer<T> {
                         try!(self.read_char().unwrap());
 
                         ttype = if ch == '!' {
-                            TokenType::TryForce
+                            TokenKind::TryForce
                         } else {
-                            TokenType::TryOpt
+                            TokenKind::TryOpt
                         };
                     }
                 }
             }
 
         } else if value == "_" {
-            ttype = TokenType::Underscore;
+            ttype = TokenKind::Underscore;
         } else {
-            ttype = TokenType::Identifier(value);
+            ttype = TokenKind::Identifier(value);
         }
 
         Ok(Token::new(ttype, pos))
@@ -255,7 +255,7 @@ impl<T: CodeReader> Lexer<T> {
         if !escape && self.is_quote() {
             self.read_char();
 
-            let ttype = TokenType::String(value);
+            let ttype = TokenKind::String(value);
             Ok(Token::new(ttype, pos))
 
         } else {
@@ -264,7 +264,7 @@ impl<T: CodeReader> Lexer<T> {
     }
 
     fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
-        let mut tok = self.build_token(TokenType::End);
+        let mut tok = self.build_token(TokenKind::End);
         let ch = try!(self.read_char().unwrap()).value;
 
         let nch = self.top();
@@ -281,64 +281,64 @@ impl<T: CodeReader> Lexer<T> {
             'x'
         };
 
-        tok.token_type = match ch {
-            '+' => TokenType::Add,
+        tok.kind = match ch {
+            '+' => TokenKind::Add,
             '-' => {
                 if nch == '>' {
                     self.read_char();
-                    TokenType::Arrow
+                    TokenKind::Arrow
                 } else {
-                    TokenType::Sub
+                    TokenKind::Sub
                 }
             }
 
-            '*' => TokenType::Mul,
-            '/' => TokenType::Div,
-            '%' => TokenType::Mod,
+            '*' => TokenKind::Mul,
+            '/' => TokenKind::Div,
+            '%' => TokenKind::Mod,
 
-            '(' => TokenType::LParen,
-            ')' => TokenType::RParen,
-            '[' => TokenType::LBracket,
-            ']' => TokenType::RBracket,
-            '{' => TokenType::LBrace,
-            '}' => TokenType::RBrace,
+            '(' => TokenKind::LParen,
+            ')' => TokenKind::RParen,
+            '[' => TokenKind::LBracket,
+            ']' => TokenKind::RBracket,
+            '{' => TokenKind::LBrace,
+            '}' => TokenKind::RBrace,
 
             '|' => {
                 if nch == '|' {
                     self.read_char();
-                    TokenType::Or
+                    TokenKind::Or
                 } else {
-                    TokenType::BitOr
+                    TokenKind::BitOr
                 }
             }
 
             '&' => {
                 if nch == '&' {
                     self.read_char();
-                    TokenType::And
+                    TokenKind::And
                 } else {
-                    TokenType::BitAnd
+                    TokenKind::BitAnd
                 }
             }
 
-            '^' => TokenType::Caret,
-            '~' => TokenType::Tilde,
-            ',' => TokenType::Comma,
-            ';' => TokenType::Semicolon,
-            ':' => TokenType::Colon,
-            '.' => TokenType::Dot,
+            '^' => TokenKind::Caret,
+            '~' => TokenKind::Tilde,
+            ',' => TokenKind::Comma,
+            ';' => TokenKind::Semicolon,
+            ':' => TokenKind::Colon,
+            '.' => TokenKind::Dot,
             '=' => {
                 if nch == '=' {
                     self.read_char();
 
                     if nnch == '=' {
                         self.read_char();
-                        TokenType::EqEqEq
+                        TokenKind::EqEqEq
                     } else {
-                        TokenType::EqEq
+                        TokenKind::EqEq
                     }
                 } else {
-                    TokenType::Eq
+                    TokenKind::Eq
                 }
             }
 
@@ -346,15 +346,15 @@ impl<T: CodeReader> Lexer<T> {
                 match nch {
                     '=' => {
                         self.read_char();
-                        TokenType::Le
+                        TokenKind::Le
                     }
 
                     '<' => {
                         self.read_char();
-                        TokenType::LtLt
+                        TokenKind::LtLt
                     }
 
-                    _ => TokenType::Lt,
+                    _ => TokenKind::Lt,
                 }
             }
 
@@ -362,7 +362,7 @@ impl<T: CodeReader> Lexer<T> {
                 match nch {
                     '=' => {
                         self.read_char();
-                        TokenType::Ge
+                        TokenKind::Ge
                     }
 
                     '>' => {
@@ -370,13 +370,13 @@ impl<T: CodeReader> Lexer<T> {
 
                         if nnch == '>' {
                             self.read_char();
-                            TokenType::GtGtGt
+                            TokenKind::GtGtGt
                         } else {
-                            TokenType::GtGt
+                            TokenKind::GtGt
                         }
                     }
 
-                    _ => TokenType::Gt,
+                    _ => TokenKind::Gt,
                 }
             }
 
@@ -386,12 +386,12 @@ impl<T: CodeReader> Lexer<T> {
 
                     if nnch == '=' {
                         self.read_char();
-                        TokenType::NeEqEq
+                        TokenKind::NeEqEq
                     } else {
-                        TokenType::Ne
+                        TokenKind::Ne
                     }
                 } else {
-                    TokenType::Not
+                    TokenKind::Not
                 }
             }
 
@@ -412,7 +412,7 @@ impl<T: CodeReader> Lexer<T> {
             value.push(ch);
         }
 
-        let ttype = TokenType::Number(value);
+        let ttype = TokenKind::Number(value);
         Ok(Token::new(ttype, pos))
     }
 
@@ -438,8 +438,8 @@ impl<T: CodeReader> Lexer<T> {
         }
     }
 
-    fn build_token(&self, token_type: TokenType) -> Token {
-        Token::new(token_type, self.top().unwrap().position)
+    fn build_token(&self, kind: TokenKind) -> Token {
+        Token::new(kind, self.top().unwrap().position)
     }
 
     fn fill_buffer(&mut self) {
@@ -557,15 +557,15 @@ mod tests {
     use super::*;
     use error::msg::Msg;
     use lexer::reader::{CodeReader, StrReader};
-    use lexer::token::TokenType;
+    use lexer::token::TokenKind;
 
     fn assert_end<T: CodeReader>(reader: &mut Lexer<T>, l: u32, c: u32) {
-        assert_tok(reader, TokenType::End, l, c);
+        assert_tok(reader, TokenKind::End, l, c);
     }
 
-    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, token_type: TokenType, l: u32, c: u32) {
+    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, kind: TokenKind, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
-        assert_eq!(token_type, tok.token_type);
+        assert_eq!(kind, tok.kind);
         assert_eq!(l, tok.position.line);
         assert_eq!(c, tok.position.column);
     }
@@ -587,17 +587,17 @@ mod tests {
     #[test]
     fn test_read_numbers() {
         let mut reader = Lexer::from_str("1 2\n0123 10");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Number("2".into()), 1, 3);
-        assert_tok(&mut reader, TokenType::Number("0123".into()), 2, 1);
-        assert_tok(&mut reader, TokenType::Number("10".into()), 2, 6);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("2".into()), 1, 3);
+        assert_tok(&mut reader, TokenKind::Number("0123".into()), 2, 1);
+        assert_tok(&mut reader, TokenKind::Number("10".into()), 2, 6);
         assert_end(&mut reader, 2, 8);
     }
 
     #[test]
     fn test_skip_single_line_comment() {
         let mut reader = Lexer::from_str("//test\n1");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 2, 1);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 2, 1);
         assert_end(&mut reader, 2, 2);
     }
 
@@ -610,7 +610,7 @@ mod tests {
     #[test]
     fn test_skip_multi_comment() {
         let mut reader = Lexer::from_str("/*test*/1");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 9);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 9);
         assert_end(&mut reader, 1, 10);
     }
 
@@ -620,16 +620,16 @@ mod tests {
         assert_err(&mut reader, Msg::UnclosedComment, 1, 1);
 
         let mut reader = Lexer::from_str("1/*test");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
         assert_err(&mut reader, Msg::UnclosedComment, 1, 2);
     }
 
     #[test]
     fn test_read_identifier() {
         let mut reader = Lexer::from_str("abc ident test");
-        assert_tok(&mut reader, TokenType::Identifier("abc".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Identifier("ident".into()), 1, 5);
-        assert_tok(&mut reader, TokenType::Identifier("test".into()), 1, 11);
+        assert_tok(&mut reader, TokenKind::Identifier("abc".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Identifier("ident".into()), 1, 5);
+        assert_tok(&mut reader, TokenKind::Identifier("test".into()), 1, 11);
         assert_end(&mut reader, 1, 15);
 
     }
@@ -637,27 +637,27 @@ mod tests {
     #[test]
     fn test_code_with_spaces() {
         let mut reader = Lexer::from_str("1 2 3");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Number("2".into()), 1, 3);
-        assert_tok(&mut reader, TokenType::Number("3".into()), 1, 5);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("2".into()), 1, 3);
+        assert_tok(&mut reader, TokenKind::Number("3".into()), 1, 5);
         assert_end(&mut reader, 1, 6);
     }
 
     #[test]
     fn test_code_with_newlines() {
         let mut reader = Lexer::from_str("1\n2\n3");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Number("2".into()), 2, 1);
-        assert_tok(&mut reader, TokenType::Number("3".into()), 3, 1);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("2".into()), 2, 1);
+        assert_tok(&mut reader, TokenKind::Number("3".into()), 3, 1);
         assert_end(&mut reader, 3, 2);
     }
 
     #[test]
     fn test_code_with_tabs() {
         let mut reader = Lexer::from_str("1\t2\t3");
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Number("2".into()), 1, 5);
-        assert_tok(&mut reader, TokenType::Number("3".into()), 1, 9);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("2".into()), 1, 5);
+        assert_tok(&mut reader, TokenKind::Number("3".into()), 1, 9);
         assert_end(&mut reader, 1, 10);
     }
 
@@ -666,40 +666,40 @@ mod tests {
         let str_reader = StrReader::new("1\t2\n1234567\t8\n12345678\t9");
         let mut reader = Lexer::new_with_tabwidth(str_reader, 8);
 
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 1);
-        assert_tok(&mut reader, TokenType::Number("2".into()), 1, 9);
-        assert_tok(&mut reader, TokenType::Number("1234567".into()), 2, 1);
-        assert_tok(&mut reader, TokenType::Number("8".into()), 2, 9);
-        assert_tok(&mut reader, TokenType::Number("12345678".into()), 3, 1);
-        assert_tok(&mut reader, TokenType::Number("9".into()), 3, 17);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Number("2".into()), 1, 9);
+        assert_tok(&mut reader, TokenKind::Number("1234567".into()), 2, 1);
+        assert_tok(&mut reader, TokenKind::Number("8".into()), 2, 9);
+        assert_tok(&mut reader, TokenKind::Number("12345678".into()), 3, 1);
+        assert_tok(&mut reader, TokenKind::Number("9".into()), 3, 17);
         assert_end(&mut reader, 3, 18);
     }
 
     #[test]
     fn test_string_with_newline() {
         let mut reader = Lexer::from_str("\"abc\ndef\"");
-        assert_tok(&mut reader, TokenType::String("abc\ndef".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("abc\ndef".into()), 1, 1);
     }
 
     #[test]
     fn test_escape_sequences() {
         let mut reader = Lexer::from_str("\"\\\"\"");
-        assert_tok(&mut reader, TokenType::String("\"".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("\"".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\\'\"");
-        assert_tok(&mut reader, TokenType::String("'".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("'".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\t\"");
-        assert_tok(&mut reader, TokenType::String("\t".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("\t".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\n\"");
-        assert_tok(&mut reader, TokenType::String("\n".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("\n".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\r\"");
-        assert_tok(&mut reader, TokenType::String("\r".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("\r".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\\\\"");
-        assert_tok(&mut reader, TokenType::String("\\".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("\\".into()), 1, 1);
 
         let mut reader = Lexer::from_str("\"\\");
         assert_err(&mut reader, Msg::UnclosedString, 1, 1);
@@ -714,80 +714,80 @@ mod tests {
     #[test]
     fn test_string() {
         let mut reader = Lexer::from_str("\"abc\"");
-        assert_tok(&mut reader, TokenType::String("abc".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::String("abc".into()), 1, 1);
         assert_end(&mut reader, 1, 6);
     }
 
     #[test]
     fn test_keywords() {
         let mut reader = Lexer::from_str("fun let while if else self class");
-        assert_tok(&mut reader, TokenType::Fun, 1, 1);
-        assert_tok(&mut reader, TokenType::Let, 1, 5);
-        assert_tok(&mut reader, TokenType::While, 1, 9);
-        assert_tok(&mut reader, TokenType::If, 1, 15);
-        assert_tok(&mut reader, TokenType::Else, 1, 18);
+        assert_tok(&mut reader, TokenKind::Fun, 1, 1);
+        assert_tok(&mut reader, TokenKind::Let, 1, 5);
+        assert_tok(&mut reader, TokenKind::While, 1, 9);
+        assert_tok(&mut reader, TokenKind::If, 1, 15);
+        assert_tok(&mut reader, TokenKind::Else, 1, 18);
 
         let mut reader = Lexer::from_str("self class super");
-        assert_tok(&mut reader, TokenType::This, 1, 1);
-        assert_tok(&mut reader, TokenType::Class, 1, 6);
-        assert_tok(&mut reader, TokenType::Super, 1, 12);
+        assert_tok(&mut reader, TokenKind::This, 1, 1);
+        assert_tok(&mut reader, TokenKind::Class, 1, 6);
+        assert_tok(&mut reader, TokenKind::Super, 1, 12);
 
         let mut reader = Lexer::from_str("loop break continue return nil");
-        assert_tok(&mut reader, TokenType::Loop, 1, 1);
-        assert_tok(&mut reader, TokenType::Break, 1, 6);
-        assert_tok(&mut reader, TokenType::Continue, 1, 12);
-        assert_tok(&mut reader, TokenType::Return, 1, 21);
-        assert_tok(&mut reader, TokenType::Nil, 1, 28);
+        assert_tok(&mut reader, TokenKind::Loop, 1, 1);
+        assert_tok(&mut reader, TokenKind::Break, 1, 6);
+        assert_tok(&mut reader, TokenKind::Continue, 1, 12);
+        assert_tok(&mut reader, TokenKind::Return, 1, 21);
+        assert_tok(&mut reader, TokenKind::Nil, 1, 28);
 
         let mut reader = Lexer::from_str("type struct enum alias trait");
-        assert_tok(&mut reader, TokenType::Type, 1, 1);
-        assert_tok(&mut reader, TokenType::Struct, 1, 6);
-        assert_tok(&mut reader, TokenType::Enum, 1, 13);
-        assert_tok(&mut reader, TokenType::Alias, 1, 18);
-        assert_tok(&mut reader, TokenType::Trait, 1, 24);
+        assert_tok(&mut reader, TokenKind::Type, 1, 1);
+        assert_tok(&mut reader, TokenKind::Struct, 1, 6);
+        assert_tok(&mut reader, TokenKind::Enum, 1, 13);
+        assert_tok(&mut reader, TokenKind::Alias, 1, 18);
+        assert_tok(&mut reader, TokenKind::Trait, 1, 24);
     }
 
     #[test]
     fn test_operators() {
         let mut reader = Lexer::from_str("==+=-*/%~.");
-        assert_tok(&mut reader, TokenType::EqEq, 1, 1);
-        assert_tok(&mut reader, TokenType::Add, 1, 3);
-        assert_tok(&mut reader, TokenType::Eq, 1, 4);
-        assert_tok(&mut reader, TokenType::Sub, 1, 5);
-        assert_tok(&mut reader, TokenType::Mul, 1, 6);
-        assert_tok(&mut reader, TokenType::Div, 1, 7);
-        assert_tok(&mut reader, TokenType::Mod, 1, 8);
-        assert_tok(&mut reader, TokenType::Tilde, 1, 9);
-        assert_tok(&mut reader, TokenType::Dot, 1, 10);
+        assert_tok(&mut reader, TokenKind::EqEq, 1, 1);
+        assert_tok(&mut reader, TokenKind::Add, 1, 3);
+        assert_tok(&mut reader, TokenKind::Eq, 1, 4);
+        assert_tok(&mut reader, TokenKind::Sub, 1, 5);
+        assert_tok(&mut reader, TokenKind::Mul, 1, 6);
+        assert_tok(&mut reader, TokenKind::Div, 1, 7);
+        assert_tok(&mut reader, TokenKind::Mod, 1, 8);
+        assert_tok(&mut reader, TokenKind::Tilde, 1, 9);
+        assert_tok(&mut reader, TokenKind::Dot, 1, 10);
 
         let mut reader = Lexer::from_str("<=<>=><");
-        assert_tok(&mut reader, TokenType::Le, 1, 1);
-        assert_tok(&mut reader, TokenType::Lt, 1, 3);
-        assert_tok(&mut reader, TokenType::Ge, 1, 4);
-        assert_tok(&mut reader, TokenType::Gt, 1, 6);
-        assert_tok(&mut reader, TokenType::Lt, 1, 7);
+        assert_tok(&mut reader, TokenKind::Le, 1, 1);
+        assert_tok(&mut reader, TokenKind::Lt, 1, 3);
+        assert_tok(&mut reader, TokenKind::Ge, 1, 4);
+        assert_tok(&mut reader, TokenKind::Gt, 1, 6);
+        assert_tok(&mut reader, TokenKind::Lt, 1, 7);
 
         let mut reader = Lexer::from_str("!=====!");
-        assert_tok(&mut reader, TokenType::NeEqEq, 1, 1);
-        assert_tok(&mut reader, TokenType::EqEqEq, 1, 4);
-        assert_tok(&mut reader, TokenType::Not, 1, 7);
+        assert_tok(&mut reader, TokenKind::NeEqEq, 1, 1);
+        assert_tok(&mut reader, TokenKind::EqEqEq, 1, 4);
+        assert_tok(&mut reader, TokenKind::Not, 1, 7);
 
         let mut reader = Lexer::from_str("!=!");
-        assert_tok(&mut reader, TokenType::Ne, 1, 1);
-        assert_tok(&mut reader, TokenType::Not, 1, 3);
+        assert_tok(&mut reader, TokenKind::Ne, 1, 1);
+        assert_tok(&mut reader, TokenKind::Not, 1, 3);
 
         let mut reader = Lexer::from_str("->");
-        assert_tok(&mut reader, TokenType::Arrow, 1, 1);
+        assert_tok(&mut reader, TokenKind::Arrow, 1, 1);
 
         let mut reader = Lexer::from_str("try!try?1");
-        assert_tok(&mut reader, TokenType::TryForce, 1, 1);
-        assert_tok(&mut reader, TokenType::TryOpt, 1, 5);
-        assert_tok(&mut reader, TokenType::Number("1".into()), 1, 9);
+        assert_tok(&mut reader, TokenKind::TryForce, 1, 1);
+        assert_tok(&mut reader, TokenKind::TryOpt, 1, 5);
+        assert_tok(&mut reader, TokenKind::Number("1".into()), 1, 9);
 
         let mut reader = Lexer::from_str(">><<>>>_");
-        assert_tok(&mut reader, TokenType::GtGt, 1, 1);
-        assert_tok(&mut reader, TokenType::LtLt, 1, 3);
-        assert_tok(&mut reader, TokenType::GtGtGt, 1, 5);
-        assert_tok(&mut reader, TokenType::Underscore, 1, 8);
+        assert_tok(&mut reader, TokenKind::GtGt, 1, 1);
+        assert_tok(&mut reader, TokenKind::LtLt, 1, 3);
+        assert_tok(&mut reader, TokenKind::GtGtGt, 1, 5);
+        assert_tok(&mut reader, TokenKind::Underscore, 1, 8);
     }
 }

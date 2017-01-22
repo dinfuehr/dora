@@ -53,7 +53,7 @@ type StmtResult = Result<Box<Stmt>, MsgWithPos>;
 
 impl<'a, T: CodeReader> Parser<'a, T> {
     pub fn new(lexer: Lexer<T>, ast: &'a mut Ast, interner: &'a mut Interner) -> Parser<'a, T> {
-        let token = Token::new(TokenType::End, Position::new(1, 1));
+        let token = Token::new(TokenKind::End, Position::new(1, 1));
         let parser = Parser {
             lexer: lexer,
             token: token,
@@ -98,20 +98,20 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_top_level_element(&mut self) -> Result<Elem, MsgWithPos> {
         let modifiers = self.parse_modifiers()?;
 
-        match self.token.token_type {
-            TokenType::Fun => {
+        match self.token.kind {
+            TokenKind::Fun => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Internal])?;
                 let fct = self.parse_function(&modifiers)?;
                 Ok(ElemFunction(fct))
             }
 
-            TokenType::Class => {
+            TokenKind::Class => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Internal])?;
                 let class = self.parse_class(&modifiers)?;
                 Ok(ElemClass(class))
             }
 
-            TokenType::Struct => {
+            TokenKind::Struct => {
                 self.ban_modifiers(&modifiers)?;
                 let struc = self.parse_struct()?;
                 Ok(ElemStruct(struc))
@@ -125,11 +125,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
-        let pos = self.expect_token(TokenType::Struct)?.position;
+        let pos = self.expect_token(TokenKind::Struct)?.position;
         let ident = self.expect_identifier()?;
 
-        self.expect_token(TokenType::LBrace)?;
-        let fields = self.parse_comma_list(TokenType::RBrace, |p| p.parse_struct_field())?;
+        self.expect_token(TokenKind::LBrace)?;
+        let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
 
         Ok(Struct {
             id: self.generate_id(),
@@ -143,7 +143,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = self.token.position;
         let ident = self.expect_identifier()?;
 
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let ty = self.parse_type()?;
 
         Ok(StructField {
@@ -158,7 +158,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let has_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
 
-        let pos = self.expect_token(TokenType::Class)?.position;
+        let pos = self.expect_token(TokenKind::Class)?.position;
         let ident = self.expect_identifier()?;
 
         let mut cls = Class {
@@ -177,7 +177,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         self.in_class = true;
         let ctor_params = self.parse_primary_ctor(&mut cls)?;
 
-        cls.parent_class = if self.token.is(TokenType::Colon) {
+        cls.parent_class = if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
 
             let pos = self.token.position;
@@ -234,25 +234,25 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, MsgWithPos> {
-        if !self.token.is(TokenType::LParen) {
+        if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
         }
 
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(TokenKind::LParen)?;
 
-        let params = self.parse_comma_list(TokenType::RParen, |p| p.parse_expression())?;
+        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
         Ok(params)
     }
 
     fn parse_primary_ctor(&mut self, cls: &mut Class) -> Result<Vec<PrimaryCtorParam>, MsgWithPos> {
-        if !self.token.is(TokenType::LParen) {
+        if !self.token.is(TokenKind::LParen) {
             return Ok(Vec::new());
         }
 
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(TokenKind::LParen)?;
 
-        let params = self.parse_comma_list(TokenType::RParen, |p| p.parse_primary_ctor_param(cls))?;
+        let params = self.parse_comma_list(TokenKind::RParen, |p| p.parse_primary_ctor_param(cls))?;
 
         Ok(params)
     }
@@ -260,8 +260,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_primary_ctor_param(&mut self,
                                 cls: &mut Class)
                                 -> Result<PrimaryCtorParam, MsgWithPos> {
-        let field = self.token.is(TokenType::Var) || self.token.is(TokenType::Let);
-        let reassignable = self.token.is(TokenType::Var);
+        let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
+        let reassignable = self.token.is(TokenKind::Var);
 
         // consume var and let
         if field {
@@ -271,7 +271,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = self.token.position;
         let name = self.expect_identifier()?;
 
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
 
         if field {
@@ -296,17 +296,17 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
-        if !self.token.is(TokenType::LBrace) {
+        if !self.token.is(TokenKind::LBrace) {
             return Ok(());
         }
 
         self.advance_token()?;
 
-        while !self.token.is(TokenType::RBrace) {
+        while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_modifiers()?;
 
-            match self.token.token_type {
-                TokenType::Fun => {
+            match self.token.kind {
+                TokenKind::Fun => {
                     let mods =
                         &[Modifier::Internal, Modifier::Open, Modifier::Override, Modifier::Final];
                     self.restrict_modifiers(&modifiers, mods)?;
@@ -315,14 +315,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                     cls.methods.push(fct);
                 }
 
-                TokenType::Init => {
+                TokenKind::Init => {
                     self.ban_modifiers(&modifiers)?;
 
                     let ctor = self.parse_ctor(cls)?;
                     cls.ctors.push(ctor);
                 }
 
-                TokenType::Var | TokenType::Let => {
+                TokenKind::Var | TokenKind::Let => {
                     self.ban_modifiers(&modifiers)?;
 
                     let field = self.parse_field()?;
@@ -344,11 +344,11 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let mut modifiers = Modifiers::new();
 
         loop {
-            let modifier = match self.token.token_type {
-                TokenType::Open => Modifier::Open,
-                TokenType::Override => Modifier::Override,
-                TokenType::Final => Modifier::Final,
-                TokenType::Internal => Modifier::Internal,
+            let modifier = match self.token.kind {
+                TokenKind::Open => Modifier::Open,
+                TokenKind::Override => Modifier::Override,
+                TokenKind::Final => Modifier::Final,
+                TokenKind::Internal => Modifier::Internal,
                 _ => {
                     break;
                 }
@@ -385,7 +385,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_ctor(&mut self, cls: &Class) -> Result<Function, MsgWithPos> {
-        let pos = self.expect_token(TokenType::Init)?.position;
+        let pos = self.expect_token(TokenKind::Init)?.position;
         let params = self.parse_function_params()?;
         let delegation = self.parse_delegation()?;
         let mut block = self.parse_function_block()?;
@@ -419,16 +419,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
-        if !self.token.is(TokenType::Colon) {
+        if !self.token.is(TokenKind::Colon) {
             return Ok(None);
         }
 
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let pos = self.token.position;
 
-        let ty = if self.token.is(TokenType::This) {
+        let ty = if self.token.is(TokenKind::This) {
             DelegationType::This
-        } else if self.token.is(TokenType::Super) {
+        } else if self.token.is(TokenKind::Super) {
             DelegationType::Super
         } else {
             let name = self.token.name();
@@ -436,9 +436,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         };
 
         self.advance_token()?;
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(TokenKind::LParen)?;
 
-        let args = self.parse_comma_list(TokenType::RParen, |p| p.parse_expression())?;
+        let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
         Ok(Some(Delegation {
             pos: pos,
@@ -449,22 +449,22 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
         let pos = self.token.position;
-        let reassignable = if self.token.is(TokenType::Var) {
-            self.expect_token(TokenType::Var)?;
+        let reassignable = if self.token.is(TokenKind::Var) {
+            self.expect_token(TokenKind::Var)?;
 
             true
         } else {
-            self.expect_token(TokenType::Let)?;
+            self.expect_token(TokenKind::Let)?;
 
             false
         };
 
         let name = self.expect_identifier()?;
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
 
-        let expr = if self.token.is(TokenType::Eq) {
-            self.expect_token(TokenType::Eq)?;
+        let expr = if self.token.is(TokenKind::Eq) {
+            self.expect_token(TokenKind::Eq)?;
             Some(self.parse_expression()?)
 
         } else {
@@ -485,7 +485,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
-        let pos = self.expect_token(TokenType::Fun)?.position;
+        let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
 
         let params = self.parse_function_params()?;
@@ -511,7 +511,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
-        if self.token.is(TokenType::Throws) {
+        if self.token.is(TokenKind::Throws) {
             self.advance_token()?;
 
             return Ok(true);
@@ -521,10 +521,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<Param>, MsgWithPos> {
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(TokenKind::LParen)?;
         self.param_idx = 0;
 
-        let params = self.parse_comma_list(TokenType::RParen, |p| {
+        let params = self.parse_comma_list(TokenKind::RParen, |p| {
                 p.param_idx += 1;
 
                 p.parse_function_param()
@@ -534,7 +534,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_comma_list<F, R>(&mut self,
-                              stop: TokenType,
+                              stop: TokenKind,
                               mut parse: F)
                               -> Result<Vec<R>, MsgWithPos>
         where F: FnMut(&mut Parser<T>) -> Result<R, MsgWithPos>
@@ -545,14 +545,14 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
                 return Err(MsgWithPos::new(self.token.position,
-                                           Msg::ExpectedToken(TokenType::Comma.name().into(),
+                                           Msg::ExpectedToken(TokenKind::Comma.name().into(),
                                                               self.token.name())));
             }
 
             let entry = parse(self)?;
             data.push(entry);
 
-            comma = self.token.is(TokenType::Comma);
+            comma = self.token.is(TokenKind::Comma);
             if comma {
                 self.advance_token()?;
             }
@@ -566,7 +566,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_function_param(&mut self) -> Result<Param, MsgWithPos> {
         let pos = self.token.position;
 
-        let reassignable = if self.token.is(TokenType::Var) {
+        let reassignable = if self.token.is(TokenKind::Var) {
             self.advance_token()?;
 
             true
@@ -576,7 +576,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
         let name = self.expect_identifier()?;
 
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
 
         Ok(Param {
@@ -590,7 +590,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
-        if self.token.is(TokenType::Arrow) {
+        if self.token.is(TokenKind::Arrow) {
             self.advance_token()?;
             let ty = self.parse_type()?;
 
@@ -601,7 +601,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_function_block(&mut self) -> Result<Option<Box<Stmt>>, MsgWithPos> {
-        if self.token.is(TokenType::Semicolon) {
+        if self.token.is(TokenKind::Semicolon) {
             self.advance_token()?;
 
             Ok(None)
@@ -613,17 +613,17 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_type(&mut self) -> Result<Type, MsgWithPos> {
-        match self.token.token_type {
-            TokenType::Identifier(_) => {
+        match self.token.kind {
+            TokenKind::Identifier(_) => {
                 let pos = self.token.position;
                 let name = self.expect_identifier()?;
 
                 Ok(Type::create_basic(self.generate_id(), pos, name))
             }
 
-            TokenType::LParen => {
+            TokenKind::LParen => {
                 let token = self.advance_token()?;
-                let subtypes = self.parse_comma_list(TokenType::RParen, |p| {
+                let subtypes = self.parse_comma_list(TokenKind::RParen, |p| {
                         let ty = p.parse_type()?;
 
                         Ok(Box::new(ty))
@@ -637,24 +637,24 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_statement(&mut self) -> StmtResult {
-        match self.token.token_type {
-            TokenType::Let | TokenType::Var => self.parse_var(),
-            TokenType::LBrace => self.parse_block(),
-            TokenType::If => self.parse_if(),
-            TokenType::While => self.parse_while(),
-            TokenType::Loop => self.parse_loop(),
-            TokenType::Break => self.parse_break(),
-            TokenType::Continue => self.parse_continue(),
-            TokenType::Return => self.parse_return(),
-            TokenType::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
-            TokenType::Throw => self.parse_throw(),
-            TokenType::Do => self.parse_do(),
+        match self.token.kind {
+            TokenKind::Let | TokenKind::Var => self.parse_var(),
+            TokenKind::LBrace => self.parse_block(),
+            TokenKind::If => self.parse_if(),
+            TokenKind::While => self.parse_while(),
+            TokenKind::Loop => self.parse_loop(),
+            TokenKind::Break => self.parse_break(),
+            TokenKind::Continue => self.parse_continue(),
+            TokenKind::Return => self.parse_return(),
+            TokenKind::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
+            TokenKind::Throw => self.parse_throw(),
+            TokenKind::Do => self.parse_do(),
             _ => self.parse_expression_statement(),
         }
     }
 
     fn parse_throw(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Throw)?.position;
+        let pos = self.expect_token(TokenKind::Throw)?.position;
         let expr = self.parse_expression()?;
 
         self.expect_semicolon()?;
@@ -663,15 +663,15 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_do(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Do)?.position;
+        let pos = self.expect_token(TokenKind::Do)?.position;
         let try_block = self.parse_block()?;
         let mut catch_blocks = Vec::new();
 
-        while self.token.is(TokenType::Catch) {
+        while self.token.is(TokenKind::Catch) {
             catch_blocks.push(self.parse_catch()?);
         }
 
-        let finally_block = if self.token.is(TokenType::Finally) {
+        let finally_block = if self.token.is(TokenKind::Finally) {
             Some(self.parse_finally()?)
         } else {
             None
@@ -686,9 +686,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_catch(&mut self) -> Result<CatchBlock, MsgWithPos> {
         let id = self.generate_id();
-        let pos = self.expect_token(TokenType::Catch)?.position;
+        let pos = self.expect_token(TokenKind::Catch)?.position;
         let name = self.expect_identifier()?;
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
         let block = self.parse_block()?;
 
@@ -696,16 +696,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_finally(&mut self) -> Result<FinallyBlock, MsgWithPos> {
-        self.expect_token(TokenType::Finally)?;
+        self.expect_token(TokenKind::Finally)?;
         let block = self.parse_block()?;
 
         Ok(FinallyBlock::new(block))
     }
 
     fn parse_var(&mut self) -> StmtResult {
-        let reassignable = if self.token.is(TokenType::Let) {
+        let reassignable = if self.token.is(TokenKind::Let) {
             false
-        } else if self.token.is(TokenType::Var) {
+        } else if self.token.is(TokenKind::Var) {
             true
         } else {
             panic!("let or var expected")
@@ -727,7 +727,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_var_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
-        if self.token.is(TokenType::Colon) {
+        if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
 
             Ok(Some(self.parse_type()?))
@@ -737,8 +737,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, MsgWithPos> {
-        if self.token.is(TokenType::Eq) {
-            self.expect_token(TokenType::Eq)?;
+        if self.token.is(TokenKind::Eq) {
+            self.expect_token(TokenKind::Eq)?;
             let expr = self.parse_expression()?;
 
             Ok(Some(expr))
@@ -748,21 +748,21 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_block(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::LBrace)?.position;
+        let pos = self.expect_token(TokenKind::LBrace)?.position;
         let mut stmts = vec![];
 
-        while !self.token.is(TokenType::RBrace) && !self.token.is_eof() {
+        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
             let stmt = self.parse_statement()?;
             stmts.push(stmt);
         }
 
-        self.expect_token(TokenType::RBrace)?;
+        self.expect_token(TokenKind::RBrace)?;
 
         Ok(Box::new(Stmt::create_block(self.generate_id(), pos, stmts)))
     }
 
     fn parse_if(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::If)?.position;
+        let pos = self.expect_token(TokenKind::If)?.position;
 
         let mut opts = ExprParsingOpts::new();
         opts.parse_struct_lit(false);
@@ -771,7 +771,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let then_block = self.parse_block()?;
         let mut else_block = None;
 
-        if self.token.is(TokenType::Else) {
+        if self.token.is(TokenKind::Else) {
             self.advance_token()?;
             else_block = Some(self.parse_block()?);
         }
@@ -780,7 +780,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_while(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::While)?.position;
+        let pos = self.expect_token(TokenKind::While)?.position;
 
         let mut opts = ExprParsingOpts::new();
         opts.parse_struct_lit(false);
@@ -792,29 +792,29 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_loop(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Loop)?.position;
+        let pos = self.expect_token(TokenKind::Loop)?.position;
         let block = self.parse_block()?;
 
         Ok(Box::new(Stmt::create_loop(self.generate_id(), pos, block)))
     }
 
     fn parse_break(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Break)?.position;
+        let pos = self.expect_token(TokenKind::Break)?.position;
         self.expect_semicolon()?;
 
         Ok(Box::new(Stmt::create_break(self.generate_id(), pos)))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Continue)?.position;
+        let pos = self.expect_token(TokenKind::Continue)?.position;
         self.expect_semicolon()?;
 
         Ok(Box::new(Stmt::create_continue(self.generate_id(), pos)))
     }
 
     fn parse_return(&mut self) -> StmtResult {
-        let pos = self.expect_token(TokenType::Return)?.position;
-        let expr = if self.token.is(TokenType::Semicolon) {
+        let pos = self.expect_token(TokenKind::Return)?.position;
+        let expr = if self.token.is(TokenKind::Semicolon) {
             None
         } else {
             let expr = self.parse_expression()?;
@@ -847,18 +847,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let mut left = self.parse_unary(opts)?;
 
         loop {
-            let right_precedence = match self.token.token_type {
-                TokenType::Or => 1,
-                TokenType::And => 2,
-                TokenType::Eq => 3,
-                TokenType::EqEq | TokenType::Ne | TokenType::Lt | TokenType::Le |
-                TokenType::Gt | TokenType::Ge => 4,
-                TokenType::EqEqEq | TokenType::NeEqEq => 5,
-                TokenType::BitOr | TokenType::BitAnd | TokenType::Caret => 6,
-                TokenType::LtLt | TokenType::GtGt | TokenType::GtGtGt => 7,
-                TokenType::Add | TokenType::Sub => 8,
-                TokenType::Mul | TokenType::Div | TokenType::Mod => 9,
-                TokenType::Is | TokenType::As => 10,
+            let right_precedence = match self.token.kind {
+                TokenKind::Or => 1,
+                TokenKind::And => 2,
+                TokenKind::Eq => 3,
+                TokenKind::EqEq | TokenKind::Ne | TokenKind::Lt | TokenKind::Le |
+                TokenKind::Gt | TokenKind::Ge => 4,
+                TokenKind::EqEqEq | TokenKind::NeEqEq => 5,
+                TokenKind::BitOr | TokenKind::BitAnd | TokenKind::Caret => 6,
+                TokenKind::LtLt | TokenKind::GtGt | TokenKind::GtGtGt => 7,
+                TokenKind::Add | TokenKind::Sub => 8,
+                TokenKind::Mul | TokenKind::Div | TokenKind::Mod => 9,
+                TokenKind::Is | TokenKind::As => 10,
                 _ => {
                     return Ok(left);
                 }
@@ -870,9 +870,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
             let tok = self.advance_token()?;
 
-            left = match tok.token_type {
-                TokenType::Is | TokenType::As => {
-                    let is = tok.is(TokenType::Is);
+            left = match tok.kind {
+                TokenKind::Is | TokenKind::As => {
+                    let is = tok.is(TokenKind::Is);
 
                     let right = Box::new(self.parse_type()?);
                     let expr = Expr::create_conv(self.generate_id(), tok.position, left, right, is);
@@ -889,15 +889,15 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_unary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
-        match self.token.token_type {
-            TokenType::Add | TokenType::Sub | TokenType::Not | TokenType::Tilde => {
+        match self.token.kind {
+            TokenKind::Add | TokenKind::Sub | TokenKind::Not | TokenKind::Tilde => {
 
                 let tok = self.advance_token()?;
-                let op = match tok.token_type {
-                    TokenType::Add => UnOp::Plus,
-                    TokenType::Sub => UnOp::Neg,
-                    TokenType::Not => UnOp::Not,
-                    TokenType::Tilde => UnOp::BitNot,
+                let op = match tok.kind {
+                    TokenKind::Add => UnOp::Plus,
+                    TokenKind::Sub => UnOp::Neg,
+                    TokenKind::Not => UnOp::Not,
+                    TokenKind::Tilde => UnOp::BitNot,
                     _ => unreachable!(),
                 };
 
@@ -913,12 +913,12 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let mut left = self.parse_factor(opts)?;
 
         loop {
-            left = match self.token.token_type {
-                TokenType::Dot => {
+            left = match self.token.kind {
+                TokenKind::Dot => {
                     let tok = self.advance_token()?;
                     let ident = self.expect_identifier()?;
 
-                    if self.token.is(TokenType::LParen) {
+                    if self.token.is(TokenKind::LParen) {
                         self.parse_call(tok.position, Some(left), ident)?
 
                     } else {
@@ -926,10 +926,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                     }
                 }
 
-                TokenType::LBracket => {
+                TokenKind::LBracket => {
                     let tok = self.advance_token()?;
                     let index = self.parse_expression()?;
-                    self.expect_token(TokenType::RBracket)?;
+                    self.expect_token(TokenKind::RBracket)?;
 
                     Box::new(Expr::create_array(self.generate_id(), tok.position, left, index))
                 }
@@ -942,32 +942,32 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn create_binary(&mut self, tok: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
-        let op = match tok.token_type {
-            TokenType::Eq => {
+        let op = match tok.kind {
+            TokenKind::Eq => {
                 return Box::new(Expr::create_assign(self.generate_id(), tok.position, left, right));
             }
 
-            TokenType::Or => BinOp::Or,
-            TokenType::And => BinOp::And,
-            TokenType::EqEq => BinOp::Cmp(CmpOp::Eq),
-            TokenType::Ne => BinOp::Cmp(CmpOp::Ne),
-            TokenType::Lt => BinOp::Cmp(CmpOp::Lt),
-            TokenType::Le => BinOp::Cmp(CmpOp::Le),
-            TokenType::Gt => BinOp::Cmp(CmpOp::Gt),
-            TokenType::Ge => BinOp::Cmp(CmpOp::Ge),
-            TokenType::EqEqEq => BinOp::Cmp(CmpOp::Is),
-            TokenType::NeEqEq => BinOp::Cmp(CmpOp::IsNot),
-            TokenType::BitOr => BinOp::BitOr,
-            TokenType::BitAnd => BinOp::BitAnd,
-            TokenType::Caret => BinOp::BitXor,
-            TokenType::Add => BinOp::Add,
-            TokenType::Sub => BinOp::Sub,
-            TokenType::Mul => BinOp::Mul,
-            TokenType::Div => BinOp::Div,
-            TokenType::Mod => BinOp::Mod,
-            TokenType::LtLt => BinOp::ShiftL,
-            TokenType::GtGt => BinOp::ShiftR,
-            TokenType::GtGtGt => BinOp::UnShiftR,
+            TokenKind::Or => BinOp::Or,
+            TokenKind::And => BinOp::And,
+            TokenKind::EqEq => BinOp::Cmp(CmpOp::Eq),
+            TokenKind::Ne => BinOp::Cmp(CmpOp::Ne),
+            TokenKind::Lt => BinOp::Cmp(CmpOp::Lt),
+            TokenKind::Le => BinOp::Cmp(CmpOp::Le),
+            TokenKind::Gt => BinOp::Cmp(CmpOp::Gt),
+            TokenKind::Ge => BinOp::Cmp(CmpOp::Ge),
+            TokenKind::EqEqEq => BinOp::Cmp(CmpOp::Is),
+            TokenKind::NeEqEq => BinOp::Cmp(CmpOp::IsNot),
+            TokenKind::BitOr => BinOp::BitOr,
+            TokenKind::BitAnd => BinOp::BitAnd,
+            TokenKind::Caret => BinOp::BitXor,
+            TokenKind::Add => BinOp::Add,
+            TokenKind::Sub => BinOp::Sub,
+            TokenKind::Mul => BinOp::Mul,
+            TokenKind::Div => BinOp::Div,
+            TokenKind::Mod => BinOp::Mod,
+            TokenKind::LtLt => BinOp::ShiftL,
+            TokenKind::GtGt => BinOp::ShiftR,
+            TokenKind::GtGtGt => BinOp::UnShiftR,
             _ => panic!("unimplemented token {:?}", tok),
         };
 
@@ -975,18 +975,18 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
-        match self.token.token_type {
-            TokenType::LParen => self.parse_parentheses(),
-            TokenType::Number(_) => self.parse_number(),
-            TokenType::String(_) => self.parse_string(),
-            TokenType::Identifier(_) => self.parse_identifier_or_call(opts),
-            TokenType::True => self.parse_bool_literal(),
-            TokenType::False => self.parse_bool_literal(),
-            TokenType::Nil => self.parse_nil(),
-            TokenType::This => self.parse_this(),
-            TokenType::Super => self.parse_super(),
-            TokenType::Try => self.parse_try(),
-            TokenType::TryForce | TokenType::TryOpt => self.parse_try_op(),
+        match self.token.kind {
+            TokenKind::LParen => self.parse_parentheses(),
+            TokenKind::Number(_) => self.parse_number(),
+            TokenKind::String(_) => self.parse_string(),
+            TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
+            TokenKind::True => self.parse_bool_literal(),
+            TokenKind::False => self.parse_bool_literal(),
+            TokenKind::Nil => self.parse_nil(),
+            TokenKind::This => self.parse_this(),
+            TokenKind::Super => self.parse_super(),
+            TokenKind::Try => self.parse_try(),
+            TokenKind::TryForce | TokenKind::TryOpt => self.parse_try_op(),
             _ => {
                 Err(MsgWithPos::new(self.token.position,
                                     Msg::ExpectedFactor(self.token.name().clone())))
@@ -999,10 +999,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let ident = self.expect_identifier()?;
 
         // is this a function call?
-        if self.token.is(TokenType::LParen) {
+        if self.token.is(TokenKind::LParen) {
             self.parse_call(pos, None, ident)
 
-        } else if self.token.is(TokenType::LBrace) && opts.parse_struct_lit {
+        } else if self.token.is(TokenKind::LBrace) && opts.parse_struct_lit {
             self.parse_lit_struct(pos, ident)
 
             // if not we have a simple variable
@@ -1012,8 +1012,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_lit_struct(&mut self, pos: Position, name: Name) -> ExprResult {
-        self.expect_token(TokenType::LBrace)?;
-        let args = self.parse_comma_list(TokenType::RBrace, |p| p.parse_lit_struct_arg())?;
+        self.expect_token(TokenKind::LBrace)?;
+        let args = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_lit_struct_arg())?;
 
         Ok(Box::new(Expr::create_lit_struct(self.generate_id(), pos, name, args)))
     }
@@ -1022,7 +1022,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = self.token.position;
         let name = self.expect_identifier()?;
 
-        self.expect_token(TokenType::Colon)?;
+        self.expect_token(TokenKind::Colon)?;
 
         let expr = self.parse_expression()?;
 
@@ -1035,9 +1035,9 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(TokenKind::LParen)?;
 
-        let args = self.parse_comma_list(TokenType::RParen, |p| p.parse_expression())?;
+        let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
         Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, object, args)))
     }
@@ -1045,7 +1045,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_parentheses(&mut self) -> ExprResult {
         self.advance_token()?;
         let exp = self.parse_expression()?;
-        self.expect_token(TokenType::RParen)?;
+        self.expect_token(TokenKind::RParen)?;
 
         Ok(exp)
     }
@@ -1054,7 +1054,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = self.advance_token()?;
         let exp = self.parse_expression()?;
 
-        let mode = if tok.is(TokenType::TryForce) {
+        let mode = if tok.is(TokenKind::TryForce) {
             TryMode::Force
         } else {
             TryMode::Opt
@@ -1064,10 +1064,10 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn parse_try(&mut self) -> ExprResult {
-        let pos = self.expect_token(TokenType::Try)?.position;
+        let pos = self.expect_token(TokenKind::Try)?.position;
         let exp = self.parse_expression()?;
 
-        let mode = if self.token.is(TokenType::Else) {
+        let mode = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
             let alt_exp = self.parse_expression()?;
 
@@ -1083,7 +1083,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenType::Number(value) = tok.token_type {
+        if let TokenKind::Number(value) = tok.kind {
             match value.parse() {
                 Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), pos, num))),
                 _ => Err(MsgWithPos::new(pos, Msg::NumberOverflow(value))),
@@ -1096,7 +1096,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_string(&mut self) -> ExprResult {
         let string = self.advance_token()?;
 
-        if let TokenType::String(value) = string.token_type {
+        if let TokenKind::String(value) = string.kind {
             Ok(Box::new(Expr::create_lit_str(self.generate_id(), string.position, value)))
         } else {
             unreachable!();
@@ -1105,7 +1105,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_bool_literal(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
-        let value = tok.is(TokenType::True);
+        let value = tok.is(TokenKind::True);
 
         Ok(Box::new(Expr::create_lit_bool(self.generate_id(), tok.position, value)))
     }
@@ -1131,7 +1131,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
         let tok = self.advance_token()?;
 
-        if let TokenType::Identifier(ref value) = tok.token_type {
+        if let TokenKind::Identifier(ref value) = tok.kind {
             let interned = self.interner.intern(value);
 
             Ok(interned)
@@ -1142,17 +1142,17 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     }
 
     fn expect_semicolon(&mut self) -> Result<Token, MsgWithPos> {
-        self.expect_token(TokenType::Semicolon)
+        self.expect_token(TokenKind::Semicolon)
     }
 
-    fn expect_token(&mut self, token_type: TokenType) -> Result<Token, MsgWithPos> {
-        if self.token.token_type == token_type {
+    fn expect_token(&mut self, kind: TokenKind) -> Result<Token, MsgWithPos> {
+        if self.token.kind == kind {
             let token = self.advance_token()?;
 
             Ok(token)
         } else {
             Err(MsgWithPos::new(self.token.position,
-                                Msg::ExpectedToken(token_type.name().into(), self.token.name())))
+                                Msg::ExpectedToken(kind.name().into(), self.token.name())))
         }
     }
 
