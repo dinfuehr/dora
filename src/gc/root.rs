@@ -66,8 +66,12 @@ fn determine_rootset(rootset: &mut Vec<IndirectObj>, ctxt: &Context, fp: usize, 
 pub struct IndirectObj(*mut *mut Obj);
 
 impl IndirectObj {
-    pub fn obj_ptr(self) -> *mut Obj {
+    pub fn get(self) -> *mut Obj {
         unsafe { *self.0 }
+    }
+
+    pub fn set(self, obj: *mut Obj) {
+        unsafe { *self.0 = obj; }
     }
 }
 

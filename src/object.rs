@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 
 use ctxt::{Context, get_ctxt};
+use gc::root::IndirectObj;
 use mem;
 use ty::BuiltinType;
 use vtable::VTable;
@@ -93,6 +94,18 @@ impl Obj {
             }
 
             _ => panic!("size unknown"),
+        }
+    }
+
+    pub fn visit_reference_fields<F>(&mut self, mut f: F) where F: FnMut(IndirectObj) {
+        let classptr = self.header().vtbl().classptr;
+        let cls = unsafe { &*classptr };
+
+        for field in &cls.fields {
+            if field.ty.reference_type() {
+                let obj = (self as *mut Obj as usize) + field.offset as usize;
+                f(obj.into());
+            }
         }
     }
 }

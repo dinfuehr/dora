@@ -9,9 +9,9 @@ use object::Obj;
 use os;
 use timer::{in_ms, Timer};
 
-mod copy;
-mod root;
-mod space;
+pub mod copy;
+pub mod root;
+pub mod space;
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
@@ -85,9 +85,10 @@ impl Gc {
         self.perm_space.alloc(size)
     }
 
-    pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut Obj {
+    pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut u8 {
         if ctxt.args.flag_gc_stress {
-            minor_collect(ctxt, &mut self.from_space, &mut self.to_space);
+            let rootset = get_rootset(ctxt);
+            minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
         }
 
         if size > LARGE_OBJECT_SIZE {
@@ -97,7 +98,8 @@ impl Gc {
         let mut ptr = self.to_space.allocate(size);
 
         if ptr.is_null() {
-            minor_collect(ctxt, &mut self.from_space, &mut self.to_space);
+            let rootset = get_rootset(ctxt);
+            minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
 
             ptr = self.to_space.allocate(size);
 
@@ -106,7 +108,7 @@ impl Gc {
             }
         }
 
-        ptr as *mut Obj
+        ptr as *mut u8
     }
 
     pub fn alloc(&mut self, size: usize) -> *mut Obj {
@@ -209,7 +211,7 @@ impl Drop for Gc {
 
 fn mark_rootset(ctxt: &Context, rootset: Vec<IndirectObj>, cur_marked: bool) {
     for root in rootset {
-        mark_recursive(ctxt, root.obj_ptr(), cur_marked);
+        mark_recursive(ctxt, root.get(), cur_marked);
     }
 }
 
