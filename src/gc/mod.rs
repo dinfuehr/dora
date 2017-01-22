@@ -170,7 +170,6 @@ impl Gc {
         let mut timer = Timer::new(active_timer);
         let rootset = get_rootset(ctxt);
 
-        mark_literals(ctxt, self.cur_marked);
         mark_rootset(ctxt, rootset, self.cur_marked);
 
         let cur_marked = self.cur_marked;
@@ -203,14 +202,6 @@ impl Drop for Gc {
                 libc::free(curr as *mut _ as *mut libc::c_void);
             }
         }
-    }
-}
-
-fn mark_literals(ctxt: &Context, cur_marked: bool) {
-    let literals = ctxt.literals.lock().unwrap();
-
-    for lit in literals.iter() {
-        mark_recursive(ctxt, lit.raw() as *mut Obj, cur_marked);
     }
 }
 

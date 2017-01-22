@@ -399,7 +399,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
         let handle = Str::from_buffer_in_perm(self.ctxt, lit.value.as_bytes());
-        self.ctxt.literals.lock().unwrap().push(handle);
 
         let disp = self.masm.add_addr(handle.raw() as *const u8);
         let pos = self.masm.pos() as i32;

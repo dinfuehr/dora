@@ -17,7 +17,6 @@ use gc::Gc;
 use interner::*;
 use lexer::position::Position;
 use mem;
-use object::{Handle, Str};
 use stacktrace::StackFrameInfo;
 use sym::*;
 use sym::Sym::*;
@@ -41,7 +40,6 @@ pub struct Context<'ast> {
     pub fcts: Vec<RefCell<Fct<'ast>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
-    pub literals: Mutex<Vec<Handle<Str>>>, // string literals
     pub sfi: RefCell<*const StackFrameInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
@@ -65,7 +63,6 @@ impl<'ast> Context<'ast> {
                 int_array: empty_class_id,
             },
             gc: Mutex::new(Gc::new()),
-            literals: Mutex::new(Vec::new()),
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
