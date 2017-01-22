@@ -207,6 +207,8 @@ impl<T: CodeReader> Lexer<T> {
                 }
             }
 
+        } else if value == "_" {
+            ttype = TokenType::Underscore;
         } else {
             ttype = TokenType::Identifier(value);
         }
@@ -782,9 +784,10 @@ mod tests {
         assert_tok(&mut reader, TokenType::TryOpt, 1, 5);
         assert_tok(&mut reader, TokenType::Number("1".into()), 1, 9);
 
-        let mut reader = Lexer::from_str(">><<>>>");
+        let mut reader = Lexer::from_str(">><<>>>_");
         assert_tok(&mut reader, TokenType::GtGt, 1, 1);
         assert_tok(&mut reader, TokenType::LtLt, 1, 3);
         assert_tok(&mut reader, TokenType::GtGtGt, 1, 5);
+        assert_tok(&mut reader, TokenType::Underscore, 1, 8);
     }
 }

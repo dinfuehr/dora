@@ -47,6 +47,8 @@ pub enum TokenType {
     Struct,
     Trait,
 
+    Underscore,
+
     // Modifiers
     Open,
     Override,
@@ -138,6 +140,8 @@ impl TokenType {
             TokenType::Alias => "alias",
             TokenType::Struct => "struct",
             TokenType::Trait => "trait",
+
+            TokenType::Underscore => "_",
 
             // Modifiers
             TokenType::Open => "open",
