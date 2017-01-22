@@ -466,8 +466,10 @@ enum JumpType {
 
 fn size_flag(mode: MachineMode) -> u32 {
     match mode {
-        MachineMode::Int8 | MachineMode::Int32 => 0,
-        MachineMode::Ptr | MachineMode::Int64 => 1,
+        MachineMode::Int8 |
+        MachineMode::Int32 => 0,
+        MachineMode::Ptr |
+        MachineMode::Int64 => 1,
     }
 }
 

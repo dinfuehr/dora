@@ -2,7 +2,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 
-use ctxt::get_ctxt;
+use ctxt::{Context, get_ctxt};
 use mem;
 use ty::BuiltinType;
 use vtable::VTable;
@@ -165,25 +165,9 @@ impl Str {
             + self.len() + 1   // string content
     }
 
-    pub fn alloc(len: usize) -> Handle<Str> {
-        let size = Header::size() as usize     // Object header
-                   + mem::ptr_width() as usize // length field
-                   + len + 1;                  // string content
-
-        let ctxt = get_ctxt();
-        let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
-
-        let clsid = ctxt.primitive_classes.str_class;
-        let cls = ctxt.classes[clsid].borrow();
-        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-        let mut handle: Handle<Str> = ptr.into();
-        handle.header_mut().vtable = vtable as *mut VTable;
-
-        handle
-    }
-
-    pub fn from(buf: &[u8]) -> Handle<Str> {
-        let mut handle = Str::alloc(buf.len());
+    /// allocates string from buffer in permanent space
+    pub fn from_buffer_in_perm(ctxt: &Context, buf: &[u8]) -> Handle<Str> {
+        let mut handle = str_alloc_perm(ctxt, buf.len());
         handle.length = buf.len();
 
         unsafe {
@@ -199,9 +183,27 @@ impl Str {
         handle
     }
 
-    pub fn concat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
+    /// allocates string from buffer in permanent space
+    pub fn from_buffer(ctxt: &Context, buf: &[u8]) -> Handle<Str> {
+        let mut handle = str_alloc_heap(ctxt, buf.len());
+        handle.length = buf.len();
+
+        unsafe {
+            let data = handle.data() as *mut u8;
+
+            // copy buffer content into Str
+            ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
+
+            // string should end with 0 for C compatibility
+            *(data.offset(buf.len() as isize)) = 0;
+        }
+
+        handle
+    }
+
+    pub fn concat(ctxt: &Context, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = Str::alloc(len);
+        let mut handle = str_alloc_heap(ctxt, len);
 
         unsafe {
             handle.length = len;
@@ -216,6 +218,36 @@ impl Str {
 
         handle
     }
+}
+
+fn str_alloc_heap(ctxt: &Context, len: usize) -> Handle<Str> {
+    str_alloc(ctxt,
+              len,
+              |ctxt, size| ctxt.gc.lock().unwrap().alloc(size) as *const u8)
+}
+
+fn str_alloc_perm(ctxt: &Context, len: usize) -> Handle<Str> {
+    str_alloc(ctxt,
+              len,
+              |ctxt, size| ctxt.gc.lock().unwrap().alloc_perm(size))
+}
+
+fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
+    where F: FnOnce(&Context, usize) -> *const u8
+{
+    let size = Header::size() as usize     // Object header
+                + mem::ptr_width() as usize // length field
+                + len + 1;                  // string content
+
+    let ptr = alloc(ctxt, size) as usize;
+
+    let clsid = ctxt.primitive_classes.str_class;
+    let cls = ctxt.classes[clsid].borrow();
+    let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+    let mut handle: Handle<Str> = ptr.into();
+    handle.header_mut().vtable = vtable as *mut VTable;
+
+    handle
 }
 
 pub struct IntArray {

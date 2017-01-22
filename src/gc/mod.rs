@@ -5,7 +5,6 @@ use ctxt::{Context, get_ctxt};
 use gc::copy::{minor_collect, SemiSpace};
 use gc::root::{get_rootset, IndirectObj};
 use gc::space::{Space, SpaceConfig};
-use mem;
 use object::Obj;
 use os;
 use timer::{in_ms, Timer};
@@ -71,13 +70,17 @@ impl Gc {
 
             from_space: SemiSpace::new(INITIAL_SIZE),
             to_space: SemiSpace::new(INITIAL_SIZE),
-            code_space: Space::new(code_config),
-            perm_space: Space::new(perm_config),
+            code_space: Space::new(code_config, "code"),
+            perm_space: Space::new(perm_config, "perm"),
         }
     }
 
     pub fn alloc_code(&mut self, size: usize) -> *mut u8 {
         self.code_space.alloc(size)
+    }
+
+    pub fn alloc_perm(&mut self, size: usize) -> *mut u8 {
+        self.perm_space.alloc(size)
     }
 
     pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut Obj {

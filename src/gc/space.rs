@@ -11,15 +11,17 @@ pub struct SpaceConfig {
 }
 
 pub struct Space {
+    name: &'static str,
     config: SpaceConfig,
     chunks: Vec<Chunk>,
     size: usize,
 }
 
 impl Space {
-    pub fn new(config: SpaceConfig) -> Space {
+    pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let mut code = Space {
-            config: config,
+            name,
+            config,
             chunks: Vec::new(),
             size: 0,
         };
@@ -46,7 +48,7 @@ impl Space {
         let size = mem::align_usize(size, os::page_size() as usize);
 
         if self.size + size > self.config.limit {
-            panic!("code space full");
+            panic!("{} space full", self.name);
         }
 
         let chunk = Chunk::new(size, self.config.prot);

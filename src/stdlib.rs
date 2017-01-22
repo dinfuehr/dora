@@ -11,23 +11,30 @@ use object::{Handle, IntArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
-    Str::from(buffer.as_bytes())
+    let ctxt = get_ctxt();
+
+    Str::from_buffer(ctxt, buffer.as_bytes())
 }
 
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
     let buffer = val.to_string();
-    Str::from(buffer.as_bytes())
+    let ctxt = get_ctxt();
+
+    Str::from_buffer(ctxt, buffer.as_bytes())
 }
 
 pub extern "C" fn long_to_string(val: i64) -> Handle<Str> {
     let buffer = val.to_string();
-    Str::from(buffer.as_bytes())
+    let ctxt = get_ctxt();
+
+    Str::from_buffer(ctxt, buffer.as_bytes())
 }
 
 pub extern "C" fn bool_to_string(val: bool) -> Handle<Str> {
     let val = if val { "true" } else { "false" };
+    let ctxt = get_ctxt();
 
-    Str::from(val.as_bytes())
+    Str::from_buffer(ctxt, val.as_bytes())
 }
 
 pub extern "C" fn bool_to_int(val: bool) -> i32 {
@@ -54,7 +61,9 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
 }
 
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
-    Str::concat(lhs, rhs)
+    let ctxt = get_ctxt();
+
+    Str::concat(ctxt, lhs, rhs)
 }
 
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
@@ -100,7 +109,7 @@ pub extern "C" fn argv(ind: i32) -> Handle<Str> {
         if ind >= 0 && ind < args.len() as i32 {
             let value = &args[ind as usize];
 
-            return Str::from(value.as_bytes());
+            return Str::from_buffer(ctxt, value.as_bytes());
         }
     }
 
