@@ -174,7 +174,7 @@ impl Gc {
         let mut timer = Timer::new(active_timer);
         let rootset = get_rootset(ctxt);
 
-        mark_rootset(ctxt, rootset, self.cur_marked);
+        mark_rootset(rootset, self.cur_marked);
 
         let cur_marked = self.cur_marked;
         sweep(self, cur_marked);
@@ -209,13 +209,13 @@ impl Drop for Gc {
     }
 }
 
-fn mark_rootset(ctxt: &Context, rootset: Vec<IndirectObj>, cur_marked: bool) {
+fn mark_rootset(rootset: Vec<IndirectObj>, cur_marked: bool) {
     for root in rootset {
-        mark_recursive(ctxt, root.get(), cur_marked);
+        mark_recursive(root.get(), cur_marked);
     }
 }
 
-fn mark_recursive(ctxt: &Context, obj: *mut Obj, cur_marked: bool) {
+fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
     if obj.is_null() {
         return;
     }
@@ -228,31 +228,14 @@ fn mark_recursive(ctxt: &Context, obj: *mut Obj, cur_marked: bool) {
 
         if obj.header().marked() != cur_marked {
             obj.header_mut().set_mark(cur_marked);
-            let mut classid = obj.header().vtbl().class().id;
 
-            loop {
-                let cls = ctxt.classes[classid].borrow();
+            obj.visit_reference_fields(|child| {
+                let child = child.get();
 
-                for field in &cls.fields {
-                    if field.ty.reference_type() {
-                        let addr = ptr as isize + field.offset as isize;
-                        let obj = unsafe { *(addr as *const usize) } as *mut Obj;
-
-                        if obj.is_null() {
-                            continue;
-                        }
-
-                        elements.push(obj);
-                    }
+                if !child.is_null() {
+                    elements.push(child);
                 }
-
-                if let Some(parent_class) = cls.parent_class {
-                    classid = parent_class;
-
-                } else {
-                    break;
-                }
-            }
+            });
         }
     }
 }
