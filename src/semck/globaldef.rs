@@ -47,6 +47,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
             size: 0,
             vtable: None,
+            ref_fields: Vec::new(),
         };
 
         self.ctxt.classes.push(RefCell::new(box cls));

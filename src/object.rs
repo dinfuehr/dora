@@ -103,11 +103,9 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        for field in &cls.fields {
-            if field.ty.reference_type() {
-                let obj = (self as *mut Obj as usize) + field.offset as usize;
-                f(obj.into());
-            }
+        for &offset in &cls.ref_fields {
+            let obj = (self as *mut Obj as usize) + offset as usize;
+            f(obj.into());
         }
     }
 }

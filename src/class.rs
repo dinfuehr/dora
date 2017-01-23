@@ -50,6 +50,10 @@ pub struct Class {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub vtable: Option<VTableBox>,
+
+    /// contains offset of all reference fields in this class.
+    /// In contrast to `fields` it also stores fields of super classes.
+    pub ref_fields: Vec<i32>,
 }
 
 impl Class {

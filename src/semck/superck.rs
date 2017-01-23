@@ -124,14 +124,14 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
                               sizes: &mut HashMap<ClassId, i32>)
                               -> i32 {
     let mut size = if let Some(parent) = cls.parent_class {
+        let mut parent_cls = ctxt.classes[parent].borrow_mut();
+        cls.ref_fields = parent_cls.ref_fields.to_vec();
+
         if let Some(&size) = sizes.get(&parent) {
             size
 
         } else {
-            let mut cls = ctxt.classes[parent].borrow_mut();
-            let size = determine_class_size(ctxt, &mut *cls, sizes);
-
-            size
+            determine_class_size(ctxt, &mut *parent_cls, sizes)
         }
 
     } else {
@@ -150,6 +150,10 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
 
         size = offset + field_size;
         align = max(align, field_align);
+
+        if f.ty.reference_type() {
+            cls.ref_fields.push(f.offset);
+        }
     }
 
     cls.size = mem::align_i32(size, align);
@@ -584,6 +588,21 @@ mod tests {
     }
 
     #[test]
+    fn test_ref_fields() {
+        ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)", |ctxt| {
+            let cls = cls_by_name(ctxt, "A");
+            let cls = ctxt.classes[cls].borrow();
+
+            assert_eq!(vec![24], cls.ref_fields);
+
+            let cls = cls_by_name(ctxt, "B");
+            let cls = ctxt.classes[cls].borrow();
+
+            assert_eq!(vec![24, 32], cls.ref_fields);
+        });
+    }
+
+    #[test]
     fn test_struct_size() {
         ok_with_test("struct Foo { a: int, b: int }
                       struct Foo1 { a: bool, b: int, c: bool }
@@ -671,7 +690,7 @@ mod tests {
 
     fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> ClassId {
         let name = ctxt.interner.intern(name);
-        ctxt.sym.borrow().get_class(name).unwrap()
+        ctxt.sym.borrow().get_class(name).expect("class not found")
     }
 
     fn check_class<'ast>(ctxt: &Context<'ast>,
