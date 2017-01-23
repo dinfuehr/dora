@@ -5,6 +5,7 @@ use gc::root::IndirectObj;
 use mem;
 use object::Obj;
 use os;
+use timer::{in_ms, Timer};
 
 pub struct SemiSpace {
     start: *const u8,
@@ -61,10 +62,11 @@ impl Drop for SemiSpace {
     }
 }
 
-pub fn minor_collect(_: &Context,
+pub fn minor_collect(ctxt: &Context,
                      from_space: &mut SemiSpace,
                      to_space: &mut SemiSpace,
                      rootset: Vec<IndirectObj>) {
+    let mut timer = Timer::new(ctxt.args.flag_gc_dump );
     swap_spaces(from_space, to_space);
 
     // empty to-space
@@ -91,6 +93,14 @@ pub fn minor_collect(_: &Context,
 
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
     }
+
+    timer.stop_with(|dur| {
+        // self.collect_duration += dur;
+
+        if ctxt.args.flag_gc_dump {
+            println!("GC: minor collect ({} ms)", in_ms(dur));
+        }
+    });
 }
 
 pub fn swap_spaces(s1: &mut SemiSpace, s2: &mut SemiSpace) {

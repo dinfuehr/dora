@@ -114,6 +114,10 @@ impl Gc {
     pub fn alloc(&mut self, size: usize) -> *mut Obj {
         let ctxt = get_ctxt();
 
+        if ctxt.args.flag_gc_copy {
+            return self.alloc_copy(ctxt, size) as *mut Obj;
+        }
+
         if ctxt.args.flag_gc_stress {
             // with --gc-stress collect garbage at every allocation
             // useful for testing

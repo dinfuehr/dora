@@ -27,6 +27,7 @@ Options:
     --gc-dump               Dump GC actions
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
+    --gc-copy               Use Copy Collection with Cheney Algorithm
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -44,6 +45,7 @@ pub struct Args {
     pub flag_gc_dump: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
+    pub flag_gc_copy: bool,
 }
 
 impl Default for Args {
@@ -62,6 +64,7 @@ impl Default for Args {
             flag_gc_dump: false,
             flag_gc_stress: false,
             flag_gc_stats: false,
+            flag_gc_copy: false,
         }
     }
 }
