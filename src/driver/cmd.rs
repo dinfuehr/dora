@@ -1,4 +1,5 @@
 use std::default::Default;
+use std::ops::Deref;
 
 use docopt::Docopt;
 use rustc_serialize;
@@ -82,9 +83,11 @@ pub enum AsmSyntax {
 #[derive(Copy, Clone, Debug)]
 pub struct MemSize(usize);
 
-impl MemSize {
-    pub fn get(self) -> usize {
-        self.0
+impl Deref for MemSize {
+    type Target = usize;
+
+    fn deref(&self) -> &usize {
+        &self.0
     }
 }
 

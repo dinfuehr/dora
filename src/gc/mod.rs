@@ -59,7 +59,7 @@ impl Gc {
             align: 8,
         };
 
-        let size = args.flag_gc_copy_size.map(|x| x.get()).unwrap_or(INITIAL_SIZE);
+        let size = args.flag_gc_copy_size.map(|x| *x).unwrap_or(INITIAL_SIZE);
 
         Gc {
             obj_start: ptr::null_mut(),
