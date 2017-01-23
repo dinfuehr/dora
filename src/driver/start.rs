@@ -12,7 +12,7 @@ use os;
 
 use parser::Parser;
 use semck;
-use stacktrace::StackFrameInfo;
+use stacktrace::DoraToNativeInfo;
 use timer::in_ms;
 use ty::BuiltinType;
 
@@ -61,7 +61,7 @@ pub fn start() -> i32 {
     let main = main.unwrap();
 
     let fct_ptr = {
-        let mut sfi = StackFrameInfo::new();
+        let mut sfi = DoraToNativeInfo::new();
 
         ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, main))
     };

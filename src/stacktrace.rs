@@ -46,17 +46,17 @@ struct StackElem {
     lineno: i32,
 }
 
-pub struct StackFrameInfo {
-    pub last: *const StackFrameInfo,
+pub struct DoraToNativeInfo {
+    pub last: *const DoraToNativeInfo,
     pub sp: usize,
     pub fp: usize,
     pub ra: usize,
     pub xpc: usize,
 }
 
-impl StackFrameInfo {
-    pub fn new() -> StackFrameInfo {
-        StackFrameInfo {
+impl DoraToNativeInfo {
+    pub fn new() -> DoraToNativeInfo {
+        DoraToNativeInfo {
             last: ptr::null(),
             sp: 0,
             fp: 0,

@@ -17,7 +17,7 @@ use gc::Gc;
 use interner::*;
 use lexer::position::Position;
 use mem;
-use stacktrace::StackFrameInfo;
+use stacktrace::DoraToNativeInfo;
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
@@ -40,7 +40,7 @@ pub struct Context<'ast> {
     pub fcts: Vec<RefCell<Fct<'ast>>>, // stores all function definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
-    pub sfi: RefCell<*const StackFrameInfo>,
+    pub sfi: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
 }
@@ -74,12 +74,12 @@ impl<'ast> Context<'ast> {
         }
     }
 
-    pub fn use_sfi<F, R>(&self, sfi: &mut StackFrameInfo, fct: F) -> R
+    pub fn use_sfi<F, R>(&self, sfi: &mut DoraToNativeInfo, fct: F) -> R
         where F: FnOnce() -> R
     {
         sfi.last = *self.sfi.borrow();
 
-        *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
+        *self.sfi.borrow_mut() = sfi as *const DoraToNativeInfo;
 
         let ret = fct();
 
@@ -88,12 +88,12 @@ impl<'ast> Context<'ast> {
         ret
     }
 
-    pub fn push_sfi(&self, sfi: &mut StackFrameInfo) {
+    pub fn push_sfi(&self, sfi: &mut DoraToNativeInfo) {
         let last = *self.sfi.borrow();
 
         sfi.last = last;
 
-        *self.sfi.borrow_mut() = sfi as *const StackFrameInfo;
+        *self.sfi.borrow_mut() = sfi as *const DoraToNativeInfo;
     }
 
     pub fn pop_sfi(&self) {
@@ -101,7 +101,7 @@ impl<'ast> Context<'ast> {
         assert!(!current_sfi.is_null());
         let sfi = unsafe { &*current_sfi };
 
-        let last_sfi = sfi.last as *const StackFrameInfo;
+        let last_sfi = sfi.last as *const DoraToNativeInfo;
         *self.sfi.borrow_mut() = last_sfi;
     }
 

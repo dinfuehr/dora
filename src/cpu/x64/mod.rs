@@ -6,7 +6,7 @@ use execstate::ExecState;
 use mem;
 use object::{Handle, Obj};
 use os::signal::Trap;
-use stacktrace::StackFrameInfo;
+use stacktrace::DoraToNativeInfo;
 
 pub use self::param::*;
 pub use self::reg::*;
@@ -15,10 +15,10 @@ pub mod asm;
 pub mod param;
 pub mod reg;
 
-pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
+pub fn sfi_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
     let ra = unsafe { *(es.sp as *const usize) };
 
-    StackFrameInfo {
+    DoraToNativeInfo {
         last: ptr::null(),
         fp: es.regs[RBP.int() as usize],
         sp: es.sp + mem::ptr_width() as usize,

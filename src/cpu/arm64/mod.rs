@@ -3,7 +3,7 @@ use std::ptr;
 use baseline::fct::ExHandler;
 use execstate::ExecState;
 use object::{Handle, Obj};
-use stacktrace::StackFrameInfo;
+use stacktrace::DoraToNativeInfo;
 
 pub use self::param::*;
 pub use self::reg::*;
@@ -13,10 +13,10 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-pub fn sfi_from_execution_state(es: &ExecState) -> StackFrameInfo {
+pub fn sfi_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
     let ra = es.regs[REG_LR.asm() as usize];
 
-    StackFrameInfo {
+    DoraToNativeInfo {
         last: ptr::null(),
         fp: es.regs[REG_FP.asm() as usize],
         sp: es.sp,

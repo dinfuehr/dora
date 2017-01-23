@@ -6,7 +6,7 @@ use cpu::{Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, FctId, get_ctxt};
 use masm::MacroAssembler;
 use mem;
-use stacktrace::StackFrameInfo;
+use stacktrace::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeFcts {
@@ -61,7 +61,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
     pub fn generate(mut self) -> JitFct {
         let save_return = self.return_type != BuiltinType::Unit;
 
-        let framesize = size_of::<StackFrameInfo>() as i32 + if save_return { 8 } else { 0 } +
+        let framesize = size_of::<DoraToNativeInfo>() as i32 + if save_return { 8 } else { 0 } +
                         self.args * 8;
 
         let framesize = mem::align_i32(framesize, 16);
@@ -115,9 +115,9 @@ fn start_native_call(fp: *const u8) {
         let dora_ra = *(fp.offset(8) as *const usize);
         let dora_fp = *(fp as *const usize);
 
-        let sfi_size = size_of::<StackFrameInfo>() as isize;
-        let sfi: *mut StackFrameInfo = fp.offset(-sfi_size) as *mut StackFrameInfo;
-        let sfi: &mut StackFrameInfo = &mut *sfi;
+        let sfi_size = size_of::<DoraToNativeInfo>() as isize;
+        let sfi: *mut DoraToNativeInfo = fp.offset(-sfi_size) as *mut DoraToNativeInfo;
+        let sfi: &mut DoraToNativeInfo = &mut *sfi;
 
         sfi.sp = 0;
         sfi.fp = dora_fp;
