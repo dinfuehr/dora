@@ -1,5 +1,5 @@
 use libc;
-use std::ptr::{self, write_bytes};
+use std::ptr;
 
 use ctxt::{Context, get_ctxt};
 use gc::copy::{minor_collect, SemiSpace};
@@ -143,9 +143,7 @@ impl Gc {
         }
 
         let ptr = unsafe { libc::malloc(size) as *mut Obj };
-        unsafe {
-            write_bytes(ptr as *mut u8, 0, size);
-        }
+        unsafe { ptr::write_bytes(ptr as *mut u8, 0, size); }
 
         {
             let ptr = ptr as *mut Obj;
@@ -257,7 +255,9 @@ fn sweep(gc: &mut Gc, cur_marked: bool) {
 
             unsafe {
                 // overwrite memory for better detection of gc bugs
-                write_bytes(obj as *mut u8, 0xcc, size);
+                if cfg!(debug_assertions) {
+                    ptr::write_bytes(obj as *mut u8, 0xcc, size);
+                }
 
                 // free unused memory
                 libc::free(obj as *mut libc::c_void);

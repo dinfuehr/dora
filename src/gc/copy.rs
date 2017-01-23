@@ -54,6 +54,10 @@ impl SemiSpace {
         self.scan = self.start;
         self.next = self.start;
     }
+
+    pub fn size(&self) -> usize {
+        self.end as usize - self.start as usize
+    }
 }
 
 impl Drop for SemiSpace {
@@ -93,6 +97,12 @@ pub fn minor_collect(ctxt: &Context,
         });
 
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
+    }
+
+    if cfg!(debug_assertions) {
+        unsafe {
+            ptr::write_bytes(from_space.start as *mut u8, 0xcc, from_space.size());
+        }
     }
 
     timer.stop_with(|dur| {
