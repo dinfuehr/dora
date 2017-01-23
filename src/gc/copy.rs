@@ -36,7 +36,10 @@ impl SemiSpace {
     pub fn allocate(&mut self, size: usize) -> *const u8 {
         if self.end as usize - self.next as usize > size {
             let next = unsafe { self.next.offset(size as isize) };
+
             let addr = self.next;
+            unsafe { ptr::write_bytes(addr as *mut u8, 0, size); }
+
             self.next = next;
 
             addr
@@ -160,6 +163,8 @@ pub fn set_forwarding_address(obj: &mut Obj, addr: *const u8) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn test_mark_forwarding_address() {
         assert_eq!(9 as *const u8, mark_forwarding_address(8 as *const u8));
