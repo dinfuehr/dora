@@ -24,7 +24,7 @@ Options:
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
                             Allowed values: intel, att
     --enable-perf           Enable dump for perf
-    --gc-dump               Dump GC actions
+    --gc-events             Dump GC events
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
     --gc-copy               Use Copy Collection with Cheney Algorithm
@@ -42,7 +42,7 @@ pub struct Args {
     pub flag_version: bool,
     pub flag_emit_debug: Option<String>,
     pub flag_asm_syntax: Option<AsmSyntax>,
-    pub flag_gc_dump: bool,
+    pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_copy: bool,
@@ -61,7 +61,7 @@ impl Default for Args {
             flag_omit_bounds_check: false,
             flag_version: false,
             flag_asm_syntax: None,
-            flag_gc_dump: false,
+            flag_gc_events: false,
             flag_gc_stress: false,
             flag_gc_stats: false,
             flag_gc_copy: false,

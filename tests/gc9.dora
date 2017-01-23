@@ -1,0 +1,12 @@
+fun main() {
+    let x = A(10);
+    let y = x;
+
+    forceCollect();
+
+    assert(x === y);
+    assert(x.a == 10);
+
+}
+
+class A(let a: int)

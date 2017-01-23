@@ -134,7 +134,7 @@ impl Gc {
                 let saved_threshold = self.threshold;
                 self.threshold = (self.threshold as f64 / USED_RATIO) as usize;
 
-                if ctxt.args.flag_gc_dump {
+                if ctxt.args.flag_gc_events {
                     println!("GC: increase threshold from {} to {}",
                              saved_threshold,
                              self.threshold);
@@ -172,7 +172,13 @@ impl Gc {
     }
 
     pub fn collect(&mut self, ctxt: &Context) {
-        let active_timer = ctxt.args.flag_gc_dump || ctxt.args.flag_gc_stats;
+        if ctxt.args.flag_gc_copy {
+            let rootset = get_rootset(ctxt);
+            minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
+            return;
+        }
+
+        let active_timer = ctxt.args.flag_gc_events || ctxt.args.flag_gc_stats;
         let mut timer = Timer::new(active_timer);
         let rootset = get_rootset(ctxt);
 
@@ -189,7 +195,7 @@ impl Gc {
         timer.stop_with(|dur| {
             self.collect_duration += dur;
 
-            if ctxt.args.flag_gc_dump {
+            if ctxt.args.flag_gc_events {
                 println!("GC: collect garbage ({} ms)", in_ms(dur));
             }
         });

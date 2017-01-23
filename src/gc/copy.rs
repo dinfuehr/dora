@@ -71,7 +71,7 @@ pub fn minor_collect(ctxt: &Context,
                      from_space: &mut SemiSpace,
                      to_space: &mut SemiSpace,
                      rootset: Vec<IndirectObj>) {
-    let mut timer = Timer::new(ctxt.args.flag_gc_dump );
+    let mut timer = Timer::new(ctxt.args.flag_gc_events);
     swap(from_space, to_space);
 
     // empty to-space
@@ -108,8 +108,8 @@ pub fn minor_collect(ctxt: &Context,
     timer.stop_with(|dur| {
         // self.collect_duration += dur;
 
-        if ctxt.args.flag_gc_dump {
-            println!("GC: minor collect ({} ms)", in_ms(dur));
+        if ctxt.args.flag_gc_events {
+            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
         }
     });
 }
@@ -119,7 +119,7 @@ pub fn copy(obj: *mut Obj, to_space: &mut SemiSpace) -> *mut Obj {
     let addr = get_forwarding_address(obj);
 
     if is_forwarding_address(addr) {
-        forwarding_address(addr) as *mut Obj
+        unmark_forwarding_address(addr) as *mut Obj
 
     } else {
         let addr = to_space.next;
@@ -140,7 +140,11 @@ pub fn is_forwarding_address(obj: *const u8) -> bool {
     (obj as usize) & 1 == 1
 }
 
-pub fn forwarding_address(obj: *const u8) -> *const u8 {
+pub fn mark_forwarding_address(obj: *const u8) -> *const u8 {
+    ((obj as usize) | 1) as *const u8
+}
+
+pub fn unmark_forwarding_address(obj: *const u8) -> *const u8 {
     ((obj as usize) & !1) as *const u8
 }
 
@@ -150,6 +154,29 @@ pub fn get_forwarding_address(obj: &Obj) -> *const u8 {
 
 pub fn set_forwarding_address(obj: &mut Obj, addr: *const u8) {
     unsafe {
-        *(obj as *mut Obj as *mut *const u8) = addr;
+        *(obj as *mut Obj as *mut *const u8) = mark_forwarding_address(addr);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_mark_forwarding_address() {
+        assert_eq!(9 as *const u8, mark_forwarding_address(8 as *const u8));
+        assert_eq!(13 as *const u8, mark_forwarding_address(12 as *const u8));
+    }
+
+    #[test]
+    fn test_unmark_forwarding_address() {
+        assert_eq!(8 as *const u8, unmark_forwarding_address(9 as *const u8));
+        assert_eq!(12 as *const u8, unmark_forwarding_address(13 as *const u8));
+    }
+
+    #[test]
+    fn test_is_forwarding_address() {
+        assert_eq!(false, is_forwarding_address(8 as *const u8));
+        assert_eq!(true, is_forwarding_address(9 as *const u8));
+        assert_eq!(false, is_forwarding_address(12 as *const u8));
+        assert_eq!(true, is_forwarding_address(13 as *const u8));
     }
 }
