@@ -1,3 +1,4 @@
+use std::mem::swap;
 use std::ptr;
 
 use ctxt::Context;
@@ -67,7 +68,7 @@ pub fn minor_collect(ctxt: &Context,
                      to_space: &mut SemiSpace,
                      rootset: Vec<IndirectObj>) {
     let mut timer = Timer::new(ctxt.args.flag_gc_dump );
-    swap_spaces(from_space, to_space);
+    swap(from_space, to_space);
 
     // empty to-space
     to_space.reset();
@@ -101,20 +102,6 @@ pub fn minor_collect(ctxt: &Context,
             println!("GC: minor collect ({} ms)", in_ms(dur));
         }
     });
-}
-
-pub fn swap_spaces(s1: &mut SemiSpace, s2: &mut SemiSpace) {
-    let s = s1.start;
-    let e = s1.end;
-    let n = s1.next;
-
-    s1.start = s2.start;
-    s1.end = s2.end;
-    s1.next = s2.next;
-
-    s2.start = s;
-    s2.end = e;
-    s2.next = n;
 }
 
 pub fn copy(obj: *mut Obj, to_space: &mut SemiSpace) -> *mut Obj {
