@@ -1,6 +1,7 @@
 use std::default::Default;
 
 use docopt::Docopt;
+use rustc_serialize;
 
 pub fn parse() -> Args {
     Docopt::new(USAGE)
@@ -28,6 +29,7 @@ Options:
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
     --gc-copy               Use Copy Collection with Cheney Algorithm
+    --gc-copy-size=<SIZE>   Set size of copy collection space
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -46,6 +48,7 @@ pub struct Args {
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_copy: bool,
+    pub flag_gc_copy_size: Option<MemSize>,
 }
 
 impl Default for Args {
@@ -65,6 +68,7 @@ impl Default for Args {
             flag_gc_stress: false,
             flag_gc_stats: false,
             flag_gc_copy: false,
+            flag_gc_copy_size: None,
         }
     }
 }
@@ -73,4 +77,38 @@ impl Default for Args {
 pub enum AsmSyntax {
     Intel,
     Att,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MemSize(usize);
+
+impl MemSize {
+    pub fn get(self) -> usize {
+        self.0
+    }
+}
+
+impl rustc_serialize::Decodable for MemSize {
+    fn decode<D: rustc_serialize::Decoder>(d: &mut D) -> Result<MemSize, D::Error> {
+        let mut size = d.read_str()?;
+        let suffix = if let Some(ch) = size.chars().last() {
+            match ch {
+                'k' | 'K' => 1024,
+                'm' | 'M' => 1024 * 1024,
+                'g' | 'G' => 1024 * 1024 * 1024,
+                _ => 1,
+            }
+        } else {
+            1
+        };
+
+        if suffix != 1 {
+            size.pop();
+        }
+
+        match size.parse::<usize>() {
+            Ok(size) => Ok(MemSize(size * suffix)),
+            Err(_) => Err(d.error("cannot parse mem size")),
+        }
+    }
 }

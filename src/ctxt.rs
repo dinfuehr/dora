@@ -48,6 +48,7 @@ pub struct Context<'ast> {
 impl<'ast> Context<'ast> {
     pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Context<'ast> {
         let empty_class_id: ClassId = 0.into();
+        let gc = Gc::new(&args);
 
         Context {
             args: args,
@@ -62,7 +63,7 @@ impl<'ast> Context<'ast> {
                 bool_class: empty_class_id,
                 int_array: empty_class_id,
             },
-            gc: Mutex::new(Gc::new()),
+            gc: Mutex::new(gc),
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),

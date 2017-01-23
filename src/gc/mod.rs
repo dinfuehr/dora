@@ -2,6 +2,7 @@ use libc;
 use std::ptr;
 
 use ctxt::{Context, get_ctxt};
+use driver::cmd::Args;
 use gc::copy::{minor_collect, SemiSpace};
 use gc::root::{get_rootset, IndirectObj};
 use gc::space::{Space, SpaceConfig};
@@ -43,7 +44,7 @@ pub struct Gc {
 }
 
 impl Gc {
-    pub fn new() -> Gc {
+    pub fn new(args: &Args) -> Gc {
         let code_config = SpaceConfig {
             prot: os::Executable,
             chunk_size: CHUNK_SIZE,
@@ -58,6 +59,8 @@ impl Gc {
             align: 8,
         };
 
+        let size = args.flag_gc_copy_size.map(|x| x.get()).unwrap_or(INITIAL_SIZE);
+
         Gc {
             obj_start: ptr::null_mut(),
             obj_end: ptr::null_mut(),
@@ -70,8 +73,8 @@ impl Gc {
             collections: 0,
             allocations: 0,
 
-            from_space: SemiSpace::new(INITIAL_SIZE),
-            to_space: SemiSpace::new(INITIAL_SIZE),
+            from_space: SemiSpace::new(size),
+            to_space: SemiSpace::new(size),
             code_space: Space::new(code_config, "code"),
             perm_space: Space::new(perm_config, "perm"),
         }
