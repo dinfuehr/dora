@@ -123,16 +123,17 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
                               cls: &mut Class,
                               sizes: &mut HashMap<ClassId, i32>)
                               -> i32 {
+    if let Some(&size) = sizes.get(&cls.id) {
+        return size;
+    }
+
     let mut size = if let Some(parent) = cls.parent_class {
         let mut parent_cls = ctxt.classes[parent].borrow_mut();
+        let size = determine_class_size(ctxt, &mut *parent_cls, sizes);
+
         cls.ref_fields = parent_cls.ref_fields.to_vec();
 
-        if let Some(&size) = sizes.get(&parent) {
-            size
-
-        } else {
-            determine_class_size(ctxt, &mut *parent_cls, sizes)
-        }
+        size
 
     } else {
         Header::size()
@@ -589,16 +590,29 @@ mod tests {
 
     #[test]
     fn test_ref_fields() {
+        let header = Header::size();
+        let pw = mem::ptr_width();
+
         ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)", |ctxt| {
             let cls = cls_by_name(ctxt, "A");
             let cls = ctxt.classes[cls].borrow();
-
-            assert_eq!(vec![24], cls.ref_fields);
+            assert_eq!(vec![header], cls.ref_fields);
 
             let cls = cls_by_name(ctxt, "B");
             let cls = ctxt.classes[cls].borrow();
+            assert_eq!(vec![header, header + pw], cls.ref_fields);
+        });
 
-            assert_eq!(vec![24, 32], cls.ref_fields);
+        ok_with_test("class A(let x: Data, d: Data): B(d)
+                      open class B(let y: Data)
+                      class Data(let data: int)", |ctxt| {
+            let cls = cls_by_name(ctxt, "A");
+            let cls = ctxt.classes[cls].borrow();
+            assert_eq!(vec![header, header + pw], cls.ref_fields);
+
+            let cls = cls_by_name(ctxt, "B");
+            let cls = ctxt.classes[cls].borrow();
+            assert_eq!(vec![header], cls.ref_fields);
         });
     }
 
