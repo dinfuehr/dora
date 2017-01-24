@@ -845,6 +845,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let mptr = stdlib::gc_alloc as *mut u8;
                     self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
 
+                    self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+
+
                     // store classptr in object
                     let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
                     let disp = self.masm.add_addr(cptr);

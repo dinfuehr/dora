@@ -105,10 +105,6 @@ impl Gc {
             minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
 
             ptr = self.to_space.allocate(size);
-
-            if ptr.is_null() {
-                panic!("out of memory");
-            }
         }
 
         ptr as *mut u8

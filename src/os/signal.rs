@@ -146,6 +146,15 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
                     libc::_exit(106);
                 }
             }
+
+            Trap::OOM => {
+                println!("out of memory");
+                let stacktrace = get_stacktrace(ctxt, &es);
+                stacktrace.dump(ctxt);
+                unsafe {
+                    libc::_exit(107);
+                }
+            }
         }
 
         // could not recognize trap -> crash vm
@@ -250,6 +259,7 @@ pub enum Trap {
     THROW,
     CAST,
     UNEXPECTED,
+    OOM,
 }
 
 impl Trap {
@@ -263,6 +273,7 @@ impl Trap {
             Trap::THROW => 5,
             Trap::CAST => 6,
             Trap::UNEXPECTED => 7,
+            Trap::OOM => 8,
         }
     }
 
@@ -276,6 +287,7 @@ impl Trap {
             5 => Some(Trap::THROW),
             6 => Some(Trap::CAST),
             7 => Some(Trap::UNEXPECTED),
+            8 => Some(Trap::OOM),
             _ => None,
         }
     }
