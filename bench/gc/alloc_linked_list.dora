@@ -1,11 +1,14 @@
-fn main() {
-  let list: Foo = nil;
-  let i = 0;
+fun main() {
+  var list: Foo = nil;
+  var i = 0;
 
-  while i < 10000 {
-    list = Foo(i, list);
+  while i < 10000000 {
+    if i % 5 != 0 {
+      list = Foo(i, list);
+    }
+
     i = i + 1;
   }
 }
 
-class Foo(a: int, next: Foo)
+class Foo(let a: int, let next: Foo)

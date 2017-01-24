@@ -1,11 +1,11 @@
-fn main() {
-  let i = 0;
+fun main() {
+  var i = 0;
 
-  while i < 10000 {
+  while i < 10000000 {
     Foo(i);
 
     i = i + 1;
   }
 }
 
-class Foo(a: int)
+class Foo(let a: int)
