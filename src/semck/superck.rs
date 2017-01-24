@@ -393,6 +393,26 @@ mod tests {
     }
 
     #[test]
+    fn test_internal_class_size() {
+        ok_with_test("", |ctxt| {
+            assert_eq!(0, class_size_name(ctxt, "IntArray"));
+            assert_eq!(0, class_size_name(ctxt, "Str"));
+            assert_eq!(1, class_size_name(ctxt, "bool"));
+            assert_eq!(4, class_size_name(ctxt, "int"));
+            assert_eq!(1, class_size_name(ctxt, "byte"));
+            assert_eq!(8, class_size_name(ctxt, "long"));
+        });
+    }
+
+    fn class_size_name(ctxt: &Context, name: &'static str) -> i32 {
+        let name = ctxt.interner.intern(name);
+        let cid = ctxt.sym.borrow().get_class(name).unwrap();
+        let cls = ctxt.classes[cid].borrow();
+
+        cls.size
+    }
+
+    #[test]
     fn test_super_size() {
         ok_with_test("open class A { var a: int; }
             open class B: A { var b1: int; var b2: int; }
