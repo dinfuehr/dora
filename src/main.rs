@@ -36,6 +36,7 @@ mod dseg;
 mod error;
 mod execstate;
 mod gc;
+mod handle;
 mod interner;
 mod lexer;
 mod masm;
