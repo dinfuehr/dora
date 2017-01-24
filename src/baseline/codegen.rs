@@ -129,6 +129,22 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     for instr in instrs {
         let addr = (instr.addr - start_addr) as i32;
 
+        if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
+            print!("\t\t  ; gc points = (");
+            let mut first = true;
+
+            for &offset in &gc_point.offsets {
+                if !first {
+                    print!(", ");
+                }
+
+                print!("{}", offset);
+                first = false;
+            }
+
+            println!(")");
+        }
+
         if let Some(comments) = jit_fct.get_comment(addr) {
             for comment in comments {
                 if comment.is_newline() {
