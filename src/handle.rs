@@ -62,4 +62,4 @@ struct BorderData {
     element: usize,
 }
 
-struct HandleBuffer(usize);
+struct HandleBorder(usize);
