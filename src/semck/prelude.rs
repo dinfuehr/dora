@@ -34,7 +34,7 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>,
         if cls.internal {
             cls.ty = ty;
             cls.size = size;
-            cls.internal = false;
+            cls.internal_resolved = true;
         }
 
         clsid
@@ -103,7 +103,7 @@ fn internal_method<'ast>(ctxt: &mut Context<'ast>,
 
         if mtd.name == name && mtd.internal {
             mtd.kind = kind;
-            mtd.internal = false;
+            mtd.internal_resolved = true;
             break;
         }
     }
@@ -126,7 +126,7 @@ fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind<'ast>)
 
         if fct.internal {
             fct.kind = kind;
-            fct.internal = false;
+            fct.internal_resolved = true;
         }
     }
 }

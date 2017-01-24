@@ -40,6 +40,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             parent_class: None,
             has_open: c.has_open,
             internal: c.internal,
+            internal_resolved: false,
             primary_ctor: c.primary_ctor,
 
             ctors: Vec::new(),
@@ -100,6 +101,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             has_open: f.has_open,
             has_final: f.has_final,
             internal: f.internal,
+            internal_resolved: false,
             overrides: None,
             throws: f.throws,
             ctor: CtorType::None,

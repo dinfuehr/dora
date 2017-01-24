@@ -115,7 +115,11 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
     for cls in &ctxt.classes {
         let mut cls = cls.borrow_mut();
 
-        determine_class_size(ctxt, &mut *cls, &mut sizes);
+        // internal classes like IntArray should have size 0, since
+        // their "real" size is dynamic and not static
+        if !cls.internal {
+            determine_class_size(ctxt, &mut *cls, &mut sizes);
+        }
     }
 }
 

@@ -73,7 +73,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
     for fct in &ctxt.fcts {
         let fct = fct.borrow();
 
-        if fct.internal {
+        if fct.internal && !fct.internal_resolved {
             ctxt.diag.borrow_mut().report(fct.pos, Msg::UnresolvedInternal);
         }
 
@@ -85,14 +85,14 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
     for cls in &ctxt.classes {
         let cls = cls.borrow();
 
-        if cls.internal {
+        if cls.internal && !cls.internal_resolved {
             ctxt.diag.borrow_mut().report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
             let method = ctxt.fcts[*method].borrow();
 
-            if method.internal {
+            if method.internal && !method.internal_resolved {
                 ctxt.diag.borrow_mut().report(method.pos, Msg::UnresolvedInternal);
             }
 
