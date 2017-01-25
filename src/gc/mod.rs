@@ -4,6 +4,7 @@ use std::ptr;
 use ctxt::{Context, get_ctxt};
 use driver::cmd::Args;
 use gc::copy::{minor_collect, SemiSpace};
+use gc::old::OldSpace;
 use gc::root::{get_rootset, IndirectObj};
 use gc::space::{Space, SpaceConfig};
 use object::Obj;
@@ -12,6 +13,7 @@ use timer::{in_ms, Timer};
 
 pub mod chunk;
 pub mod copy;
+pub mod old;
 pub mod root;
 pub mod space;
 
@@ -39,6 +41,7 @@ pub struct Gc {
 
     from_space: SemiSpace,
     to_space: SemiSpace,
+    old_space: OldSpace,
 
     code_space: Space,
     perm_space: Space,
@@ -76,6 +79,7 @@ impl Gc {
 
             from_space: SemiSpace::new(size),
             to_space: SemiSpace::new(size),
+            old_space: OldSpace::new(),
             code_space: Space::new(code_config, "code"),
             perm_space: Space::new(perm_config, "perm"),
         }

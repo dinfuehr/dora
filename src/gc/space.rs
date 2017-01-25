@@ -1,10 +1,12 @@
 use std::cmp::max;
-use std::ptr;
 
 use gc::chunk::Chunk;
 use mem;
 use os;
 
+/// Configuration for a space.
+/// This makes it possible to use `Space` both for the
+/// code space and the permanent space.
 pub struct SpaceConfig {
     pub prot: os::ProtType,
     pub chunk_size: usize,
@@ -12,6 +14,8 @@ pub struct SpaceConfig {
     pub align: usize,
 }
 
+/// Non-contiguous space of memory. Used for permanent space
+/// and code space.
 pub struct Space {
     name: &'static str,
     config: SpaceConfig,
@@ -20,6 +24,7 @@ pub struct Space {
 }
 
 impl Space {
+    /// initializes `Space` and allocates the first chunk immediately.
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let mut code = Space {
             name: name,
@@ -33,6 +38,10 @@ impl Space {
         code
     }
 
+    /// allocate memory in this space. This first tries to allocate space
+    /// in the current chunk. If this fails a new chunk is allocated.
+    /// Doesn't use a freelist right now so memory at the end of a chunk
+    /// is probably lost.
     pub fn alloc(&mut self, size: usize) -> *mut u8 {
         let size = mem::align_usize(size, self.config.align);
         let mut ptr = self.chunks.last_mut().unwrap().alloc(size);
@@ -57,15 +66,5 @@ impl Space {
         self.size += chunk.size();
 
         self.chunks.push(chunk);
-    }
-
-    pub fn includes(&self, ptr: *const u8) -> bool {
-        for chunk in &self.chunks {
-            if chunk.includes(ptr) {
-                return true;
-            }
-        }
-
-        false
     }
 }
