@@ -54,6 +54,8 @@ impl Space {
         ptr as *mut u8
     }
 
+    /// adds another chunk to the space. Checks if allocation of chunk
+    /// would violate the size limit for this space.
     pub fn add_chunk(&mut self, size: usize) {
         let size = max(size, self.config.chunk_size);
         let size = mem::align_usize(size, os::page_size() as usize);

@@ -99,10 +99,6 @@ impl Gc {
             minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
         }
 
-        if size > LARGE_OBJECT_SIZE {
-            panic!("large object heap not implemented yet.");
-        }
-
         let mut ptr = self.to_space.allocate(size);
 
         if ptr.is_null() {
