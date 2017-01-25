@@ -70,7 +70,7 @@ pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     let ctxt = get_ctxt();
     let mut gc = ctxt.gc.lock().unwrap();
 
-    gc.alloc(size)
+    gc.alloc(ctxt, size) as *mut Obj
 }
 
 pub extern "C" fn gc_collect() {

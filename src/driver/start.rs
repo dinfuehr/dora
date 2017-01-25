@@ -73,10 +73,10 @@ pub fn start() -> i32 {
         let gc = ctxt.gc.lock().unwrap();
 
         println!("GC stats:");
-        println!("\tcollect duration: {} ms", in_ms(gc.collect_duration));
-        println!("\t{} allocations", gc.allocations);
-        println!("\t{} collections", gc.collections);
-        println!("\t{} bytes allocated", gc.total_allocated);
+        println!("\tcollect duration: {} ms", in_ms(gc.stats.collect_duration));
+        println!("\t{} allocations", gc.stats.allocations);
+        println!("\t{} collections", gc.stats.collections);
+        println!("\t{} bytes allocated", gc.stats.total_allocated);
     }
 
     let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();

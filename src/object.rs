@@ -236,7 +236,7 @@ impl Str {
 fn str_alloc_heap(ctxt: &Context, len: usize) -> Handle<Str> {
     str_alloc(ctxt,
               len,
-              |ctxt, size| ctxt.gc.lock().unwrap().alloc(size) as *const u8)
+              |ctxt, size| ctxt.gc.lock().unwrap().alloc(ctxt, size) as *const u8)
 }
 
 fn str_alloc_perm(ctxt: &Context, len: usize) -> Handle<Str> {
@@ -306,7 +306,7 @@ impl IntArray {
                    + len * std::mem::size_of::<i32>(); // array content
 
         let ctxt = get_ctxt();
-        let ptr = ctxt.gc.lock().unwrap().alloc(size) as usize;
+        let ptr = ctxt.gc.lock().unwrap().alloc(ctxt, size) as usize;
 
         let clsid = ctxt.primitive_classes.int_array;
         let cls = ctxt.classes[clsid].borrow();
