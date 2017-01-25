@@ -79,7 +79,15 @@ impl Gc {
         self.perm_space.alloc(size)
     }
 
-    pub fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut u8 {
+    pub fn alloc(&mut self, ctxt: &Context, size: usize) -> *const u8 {
+        if ctxt.args.flag_gc_copy {
+            self.alloc_copy(ctxt, size)
+        } else {
+            self.malloc_space.alloc(ctxt, &mut self.stats, size)
+        }
+    }
+
+    fn alloc_copy(&mut self, ctxt: &Context, size: usize) -> *mut u8 {
         if ctxt.args.flag_gc_stress {
             let rootset = get_rootset(ctxt);
             minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
@@ -95,14 +103,6 @@ impl Gc {
         }
 
         ptr as *mut u8
-    }
-
-    pub fn alloc(&mut self, ctxt: &Context, size: usize) -> *const u8 {
-        if ctxt.args.flag_gc_copy {
-            self.alloc_copy(ctxt, size)
-        } else {
-            self.malloc_space.alloc(ctxt, &mut self.stats, size)
-        }
     }
 
     pub fn collect(&mut self, ctxt: &Context) {
