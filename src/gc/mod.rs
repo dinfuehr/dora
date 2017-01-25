@@ -10,6 +10,7 @@ use object::Obj;
 use os;
 use timer::{in_ms, Timer};
 
+pub mod chunk;
 pub mod copy;
 pub mod root;
 pub mod space;
