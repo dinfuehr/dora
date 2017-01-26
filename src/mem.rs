@@ -1,8 +1,18 @@
 use std::i32;
 use std::mem::size_of;
 
+use os;
+
 pub fn ptr_width() -> i32 {
     size_of::<*const u8>() as i32
+}
+
+pub fn is_page_aligned(val: usize) -> bool {
+    val == align_usize(val, os::page_size() as usize)
+}
+
+pub fn page_align(val: usize) -> usize {
+    align_usize(val, os::page_size() as usize)
 }
 
 pub fn align(value: u32, align: u32) -> u32 {

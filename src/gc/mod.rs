@@ -7,6 +7,7 @@ use gc::root::get_rootset;
 use gc::space::{Space, SpaceConfig};
 use os;
 
+pub mod arena;
 pub mod chunk;
 pub mod copy;
 pub mod malloc;

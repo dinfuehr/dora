@@ -15,6 +15,10 @@ pub fn page_size() -> u32 {
     val as u32
 }
 
+pub fn page_size_bits() -> u32 {
+    12
+}
+
 #[cfg(target_family = "windows")]
 pub fn page_size() -> u32 {
     use kernel32::GetSystemInfo;
