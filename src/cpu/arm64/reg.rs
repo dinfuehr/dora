@@ -45,6 +45,39 @@ pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);
 pub const R30: Reg = Reg(30);
 
+pub const F0: FReg = FReg(0);
+pub const F1: FReg = FReg(1);
+pub const F2: FReg = FReg(2);
+pub const F3: FReg = FReg(3);
+pub const F4: FReg = FReg(4);
+pub const F5: FReg = FReg(5);
+pub const F6: FReg = FReg(6);
+pub const F7: FReg = FReg(7);
+pub const F8: FReg = FReg(8);
+pub const F9: FReg = FReg(9);
+pub const F10: FReg = FReg(10);
+pub const F11: FReg = FReg(11);
+pub const F12: FReg = FReg(12);
+pub const F13: FReg = FReg(13);
+pub const F14: FReg = FReg(14);
+pub const F15: FReg = FReg(15);
+pub const F16: FReg = FReg(16);
+pub const F17: FReg = FReg(17);
+pub const F18: FReg = FReg(18);
+pub const F19: FReg = FReg(19);
+pub const F20: FReg = FReg(20);
+pub const F21: FReg = FReg(21);
+pub const F22: FReg = FReg(22);
+pub const F23: FReg = FReg(23);
+pub const F24: FReg = FReg(24);
+pub const F25: FReg = FReg(25);
+pub const F26: FReg = FReg(26);
+pub const F27: FReg = FReg(27);
+pub const F28: FReg = FReg(28);
+pub const F29: FReg = FReg(29);
+pub const F30: FReg = FReg(30);
+pub const F31: FReg = FReg(31);
+
 impl Reg {
     pub fn asm(self) -> u32 {
         match self {

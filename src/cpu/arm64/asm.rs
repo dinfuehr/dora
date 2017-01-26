@@ -647,31 +647,43 @@ fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg,
     0b10 << 10 | rn.asm() << 5 | rd.asm()
 }
 
-pub fn fadd(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+pub fn fadd(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd)
 }
 
-pub fn fsub(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+pub fn fsub(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd)
 }
 
-pub fn fmul(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+pub fn fmul(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd)
 }
 
-pub fn fdiv(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+pub fn fdiv(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd)
 }
 
-fn cls_fp_imm(m: u32, s: u32, ty: u32, imm8: u32, imm5: u32, rd: FReg) -> u32 {
+fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg,
+                    rd: FReg) -> u32 {
     assert!(m == 0);
     assert!(s == 0);
-    assert!(fits_bit(ty));
-    assert!(fits_u8(imm8));
-    assert!(imm5 == 0);
+    assert!(fits_u2(ty));
+    assert!(fits_u6(opcode));
 
-    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | imm8 << 13 | 0b100 << 10 |
-    imm5 << 5 | rd.asm()
+    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | opcode << 15 |
+    0b10000 << 10 | rn.asm() << 5 | rd.asm()
+}
+
+pub fn fneg(ty: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd)
+}
+
+pub fn fcvts(ty: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, 0b11, 0b000100, rn, rd)
+}
+
+pub fn fcvtd(ty: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, 0b11, 0b000101, rn, rd)
 }
 
 #[derive(Copy, Clone)]
@@ -1437,6 +1449,16 @@ mod tests {
 
     #[test]
     fn test_fp_dataproc2() {
+        assert_eq!(0x1e222820, fadd(0, F0, F1, F2));
+        assert_eq!(0x1e622820, fadd(1, F0, F1, F2));
+        assert_eq!(0x1e653883, fsub(1, F3, F4, F5));
+        assert_eq!(0x1e6808e6, fmul(1, F6, F7, F8));
+        assert_eq!(0x1e6b1949, fdiv(1, F9, F10, F11));
+    }
 
+    #[test]
+    fn test_fp_dataproc1() {
+        assert_eq!(0x1e214041, fneg(0, F1, F2));
+        assert_eq!(0x1e614083, fneg(1, F3, F4));
     }
 }
