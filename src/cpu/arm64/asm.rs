@@ -1,5 +1,5 @@
 use baseline::codegen::CondCode;
-use cpu::Reg;
+use cpu::{FReg, Reg};
 use cpu::arm64::reg::*;
 use os::signal::Trap;
 
@@ -636,6 +636,44 @@ pub fn trap(trap: Trap) -> u32 {
     0xE7000000u32 | trap.int()
 }
 
+fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg,
+                    rd: FReg) -> u32 {
+    assert!(m == 0);
+    assert!(s == 0);
+    assert!(fits_bit(ty));
+    assert!(fits_u4(opcode));
+
+    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rm.asm() << 16 | opcode << 12 |
+    0b10 << 10 | rn.asm() << 5 | rd.asm()
+}
+
+pub fn fadd(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+    cls_fp_dataproc2(0, 0, ty, rm, 0b0010, rn, rd)
+}
+
+pub fn fsub(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+    cls_fp_dataproc2(0, 0, ty, rm, 0b0011, rn, rd)
+}
+
+pub fn fmul(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+    cls_fp_dataproc2(0, 0, ty, rm, 0b0000, rn, rd)
+}
+
+pub fn fdiv(ty: u32, rm: FReg, rn: FReg, rd: FReg) -> u32 {
+    cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd)
+}
+
+fn cls_fp_imm(m: u32, s: u32, ty: u32, imm8: u32, imm5: u32, rd: FReg) -> u32 {
+    assert!(m == 0);
+    assert!(s == 0);
+    assert!(fits_bit(ty));
+    assert!(fits_u8(imm8));
+    assert!(imm5 == 0);
+
+    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | imm8 << 13 | 0b100 << 10 |
+    imm5 << 5 | rd.asm()
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
@@ -823,6 +861,10 @@ fn fits_u6(imm: u32) -> bool {
 
 fn fits_u7(imm: u32) -> bool {
     imm < 128
+}
+
+fn fits_u8(imm: u32) -> bool {
+    imm < 256
 }
 
 fn fits_i7(imm: i32) -> bool {
@@ -1391,5 +1433,10 @@ mod tests {
         assert_eq!(0x8b226be1, add_extreg(1, R1, REG_SP, R2, Extend::UXTX, 2));
         assert_eq!(0x0b22443f, add_extreg(0, REG_SP, R1, R2, Extend::UXTW, 1));
         assert_eq!(0x0b2243e1, add_extreg(0, R1, REG_SP, R2, Extend::UXTW, 0));
+    }
+
+    #[test]
+    fn test_fp_dataproc2() {
+
     }
 }

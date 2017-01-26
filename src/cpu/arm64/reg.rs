@@ -1,4 +1,4 @@
-use cpu::Reg;
+use cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 31;
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
@@ -64,5 +64,14 @@ impl Reg {
 
     pub fn is_gpr_or_sp(self) -> bool {
         self.is_gpr() || self == REG_SP
+    }
+}
+
+impl FReg {
+    pub fn asm(self) -> u32 {
+        match self.0 {
+            0...31 => self.0 as u32,
+            _ => panic!("invalid fp register.")
+        }
     }
 }

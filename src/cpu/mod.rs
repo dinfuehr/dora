@@ -21,6 +21,15 @@ impl From<Reg> for u32 {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct FReg(pub u8);
+
+impl From<FReg> for u32 {
+    fn from(reg: FReg) -> u32 {
+        reg.0 as u32
+    }
+}
+
 pub enum Mem {
     Local(i32),
     Base(Reg, i32),
