@@ -686,6 +686,23 @@ pub fn fcvtd(ty: u32, rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, 0b11, 0b000101, rn, rd)
 }
 
+fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32,
+              rn: Reg, rd: FReg) -> u32 {
+    assert!(fits_bit(sf));
+    assert!(fits_bit(s));
+    assert!(fits_u2(ty));
+    assert!(fits_u2(rmode));
+    assert!(fits_u3(opcode));
+    assert!(rn.is_gpr());
+
+    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 |
+    opcode << 16 | rn.asm() << 5 | rd.asm()
+}
+
+pub fn scvtf(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {
+    cls_fp_int(sf, 0, ty, 0b00, 0b010, rn, rd)
+}
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
@@ -1460,5 +1477,22 @@ mod tests {
     fn test_fp_dataproc1() {
         assert_eq!(0x1e214041, fneg(0, F1, F2));
         assert_eq!(0x1e614083, fneg(1, F3, F4));
+    }
+
+    #[test]
+    fn test_scvtf() {
+        asm(0x1e220041, scvtf(0, 0, F1, R2));
+        asm(0x1e620041, scvtf(0, 1, F1, R2));
+        asm(0x9e220083, scvtf(1, 0, F3, R4));
+        asm(0x9e620083, scvtf(1, 1, F3, R4));
+    }
+
+    fn asm(op1: u32, op2: u32) {
+        if op1 != op2 {
+            println!("{:x} != {:x}", op1, op2);
+            panic!("insn do not match")
+        }
+
+        assert_eq!(op1, op2);
     }
 }
