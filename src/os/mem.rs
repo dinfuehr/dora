@@ -27,6 +27,7 @@ pub fn init_page_size() {
 /// determine log_2 of given value
 fn log2(mut val: u32) -> u32 {
     let mut log = 0;
+
     if (val & 0xFFFF0000) != 0 { val >>= 16; log += 16; }
     if val >= 256 { val >>= 8; log += 8; }
     if val >= 16 { val >>= 4; log += 4; }
@@ -52,6 +53,7 @@ fn test_log2() {
     assert_eq!(11, log2(2048));
     assert_eq!(12, log2(4096));
     assert_eq!(16, log2(65536));
+    assert_eq!(19, log2(1 << 19));
     assert_eq!(31, log2(1 << 31));
 }
 

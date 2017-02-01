@@ -8,11 +8,43 @@ pub fn ptr_width() -> i32 {
 }
 
 pub fn is_page_aligned(val: usize) -> bool {
-    val == align_usize(val, os::page_size() as usize)
+    let align = os::page_size_bits();
+
+    // we can use shifts here since we know that
+    // page size is power of 2
+    val == ((val >> align) << align)
+}
+
+#[test]
+fn test_is_page_aligned() {
+    os::init_page_size();
+    let p = os::page_size() as usize;
+
+    assert_eq!(false, is_page_aligned(1));
+    assert_eq!(false, is_page_aligned(2));
+    assert_eq!(false, is_page_aligned(64));
+    assert_eq!(true, is_page_aligned(p));
+    assert_eq!(true, is_page_aligned(2*p));
+    assert_eq!(true, is_page_aligned(3*p));
 }
 
 pub fn page_align(val: usize) -> usize {
-    align_usize(val, os::page_size() as usize)
+    let align = os::page_size_bits();
+
+    // we know that page size is power of 2, hence
+    // we can use shifts instead of expensive division
+    ((val + (1 << align) - 1) >> align) << align
+}
+
+#[test]
+fn test_page_align() {
+    os::init_page_size();
+    let p = os::page_size() as usize;
+
+    assert_eq!(p, page_align(1));
+    assert_eq!(p, page_align(p - 1));
+    assert_eq!(p, page_align(p));
+    assert_eq!(2*p, page_align(p+1));
 }
 
 pub fn align(value: u32, align: u32) -> u32 {
