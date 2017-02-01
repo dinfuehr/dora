@@ -57,23 +57,9 @@ fn log2(mut val: u32) -> u32 {
 
 #[test]
 fn test_log2() {
-    assert_eq!(0, log2(0));
-    assert_eq!(0, log2(1));
-    assert_eq!(1, log2(2));
-    assert_eq!(2, log2(4));
-    assert_eq!(3, log2(8));
-    assert_eq!(4, log2(16));
-    assert_eq!(5, log2(32));
-    assert_eq!(6, log2(64));
-    assert_eq!(7, log2(128));
-    assert_eq!(8, log2(256));
-    assert_eq!(9, log2(512));
-    assert_eq!(10, log2(1024));
-    assert_eq!(11, log2(2048));
-    assert_eq!(12, log2(4096));
-    assert_eq!(16, log2(65536));
-    assert_eq!(19, log2(1 << 19));
-    assert_eq!(31, log2(1 << 31));
+    for i in 0..32 {
+        assert_eq!(i, log2(1 << i));
+    }
 }
 
 pub fn page_size() -> u32 {
