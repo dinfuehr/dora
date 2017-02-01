@@ -816,6 +816,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
         unimplemented!();
+
+        // self.emit_expr(&e.args[0], REG_RESULT);
+        // self.masm.extend_int_long(dest, REG_RESULT);
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {

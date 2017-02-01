@@ -406,6 +406,13 @@ pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
     buf.emit_label(lbl);
 }
 
+pub fn emit_movsx(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
+    emit_rex(buf, 1, dest.msb(), 0, src.msb());
+
+    emit_op(buf, 0x63);
+    emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
 pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
     emit_op(buf, 0xe9);
     buf.emit_label(lbl);
@@ -1470,5 +1477,15 @@ mod tests {
         assert_emit!(0x41, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R15));
         assert_emit!(0x49, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R9));
         assert_emit!(0x41, 0x83, 0xf9, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, R9));
+    }
+
+    #[test]
+    fn test_emit_movsx() {
+        assert_emit!(0x48, 0x63, 0xc0; emit_movsx(RAX, RAX));
+        assert_emit!(0x4c, 0x63, 0xc8; emit_movsx(RAX, R9));
+        assert_emit!(0x4c, 0x63, 0xf8; emit_movsx(RAX, R15));
+        assert_emit!(0x49, 0x63, 0xc2; emit_movsx(R10, RAX));
+        assert_emit!(0x4d, 0x63, 0xfe; emit_movsx(R14, R15));
+
     }
 }
