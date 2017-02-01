@@ -101,7 +101,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int8 |
             MachineMode::Int32 => asm::emit_cmpl_reg_reg(self, rhs, lhs),
-            MachineMode::Int64 => unimplemented!(),
+            MachineMode::Int64 |
             MachineMode::Ptr => asm::emit_cmpq_reg_reg(self, rhs, lhs),
         }
     }
@@ -255,7 +255,7 @@ impl MacroAssembler {
                 match mode {
                     MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest),
                     MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest),
-                    MachineMode::Int64 => unimplemented!(),
+                    MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_memq_reg(self, RBP, offset, dest),
                 }
             }
@@ -264,7 +264,7 @@ impl MacroAssembler {
                 match mode {
                     MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest),
                     MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest),
-                    MachineMode::Int64 => unimplemented!(),
+                    MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_memq_reg(self, base, disp, dest),
                 }
             }
@@ -281,7 +281,7 @@ impl MacroAssembler {
                 match mode {
                     MachineMode::Int8 => asm::emit_movb_reg_memq(self, src, RBP, offset),
                     MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, RBP, offset),
-                    MachineMode::Int64 => unimplemented!(),
+                    MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, RBP, offset),
                 }
             }
@@ -290,7 +290,7 @@ impl MacroAssembler {
                 match mode {
                     MachineMode::Int8 => asm::emit_movb_reg_memq(self, src, base, disp),
                     MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, base, disp),
-                    MachineMode::Int64 => unimplemented!(),
+                    MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, base, disp),
                 }
             }
@@ -305,7 +305,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int8 |
             MachineMode::Int32 => asm::emit_movl_reg_reg(self, src, dest),
-            MachineMode::Int64 => unimplemented!(),
+            MachineMode::Int64 |
             MachineMode::Ptr => asm::emit_movq_reg_reg(self, src, dest),
         }
     }
@@ -331,7 +331,7 @@ impl MacroAssembler {
         match mode {
             MachineMode::Int8 => unimplemented!(),
             MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm, dest),
-            MachineMode::Int64 => unimplemented!(),
+            MachineMode::Int64 |
             MachineMode::Ptr => asm::emit_movq_imm_reg(self, imm, dest),
         }
     }
