@@ -42,3 +42,5 @@ internal class IntArray {
   internal fun get(idx: int) -> int;
   internal fun set(idx: int, val: int);
 }
+
+internal fun loadFunction(name: Str) -> int;

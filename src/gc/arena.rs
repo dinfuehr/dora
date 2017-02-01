@@ -12,7 +12,7 @@ pub struct Arena {
 impl Arena {
     pub fn new(size: usize) -> Arena {
         debug_assert!(is_page_aligned(size));
-        let pages = size >> os::page_size_bits();
+        // let pages = size >> os::page_size_bits();
 
         Arena {
             start: reserve(size),
@@ -21,7 +21,7 @@ impl Arena {
         }
     }
 
-    pub fn alloc(&mut self, ptr: *const u8, size: usize) -> *const u8 {
+    pub fn alloc(&mut self, _: *const u8, size: usize) -> *const u8 {
         debug_assert!(is_page_aligned(size));
 
         unimplemented!()
@@ -33,7 +33,7 @@ impl Arena {
         let pages = size >> os::page_size_bits();
 
         // mark pages free
-        for el in &mut self.pages[ind..ind+pages] {
+        for el in &mut self.pages[ind..ind + pages] {
             *el = 0;
         }
     }

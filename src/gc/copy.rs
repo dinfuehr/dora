@@ -38,7 +38,9 @@ impl SemiSpace {
             let next = unsafe { self.next.offset(size as isize) };
 
             let addr = self.next;
-            unsafe { ptr::write_bytes(addr as *mut u8, 0, size); }
+            unsafe {
+                ptr::write_bytes(addr as *mut u8, 0, size);
+            }
 
             self.next = next;
 

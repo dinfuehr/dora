@@ -58,7 +58,9 @@ impl MallocSpace {
         }
 
         let ptr = unsafe { libc::malloc(size) as *mut Obj };
-        unsafe { ptr::write_bytes(ptr as *mut u8, 0, size); }
+        unsafe {
+            ptr::write_bytes(ptr as *mut u8, 0, size);
+        }
 
         {
             let ptr = ptr as *mut Obj;

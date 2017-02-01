@@ -3,6 +3,7 @@ use libc;
 use std::ffi::CStr;
 use std::io::{self, Write};
 use std::os::raw::c_char;
+use std::ptr;
 use std::slice;
 use std::str;
 
@@ -121,4 +122,41 @@ pub extern "C" fn str_parse_int(val: Handle<Str>) -> i32 {
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i32>().unwrap_or(0)
+}
+
+pub extern "C" fn load_function(name: Handle<Str>) -> usize {
+    let name = name.to_cstring();
+
+    unsafe {
+        let lib = libc::dlopen(ptr::null(), libc::RTLD_LAZY | libc::RTLD_LOCAL);
+        let addr = libc::dlsym(lib, name.as_ptr());
+
+        libc::dlclose(lib);
+
+        addr as usize
+    }
+}
+
+pub extern "C" fn call0(addr: *const u8) -> usize {
+    let fct: extern "C" fn() -> usize = unsafe { mem::transmute(addr) };
+
+    fct()
+}
+
+pub extern "C" fn call1(addr: *const u8, arg1: usize) -> usize {
+    let fct: extern "C" fn(usize) -> usize = unsafe { mem::transmute(addr) };
+
+    fct(arg1)
+}
+
+pub extern "C" fn call2(addr: *const u8, arg1: usize, arg2: usize) -> usize {
+    let fct: extern "C" fn(usize, usize) -> usize = unsafe { mem::transmute(addr) };
+
+    fct(arg1, arg2)
+}
+
+pub extern "C" fn call3(addr: *const u8, arg1: usize, arg2: usize, arg3: usize) -> usize {
+    let fct: extern "C" fn(usize, usize, usize) -> usize = unsafe { mem::transmute(addr) };
+
+    fct(arg1, arg2, arg3)
 }

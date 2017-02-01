@@ -104,7 +104,7 @@ impl FReg {
     pub fn asm(self) -> u32 {
         match self.0 {
             0...31 => self.0 as u32,
-            _ => panic!("invalid fp register.")
+            _ => panic!("invalid fp register."),
         }
     }
 }

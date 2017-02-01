@@ -1,6 +1,8 @@
 use std;
+use std::ffi::CString;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+use std::slice;
 
 use ctxt::{Context, get_ctxt};
 use gc::root::IndirectObj;
@@ -170,6 +172,12 @@ impl Str {
 
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
+    }
+
+    pub fn to_cstring(&self) -> CString {
+        let view = unsafe { slice::from_raw_parts(self.data(), self.len()) };
+
+        CString::new(view).unwrap()
     }
 
     pub fn size(&self) -> usize {

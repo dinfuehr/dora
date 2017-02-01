@@ -18,9 +18,7 @@ pub fn init_page_size() {
 
 #[cfg(target_family = "unix")]
 fn determine_page_size() -> u32 {
-    let val = unsafe {
-        libc::sysconf(libc::_SC_PAGESIZE)
-    };
+    let val = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
 
     if val <= 0 {
         panic!("could not determine page size.");
@@ -47,10 +45,22 @@ pub fn determine_page_size() -> u32 {
 fn log2(mut val: u32) -> u32 {
     let mut log = 0;
 
-    if (val & 0xFFFF0000) != 0 { val >>= 16; log += 16; }
-    if val >= 256 { val >>= 8; log += 8; }
-    if val >= 16 { val >>= 4; log += 4; }
-    if val >= 4 { val >>= 2; log += 2; }
+    if (val & 0xFFFF0000) != 0 {
+        val >>= 16;
+        log += 16;
+    }
+    if val >= 256 {
+        val >>= 8;
+        log += 8;
+    }
+    if val >= 16 {
+        val >>= 4;
+        log += 4;
+    }
+    if val >= 4 {
+        val >>= 2;
+        log += 2;
+    }
 
     log + (val >> 1)
 }

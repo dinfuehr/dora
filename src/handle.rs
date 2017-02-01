@@ -51,9 +51,7 @@ struct HandleBuffer {
 
 impl HandleBuffer {
     fn new() -> HandleBuffer {
-        HandleBuffer {
-            elements: [ptr::null_mut(); HANDLE_SIZE],
-        }
+        HandleBuffer { elements: [ptr::null_mut(); HANDLE_SIZE] }
     }
 }
 

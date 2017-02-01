@@ -8,8 +8,6 @@ pub struct OldSpace {
 
 impl OldSpace {
     pub fn new() -> OldSpace {
-        OldSpace {
-            chunks: vec![Chunk::new(CHUNK_SIZE, Writable)],
-        }
+        OldSpace { chunks: vec![Chunk::new(CHUNK_SIZE, Writable)] }
     }
 }

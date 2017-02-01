@@ -636,8 +636,7 @@ pub fn trap(trap: Trap) -> u32 {
     0xE7000000u32 | trap.int()
 }
 
-fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg,
-                    rd: FReg) -> u32 {
+fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg, rd: FReg) -> u32 {
     assert!(m == 0);
     assert!(s == 0);
     assert!(fits_bit(ty));
@@ -663,15 +662,14 @@ pub fn fdiv(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
     cls_fp_dataproc2(0, 0, ty, rm, 0b0001, rn, rd)
 }
 
-fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg,
-                    rd: FReg) -> u32 {
+fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) -> u32 {
     assert!(m == 0);
     assert!(s == 0);
     assert!(fits_u2(ty));
     assert!(fits_u6(opcode));
 
-    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | opcode << 15 |
-    0b10000 << 10 | rn.asm() << 5 | rd.asm()
+    m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | opcode << 15 | 0b10000 << 10 |
+    rn.asm() << 5 | rd.asm()
 }
 
 pub fn fneg(ty: u32, rd: FReg, rn: FReg) -> u32 {
@@ -686,8 +684,7 @@ pub fn fcvtd(ty: u32, rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, 0b11, 0b000101, rn, rd)
 }
 
-fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32,
-              rn: Reg, rd: FReg) -> u32 {
+fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: Reg, rd: FReg) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(s));
     assert!(fits_u2(ty));
@@ -695,8 +692,8 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32,
     assert!(fits_u3(opcode));
     assert!(rn.is_gpr());
 
-    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 |
-    opcode << 16 | rn.asm() << 5 | rd.asm()
+    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 |
+    rn.asm() << 5 | rd.asm()
 }
 
 pub fn scvtf(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {

@@ -617,7 +617,8 @@ mod tests {
         let header = Header::size();
         let pw = mem::ptr_width();
 
-        ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)", |ctxt| {
+        ok_with_test("open class A(let a: A) class B(a: A, let b: B) : A(a)",
+                     |ctxt| {
             let cls = cls_by_name(ctxt, "A");
             let cls = ctxt.classes[cls].borrow();
             assert_eq!(vec![header], cls.ref_fields);
@@ -629,7 +630,8 @@ mod tests {
 
         ok_with_test("class A(let x: Data, d: Data): B(d)
                       open class B(let y: Data)
-                      class Data(let data: int)", |ctxt| {
+                      class Data(let data: int)",
+                     |ctxt| {
             let cls = cls_by_name(ctxt, "A");
             let cls = ctxt.classes[cls].borrow();
             assert_eq!(vec![header, header + pw], cls.ref_fields);
