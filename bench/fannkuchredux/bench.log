@@ -1,0 +1,55 @@
+java
+
+real	0m42.511s
+user	0m42.540s
+sys	0m0.004s
+
+real	0m42.900s
+user	0m42.916s
+sys	0m0.012s
+
+real	0m42.877s
+user	0m42.900s
+sys	0m0.000s
+dora
+    Finished release [optimized] target(s) in 0.0 secs
+
+real	2m42.342s
+user	2m42.288s
+sys	0m0.036s
+
+real	2m42.625s
+user	2m42.604s
+sys	0m0.000s
+
+real	2m42.288s
+user	2m42.260s
+sys	0m0.008s
+cacao
+warning: [options] bootstrap class path not set in conjunction with -source 1.6
+1 warning
+
+real	1m34.626s
+user	1m34.612s
+sys	0m0.000s
+
+real	1m34.479s
+user	1m34.464s
+sys	0m0.000s
+
+real	1m34.813s
+user	1m34.792s
+sys	0m0.008s
+perl
+
+real	16m2.435s
+user	16m2.324s
+sys	0m0.000s
+
+real	15m56.465s
+user	15m56.284s
+sys	0m0.072s
+
+real	15m59.179s
+user	15m59.072s
+sys	0m0.000s
