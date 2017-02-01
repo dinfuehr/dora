@@ -51,7 +51,7 @@ impl Gc {
             align: 8,
         };
 
-        let size = args.flag_gc_copy_size.map(|x| *x).unwrap_or(INITIAL_SIZE) / 2;
+        let size = args.flag_gc_heap_size.map(|x| *x).unwrap_or(INITIAL_SIZE) / 2;
 
         Gc {
             stats: GcStats {

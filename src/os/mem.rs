@@ -4,18 +4,30 @@ use libc;
 
 use std::ptr;
 
+static mut PAGE_SIZE: u32 = 0;
+
 #[cfg(target_family = "unix")]
-pub fn page_size() -> u32 {
-    let val = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+pub fn init_page_size() {
+    unsafe {
+        let val = libc::sysconf(libc::_SC_PAGESIZE);
 
-    if val == -1 {
-        panic!("could not get page size.");
+        if val <= 0 {
+            panic!("could not determine page size.");
+        }
+
+        PAGE_SIZE = val as u32;
     }
-
-    val as u32
 }
 
+#[cfg(target_family = "unix")]
+pub fn page_size() -> u32 {
+    unsafe { PAGE_SIZE }
+}
+
+#[cfg(target_family = "unix")]
 pub fn page_size_bits() -> u32 {
+    // FIXME
+
     12
 }
 
