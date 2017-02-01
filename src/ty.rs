@@ -11,7 +11,6 @@ pub enum BuiltinType {
     Byte,
     Int,
     Long,
-    IntPtr,
 
     Bool,
 
@@ -103,7 +102,6 @@ impl BuiltinType {
             BuiltinType::Byte => "byte".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Long => "long".into(),
-            BuiltinType::IntPtr => "iptr".into(),
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
@@ -125,8 +123,7 @@ impl BuiltinType {
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
-            BuiltinType::Struct(_) |
-            BuiltinType::IntPtr => *self == other,
+            BuiltinType::Struct(_)  => *self == other,
             BuiltinType::Int => other == BuiltinType::Int || other == BuiltinType::Byte,
             BuiltinType::Long => {
                 other == BuiltinType::Long || other == BuiltinType::Int ||
@@ -157,7 +154,6 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
-            BuiltinType::IntPtr => mem::ptr_width(),
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
             BuiltinType::IntArray |
@@ -174,7 +170,6 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
-            BuiltinType::IntPtr => mem::ptr_width(),
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
             BuiltinType::IntArray |
@@ -191,13 +186,6 @@ impl BuiltinType {
             BuiltinType::Byte => MachineMode::Int8,
             BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Long => MachineMode::Int64,
-            BuiltinType::IntPtr => {
-                if mem::ptr_width() == 4 {
-                    MachineMode::Int32
-                } else {
-                    MachineMode::Int64
-                }
-            }
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::Str |
             BuiltinType::IntArray |
