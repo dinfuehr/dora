@@ -27,8 +27,8 @@ fn test_is_page_aligned() {
     assert_eq!(false, is_page_aligned(2));
     assert_eq!(false, is_page_aligned(64));
     assert_eq!(true, is_page_aligned(p));
-    assert_eq!(true, is_page_aligned(2*p));
-    assert_eq!(true, is_page_aligned(3*p));
+    assert_eq!(true, is_page_aligned(2 * p));
+    assert_eq!(true, is_page_aligned(3 * p));
 }
 
 /// round the given value up to the nearest multiple of a page
@@ -48,7 +48,7 @@ fn test_page_align() {
     assert_eq!(p, page_align(1));
     assert_eq!(p, page_align(p - 1));
     assert_eq!(p, page_align(p));
-    assert_eq!(2*p, page_align(p+1));
+    assert_eq!(2 * p, page_align(p + 1));
 }
 
 /// rounds the given value `val` up to the nearest multiple
