@@ -777,6 +777,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntArrayLen => self.emit_intrinsic_len(e, dest),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
+                Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
 
@@ -811,6 +812,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset));
 
         self.masm.int_shl(dest, REG_RESULT, REG_TMP1);
+    }
+
+    fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        unimplemented!();
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {

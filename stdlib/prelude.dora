@@ -25,6 +25,7 @@ internal class byte {
 }
 
 internal class int {
+  internal fun toLong() -> long;
   internal fun toString() -> Str;
 }
 
@@ -43,4 +44,4 @@ internal class IntArray {
   internal fun set(idx: int, val: int);
 }
 
-internal fun loadFunction(name: Str) -> int;
+internal fun loadFunction(name: Str) -> long;

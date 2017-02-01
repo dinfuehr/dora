@@ -372,6 +372,7 @@ pub enum Intrinsic {
     IntArraySet,
     Assert,
     Shl,
+    IntToLong,
 }
 
 #[derive(Debug)]

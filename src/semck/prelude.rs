@@ -62,6 +62,7 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_method(ctxt, clsid, "toString", stdlib::byte_to_string as *const u8);
 
     let clsid = ctxt.primitive_classes.int_class;
+    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
     let clsid = ctxt.primitive_classes.long_class;
