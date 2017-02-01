@@ -7,20 +7,39 @@ use std::ptr;
 static mut PAGE_SIZE: u32 = 0;
 static mut PAGE_SIZE_BITS: u32 = 0;
 
-#[cfg(target_family = "unix")]
 pub fn init_page_size() {
     unsafe {
-        let val = libc::sysconf(libc::_SC_PAGESIZE);
-
-        if val <= 0 {
-            panic!("could not determine page size.");
-        }
-
-        PAGE_SIZE = val as u32;
-
+        PAGE_SIZE = determine_page_size();
         assert!((PAGE_SIZE & (PAGE_SIZE - 1)) == 0);
 
         PAGE_SIZE_BITS = log2(PAGE_SIZE);
+    }
+}
+
+#[cfg(target_family = "unix")]
+fn determine_page_size() -> u32 {
+    let val = unsafe {
+        libc::sysconf(libc::_SC_PAGESIZE)
+    };
+
+    if val <= 0 {
+        panic!("could not determine page size.");
+    }
+
+    val as u32
+}
+
+#[cfg(target_family = "windows")]
+pub fn determine_page_size() -> u32 {
+    use kernel32::GetSystemInfo;
+    use winapi::sysinfoapi::SYSTEM_INFO;
+    use std::mem;
+
+    unsafe {
+        let mut system_info: SYSTEM_INFO = mem::uninitialized();
+        GetSystemInfo(&mut system_info);
+
+        system_info.dwPageSize
     }
 }
 
@@ -57,28 +76,12 @@ fn test_log2() {
     assert_eq!(31, log2(1 << 31));
 }
 
-#[cfg(target_family = "unix")]
 pub fn page_size() -> u32 {
     unsafe { PAGE_SIZE }
 }
 
-#[cfg(target_family = "unix")]
 pub fn page_size_bits() -> u32 {
     unsafe { PAGE_SIZE_BITS }
-}
-
-#[cfg(target_family = "windows")]
-pub fn page_size() -> u32 {
-    use kernel32::GetSystemInfo;
-    use winapi::sysinfoapi::SYSTEM_INFO;
-    use std::mem;
-
-    unsafe {
-        let mut system_info: SYSTEM_INFO = mem::uninitialized();
-        GetSystemInfo(&mut system_info);
-
-        system_info.dwPageSize
-    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
