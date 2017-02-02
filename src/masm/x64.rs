@@ -310,6 +310,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
+        asm::emit_movsx(self, src, dest);
+    }
+
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
         // next instruction has 7 bytes
         let disp = -(disp + 7);

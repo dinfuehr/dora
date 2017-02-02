@@ -1,0 +1,14 @@
+fun main() {
+    let x = 1.toLong();
+    let y = id(x);
+
+    assert(x == y);
+    assert(x >= y);
+    assert(x <= y);
+    assert(!(x > y));
+    assert(!(x < y));
+}
+
+fun id(val: long) -> long {
+    return val;
+}

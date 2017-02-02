@@ -6,7 +6,7 @@ use lexer::position::Position;
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
     String(String),
-    Number(String),
+    Number(String, bool),
     Identifier(String),
     End,
 
@@ -100,7 +100,11 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::Number(_) => "number",
+            TokenKind::Number(_, long) => if long {
+                "int number"
+            } else {
+                "long number"
+            },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
 
@@ -217,7 +221,12 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::Number(ref val) => val.clone(),
+            TokenKind::Number(ref val, long) => {
+                let long = if long { "L" } else { "" };
+
+                format!("{}{}", val, long)
+            }
+
             TokenKind::String(ref val) => format!("\"{}\"", &val),
             TokenKind::Identifier(ref val) => val.clone(),
 

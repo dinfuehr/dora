@@ -630,19 +630,35 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             return;
         }
 
-        if cmp_type == BuiltinType::Str {
-            self.emit_universal_call(e.id, e.pos, dest);
-            self.masm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
-            self.masm.cmp_reg(MachineMode::Int32, REG_RESULT, REG_TMP1);
-            self.masm.set(dest, to_cond_code(op));
+        match cmp_type {
+            BuiltinType::Str => {
+                self.emit_universal_call(e.id, e.pos, dest);
+                self.masm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+                self.masm.cmp_reg(MachineMode::Int32, REG_RESULT, REG_TMP1);
+                self.masm.set(dest, to_cond_code(op));
+            }
 
-        } else {
-            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                eg.masm.cmp_reg(MachineMode::Int32, lhs, rhs);
-                eg.masm.set(dest, to_cond_code(op));
+            BuiltinType::Long => {
+                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                    eg.masm.cmp_reg(MachineMode::Int64, lhs, rhs);
+                    eg.masm.set(dest, to_cond_code(op));
 
-                dest
-            });
+                    dest
+                });
+            }
+
+            BuiltinType::Int | BuiltinType::Bool => {
+                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
+                    eg.masm.cmp_reg(MachineMode::Int32, lhs, rhs);
+                    eg.masm.set(dest, to_cond_code(op));
+
+                    dest
+                });
+            }
+
+            _ => {
+                unreachable!();
+            }
         }
     }
 
@@ -815,10 +831,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        unimplemented!();
-
-        // self.emit_expr(&e.args[0], REG_RESULT);
-        // self.masm.extend_int_long(dest, REG_RESULT);
+        self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
+        self.masm.extend_int_long(dest, REG_RESULT);
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {

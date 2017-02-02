@@ -124,11 +124,8 @@ impl BuiltinType {
             BuiltinType::Bool |
             BuiltinType::Byte |
             BuiltinType::Struct(_)  => *self == other,
-            BuiltinType::Int => other == BuiltinType::Int || other == BuiltinType::Byte,
-            BuiltinType::Long => {
-                other == BuiltinType::Long || other == BuiltinType::Int ||
-                other == BuiltinType::Byte
-            }
+            BuiltinType::Int => *self == other,
+            BuiltinType::Long => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str |

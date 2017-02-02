@@ -977,7 +977,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
     fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
-            TokenKind::Number(_) => self.parse_number(),
+            TokenKind::Number(_, _) => self.parse_number(),
             TokenKind::String(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
             TokenKind::True => self.parse_bool_literal(),
@@ -1083,9 +1083,19 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::Number(value) = tok.kind {
-            match value.parse() {
-                Ok(num) => Ok(Box::new(Expr::create_lit_int(self.generate_id(), pos, num))),
+        if let TokenKind::Number(value, long) = tok.kind {
+            let parsed = if long {
+                value.parse::<i32>().map(|num| num as i64)
+            } else {
+                value.parse::<i64>()
+            };
+
+            match parsed {
+                Ok(num) => {
+                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, long);
+                    Ok(Box::new(expr))
+                }
+
                 _ => Err(MsgWithPos::new(pos, Msg::NumberOverflow(value))),
             }
         } else {

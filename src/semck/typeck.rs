@@ -8,7 +8,6 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
-use mem::fits_i32;
 use semck::read_type;
 use ty::BuiltinType;
 
@@ -460,16 +459,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             CmpOp::Eq | CmpOp::Ne => {
                 match ty {
-                    BuiltinType::Str | BuiltinType::Bool => ty,
+                    BuiltinType::Str | BuiltinType::Bool | BuiltinType::Long => ty,
                     _ => BuiltinType::Int,
                 }
             }
 
             _ => {
-                if ty == BuiltinType::Str {
-                    ty
-                } else {
-                    BuiltinType::Int
+                match ty {
+                    BuiltinType::Str | BuiltinType::Long => ty,
+                    _ => BuiltinType::Int,
                 }
             }
         };
@@ -859,20 +857,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(ExprLitIntType { id, value, .. }) => {
-                let ty = BuiltinType::Int;
-
-                if !fits_i32(value) {
-                    unimplemented!();
-                }
-
-                // let ty = if fits_u8(value) {
-                //     BuiltinType::Byte
-                // } else if fits_i32(value) {
-                //     BuiltinType::Int
-                // } else {
-                //     BuiltinType::Long
-                // };
+            ExprLitInt(ExprLitIntType { id, long, .. }) => {
+                let ty = if long {
+                    BuiltinType::Long
+                } else {
+                    BuiltinType::Int
+                };
 
                 self.src.set_ty(id, ty);
                 self.expr_type = ty;
@@ -1641,5 +1631,17 @@ mod tests {
         err("struct Foo {} fun foo() -> int { return Foo; }",
             pos(1, 34),
             Msg::ReturnType("int".into(), "Foo".into()));
+    }
+
+    #[test]
+    fn lit_long() {
+        ok("fun f() -> long { return 1L; }");
+        ok("fun f() -> int { return 1; }");
+
+        let ret = Msg::ReturnType("int".into(), "long".into());
+        err("fun f() -> int { return 1L; }", pos(1, 18), ret);
+
+        let ret = Msg::ReturnType("long".into(), "int".into());
+        err("fun f() -> long { return 1; }", pos(1, 19), ret);
     }
 }
