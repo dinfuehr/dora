@@ -180,6 +180,10 @@ impl MacroAssembler {
     pub fn emit_u32(&mut self, value: u32) {
         self.data.write_u32::<LittleEndian>(value).unwrap();
     }
+
+    pub fn emit_u64(&mut self, value: u64) {
+        self.data.write_u64::<LittleEndian>(value).unwrap();
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

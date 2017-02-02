@@ -41,6 +41,12 @@ pub fn emit_movq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_u32(buf, imm as u32);
 }
 
+pub fn emit_movq_imm64_reg(buf: &mut MacroAssembler, imm: i64, reg: Reg) {
+    emit_rex(buf, 1, 0, 0, reg.msb());
+    emit_op(buf, 0xb8 + reg.and7());
+    emit_u64(buf, imm as u64);
+}
+
 pub fn emit_movb_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: Reg) {
     let rex_prefix = if dest != RAX && dest != RBX && dest != RCX && dest != RDX {
         1
@@ -344,6 +350,10 @@ pub fn emit_retq(buf: &mut MacroAssembler) {
 
 pub fn emit_nop(buf: &mut MacroAssembler) {
     emit_op(buf, 0x90);
+}
+
+pub fn emit_u64(buf: &mut MacroAssembler, val: u64) {
+    buf.emit_u64(val)
 }
 
 pub fn emit_u32(buf: &mut MacroAssembler, val: u32) {
@@ -1486,6 +1496,15 @@ mod tests {
         assert_emit!(0x4c, 0x63, 0xf8; emit_movsx(RAX, R15));
         assert_emit!(0x49, 0x63, 0xc2; emit_movsx(R10, RAX));
         assert_emit!(0x4d, 0x63, 0xfe; emit_movsx(R14, R15));
+    }
 
+    #[test]
+    fn test_emit_mov_imm64() {
+        assert_emit!(0x48, 0xb8, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11;
+            emit_movq_imm64_reg(0x1122334455667788, RAX));
+        assert_emit!(0x49, 0xbf, 0, 0x55, 0x44, 0x33, 0x22, 0x11, 0, 0;
+            emit_movq_imm64_reg(0x0000112233445500, R15));
+        assert_emit!(0x48, 0xbc, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0;
+            emit_movq_imm64_reg(0x0011223344556677, RSP));
     }
 }

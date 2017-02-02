@@ -5,7 +5,7 @@ use cpu::*;
 use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
-use mem::ptr_width;
+use mem::{ptr_width, fits_i32};
 use object::IntArray;
 use os::signal::Trap;
 use ty::MachineMode;
@@ -331,12 +331,18 @@ impl MacroAssembler {
         asm::emit_op(self, 0xCC);
     }
 
-    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i32) {
+    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         match mode {
             MachineMode::Int8 => unimplemented!(),
-            MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm, dest),
+            MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm as i32, dest),
             MachineMode::Int64 |
-            MachineMode::Ptr => asm::emit_movq_imm_reg(self, imm, dest),
+            MachineMode::Ptr => {
+                if fits_i32(imm) {
+                    asm::emit_movq_imm_reg(self, imm as i32, dest);
+                } else {
+                    asm::emit_movq_imm64_reg(self, imm, dest);
+                }
+            }
         }
     }
 

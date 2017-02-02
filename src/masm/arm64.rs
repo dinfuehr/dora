@@ -21,7 +21,7 @@ impl MacroAssembler {
 
         if stacksize > 0 {
             let scratch = self.get_scratch();
-            self.load_int_const(MachineMode::Ptr, *scratch, stacksize);
+            self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
             self.emit_u32(asm::sub_extreg(1, REG_SP, REG_SP, *scratch, Extend::UXTX, 0));
         }
     }
@@ -29,7 +29,7 @@ impl MacroAssembler {
     pub fn epilog(&mut self, stacksize: i32) {
         if stacksize > 0 {
             let scratch = self.get_scratch();
-            self.load_int_const(MachineMode::Ptr, *scratch, stacksize);
+            self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
             self.emit_u32(asm::add_extreg(1, REG_SP, REG_SP, *scratch, Extend::UXTX, 0));
         }
 
@@ -104,7 +104,7 @@ impl MacroAssembler {
         self.load_mem(mode, *scratch1, mem);
 
         let scratch2 = self.get_scratch();
-        self.load_int_const(mode, *scratch2, imm);
+        self.load_int_const(mode, *scratch2, imm as i64);
 
         self.cmp_reg(mode, *scratch1, *scratch2);
     }
@@ -241,7 +241,7 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => {
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, offset);
+                self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
 
                 let inst = match mode {
                     MachineMode::Int8 => asm::ldrb_ind(dest, REG_FP, *scratch, LdStExtend::LSL, 0),
@@ -255,7 +255,7 @@ impl MacroAssembler {
 
             Mem::Base(base, disp) => {
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp);
+                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
 
                 let inst = match mode {
                     MachineMode::Int8 => asm::ldrb_ind(dest, base, *scratch, LdStExtend::LSL, 0),
@@ -271,7 +271,7 @@ impl MacroAssembler {
                 assert!(mode.size() == scale);
 
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp);
+                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
                 self.emit_u32(asm::add_reg(1, *scratch, *scratch, base));
 
                 let inst = match mode {
@@ -290,7 +290,7 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => {
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, offset);
+                self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
 
                 let inst = match mode {
                     MachineMode::Int8 => asm::strb_ind(src, REG_FP, *scratch, LdStExtend::LSL, 0),
@@ -303,7 +303,7 @@ impl MacroAssembler {
 
             Mem::Base(base, disp) => {
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp);
+                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
 
                 let inst = match mode {
                     MachineMode::Int8 => asm::strb_ind(src, base, *scratch, LdStExtend::LSL, 0),
@@ -318,7 +318,7 @@ impl MacroAssembler {
                 assert!(mode.size() == scale);
 
                 let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp);
+                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
                 self.emit_u32(asm::add_reg(1, *scratch, *scratch, base));
 
                 let inst = match mode {
@@ -349,7 +349,7 @@ impl MacroAssembler {
         self.emit_u32(asm::brk(0));
     }
 
-    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i32) {
+    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         let sf = size_flag(mode);
         let register_size = match mode {
             MachineMode::Int8 => unimplemented!(),
@@ -357,7 +357,7 @@ impl MacroAssembler {
             MachineMode::Int64 => 64,
             MachineMode::Ptr => 64,
         };
-        let imm = imm as i64 as u64;
+        let imm = imm as u64;
 
         if fits_movz(imm, register_size) {
             let shift = shift_movz(imm);
