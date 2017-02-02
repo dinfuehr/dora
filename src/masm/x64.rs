@@ -158,11 +158,17 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_mul(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_imull_reg_reg(self, rhs, lhs);
+    pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_imul_reg_reg(self, x64, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 

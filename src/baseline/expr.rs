@@ -682,7 +682,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_mul(dest, lhs, rhs);
+            eg.masm.int_mul(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });

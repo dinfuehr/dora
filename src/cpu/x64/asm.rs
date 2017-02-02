@@ -454,9 +454,9 @@ pub fn emit_sub_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) 
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
-pub fn emit_imull_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, 0, dest.msb(), 0, src.msb());
+pub fn emit_imul_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, src.msb());
     }
 
     emit_op(buf, 0x0f);
@@ -1160,9 +1160,12 @@ mod tests {
     }
 
     #[test]
-    fn test_imull_reg_reg() {
-        assert_emit!(0x0f, 0xaf, 0xc3; emit_imull_reg_reg(RBX, RAX));
-        assert_emit!(0x41, 0x0f, 0xaf, 0xcf; emit_imull_reg_reg(R15, RCX));
+    fn test_imul_reg_reg() {
+        assert_emit!(0x0f, 0xaf, 0xc3; emit_imul_reg_reg(0, RBX, RAX));
+        assert_emit!(0x41, 0x0f, 0xaf, 0xcf; emit_imul_reg_reg(0, R15, RCX));
+
+        assert_emit!(0x48, 0x0f, 0xaf, 0xc3; emit_imul_reg_reg(1, RBX, RAX));
+        assert_emit!(0x49, 0x0f, 0xaf, 0xcf; emit_imul_reg_reg(1, R15, RCX));
     }
 
     #[test]
