@@ -544,7 +544,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_shl(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_shl(dest, lhs, rhs);
+            eg.masm.int_shl(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -552,7 +552,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_sar(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_sar(dest, lhs, rhs);
+            eg.masm.int_sar(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -560,7 +560,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_shr(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_shr(dest, lhs, rhs);
+            eg.masm.int_shr(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -711,7 +711,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_or(dest, lhs, rhs);
+            eg.masm.int_or(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -719,7 +719,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_and(dest, lhs, rhs);
+            eg.masm.int_and(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -727,7 +727,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_xor(dest, lhs, rhs);
+            eg.masm.int_xor(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });
@@ -828,7 +828,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_expr(&e.args[1], REG_TMP1);
         self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset));
 
-        self.masm.int_shl(dest, REG_RESULT, REG_TMP1);
+        self.masm.int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
     }
 
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {

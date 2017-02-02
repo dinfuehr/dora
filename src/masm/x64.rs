@@ -200,66 +200,102 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_shl(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
+            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
         }
 
-        asm::emit_shll_reg_cl(self, lhs);
+        asm::emit_shl_reg_cl(self, x64, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
-    pub fn int_shr(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
+            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
         }
 
-        asm::emit_shrl_reg_cl(self, lhs);
+        asm::emit_shr_reg_cl(self, x64, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
-    pub fn int_sar(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
+            asm::emit_mov_reg_reg(self, x64, rhs, RCX);
         }
 
-        asm::emit_sarl_reg_cl(self, lhs);
+        asm::emit_sar_reg_cl(self, x64, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
-        }
-    }
-
-    pub fn int_or(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_orl_reg_reg(self, rhs, lhs);
-
-        if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
-    pub fn int_and(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_andl_reg_reg(self, rhs, lhs);
+    pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_or_reg_reg(self, x64, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
-    pub fn int_xor(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_xorl_reg_reg(self, rhs, lhs);
+    pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_and_reg_reg(self, x64, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_mov_reg_reg(self, 0, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+        }
+    }
+
+    pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_xor_reg_reg(self, x64, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 

@@ -3,16 +3,16 @@ use baseline::codegen::CondCode;
 use masm::{MacroAssembler, Label};
 use ty::MachineMode;
 
-pub fn emit_orl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_alu_reg_reg(buf, 0, 0x09, src, dest);
+pub fn emit_or_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, x64, 0x09, src, dest);
 }
 
-pub fn emit_andl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_alu_reg_reg(buf, 0, 0x21, src, dest);
+pub fn emit_and_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, x64, 0x21, src, dest);
 }
 
-pub fn emit_xorl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_alu_reg_reg(buf, 0, 0x31, src, dest);
+pub fn emit_xor_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, x64, 0x31, src, dest);
 }
 
 fn emit_alu_reg_reg(buf: &mut MacroAssembler, x64: u8, opcode: u8, src: Reg, dest: Reg) {
@@ -734,27 +734,27 @@ pub fn emit_shll_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_u8(buf, imm);
 }
 
-pub fn emit_shll_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
-    if dest.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, dest.msb());
+pub fn emit_shl_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, dest.msb());
     }
 
     emit_op(buf, 0xD3);
     emit_modrm(buf, 0b11, 0b100, dest.and7());
 }
 
-pub fn emit_shrl_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
-    if dest.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, dest.msb());
+pub fn emit_shr_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, dest.msb());
     }
 
     emit_op(buf, 0xD3);
     emit_modrm(buf, 0b11, 0b101, dest.and7());
 }
 
-pub fn emit_sarl_reg_cl(buf: &mut MacroAssembler, dest: Reg) {
-    if dest.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, dest.msb());
+pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, dest.msb());
     }
 
     emit_op(buf, 0xD3);
@@ -1185,23 +1185,27 @@ mod tests {
 
     #[test]
     fn test_orl_reg_reg() {
-        assert_emit!(0x44, 0x09, 0xf8; emit_orl_reg_reg(R15, RAX));
-        assert_emit!(0x09, 0xc8; emit_orl_reg_reg(RCX, RAX));
-        assert_emit!(0x41, 0x09, 0xc7; emit_orl_reg_reg(RAX, R15));
+        assert_emit!(0x44, 0x09, 0xf8; emit_or_reg_reg(0, R15, RAX));
+        assert_emit!(0x09, 0xc8; emit_or_reg_reg(0, RCX, RAX));
+        assert_emit!(0x41, 0x09, 0xc7; emit_or_reg_reg(0, RAX, R15));
+
+        assert_emit!(0x4c, 0x09, 0xf8; emit_or_reg_reg(1, R15, RAX));
+        assert_emit!(0x48, 0x09, 0xc8; emit_or_reg_reg(1, RCX, RAX));
+        assert_emit!(0x49, 0x09, 0xc7; emit_or_reg_reg(1, RAX, R15));
     }
 
     #[test]
-    fn test_andl_reg_reg() {
-        assert_emit!(0x44, 0x21, 0xf8; emit_andl_reg_reg(R15, RAX));
-        assert_emit!(0x21, 0xc8; emit_andl_reg_reg(RCX, RAX));
-        assert_emit!(0x41, 0x21, 0xc7; emit_andl_reg_reg(RAX, R15));
+    fn test_and_reg_reg() {
+        assert_emit!(0x44, 0x21, 0xf8; emit_and_reg_reg(0, R15, RAX));
+        assert_emit!(0x21, 0xc8; emit_and_reg_reg(0, RCX, RAX));
+        assert_emit!(0x41, 0x21, 0xc7; emit_and_reg_reg(0, RAX, R15));
     }
 
     #[test]
-    fn test_xorl_reg_reg() {
-        assert_emit!(0x44, 0x31, 0xf8; emit_xorl_reg_reg(R15, RAX));
-        assert_emit!(0x31, 0xc8; emit_xorl_reg_reg(RCX, RAX));
-        assert_emit!(0x41, 0x31, 0xc7; emit_xorl_reg_reg(RAX, R15));
+    fn test_xor_reg_reg() {
+        assert_emit!(0x44, 0x31, 0xf8; emit_xor_reg_reg(0, R15, RAX));
+        assert_emit!(0x31, 0xc8; emit_xor_reg_reg(0, RCX, RAX));
+        assert_emit!(0x41, 0x31, 0xc7; emit_xor_reg_reg(0, RAX, R15));
     }
 
     #[test]
@@ -1292,21 +1296,30 @@ mod tests {
     }
 
     #[test]
-    fn test_shll_reg_reg() {
-        assert_emit!(0xD3, 0xE0; emit_shll_reg_cl(RAX));
-        assert_emit!(0x41, 0xD3, 0xE1; emit_shll_reg_cl(R9));
+    fn test_shl_reg_cl() {
+        assert_emit!(0xD3, 0xE0; emit_shl_reg_cl(0, RAX));
+        assert_emit!(0x41, 0xD3, 0xE1; emit_shl_reg_cl(0, R9));
+
+        assert_emit!(0x48, 0xD3, 0xE0; emit_shl_reg_cl(1, RAX));
+        assert_emit!(0x49, 0xD3, 0xE1; emit_shl_reg_cl(1, R9));
     }
 
     #[test]
-    fn test_shrl_reg_reg() {
-        assert_emit!(0xD3, 0xE8; emit_shrl_reg_cl(RAX));
-        assert_emit!(0x41, 0xD3, 0xE9; emit_shrl_reg_cl(R9));
+    fn test_shr_reg_reg() {
+        assert_emit!(0xD3, 0xE8; emit_shr_reg_cl(0, RAX));
+        assert_emit!(0x41, 0xD3, 0xE9; emit_shr_reg_cl(0, R9));
+
+        assert_emit!(0x48, 0xD3, 0xE8; emit_shr_reg_cl(1, RAX));
+        assert_emit!(0x49, 0xD3, 0xE9; emit_shr_reg_cl(1, R9));
     }
 
     #[test]
-    fn test_sarl_reg_reg() {
-        assert_emit!(0xD3, 0xF8; emit_sarl_reg_cl(RAX));
-        assert_emit!(0x41, 0xD3, 0xF9; emit_sarl_reg_cl(R9));
+    fn test_sar_reg_reg() {
+        assert_emit!(0xD3, 0xF8; emit_sar_reg_cl(0, RAX));
+        assert_emit!(0x41, 0xD3, 0xF9; emit_sar_reg_cl(0, R9));
+
+        assert_emit!(0x48, 0xD3, 0xF8; emit_sar_reg_cl(1, RAX));
+        assert_emit!(0x49, 0xD3, 0xF9; emit_sar_reg_cl(1, R9));
     }
 
     #[test]
