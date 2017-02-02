@@ -14,7 +14,7 @@ use vtable::VTable;
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
         asm::emit_pushq_reg(self, RBP);
-        asm::emit_movq_reg_reg(self, RSP, RBP);
+        asm::emit_mov_reg_reg(self, 1, RSP, RBP);
 
         if stacksize > 0 {
             asm::emit_subq_imm_reg(self, stacksize, RSP);
@@ -125,25 +125,36 @@ impl MacroAssembler {
         asm::emit_jmp(self, lbl);
     }
 
-    pub fn int_div(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        assert_eq!(RAX, lhs);
-
-        asm::emit_cltd(self);
-        asm::emit_idivl_reg_reg(self, rhs);
-
-        if dest != RAX {
-            asm::emit_movl_reg_reg(self, RAX, dest);
-        }
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.div_common(mode, dest, lhs, rhs, RAX);
     }
 
-    pub fn int_mod(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        assert_eq!(RAX, lhs);
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.div_common(mode, dest, lhs, rhs, RDX);
+    }
 
-        asm::emit_cltd(self);
-        asm::emit_idivl_reg_reg(self, rhs);
+    fn div_common(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, result: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
 
-        if dest != RDX {
-            asm::emit_movl_reg_reg(self, RDX, dest);
+        if lhs != RAX {
+            assert!(rhs != RAX);
+            asm::emit_mov_reg_reg(self, x64, lhs, RAX);
+        }
+
+        if x64 != 0 {
+            asm::emit_cqo(self);
+        } else {
+            asm::emit_cdq(self);
+        }
+
+        asm::emit_idiv_reg_reg(self, x64, rhs);
+
+        if dest != result {
+            asm::emit_mov_reg_reg(self, x64, result, dest);
         }
     }
 
@@ -151,62 +162,74 @@ impl MacroAssembler {
         asm::emit_imull_reg_reg(self, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
-    pub fn int_add(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_addl_reg_reg(self, rhs, lhs);
+    pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_add_reg_reg(self, x64, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
-    pub fn int_sub(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        asm::emit_subl_reg_reg(self, rhs, lhs);
+    pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_sub_reg_reg(self, x64, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
         }
     }
 
     pub fn int_shl(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_movq_reg_reg(self, rhs, RCX);
+            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
         }
 
         asm::emit_shll_reg_cl(self, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
     pub fn int_shr(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_movq_reg_reg(self, rhs, RCX);
+            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
         }
 
         asm::emit_shrl_reg_cl(self, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
     pub fn int_sar(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
         if rhs != RCX {
             assert!(lhs != RCX);
-            asm::emit_movq_reg_reg(self, rhs, RCX);
+            asm::emit_mov_reg_reg(self, 1, rhs, RCX);
         }
 
         asm::emit_sarl_reg_cl(self, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
@@ -214,7 +237,7 @@ impl MacroAssembler {
         asm::emit_orl_reg_reg(self, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
@@ -222,7 +245,7 @@ impl MacroAssembler {
         asm::emit_andl_reg_reg(self, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
@@ -230,7 +253,7 @@ impl MacroAssembler {
         asm::emit_xorl_reg_reg(self, rhs, lhs);
 
         if dest != lhs {
-            asm::emit_movl_reg_reg(self, lhs, dest);
+            asm::emit_mov_reg_reg(self, 0, lhs, dest);
         }
     }
 
@@ -304,9 +327,9 @@ impl MacroAssembler {
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
             MachineMode::Int8 |
-            MachineMode::Int32 => asm::emit_movl_reg_reg(self, src, dest),
+            MachineMode::Int32 => asm::emit_mov_reg_reg(self, 0, src, dest),
             MachineMode::Int64 |
-            MachineMode::Ptr => asm::emit_movq_reg_reg(self, src, dest),
+            MachineMode::Ptr => asm::emit_mov_reg_reg(self, 1, src, dest),
         }
     }
 
@@ -358,7 +381,7 @@ impl MacroAssembler {
         asm::emit_negl_reg(self, src);
 
         if dest != src {
-            asm::emit_movl_reg_reg(self, src, dest);
+            asm::emit_mov_reg_reg(self, 0, src, dest);
         }
     }
 
@@ -366,7 +389,7 @@ impl MacroAssembler {
         asm::emit_notl_reg(self, src);
 
         if dest != src {
-            asm::emit_movl_reg_reg(self, src, dest);
+            asm::emit_mov_reg_reg(self, 0, src, dest);
         }
     }
 
@@ -375,7 +398,7 @@ impl MacroAssembler {
         asm::emit_andb_imm_reg(self, 1, src);
 
         if dest != src {
-            asm::emit_movl_reg_reg(self, src, dest);
+            asm::emit_mov_reg_reg(self, 0, src, dest);
         }
     }
 

@@ -671,9 +671,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             eg.masm.emit_bailout(lbl_div0, Trap::DIV0, e.pos);
 
             if e.op == BinOp::Div {
-                eg.masm.int_div(dest, lhs, rhs)
+                eg.masm.int_div(MachineMode::Int32, dest, lhs, rhs)
             } else {
-                eg.masm.int_mod(dest, lhs, rhs)
+                eg.masm.int_mod(MachineMode::Int32, dest, lhs, rhs)
             }
 
             dest
@@ -694,7 +694,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         } else {
             self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                eg.masm.int_add(dest, lhs, rhs);
+                eg.masm.int_add(MachineMode::Int32, dest, lhs, rhs);
 
                 dest
             });
@@ -703,7 +703,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_sub(dest, lhs, rhs);
+            eg.masm.int_sub(MachineMode::Int32, dest, lhs, rhs);
 
             dest
         });

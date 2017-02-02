@@ -249,15 +249,7 @@ fn emit_aluq_imm_reg(buf: &mut MacroAssembler,
     }
 }
 
-pub fn emit_movq_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_mov_reg_reg(buf, 1, src, dest);
-}
-
-pub fn emit_movl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_mov_reg_reg(buf, 0, src, dest);
-}
-
-fn emit_mov_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+pub fn emit_mov_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
     if x64 != 0 || src.msb() != 0 || dest.msb() != 0 {
         emit_rex(buf, x64, src.msb(), 0, dest.msb());
     }
@@ -444,25 +436,18 @@ pub fn emit_testq_reg_reg(buf: &mut MacroAssembler, op1: Reg, op2: Reg) {
     emit_modrm(buf, 0b11, op1.and7(), op2.and7());
 }
 
-pub fn emit_addl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, 0, src.msb(), 0, dest.msb());
+pub fn emit_add_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
     }
 
     emit_op(buf, 0x01);
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
-pub fn emit_addq_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_rex(buf, 1, src.msb(), 0, dest.msb());
-
-    emit_op(buf, 0x01);
-    emit_modrm(buf, 0b11, src.and7(), dest.and7());
-}
-
-pub fn emit_subl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    if src.msb() != 0 || dest.msb() != 0 {
-        emit_rex(buf, 0, src.msb(), 0, dest.msb());
+pub fn emit_sub_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, src.msb(), 0, dest.msb());
     }
 
     emit_op(buf, 0x29);
@@ -479,9 +464,9 @@ pub fn emit_imull_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
-pub fn emit_idivl_reg_reg(buf: &mut MacroAssembler, reg: Reg) {
-    if reg.msb() != 0 {
-        emit_rex(buf, 0, 0, 0, reg.msb());
+pub fn emit_idiv_reg_reg(buf: &mut MacroAssembler, x64: u8, reg: Reg) {
+    if reg.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, reg.msb());
     }
 
     emit_op(buf, 0xf7);
@@ -655,7 +640,12 @@ fn emit_membase_with_index_and_scale(buf: &mut MacroAssembler,
     }
 }
 
-pub fn emit_cltd(buf: &mut MacroAssembler) {
+pub fn emit_cdq(buf: &mut MacroAssembler) {
+    emit_op(buf, 0x99);
+}
+
+pub fn emit_cqo(buf: &mut MacroAssembler) {
+    emit_rex(buf, 1, 0, 0, 0);
     emit_op(buf, 0x99);
 }
 
@@ -874,16 +864,13 @@ mod tests {
     }
 
     #[test]
-    fn test_emit_movq_reg_reg() {
-        assert_emit!(0x4c, 0x89, 0xf8; emit_movq_reg_reg(R15, RAX));
-        assert_emit!(0x49, 0x89, 0xc7; emit_movq_reg_reg(RAX, R15));
-    }
+    fn test_emit_mov_reg_reg() {
+        assert_emit!(0x4c, 0x89, 0xf8; emit_mov_reg_reg(1, R15, RAX));
+        assert_emit!(0x49, 0x89, 0xc7; emit_mov_reg_reg(1, RAX, R15));
 
-    #[test]
-    fn test_emit_movl_reg_reg() {
-        assert_emit!(0x44, 0x89, 0xf8; emit_movl_reg_reg(R15, RAX));
-        assert_emit!(0x41, 0x89, 0xc7; emit_movl_reg_reg(RAX, R15));
-        assert_emit!(0x89, 0xc8; emit_movl_reg_reg(RCX, RAX));
+        assert_emit!(0x44, 0x89, 0xf8; emit_mov_reg_reg(0, R15, RAX));
+        assert_emit!(0x41, 0x89, 0xc7; emit_mov_reg_reg(0, RAX, R15));
+        assert_emit!(0x89, 0xc8; emit_mov_reg_reg(0, RCX, RAX));
     }
 
     #[test]
@@ -1154,23 +1141,22 @@ mod tests {
     }
 
     #[test]
-    fn test_addl_reg_reg() {
-        assert_emit!(0x01, 0xd8; emit_addl_reg_reg(RBX, RAX));
-        assert_emit!(0x44, 0x01, 0xf9; emit_addl_reg_reg(R15, RCX));
+    fn test_add_reg_reg() {
+        assert_emit!(0x01, 0xd8; emit_add_reg_reg(0, RBX, RAX));
+        assert_emit!(0x44, 0x01, 0xf9; emit_add_reg_reg(0, R15, RCX));
+
+        assert_emit!(0x48, 0x01, 0xD8; emit_add_reg_reg(1, RBX, RAX));
+        assert_emit!(0x4C, 0x01, 0xE0; emit_add_reg_reg(1, R12, RAX));
+        assert_emit!(0x49, 0x01, 0xC4; emit_add_reg_reg(1, RAX, R12));
+        assert_emit!(0x49, 0x01, 0xE7; emit_add_reg_reg(1, RSP, R15));
     }
 
     #[test]
-    fn test_addq_reg_reg() {
-        assert_emit!(0x48, 0x01, 0xD8; emit_addq_reg_reg(RBX, RAX));
-        assert_emit!(0x4C, 0x01, 0xE0; emit_addq_reg_reg(R12, RAX));
-        assert_emit!(0x49, 0x01, 0xC4; emit_addq_reg_reg(RAX, R12));
-        assert_emit!(0x49, 0x01, 0xE7; emit_addq_reg_reg(RSP, R15));
-    }
-
-    #[test]
-    fn test_subl_reg_reg() {
-        assert_emit!(0x29, 0xd8; emit_subl_reg_reg(RBX, RAX));
-        assert_emit!(0x44, 0x29, 0xf9; emit_subl_reg_reg(R15, RCX));
+    fn test_sub_reg_reg() {
+        assert_emit!(0x29, 0xd8; emit_sub_reg_reg(0, RBX, RAX));
+        assert_emit!(0x44, 0x29, 0xf9; emit_sub_reg_reg(0, R15, RCX));
+        assert_emit!(0x48, 0x29, 0xd8; emit_sub_reg_reg(1, RBX, RAX));
+        assert_emit!(0x4c, 0x29, 0xf9; emit_sub_reg_reg(1, R15, RCX));
     }
 
     #[test]
@@ -1180,14 +1166,18 @@ mod tests {
     }
 
     #[test]
-    fn test_idivl_reg_reg() {
-        assert_emit!(0xf7, 0xf8; emit_idivl_reg_reg(RAX));
-        assert_emit!(0x41, 0xf7, 0xff; emit_idivl_reg_reg(R15));
+    fn test_idiv_reg_reg() {
+        assert_emit!(0xf7, 0xf8; emit_idiv_reg_reg(0, RAX));
+        assert_emit!(0x41, 0xf7, 0xff; emit_idiv_reg_reg(0, R15));
+
+        assert_emit!(0x48, 0xf7, 0xf8; emit_idiv_reg_reg(1, RAX));
+        assert_emit!(0x49, 0xf7, 0xff; emit_idiv_reg_reg(1, R15));
     }
 
     #[test]
-    fn test_cltd() {
-        assert_emit!(0x99; emit_cltd);
+    fn test_cdq_cqo() {
+        assert_emit!(0x99; emit_cdq);
+        assert_emit!(0x48, 0x99; emit_cqo);
     }
 
     #[test]
