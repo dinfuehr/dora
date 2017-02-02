@@ -258,12 +258,12 @@ pub fn emit_mov_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) 
     emit_modrm(buf, 0b11, src.and7(), dest.and7());
 }
 
-pub fn emit_negl_reg(buf: &mut MacroAssembler, reg: Reg) {
-    emit_alul_reg(buf, 0xf7, 0b11, 0, reg);
+pub fn emit_neg_reg(buf: &mut MacroAssembler, x64: u8, reg: Reg) {
+    emit_alul_reg(buf, 0xf7, 0b11, x64, reg);
 }
 
-pub fn emit_notl_reg(buf: &mut MacroAssembler, reg: Reg) {
-    emit_alul_reg(buf, 0xf7, 0b10, 0, reg);
+pub fn emit_not_reg(buf: &mut MacroAssembler, x64: u8, reg: Reg) {
+    emit_alul_reg(buf, 0xf7, 0b10, x64, reg);
 }
 
 fn emit_alul_reg(buf: &mut MacroAssembler, opcode: u8, modrm_reg: u8, x64: u8, reg: Reg) {
@@ -473,12 +473,8 @@ pub fn emit_idiv_reg_reg(buf: &mut MacroAssembler, x64: u8, reg: Reg) {
     emit_modrm(buf, 0b11, 0b111, reg.and7());
 }
 
-pub fn emit_cmpl_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_alu_reg_reg(buf, 0, 0x39, src, dest);
-}
-
-pub fn emit_cmpq_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
-    emit_alu_reg_reg(buf, 1, 0x39, src, dest);
+pub fn emit_cmp_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    emit_alu_reg_reg(buf, x64, 0x39, src, dest);
 }
 
 pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
@@ -1108,15 +1104,21 @@ mod tests {
     }
 
     #[test]
-    fn test_negl_reg() {
-        assert_emit!(0xf7, 0xd8; emit_negl_reg(RAX));
-        assert_emit!(0x41, 0xf7, 0xdf; emit_negl_reg(R15));
+    fn test_neg_reg() {
+        assert_emit!(0xf7, 0xd8; emit_neg_reg(0, RAX));
+        assert_emit!(0x41, 0xf7, 0xdf; emit_neg_reg(0, R15));
+
+        assert_emit!(0x48, 0xf7, 0xd8; emit_neg_reg(1, RAX));
+        assert_emit!(0x49, 0xf7, 0xdf; emit_neg_reg(1, R15));
     }
 
     #[test]
-    fn test_notl_reg() {
-        assert_emit!(0xf7, 0xd0; emit_notl_reg(RAX));
-        assert_emit!(0x41, 0xf7, 0xd7; emit_notl_reg(R15));
+    fn test_not_reg() {
+        assert_emit!(0xf7, 0xd0; emit_not_reg(0, RAX));
+        assert_emit!(0x41, 0xf7, 0xd7; emit_not_reg(0, R15));
+
+        assert_emit!(0x48, 0xf7, 0xd0; emit_not_reg(1, RAX));
+        assert_emit!(0x49, 0xf7, 0xd7; emit_not_reg(1, R15));
     }
 
     #[test]
@@ -1209,17 +1211,14 @@ mod tests {
     }
 
     #[test]
-    fn test_cmpl_reg_reg() {
-        assert_emit!(0x44, 0x39, 0xf8; emit_cmpl_reg_reg(R15, RAX));
-        assert_emit!(0x41, 0x39, 0xdf; emit_cmpl_reg_reg(RBX, R15));
-        assert_emit!(0x39, 0xd8; emit_cmpl_reg_reg(RBX, RAX));
-    }
+    fn test_cmp_reg_reg() {
+        assert_emit!(0x44, 0x39, 0xf8; emit_cmp_reg_reg(0, R15, RAX));
+        assert_emit!(0x41, 0x39, 0xdf; emit_cmp_reg_reg(0, RBX, R15));
+        assert_emit!(0x39, 0xd8; emit_cmp_reg_reg(0, RBX, RAX));
 
-    #[test]
-    fn test_cmpq_reg_reg() {
-        assert_emit!(0x4C, 0x39, 0xf8; emit_cmpq_reg_reg(R15, RAX));
-        assert_emit!(0x49, 0x39, 0xdf; emit_cmpq_reg_reg(RBX, R15));
-        assert_emit!(0x48, 0x39, 0xd8; emit_cmpq_reg_reg(RBX, RAX));
+        assert_emit!(0x4C, 0x39, 0xf8; emit_cmp_reg_reg(1, R15, RAX));
+        assert_emit!(0x49, 0x39, 0xdf; emit_cmp_reg_reg(1, RBX, R15));
+        assert_emit!(0x48, 0x39, 0xd8; emit_cmp_reg_reg(1, RBX, RAX));
     }
 
     #[test]

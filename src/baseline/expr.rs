@@ -433,8 +433,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         match e.op {
             UnOp::Plus => {}
-            UnOp::Neg => self.masm.int_neg(dest, dest),
-            UnOp::BitNot => self.masm.int_not(dest, dest),
+            UnOp::Neg => self.masm.int_neg(MachineMode::Int32, dest, dest),
+            UnOp::BitNot => self.masm.int_not(MachineMode::Int32, dest, dest),
             UnOp::Not => self.masm.bool_not(dest, dest),
         }
     }

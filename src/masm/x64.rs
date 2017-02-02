@@ -98,12 +98,12 @@ impl MacroAssembler {
     }
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
-        match mode {
-            MachineMode::Int8 |
-            MachineMode::Int32 => asm::emit_cmpl_reg_reg(self, rhs, lhs),
-            MachineMode::Int64 |
-            MachineMode::Ptr => asm::emit_cmpq_reg_reg(self, rhs, lhs),
-        }
+        let x64 = match mode {
+            MachineMode::Int8 | MachineMode::Int32 => 0,
+            MachineMode::Int64 | MachineMode::Ptr => 1,
+        };
+
+        asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
@@ -367,12 +367,12 @@ impl MacroAssembler {
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        match mode {
-            MachineMode::Int8 |
-            MachineMode::Int32 => asm::emit_mov_reg_reg(self, 0, src, dest),
-            MachineMode::Int64 |
-            MachineMode::Ptr => asm::emit_mov_reg_reg(self, 1, src, dest),
-        }
+        let x64 = match mode {
+            MachineMode::Int8 | MachineMode::Int32 => 0,
+            MachineMode::Int64 | MachineMode::Ptr => 1,
+        };
+
+        asm::emit_mov_reg_reg(self, x64, src, dest);
     }
 
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
@@ -419,19 +419,31 @@ impl MacroAssembler {
         asm::emit_movl_imm_reg(self, 0, dest);
     }
 
-    pub fn int_neg(&mut self, dest: Reg, src: Reg) {
-        asm::emit_negl_reg(self, src);
+    pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_neg_reg(self, x64, src);
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, 0, src, dest);
+            asm::emit_mov_reg_reg(self, x64, src, dest);
         }
     }
 
-    pub fn int_not(&mut self, dest: Reg, src: Reg) {
-        asm::emit_notl_reg(self, src);
+    pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_not_reg(self, x64, src);
 
         if dest != src {
-            asm::emit_mov_reg_reg(self, 0, src, dest);
+            asm::emit_mov_reg_reg(self, x64, src, dest);
         }
     }
 
