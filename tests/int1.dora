@@ -1,0 +1,16 @@
+fun main() {
+    let x = 1.plus(2);
+    assert(x == 3);
+
+    let x = 5.minus(2);
+    assert(x == 3);
+
+    let x = 3.times(4);
+    assert(x == 12);
+
+    let x = 9.div(8);
+    assert(x == 1);
+
+    let x = 10.mod(8);
+    assert(x == 2);
+}

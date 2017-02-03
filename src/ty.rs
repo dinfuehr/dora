@@ -78,7 +78,7 @@ impl BuiltinType {
 
     pub fn value_type(&self) -> bool {
         match *self {
-            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Int => true,
+            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => true,
             _ => false,
         }
     }

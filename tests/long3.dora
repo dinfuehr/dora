@@ -1,0 +1,16 @@
+fun main() {
+    let x = 1L.plus(2L);
+    assert(x == 3L);
+
+    let x = 5L.minus(2L);
+    assert(x == 3L);
+
+    let x = 3L.times(4L);
+    assert(x == 12L);
+
+    let x = 9L.div(8L);
+    assert(x == 1L);
+
+    let x = 10L.mod(8L);
+    assert(x == 2L);
+}

@@ -409,6 +409,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Int;
     }
 
+    fn check_expr_bin_method(&mut self,
+                             e: &'ast ExprBinType,
+                             name: &str,
+                             lhs_type: BuiltinType,
+                             rhs_type: BuiltinType) {
+        let name = self.ctxt.interner.intern(name);
+        let call_types = [rhs_type];
+
+        if let Some((cls_id, fct_id, return_type)) =
+            self.find_method(e.pos, lhs_type, name, &call_types, None) {
+
+            let call_type = CallType::Method(cls_id, fct_id);
+            self.src.map_calls.insert(e.id, call_type);
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+
+        } else {
+            self.src.set_ty(e.id, BuiltinType::Unit);
+            self.expr_type = BuiltinType::Unit;
+        }
+    }
+
     fn check_expr_bin_add(&mut self,
                           e: &'ast ExprBinType,
                           op: BinOp,

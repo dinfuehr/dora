@@ -795,6 +795,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
+
+                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
 
@@ -834,6 +847,52 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
         self.masm.extend_int_long(dest, REG_RESULT);
+    }
+
+    fn emit_intrinsic_long_add(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT);
+        let offset = self.reserve_temp_for_node(&e.args[0]);
+        self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT);
+
+        self.emit_expr(&e.args[0], REG_TMP1);
+        self.masm.load_mem(MachineMode::Int64, REG_RESULT, Mem::Local(offset));
+
+        self.masm.int_add(MachineMode::Int64, dest, REG_RESULT, REG_TMP1);
+    }
+
+    fn emit_intrinsic_bin_call(&mut self, e: &'ast ExprCallType, dest: Reg, intr: Intrinsic) {
+        let lhs = e.object.as_ref().unwrap();
+        let rhs = &e.args[0];
+
+        self.emit_intrinsic_bin(lhs, rhs, dest, intr);
+    }
+
+    fn emit_intrinsic_bin(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, dest: Reg, intr: Intrinsic) {
+        self.emit_expr(lhs, REG_RESULT);
+        let offset = self.reserve_temp_for_node(lhs);
+        let mode = self.src.ty(lhs.id()).mode();
+        self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT);
+
+        self.emit_expr(rhs, REG_TMP1);
+        self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset));
+
+        let lhs = REG_RESULT;
+        let rhs = REG_TMP1;
+
+        match intr {
+            Intrinsic::IntAdd => self.masm.int_add(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntSub => self.masm.int_sub(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntMul => self.masm.int_mul(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntDiv => self.masm.int_div(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntMod => self.masm.int_mod(MachineMode::Int32, dest, lhs, rhs),
+
+            Intrinsic::LongAdd => self.masm.int_add(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongSub => self.masm.int_sub(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongMul => self.masm.int_mul(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongDiv => self.masm.int_div(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongMod => self.masm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+            _ => panic!("unexpected intrinsic {:?}", intr),
+        }
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {

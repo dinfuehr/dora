@@ -27,15 +27,27 @@ internal class byte {
 internal class int {
   internal fun toLong() -> long;
   internal fun toString() -> Str;
+
+  internal fun plus(rhs: int) -> int;
+  internal fun minus(rhs: int) -> int;
+  internal fun times(rhs: int) -> int;
+  internal fun div(rhs: int) -> int;
+  internal fun mod(rhs: int) -> int;
 }
 
 internal class long {
   internal fun toString() -> Str;
+  internal fun plus(rhs: long) -> long;
+  internal fun minus(rhs: long) -> long;
+  internal fun times(rhs: long) -> long;
+  internal fun div(rhs: long) -> long;
+  internal fun mod(rhs: long) -> long;
 }
 
 internal class Str {
   internal fun len() -> int;
   internal fun parseInt() -> int;
+  internal fun plus(opnd2: Str) -> Str;
 }
 
 internal class IntArray {

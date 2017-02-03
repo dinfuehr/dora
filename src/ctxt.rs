@@ -372,7 +372,19 @@ pub enum Intrinsic {
     IntArraySet,
     Assert,
     Shl,
+
+    IntAdd,
+    IntSub,
+    IntMul,
+    IntDiv,
+    IntMod,
     IntToLong,
+
+    LongAdd,
+    LongSub,
+    LongMul,
+    LongDiv,
+    LongMod,
 }
 
 #[derive(Debug)]
