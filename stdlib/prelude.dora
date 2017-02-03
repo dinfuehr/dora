@@ -45,9 +45,12 @@ internal class long {
 }
 
 internal class Str {
+  internal fun equals(rhs: Str) -> bool;
+  internal fun compareTo(rhs: Str) -> int;
+
   internal fun len() -> int;
   internal fun parseInt() -> int;
-  internal fun plus(opnd2: Str) -> Str;
+  internal fun plus(rhs: Str) -> Str;
 }
 
 internal class IntArray {
