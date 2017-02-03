@@ -674,9 +674,15 @@ mod tests {
 
         assert_tok(&mut reader, TokenKind::Number("1".into(), false), 1, 1);
         assert_tok(&mut reader, TokenKind::Number("2".into(), false), 1, 9);
-        assert_tok(&mut reader, TokenKind::Number("1234567".into(), false), 2, 1);
+        assert_tok(&mut reader,
+                   TokenKind::Number("1234567".into(), false),
+                   2,
+                   1);
         assert_tok(&mut reader, TokenKind::Number("8".into(), false), 2, 9);
-        assert_tok(&mut reader, TokenKind::Number("12345678".into(), false), 3, 1);
+        assert_tok(&mut reader,
+                   TokenKind::Number("12345678".into(), false),
+                   3,
+                   1);
         assert_tok(&mut reader, TokenKind::Number("9".into(), false), 3, 17);
         assert_end(&mut reader, 3, 18);
     }

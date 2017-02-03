@@ -100,11 +100,7 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::Number(_, long) => if long {
-                "int number"
-            } else {
-                "long number"
-            },
+            TokenKind::Number(_, long) => if long { "int number" } else { "long number" },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
 

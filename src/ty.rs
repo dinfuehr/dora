@@ -78,7 +78,8 @@ impl BuiltinType {
 
     pub fn value_type(&self) -> bool {
         match *self {
-            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => true,
+            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int |
+            BuiltinType::Long => true,
             _ => false,
         }
     }
@@ -123,7 +124,7 @@ impl BuiltinType {
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
-            BuiltinType::Struct(_)  => *self == other,
+            BuiltinType::Struct(_) => *self == other,
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),

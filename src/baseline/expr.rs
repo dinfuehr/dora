@@ -337,7 +337,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+        let call = self.src.map_calls.get(id);
+        if call.is_none() { return None; }
+
+        let fid = call.unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -386,7 +389,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        let ty = if lit.long { MachineMode::Int64 } else { MachineMode::Int32 };
+        let ty = if lit.long {
+            MachineMode::Int64
+        } else {
+            MachineMode::Int32
+        };
         self.masm.load_int_const(ty, dest, lit.value as i64);
     }
 
@@ -525,6 +532,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic);
+            return;
+        }
+
         match e.op {
             BinOp::Add => self.emit_bin_add(e, dest),
             BinOp::Sub => self.emit_bin_sub(e, dest),
@@ -867,7 +879,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_intrinsic_bin(lhs, rhs, dest, intr);
     }
 
-    fn emit_intrinsic_bin(&mut self, lhs: &'ast Expr, rhs: &'ast Expr, dest: Reg, intr: Intrinsic) {
+    fn emit_intrinsic_bin(&mut self,
+                          lhs: &'ast Expr,
+                          rhs: &'ast Expr,
+                          dest: Reg,
+                          intr: Intrinsic) {
         self.emit_expr(lhs, REG_RESULT);
         let offset = self.reserve_temp_for_node(lhs);
         let mode = self.src.ty(lhs.id()).mode();
@@ -891,6 +907,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             Intrinsic::LongMul => self.masm.int_mul(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongDiv => self.masm.int_div(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMod => self.masm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
     }

@@ -302,6 +302,40 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn lookup_method(&mut self,
+                     object_type: BuiltinType,
+                     name: Name,
+                     args: &[BuiltinType],
+                     return_type: Option<BuiltinType>)
+                     -> Option<(ClassId, FctId, BuiltinType)> {
+        let cls_id = match object_type {
+            BuiltinType::Class(cls_id) => Some(cls_id),
+            _ => self.ctxt.primitive_classes.find_class(object_type),
+        };
+
+        if let Some(cls_id) = cls_id {
+            let cls = self.ctxt.classes[cls_id].borrow();
+            let ctxt = self.ctxt;
+
+            let candidates = cls.find_methods_with(ctxt, name, |method| {
+                args_compatible(ctxt, &method.params_types, args) &&
+                (return_type.is_none() || method.return_type == return_type.unwrap())
+            });
+
+            if candidates.len() == 1 {
+                let candidate = candidates[0];
+                let fct = self.ctxt.fcts[candidate].borrow();
+
+                return Some((fct.owner_class.unwrap(), candidate, fct.return_type));
+
+            } else if candidates.len() > 1 {
+                return None;
+            }
+        }
+
+        None
+    }
+
     fn find_method(&mut self,
                    pos: Position,
                    object_type: BuiltinType,
@@ -411,6 +445,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_bin_method(&mut self,
                              e: &'ast ExprBinType,
+                             op: BinOp,
                              name: &str,
                              lhs_type: BuiltinType,
                              rhs_type: BuiltinType) {
@@ -418,7 +453,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [rhs_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, lhs_type, name, &call_types, None) {
+            self.lookup_method(lhs_type, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
@@ -427,6 +462,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type = return_type;
 
         } else {
+            let lhs_type = lhs_type.name(self.ctxt);
+            let rhs_type = rhs_type.name(self.ctxt);
+            let msg = Msg::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
@@ -437,13 +478,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                           op: BinOp,
                           lhs_type: BuiltinType,
                           rhs_type: BuiltinType) {
-        if lhs_type == BuiltinType::Str {
-            self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Str);
-            self.src.set_ty(e.id, BuiltinType::Str);
-            self.expr_type = BuiltinType::Str;
-        } else {
-            self.check_expr_bin_int(e, op, lhs_type, rhs_type);
-        }
+
+        self.check_expr_bin_method(e, op, "plus", lhs_type, rhs_type);
     }
 
     fn check_expr_bin_cmp(&mut self,
@@ -1666,5 +1702,10 @@ mod tests {
 
         let ret = Msg::ReturnType("long".into(), "int".into());
         err("fun f() -> long { return 1; }", pos(1, 19), ret);
+    }
+
+    #[test]
+    fn long_operations() {
+        ok("fun f(a: long, b: long) -> long { return a + b; }");
     }
 }

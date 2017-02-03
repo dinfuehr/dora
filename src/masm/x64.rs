@@ -99,8 +99,10 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
-            MachineMode::Int8 | MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
+            MachineMode::Int8 |
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
         };
 
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
@@ -368,8 +370,10 @@ impl MacroAssembler {
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         let x64 = match mode {
-            MachineMode::Int8 | MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
+            MachineMode::Int8 |
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
         };
 
         asm::emit_mov_reg_reg(self, x64, src, dest);

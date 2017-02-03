@@ -365,23 +365,17 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        let expr_ty = self.src.ty(expr.id);
+        if expr.op == BinOp::Add {
+            self.expr_bin_add(expr);
+            return;
+        }
+
         let lhs_ty = self.src.ty(expr.lhs.id());
         let rhs_ty = self.src.ty(expr.rhs.id());
 
-        if expr.op == BinOp::Add && expr_ty.is_str() {
-            let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
-                            Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
-            let ptr = stdlib::strcat as *const u8;
-
-            self.universal_call(expr.id,
-                                args,
-                                false,
-                                Some(Callee::Ptr(ptr)),
-                                Some(BuiltinType::Str));
-        } else if expr.op.is_compare() && (lhs_ty.is_str() || rhs_ty.is_str()) {
-            let args = vec![Arg::Expr(&expr.lhs, BuiltinType::Str, 0),
-                            Arg::Expr(&expr.rhs, BuiltinType::Str, 0)];
+        if expr.op.is_compare() && (lhs_ty.is_str() || rhs_ty.is_str()) {
+            let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0),
+                            Arg::Expr(&expr.rhs, rhs_ty, 0)];
             let ptr = stdlib::strcmp as *const u8;
 
             self.universal_call(expr.id,
@@ -392,6 +386,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         } else if !is_leaf(&expr.rhs) {
             self.reserve_temp_for_node(&expr.lhs);
+        }
+    }
+
+    fn expr_bin_add(&mut self, expr: &'ast ExprBinType) {
+        let lhs_ty = self.src.ty(expr.lhs.id());
+        let rhs_ty = self.src.ty(expr.rhs.id());
+
+        if self.is_intrinsic(expr.id) {
+            self.reserve_temp_for_node(&expr.lhs);
+
+        } else {
+            let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0),
+                            Arg::Expr(&expr.rhs, rhs_ty, 0)];
+            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+
+            self.universal_call(expr.id,
+                                args,
+                                false,
+                                Some(Callee::Fct(fid)),
+                                Some(BuiltinType::Bool));
         }
     }
 
@@ -441,10 +455,10 @@ mod tests {
             assert_eq!(4, fct.tempsize);
         });
         info("fun f() { 2*3+4+5; }", |fct| {
-            assert_eq!(0, fct.tempsize);
+            assert_eq!(8, fct.tempsize);
         });
         info("fun f() { 1+(2+(3+4)); }", |fct| {
-            assert_eq!(8, fct.tempsize);
+            assert_eq!(12, fct.tempsize);
         })
     }
 
@@ -467,7 +481,7 @@ mod tests {
                   return 0;
               }",
              |fct| {
-                 assert_eq!(36, fct.tempsize);
+                 assert_eq!(40, fct.tempsize);
              });
     }
 
