@@ -14,6 +14,9 @@ fun main() {
     let x = 3L.times(4L);
     assert(x == 12L);
 
+    let x = 3L * 4L;
+    assert(x == 12L);
+
     let x = 9L.div(8L);
     assert(x == 1L);
 

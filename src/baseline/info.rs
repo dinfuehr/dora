@@ -365,7 +365,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        if expr.op == BinOp::Add || expr.op == BinOp::Sub {
+        if expr.op == BinOp::Add || expr.op == BinOp::Sub || expr.op == BinOp::Mul {
             self.expr_bin_add(expr);
             return;
         }
@@ -452,10 +452,10 @@ mod tests {
     #[test]
     fn test_tempsize() {
         info("fun f() { 1+2*3; }", |fct| {
-            assert_eq!(4, fct.tempsize);
+            assert_eq!(8, fct.tempsize);
         });
         info("fun f() { 2*3+4+5; }", |fct| {
-            assert_eq!(8, fct.tempsize);
+            assert_eq!(12, fct.tempsize);
         });
         info("fun f() { 1+(2+(3+4)); }", |fct| {
             assert_eq!(12, fct.tempsize);

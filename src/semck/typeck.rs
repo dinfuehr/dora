@@ -420,6 +420,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
             BinOp::Add => self.check_expr_bin_method(e, e.op, "plus", lhs_type, rhs_type),
             BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
+            BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
             _ => self.check_expr_bin_int(e, e.op, lhs_type, rhs_type),
         }
     }
@@ -1709,8 +1710,15 @@ mod tests {
     }
 
     #[test]
+    fn overload_times() {
+        ok("class A { fun times(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() * A(); }");
+    }
+
+    #[test]
     fn long_operations() {
         ok("fun f(a: long, b: long) -> long { return a + b; }");
         ok("fun f(a: long, b: long) -> long { return a - b; }");
+        ok("fun f(a: long, b: long) -> long { return a * b; }");
     }
 }
