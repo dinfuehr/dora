@@ -418,7 +418,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         match e.op {
             BinOp::Or | BinOp::And => self.check_expr_bin_bool(e, e.op, lhs_type, rhs_type),
             BinOp::Cmp(cmp) => self.check_expr_bin_cmp(e, cmp, lhs_type, rhs_type),
-            BinOp::Add => self.check_expr_bin_add(e, e.op, lhs_type, rhs_type),
+            BinOp::Add => self.check_expr_bin_method(e, e.op, "plus", lhs_type, rhs_type),
+            BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
             _ => self.check_expr_bin_int(e, e.op, lhs_type, rhs_type),
         }
     }
@@ -471,15 +472,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
-    }
-
-    fn check_expr_bin_add(&mut self,
-                          e: &'ast ExprBinType,
-                          op: BinOp,
-                          lhs_type: BuiltinType,
-                          rhs_type: BuiltinType) {
-
-        self.check_expr_bin_method(e, op, "plus", lhs_type, rhs_type);
     }
 
     fn check_expr_bin_cmp(&mut self,
@@ -1705,7 +1697,20 @@ mod tests {
     }
 
     #[test]
+    fn overload_plus() {
+        ok("class A { fun plus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() + A(); }");
+    }
+
+    #[test]
+    fn overload_minus() {
+        ok("class A { fun minus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() - A(); }");
+    }
+
+    #[test]
     fn long_operations() {
         ok("fun f(a: long, b: long) -> long { return a + b; }");
+        ok("fun f(a: long, b: long) -> long { return a - b; }");
     }
 }
