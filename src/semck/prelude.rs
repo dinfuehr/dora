@@ -70,6 +70,14 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "div", Intrinsic::IntDiv);
     intrinsic_method(ctxt, clsid, "mod", Intrinsic::IntMod);
 
+    intrinsic_method(ctxt, clsid, "bitwiseOr", Intrinsic::IntOr);
+    intrinsic_method(ctxt, clsid, "bitwiseAnd", Intrinsic::IntAnd);
+    intrinsic_method(ctxt, clsid, "bitwiseXor", Intrinsic::IntXor);
+
+    intrinsic_method(ctxt, clsid, "shiftLeft", Intrinsic::IntShl);
+    intrinsic_method(ctxt, clsid, "shiftRight", Intrinsic::IntSar);
+    intrinsic_method(ctxt, clsid, "unsignedShiftRight", Intrinsic::IntShr);
+
     let clsid = ctxt.primitive_classes.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::LongAdd);
@@ -77,6 +85,14 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "times", Intrinsic::LongMul);
     intrinsic_method(ctxt, clsid, "div", Intrinsic::LongDiv);
     intrinsic_method(ctxt, clsid, "mod", Intrinsic::LongMod);
+
+    intrinsic_method(ctxt, clsid, "bitwiseOr", Intrinsic::LongOr);
+    intrinsic_method(ctxt, clsid, "bitwiseAnd", Intrinsic::LongAnd);
+    intrinsic_method(ctxt, clsid, "bitwiseXor", Intrinsic::LongXor);
+
+    intrinsic_method(ctxt, clsid, "shiftLeft", Intrinsic::LongShl);
+    intrinsic_method(ctxt, clsid, "shiftRight", Intrinsic::LongSar);
+    intrinsic_method(ctxt, clsid, "unsignedShiftRight", Intrinsic::LongShr);
 
     let clsid = ctxt.primitive_classes.bool_class;
     native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *const u8);

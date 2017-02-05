@@ -365,7 +365,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        if expr.op == BinOp::Add || expr.op == BinOp::Sub || expr.op == BinOp::Mul {
+        if expr.op == BinOp::Add || expr.op == BinOp::Sub || expr.op == BinOp::Mul ||
+           expr.op == BinOp::Div || expr.op == BinOp::Mod || expr.op == BinOp::BitOr ||
+           expr.op == BinOp::BitAnd || expr.op == BinOp::BitXor || expr.op == BinOp::ShiftL ||
+           expr.op == BinOp::ShiftR || expr.op == BinOp::UnShiftR {
             self.expr_bin_add(expr);
             return;
         }

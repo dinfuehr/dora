@@ -373,18 +373,34 @@ pub enum Intrinsic {
     Assert,
     Shl,
 
+    IntToLong,
     IntAdd,
     IntSub,
     IntMul,
     IntDiv,
     IntMod,
-    IntToLong,
+
+    IntOr,
+    IntAnd,
+    IntXor,
+
+    IntShl,
+    IntSar,
+    IntShr,
 
     LongAdd,
     LongSub,
     LongMul,
     LongDiv,
     LongMod,
+
+    LongOr,
+    LongAnd,
+    LongXor,
+
+    LongShl,
+    LongSar,
+    LongShr,
 }
 
 #[derive(Debug)]

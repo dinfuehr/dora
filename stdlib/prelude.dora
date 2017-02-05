@@ -33,15 +33,32 @@ internal class int {
   internal fun times(rhs: int) -> int;
   internal fun div(rhs: int) -> int;
   internal fun mod(rhs: int) -> int;
+
+  internal fun bitwiseOr(rhs: int) -> int;
+  internal fun bitwiseAnd(rhs: int) -> int;
+  internal fun bitwiseXor(rhs: int) -> int;
+
+  internal fun shiftLeft(rhs: int) -> int;
+  internal fun shiftRight(rhs: int) -> int;
+  internal fun unsignedShiftRight(rhs: int) -> int;
 }
 
 internal class long {
   internal fun toString() -> Str;
+
   internal fun plus(rhs: long) -> long;
   internal fun minus(rhs: long) -> long;
   internal fun times(rhs: long) -> long;
   internal fun div(rhs: long) -> long;
   internal fun mod(rhs: long) -> long;
+
+  internal fun bitwiseOr(rhs: long) -> long;
+  internal fun bitwiseAnd(rhs: long) -> long;
+  internal fun bitwiseXor(rhs: long) -> long;
+
+  internal fun shiftLeft(rhs: long) -> long;
+  internal fun shiftRight(rhs: long) -> long;
+  internal fun unsignedShiftRight(rhs: long) -> long;
 }
 
 internal class Str {

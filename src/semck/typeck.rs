@@ -421,6 +421,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BinOp::Add => self.check_expr_bin_method(e, e.op, "plus", lhs_type, rhs_type),
             BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
             BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
+            BinOp::Div => self.check_expr_bin_method(e, e.op, "div", lhs_type, rhs_type),
+            BinOp::Mod => self.check_expr_bin_method(e, e.op, "mod", lhs_type, rhs_type),
+            BinOp::BitOr => self.check_expr_bin_method(e, e.op, "bitwiseOr", lhs_type, rhs_type),
+            BinOp::BitAnd => self.check_expr_bin_method(e, e.op, "bitwiseAnd", lhs_type, rhs_type),
+            BinOp::BitXor => self.check_expr_bin_method(e, e.op, "bitwiseXor", lhs_type, rhs_type),
+            BinOp::ShiftL => self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type),
+            BinOp::ShiftR => self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type),
+            BinOp::UnShiftR => self.check_expr_bin_method(e, e.op, "unsignedShiftRight", lhs_type, rhs_type),
+
             _ => self.check_expr_bin_int(e, e.op, lhs_type, rhs_type),
         }
     }
@@ -1716,9 +1725,65 @@ mod tests {
     }
 
     #[test]
+    fn overload_div() {
+        ok("class A { fun div(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() / A(); }");
+    }
+
+    #[test]
+    fn overload_mod() {
+        ok("class A { fun mod(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() % A(); }");
+    }
+
+    #[test]
+    fn overload_bitwise_or() {
+        ok("class A { fun bitwiseOr(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() | A(); }");
+    }
+
+    #[test]
+    fn overload_bitwise_and() {
+        ok("class A { fun bitwiseAnd(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() & A(); }");
+    }
+
+    #[test]
+    fn overload_bitwise_xor() {
+        ok("class A { fun bitwiseXor(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() ^ A(); }");
+    }
+
+    #[test]
+    fn overload_shl() {
+        ok("class A { fun shiftLeft(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() << A(); }");
+    }
+
+    #[test]
+    fn overload_sar() {
+        ok("class A { fun shiftRight(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() >> A(); }");
+    }
+
+    #[test]
+    fn overload_shr() {
+        ok("class A { fun unsignedShiftRight(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() >>> A(); }");
+    }
+
+    #[test]
     fn long_operations() {
         ok("fun f(a: long, b: long) -> long { return a + b; }");
         ok("fun f(a: long, b: long) -> long { return a - b; }");
         ok("fun f(a: long, b: long) -> long { return a * b; }");
+        ok("fun f(a: long, b: long) -> long { return a / b; }");
+        ok("fun f(a: long, b: long) -> long { return a % b; }");
+        ok("fun f(a: long, b: long) -> long { return a | b; }");
+        ok("fun f(a: long, b: long) -> long { return a & b; }");
+        ok("fun f(a: long, b: long) -> long { return a ^ b; }");
+        ok("fun f(a: long, b: long) -> long { return a << b; }");
+        ok("fun f(a: long, b: long) -> long { return a >> b; }");
+        ok("fun f(a: long, b: long) -> long { return a >>> b; }");
     }
 }

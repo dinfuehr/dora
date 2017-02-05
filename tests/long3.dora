@@ -20,6 +20,27 @@ fun main() {
     let x = 9L.div(8L);
     assert(x == 1L);
 
+    let x = 9L / 8L;
+    assert(x == 1L);
+
     let x = 10L.mod(8L);
     assert(x == 2L);
+
+    let x = 10L % 8L;
+    assert(x == 2L);
+
+    let x = 1L | 2L;
+    assert(x == 3L);
+
+    let x = 5L & 6L;
+    assert(x == 4L);
+
+    let x = 1L ^ 3L;
+    assert(x == 2L);
+
+    let x = 1L << 1L;
+    assert(x == 2L);
+
+    let x = 6L >> 1L;
+    assert(x == 3L);
 }

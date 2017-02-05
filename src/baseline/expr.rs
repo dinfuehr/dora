@@ -902,11 +902,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             Intrinsic::IntDiv => self.masm.int_div(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntMod => self.masm.int_mod(MachineMode::Int32, dest, lhs, rhs),
 
+            Intrinsic::IntOr => self.masm.int_or(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntAnd => self.masm.int_and(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntXor => self.masm.int_xor(MachineMode::Int32, dest, lhs, rhs),
+
+            Intrinsic::IntShl => self.masm.int_shl(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntSar => self.masm.int_sar(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntShr => self.masm.int_shr(MachineMode::Int32, dest, lhs, rhs),
+
             Intrinsic::LongAdd => self.masm.int_add(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSub => self.masm.int_sub(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMul => self.masm.int_mul(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongDiv => self.masm.int_div(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongMod => self.masm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+
+            Intrinsic::LongOr => self.masm.int_or(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongAnd => self.masm.int_and(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongXor => self.masm.int_xor(MachineMode::Int64, dest, lhs, rhs),
+
+            Intrinsic::LongShl => self.masm.int_shl(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongSar => self.masm.int_sar(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongShr => self.masm.int_shr(MachineMode::Int64, dest, lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
