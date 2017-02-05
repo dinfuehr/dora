@@ -29,18 +29,42 @@ fun main() {
     let x = 10L % 8L;
     assert(x == 2L);
 
+    let x = 1L.bitwiseOr(2L);
+    assert(x == 3L);
+
     let x = 1L | 2L;
     assert(x == 3L);
+
+    let x = 5L.bitwiseAnd(6L);
+    assert(x == 4L);
 
     let x = 5L & 6L;
     assert(x == 4L);
 
+    let x = 1L.bitwiseXor(3L);
+    assert(x == 2L);
+
     let x = 1L ^ 3L;
+    assert(x == 2L);
+
+    let x = 1L.shiftLeft(1L);
     assert(x == 2L);
 
     let x = 1L << 1L;
     assert(x == 2L);
 
+    let x = 6L.shiftRight(1L);
+    assert(x == 3L);
+
     let x = 6L >> 1L;
     assert(x == 3L);
+
+    let x = 12L.unsignedShiftRight(2L);
+    assert(x == 3L);
+
+    let x = 12L >> 2L;
+    assert(x == 3L);
+
+    let x = 3L;
+    assert(x.toInt() == 3);
 }

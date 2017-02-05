@@ -429,8 +429,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BinOp::ShiftL => self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type),
             BinOp::ShiftR => self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type),
             BinOp::UnShiftR => self.check_expr_bin_method(e, e.op, "unsignedShiftRight", lhs_type, rhs_type),
-
-            _ => self.check_expr_bin_int(e, e.op, lhs_type, rhs_type),
         }
     }
 

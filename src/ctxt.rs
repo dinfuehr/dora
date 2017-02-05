@@ -388,6 +388,7 @@ pub enum Intrinsic {
     IntSar,
     IntShr,
 
+    LongToInt,
     LongAdd,
     LongSub,
     LongMul,

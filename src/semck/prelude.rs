@@ -64,6 +64,7 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     let clsid = ctxt.primitive_classes.int_class;
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
+
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::IntAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::IntSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::IntMul);
@@ -80,6 +81,8 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     let clsid = ctxt.primitive_classes.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "toInt", Intrinsic::LongToInt);
+
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::LongAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::LongSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::LongMul);

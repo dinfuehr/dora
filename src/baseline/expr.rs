@@ -807,6 +807,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
+                Intrinsic::LongToInt => {},
 
                 Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -814,11 +815,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
+                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
                 Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
