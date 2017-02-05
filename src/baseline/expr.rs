@@ -338,7 +338,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
         let call = self.src.map_calls.get(id);
-        if call.is_none() { return None; }
+        if call.is_none() {
+            return None;
+        }
 
         let fid = call.unwrap().fct_id();
 
@@ -807,7 +809,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
-                Intrinsic::LongToInt => {},
+                Intrinsic::LongToInt => {}
 
                 Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
