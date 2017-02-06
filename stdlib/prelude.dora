@@ -18,6 +18,9 @@ internal fun emptyIntArray() -> IntArray;
 internal class bool {
   internal fun toInt() -> int;
   internal fun toString() -> Str;
+
+  internal fun equals(rhs: bool) -> bool;
+  internal fun not() -> bool;
 }
 
 internal class byte {
@@ -27,6 +30,9 @@ internal class byte {
 internal class int {
   internal fun toLong() -> long;
   internal fun toString() -> Str;
+
+  internal fun equals(rhs: int) -> bool;
+  internal fun compareTo(rhs: int) -> int;
 
   internal fun plus(rhs: int) -> int;
   internal fun minus(rhs: int) -> int;
@@ -41,11 +47,18 @@ internal class int {
   internal fun shiftLeft(rhs: int) -> int;
   internal fun shiftRight(rhs: int) -> int;
   internal fun unsignedShiftRight(rhs: int) -> int;
+
+  internal fun unaryPlus() -> int;
+  internal fun unaryMinus() -> int;
+  internal fun not() -> int;
 }
 
 internal class long {
   internal fun toString() -> Str;
   internal fun toInt() -> int;
+
+  internal fun equals(rhs: long) -> bool;
+  internal fun compareTo(rhs: long) -> int;
 
   internal fun plus(rhs: long) -> long;
   internal fun minus(rhs: long) -> long;
@@ -60,6 +73,10 @@ internal class long {
   internal fun shiftLeft(rhs: long) -> long;
   internal fun shiftRight(rhs: long) -> long;
   internal fun unsignedShiftRight(rhs: long) -> long;
+
+  internal fun unaryPlus() -> long;
+  internal fun unaryMinus() -> long;
+  internal fun not() -> long;
 }
 
 internal class Str {

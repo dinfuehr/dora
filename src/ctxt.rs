@@ -365,7 +365,7 @@ impl<'ast> FctKind<'ast> {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
     IntArrayLen,
     IntArrayGet,
@@ -373,7 +373,12 @@ pub enum Intrinsic {
     Assert,
     Shl,
 
+    BoolEq,
+    BoolNot,
+
     IntToLong,
+    IntEq,
+    IntCmp,
     IntAdd,
     IntSub,
     IntMul,
@@ -388,7 +393,13 @@ pub enum Intrinsic {
     IntSar,
     IntShr,
 
+    IntNot,
+    IntNeg,
+    IntPlus,
+
     LongToInt,
+    LongEq,
+    LongCmp,
     LongAdd,
     LongSub,
     LongMul,
@@ -402,6 +413,10 @@ pub enum Intrinsic {
     LongShl,
     LongSar,
     LongShr,
+
+    LongNot,
+    LongNeg,
+    LongPlus,
 }
 
 #[derive(Debug)]

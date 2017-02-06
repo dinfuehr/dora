@@ -440,11 +440,40 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
         self.emit_expr(&e.opnd, dest);
 
-        match e.op {
-            UnOp::Plus => {}
-            UnOp::Neg => self.masm.int_neg(MachineMode::Int32, dest, dest),
-            UnOp::BitNot => self.masm.int_not(MachineMode::Int32, dest, dest),
-            UnOp::Not => self.masm.bool_not(dest, dest),
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            match intrinsic {
+                Intrinsic::IntPlus | Intrinsic::LongPlus => {}
+
+                Intrinsic::IntNeg | Intrinsic::LongNeg => {
+                    let mode = if intrinsic == Intrinsic::IntNeg {
+                        MachineMode::Int32
+                    } else {
+                        MachineMode::Int64
+                    };
+
+                    self.masm.int_neg(mode, dest, dest);
+                }
+
+                Intrinsic::IntNot | Intrinsic::LongNot => {
+                    let mode = if intrinsic == Intrinsic::IntNot {
+                        MachineMode::Int32
+                    } else {
+                        MachineMode::Int64
+                    };
+
+                    self.masm.int_not(mode, dest, dest);
+                }
+
+                Intrinsic::BoolNot => {
+                    self.masm.bool_not(dest, dest)
+                }
+
+                _ => panic!("unexpected intrinsic {:?}", intrinsic)
+            }
+
+        } else {
+            self.emit_universal_call(e.id, e.pos, dest);
+
         }
     }
 
@@ -535,24 +564,51 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic);
-            return;
-        }
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
 
-        match e.op {
-            BinOp::Add => self.emit_bin_add(e, dest),
-            BinOp::Sub => self.emit_bin_sub(e, dest),
-            BinOp::Mul => self.emit_bin_mul(e, dest),
-            BinOp::Div | BinOp::Mod => self.emit_bin_divmod(e, dest),
-            BinOp::Cmp(op) => self.emit_bin_cmp(e, dest, op),
-            BinOp::BitOr => self.emit_bin_bit_or(e, dest),
-            BinOp::BitAnd => self.emit_bin_bit_and(e, dest),
-            BinOp::BitXor => self.emit_bin_bit_xor(e, dest),
-            BinOp::Or => self.emit_bin_or(e, dest),
-            BinOp::And => self.emit_bin_and(e, dest),
-            BinOp::ShiftL => self.emit_bin_shl(e, dest),
-            BinOp::ShiftR => self.emit_bin_sar(e, dest),
-            BinOp::UnShiftR => self.emit_bin_shr(e, dest),
+        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
+            self.emit_expr(&e.lhs, REG_RESULT);
+            let offset = self.reserve_temp_for_node(&e.lhs);
+            self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
+
+            self.emit_expr(&e.rhs, REG_TMP1);
+            self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
+
+            self.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
+
+            let op = match e.op {
+                BinOp::Cmp(CmpOp::Is) => CondCode::Equal,
+                _ => CondCode::NotEqual,
+            };
+
+            self.masm.set(dest, op);
+            self.free_temp_for_node(&e.lhs, offset);
+
+        } else if e.op == BinOp::Or {
+            self.emit_bin_or(e, dest);
+
+        } else if e.op == BinOp::And {
+            self.emit_bin_and(e, dest);
+
+        } else {
+            self.emit_universal_call(e.id, e.pos, dest);
+
+            match e.op {
+                BinOp::Cmp(CmpOp::Eq) => {}
+                BinOp::Cmp(CmpOp::Ne) => self.masm.bool_not(dest, dest),
+                BinOp::Cmp(op) => {
+                    let temp = if dest == REG_RESULT {
+                        REG_TMP1
+                    } else {
+                        REG_RESULT
+                    };
+
+                    self.masm.load_int_const(MachineMode::Int32, temp, 0);
+                    self.masm.cmp_reg(MachineMode::Int32, dest, temp);
+                    self.masm.set(dest, to_cond_code(op));
+                }
+                _ => {}
+            }
         }
     }
 
@@ -811,6 +867,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
                 Intrinsic::LongToInt => {}
 
+                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
                 Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -824,6 +883,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -895,14 +957,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let lhs = e.object.as_ref().unwrap();
         let rhs = &e.args[0];
 
-        self.emit_intrinsic_bin(lhs, rhs, dest, intr);
+        self.emit_intrinsic_bin(lhs, rhs, dest, intr, None);
     }
 
     fn emit_intrinsic_bin(&mut self,
                           lhs: &'ast Expr,
                           rhs: &'ast Expr,
                           dest: Reg,
-                          intr: Intrinsic) {
+                          intr: Intrinsic,
+                          op: Option<BinOp>) {
         self.emit_expr(lhs, REG_RESULT);
         let offset = self.reserve_temp_for_node(lhs);
         let mode = self.src.ty(lhs.id()).mode();
@@ -915,6 +978,39 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let rhs = REG_TMP1;
 
         match intr {
+            Intrinsic::BoolEq | Intrinsic::IntEq | Intrinsic::LongEq => {
+                let mode = if intr == Intrinsic::LongEq {
+                    MachineMode::Int64
+                } else {
+                    MachineMode::Int32
+                };
+
+                let cond_code = match op {
+                    Some(BinOp::Cmp(cmp)) => to_cond_code(cmp),
+                    _ => CondCode::Equal,
+                };
+
+                self.masm.cmp_reg(mode, lhs, rhs);
+                self.masm.set(dest, cond_code);
+            }
+
+            Intrinsic::IntCmp | Intrinsic::LongCmp => {
+                let mode = if intr == Intrinsic::IntCmp {
+                    MachineMode::Int32
+                } else {
+                    MachineMode::Int64
+                };
+
+                if let Some(BinOp::Cmp(op)) = op {
+                    let cond_code = to_cond_code(op);
+
+                    self.masm.cmp_reg(mode, lhs, rhs);
+                    self.masm.set(dest, cond_code);
+                } else {
+                    self.masm.int_sub(mode, dest, lhs, rhs);
+                }
+            }
+
             Intrinsic::IntAdd => self.masm.int_add(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntSub => self.masm.int_sub(MachineMode::Int32, dest, lhs, rhs),
             Intrinsic::IntMul => self.masm.int_mul(MachineMode::Int32, dest, lhs, rhs),

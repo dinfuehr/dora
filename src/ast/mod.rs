@@ -857,7 +857,6 @@ pub enum UnOp {
     Plus,
     Neg,
     Not,
-    BitNot,
 }
 
 impl UnOp {
@@ -866,7 +865,6 @@ impl UnOp {
             UnOp::Plus => "+",
             UnOp::Neg => "-",
             UnOp::Not => "!",
-            UnOp::BitNot => "~",
         }
     }
 }

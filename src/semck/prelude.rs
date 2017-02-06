@@ -65,6 +65,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::IntEq);
+    intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::IntCmp);
+
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::IntAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::IntSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::IntMul);
@@ -79,9 +82,16 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "shiftRight", Intrinsic::IntSar);
     intrinsic_method(ctxt, clsid, "unsignedShiftRight", Intrinsic::IntShr);
 
+    intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::IntPlus);
+    intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::IntNeg);
+    intrinsic_method(ctxt, clsid, "not", Intrinsic::IntNot);
+
     let clsid = ctxt.primitive_classes.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::LongToInt);
+
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::LongEq);
+    intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::LongCmp);
 
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::LongAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::LongSub);
@@ -97,9 +107,15 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "shiftRight", Intrinsic::LongSar);
     intrinsic_method(ctxt, clsid, "unsignedShiftRight", Intrinsic::LongShr);
 
+    intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::LongPlus);
+    intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::LongNeg);
+    intrinsic_method(ctxt, clsid, "not", Intrinsic::LongNot);
+
     let clsid = ctxt.primitive_classes.bool_class;
     native_method(ctxt, clsid, "toInt", stdlib::bool_to_int as *const u8);
     native_method(ctxt, clsid, "toString", stdlib::bool_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::BoolEq);
+    intrinsic_method(ctxt, clsid, "not", Intrinsic::BoolNot);
 
     let clsid = ctxt.primitive_classes.str_class;
     native_method(ctxt, clsid, "equals", stdlib::streq as *const u8);

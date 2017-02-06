@@ -67,4 +67,11 @@ fun main() {
 
     let x = 3L;
     assert(x.toInt() == 3);
+
+    assert(2L != 3L);
+    assert(5L == 5L);
+    assert(2L > 1L);
+    assert(2L >= 1L);
+    assert(3L < 4L);
+    assert(3L <= 4L);
 }

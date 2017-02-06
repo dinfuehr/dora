@@ -383,28 +383,41 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType) {
-        let expected_type = if e.op == UnOp::Not {
-            BuiltinType::Bool
-        } else {
-            BuiltinType::Int
-        };
-
         self.visit_expr(&e.opnd);
-        let opnd_type = self.expr_type;
+        let opnd = self.expr_type;
 
-        if expected_type != opnd_type {
-            let op = e.op.as_str().to_string();
-            let opnd_type = opnd_type.name(self.ctxt);
-            let msg = Msg::UnOpType(op, opnd_type);
+        match e.op {
+            UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
+            UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
+            UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
+        }
+    }
+
+    fn check_expr_un_method(&mut self,
+                             e: &'ast ExprUnType,
+                             op: UnOp,
+                             name: &str,
+                             ty: BuiltinType) {
+        let name = self.ctxt.interner.intern(name);
+        let call_types = [];
+
+        if let Some((cls_id, fct_id, return_type)) =
+            self.lookup_method(ty, name, &call_types, None) {
+
+            let call_type = CallType::Method(cls_id, fct_id);
+            self.src.map_calls.insert(e.id, call_type);
+
+            self.src.set_ty(e.id, return_type);
+            self.expr_type = return_type;
+
+        } else {
+            let ty = ty.name(self.ctxt);
+            let msg = Msg::UnOpType(op.as_str().into(), ty);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
 
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
-
-        } else {
-            self.src.set_ty(e.id, expected_type);
-            self.expr_type = expected_type;
         }
     }
 
@@ -444,16 +457,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Bool;
     }
 
-    fn check_expr_bin_int(&mut self,
-                          e: &'ast ExprBinType,
-                          op: BinOp,
-                          lhs_type: BuiltinType,
-                          rhs_type: BuiltinType) {
-        self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Int);
-        self.src.set_ty(e.id, BuiltinType::Int);
-        self.expr_type = BuiltinType::Int;
-    }
-
     fn check_expr_bin_method(&mut self,
                              e: &'ast ExprBinType,
                              op: BinOp,
@@ -489,9 +492,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                           cmp: CmpOp,
                           lhs_type: BuiltinType,
                           rhs_type: BuiltinType) {
-        let ty = lhs_type.if_nil(rhs_type);
-
-        let expected_type = match cmp {
+        match cmp {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.reference_type() {
                     let lhs_type = lhs_type.name(self.ctxt);
@@ -519,21 +520,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             CmpOp::Eq | CmpOp::Ne => {
-                match ty {
-                    BuiltinType::Str | BuiltinType::Bool | BuiltinType::Long => ty,
-                    _ => BuiltinType::Int,
-                }
+                self.check_expr_bin_method(e, e.op, "equals", lhs_type, rhs_type)
             }
 
-            _ => {
-                match ty {
-                    BuiltinType::Str | BuiltinType::Long => ty,
-                    _ => BuiltinType::Int,
-                }
-            }
-        };
+            _ => self.check_expr_bin_method(e, e.op, "compareTo", lhs_type, rhs_type),
+        }
 
-        self.check_type(e, BinOp::Cmp(cmp), lhs_type, rhs_type, expected_type);
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
     }
@@ -1239,14 +1231,7 @@ mod tests {
 
     #[test]
     fn type_un_op() {
-        ok("fun f(a: int) { ~a; -a; +a; }");
-        err("fun f(a: int) { !a; }",
-            pos(1, 17),
-            Msg::UnOpType("!".into(), "int".into()));
-
-        err("fun f(a: bool) { ~a; }",
-            pos(1, 18),
-            Msg::UnOpType("~".into(), "bool".into()));
+        ok("fun f(a: int) { !a; -a; +a; }");
         err("fun f(a: bool) { -a; }",
             pos(1, 18),
             Msg::UnOpType("-".into(), "bool".into()));
@@ -1773,6 +1758,22 @@ mod tests {
     }
 
     #[test]
+    fn overload_equals() {
+        ok("class A { fun equals(rhs: A) -> bool { return true; } }
+            fun f1() -> bool { return A() == A(); }
+            fun f2() -> bool { return A() != A(); }");
+    }
+
+    #[test]
+    fn overload_compare_to() {
+        ok("class A { fun compareTo(rhs: A) -> int { return 0; } }
+            fun f1() -> bool { return A() < A(); }
+            fun f2() -> bool { return A() <= A(); }
+            fun f3() -> bool { return A() > A(); }
+            fun f4() -> bool { return A() >= A(); }");
+    }
+
+    #[test]
     fn long_operations() {
         ok("fun f(a: long, b: long) -> long { return a + b; }");
         ok("fun f(a: long, b: long) -> long { return a - b; }");
@@ -1785,5 +1786,14 @@ mod tests {
         ok("fun f(a: long, b: long) -> long { return a << b; }");
         ok("fun f(a: long, b: long) -> long { return a >> b; }");
         ok("fun f(a: long, b: long) -> long { return a >>> b; }");
+        ok("fun f(a: long, b: long) -> bool { return a == b; }");
+        ok("fun f(a: long, b: long) -> bool { return a != b; }");
+        ok("fun f(a: long, b: long) -> bool { return a < b; }");
+        ok("fun f(a: long, b: long) -> bool { return a <= b; }");
+        ok("fun f(a: long, b: long) -> bool { return a > b; }");
+        ok("fun f(a: long, b: long) -> bool { return a >= b; }");
+        ok("fun f(a: long) -> long { return !a; }");
+        ok("fun f(a: long) -> long { return -a; }");
+        ok("fun f(a: long) -> long { return +a; }");
     }
 }

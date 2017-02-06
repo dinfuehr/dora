@@ -890,14 +890,13 @@ impl<'a, T: CodeReader> Parser<'a, T> {
 
     fn parse_unary(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.kind {
-            TokenKind::Add | TokenKind::Sub | TokenKind::Not | TokenKind::Tilde => {
+            TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
 
                 let tok = self.advance_token()?;
                 let op = match tok.kind {
                     TokenKind::Add => UnOp::Plus,
                     TokenKind::Sub => UnOp::Neg,
                     TokenKind::Not => UnOp::Not,
-                    TokenKind::Tilde => UnOp::BitNot,
                     _ => unreachable!(),
                 };
 
