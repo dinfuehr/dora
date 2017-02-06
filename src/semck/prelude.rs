@@ -56,7 +56,12 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt,
                "emptyIntArray",
                stdlib::ctor_int_array_empty as *const u8);
+
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
+    native_fct(ctxt, "call0", stdlib::call0 as *const u8);
+    native_fct(ctxt, "call1", stdlib::call1 as *const u8);
+    native_fct(ctxt, "call2", stdlib::call2 as *const u8);
+    native_fct(ctxt, "call3", stdlib::call3 as *const u8);
 
     let clsid = ctxt.primitive_classes.byte_class;
     native_method(ctxt, clsid, "toString", stdlib::byte_to_string as *const u8);

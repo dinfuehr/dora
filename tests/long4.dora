@@ -1,0 +1,7 @@
+fun main() {
+    assert(three().toInt() == 3);
+}
+
+fun three() -> long {
+    return 3L;
+}

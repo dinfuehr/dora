@@ -874,11 +874,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
-
-            return;
+        } else {
+            self.emit_universal_call(e.id, e.pos, dest);
         }
-
-        self.emit_universal_call(e.id, e.pos, dest);
     }
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {

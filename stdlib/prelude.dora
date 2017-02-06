@@ -102,3 +102,12 @@ internal class IntArray {
 }
 
 internal fun loadFunction(name: Str) -> long;
+internal fun call0(fct: long) -> long;
+internal fun call1(fct: long, arg0: long) -> long;
+internal fun call2(fct: long, arg0: long) -> long;
+internal fun call3(fct: long, arg0: long) -> long;
+
+fun getpid() -> int {
+  let fct = loadFunction("getpid");
+  return call0(fct).toInt();
+}

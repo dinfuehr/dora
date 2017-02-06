@@ -196,6 +196,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             if let Some(ref object) = expr.object {
+                self.visit_expr(object);
                 self.reserve_temp_for_node_with_type(object.id(), BuiltinType::Ptr);
             }
 
@@ -215,6 +216,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
         } else if call_type.is_method() {
             let object = expr.object.as_ref().unwrap();
+            self.visit_expr(object);
             args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
         } else if call_type.is_ctor_new() {
             args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));

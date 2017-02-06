@@ -1,0 +1,4 @@
+fun main() {
+    let x = getpid();
+    println(x.toString());
+}
