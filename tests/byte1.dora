@@ -1,0 +1,7 @@
+fun main() {
+    let x = 257.toByte();
+    assert(x == 1.toByte());
+
+    let x = (-1).toByte();
+    assert(x == 255.toByte());
+}

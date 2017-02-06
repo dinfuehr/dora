@@ -454,6 +454,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.int_neg(mode, dest, dest);
                 }
 
+                Intrinsic::ByteNot => self.masm.int_not(MachineMode::Int8, dest, dest),
+
                 Intrinsic::IntNot | Intrinsic::LongNot => {
                     let mode = if intrinsic == Intrinsic::IntNot {
                         MachineMode::Int32
@@ -464,11 +466,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.int_not(mode, dest, dest);
                 }
 
-                Intrinsic::BoolNot => {
-                    self.masm.bool_not(dest, dest)
-                }
+                Intrinsic::BoolNot => self.masm.bool_not(dest, dest),
 
-                _ => panic!("unexpected intrinsic {:?}", intrinsic)
+                _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
 
         } else {
@@ -612,30 +612,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_bin_shl(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_shl(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_bin_sar(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_sar(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_bin_shr(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_shr(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
     fn emit_bin_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
         let lbl_true = self.masm.create_label();
         let lbl_false = self.masm.create_label();
@@ -758,27 +734,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         });
     }
 
-    fn emit_bin_add(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        if self.has_call_site(e.id) {
-            self.emit_universal_call(e.id, e.pos, dest);
-
-        } else {
-            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                eg.masm.int_add(MachineMode::Int32, dest, lhs, rhs);
-
-                dest
-            });
-        }
-    }
-
-    fn emit_bin_sub(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_sub(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
     fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
         self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
             eg.masm.int_or(MachineMode::Int32, dest, lhs, rhs);
@@ -864,8 +819,24 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntArrayLen => self.emit_intrinsic_len(e, dest),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
+
+                Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
+                    self.emit_intrinsic_byte_to_int(e, dest)
+                }
+                Intrinsic::BoolToLong | Intrinsic::ByteToLong => {
+                    self.emit_intrinsic_byte_to_long(e, dest)
+                }
+                Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest),
+                Intrinsic::LongToInt => self.emit_intrinsic_long_to_int(e, dest),
+                Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
-                Intrinsic::LongToInt => {}
+
+                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -937,20 +908,33 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
     }
 
+    fn emit_intrinsic_long_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest);
+    }
+
+    fn emit_intrinsic_long_to_byte(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.masm.extend_byte(MachineMode::Int32, dest, dest);
+    }
+
+    fn emit_intrinsic_int_to_byte(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.masm.extend_byte(MachineMode::Int32, dest, dest);
+    }
+
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
+        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT);
         self.masm.extend_int_long(dest, REG_RESULT);
     }
 
-    fn emit_intrinsic_long_add(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT);
-        let offset = self.reserve_temp_for_node(&e.args[0]);
-        self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT);
+    fn emit_intrinsic_byte_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.masm.extend_byte(MachineMode::Int32, dest, dest);
+    }
 
-        self.emit_expr(&e.args[0], REG_TMP1);
-        self.masm.load_mem(MachineMode::Int64, REG_RESULT, Mem::Local(offset));
-
-        self.masm.int_add(MachineMode::Int64, dest, REG_RESULT, REG_TMP1);
+    fn emit_intrinsic_byte_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.masm.extend_byte(MachineMode::Int64, dest, dest);
     }
 
     fn emit_intrinsic_bin_call(&mut self, e: &'ast ExprCallType, dest: Reg, intr: Intrinsic) {
@@ -978,7 +962,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let rhs = REG_TMP1;
 
         match intr {
-            Intrinsic::BoolEq | Intrinsic::IntEq | Intrinsic::LongEq => {
+            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::IntEq | Intrinsic::LongEq => {
                 let mode = if intr == Intrinsic::LongEq {
                     MachineMode::Int64
                 } else {
@@ -994,11 +978,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.set(dest, cond_code);
             }
 
-            Intrinsic::IntCmp | Intrinsic::LongCmp => {
-                let mode = if intr == Intrinsic::IntCmp {
-                    MachineMode::Int32
-                } else {
+            Intrinsic::ByteCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
+                let mode = if intr == Intrinsic::LongCmp {
                     MachineMode::Int64
+                } else {
+                    MachineMode::Int32
                 };
 
                 if let Some(BinOp::Cmp(op)) = op {

@@ -375,7 +375,16 @@ pub enum Intrinsic {
 
     BoolEq,
     BoolNot,
+    BoolToInt,
+    BoolToLong,
 
+    ByteEq,
+    ByteCmp,
+    ByteNot,
+    ByteToInt,
+    ByteToLong,
+
+    IntToByte,
     IntToLong,
     IntEq,
     IntCmp,
@@ -398,6 +407,7 @@ pub enum Intrinsic {
     IntPlus,
 
     LongToInt,
+    LongToByte,
     LongEq,
     LongCmp,
     LongAdd,

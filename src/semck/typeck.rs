@@ -394,10 +394,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_un_method(&mut self,
-                             e: &'ast ExprUnType,
-                             op: UnOp,
-                             name: &str,
-                             ty: BuiltinType) {
+                            e: &'ast ExprUnType,
+                            op: UnOp,
+                            name: &str,
+                            ty: BuiltinType) {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 

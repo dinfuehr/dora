@@ -383,6 +383,16 @@ impl MacroAssembler {
         asm::emit_movsx(self, src, dest);
     }
 
+    pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unimplemented!(),
+        };
+
+        asm::emit_movzx_byte(self, x64, src, dest);
+    }
+
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
         // next instruction has 7 bytes
         let disp = -(disp + 7);
@@ -439,12 +449,24 @@ impl MacroAssembler {
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         let x64 = match mode {
-            MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+            MachineMode::Int8 => {
+                asm::emit_not_reg_byte(self, src);
+                0
+            }
+
+            MachineMode::Int32 => {
+                asm::emit_not_reg(self, 0, src);
+                0
+            }
+
+            MachineMode::Int64 => {
+                asm::emit_not_reg(self, 1, src);
+
+                1
+            }
+
             _ => unimplemented!(),
         };
-
-        asm::emit_not_reg(self, x64, src);
 
         if dest != src {
             asm::emit_mov_reg_reg(self, x64, src, dest);

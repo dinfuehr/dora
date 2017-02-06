@@ -266,6 +266,10 @@ pub fn emit_not_reg(buf: &mut MacroAssembler, x64: u8, reg: Reg) {
     emit_alul_reg(buf, 0xf7, 0b10, x64, reg);
 }
 
+pub fn emit_not_reg_byte(buf: &mut MacroAssembler, reg: Reg) {
+    emit_alul_reg(buf, 0xf6, 0b10, 0, reg);
+}
+
 fn emit_alul_reg(buf: &mut MacroAssembler, opcode: u8, modrm_reg: u8, x64: u8, reg: Reg) {
     if reg.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, 0, 0, reg.msb());
@@ -755,6 +759,16 @@ pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
 
     emit_op(buf, 0xD3);
     emit_modrm(buf, 0b11, 0b111, dest.and7());
+}
+
+pub fn emit_movzx_byte(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
+    if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xb6);
+    emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
 #[cfg(test)]
@@ -1511,5 +1525,20 @@ mod tests {
             emit_movq_imm64_reg(0x0000112233445500, R15));
         assert_emit!(0x48, 0xbc, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0;
             emit_movq_imm64_reg(0x0011223344556677, RSP));
+    }
+
+    #[test]
+    fn test_emit_not_reg() {
+        assert_emit!(0xf6, 0xd0; emit_not_reg_byte(RAX));
+        assert_emit!(0x41, 0xf6, 0xd1; emit_not_reg_byte(R9));
+        assert_emit!(0x41, 0xf6, 0xd7; emit_not_reg_byte(R15));
+    }
+
+    #[test]
+    fn test_emit_movzx_byte() {
+        assert_emit!(0x0f, 0xb6, 0xc0; emit_movzx_byte(0, RAX, RAX));
+        assert_emit!(0x48, 0x0f, 0xb6, 0xc0; emit_movzx_byte(1, RAX, RAX));
+        assert_emit!(0x44, 0x0f, 0xb6, 0xf9; emit_movzx_byte(0, RCX, R15));
+        assert_emit!(0x4d, 0x0f, 0xb6, 0xf9; emit_movzx_byte(1, R9, R15));
     }
 }
