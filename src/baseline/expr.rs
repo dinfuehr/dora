@@ -9,6 +9,7 @@ use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
+use lexer::token::NumberSuffix;
 use masm::*;
 use mem;
 use object::{Header, Str};
@@ -391,11 +392,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
-        let ty = if lit.long {
-            MachineMode::Int64
-        } else {
-            MachineMode::Int32
+        let ty = match lit.suffix {
+            NumberSuffix::Byte => MachineMode::Int8,
+            NumberSuffix::Int => MachineMode::Int32,
+            NumberSuffix::Long => MachineMode::Int64,
         };
+
         self.masm.load_int_const(ty, dest, lit.value as i64);
     }
 

@@ -8,6 +8,7 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
+use lexer::token::NumberSuffix;
 use semck::read_type;
 use ty::BuiltinType;
 
@@ -910,11 +911,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(ExprLitIntType { id, long, .. }) => {
-                let ty = if long {
-                    BuiltinType::Long
-                } else {
-                    BuiltinType::Int
+            ExprLitInt(ExprLitIntType { id, suffix, .. }) => {
+                let ty = match suffix {
+                    NumberSuffix::Byte => BuiltinType::Byte,
+                    NumberSuffix::Int => BuiltinType::Int,
+                    NumberSuffix::Long => BuiltinType::Long,
                 };
 
                 self.src.set_ty(id, ty);

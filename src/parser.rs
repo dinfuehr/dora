@@ -1082,16 +1082,16 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::Number(value, long) = tok.kind {
-            let parsed = if long {
-                value.parse::<i32>().map(|num| num as i64)
-            } else {
-                value.parse::<i64>()
+        if let TokenKind::Number(value, suffix) = tok.kind {
+            let parsed = match suffix {
+                NumberSuffix::Byte => value.parse::<u8>().map(|num| num as i64),
+                NumberSuffix::Int => value.parse::<i32>().map(|num| num as i64),
+                NumberSuffix::Long => value.parse::<i64>()
             };
 
             match parsed {
                 Ok(num) => {
-                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, long);
+                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, suffix);
                     Ok(Box::new(expr))
                 }
 

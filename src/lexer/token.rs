@@ -6,7 +6,7 @@ use lexer::position::Position;
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
     String(String),
-    Number(String, bool),
+    Number(String, NumberSuffix),
     Identifier(String),
     End,
 
@@ -100,7 +100,12 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::Number(_, long) => if long { "int number" } else { "long number" },
+            TokenKind::Number(_, suffix) => match suffix {
+                NumberSuffix::Byte => "byte number",
+                NumberSuffix::Int => "int number",
+                NumberSuffix::Long => "long number",
+            },
+
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
 
@@ -193,6 +198,13 @@ impl TokenKind {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum NumberSuffix {
+    Int,
+    Long,
+    Byte,
+}
+
 #[derive(PartialEq,Eq,Debug)]
 pub struct Token {
     pub kind: TokenKind,
@@ -217,10 +229,14 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::Number(ref val, long) => {
-                let long = if long { "L" } else { "" };
+            TokenKind::Number(ref val, suffix) => {
+                let suffix = match suffix {
+                    NumberSuffix::Byte => "B",
+                    NumberSuffix::Int => "",
+                    NumberSuffix::Long => "L",
+                };
 
-                format!("{}{}", val, long)
+                format!("{}{}", val, suffix)
             }
 
             TokenKind::String(ref val) => format!("\"{}\"", &val),
