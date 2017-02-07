@@ -111,3 +111,8 @@ fun getpid() -> int {
   let fct = loadFunction("getpid");
   return call0(fct).toInt();
 }
+
+fun getppid() -> int {
+  let fct = loadFunction("getppid");
+  return call0(fct).toInt();
+}

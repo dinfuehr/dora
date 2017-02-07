@@ -1,4 +1,7 @@
 fun main() {
-    let x = getpid();
-    println(x.toString());
+    let pid = getpid();
+    println(pid.toString());
+
+    let ppid = getppid();
+    println(ppid.toString());
 }
