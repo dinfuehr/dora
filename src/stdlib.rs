@@ -168,3 +168,11 @@ pub extern "C" fn call3(addr: *const u8, arg1: usize, arg2: usize, arg3: usize) 
 
     fct(arg1, arg2, arg3)
 }
+
+pub extern "C" fn native_malloc(size: usize) -> *const u8 {
+    unsafe { libc::malloc(size) as *const u8 }
+}
+
+pub extern "C" fn native_free(addr: *const u8) {
+    unsafe { libc::free(addr as *mut libc::c_void) }
+}

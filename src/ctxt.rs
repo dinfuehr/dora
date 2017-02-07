@@ -373,6 +373,12 @@ pub enum Intrinsic {
     Assert,
     Shl,
 
+    SetUint8,
+
+    StrLen,
+    StrGet,
+    StrSet,
+
     BoolEq,
     BoolNot,
     BoolToInt,

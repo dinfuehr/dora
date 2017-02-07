@@ -63,6 +63,10 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt, "call2", stdlib::call2 as *const u8);
     native_fct(ctxt, "call3", stdlib::call3 as *const u8);
 
+    native_fct(ctxt, "native_malloc", stdlib::native_malloc as *const u8);
+    native_fct(ctxt, "native_free", stdlib::native_free as *const u8);
+    intrinsic_fct(ctxt, "set_uint8", Intrinsic::SetUint8);
+
     let clsid = ctxt.primitive_classes.byte_class;
     native_method(ctxt, clsid, "toString", stdlib::byte_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::ByteToLong);
@@ -134,9 +138,12 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     let clsid = ctxt.primitive_classes.str_class;
     native_method(ctxt, clsid, "equals", stdlib::streq as *const u8);
     native_method(ctxt, clsid, "compareTo", stdlib::strcmp as *const u8);
-    native_method(ctxt, clsid, "len", stdlib::str_len as *const u8);
     native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
     native_method(ctxt, clsid, "plus", stdlib::strcat as *const u8);
+
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::StrGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
 
     let clsid = ctxt.primitive_classes.int_array;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);

@@ -247,7 +247,7 @@ impl Msg {
             TryNeedsCall => "`try` expects function or method call.".into(),
             TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
             ThrowingCallWithoutTry => {
-                "function or method call that is able to throw, nees `try`.".into()
+                "function or method call that is able to throw, needs `try`.".into()
             }
         }
     }

@@ -1,0 +1,7 @@
+fun main() {
+    let x = "ABC";
+
+    assert(x[0] == 65B);
+    assert(x[1] == 66B);
+    assert(x[2] == 67B);
+}

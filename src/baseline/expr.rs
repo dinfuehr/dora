@@ -275,24 +275,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
-        if self.intrinsic(e.id).is_some() {
-            self.emit_expr(&e.object, REG_RESULT);
-            let offset = self.reserve_temp_for_node(&e.object);
-            self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
-
-            self.emit_expr(&e.index, REG_TMP1);
-            self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
-
-            if !self.ctxt.args.flag_omit_bounds_check {
-                self.masm.check_index_out_of_bounds(e.pos, REG_RESULT, REG_TMP1, REG_TMP2);
-            }
-
-            self.masm.load_array_elem(MachineMode::Int32, REG_RESULT, REG_RESULT, REG_TMP1);
-
-            self.free_temp_for_node(&e.object, offset);
-
-            if dest != REG_RESULT {
-                self.masm.copy_reg(MachineMode::Int32, dest, REG_RESULT);
+        if let Some(intrinsic) = self.intrinsic(e.id) {
+            match intrinsic {
+                Intrinsic::IntArrayGet => {
+                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
+                }
+                Intrinsic::StrGet => {
+                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
+                }
+                _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
 
         } else {
@@ -481,34 +472,29 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
         if e.lhs.is_array() {
-            if self.intrinsic(e.id).is_some() {
-                let array = e.lhs.to_array().unwrap();
-                self.emit_expr(&array.object, REG_RESULT);
-                let offset_object = self.reserve_temp_for_node(&array.object);
-                self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT);
+            let array = e.lhs.to_array().unwrap();
 
-                self.emit_expr(&array.index, REG_RESULT);
-                let offset_index = self.reserve_temp_for_node(&array.index);
-                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT);
-
-                self.emit_expr(&e.rhs, REG_RESULT);
-                let offset_value = self.reserve_temp_for_node(&e.rhs);
-                self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_value), REG_RESULT);
-
-                self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(offset_object));
-                self.masm.load_mem(MachineMode::Int32, REG_TMP2, Mem::Local(offset_index));
-
-                if !self.ctxt.args.flag_omit_bounds_check {
-                    self.masm.check_index_out_of_bounds(e.pos, REG_TMP1, REG_TMP2, REG_RESULT);
+            if let Some(intrinsic) = self.intrinsic(e.id) {
+                match intrinsic {
+                    Intrinsic::StrSet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Int8,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
+                    }
+                    Intrinsic::IntArraySet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Int32,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
+                    }
+                    _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
 
-                self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset_value));
-                self.masm.store_array_elem(MachineMode::Int32, REG_TMP1, REG_TMP2, REG_RESULT);
-
-
-                self.free_temp_for_node(&array.object, offset_object);
-                self.free_temp_for_node(&array.index, offset_index);
-                self.free_temp_for_node(&e.rhs, offset_value);
             } else {
                 self.emit_universal_call(e.id, e.pos, dest);
             }
@@ -821,6 +807,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntArrayLen => self.emit_intrinsic_len(e, dest),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
+                Intrinsic::SetUint8 => self.emit_set_uint8(e, dest),
+                Intrinsic::StrLen => self.emit_intrinsic_len(e, dest),
+                Intrinsic::StrGet => {
+                    self.emit_array_get(e.pos,
+                                        MachineMode::Int8,
+                                        e.object.as_ref().unwrap(),
+                                        &e.args[0],
+                                        dest)
+                }
 
                 Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
                     self.emit_intrinsic_byte_to_int(e, dest)
@@ -881,8 +876,84 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
+    fn emit_array_set(&mut self,
+                      pos: Position,
+                      mode: MachineMode,
+                      object: &'ast Expr,
+                      index: &'ast Expr,
+                      rhs: &'ast Expr,
+                      dest: Reg) {
+        self.emit_expr(object, REG_RESULT);
+        let offset_object = self.reserve_temp_for_node(object);
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT);
+
+        self.emit_expr(index, REG_RESULT);
+        let offset_index = self.reserve_temp_for_node(index);
+        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT);
+
+        self.emit_expr(rhs, REG_RESULT);
+        let offset_value = self.reserve_temp_for_node(rhs);
+        self.masm.store_mem(mode, Mem::Local(offset_value), REG_RESULT);
+
+        self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(offset_object));
+        self.masm.load_mem(MachineMode::Int32, REG_TMP2, Mem::Local(offset_index));
+
+        if !self.ctxt.args.flag_omit_bounds_check {
+            self.masm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
+        }
+
+        self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset_value));
+        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT);
+
+        self.free_temp_for_node(object, offset_object);
+        self.free_temp_for_node(index, offset_index);
+        self.free_temp_for_node(rhs, offset_value);
+
+        if dest != REG_RESULT {
+            self.masm.copy_reg(mode, dest, REG_RESULT);
+        }
+    }
+
+    fn emit_array_get(&mut self,
+                      pos: Position,
+                      mode: MachineMode,
+                      object: &'ast Expr,
+                      index: &'ast Expr,
+                      dest: Reg) {
+        self.emit_expr(object, REG_RESULT);
+        let offset = self.reserve_temp_for_node(object);
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
+
+        self.emit_expr(index, REG_TMP1);
+        self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
+
+        if !self.ctxt.args.flag_omit_bounds_check {
+            self.masm.check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1, REG_TMP2);
+        }
+
+        self.masm.load_array_elem(mode, REG_RESULT, REG_RESULT, REG_TMP1);
+
+        self.free_temp_for_node(object, offset);
+
+        if dest != REG_RESULT {
+            self.masm.copy_reg(mode, dest, REG_RESULT);
+        }
+    }
+
+    fn emit_set_uint8(&mut self, e: &'ast ExprCallType, _: Reg) {
+        self.emit_expr(&e.args[0], REG_RESULT);
+        let offset = self.reserve_temp_for_node(&e.args[0]);
+        self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT);
+
+        self.emit_expr(&e.args[1], REG_TMP1);
+        self.masm.load_mem(MachineMode::Int64, REG_RESULT, Mem::Local(offset));
+
+        self.masm.store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1);
+    }
+
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
+        self.masm.test_if_nil_bailout(e.pos, REG_RESULT, Trap::NIL);
         self.masm.load_mem(MachineMode::Ptr,
                            dest,
                            Mem::Base(REG_RESULT, Header::size()));

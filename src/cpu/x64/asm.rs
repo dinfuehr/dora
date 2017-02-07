@@ -511,6 +511,7 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
                              disp: i32,
                              dest: Reg) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+    assert!(mode.size() == scale);
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x8a),
@@ -525,6 +526,21 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
 
     emit_op(buf, opcode);
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
+}
+
+pub fn emit_movzx_memindex_byte_reg(buf: &mut MacroAssembler,
+                                    x64: u8,
+                                    base: Reg,
+                                    index: Reg,
+                                    disp: i32,
+                                    dest: Reg) {
+    if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
+        emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0xb6);
+    emit_membase_with_index_and_scale(buf, base, index, 1, disp, dest);
 }
 
 pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
@@ -1474,15 +1490,25 @@ mod tests {
 
     #[test]
     fn test_mov_memindex_reg() {
-        assert_emit!(0x48, 0x8b, 0x54, 0x88, 0x0c;
-            emit_mov_memindex_reg(MachineMode::Ptr, RAX, RCX, 4, 12, RDX));
+        assert_emit!(0x48, 0x8b, 0x54, 0xc8, 0x0c;
+            emit_mov_memindex_reg(MachineMode::Ptr, RAX, RCX, 8, 12, RDX));
         assert_emit!(0x8b, 0x54, 0x88, 0x0c;
             emit_mov_memindex_reg(MachineMode::Int32, RAX, RCX, 4, 12, RDX));
-        assert_emit!(0x8a, 0x54, 0x88, 0x0c;
-            emit_mov_memindex_reg(MachineMode::Int8, RAX, RCX, 4, 12, RDX));
+        assert_emit!(0x8a, 0x54, 0x08, 0x0c;
+            emit_mov_memindex_reg(MachineMode::Int8, RAX, RCX, 1, 12, RDX));
+        assert_emit!(0x8a, 0x44, 0x08, 0x20;
+            emit_mov_memindex_reg(MachineMode::Int8, RAX, RCX, 1, 0x20, RAX));
 
         assert_emit!(0x4f, 0x8b, 0x6c, 0xfe, 0x10;
             emit_mov_memindex_reg(MachineMode::Ptr, R14, R15, 8, 16, R13));
+    }
+
+    #[test]
+    fn test_emit_movzx_memindex_byte_reg() {
+        assert_emit!(0x0f, 0xb6, 0x44, 0x08, 0x0c;
+            emit_movzx_memindex_byte_reg(0, RAX, RCX, 12, RAX));
+        assert_emit!(0x48, 0x0f, 0xb6, 0x44, 0x08, 0x0c;
+            emit_movzx_memindex_byte_reg(1, RAX, RCX, 12, RAX));
     }
 
     #[test]

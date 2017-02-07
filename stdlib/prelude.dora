@@ -93,6 +93,9 @@ internal class Str {
   internal fun len() -> int;
   internal fun parseInt() -> int;
   internal fun plus(rhs: Str) -> Str;
+
+  internal fun get(idx: int) -> byte;
+  internal fun set(idx: int, val: int);
 }
 
 internal class IntArray {
@@ -104,8 +107,28 @@ internal class IntArray {
 internal fun loadFunction(name: Str) -> long;
 internal fun call0(fct: long) -> long;
 internal fun call1(fct: long, arg0: long) -> long;
-internal fun call2(fct: long, arg0: long) -> long;
-internal fun call3(fct: long, arg0: long) -> long;
+internal fun call2(fct: long, arg0: long, arg1: long) -> long;
+internal fun call3(fct: long, arg0: long, arg1: long, arg2: long) -> long;
+
+internal fun native_malloc(size: long) -> long;
+internal fun native_free(address: long);
+internal fun set_uint8(address: long, val: byte);
+
+fun native_string(val: Str) -> long {
+  var i = 0;
+  let len = val.len();
+
+  let ptr = native_malloc(len.toLong()+1L);
+
+  while i < len {
+    set_uint8(ptr+i.toLong(), val[i]);
+    i = i + 1;
+  }
+
+  set_uint8(ptr+len.toLong(), 0B);
+
+  return ptr;
+}
 
 fun getpid() -> int {
   let fct = loadFunction("getpid");
@@ -116,3 +139,14 @@ fun getppid() -> int {
   let fct = loadFunction("getppid");
   return call0(fct).toInt();
 }
+
+class File(let name: Str) {
+  fun delete() throws {
+    let ptr = native_string(self.name);
+    let fct = loadFunction("unlink");
+    call1(fct, ptr);
+    native_free(ptr);
+  }
+}
+
+class Exception(msg: Str)

@@ -1086,7 +1086,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
             let parsed = match suffix {
                 NumberSuffix::Byte => value.parse::<u8>().map(|num| num as i64),
                 NumberSuffix::Int => value.parse::<i32>().map(|num| num as i64),
-                NumberSuffix::Long => value.parse::<i64>()
+                NumberSuffix::Long => value.parse::<i64>(),
             };
 
             match parsed {

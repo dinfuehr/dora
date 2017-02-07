@@ -59,18 +59,14 @@ impl MacroAssembler {
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
-        assert!(mode == MachineMode::Int32);
-
         self.load_mem(mode,
                       dest,
                       Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
-        assert!(mode == MachineMode::Int32);
-
-        self.store_mem(MachineMode::Int32,
-                       Mem::Index(array, index, 4, IntArray::offset_of_data()),
+        self.store_mem(mode,
+                       Mem::Index(array, index, mode.size(), IntArray::offset_of_data()),
                        value);
     }
 
@@ -337,7 +333,14 @@ impl MacroAssembler {
             }
 
             Mem::Index(base, index, scale, disp) => {
-                asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest)
+                match mode {
+                    MachineMode::Int8 => {
+                        assert!(scale == 1);
+                        asm::emit_movzx_memindex_byte_reg(self, 0, base, index, disp, dest)
+                    }
+
+                    _ => asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest),
+                }
             }
         }
     }
@@ -412,7 +415,7 @@ impl MacroAssembler {
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         match mode {
-            MachineMode::Int8 => unimplemented!(),
+            MachineMode::Int8 |
             MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm as i32, dest),
             MachineMode::Int64 |
             MachineMode::Ptr => {

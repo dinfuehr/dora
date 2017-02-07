@@ -100,11 +100,13 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::Number(_, suffix) => match suffix {
-                NumberSuffix::Byte => "byte number",
-                NumberSuffix::Int => "int number",
-                NumberSuffix::Long => "long number",
-            },
+            TokenKind::Number(_, suffix) => {
+                match suffix {
+                    NumberSuffix::Byte => "byte number",
+                    NumberSuffix::Int => "int number",
+                    NumberSuffix::Long => "long number",
+                }
+            }
 
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
