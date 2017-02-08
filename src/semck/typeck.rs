@@ -30,6 +30,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             src: &mut src,
             ast: ast,
             expr_type: BuiltinType::Unit,
+            negative_expr_id: NodeId(0),
         };
 
         typeck.check();
@@ -42,6 +43,7 @@ struct TypeCheck<'a, 'ast: 'a> {
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     expr_type: BuiltinType,
+    negative_expr_id: NodeId,
 }
 
 impl<'a, 'ast> TypeCheck<'a, 'ast> {
@@ -389,7 +391,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match e.op {
             UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
-            UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
+            UnOp::Neg => {
+                if self.negative_expr_id != e.id {
+                    self.negative_expr_id = e.opnd.id();
+                }
+
+                self.check_expr_un_method(e, e.op, "unaryMinus", opnd)
+            }
             UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
         }
     }
@@ -906,21 +914,42 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
+
+    fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
+        let ty = match e.suffix {
+            NumberSuffix::Byte => BuiltinType::Byte,
+            NumberSuffix::Int => BuiltinType::Int,
+            NumberSuffix::Long => BuiltinType::Long,
+        };
+
+        let val = e.value;
+        let negative = e.suffix != NumberSuffix::Byte && self.negative_expr_id == e.id;
+
+        let max = match e.suffix {
+            NumberSuffix::Byte => 256,
+            NumberSuffix::Int => (1u64 << 31),
+            NumberSuffix::Long => (1u64 << 63),
+        };
+
+        if (negative && val > max) || (!negative && val >= max) {
+            let ty = match e.suffix {
+                NumberSuffix::Byte => "byte",
+                NumberSuffix::Int => "int",
+                NumberSuffix::Long => "long",
+            };
+
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::NumberOverflow(ty.into()));
+        }
+
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
-            ExprLitInt(ExprLitIntType { id, suffix, .. }) => {
-                let ty = match suffix {
-                    NumberSuffix::Byte => BuiltinType::Byte,
-                    NumberSuffix::Int => BuiltinType::Int,
-                    NumberSuffix::Long => BuiltinType::Long,
-                };
-
-                self.src.set_ty(id, ty);
-                self.expr_type = ty;
-            }
+            ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
                 self.src.set_ty(id, BuiltinType::Str);
                 self.expr_type = BuiltinType::Str;

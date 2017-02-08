@@ -407,7 +407,7 @@ impl<T: CodeReader> Lexer<T> {
         let pos = self.top().unwrap().position;
         let mut value = String::new();
 
-        while self.is_digit() {
+        while self.is_digit_or_underscore() {
             let ch = try!(self.read_char().unwrap()).value;
             value.push(ch);
         }
@@ -530,6 +530,12 @@ impl<T: CodeReader> Lexer<T> {
         top.is_some() && top.unwrap().value.is_digit(10)
     }
 
+    fn is_digit_or_underscore(&self) -> bool {
+        let top = self.top();
+
+        top.is_some() && (top.unwrap().value.is_digit(10) || top.unwrap().value == '_')
+    }
+
     fn is_whitespace(&self) -> bool {
         let top = self.top();
 
@@ -621,7 +627,7 @@ mod tests {
                    6);
         assert_end(&mut reader, 2, 8);
 
-        let mut reader = Lexer::from_str("12B 300B");
+        let mut reader = Lexer::from_str("12B 300B 1_000 1__1");
         assert_tok(&mut reader,
                    TokenKind::Number("12".into(), NumberSuffix::Byte),
                    1,
@@ -630,6 +636,14 @@ mod tests {
                    TokenKind::Number("300".into(), NumberSuffix::Byte),
                    1,
                    5);
+        assert_tok(&mut reader,
+                   TokenKind::Number("1_000".into(), NumberSuffix::Int),
+                   1,
+                   10);
+        assert_tok(&mut reader,
+                   TokenKind::Number("1__1".into(), NumberSuffix::Int),
+                   1,
+                   16);
     }
 
     #[test]

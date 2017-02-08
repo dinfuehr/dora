@@ -1083,11 +1083,8 @@ impl<'a, T: CodeReader> Parser<'a, T> {
         let pos = tok.position;
 
         if let TokenKind::Number(value, suffix) = tok.kind {
-            let parsed = match suffix {
-                NumberSuffix::Byte => value.parse::<u8>().map(|num| num as i64),
-                NumberSuffix::Int => value.parse::<i32>().map(|num| num as i64),
-                NumberSuffix::Long => value.parse::<i64>(),
-            };
+            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+            let parsed = filtered.parse::<u64>();
 
             match parsed {
                 Ok(num) => {
@@ -1102,7 +1099,7 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                         NumberSuffix::Long => "long",
                     };
 
-                    Err(MsgWithPos::new(pos, Msg::NumberOverflow(value, bits.into())))
+                    Err(MsgWithPos::new(pos, Msg::NumberOverflow(bits.into())))
                 }
             }
         } else {
@@ -1454,6 +1451,14 @@ mod tests {
     #[test]
     fn parse_number() {
         let (expr, _) = parse_expr("10");
+
+        let lit = expr.to_lit_int().unwrap();
+        assert_eq!(10, lit.value);
+    }
+
+    #[test]
+    fn parse_number_with_underscore() {
+        let (expr, _) = parse_expr("1____0");
 
         let lit = expr.to_lit_int().unwrap();
         assert_eq!(10, lit.value);

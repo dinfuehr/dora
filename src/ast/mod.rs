@@ -1022,7 +1022,7 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_int(id: NodeId, pos: Position, value: i64, suffix: NumberSuffix) -> Expr {
+    pub fn create_lit_int(id: NodeId, pos: Position, value: u64, suffix: NumberSuffix) -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
             id: id,
             pos: pos,
@@ -1503,7 +1503,7 @@ pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
 
-    pub value: i64,
+    pub value: u64,
     pub suffix: NumberSuffix,
 }
 

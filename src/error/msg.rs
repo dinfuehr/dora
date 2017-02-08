@@ -59,7 +59,7 @@ pub enum Msg {
     UnclosedComment,
     UnknownChar(char),
     UnclosedString,
-    NumberOverflow(String, String),
+    NumberOverflow(String),
     ExpectedFactor(String),
     ExpectedToken(String, String),
     ExpectedTopLevelElement(String),
@@ -218,8 +218,8 @@ impl Msg {
             UnresolvedInternal => "unresolved internal.".into(),
             MisplacedElse => "misplace else.".into(),
             ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
-            NumberOverflow(ref value, ref ty) => {
-                format!("number {} does not fit into type {}.", value, ty)
+            NumberOverflow(ref ty) => {
+                format!("number does not fit into type {}.", ty)
             }
             ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             ExpectedType(ref got) => format!("type expected but got {}.", got),
