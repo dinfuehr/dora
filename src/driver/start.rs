@@ -104,6 +104,7 @@ fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<
 
     if let Err(error) = parser.parse() {
         println!("{}", error);
+        println!("1 error found.");
         return Err(1);
     }
 

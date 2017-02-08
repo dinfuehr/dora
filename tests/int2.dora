@@ -1,0 +1,4 @@
+fun main() {
+    let x: int = 2147483647;
+    // let y: int = -2147483648; // should be allowed for int
+}

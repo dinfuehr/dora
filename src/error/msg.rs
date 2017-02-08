@@ -59,7 +59,7 @@ pub enum Msg {
     UnclosedComment,
     UnknownChar(char),
     UnclosedString,
-    NumberOverflow(String),
+    NumberOverflow(String, String),
     ExpectedFactor(String),
     ExpectedToken(String, String),
     ExpectedTopLevelElement(String),
@@ -218,7 +218,9 @@ impl Msg {
             UnresolvedInternal => "unresolved internal.".into(),
             MisplacedElse => "misplace else.".into(),
             ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
-            NumberOverflow(ref value) => format!("number {} does not fit into 32 bits.", value),
+            NumberOverflow(ref value, ref ty) => {
+                format!("number {} does not fit into type {}.", value, ty)
+            }
             ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             ExpectedType(ref got) => format!("type expected but got {}.", got),
             ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),
@@ -274,6 +276,6 @@ impl MsgWithPos {
 
 impl fmt::Display for MsgWithPos {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "error at line {}: {}", self.pos, self.msg.message())
+        write!(f, "error at {}: {}", self.pos, self.msg.message())
     }
 }

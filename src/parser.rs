@@ -1095,7 +1095,15 @@ impl<'a, T: CodeReader> Parser<'a, T> {
                     Ok(Box::new(expr))
                 }
 
-                _ => Err(MsgWithPos::new(pos, Msg::NumberOverflow(value))),
+                _ => {
+                    let bits = match suffix {
+                        NumberSuffix::Byte => "byte",
+                        NumberSuffix::Int => "int",
+                        NumberSuffix::Long => "long",
+                    };
+
+                    Err(MsgWithPos::new(pos, Msg::NumberOverflow(value, bits.into())))
+                }
             }
         } else {
             unreachable!();

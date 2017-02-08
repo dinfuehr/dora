@@ -1,0 +1,7 @@
+//= error at 6:13
+
+fun main() {
+    let a = 255B;
+    let b = 0B;
+    let c = 256B;
+}
