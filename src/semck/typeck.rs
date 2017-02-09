@@ -386,18 +386,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType) {
+        if e.op == UnOp::Neg {
+            if self.negative_expr_id != e.id {
+                self.negative_expr_id = e.opnd.id();
+            }
+        }
+
         self.visit_expr(&e.opnd);
         let opnd = self.expr_type;
 
         match e.op {
             UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
-            UnOp::Neg => {
-                if self.negative_expr_id != e.id {
-                    self.negative_expr_id = e.opnd.id();
-                }
-
-                self.check_expr_un_method(e, e.op, "unaryMinus", opnd)
-            }
+            UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
             UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
         }
     }
@@ -1825,5 +1825,25 @@ mod tests {
         ok("fun f(a: long) -> long { return !a; }");
         ok("fun f(a: long) -> long { return -a; }");
         ok("fun f(a: long) -> long { return +a; }");
+    }
+
+    #[test]
+    fn test_literal_int_overflow() {
+        err("fun f() { let x = 2147483648; }", pos(1, 19),
+            Msg::NumberOverflow("int".into()));
+        ok("fun f() { let x = 2147483647; }");
+        err("fun f() { let x = -2147483649; }", pos(1, 20),
+            Msg::NumberOverflow("int".into()));
+        ok("fun f() { let x = -2147483648; }");
+    }
+
+    #[test]
+    fn test_literal_long_overflow() {
+        err("fun f() { let x = 9223372036854775808L; }", pos(1, 19),
+            Msg::NumberOverflow("long".into()));
+        ok("fun f() { let x = 9223372036854775807L; }");
+        err("fun f() { let x = -9223372036854775809L; }", pos(1, 20),
+            Msg::NumberOverflow("long".into()));
+        ok("fun f() { let x = -9223372036854775808L; }");
     }
 }
