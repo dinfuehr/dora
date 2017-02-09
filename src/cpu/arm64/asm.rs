@@ -606,6 +606,14 @@ pub fn uxtb(rd: Reg, rn: Reg) -> u32 {
     ubfm(0, rd, rn, 0, 7)
 }
 
+pub fn sxtw(rd: Reg, rn: Reg) -> u32 {
+    sbfm(1, rd, rn, 0, 31)
+}
+
+pub fn uxtw(rd: Reg, rn: Reg) -> u32 {
+    ubfm(1, rd, rn, 0, 31)
+}
+
 fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Reg) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
@@ -1482,6 +1490,18 @@ mod tests {
         asm(0x1e620041, scvtf(0, 1, F1, R2));
         asm(0x9e220083, scvtf(1, 0, F3, R4));
         asm(0x9e620083, scvtf(1, 1, F3, R4));
+    }
+
+    #[test]
+    fn test_uxtw() {
+        assert_eq!(0xD3407c00, uxtw(R0, R0));
+        assert_eq!(0xD3407d8f, uxtw(R15, R12));
+    }
+
+    #[test]
+    fn test_sxtw() {
+        assert_eq!(0x93407c00, sxtw(R0, R0));
+        assert_eq!(0x93407d8f, sxtw(R15, R12));
     }
 
     fn asm(op1: u32, op2: u32) {

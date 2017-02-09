@@ -9,7 +9,7 @@ use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
-use object::IntArray;
+use object::{offset_of_array_data, offset_of_array_length};
 use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
@@ -73,18 +73,14 @@ impl MacroAssembler {
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
-        assert!(mode == MachineMode::Int32);
-
         self.load_mem(mode,
                       dest,
-                      Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
+                      Mem::Index(array, index, mode.size(), offset_of_array_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
-        assert!(mode == MachineMode::Int32);
-
-        self.store_mem(MachineMode::Int32,
-                       Mem::Index(array, index, 4, IntArray::offset_of_data()),
+        self.store_mem(mode,
+                       Mem::Index(array, index, mode.size(), offset_of_array_data()),
                        value);
     }
 
@@ -176,56 +172,122 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_div(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::sdiv(0, dest, lhs, rhs));
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_mod(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let scratch = self.get_scratch();
-        self.emit_u32(asm::sdiv(0, *scratch, lhs, rhs));
-        self.emit_u32(asm::msub(0, dest, *scratch, rhs, lhs));
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
+        self.emit_u32(asm::msub(x64, dest, *scratch, rhs, lhs));
     }
 
-    pub fn int_mul(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::mul(0, dest, lhs, rhs));
+    pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::mul(x64, dest, lhs, rhs));
     }
 
-    pub fn int_add(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::add_reg(0, dest, lhs, rhs));
+    pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::add_reg(x64, dest, lhs, rhs));
     }
 
-    pub fn int_sub(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::sub_reg(0, dest, lhs, rhs));
+    pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::sub_reg(x64, dest, lhs, rhs));
     }
 
-    pub fn int_shl(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::lslv(0, dest, lhs, rhs));
+    pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::lslv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_shr(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::lsrv(0, dest, lhs, rhs));
+    pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::lsrv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_sar(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::asrv(0, dest, lhs, rhs));
+    pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::asrv(x64, dest, lhs, rhs));
     }
 
-    pub fn int_or(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::orr_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
+    pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::orr_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn int_and(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::and_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
+    pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::and_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn int_xor(&mut self, dest: Reg, lhs: Reg, rhs: Reg) {
-        self.emit_u32(asm::eor_shreg(0, dest, lhs, rhs, Shift::LSL, 0));
+    pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
         self.load_mem(MachineMode::Int32,
                       temp,
-                      Mem::Base(array, IntArray::offset_of_length()));
+                      Mem::Base(array, offset_of_array_length()));
         self.cmp_reg(MachineMode::Int32, index, temp);
 
         let lbl = self.create_label();
@@ -339,6 +401,18 @@ impl MacroAssembler {
         self.emit_u32(orr_shreg(size_flag(mode), dest, REG_ZERO, src, Shift::LSL, 0));
     }
 
+    pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
+        self.emit_u32(asm::sxtw(dest, src));
+    }
+
+    pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        match mode {
+            MachineMode::Int32 => {},
+            MachineMode::Int64 => self.emit_u32(asm::uxtw(dest, src)),
+            _ => panic!("unimplemented mode {:?}", mode)
+        }
+    }
+
     pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
         self.emit_u32(asm::adr(dest, -disp));
         self.load_mem(MachineMode::Ptr, dest, Mem::Base(dest, 0));
@@ -355,7 +429,7 @@ impl MacroAssembler {
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         let sf = size_flag(mode);
         let register_size = match mode {
-            MachineMode::Int8 => unimplemented!(),
+            MachineMode::Int8 => 32,
             MachineMode::Int32 => 32,
             MachineMode::Int64 => 64,
             MachineMode::Ptr => 64,
@@ -413,12 +487,24 @@ impl MacroAssembler {
         self.emit_u32(movz(0, dest, 0, 0));
     }
 
-    pub fn int_neg(&mut self, dest: Reg, src: Reg) {
-        self.emit_u32(sub_reg(0, dest, REG_ZERO, src));
+    pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(sub_reg(x64, dest, REG_ZERO, src));
     }
 
-    pub fn int_not(&mut self, dest: Reg, src: Reg) {
-        self.emit_u32(orn_shreg(0, dest, REG_ZERO, src, Shift::LSL, 0));
+    pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        let x64 = match mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => panic!("unimplemented mode {:?}", mode)
+        };
+
+        self.emit_u32(orn_shreg(x64, dest, REG_ZERO, src, Shift::LSL, 0));
     }
 
     pub fn bool_not(&mut self, dest: Reg, src: Reg) {
@@ -590,7 +676,7 @@ mod tests {
         assert_emit!(0x529FFFE0; masm);
 
         let mut masm = MacroAssembler::new();
-        masm.load_int_const(Int32, R0, 1i32 << 16);
+        masm.load_int_const(Int32, R0, 1i64 << 16);
         assert_emit!(0x52a00020; masm);
 
         let mut masm = MacroAssembler::new();
