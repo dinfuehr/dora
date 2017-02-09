@@ -348,9 +348,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             if self.is_intrinsic(e.id) {
-                self.reserve_temp_for_node_with_type(array.object.id(), BuiltinType::Ptr);
-                self.reserve_temp_for_node_with_type(array.index.id(), BuiltinType::Int);
-                self.reserve_temp_for_node_with_type(e.rhs.id(), BuiltinType::Int);
+                self.reserve_temp_for_node(&array.object);
+                self.reserve_temp_for_node(&array.index);
+                self.reserve_temp_for_node(&e.rhs);
 
             } else {
                 let args = vec![Arg::Expr(&array.object, BuiltinType::Unit, 0),

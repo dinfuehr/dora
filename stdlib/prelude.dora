@@ -13,11 +13,14 @@ internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 
+internal fun byteArrayWith(len: int, val: byte) -> ByteArray;
+internal fun emptyByteArray() -> ByteArray;
+
 internal fun intArrayWith(len: int, val: int) -> IntArray;
 internal fun emptyIntArray() -> IntArray;
 
-internal fun byteArrayWith(len: int, val: int) -> ByteArray;
-internal fun emptyByteArray() -> ByteArray;
+internal fun longArrayWith(len: int, val: long) -> LongArray;
+internal fun emptyLongArray() -> LongArray;
 
 internal class bool {
   internal fun toInt() -> int;
@@ -112,6 +115,12 @@ internal class IntArray {
   internal fun len() -> int;
   internal fun get(idx: int) -> int;
   internal fun set(idx: int, val: int);
+}
+
+internal class LongArray {
+  internal fun len() -> int;
+  internal fun get(idx: int) -> long;
+  internal fun set(idx: int, val: long);
 }
 
 internal fun loadFunction(name: Str) -> long;

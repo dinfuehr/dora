@@ -1,0 +1,16 @@
+fun main() {
+    let ba = emptyLongArray();
+    assert(ba.len() == 0);
+
+    let ba = longArrayWith(10, 2L);
+    assert(ba.len() == 10);
+
+    ba[0] = 10L;
+    ba[1] = 11L;
+    ba[2] = 12L;
+
+    assert(10L == ba[0]);
+    assert(11L == ba[1]);
+    assert(12L == ba[2]);
+    assert(2L == ba[9]);
+}

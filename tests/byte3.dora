@@ -2,7 +2,7 @@ fun main() {
     let ba = emptyByteArray();
     assert(ba.len() == 0);
 
-    let ba = byteArrayWith(10, 2);
+    let ba = byteArrayWith(10, 2B);
     assert(ba.len() == 10);
 
     ba[0] = 10B;
@@ -12,4 +12,5 @@ fun main() {
     assert(10B == ba[0]);
     assert(11B == ba[1]);
     assert(12B == ba[2]);
+    assert(2B == ba[9]);
 }

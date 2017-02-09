@@ -26,6 +26,7 @@ pub enum BuiltinType {
     // Array types
     ByteArray,
     IntArray,
+    LongArray,
 
     // some class
     Class(ClassId),
@@ -69,6 +70,7 @@ impl BuiltinType {
             BuiltinType::Str => ctxt.primitive_classes.str_class,
             BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
             BuiltinType::IntArray => ctxt.primitive_classes.int_array,
+            BuiltinType::LongArray => ctxt.primitive_classes.long_array,
 
             _ => panic!(),
         }
@@ -111,6 +113,7 @@ impl BuiltinType {
             BuiltinType::Str => "Str".into(),
             BuiltinType::ByteArray => "ByteArray".into(),
             BuiltinType::IntArray => "IntArray".into(),
+            BuiltinType::LongArray => "LongArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
@@ -135,6 +138,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
+            BuiltinType::LongArray |
             BuiltinType::Class(_) => {
                 if *self == other || other.is_nil() {
                     return true;
@@ -160,6 +164,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
+            BuiltinType::LongArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
@@ -177,6 +182,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
+            BuiltinType::LongArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
@@ -194,6 +200,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
+            BuiltinType::LongArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
@@ -237,7 +244,9 @@ mod tests {
         assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
         assert_eq!(MachineMode::Int32, BuiltinType::Int.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
+        assert_eq!(MachineMode::Ptr, BuiltinType::ByteArray.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::IntArray.mode());
+        assert_eq!(MachineMode::Ptr, BuiltinType::LongArray.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Str.mode());
     }
 

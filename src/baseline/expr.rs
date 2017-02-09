@@ -277,12 +277,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
+                Intrinsic::LongArrayGet => {
+                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
+                }
+
                 Intrinsic::IntArrayGet => {
                     self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
+
                 Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
                     self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
                 }
+
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
 
@@ -484,6 +490,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &e.rhs,
                                             dest)
                     }
+
                     Intrinsic::IntArraySet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int32,
@@ -492,6 +499,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &e.rhs,
                                             dest)
                     }
+
+                    Intrinsic::LongArraySet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Int64,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
+                    }
+
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
 
@@ -804,7 +821,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen => {
+                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen | Intrinsic::LongArrayLen => {
                     self.emit_intrinsic_len(e, dest)
                 }
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
@@ -904,7 +921,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             self.masm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
         }
 
-        self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset_value));
+        self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset_value));
         self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT);
 
         self.free_temp_for_node(object, offset_object);
@@ -1261,9 +1278,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Unit => false,
         BuiltinType::Str => true,
         BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::ByteArray | BuiltinType::IntArray => {
-            true
-        }
+        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::ByteArray | BuiltinType::IntArray |
+        BuiltinType::LongArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
     }

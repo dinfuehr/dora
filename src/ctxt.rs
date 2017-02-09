@@ -63,6 +63,7 @@ impl<'ast> Context<'ast> {
                 bool_class: empty_class_id,
                 int_array: empty_class_id,
                 byte_array: empty_class_id,
+                long_array: empty_class_id,
             },
             gc: Mutex::new(gc),
             ast: ast,
@@ -202,6 +203,7 @@ pub struct PrimitiveClasses {
     pub bool_class: ClassId,
     pub int_array: ClassId,
     pub byte_array: ClassId,
+    pub long_array: ClassId,
 }
 
 impl PrimitiveClasses {
@@ -214,6 +216,7 @@ impl PrimitiveClasses {
             BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::IntArray => Some(self.int_array),
             BuiltinType::ByteArray => Some(self.byte_array),
+            BuiltinType::LongArray => Some(self.long_array),
             _ => None,
         }
     }
@@ -370,6 +373,10 @@ impl<'ast> FctKind<'ast> {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
+    LongArrayLen,
+    LongArrayGet,
+    LongArraySet,
+
     IntArrayLen,
     IntArrayGet,
     IntArraySet,

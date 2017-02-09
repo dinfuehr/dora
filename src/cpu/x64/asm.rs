@@ -516,7 +516,7 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x8a),
         MachineMode::Int32 => (0, 0x8b),
-        MachineMode::Int64 => unimplemented!(),
+        MachineMode::Int64 |
         MachineMode::Ptr => (1, 0x8b),
     };
 
@@ -555,7 +555,7 @@ pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x88),
         MachineMode::Int32 => (0, 0x89),
-        MachineMode::Int64 => unimplemented!(),
+        MachineMode::Int64 |
         MachineMode::Ptr => (1, 0x89),
     };
 

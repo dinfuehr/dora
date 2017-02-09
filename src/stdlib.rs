@@ -9,7 +9,7 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{self, ByteArray, Handle, IntArray, Obj, Str};
+use object::{self, ByteArray, Handle, IntArray, LongArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -89,6 +89,18 @@ pub extern "C" fn gc_collect() {
     gc.collect(ctxt);
 }
 
+pub extern "C" fn ctor_byte_array_empty() -> Handle<ByteArray> {
+    let ctxt = get_ctxt();
+
+    object::byte_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_byte_array_elem(len: i32, value: u8) -> Handle<ByteArray> {
+    let ctxt = get_ctxt();
+
+    object::byte_array_with(ctxt, len as usize, value)
+}
+
 pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {
     let ctxt = get_ctxt();
 
@@ -101,16 +113,16 @@ pub extern "C" fn ctor_int_array_elem(len: i32, value: i32) -> Handle<IntArray> 
     object::int_array_with(ctxt, len as usize, value)
 }
 
-pub extern "C" fn ctor_byte_array_empty() -> Handle<ByteArray> {
+pub extern "C" fn ctor_long_array_empty() -> Handle<LongArray> {
     let ctxt = get_ctxt();
 
-    object::byte_array_empty(ctxt)
+    object::long_array_empty(ctxt)
 }
 
-pub extern "C" fn ctor_byte_array_elem(len: i32, value: u8) -> Handle<ByteArray> {
+pub extern "C" fn ctor_long_array_elem(len: i32, value: i64) -> Handle<LongArray> {
     let ctxt = get_ctxt();
 
-    object::byte_array_with(ctxt, len as usize, value)
+    object::long_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {

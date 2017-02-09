@@ -176,7 +176,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::sdiv(x64, dest, lhs, rhs));
@@ -187,7 +187,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::sdiv(x64, *scratch, lhs, rhs));
@@ -198,7 +198,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::mul(x64, dest, lhs, rhs));
@@ -208,7 +208,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::add_reg(x64, dest, lhs, rhs));
@@ -218,7 +218,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::sub_reg(x64, dest, lhs, rhs));
@@ -228,7 +228,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::lslv(x64, dest, lhs, rhs));
@@ -238,7 +238,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::lsrv(x64, dest, lhs, rhs));
@@ -248,7 +248,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::asrv(x64, dest, lhs, rhs));
@@ -258,7 +258,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::orr_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
@@ -268,7 +268,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::and_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
@@ -278,7 +278,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
@@ -407,9 +407,9 @@ impl MacroAssembler {
 
     pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         match mode {
-            MachineMode::Int32 => {},
+            MachineMode::Int32 => {}
             MachineMode::Int64 => self.emit_u32(asm::uxtw(dest, src)),
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         }
     }
 
@@ -491,7 +491,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(sub_reg(x64, dest, REG_ZERO, src));
@@ -501,7 +501,7 @@ impl MacroAssembler {
         let x64 = match mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
-            _ => panic!("unimplemented mode {:?}", mode)
+            _ => panic!("unimplemented mode {:?}", mode),
         };
 
         self.emit_u32(orn_shreg(x64, dest, REG_ZERO, src, Shift::LSL, 0));

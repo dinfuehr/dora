@@ -17,9 +17,11 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool, size);
 
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
-    ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
     ctxt.primitive_classes.byte_array =
         internal_class(ctxt, "ByteArray", BuiltinType::ByteArray, 0);
+    ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
+    ctxt.primitive_classes.long_array =
+        internal_class(ctxt, "LongArray", BuiltinType::LongArray, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>,
@@ -64,6 +66,12 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt,
                "emptyByteArray",
                stdlib::ctor_byte_array_empty as *const u8);
+    native_fct(ctxt,
+               "longArrayWith",
+               stdlib::ctor_long_array_elem as *const u8);
+    native_fct(ctxt,
+               "emptyLongArray",
+               stdlib::ctor_long_array_empty as *const u8);
 
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);
@@ -162,6 +170,11 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::ByteArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::ByteArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::ByteArraySet);
+
+    let clsid = ctxt.primitive_classes.long_array;
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::LongArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::LongArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::LongArraySet);
 }
 
 fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
