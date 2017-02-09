@@ -12,8 +12,12 @@ internal fun assert(val: bool);
 internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
+
 internal fun intArrayWith(len: int, val: int) -> IntArray;
 internal fun emptyIntArray() -> IntArray;
+
+internal fun byteArrayWith(len: int, val: int) -> ByteArray;
+internal fun emptyByteArray() -> ByteArray;
 
 internal class bool {
   internal fun toInt() -> int;
@@ -96,6 +100,12 @@ internal class Str {
 
   internal fun get(idx: int) -> byte;
   internal fun set(idx: int, val: int);
+}
+
+internal class ByteArray {
+  internal fun len() -> int;
+  internal fun get(idx: int) -> byte;
+  internal fun set(idx: int, val: byte);
 }
 
 internal class IntArray {

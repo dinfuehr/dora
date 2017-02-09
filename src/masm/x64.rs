@@ -6,7 +6,7 @@ use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::{ptr_width, fits_i32};
-use object::IntArray;
+use object::{offset_of_array_data, offset_of_array_length};
 use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
@@ -61,12 +61,12 @@ impl MacroAssembler {
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
         self.load_mem(mode,
                       dest,
-                      Mem::Index(array, index, mode.size(), IntArray::offset_of_data()));
+                      Mem::Index(array, index, mode.size(), offset_of_array_data()));
     }
 
     pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
         self.store_mem(mode,
-                       Mem::Index(array, index, mode.size(), IntArray::offset_of_data()),
+                       Mem::Index(array, index, mode.size(), offset_of_array_data()),
                        value);
     }
 
@@ -300,7 +300,7 @@ impl MacroAssembler {
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
         self.load_mem(MachineMode::Int32,
                       temp,
-                      Mem::Base(array, IntArray::offset_of_length()));
+                      Mem::Base(array, offset_of_array_length()));
         self.cmp_reg(MachineMode::Int32, index, temp);
 
         let lbl = self.create_label();

@@ -280,7 +280,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntArrayGet => {
                     self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
-                Intrinsic::StrGet => {
+                Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
                     self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
                 }
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -476,7 +476,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
-                    Intrinsic::StrSet => {
+                    Intrinsic::ByteArraySet | Intrinsic::StrSet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int8,
                                             &array.object,
@@ -804,7 +804,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::IntArrayLen => self.emit_intrinsic_len(e, dest),
+                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen => {
+                    self.emit_intrinsic_len(e, dest)
+                }
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest),
@@ -1259,7 +1261,9 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Unit => false,
         BuiltinType::Str => true,
         BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::IntArray => true,
+        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::ByteArray | BuiltinType::IntArray => {
+            true
+        }
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
     }

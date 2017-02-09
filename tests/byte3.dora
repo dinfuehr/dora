@@ -1,0 +1,15 @@
+fun main() {
+    let ba = emptyByteArray();
+    assert(ba.len() == 0);
+
+    let ba = byteArrayWith(10, 2);
+    assert(ba.len() == 10);
+
+    ba[0] = 10B;
+    ba[1] = 11B;
+    ba[2] = 12B;
+
+    assert(10B == ba[0]);
+    assert(11B == ba[1]);
+    assert(12B == ba[2]);
+}

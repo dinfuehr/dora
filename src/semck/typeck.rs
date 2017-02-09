@@ -1829,20 +1829,24 @@ mod tests {
 
     #[test]
     fn test_literal_int_overflow() {
-        err("fun f() { let x = 2147483648; }", pos(1, 19),
+        err("fun f() { let x = 2147483648; }",
+            pos(1, 19),
             Msg::NumberOverflow("int".into()));
         ok("fun f() { let x = 2147483647; }");
-        err("fun f() { let x = -2147483649; }", pos(1, 20),
+        err("fun f() { let x = -2147483649; }",
+            pos(1, 20),
             Msg::NumberOverflow("int".into()));
         ok("fun f() { let x = -2147483648; }");
     }
 
     #[test]
     fn test_literal_long_overflow() {
-        err("fun f() { let x = 9223372036854775808L; }", pos(1, 19),
+        err("fun f() { let x = 9223372036854775808L; }",
+            pos(1, 19),
             Msg::NumberOverflow("long".into()));
         ok("fun f() { let x = 9223372036854775807L; }");
-        err("fun f() { let x = -9223372036854775809L; }", pos(1, 20),
+        err("fun f() { let x = -9223372036854775809L; }",
+            pos(1, 20),
             Msg::NumberOverflow("long".into()));
         ok("fun f() { let x = -9223372036854775808L; }");
     }

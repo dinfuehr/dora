@@ -218,9 +218,7 @@ impl Msg {
             UnresolvedInternal => "unresolved internal.".into(),
             MisplacedElse => "misplace else.".into(),
             ExpectedToken(ref exp, ref got) => format!("expected {} but got {}.", exp, got),
-            NumberOverflow(ref ty) => {
-                format!("number does not fit into type {}.", ty)
-            }
+            NumberOverflow(ref ty) => format!("number does not fit into type {}.", ty),
             ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             ExpectedType(ref got) => format!("type expected but got {}.", got),
             ExpectedIdentifier(ref tok) => format!("identifier expected but got {}.", tok),

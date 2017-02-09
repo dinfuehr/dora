@@ -1,10 +1,12 @@
 use std;
 use std::ffi::CString;
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
 
-use ctxt::{Context, get_ctxt};
+use class::ClassId;
+use ctxt::Context;
 use gc::root::IndirectObj;
 use mem;
 use ty::BuiltinType;
@@ -271,13 +273,16 @@ fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
     handle
 }
 
-pub struct IntArray {
+pub struct Array<T: Copy> {
     header: Header,
     length: usize,
     data: u8,
+    phantom: PhantomData<T>,
 }
 
-impl IntArray {
+impl<T> Array<T>
+    where T: Copy
+{
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -290,36 +295,29 @@ impl IntArray {
         self.length
     }
 
-    pub fn data(&self) -> *const i32 {
-        &self.data as *const u8 as *const i32
+    pub fn data(&self) -> *const T {
+        &self.data as *const u8 as *const T
     }
 
-    pub fn data_mut(&mut self) -> *mut i32 {
-        &self.data as *const u8 as *mut i32
+    pub fn data_mut(&mut self) -> *mut T {
+        &self.data as *const u8 as *mut T
     }
 
     pub fn size(&self) -> usize {
         Header::size() as usize         // Object header
             + mem::ptr_width() as usize // length field
-            + self.len() * std::mem::size_of::<i32>() // array content
+            + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc_empty() -> Handle<IntArray> {
-        IntArray::alloc_with_elem(0, 0)
-    }
-
-    pub fn alloc_with_elem(len: usize, elem: i32) -> Handle<IntArray> {
+    pub fn alloc(ctxt: &Context, len: usize, elem: T, clsid: ClassId) -> Handle<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
-                   + len * std::mem::size_of::<i32>(); // array content
+                   + len * std::mem::size_of::<T>(); // array content
 
-        let ctxt = get_ctxt();
         let ptr = ctxt.gc.lock().unwrap().alloc(ctxt, size) as usize;
-
-        let clsid = ctxt.primitive_classes.int_array;
         let cls = ctxt.classes[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-        let mut handle: Handle<IntArray> = ptr.into();
+        let mut handle: Handle<Array<T>> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable;
         handle.length = len;
 
@@ -331,12 +329,35 @@ impl IntArray {
 
         handle
     }
+}
 
-    pub fn offset_of_length() -> i32 {
-        offset_of!(IntArray, length) as i32
-    }
+pub fn offset_of_array_length() -> i32 {
+    offset_of!(Array<i32>, length) as i32
+}
 
-    pub fn offset_of_data() -> i32 {
-        offset_of!(IntArray, data) as i32
-    }
+pub fn offset_of_array_data() -> i32 {
+    offset_of!(Array<i32>, data) as i32
+}
+
+pub type IntArray = Array<i32>;
+pub type ByteArray = Array<u8>;
+
+pub fn int_array_empty(ctxt: &Context) -> Handle<IntArray> {
+    let clsid = ctxt.primitive_classes.int_array;
+    Array::alloc(ctxt, 0, 0, clsid)
+}
+
+pub fn int_array_with(ctxt: &Context, len: usize, elem: i32) -> Handle<IntArray> {
+    let clsid = ctxt.primitive_classes.int_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
+
+pub fn byte_array_empty(ctxt: &Context) -> Handle<ByteArray> {
+    let clsid = ctxt.primitive_classes.int_array;
+    Array::alloc(ctxt, 0, 0, clsid)
+}
+
+pub fn byte_array_with(ctxt: &Context, len: usize, elem: u8) -> Handle<ByteArray> {
+    let clsid = ctxt.primitive_classes.int_array;
+    Array::alloc(ctxt, len, elem, clsid)
 }

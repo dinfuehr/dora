@@ -9,7 +9,7 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{Handle, IntArray, Obj, Str};
+use object::{self, ByteArray, Handle, IntArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -90,11 +90,27 @@ pub extern "C" fn gc_collect() {
 }
 
 pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {
-    IntArray::alloc_with_elem(0, 0)
+    let ctxt = get_ctxt();
+
+    object::int_array_empty(ctxt)
 }
 
 pub extern "C" fn ctor_int_array_elem(len: i32, value: i32) -> Handle<IntArray> {
-    IntArray::alloc_with_elem(len as usize, value)
+    let ctxt = get_ctxt();
+
+    object::int_array_with(ctxt, len as usize, value)
+}
+
+pub extern "C" fn ctor_byte_array_empty() -> Handle<ByteArray> {
+    let ctxt = get_ctxt();
+
+    object::byte_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_byte_array_elem(len: i32, value: u8) -> Handle<ByteArray> {
+    let ctxt = get_ctxt();
+
+    object::byte_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
