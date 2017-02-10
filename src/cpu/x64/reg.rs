@@ -1,4 +1,4 @@
-use cpu::Reg;
+use cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 16;
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
@@ -30,6 +30,23 @@ pub const R15: Reg = Reg(15);
 
 pub const RIP: Reg = Reg(16);
 
+pub const XMM0: FReg = FReg(0);
+pub const XMM1: FReg = FReg(1);
+pub const XMM2: FReg = FReg(2);
+pub const XMM3: FReg = FReg(3);
+pub const XMM4: FReg = FReg(4);
+pub const XMM5: FReg = FReg(5);
+pub const XMM6: FReg = FReg(6);
+pub const XMM7: FReg = FReg(7);
+pub const XMM8: FReg = FReg(8);
+pub const XMM9: FReg = FReg(9);
+pub const XMM10: FReg = FReg(10);
+pub const XMM11: FReg = FReg(11);
+pub const XMM12: FReg = FReg(12);
+pub const XMM13: FReg = FReg(13);
+pub const XMM14: FReg = FReg(14);
+pub const XMM15: FReg = FReg(15);
+
 impl Reg {
     // these four register need sometimes special treatment: e.g. because of bl vs bh
     // for byte operations
@@ -53,6 +70,16 @@ impl Reg {
         assert!(self != RIP);
 
         self.int() & 0x07
+    }
+}
+
+impl FReg {
+    pub fn msb(self) -> u8 {
+        (self.0 >> 3) & 0x01
+    }
+
+    pub fn and7(self) -> u8 {
+        self.0 & 0x07
     }
 }
 
