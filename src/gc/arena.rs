@@ -46,7 +46,7 @@ fn reserve(size: usize) -> *mut u8 {
         libc::mmap(ptr::null_mut(),
                    size,
                    libc::PROT_NONE,
-                   libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_NORESERVE,
+                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
                    -1,
                    0) as *mut libc::c_void
     };
@@ -65,7 +65,7 @@ fn commit(ptr: *const u8, size: usize) -> bool {
         libc::mmap(ptr as *mut libc::c_void,
                    size,
                    libc::PROT_READ | libc::PROT_WRITE,
-                   libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_FIXED,
+                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
                    -1,
                    0) != libc::MAP_FAILED
     }
@@ -78,7 +78,7 @@ fn uncommit(ptr: *const u8, size: usize) -> bool {
         libc::mmap(ptr as *mut libc::c_void,
                    size,
                    libc::PROT_NONE,
-                   libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_NORESERVE,
+                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
                    -1,
                    0) != libc::MAP_FAILED
     }
