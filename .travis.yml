@@ -7,9 +7,10 @@ addons:
     packages:
     - ruby
 
-os:
-  - linux
-  - osx
+# don't test on macOS for now
+# os:
+#   - linux
+#   - osx
 
 install:
   - git clone https://github.com/aquynh/capstone
