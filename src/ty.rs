@@ -12,6 +12,9 @@ pub enum BuiltinType {
     Int,
     Long,
 
+    Float,
+    Double,
+
     Bool,
 
     // type Nil, only used in typeck until final type is known
@@ -107,6 +110,8 @@ impl BuiltinType {
             BuiltinType::Byte => "byte".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Long => "long".into(),
+            BuiltinType::Float => "float".into(),
+            BuiltinType::Double => "float".into(),
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
@@ -133,6 +138,7 @@ impl BuiltinType {
             BuiltinType::Struct(_) => *self == other,
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
+            BuiltinType::Float | BuiltinType::Double => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str |
@@ -160,6 +166,8 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
+            BuiltinType::Float => 4,
+            BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
             BuiltinType::ByteArray |
@@ -178,6 +186,8 @@ impl BuiltinType {
             BuiltinType::Byte => 1,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
+            BuiltinType::Float => 4,
+            BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
             BuiltinType::ByteArray |
@@ -196,6 +206,8 @@ impl BuiltinType {
             BuiltinType::Byte => MachineMode::Int8,
             BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Long => MachineMode::Int64,
+            BuiltinType::Float => MachineMode::Float32,
+            BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::Str |
             BuiltinType::ByteArray |
@@ -213,6 +225,8 @@ pub enum MachineMode {
     Int8,
     Int32,
     Int64,
+    Float32,
+    Float64,
     Ptr,
 }
 
@@ -223,6 +237,8 @@ impl MachineMode {
             MachineMode::Int32 => 4,
             MachineMode::Int64 => 8,
             MachineMode::Ptr => mem::ptr_width(),
+            MachineMode::Float32 => 4,
+            MachineMode::Float64 => 8,
         }
     }
 }

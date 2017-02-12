@@ -99,6 +99,8 @@ impl MacroAssembler {
             MachineMode::Int32 => 0,
             MachineMode::Int64 |
             MachineMode::Ptr => 1,
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         };
 
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
@@ -320,6 +322,8 @@ impl MacroAssembler {
                     MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest),
                     MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_memq_reg(self, RBP, offset, dest),
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
                 }
             }
 
@@ -329,6 +333,8 @@ impl MacroAssembler {
                     MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest),
                     MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_memq_reg(self, base, disp, dest),
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
                 }
             }
 
@@ -339,7 +345,14 @@ impl MacroAssembler {
                         asm::emit_movzx_memindex_byte_reg(self, 0, base, index, disp, dest)
                     }
 
-                    _ => asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest),
+                    MachineMode::Int32 |
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => {
+                        asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest)
+                    }
+
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
                 }
             }
         }
@@ -353,6 +366,8 @@ impl MacroAssembler {
                     MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, RBP, offset),
                     MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, RBP, offset),
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
                 }
             }
 
@@ -362,11 +377,23 @@ impl MacroAssembler {
                     MachineMode::Int32 => asm::emit_movl_reg_memq(self, src, base, disp),
                     MachineMode::Int64 |
                     MachineMode::Ptr => asm::emit_movq_reg_memq(self, src, base, disp),
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
                 }
             }
 
             Mem::Index(base, index, scale, disp) => {
-                asm::emit_mov_reg_memindex(self, mode, src, base, index, scale, disp)
+                match mode {
+                    MachineMode::Int8 |
+                    MachineMode::Int32 |
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => {
+                        asm::emit_mov_reg_memindex(self, mode, src, base, index, scale, disp)
+                    }
+
+                    MachineMode::Float32 |
+                    MachineMode::Float64 => unreachable!(),
+                }
             }
         }
     }
@@ -377,6 +404,8 @@ impl MacroAssembler {
             MachineMode::Int32 => 0,
             MachineMode::Int64 |
             MachineMode::Ptr => 1,
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         };
 
         asm::emit_mov_reg_reg(self, x64, src, dest);
@@ -425,6 +454,8 @@ impl MacroAssembler {
                     asm::emit_movq_imm64_reg(self, imm, dest);
                 }
             }
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         }
     }
 

@@ -105,6 +105,20 @@ internal class Str {
   internal fun set(idx: int, val: int);
 }
 
+internal class float {
+  internal fun plus(rhs: float) -> float;
+  internal fun minus(rhs: float) -> float;
+  internal fun times(rhs: float) -> float;
+  internal fun div(rhs: float) -> float;
+}
+
+internal class double {
+  internal fun plus(rhs: double) -> double;
+  internal fun minus(rhs: double) -> double;
+  internal fun times(rhs: double) -> double;
+  internal fun div(rhs: double) -> double;
+}
+
 internal class ByteArray {
   internal fun len() -> int;
   internal fun get(idx: int) -> byte;

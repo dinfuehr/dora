@@ -4,6 +4,9 @@ use stdlib;
 use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
+    let size = BuiltinType::Bool.size(ctxt);
+    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool, size);
+
     let size = BuiltinType::Byte.size(ctxt);
     ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", BuiltinType::Byte, size);
 
@@ -13,8 +16,11 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     let size = BuiltinType::Long.size(ctxt);
     ctxt.primitive_classes.long_class = internal_class(ctxt, "long", BuiltinType::Long, size);
 
-    let size = BuiltinType::Bool.size(ctxt);
-    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool, size);
+    let size = BuiltinType::Float.size(ctxt);
+    ctxt.primitive_classes.float_class = internal_class(ctxt, "float", BuiltinType::Float, size);
+
+    let size = BuiltinType::Double.size(ctxt);
+    ctxt.primitive_classes.double_class = internal_class(ctxt, "double", BuiltinType::Double, size);
 
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
     ctxt.primitive_classes.byte_array =
@@ -160,6 +166,18 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::StrGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
+
+    let clsid = ctxt.primitive_classes.float_class;
+    intrinsic_method(ctxt, clsid, "plus", Intrinsic::FloatAdd);
+    intrinsic_method(ctxt, clsid, "minus", Intrinsic::FloatSub);
+    intrinsic_method(ctxt, clsid, "times", Intrinsic::FloatMul);
+    intrinsic_method(ctxt, clsid, "div", Intrinsic::FloatDiv);
+
+    let clsid = ctxt.primitive_classes.double_class;
+    intrinsic_method(ctxt, clsid, "plus", Intrinsic::DoubleAdd);
+    intrinsic_method(ctxt, clsid, "minus", Intrinsic::DoubleSub);
+    intrinsic_method(ctxt, clsid, "times", Intrinsic::DoubleMul);
+    intrinsic_method(ctxt, clsid, "div", Intrinsic::DoubleDiv);
 
     let clsid = ctxt.primitive_classes.int_array;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);

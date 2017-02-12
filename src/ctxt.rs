@@ -59,6 +59,8 @@ impl<'ast> Context<'ast> {
                 byte_class: empty_class_id,
                 int_class: empty_class_id,
                 long_class: empty_class_id,
+                float_class: empty_class_id,
+                double_class: empty_class_id,
                 str_class: empty_class_id,
                 bool_class: empty_class_id,
                 int_array: empty_class_id,
@@ -199,6 +201,8 @@ pub struct PrimitiveClasses {
     pub byte_class: ClassId,
     pub int_class: ClassId,
     pub long_class: ClassId,
+    pub float_class: ClassId,
+    pub double_class: ClassId,
     pub str_class: ClassId,
     pub bool_class: ClassId,
     pub int_array: ClassId,
@@ -448,6 +452,16 @@ pub enum Intrinsic {
     LongNot,
     LongNeg,
     LongPlus,
+
+    FloatAdd,
+    FloatSub,
+    FloatMul,
+    FloatDiv,
+
+    DoubleAdd,
+    DoubleSub,
+    DoubleMul,
+    DoubleDiv,
 }
 
 #[derive(Debug)]

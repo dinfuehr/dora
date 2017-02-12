@@ -207,6 +207,8 @@ pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, r
         MachineMode::Int8 |
         MachineMode::Int32 => 0,
         MachineMode::Int64 => unimplemented!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => 1,
     };
 
@@ -312,6 +314,8 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
         MachineMode::Ptr => (1, 0x83),
         MachineMode::Int32 => (0, 0x83),
         MachineMode::Int64 => unimplemented!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Int8 => (0, 0x80),
     };
 
@@ -492,6 +496,8 @@ pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
         MachineMode::Int8 => (0, 0x38),
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => (1, 0x39),
     };
 
@@ -518,6 +524,8 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, 0x8b),
         MachineMode::Int64 |
         MachineMode::Ptr => (1, 0x8b),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -557,6 +565,8 @@ pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, 0x89),
         MachineMode::Int64 |
         MachineMode::Ptr => (1, 0x89),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || src.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -581,6 +591,8 @@ pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, opcode),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, opcode),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || base_msb != 0 {
@@ -615,6 +627,8 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x39),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -852,11 +866,7 @@ pub fn cvttsd2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
 }
 
 fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: FReg) {
-    let prefix = if dbl {
-        0xf2
-    } else {
-        0xf3
-    };
+    let prefix = if dbl { 0xf2 } else { 0xf3 };
 
     emit_op(buf, prefix);
 
@@ -870,11 +880,7 @@ fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, 
 }
 
 fn sse_float_freg_reg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, x64: u8, src: Reg) {
-    let prefix = if dbl {
-        0xf2
-    } else {
-        0xf3
-    };
+    let prefix = if dbl { 0xf2 } else { 0xf3 };
 
     emit_op(buf, prefix);
 
@@ -888,11 +894,7 @@ fn sse_float_freg_reg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, x
 }
 
 fn sse_float_reg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, x64: u8, dest: Reg, src: FReg) {
-    let prefix = if dbl {
-        0xf2
-    } else {
-        0xf3
-    };
+    let prefix = if dbl { 0xf2 } else { 0xf3 };
 
     emit_op(buf, prefix);
 
