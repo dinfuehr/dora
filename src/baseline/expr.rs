@@ -51,17 +51,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    pub fn generate(mut self, e: &'ast Expr) -> Reg {
-        let reg = self.emit_expr(e, REG_RESULT);
+    pub fn generate(mut self, e: &'ast Expr, dest: Reg) {
+        self.emit_expr(e, dest);
 
         if !self.temps.is_empty() {
             panic!("temporary variables are not fully freed!");
         }
-
-        reg
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) -> Reg {
+    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
@@ -81,8 +79,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ExprConv(ref expr) => self.emit_conv(expr, dest),
             ExprTry(ref expr) => self.emit_try(expr, dest),
         }
-
-        dest
     }
 
     fn emit_try(&mut self, e: &'ast ExprTryType, dest: Reg) {

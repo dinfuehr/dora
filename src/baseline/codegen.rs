@@ -254,7 +254,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
         if let Some(ref expr) = s.expr {
-            self.emit_expr(expr);
+            self.emit_expr(expr, REG_RESULT);
 
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
@@ -300,8 +300,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         } else {
             // execute condition, when condition is false jump to
             // end of while
-            let reg = self.emit_expr(&s.cond);
-            self.masm.test_and_jump_if(CondCode::Zero, reg, lbl_end);
+            self.emit_expr(&s.cond, REG_RESULT);
+            self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -349,8 +349,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             lbl_end
         };
 
-        let reg = self.emit_expr(&s.cond);
-        self.masm.test_and_jump_if(CondCode::Zero, reg, lbl_else);
+        self.emit_expr(&s.cond, REG_RESULT);
+        self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
@@ -373,7 +373,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
-        self.emit_expr(&s.expr);
+        self.emit_expr(&s.expr, REG_RESULT);
     }
 
     fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
@@ -391,10 +391,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
-            let reg = self.emit_expr(expr);
+            self.emit_expr(expr, REG_RESULT);
             initialized = true;
 
-            var_store(&mut self.masm, &self.src, reg, var);
+            var_store(&mut self.masm, &self.src, REG_RESULT, var);
         }
 
         let reference_type = {
@@ -416,12 +416,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
-        let reg = self.emit_expr(&s.expr);
-        self.masm.test_if_nil_bailout(s.pos, reg, Trap::NIL);
-
-        if reg != REG_RESULT {
-            self.masm.copy_reg(MachineMode::Ptr, REG_RESULT, reg);
-        }
+        self.emit_expr(&s.expr, REG_RESULT);
+        self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
         self.masm.trap(Trap::THROW);
     }
@@ -533,7 +529,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         Some(finally_pos)
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr) -> Reg {
+    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) {
         let expr_gen = ExprGen::new(self.ctxt,
                                     self.fct,
                                     self.src,
@@ -541,7 +537,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                                     &mut self.masm,
                                     &mut self.scopes);
 
-        expr_gen.generate(e)
+        expr_gen.generate(e, dest);
     }
 }
 
