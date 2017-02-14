@@ -1252,27 +1252,3 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
         CmpOp::IsNot => CondCode::NotEqual,
     }
 }
-
-/// Returns `true` if the given expression `expr` is either literal or
-/// variable usage.
-pub fn is_leaf(expr: &Expr) -> bool {
-    match *expr {
-        ExprUn(_) => false,
-        ExprBin(_) => false,
-        ExprLitInt(_) => true,
-        ExprLitStr(_) => true,
-        ExprLitBool(_) => true,
-        ExprLitStruct(_) => false,
-        ExprIdent(_) => true,
-        ExprAssign(_) => false,
-        ExprCall(_) => false,
-        ExprDelegation(_) => false,
-        ExprField(_) => false,
-        ExprSelf(_) => true,
-        ExprSuper(_) => true,
-        ExprNil(_) => true,
-        ExprArray(_) => false,
-        ExprConv(_) => false,
-        ExprTry(_) => false,
-    }
-}
