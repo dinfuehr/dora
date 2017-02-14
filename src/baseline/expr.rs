@@ -5,7 +5,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
-use cpu::{Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{FReg, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
@@ -17,6 +17,40 @@ use os::signal::Trap;
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
+
+#[derive(Copy, Clone)]
+pub enum ExprStore {
+    Reg(Reg),
+    FReg(FReg),
+}
+
+impl ExprStore {
+    pub fn reg(&self) -> Reg {
+        match self {
+            &ExprStore::Reg(reg) => reg,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn freg(&self) -> FReg {
+        match self {
+            &ExprStore::FReg(reg) => reg,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<Reg> for ExprStore {
+    fn from(reg: Reg) -> ExprStore {
+        ExprStore::Reg(reg)
+    }
+}
+
+impl From<FReg> for ExprStore {
+    fn from(reg: FReg) -> ExprStore {
+        ExprStore::FReg(reg)
+    }
+}
 
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
@@ -51,7 +85,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    pub fn generate(mut self, e: &'ast Expr, dest: Reg) {
+    pub fn generate(mut self, e: &'ast Expr, dest: ExprStore) {
         self.emit_expr(e, dest);
 
         if !self.temps.is_empty() {
@@ -59,11 +93,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) {
+    fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
-            ExprLitInt(ref expr) => self.emit_lit_int(expr, dest),
-            ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest),
-            ExprLitStr(ref expr) => self.emit_lit_str(expr, dest),
+            ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
+            ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
+            ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
             ExprLitStruct(_) => unimplemented!(),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
@@ -72,16 +106,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
             ExprField(ref expr) => self.emit_field(expr, dest),
-            ExprSelf(_) => self.emit_self(dest),
-            ExprSuper(_) => self.emit_self(dest),
-            ExprNil(_) => self.emit_nil(dest),
+            ExprSelf(_) => self.emit_self(dest.reg()),
+            ExprSuper(_) => self.emit_self(dest.reg()),
+            ExprNil(_) => self.emit_nil(dest.reg()),
             ExprArray(ref expr) => self.emit_array(expr, dest),
-            ExprConv(ref expr) => self.emit_conv(expr, dest),
+            ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
         }
     }
 
-    fn emit_try(&mut self, e: &'ast ExprTryType, dest: Reg) {
+    fn emit_try(&mut self, e: &'ast ExprTryType, dest: ExprStore) {
         match e.mode {
             TryMode::Normal => {
                 self.emit_expr(&e.expr, dest);
@@ -142,7 +176,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_conv(&mut self, e: &'ast ExprConvType, dest: Reg) {
-        self.emit_expr(&e.object, dest);
+        self.emit_expr(&e.object, dest.into());
 
         // return false if object is nil
         let lbl_nil = self.masm.test_if_nil(dest);
@@ -270,19 +304,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         // also for as we are finished: dest is null and stays null
     }
 
-    fn emit_array(&mut self, e: &'ast ExprArrayType, dest: Reg) {
+    fn emit_array(&mut self, e: &'ast ExprArrayType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::LongArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
+                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest.reg())
                 }
 
                 Intrinsic::IntArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
+                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest.reg())
                 }
 
                 Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
+                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest.reg())
                 }
 
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -362,7 +396,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_nil(dest);
     }
 
-    fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: Reg) {
+    fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: ExprStore) {
         let (cls, field) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
@@ -372,16 +406,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
         };
 
-        self.emit_expr(&expr.object, REG_RESULT);
+        self.emit_expr(&expr.object, REG_RESULT.into());
         self.emit_field_access(cls, field, REG_RESULT, dest);
     }
 
-    fn emit_field_access(&mut self, clsid: ClassId, fieldid: FieldId, src: Reg, dest: Reg) {
+    fn emit_field_access(&mut self, clsid: ClassId, fieldid: FieldId, src: Reg, dest: ExprStore) {
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
         self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
-        self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
+        self.masm.load_mem(field.ty.mode(), dest.reg(), Mem::Base(src, field.offset));
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -412,13 +446,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_constpool(dest, disp + pos);
     }
 
-    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: Reg) {
+    fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {
         let &ident = self.src.map_idents.get(e.id).unwrap();
 
         match ident {
             IdentType::Var(varid) => {
                 self.masm.emit_comment(Comment::LoadVar(varid));
-                codegen::var_load(self.masm, self.src, varid, dest)
+                codegen::var_load(self.masm, self.src, varid, dest.reg())
             }
 
             IdentType::Field(cls, field) => {
@@ -432,7 +466,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_un(&mut self, e: &'ast ExprUnType, dest: Reg) {
+    fn emit_un(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
         self.emit_expr(&e.opnd, dest);
 
         if let Some(intrinsic) = self.intrinsic(e.id) {
@@ -440,6 +474,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntPlus | Intrinsic::LongPlus => {}
 
                 Intrinsic::IntNeg | Intrinsic::LongNeg => {
+                    let dest = dest.reg();
+
                     let mode = if intrinsic == Intrinsic::IntNeg {
                         MachineMode::Int32
                     } else {
@@ -449,9 +485,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.int_neg(mode, dest, dest);
                 }
 
-                Intrinsic::ByteNot => self.masm.int_not(MachineMode::Int8, dest, dest),
+                Intrinsic::ByteNot => {
+                    let dest = dest.reg();
+                    self.masm.int_not(MachineMode::Int8, dest, dest)
+                }
 
                 Intrinsic::IntNot | Intrinsic::LongNot => {
+                    let dest = dest.reg();
+
                     let mode = if intrinsic == Intrinsic::IntNot {
                         MachineMode::Int32
                     } else {
@@ -461,7 +502,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.int_not(mode, dest, dest);
                 }
 
-                Intrinsic::BoolNot => self.masm.bool_not(dest, dest),
+                Intrinsic::BoolNot => {
+                    let dest = dest.reg();
+                    self.masm.bool_not(dest, dest)
+                }
 
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
@@ -472,7 +516,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: Reg) {
+    fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: ExprStore) {
         if e.lhs.is_array() {
             let array = e.lhs.to_array().unwrap();
 
@@ -484,7 +528,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest)
+                                            dest.reg())
                     }
 
                     Intrinsic::IntArraySet => {
@@ -493,7 +537,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest)
+                                            dest.reg())
                     }
 
                     Intrinsic::LongArraySet => {
@@ -502,7 +546,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest)
+                                            dest.reg())
                     }
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -522,7 +566,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
-                codegen::var_store(&mut self.masm, self.src, dest, varid);
+                codegen::var_store(&mut self.masm, self.src, dest.reg(), varid);
             }
 
             IdentType::Field(clsid, fieldid) => {
@@ -530,7 +574,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 let field = &cls.fields[fieldid];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
-                    self.emit_expr(&expr_field.object, REG_RESULT);
+                    self.emit_expr(&expr_field.object, REG_RESULT.into());
 
                     &expr_field.object
 
@@ -543,7 +587,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 let temp_offset = self.reserve_temp_for_node(temp);
                 self.masm.store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT);
 
-                self.emit_expr(&e.rhs, REG_RESULT);
+                self.emit_expr(&e.rhs, REG_RESULT.into());
                 self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
 
                 self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
@@ -552,8 +596,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                     REG_RESULT);
                 self.free_temp_for_node(temp, temp_offset);
 
-                if REG_RESULT != dest {
-                    self.masm.copy_reg(field.ty.mode(), dest, REG_RESULT);
+                if REG_RESULT != dest.reg() {
+                    self.masm.copy_reg(field.ty.mode(), dest.reg(), REG_RESULT);
                 }
             }
 
@@ -563,16 +607,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: Reg) {
+    fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest.reg(), intrinsic, Some(e.op));
 
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
-            self.emit_expr(&e.lhs, REG_RESULT);
+            self.emit_expr(&e.lhs, REG_RESULT.into());
             let offset = self.reserve_temp_for_node(&e.lhs);
             self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
 
-            self.emit_expr(&e.rhs, REG_TMP1);
+            self.emit_expr(&e.rhs, REG_TMP1.into());
             self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
 
             self.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
@@ -582,22 +626,28 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 _ => CondCode::NotEqual,
             };
 
-            self.masm.set(dest, op);
+            self.masm.set(dest.reg(), op);
             self.free_temp_for_node(&e.lhs, offset);
 
         } else if e.op == BinOp::Or {
-            self.emit_bin_or(e, dest);
+            self.emit_bin_or(e, dest.reg());
 
         } else if e.op == BinOp::And {
-            self.emit_bin_and(e, dest);
+            self.emit_bin_and(e, dest.reg());
 
         } else {
             self.emit_universal_call(e.id, e.pos, dest);
 
             match e.op {
                 BinOp::Cmp(CmpOp::Eq) => {}
-                BinOp::Cmp(CmpOp::Ne) => self.masm.bool_not(dest, dest),
+                BinOp::Cmp(CmpOp::Ne) => {
+                    let dest = dest.reg();
+                    self.masm.bool_not(dest, dest);
+                }
+
                 BinOp::Cmp(op) => {
+                    let dest = dest.reg();
+
                     let temp = if dest == REG_RESULT {
                         REG_TMP1
                     } else {
@@ -618,10 +668,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let lbl_false = self.masm.create_label();
         let lbl_end = self.masm.create_label();
 
-        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.lhs, REG_RESULT.into());
         self.masm.test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_true);
 
-        self.emit_expr(&e.rhs, REG_RESULT);
+        self.emit_expr(&e.rhs, REG_RESULT.into());
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
@@ -639,10 +689,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let lbl_false = self.masm.create_label();
         let lbl_end = self.masm.create_label();
 
-        self.emit_expr(&e.lhs, REG_RESULT);
+        self.emit_expr(&e.lhs, REG_RESULT.into());
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
-        self.emit_expr(&e.rhs, REG_RESULT);
+        self.emit_expr(&e.rhs, REG_RESULT.into());
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
@@ -653,139 +703,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_false(dest);
 
         self.masm.bind_label(lbl_end);
-    }
-
-    fn emit_bin_cmp(&mut self, e: &'ast ExprBinType, dest: Reg, op: CmpOp) {
-        let lhs_type = self.src.ty(e.lhs.id());
-        let rhs_type = self.src.ty(e.rhs.id());
-
-        let cmp_type = lhs_type.if_nil(rhs_type);
-
-        if op == CmpOp::Is || op == CmpOp::IsNot {
-            let op = if op == CmpOp::Is {
-                CondCode::Equal
-            } else {
-                CondCode::NotEqual
-            };
-
-            self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                eg.masm.cmp_reg(MachineMode::Ptr, lhs, rhs);
-                eg.masm.set(dest, op);
-
-                dest
-            });
-
-            return;
-        }
-
-        match cmp_type {
-            BuiltinType::Str => {
-                self.emit_universal_call(e.id, e.pos, dest);
-                self.masm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
-                self.masm.cmp_reg(MachineMode::Int32, REG_RESULT, REG_TMP1);
-                self.masm.set(dest, to_cond_code(op));
-            }
-
-            BuiltinType::Long => {
-                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                    eg.masm.cmp_reg(MachineMode::Int64, lhs, rhs);
-                    eg.masm.set(dest, to_cond_code(op));
-
-                    dest
-                });
-            }
-
-            BuiltinType::Int | BuiltinType::Bool => {
-                self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-                    eg.masm.cmp_reg(MachineMode::Int32, lhs, rhs);
-                    eg.masm.set(dest, to_cond_code(op));
-
-                    dest
-                });
-            }
-
-            _ => {
-                unreachable!();
-            }
-        }
-    }
-
-    fn emit_bin_divmod(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            let lbl_div0 = eg.masm.create_label();
-            eg.masm.cmp_zero(MachineMode::Int32, rhs);
-            eg.masm.jump_if(CondCode::Zero, lbl_div0);
-            eg.masm.emit_bailout(lbl_div0, Trap::DIV0, e.pos);
-
-            if e.op == BinOp::Div {
-                eg.masm.int_div(MachineMode::Int32, dest, lhs, rhs)
-            } else {
-                eg.masm.int_mod(MachineMode::Int32, dest, lhs, rhs)
-            }
-
-            dest
-        });
-    }
-
-    fn emit_bin_mul(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_mul(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_bin_bit_or(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_or(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_bin_bit_and(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_and(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_bin_bit_xor(&mut self, e: &'ast ExprBinType, dest: Reg) {
-        self.emit_binop(e, dest, |eg, lhs, rhs, dest| {
-            eg.masm.int_xor(MachineMode::Int32, dest, lhs, rhs);
-
-            dest
-        });
-    }
-
-    fn emit_binop<F>(&mut self, e: &'ast ExprBinType, dest_reg: Reg, emit_action: F)
-        where F: FnOnce(&mut ExprGen, Reg, Reg, Reg) -> Reg
-    {
-        let lhs_reg = REG_RESULT;
-        let rhs_reg = REG_TMP1;
-
-        if let Some(&Store::Temp(_, _)) = self.src.map_stores.get(e.lhs.id()) {
-            let offset = self.reserve_temp_for_node(&e.lhs);
-            let ty = self.src.ty(e.lhs.id());
-
-            self.emit_expr(&e.lhs, REG_RESULT);
-            self.masm.store_mem(ty.mode(), Mem::Local(offset), REG_RESULT);
-
-            self.emit_expr(&e.rhs, rhs_reg);
-            self.masm.load_mem(ty.mode(), lhs_reg, Mem::Local(offset));
-
-            self.free_temp_for_node(&e.lhs, offset);
-        } else {
-            self.emit_expr(&e.lhs, lhs_reg);
-            self.emit_expr(&e.rhs, rhs_reg);
-        }
-
-        let ty = self.src.ty(e.id);
-        let reg = emit_action(self, lhs_reg, rhs_reg, dest_reg);
-        if reg != dest_reg {
-            self.masm.copy_reg(ty.mode(), dest_reg, reg);
-        }
     }
 
     fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
@@ -814,75 +731,75 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_call(&mut self, e: &'ast ExprCallType, dest: Reg) {
+    fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen | Intrinsic::LongArrayLen => {
-                    self.emit_intrinsic_len(e, dest)
+                    self.emit_intrinsic_len(e, dest.reg())
                 }
-                Intrinsic::Assert => self.emit_intrinsic_assert(e, dest),
-                Intrinsic::Shl => self.emit_intrinsic_shl(e, dest),
-                Intrinsic::SetUint8 => self.emit_set_uint8(e, dest),
-                Intrinsic::StrLen => self.emit_intrinsic_len(e, dest),
+                Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
+                Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
+                Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
+                Intrinsic::StrLen => self.emit_intrinsic_len(e, dest.reg()),
                 Intrinsic::StrGet => {
                     self.emit_array_get(e.pos,
                                         MachineMode::Int8,
                                         e.object.as_ref().unwrap(),
                                         &e.args[0],
-                                        dest)
+                                        dest.reg())
                 }
 
                 Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
-                    self.emit_intrinsic_byte_to_int(e, dest)
+                    self.emit_intrinsic_byte_to_int(e, dest.reg())
                 }
                 Intrinsic::BoolToLong | Intrinsic::ByteToLong => {
-                    self.emit_intrinsic_byte_to_long(e, dest)
+                    self.emit_intrinsic_byte_to_long(e, dest.reg())
                 }
-                Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest),
-                Intrinsic::LongToInt => self.emit_intrinsic_long_to_int(e, dest),
-                Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest),
-                Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest),
+                Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest.reg()),
+                Intrinsic::LongToInt => self.emit_intrinsic_long_to_int(e, dest.reg()),
+                Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
+                Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
 
-                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
-                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
-                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
@@ -898,15 +815,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       index: &'ast Expr,
                       rhs: &'ast Expr,
                       dest: Reg) {
-        self.emit_expr(object, REG_RESULT);
+        self.emit_expr(object, REG_RESULT.into());
         let offset_object = self.reserve_temp_for_node(object);
         self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT);
 
-        self.emit_expr(index, REG_RESULT);
+        self.emit_expr(index, REG_RESULT.into());
         let offset_index = self.reserve_temp_for_node(index);
         self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT);
 
-        self.emit_expr(rhs, REG_RESULT);
+        self.emit_expr(rhs, REG_RESULT.into());
         let offset_value = self.reserve_temp_for_node(rhs);
         self.masm.store_mem(mode, Mem::Local(offset_value), REG_RESULT);
 
@@ -935,11 +852,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       object: &'ast Expr,
                       index: &'ast Expr,
                       dest: Reg) {
-        self.emit_expr(object, REG_RESULT);
+        self.emit_expr(object, REG_RESULT.into());
         let offset = self.reserve_temp_for_node(object);
         self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
 
-        self.emit_expr(index, REG_TMP1);
+        self.emit_expr(index, REG_TMP1.into());
         self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
 
         if !self.ctxt.args.flag_omit_bounds_check {
@@ -956,18 +873,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_set_uint8(&mut self, e: &'ast ExprCallType, _: Reg) {
-        self.emit_expr(&e.args[0], REG_RESULT);
+        self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
         self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT);
 
-        self.emit_expr(&e.args[1], REG_TMP1);
+        self.emit_expr(&e.args[1], REG_TMP1.into());
         self.masm.load_mem(MachineMode::Int64, REG_RESULT, Mem::Local(offset));
 
         self.masm.store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1);
     }
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT);
+        self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT.into());
         self.masm.test_if_nil_bailout(e.pos, REG_RESULT, Trap::NIL);
         self.masm.load_mem(MachineMode::Ptr,
                            dest,
@@ -976,7 +893,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_intrinsic_assert(&mut self, e: &'ast ExprCallType, _: Reg) {
         let lbl_div = self.masm.create_label();
-        self.emit_expr(&e.args[0], REG_RESULT);
+        self.emit_expr(&e.args[0], REG_RESULT.into());
 
         self.masm.emit_comment(Comment::Lit("check assert"));
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
@@ -984,42 +901,42 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(&e.args[0], REG_RESULT);
+        self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
         self.masm.store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT);
 
-        self.emit_expr(&e.args[1], REG_TMP1);
+        self.emit_expr(&e.args[1], REG_TMP1.into());
         self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset));
 
         self.masm.int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
     }
 
     fn emit_intrinsic_long_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
     }
 
     fn emit_intrinsic_long_to_byte(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
         self.masm.extend_byte(MachineMode::Int32, dest, dest);
     }
 
     fn emit_intrinsic_int_to_byte(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
         self.masm.extend_byte(MachineMode::Int32, dest, dest);
     }
 
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT);
+        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
         self.masm.extend_int_long(dest, REG_RESULT);
     }
 
     fn emit_intrinsic_byte_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
         self.masm.extend_byte(MachineMode::Int32, dest, dest);
     }
 
     fn emit_intrinsic_byte_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
-        self.emit_expr(e.object.as_ref().unwrap(), dest);
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
         self.masm.extend_byte(MachineMode::Int64, dest, dest);
     }
 
@@ -1036,12 +953,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                           dest: Reg,
                           intr: Intrinsic,
                           op: Option<BinOp>) {
-        self.emit_expr(lhs, REG_RESULT);
+        self.emit_expr(lhs, REG_RESULT.into());
         let offset = self.reserve_temp_for_node(lhs);
         let mode = self.src.ty(lhs.id()).mode();
         self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT);
 
-        self.emit_expr(rhs, REG_TMP1);
+        self.emit_expr(rhs, REG_TMP1.into());
         self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset));
 
         let lhs = REG_RESULT;
@@ -1113,7 +1030,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: Reg) {
+    fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
         self.emit_universal_call(e.id, e.pos, dest);
     }
 
@@ -1121,14 +1038,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.src.map_csites.get(id).is_some()
     }
 
-    fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: Reg) {
+    fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
         let csite = self.src.map_csites.get(id).unwrap().clone();
         let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
         for arg in &csite.args {
             match *arg {
                 Arg::Expr(ast, _, _) => {
-                    self.emit_expr(ast, REG_RESULT);
+                    self.emit_expr(ast, REG_RESULT.into());
                 }
 
                 Arg::Selfie(_, _) => {
@@ -1145,7 +1062,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let mptr = stdlib::gc_alloc as *mut u8;
                     self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
 
-                    self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+                    self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::OOM);
 
 
                     // store classptr in object
@@ -1223,7 +1140,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         if csite.args.len() > 0 {
             if let Arg::SelfieNew(_, _) = csite.args[0] {
                 let (ty, offset) = temps[0];
-                self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
+                self.masm.load_mem(ty.mode(), dest.reg(), Mem::Local(offset));
             }
         }
 
@@ -1237,7 +1154,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                              pos: Position,
                              ty: BuiltinType,
                              args: i32,
-                             dest: Reg) {
+                             dest: ExprStore) {
         let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
         self.emit_direct_call_insn(FctId(0), ptr, pos, ty, dest);
     }
@@ -1247,21 +1164,27 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                              ptr: *const u8,
                              pos: Position,
                              ty: BuiltinType,
-                             dest: Reg) {
+                             dest: ExprStore) {
         self.masm.direct_call(fid, ptr);
         self.emit_after_call_insns(pos, ty, dest);
     }
 
-    fn emit_indirect_call_insn(&mut self, index: u32, pos: Position, ty: BuiltinType, dest: Reg) {
+    fn emit_indirect_call_insn(&mut self,
+                               index: u32,
+                               pos: Position,
+                               ty: BuiltinType,
+                               dest: ExprStore) {
         self.masm.indirect_call(index);
         self.emit_after_call_insns(pos, ty, dest);
     }
 
-    fn emit_after_call_insns(&mut self, pos: Position, ty: BuiltinType, dest: Reg) {
+    fn emit_after_call_insns(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore) {
         self.masm.emit_lineno(pos.line as i32);
 
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.masm.emit_gcpoint(gcpoint);
+
+        let dest = dest.reg();
 
         if REG_RESULT != dest {
             self.masm.copy_reg(ty.mode(), dest, REG_RESULT);

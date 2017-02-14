@@ -537,7 +537,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                                     &mut self.masm,
                                     &mut self.scopes);
 
-        expr_gen.generate(e, dest);
+        expr_gen.generate(e, dest.into());
     }
 }
 
