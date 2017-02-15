@@ -837,8 +837,24 @@ pub fn movss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, false, 0x10, dest, src);
 }
 
+pub fn movss_load(buf: &mut MacroAssembler, dest: FReg, mem: Mem) {
+    sse_float_freg_mem(buf, false, 0x10, dest, mem);
+}
+
+pub fn movss_store(buf: &mut MacroAssembler, mem: Mem, src: FReg) {
+    sse_float_freg_mem(buf, false, 0x11, src, mem);
+}
+
 pub fn movsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, true, 0x10, dest, src);
+}
+
+pub fn movsd_load(buf: &mut MacroAssembler, dest: FReg, mem: Mem) {
+    sse_float_freg_mem(buf, true, 0x10, dest, mem);
+}
+
+pub fn movsd_store(buf: &mut MacroAssembler, mem: Mem, src: FReg) {
+    sse_float_freg_mem(buf, true, 0x11, src, mem);
 }
 
 pub fn cvtsd2ss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
@@ -877,6 +893,39 @@ fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, 
     emit_op(buf, 0x0f);
     emit_op(buf, op);
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
+fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
+    let prefix = if dbl { 0xf2 } else { 0xf3 };
+
+    emit_op(buf, prefix);
+
+    let (base_msb, index_msb) = match src {
+        Mem::Local(_) => (RBP.msb(), 0),
+        Mem::Base(base, _) => (base.msb(), 0),
+        Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
+    };
+
+    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
+        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, op);
+
+    match src {
+        Mem::Local(offset) => {
+            emit_membase(buf, RBP, offset, Reg(dest.0));
+        }
+
+        Mem::Base(base, disp) => {
+            emit_membase(buf, base, disp, Reg(dest.0));
+        }
+
+        Mem::Index(base, index, scale, disp) => {
+            emit_membase_with_index_and_scale(buf, base, index, scale, disp, Reg(dest.0));
+        }
+    }
 }
 
 fn sse_float_freg_reg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, x64: u8, src: Reg) {
@@ -919,11 +968,11 @@ fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
-fn ucomiss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
+pub fn ucomiss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_cmp(buf, false, dest, src);
 }
 
-fn ucomisd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
+pub fn ucomisd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_cmp(buf, true, dest, src);
 }
 
@@ -1869,5 +1918,23 @@ mod tests {
         assert_emit!(0x66, 0x0f, 0x2e, 0xc8; ucomisd(XMM1, XMM0));
         assert_emit!(0x66, 0x44, 0x0f, 0x2e, 0xfb; ucomisd(XMM15, XMM3));
         assert_emit!(0x66, 0x41, 0x0f, 0x2e, 0xe0; ucomisd(XMM4, XMM8));
+    }
+
+    #[test]
+    fn test_movss_load() {
+        assert_emit!(0xf3, 0x0f, 0x10, 0x44, 0x88, 1; movss_load(XMM0, Mem::Index(RAX, RCX, 4, 1)));
+        assert_emit!(0xf2, 0x0f, 0x10, 0x48, 1; movsd_load(XMM1, Mem::Base(RAX, 1)));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x10, 0xbc, 0x88, 0, 1, 0, 0;
+                     movss_load(XMM15, Mem::Index(RAX, RCX, 4, 256)));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x10, 0x4c, 0x8f, 1;
+                     movss_load(XMM1, Mem::Index(R15, RCX, 4, 1)));
+        assert_emit!(0xf2, 0x43, 0x0f, 0x10, 0x4c, 0xbf, 2;
+                     movsd_load(XMM1, Mem::Index(R15, R15, 4, 2)));
+    }
+
+    #[test]
+    fn test_movss_store() {
+        assert_emit!(0xf3, 0x0f, 0x11, 0x40, 1; movss_store(Mem::Base(RAX, 1), XMM0));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x11, 0x78, 1; movsd_store(Mem::Base(RAX, 1), XMM15));
     }
 }

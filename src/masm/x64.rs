@@ -106,6 +106,14 @@ impl MacroAssembler {
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
+    pub fn cmp_freg(&mut self, mode: MachineMode, lhs: FReg, rhs: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
+            MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         asm::emit_cmp_imm_reg(self, mode, 0, lhs);
     }
@@ -398,6 +406,22 @@ impl MacroAssembler {
         }
     }
 
+    pub fn loadf_mem(&mut self, mode: MachineMode, dest: FReg, mem: Mem) {
+        match mode {
+            MachineMode::Float32 => asm::movss_load(self, dest, mem),
+            MachineMode::Float64 => asm::movsd_load(self, dest, mem),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn storef_mem(&mut self, mode: MachineMode, mem: Mem, src: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::movss_store(self, mem, src),
+            MachineMode::Float64 => asm::movsd_store(self, mem, src),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         let x64 = match mode {
             MachineMode::Int8 |
@@ -409,6 +433,14 @@ impl MacroAssembler {
         };
 
         asm::emit_mov_reg_reg(self, x64, src, dest);
+    }
+
+    pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::movss(self, dest, src),
+            MachineMode::Float64 => asm::movsd(self, dest, src),
+            _ => unreachable!(),
+        }
     }
 
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
@@ -513,6 +545,54 @@ impl MacroAssembler {
 
         if dest != src {
             asm::emit_mov_reg_reg(self, 0, src, dest);
+        }
+    }
+
+    pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::addss(self, lhs, rhs),
+            MachineMode::Int64 => asm::addsd(self, lhs, rhs),
+            _ => unimplemented!(),
+        }
+
+        if dest != lhs {
+            self.copy_freg(mode, dest, lhs);
+        }
+    }
+
+    pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::subss(self, lhs, rhs),
+            MachineMode::Int64 => asm::subsd(self, lhs, rhs),
+            _ => unimplemented!(),
+        }
+
+        if dest != lhs {
+            self.copy_freg(mode, dest, lhs);
+        }
+    }
+
+    pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::mulss(self, lhs, rhs),
+            MachineMode::Int64 => asm::mulsd(self, lhs, rhs),
+            _ => unimplemented!(),
+        }
+
+        if dest != lhs {
+            self.copy_freg(mode, dest, lhs);
+        }
+    }
+
+    pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::divss(self, lhs, rhs),
+            MachineMode::Int64 => asm::divsd(self, lhs, rhs),
+            _ => unimplemented!(),
+        }
+
+        if dest != lhs {
+            self.copy_freg(mode, dest, lhs);
         }
     }
 

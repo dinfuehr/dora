@@ -241,6 +241,14 @@ impl MachineMode {
             MachineMode::Float64 => 8,
         }
     }
+
+    pub fn is_float(self) -> bool {
+        match self {
+            MachineMode::Float32 |
+            MachineMode::Float64 => true,
+            _ => false,
+        }
+    }
 }
 
 #[cfg(test)]

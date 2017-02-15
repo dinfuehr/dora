@@ -5,7 +5,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
-use cpu::{FReg, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{FReg, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
@@ -609,7 +609,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_bin(&mut self, e: &'ast ExprBinType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
-            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest.reg(), intrinsic, Some(e.op));
+            self.emit_intrinsic_bin(&e.lhs, &e.rhs, dest, intrinsic, Some(e.op));
 
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_expr(&e.lhs, REG_RESULT.into());
@@ -760,46 +760,56 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
 
-                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::ByteNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::BoolEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::BoolNot => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::IntShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::IntShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongMod => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongOr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongAnd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongXor => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
-                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
-                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest.reg(), intrinsic),
+                Intrinsic::LongShl => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongSar => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::LongShr => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::FloatAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::FloatSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::FloatMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
+                Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
@@ -940,7 +950,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.extend_byte(MachineMode::Int64, dest, dest);
     }
 
-    fn emit_intrinsic_bin_call(&mut self, e: &'ast ExprCallType, dest: Reg, intr: Intrinsic) {
+    fn emit_intrinsic_bin_call(&mut self,
+                               e: &'ast ExprCallType,
+                               dest: ExprStore,
+                               intr: Intrinsic) {
         let lhs = e.object.as_ref().unwrap();
         let rhs = &e.args[0];
 
@@ -950,20 +963,53 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_intrinsic_bin(&mut self,
                           lhs: &'ast Expr,
                           rhs: &'ast Expr,
-                          dest: Reg,
+                          dest: ExprStore,
                           intr: Intrinsic,
                           op: Option<BinOp>) {
-        self.emit_expr(lhs, REG_RESULT.into());
-        let offset = self.reserve_temp_for_node(lhs);
         let mode = self.src.ty(lhs.id()).mode();
-        self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT);
 
-        self.emit_expr(rhs, REG_TMP1.into());
-        self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset));
+        let (lhs_reg, rhs_reg) = if mode.is_float() {
+            (FREG_RESULT.into(), FREG_TMP1.into())
+        } else {
+            (REG_RESULT.into(), REG_TMP1.into())
+        };
 
-        let lhs = REG_RESULT;
-        let rhs = REG_TMP1;
+        self.emit_expr(lhs, lhs_reg);
+        let offset = self.reserve_temp_for_node(lhs);
 
+        if mode.is_float() {
+            self.masm.storef_mem(mode, Mem::Local(offset), lhs_reg.freg());
+        } else {
+            self.masm.store_mem(mode, Mem::Local(offset), lhs_reg.reg());
+        }
+
+        self.emit_expr(rhs, rhs_reg);
+
+        if mode.is_float() {
+            self.masm.loadf_mem(mode, lhs_reg.freg(), Mem::Local(offset));
+        } else {
+            self.masm.load_mem(mode, lhs_reg.reg(), Mem::Local(offset));
+        }
+
+        if mode.is_float() {
+            let lhs_reg = lhs_reg.freg();
+            let rhs_reg = rhs_reg.freg();
+
+            self.emit_intrinsic_float(dest, lhs_reg, rhs_reg, intr, op);
+        } else {
+            let lhs_reg = lhs_reg.reg();
+            let rhs_reg = rhs_reg.reg();
+
+            self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
+        }
+    }
+
+    fn emit_intrinsic_int(&mut self,
+                          dest: Reg,
+                          lhs: Reg,
+                          rhs: Reg,
+                          intr: Intrinsic,
+                          op: Option<BinOp>) {
         match intr {
             Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::IntEq | Intrinsic::LongEq => {
                 let mode = if intr == Intrinsic::LongEq {
@@ -1025,6 +1071,60 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             Intrinsic::LongShl => self.masm.int_shl(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongSar => self.masm.int_sar(MachineMode::Int64, dest, lhs, rhs),
             Intrinsic::LongShr => self.masm.int_shr(MachineMode::Int64, dest, lhs, rhs),
+
+            _ => panic!("unexpected intrinsic {:?}", intr),
+        }
+    }
+
+    fn emit_intrinsic_float(&mut self,
+                            dest: ExprStore,
+                            lhs: FReg,
+                            rhs: FReg,
+                            intr: Intrinsic,
+                            op: Option<BinOp>) {
+        match intr {
+            Intrinsic::FloatEq | Intrinsic::DoubleEq => {
+                let mode = if intr == Intrinsic::DoubleEq {
+                    MachineMode::Float64
+                } else {
+                    MachineMode::Float32
+                };
+
+                let cond_code = match op {
+                    Some(BinOp::Cmp(cmp)) => to_cond_code(cmp),
+                    _ => CondCode::Equal,
+                };
+
+                self.masm.cmp_freg(mode, lhs, rhs);
+                self.masm.set(dest.reg(), cond_code);
+            }
+
+            Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
+                let mode = if intr == Intrinsic::DoubleCmp {
+                    MachineMode::Float64
+                } else {
+                    MachineMode::Float32
+                };
+
+                if let Some(BinOp::Cmp(op)) = op {
+                    let cond_code = to_cond_code(op);
+
+                    self.masm.cmp_freg(mode, lhs, rhs);
+                    self.masm.set(dest.reg(), cond_code);
+                } else {
+                    unimplemented!();
+                }
+            }
+
+            Intrinsic::FloatAdd => self.masm.float_add(MachineMode::Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatSub => self.masm.float_sub(MachineMode::Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatMul => self.masm.float_mul(MachineMode::Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatDiv => self.masm.float_div(MachineMode::Float32, dest.freg(), lhs, rhs),
+
+            Intrinsic::DoubleAdd => self.masm.float_add(MachineMode::Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleSub => self.masm.float_sub(MachineMode::Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleMul => self.masm.float_mul(MachineMode::Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleDiv => self.masm.float_div(MachineMode::Float64, dest.freg(), lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }

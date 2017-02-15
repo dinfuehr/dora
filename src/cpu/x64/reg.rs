@@ -30,6 +30,9 @@ pub const R15: Reg = Reg(15);
 
 pub const RIP: Reg = Reg(16);
 
+pub const FREG_RESULT: FReg = XMM0;
+pub const FREG_TMP1: FReg = XMM1;
+
 pub const XMM0: FReg = FReg(0);
 pub const XMM1: FReg = FReg(1);
 pub const XMM2: FReg = FReg(2);

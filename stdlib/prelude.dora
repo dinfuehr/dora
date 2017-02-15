@@ -106,6 +106,9 @@ internal class Str {
 }
 
 internal class float {
+  internal fun equals(rhs: float) -> bool;
+  internal fun compareTo(rhs: float) -> int;
+
   internal fun plus(rhs: float) -> float;
   internal fun minus(rhs: float) -> float;
   internal fun times(rhs: float) -> float;
@@ -113,6 +116,9 @@ internal class float {
 }
 
 internal class double {
+  internal fun equals(rhs: double) -> bool;
+  internal fun compareTo(rhs: double) -> int;
+
   internal fun plus(rhs: double) -> double;
   internal fun minus(rhs: double) -> double;
   internal fun times(rhs: double) -> double;

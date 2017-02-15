@@ -168,12 +168,18 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
 
     let clsid = ctxt.primitive_classes.float_class;
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::FloatEq);
+    intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::FloatCmp);
+
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::FloatAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::FloatSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::FloatMul);
     intrinsic_method(ctxt, clsid, "div", Intrinsic::FloatDiv);
 
     let clsid = ctxt.primitive_classes.double_class;
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::DoubleEq);
+    intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::DoubleCmp);
+
     intrinsic_method(ctxt, clsid, "plus", Intrinsic::DoubleAdd);
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::DoubleSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::DoubleMul);

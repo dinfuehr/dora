@@ -453,10 +453,16 @@ pub enum Intrinsic {
     LongNeg,
     LongPlus,
 
+    FloatEq,
+    FloatCmp,
+
     FloatAdd,
     FloatSub,
     FloatMul,
     FloatDiv,
+
+    DoubleEq,
+    DoubleCmp,
 
     DoubleAdd,
     DoubleSub,
