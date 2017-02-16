@@ -1,14 +1,10 @@
 use std::collections::{HashMap, VecDeque};
-use std::io::Error;
 
-use lexer::reader::{CodeReader, FileReader, ReaderResult};
+use lexer::reader::{FileReader, ReaderResult};
 use lexer::token::{NumberSuffix, Token, TokenKind};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
 use error::msg::{Msg, MsgWithPos};
-
-#[cfg(test)]
-use lexer::reader::StrReader;
 
 pub mod map;
 pub mod reader;
@@ -16,8 +12,8 @@ pub mod token;
 pub mod position;
 mod charpos;
 
-pub struct Lexer<T: CodeReader> {
-    reader: T,
+pub struct Lexer {
+    reader: FileReader,
     position: Position,
     eof_reached: bool,
     tabwidth: u32,
@@ -32,27 +28,18 @@ enum State {
     String,
 }
 
-#[cfg(test)]
-impl Lexer<StrReader> {
-    pub fn from_str(code: &'static str) -> Lexer<StrReader> {
-        Lexer::new(StrReader::new(code))
-    }
-}
-
-impl Lexer<FileReader> {
-    pub fn from_file(filename: &str) -> Result<Lexer<FileReader>, Error> {
-        let reader = try!(FileReader::new(filename));
-
-        Ok(Lexer::new(reader))
-    }
-}
-
-impl<T: CodeReader> Lexer<T> {
-    pub fn new(reader: T) -> Lexer<T> {
+impl Lexer {
+    pub fn new(reader: FileReader) -> Lexer {
         Lexer::new_with_tabwidth(reader, 4)
     }
 
-    pub fn new_with_tabwidth(reader: T, tabwidth: u32) -> Lexer<T> {
+    #[cfg(test)]
+    pub fn from_str(code: &str) -> Lexer {
+        let reader = FileReader::from_string(code);
+        Lexer::new(reader)
+    }
+
+    pub fn new_with_tabwidth(reader: FileReader, tabwidth: u32) -> Lexer {
         // TODO: replace HashMap with phf when it is stable
         let mut keywords = HashMap::new();
         keywords.insert("class", TokenKind::Class);
@@ -90,7 +77,7 @@ impl<T: CodeReader> Lexer<T> {
         keywords.insert("internal", TokenKind::Internal);
         keywords.insert("init", TokenKind::Init);
 
-        let mut lexer = Lexer::<T> {
+        let mut lexer = Lexer {
             reader: reader,
             position: Position::new(1, 1),
             tabwidth: tabwidth,
@@ -579,21 +566,21 @@ impl<T: CodeReader> Lexer<T> {
 mod tests {
     use super::*;
     use error::msg::Msg;
-    use lexer::reader::{CodeReader, StrReader};
+    use lexer::reader::FileReader;
     use lexer::token::TokenKind;
 
-    fn assert_end<T: CodeReader>(reader: &mut Lexer<T>, l: u32, c: u32) {
+    fn assert_end(reader: &mut Lexer, l: u32, c: u32) {
         assert_tok(reader, TokenKind::End, l, c);
     }
 
-    fn assert_tok<T: CodeReader>(reader: &mut Lexer<T>, kind: TokenKind, l: u32, c: u32) {
+    fn assert_tok(reader: &mut Lexer, kind: TokenKind, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
         assert_eq!(kind, tok.kind);
         assert_eq!(l, tok.position.line);
         assert_eq!(c, tok.position.column);
     }
 
-    fn assert_err<T: CodeReader>(reader: &mut Lexer<T>, msg: Msg, l: u32, c: u32) {
+    fn assert_err(reader: &mut Lexer, msg: Msg, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
         assert_eq!(msg, err.msg);
         assert_eq!(l, err.pos.line);
@@ -752,8 +739,8 @@ mod tests {
 
     #[test]
     fn test_code_with_tabwidth8() {
-        let str_reader = StrReader::new("1\t2\n1234567\t8\n12345678\t9");
-        let mut reader = Lexer::new_with_tabwidth(str_reader, 8);
+        let reader = FileReader::from_string("1\t2\n1234567\t8\n12345678\t9");
+        let mut reader = Lexer::new_with_tabwidth(reader, 8);
 
         assert_tok(&mut reader,
                    TokenKind::Number("1".into(), NumberSuffix::Int),

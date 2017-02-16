@@ -1,11 +1,5 @@
 use std::fs::File;
-use std::io::Bytes;
-use std::io::{Read, BufReader, Error};
-
-pub trait CodeReader {
-    fn filename(&self) -> &str;
-    fn next(&mut self) -> ReaderResult;
-}
+use std::io::{Read, Error};
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum ReaderResult {
@@ -14,60 +8,47 @@ pub enum ReaderResult {
     Err,
 }
 
-#[cfg(test)]
-pub struct StrReader {
-    rest: ::std::str::Chars<'static>,
-}
-
-#[cfg(test)]
-impl StrReader {
-    pub fn new(program: &'static str) -> StrReader {
-        StrReader { rest: program.chars() }
-    }
-}
-
-#[cfg(test)]
-impl CodeReader for StrReader {
-    fn filename(&self) -> &str {
-        "<<code>>"
-    }
-
-    fn next(&mut self) -> ReaderResult {
-        match self.rest.next() {
-            Some(ch) => ReaderResult::Char(ch),
-            None => ReaderResult::Eof,
-        }
-    }
-}
-
 pub struct FileReader {
     filename: String,
-    rest: Bytes<BufReader<File>>,
+    src: String,
+    pos: usize,
 }
 
 impl FileReader {
-    pub fn new(filename: &str) -> Result<FileReader, Error> {
-        let file = try!(File::open(filename));
-        let reader = BufReader::new(file);
+    pub fn from_file(filename: &str) -> Result<FileReader, Error> {
+        let mut src = String::new();
 
-        // TODO: use chars instead of bytes when it is stable
+        let mut file = File::open(filename)?;
+        file.read_to_string(&mut src)?;
+
         Ok(FileReader {
             filename: filename.to_string(),
-            rest: reader.bytes(),
+            src: src,
+            pos: 0,
         })
     }
-}
 
-impl CodeReader for FileReader {
-    fn filename(&self) -> &str {
+    pub fn from_string(src: &str) -> FileReader {
+        FileReader {
+            filename: "<<code>>".into(),
+            src: src.into(),
+            pos: 0,
+        }
+    }
+
+    pub fn filename(&self) -> &str {
         &self.filename
     }
 
-    fn next(&mut self) -> ReaderResult {
-        match self.rest.next() {
-            Some(Ok(ch)) => ReaderResult::Char(ch as char),
-            Some(Err(_)) => ReaderResult::Err,
-            None => ReaderResult::Eof,
+    pub fn next(&mut self) -> ReaderResult {
+        if self.pos < self.src.len() {
+            let ch = self.src[self.pos..].chars().next().unwrap();
+            self.pos += ch.len_utf8();
+
+            ReaderResult::Char(ch)
+
+        } else {
+            ReaderResult::Eof
         }
     }
 }
@@ -78,7 +59,7 @@ mod tests {
 
     #[test]
     fn read_from_str() {
-        let mut reader = StrReader::new("abc");
+        let mut reader = FileReader::from_string("abc");
 
         assert_eq!(ReaderResult::Char('a'), reader.next());
         assert_eq!(ReaderResult::Char('b'), reader.next());

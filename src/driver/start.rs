@@ -6,6 +6,7 @@ use driver::cmd;
 use error::msg::Msg;
 
 use interner::Interner;
+use lexer::reader::FileReader;
 use baseline;
 use lexer::position::Position;
 use os;
@@ -93,16 +94,16 @@ pub fn start() -> i32 {
 }
 
 fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<(), i32> {
-    let mut parser = match Parser::from_file(filename, ast, interner) {
+    let reader = match FileReader::from_file(filename) {
         Err(_) => {
             println!("unable to read file `{}`", filename);
             return Err(1);
         }
 
-        Ok(parser) => parser,
+        Ok(reader) => reader,
     };
 
-    if let Err(error) = parser.parse() {
+    if let Err(error) = Parser::new(reader, ast, interner).parse() {
         println!("{}", error);
         println!("1 error found.");
         return Err(1);
