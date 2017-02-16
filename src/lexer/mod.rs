@@ -10,6 +10,7 @@ use error::msg::{Msg, MsgWithPos};
 #[cfg(test)]
 use lexer::reader::StrReader;
 
+pub mod map;
 pub mod reader;
 pub mod token;
 pub mod position;
