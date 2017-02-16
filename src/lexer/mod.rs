@@ -1,46 +1,27 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use lexer::reader::FileReader;
 use lexer::token::{NumberSuffix, Token, TokenKind};
-use lexer::position::Position;
-use lexer::charpos::CharPos;
 use error::msg::{Msg, MsgWithPos};
 
 pub mod map;
 pub mod reader;
 pub mod token;
 pub mod position;
-mod charpos;
 
 pub struct Lexer {
     reader: FileReader,
-    position: Position,
-    eof_reached: bool,
-    tabwidth: u32,
-    state: State,
     keywords: HashMap<&'static str, TokenKind>,
-
-    buffer: VecDeque<Result<CharPos, MsgWithPos>>,
-}
-
-enum State {
-    Initial,
-    String,
 }
 
 impl Lexer {
-    pub fn new(reader: FileReader) -> Lexer {
-        Lexer::new_with_tabwidth(reader, 4)
-    }
-
     #[cfg(test)]
     pub fn from_str(code: &str) -> Lexer {
         let reader = FileReader::from_string(code);
         Lexer::new(reader)
     }
 
-    pub fn new_with_tabwidth(reader: FileReader, tabwidth: u32) -> Lexer {
-        // TODO: replace HashMap with phf when it is stable
+    pub fn new(reader: FileReader) -> Lexer {
         let mut keywords = HashMap::new();
         keywords.insert("class", TokenKind::Class);
         keywords.insert("self", TokenKind::This);
@@ -77,19 +58,10 @@ impl Lexer {
         keywords.insert("internal", TokenKind::Internal);
         keywords.insert("init", TokenKind::Init);
 
-        let mut lexer = Lexer {
+        Lexer {
             reader: reader,
-            position: Position::new(1, 1),
-            tabwidth: tabwidth,
-            eof_reached: false,
             keywords: keywords,
-            state: State::Initial,
-
-            buffer: VecDeque::with_capacity(10),
-        };
-        lexer.fill_buffer();
-
-        lexer
+        }
     }
 
     pub fn filename(&self) -> &str {
@@ -100,8 +72,10 @@ impl Lexer {
         loop {
             self.skip_white();
 
-            if let None = self.top() {
-                return Ok(Token::new(TokenKind::End, self.position));
+            let pos = self.reader.pos();
+
+            if let None = self.cur() {
+                return Ok(Token::new(TokenKind::End, pos));
             }
 
             if self.is_digit() {
@@ -123,9 +97,9 @@ impl Lexer {
                 return self.read_operator();
 
             } else {
-                let ch = self.top().unwrap().value;
+                let ch = self.cur().unwrap();
 
-                return Err(MsgWithPos::new(self.position, Msg::UnknownChar(ch)));
+                return Err(MsgWithPos::new(pos, Msg::UnknownChar(ch)));
             }
         }
     }
@@ -145,7 +119,7 @@ impl Lexer {
     }
 
     fn read_multi_comment(&mut self) -> Result<(), MsgWithPos> {
-        let pos = self.top().unwrap().position;
+        let pos = self.reader.pos();
 
         self.read_char();
         self.read_char();
@@ -165,11 +139,12 @@ impl Lexer {
     }
 
     fn read_identifier(&mut self) -> Result<Token, MsgWithPos> {
-        let pos = self.top().unwrap().position;
+        let pos = self.reader.pos();
         let mut value = String::new();
 
         while self.is_identifier() {
-            let ch = try!(self.read_char().unwrap()).value;
+            let ch = self.cur().unwrap();
+            self.read_char();
             value.push(ch);
         }
 
@@ -180,11 +155,9 @@ impl Lexer {
             ttype = tok_type;
 
             if ttype == TokenKind::Try {
-                if let Some(ch) = self.top() {
-                    let ch = ch.value;
-
+                if let Some(ch) = self.cur() {
                     if ch == '!' || ch == '?' {
-                        try!(self.read_char().unwrap());
+                        self.read_char();
 
                         ttype = if ch == '!' {
                             TokenKind::TryForce
@@ -205,7 +178,7 @@ impl Lexer {
     }
 
     fn read_string(&mut self) -> Result<Token, MsgWithPos> {
-        let pos = self.top().unwrap().position;
+        let pos = self.reader.pos();
         let mut value = String::new();
 
         let mut escape = false;
@@ -213,7 +186,8 @@ impl Lexer {
         self.read_char();
 
         while !self.is_eof() && (escape || !self.is_quote()) {
-            let mut ch = try!(self.read_char().unwrap()).value;
+            let mut ch = self.cur().unwrap();
+            self.read_char();
 
             if escape {
                 ch = match ch {
@@ -253,21 +227,11 @@ impl Lexer {
 
     fn read_operator(&mut self) -> Result<Token, MsgWithPos> {
         let mut tok = self.build_token(TokenKind::End);
-        let ch = try!(self.read_char().unwrap()).value;
+        let ch = self.cur().unwrap();
+        self.read_char();
 
-        let nch = self.top();
-        let nch = if nch.is_some() {
-            nch.unwrap().value
-        } else {
-            'x'
-        };
-
-        let nnch = self.at(1);
-        let nnch = if nnch.is_some() {
-            nnch.unwrap().value
-        } else {
-            'x'
-        };
+        let nch = self.cur().unwrap_or('x');
+        let nnch = self.next().unwrap_or('x');
 
         tok.kind = match ch {
             '+' => TokenKind::Add,
@@ -392,24 +356,23 @@ impl Lexer {
     }
 
     fn read_number(&mut self) -> Result<Token, MsgWithPos> {
-        let pos = self.top().unwrap().position;
+        let pos = self.reader.pos();
         let mut value = String::new();
 
         while self.is_digit_or_underscore() {
-            let ch = try!(self.read_char().unwrap()).value;
+            let ch = self.cur().unwrap();
+            self.read_char();
             value.push(ch);
         }
 
-        let after = self.top().map(|ch| ch.value);
-
-        let suffix = match after {
+        let suffix = match self.cur() {
             Some('L') => {
-                self.read_char().unwrap()?;
+                self.read_char();
                 NumberSuffix::Long
             }
 
             Some('B') => {
-                self.read_char().unwrap()?;
+                self.read_char();
                 NumberSuffix::Byte
             }
 
@@ -420,120 +383,55 @@ impl Lexer {
         Ok(Token::new(ttype, pos))
     }
 
-    fn read_char(&mut self) -> Option<Result<CharPos, MsgWithPos>> {
-        let ch = self.buffer.pop_front();
-        self.fill_buffer();
-
-        ch
+    fn read_char(&mut self) {
+        self.reader.advance();
     }
 
-    fn top(&self) -> Option<CharPos> {
-        self.at(0)
+    fn cur(&self) -> Option<char> {
+        self.reader.cur()
     }
 
-    fn at(&self, index: usize) -> Option<CharPos> {
-        if self.buffer.len() > index {
-            match self.buffer[index] {
-                Ok(ch) => Some(ch),
-                _ => None,
-            }
-        } else {
-            None
-        }
+    fn next(&self) -> Option<char> {
+        self.reader.next()
     }
 
     fn build_token(&self, kind: TokenKind) -> Token {
-        Token::new(kind, self.top().unwrap().position)
-    }
-
-    fn fill_buffer(&mut self) {
-        while !self.eof_reached && self.buffer.len() < 10 {
-            match self.reader.next() {
-                Some(ch) => {
-                    self.buffer.push_back(Ok(CharPos {
-                        value: ch,
-                        position: self.position,
-                    }));
-
-                    match ch {
-                        '\n' => {
-                            self.position.line += 1;
-                            self.position.column = 1;
-                        }
-
-                        '\t' => {
-                            let tabdepth = (self.position.column - 1) / self.tabwidth;
-
-                            self.position.column = 1 + self.tabwidth * (tabdepth + 1);
-                        }
-
-                        _ => self.position.column += 1,
-                    }
-                }
-
-                None => self.eof_reached = true,
-            }
-        }
+        Token::new(kind, self.reader.pos())
     }
 
     fn is_comment_start(&self) -> bool {
-        let top = self.top();
-        let ntop = self.at(1);
-
-        top.is_some() && top.unwrap().value == '/' && ntop.is_some() && ntop.unwrap().value == '/'
+        self.cur() == Some('/') && self.next() == Some('/')
     }
 
     fn is_multi_comment_start(&self) -> bool {
-        let top = self.top();
-        let ntop = self.at(1);
-
-        top.is_some() && top.unwrap().value == '/' && ntop.is_some() && ntop.unwrap().value == '*'
+        self.cur() == Some('/') && self.next() == Some('*')
     }
 
     fn is_multi_comment_end(&self) -> bool {
-        let top = self.top();
-        let ntop = self.at(1);
-
-        top.is_some() && top.unwrap().value == '*' && ntop.is_some() && ntop.unwrap().value == '/'
+        self.cur() == Some('*') && self.next() == Some('/')
     }
 
     fn is_operator(&self) -> bool {
-        let top = self.top();
-
-        if top.is_none() {
-            return false;
-        }
-
-        "^+-*/%&|,=!~;:.()[]{}<>".contains(top.unwrap().value)
+        self.cur().map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch)).unwrap_or(false)
     }
 
     fn is_digit(&self) -> bool {
-        let top = self.top();
-
-        top.is_some() && top.unwrap().value.is_digit(10)
+        self.cur().map(|ch| ch.is_digit(10)).unwrap_or(false)
     }
 
     fn is_digit_or_underscore(&self) -> bool {
-        let top = self.top();
-
-        top.is_some() && (top.unwrap().value.is_digit(10) || top.unwrap().value == '_')
+        self.cur().map(|ch| ch.is_digit(10) || ch == '_').unwrap_or(false)
     }
 
     fn is_whitespace(&self) -> bool {
-        let top = self.top();
-
-        top.is_some() && top.unwrap().value.is_whitespace()
+        self.cur().map(|ch| ch.is_whitespace()).unwrap_or(false)
     }
 
     fn is_identifier_start(&self) -> bool {
-        let top = self.top();
-        if top.is_none() {
-            return false;
-        }
-
-        let ch = top.unwrap().value;
-
-        (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
+        match self.cur() {
+            Some(ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_',
+            _ => false,
+        } 
     }
 
     fn is_identifier(&self) -> bool {
@@ -541,19 +439,15 @@ impl Lexer {
     }
 
     fn is_newline(&self) -> bool {
-        let top = self.top();
-
-        top.is_some() && top.unwrap().value == '\n'
+        self.cur() == Some('\n')
     }
 
     fn is_quote(&self) -> bool {
-        let top = self.top();
-
-        top.is_some() && top.unwrap().value == '\"'
+        self.cur() == Some('\"')
     }
 
     fn is_eof(&self) -> bool {
-        self.top().is_none()
+        self.cur().is_none()
     }
 }
 
@@ -734,8 +628,9 @@ mod tests {
 
     #[test]
     fn test_code_with_tabwidth8() {
-        let reader = FileReader::from_string("1\t2\n1234567\t8\n12345678\t9");
-        let mut reader = Lexer::new_with_tabwidth(reader, 8);
+        let mut reader = FileReader::from_string("1\t2\n1234567\t8\n12345678\t9");
+        reader.set_tabwidth(8);
+        let mut reader = Lexer::new(reader);
 
         assert_tok(&mut reader,
                    TokenKind::Number("1".into(), NumberSuffix::Int),
