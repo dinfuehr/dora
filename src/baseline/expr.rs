@@ -1082,12 +1082,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                             rhs: FReg,
                             intr: Intrinsic,
                             op: Option<BinOp>) {
+        use ty::MachineMode::{Float32, Float64};
+
         match intr {
             Intrinsic::FloatEq | Intrinsic::DoubleEq => {
                 let mode = if intr == Intrinsic::DoubleEq {
-                    MachineMode::Float64
+                    Float64
                 } else {
-                    MachineMode::Float32
+                    Float32
                 };
 
                 let cond_code = match op {
@@ -1101,9 +1103,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
                 let mode = if intr == Intrinsic::DoubleCmp {
-                    MachineMode::Float64
+                    Float64
                 } else {
-                    MachineMode::Float32
+                    Float32
                 };
 
                 if let Some(BinOp::Cmp(op)) = op {
@@ -1116,15 +1118,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
             }
 
-            Intrinsic::FloatAdd => self.masm.float_add(MachineMode::Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatSub => self.masm.float_sub(MachineMode::Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatMul => self.masm.float_mul(MachineMode::Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatDiv => self.masm.float_div(MachineMode::Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatAdd => self.masm.float_add(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatSub => self.masm.float_sub(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatMul => self.masm.float_mul(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatDiv => self.masm.float_div(Float32, dest.freg(), lhs, rhs),
 
-            Intrinsic::DoubleAdd => self.masm.float_add(MachineMode::Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleSub => self.masm.float_sub(MachineMode::Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleMul => self.masm.float_mul(MachineMode::Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleDiv => self.masm.float_div(MachineMode::Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleAdd => self.masm.float_add(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleSub => self.masm.float_sub(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleMul => self.masm.float_mul(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleDiv => self.masm.float_div(Float64, dest.freg(), lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
