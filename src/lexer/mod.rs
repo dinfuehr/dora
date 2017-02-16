@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use lexer::reader::{FileReader, ReaderResult};
+use lexer::reader::FileReader;
 use lexer::token::{NumberSuffix, Token, TokenKind};
 use lexer::position::Position;
 use lexer::charpos::CharPos;
@@ -449,7 +449,7 @@ impl Lexer {
     fn fill_buffer(&mut self) {
         while !self.eof_reached && self.buffer.len() < 10 {
             match self.reader.next() {
-                ReaderResult::Char(ch) => {
+                Some(ch) => {
                     self.buffer.push_back(Ok(CharPos {
                         value: ch,
                         position: self.position,
@@ -471,12 +471,7 @@ impl Lexer {
                     }
                 }
 
-                ReaderResult::Eof => self.eof_reached = true,
-
-                ReaderResult::Err => {
-                    let msg = MsgWithPos::new(self.position, Msg::IoError);
-                    self.buffer.push_back(Err(msg))
-                }
+                None => self.eof_reached = true,
             }
         }
     }

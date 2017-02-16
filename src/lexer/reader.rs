@@ -1,13 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Error};
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum ReaderResult {
-    Char(char),
-    Eof,
-    Err,
-}
-
 pub struct FileReader {
     filename: String,
     src: String,
@@ -40,15 +33,15 @@ impl FileReader {
         &self.filename
     }
 
-    pub fn next(&mut self) -> ReaderResult {
+    pub fn next(&mut self) -> Option<char> {
         if self.pos < self.src.len() {
             let ch = self.src[self.pos..].chars().next().unwrap();
             self.pos += ch.len_utf8();
 
-            ReaderResult::Char(ch)
+            Some(ch)
 
         } else {
-            ReaderResult::Eof
+            None
         }
     }
 }
@@ -61,9 +54,9 @@ mod tests {
     fn read_from_str() {
         let mut reader = FileReader::from_string("abc");
 
-        assert_eq!(ReaderResult::Char('a'), reader.next());
-        assert_eq!(ReaderResult::Char('b'), reader.next());
-        assert_eq!(ReaderResult::Char('c'), reader.next());
-        assert_eq!(ReaderResult::Eof, reader.next());
+        assert_eq!(Some('a'), reader.next());
+        assert_eq!(Some('b'), reader.next());
+        assert_eq!(Some('c'), reader.next());
+        assert_eq!(None, reader.next());
     }
 }
