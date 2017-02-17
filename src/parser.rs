@@ -9,7 +9,7 @@ use interner::*;
 use lexer::*;
 use lexer::token::*;
 use lexer::position::Position;
-use lexer::reader::FileReader;
+use lexer::reader::Reader;
 
 pub struct Parser<'a> {
     lexer: Lexer,
@@ -27,7 +27,7 @@ type ExprResult = Result<Box<Expr>, MsgWithPos>;
 type StmtResult = Result<Box<Stmt>, MsgWithPos>;
 
 impl<'a> Parser<'a> {
-    pub fn new(reader: FileReader, ast: &'a mut Ast, interner: &'a mut Interner) -> Parser<'a> {
+    pub fn new(reader: Reader, ast: &'a mut Ast, interner: &'a mut Interner) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Position::new(1, 1));
         let lexer = Lexer::new(reader);
 
@@ -1333,7 +1333,7 @@ mod tests {
 
     use error::msg::{Msg, MsgWithPos};
     use lexer::position::Position;
-    use lexer::reader::FileReader;
+    use lexer::reader::Reader;
     use parser::Parser;
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
@@ -1341,7 +1341,7 @@ mod tests {
         let mut ast = Ast::new();
 
         let expr = {
-            let reader = FileReader::from_string(code);
+            let reader = Reader::from_string(code);
             let mut parser = Parser::new(reader, &mut ast, &mut interner);
             assert!(parser.init().is_ok(), true);
 
@@ -1355,7 +1355,7 @@ mod tests {
         let err = {
             let mut interner = Interner::new();
             let mut ast = Ast::new();
-            let reader = FileReader::from_string(code);
+            let reader = Reader::from_string(code);
             let mut parser = Parser::new(reader, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
@@ -1370,7 +1370,7 @@ mod tests {
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
         let mut interner = Interner::new();
         let mut ast = Ast::new();
-        let reader = FileReader::from_string(code);
+        let reader = Reader::from_string(code);
         let mut parser = Parser::new(reader, &mut ast, &mut interner);
         assert!(parser.init().is_ok(), true);
 
@@ -1381,7 +1381,7 @@ mod tests {
         let err = {
             let mut interner = Interner::new();
             let mut ast = Ast::new();
-            let reader = FileReader::from_string(code);
+            let reader = Reader::from_string(code);
             let mut parser = Parser::new(reader, &mut ast, &mut interner);
 
             assert!(parser.init().is_ok(), true);
@@ -1397,7 +1397,7 @@ mod tests {
         let mut interner = Interner::new();
         let ty = {
             let mut ast = Ast::new();
-            let reader = FileReader::from_string(code);
+            let reader = Reader::from_string(code);
             let mut parser = Parser::new(reader, &mut ast, &mut interner);
             assert!(parser.init().is_ok(), true);
 
@@ -1411,7 +1411,7 @@ mod tests {
         let mut interner = Interner::new();
         let mut ast = Ast::new();
 
-        let reader = FileReader::from_string(code);
+        let reader = Reader::from_string(code);
         Parser::new(reader, &mut ast, &mut interner).parse().unwrap();
 
         (ast, interner)
@@ -1421,7 +1421,7 @@ mod tests {
         let mut interner = Interner::new();
         let mut ast = Ast::new();
 
-        let reader = FileReader::from_string(code);
+        let reader = Reader::from_string(code);
         Parser::new(reader, &mut ast, &mut interner).parse().unwrap_err()
     }
 

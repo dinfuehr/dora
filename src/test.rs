@@ -2,7 +2,7 @@ use ctxt::Context;
 use driver::cmd::Args;
 use ast::{self, Ast};
 use interner::Interner;
-use lexer::reader::FileReader;
+use lexer::reader::Reader;
 use parser::Parser;
 use semck;
 
@@ -28,13 +28,13 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
     let args: Args = Default::default();
 
     {
-        let reader = FileReader::from_file("stdlib/prelude.dora").unwrap();
+        let reader = Reader::from_file("stdlib/prelude.dora").unwrap();
         let mut parser = Parser::new(reader, &mut ast, &mut interner);
         parser.parse().unwrap()
     }
 
     {
-        let reader = FileReader::from_string(code);
+        let reader = Reader::from_string(code);
         let mut parser = Parser::new(reader, &mut ast, &mut interner);
         parser.parse().unwrap()
     }

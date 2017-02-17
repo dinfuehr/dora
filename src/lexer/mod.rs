@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use lexer::reader::FileReader;
+use lexer::reader::Reader;
 use lexer::token::{NumberSuffix, Token, TokenKind};
 use error::msg::{Msg, MsgWithPos};
 
@@ -10,18 +10,18 @@ pub mod token;
 pub mod position;
 
 pub struct Lexer {
-    reader: FileReader,
+    reader: Reader,
     keywords: HashMap<&'static str, TokenKind>,
 }
 
 impl Lexer {
     #[cfg(test)]
     pub fn from_str(code: &str) -> Lexer {
-        let reader = FileReader::from_string(code);
+        let reader = Reader::from_string(code);
         Lexer::new(reader)
     }
 
-    pub fn new(reader: FileReader) -> Lexer {
+    pub fn new(reader: Reader) -> Lexer {
         let mut keywords = HashMap::new();
         keywords.insert("class", TokenKind::Class);
         keywords.insert("self", TokenKind::This);
@@ -455,7 +455,7 @@ impl Lexer {
 mod tests {
     use super::*;
     use error::msg::Msg;
-    use lexer::reader::FileReader;
+    use lexer::reader::Reader;
     use lexer::token::TokenKind;
 
     fn assert_end(reader: &mut Lexer, l: u32, c: u32) {
@@ -628,7 +628,7 @@ mod tests {
 
     #[test]
     fn test_code_with_tabwidth8() {
-        let mut reader = FileReader::from_string("1\t2\n1234567\t8\n12345678\t9");
+        let mut reader = Reader::from_string("1\t2\n1234567\t8\n12345678\t9");
         reader.set_tabwidth(8);
         let mut reader = Lexer::new(reader);
 

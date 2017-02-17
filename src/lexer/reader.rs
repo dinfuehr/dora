@@ -3,7 +3,7 @@ use std::io::{Read, Error};
 
 use lexer::position::Position;
 
-pub struct FileReader {
+pub struct Reader {
     filename: String,
     src: String,
 
@@ -16,14 +16,14 @@ pub struct FileReader {
     tabwidth: usize,
 }
 
-impl FileReader {
-    pub fn from_file(filename: &str) -> Result<FileReader, Error> {
+impl Reader {
+    pub fn from_file(filename: &str) -> Result<Reader, Error> {
         let mut src = String::new();
 
         let mut file = File::open(filename)?;
         file.read_to_string(&mut src)?;
 
-        let mut reader = FileReader {
+        let mut reader = Reader {
             filename: filename.to_string(),
             src: src,
             pos: 0,
@@ -40,8 +40,8 @@ impl FileReader {
         Ok(reader)
     }
 
-    pub fn from_string(src: &str) -> FileReader {
-        let mut reader = FileReader {
+    pub fn from_string(src: &str) -> Reader {
+        let mut reader = Reader {
             filename: "<<code>>".into(),
             src: src.into(),
             pos: 0,
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn read_from_str() {
-        let mut reader = FileReader::from_string("abc");
+        let mut reader = Reader::from_string("abc");
 
         assert_eq!(Some('a'), reader.cur());
         assert_eq!(Some('b'), reader.next());
