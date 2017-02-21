@@ -270,6 +270,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
         ExprSuper(_) => {}
         ExprSelf(_) => {}
         ExprLitInt(_) => {}
+        ExprLitFloat(_) => {}
         ExprLitStr(_) => {}
         ExprLitBool(_) => {}
         ExprIdent(_) => {}

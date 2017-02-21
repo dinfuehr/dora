@@ -3,7 +3,7 @@ use std::slice::Iter;
 
 use ast::Elem::*;
 use lexer::position::Position;
-use lexer::token::IntSuffix;
+use lexer::token::{FloatSuffix, IntSuffix};
 use interner::{Interner, Name};
 
 pub mod visit;
@@ -948,6 +948,7 @@ pub enum Expr {
     ExprUn(ExprUnType),
     ExprBin(ExprBinType),
     ExprLitInt(ExprLitIntType),
+    ExprLitFloat(ExprLitFloatType),
     ExprLitStr(ExprLitStrType),
     ExprLitBool(ExprLitBoolType),
     ExprLitStruct(ExprLitStructType),
@@ -1024,6 +1025,15 @@ impl Expr {
 
     pub fn create_lit_int(id: NodeId, pos: Position, value: u64, suffix: IntSuffix) -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
+            id: id,
+            pos: pos,
+            value: value,
+            suffix: suffix,
+        })
+    }
+
+    pub fn create_lit_float(id: NodeId, pos: Position, value: f64, suffix: FloatSuffix) -> Expr {
+        Expr::ExprLitFloat(ExprLitFloatType {
             id: id,
             pos: pos,
             value: value,
@@ -1206,6 +1216,20 @@ impl Expr {
         }
     }
 
+    pub fn to_lit_float(&self) -> Option<&ExprLitFloatType> {
+        match *self {
+            Expr::ExprLitFloat(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_lit_float(&self) -> bool {
+        match *self {
+            Expr::ExprLitFloat(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_struct(&self) -> Option<&ExprLitStructType> {
         match *self {
             Expr::ExprLitStruct(ref val) => Some(val),
@@ -1351,6 +1375,7 @@ impl Expr {
             Expr::ExprUn(ref val) => val.id,
             Expr::ExprBin(ref val) => val.id,
             Expr::ExprLitInt(ref val) => val.id,
+            Expr::ExprLitFloat(ref val) => val.id,
             Expr::ExprLitStr(ref val) => val.id,
             Expr::ExprLitBool(ref val) => val.id,
             Expr::ExprLitStruct(ref val) => val.id,
@@ -1505,6 +1530,15 @@ pub struct ExprLitIntType {
 
     pub value: u64,
     pub suffix: IntSuffix,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprLitFloatType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub value: f64,
+    pub suffix: FloatSuffix,
 }
 
 #[derive(Clone, Debug)]

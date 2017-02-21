@@ -96,6 +96,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
+            ExprLitFloat(_) => unimplemented!(),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
             ExprLitStruct(_) => unimplemented!(),

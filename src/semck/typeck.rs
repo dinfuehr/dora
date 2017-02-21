@@ -950,6 +950,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
+            ExprLitFloat(_) => unimplemented!(),
             ExprLitStr(ExprLitStrType { id, .. }) => {
                 self.src.set_ty(id, BuiltinType::Str);
                 self.expr_type = BuiltinType::Str;

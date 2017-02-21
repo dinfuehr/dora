@@ -1084,6 +1084,29 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_lit_float(&mut self) -> ExprResult {
+        let tok = self.advance_token()?;
+        let pos = tok.position;
+
+        if let TokenKind::LitFloat(value, suffix) = tok.kind {
+            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+            let parsed = filtered.parse::<f64>();
+
+            match parsed {
+                Ok(num) => {
+                    let expr = Expr::create_lit_float(self.generate_id(), pos, num, suffix);
+                    Ok(Box::new(expr))
+                }
+
+                _ => {
+                    unreachable!()
+                }
+            }
+        } else {
+            unreachable!();
+        }
+    }
+
     fn parse_string(&mut self) -> ExprResult {
         let string = self.advance_token()?;
 
