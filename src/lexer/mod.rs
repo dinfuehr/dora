@@ -73,12 +73,13 @@ impl Lexer {
             self.skip_white();
 
             let pos = self.reader.pos();
+            let ch = self.cur();
 
-            if let None = self.cur() {
+            if let None = ch {
                 return Ok(Token::new(TokenKind::End, pos));
             }
 
-            if self.is_digit() {
+            if is_digit(ch) {
                 return self.read_number();
 
             } else if self.is_comment_start() {
@@ -87,17 +88,17 @@ impl Lexer {
             } else if self.is_multi_comment_start() {
                 try!(self.read_multi_comment());
 
-            } else if self.is_identifier_start() {
+            } else if is_identifier_start(ch) {
                 return self.read_identifier();
 
-            } else if self.is_quote() {
+            } else if is_quote(ch) {
                 return self.read_string();
 
-            } else if self.is_operator() {
+            } else if is_operator(ch) {
                 return self.read_operator();
 
             } else {
-                let ch = self.cur().unwrap();
+                let ch = ch.unwrap();
 
                 return Err(MsgWithPos::new(pos, Msg::UnknownChar(ch)));
             }
@@ -105,13 +106,13 @@ impl Lexer {
     }
 
     fn skip_white(&mut self) {
-        while self.is_whitespace() {
+        while is_whitespace(self.cur()) {
             self.read_char();
         }
     }
 
     fn read_comment(&mut self) -> Result<(), MsgWithPos> {
-        while !self.is_eof() && !self.is_newline() {
+        while !self.cur().is_none() && !is_newline(self.cur()) {
             self.read_char();
         }
 
@@ -124,11 +125,11 @@ impl Lexer {
         self.read_char();
         self.read_char();
 
-        while !self.is_eof() && !self.is_multi_comment_end() {
+        while !self.cur().is_none() && !self.is_multi_comment_end() {
             self.read_char();
         }
 
-        if self.is_eof() {
+        if self.cur().is_none() {
             return Err(MsgWithPos::new(pos, Msg::UnclosedComment));
         }
 
@@ -142,7 +143,7 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        while self.is_identifier() {
+        while is_identifier(self.cur()) {
             let ch = self.cur().unwrap();
             self.read_char();
             value.push(ch);
@@ -185,7 +186,7 @@ impl Lexer {
 
         self.read_char();
 
-        while !self.is_eof() && (escape || !self.is_quote()) {
+        while !self.cur().is_none() && (escape || !is_quote(self.cur())) {
             let mut ch = self.cur().unwrap();
             self.read_char();
 
@@ -214,7 +215,7 @@ impl Lexer {
             value.push(ch);
         }
 
-        if !escape && self.is_quote() {
+        if !escape && is_quote(self.cur()) {
             self.read_char();
 
             let ttype = TokenKind::String(value);
@@ -359,7 +360,7 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        while self.is_digit_or_underscore() {
+        while is_digit_or_underscore(self.cur()) {
             let ch = self.cur().unwrap();
             self.read_char();
             value.push(ch);
@@ -410,45 +411,41 @@ impl Lexer {
     fn is_multi_comment_end(&self) -> bool {
         self.cur() == Some('*') && self.next() == Some('/')
     }
+}
 
-    fn is_operator(&self) -> bool {
-        self.cur().map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch)).unwrap_or(false)
-    }
+fn is_digit(ch: Option<char>) -> bool {
+    ch.map(|ch| ch.is_digit(10)).unwrap_or(false)
+}
 
-    fn is_digit(&self) -> bool {
-        self.cur().map(|ch| ch.is_digit(10)).unwrap_or(false)
-    }
+fn is_digit_or_underscore(ch: Option<char>) -> bool {
+    ch.map(|ch| ch.is_digit(10) || ch == '_').unwrap_or(false)
+}
 
-    fn is_digit_or_underscore(&self) -> bool {
-        self.cur().map(|ch| ch.is_digit(10) || ch == '_').unwrap_or(false)
-    }
+fn is_whitespace(ch: Option<char>) -> bool {
+    ch.map(|ch| ch.is_whitespace()).unwrap_or(false)
+}
 
-    fn is_whitespace(&self) -> bool {
-        self.cur().map(|ch| ch.is_whitespace()).unwrap_or(false)
-    }
+fn is_newline(ch: Option<char>) -> bool {
+    ch == Some('\n')
+}
 
-    fn is_identifier_start(&self) -> bool {
-        match self.cur() {
-            Some(ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_',
-            _ => false,
-        } 
-    }
+fn is_quote(ch: Option<char>) -> bool {
+    ch == Some('\"')
+}
 
-    fn is_identifier(&self) -> bool {
-        self.is_identifier_start() || self.is_digit()
-    }
+fn is_operator(ch: Option<char>) -> bool {
+    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch)).unwrap_or(false)
+}
 
-    fn is_newline(&self) -> bool {
-        self.cur() == Some('\n')
+fn is_identifier_start(ch: Option<char>) -> bool {
+    match ch {
+        Some(ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_',
+        _ => false,
     }
+}
 
-    fn is_quote(&self) -> bool {
-        self.cur() == Some('\"')
-    }
-
-    fn is_eof(&self) -> bool {
-        self.cur().is_none()
-    }
+fn is_identifier(ch: Option<char>) -> bool {
+    is_identifier_start(ch) || is_digit(ch)
 }
 
 #[cfg(test)]
