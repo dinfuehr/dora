@@ -6,7 +6,8 @@ use lexer::position::Position;
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
     String(String),
-    Number(String, NumberSuffix),
+    LitInt(String, IntSuffix),
+    LitFloat(String, FloatSuffix),
     Identifier(String),
     End,
 
@@ -100,11 +101,18 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::Number(_, suffix) => {
+            TokenKind::LitInt(_, suffix) => {
                 match suffix {
-                    NumberSuffix::Byte => "byte number",
-                    NumberSuffix::Int => "int number",
-                    NumberSuffix::Long => "long number",
+                    IntSuffix::Byte => "byte number",
+                    IntSuffix::Int => "int number",
+                    IntSuffix::Long => "long number",
+                }
+            }
+
+            TokenKind::LitFloat(_, suffix) => {
+                match suffix {
+                    FloatSuffix::Float => "float number",
+                    FloatSuffix::Double => "double number",
                 }
             }
 
@@ -201,10 +209,16 @@ impl TokenKind {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum NumberSuffix {
+pub enum IntSuffix {
     Int,
     Long,
     Byte,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum FloatSuffix {
+    Float,
+    Double,
 }
 
 #[derive(PartialEq,Eq,Debug)]
@@ -231,11 +245,11 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::Number(ref val, suffix) => {
+            TokenKind::LitInt(ref val, suffix) => {
                 let suffix = match suffix {
-                    NumberSuffix::Byte => "B",
-                    NumberSuffix::Int => "",
-                    NumberSuffix::Long => "L",
+                    IntSuffix::Byte => "B",
+                    IntSuffix::Int => "",
+                    IntSuffix::Long => "L",
                 };
 
                 format!("{}{}", val, suffix)

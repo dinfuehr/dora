@@ -953,7 +953,7 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
-            TokenKind::Number(_, _) => self.parse_number(),
+            TokenKind::LitInt(_, _) => self.parse_lit_int(),
             TokenKind::String(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
             TokenKind::True => self.parse_bool_literal(),
@@ -1055,11 +1055,11 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Expr::create_try(self.generate_id(), pos, exp, mode)))
     }
 
-    fn parse_number(&mut self) -> ExprResult {
+    fn parse_lit_int(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::Number(value, suffix) = tok.kind {
+        if let TokenKind::LitInt(value, suffix) = tok.kind {
             let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
             let parsed = filtered.parse::<u64>();
 
@@ -1071,9 +1071,9 @@ impl<'a> Parser<'a> {
 
                 _ => {
                     let bits = match suffix {
-                        NumberSuffix::Byte => "byte",
-                        NumberSuffix::Int => "int",
-                        NumberSuffix::Long => "long",
+                        IntSuffix::Byte => "byte",
+                        IntSuffix::Int => "int",
+                        IntSuffix::Long => "long",
                     };
 
                     Err(MsgWithPos::new(pos, Msg::NumberOverflow(bits.into())))

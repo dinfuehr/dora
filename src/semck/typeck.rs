@@ -8,7 +8,7 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
-use lexer::token::NumberSuffix;
+use lexer::token::IntSuffix;
 use semck::read_type;
 use ty::BuiltinType;
 
@@ -917,25 +917,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
         let ty = match e.suffix {
-            NumberSuffix::Byte => BuiltinType::Byte,
-            NumberSuffix::Int => BuiltinType::Int,
-            NumberSuffix::Long => BuiltinType::Long,
+            IntSuffix::Byte => BuiltinType::Byte,
+            IntSuffix::Int => BuiltinType::Int,
+            IntSuffix::Long => BuiltinType::Long,
         };
 
         let val = e.value;
-        let negative = e.suffix != NumberSuffix::Byte && self.negative_expr_id == e.id;
+        let negative = e.suffix != IntSuffix::Byte && self.negative_expr_id == e.id;
 
         let max = match e.suffix {
-            NumberSuffix::Byte => 256,
-            NumberSuffix::Int => (1u64 << 31),
-            NumberSuffix::Long => (1u64 << 63),
+            IntSuffix::Byte => 256,
+            IntSuffix::Int => (1u64 << 31),
+            IntSuffix::Long => (1u64 << 63),
         };
 
         if (negative && val > max) || (!negative && val >= max) {
             let ty = match e.suffix {
-                NumberSuffix::Byte => "byte",
-                NumberSuffix::Int => "int",
-                NumberSuffix::Long => "long",
+                IntSuffix::Byte => "byte",
+                IntSuffix::Int => "int",
+                IntSuffix::Long => "long",
             };
 
             self.ctxt.diag.borrow_mut().report(e.pos, Msg::NumberOverflow(ty.into()));

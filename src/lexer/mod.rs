@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lexer::reader::Reader;
-use lexer::token::{NumberSuffix, Token, TokenKind};
+use lexer::token::{FloatSuffix, IntSuffix, Token, TokenKind};
 use error::msg::{Msg, MsgWithPos};
 
 pub mod map;
@@ -360,28 +360,70 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        while is_digit_or_underscore(self.cur()) {
-            let ch = self.cur().unwrap();
+        self.read_digits(&mut value);
+
+        if self.cur() == Some('.') && is_digit(self.next()) {
             self.read_char();
-            value.push(ch);
+            value.push('.');
+
+            self.read_digits(&mut value);
+
+            let suffix = match self.cur() {
+                Some('D') => {
+                    self.read_char();
+                    FloatSuffix::Double
+                }
+
+                Some('F') => {
+                    self.read_char();
+                    FloatSuffix::Float
+                }
+
+                _ => FloatSuffix::Float
+            };
+
+            let ttype = TokenKind::LitFloat(value, suffix);
+            return Ok(Token::new(ttype, pos));
         }
 
         let suffix = match self.cur() {
             Some('L') => {
                 self.read_char();
-                NumberSuffix::Long
+                IntSuffix::Long
             }
 
             Some('B') => {
                 self.read_char();
-                NumberSuffix::Byte
+                IntSuffix::Byte
             }
 
-            _ => NumberSuffix::Int,
+            Some('D') => {
+                self.read_char();
+
+                let ttype = TokenKind::LitFloat(value, FloatSuffix::Double);
+                return Ok(Token::new(ttype, pos));
+            }
+
+            Some('F') => {
+                self.read_char();
+
+                let ttype = TokenKind::LitFloat(value, FloatSuffix::Float);
+                return Ok(Token::new(ttype, pos));
+            }
+
+            _ => IntSuffix::Int,
         };
 
-        let ttype = TokenKind::Number(value, suffix);
+        let ttype = TokenKind::LitInt(value, suffix);
         Ok(Token::new(ttype, pos))
+    }
+
+    fn read_digits(&mut self, buffer: &mut String) {
+        while is_digit_or_underscore(self.cur()) {
+            let ch = self.cur().unwrap();
+            self.read_char();
+            buffer.push(ch);
+        }
     }
 
     fn read_char(&mut self) {
@@ -484,38 +526,38 @@ mod tests {
     fn test_read_numbers() {
         let mut reader = Lexer::from_str("1 2\n0123 10");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("2".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("2".into(), IntSuffix::Int),
                    1,
                    3);
         assert_tok(&mut reader,
-                   TokenKind::Number("0123".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("0123".into(), IntSuffix::Int),
                    2,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("10".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("10".into(), IntSuffix::Int),
                    2,
                    6);
         assert_end(&mut reader, 2, 8);
 
         let mut reader = Lexer::from_str("12B 300B 1_000 1__1");
         assert_tok(&mut reader,
-                   TokenKind::Number("12".into(), NumberSuffix::Byte),
+                   TokenKind::LitInt("12".into(), IntSuffix::Byte),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("300".into(), NumberSuffix::Byte),
+                   TokenKind::LitInt("300".into(), IntSuffix::Byte),
                    1,
                    5);
         assert_tok(&mut reader,
-                   TokenKind::Number("1_000".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1_000".into(), IntSuffix::Int),
                    1,
                    10);
         assert_tok(&mut reader,
-                   TokenKind::Number("1__1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1__1".into(), IntSuffix::Int),
                    1,
                    16);
     }
@@ -524,7 +566,7 @@ mod tests {
     fn test_skip_single_line_comment() {
         let mut reader = Lexer::from_str("//test\n1");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    2,
                    1);
         assert_end(&mut reader, 2, 2);
@@ -540,7 +582,7 @@ mod tests {
     fn test_skip_multi_comment() {
         let mut reader = Lexer::from_str("/*test*/1");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    9);
         assert_end(&mut reader, 1, 10);
@@ -553,7 +595,7 @@ mod tests {
 
         let mut reader = Lexer::from_str("1/*test");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_err(&mut reader, Msg::UnclosedComment, 1, 2);
@@ -573,33 +615,43 @@ mod tests {
     fn test_code_with_spaces() {
         let mut reader = Lexer::from_str("1 2 3");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("2".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("2".into(), IntSuffix::Int),
                    1,
                    3);
         assert_tok(&mut reader,
-                   TokenKind::Number("3".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("3".into(), IntSuffix::Int),
                    1,
                    5);
         assert_end(&mut reader, 1, 6);
     }
 
     #[test]
+    fn test_float_numbers() {
+        let mut reader = Lexer::from_str("1F 1.0 0.1F 1.3D 4D");
+        assert_tok(&mut reader, TokenKind::LitFloat("1".into(), FloatSuffix::Float), 1, 1);
+        assert_tok(&mut reader, TokenKind::LitFloat("1.0".into(), FloatSuffix::Float), 1, 4);
+        assert_tok(&mut reader, TokenKind::LitFloat("0.1".into(), FloatSuffix::Float), 1, 8);
+        assert_tok(&mut reader, TokenKind::LitFloat("1.3".into(), FloatSuffix::Double), 1, 13);
+        assert_tok(&mut reader, TokenKind::LitFloat("4".into(), FloatSuffix::Double), 1, 18);
+    }
+
+    #[test]
     fn test_code_with_newlines() {
         let mut reader = Lexer::from_str("1\n2\n3");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("2".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("2".into(), IntSuffix::Int),
                    2,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("3".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("3".into(), IntSuffix::Int),
                    3,
                    1);
         assert_end(&mut reader, 3, 2);
@@ -609,15 +661,15 @@ mod tests {
     fn test_code_with_tabs() {
         let mut reader = Lexer::from_str("1\t2\t3");
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("2".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("2".into(), IntSuffix::Int),
                    1,
                    5);
         assert_tok(&mut reader,
-                   TokenKind::Number("3".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("3".into(), IntSuffix::Int),
                    1,
                    9);
         assert_end(&mut reader, 1, 10);
@@ -630,27 +682,27 @@ mod tests {
         let mut reader = Lexer::new(reader);
 
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("2".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("2".into(), IntSuffix::Int),
                    1,
                    9);
         assert_tok(&mut reader,
-                   TokenKind::Number("1234567".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1234567".into(), IntSuffix::Int),
                    2,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("8".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("8".into(), IntSuffix::Int),
                    2,
                    9);
         assert_tok(&mut reader,
-                   TokenKind::Number("12345678".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("12345678".into(), IntSuffix::Int),
                    3,
                    1);
         assert_tok(&mut reader,
-                   TokenKind::Number("9".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("9".into(), IntSuffix::Int),
                    3,
                    17);
         assert_end(&mut reader, 3, 18);
@@ -764,7 +816,7 @@ mod tests {
         assert_tok(&mut reader, TokenKind::TryForce, 1, 1);
         assert_tok(&mut reader, TokenKind::TryOpt, 1, 5);
         assert_tok(&mut reader,
-                   TokenKind::Number("1".into(), NumberSuffix::Int),
+                   TokenKind::LitInt("1".into(), IntSuffix::Int),
                    1,
                    9);
 

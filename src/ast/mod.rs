@@ -3,7 +3,7 @@ use std::slice::Iter;
 
 use ast::Elem::*;
 use lexer::position::Position;
-use lexer::token::NumberSuffix;
+use lexer::token::IntSuffix;
 use interner::{Interner, Name};
 
 pub mod visit;
@@ -1022,7 +1022,7 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_int(id: NodeId, pos: Position, value: u64, suffix: NumberSuffix) -> Expr {
+    pub fn create_lit_int(id: NodeId, pos: Position, value: u64, suffix: IntSuffix) -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
             id: id,
             pos: pos,
@@ -1504,7 +1504,7 @@ pub struct ExprLitIntType {
     pub pos: Position,
 
     pub value: u64,
-    pub suffix: NumberSuffix,
+    pub suffix: IntSuffix,
 }
 
 #[derive(Clone, Debug)]
