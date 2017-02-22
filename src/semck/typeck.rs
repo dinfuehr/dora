@@ -1,3 +1,5 @@
+use std::{f32, f64};
+
 use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctSrc, IdentType};
 use class::ClassId;
 use error::msg::Msg;
@@ -8,7 +10,7 @@ use ast::Stmt::*;
 use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
-use lexer::token::IntSuffix;
+use lexer::token::{FloatSuffix, IntSuffix};
 use semck::read_type;
 use ty::BuiltinType;
 
@@ -944,13 +946,43 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
+
+    fn check_expr_lit_float(&mut self, e: &'ast ExprLitFloatType) {
+        let ty = match e.suffix {
+            FloatSuffix::Float => BuiltinType::Float,
+            FloatSuffix::Double => BuiltinType::Double,
+        };
+
+        let (min, max) = match e.suffix {
+            FloatSuffix::Float => (f32::MIN as f64, f32::MAX as f64),
+            FloatSuffix::Double => (f64::MIN, f64::MAX),
+        };
+
+        let value = if self.negative_expr_id == e.id {
+            -e.value
+        } else {
+            e.value
+        };
+
+        if value < min || value > max {
+            let ty = match e.suffix {
+                FloatSuffix::Float => "float",
+                FloatSuffix::Double => "double",
+            };
+
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::NumberOverflow(ty.into()));
+        }
+
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
+    }
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
-            ExprLitFloat(_) => unimplemented!(),
+            ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
                 self.src.set_ty(id, BuiltinType::Str);
                 self.expr_type = BuiltinType::Str;
@@ -1850,5 +1882,17 @@ mod tests {
             pos(1, 20),
             Msg::NumberOverflow("long".into()));
         ok("fun f() { let x = -9223372036854775808L; }");
+    }
+
+    #[test]
+    fn test_literal_float_overflow() {
+        // err("fun f() { let x = -340282340000000000000000000000000000001F; }",
+        //     pos(1, 19),
+        //     Msg::NumberOverflow("float".into()));
+        // ok("fun f() { let x = -340282350000000000000000000000000000000F; }");
+        err("fun f() { let x = 340282350000000000000000000000000000001F; }",
+            pos(1, 19),
+            Msg::NumberOverflow("float".into()));
+        ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
     }
 }

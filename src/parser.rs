@@ -954,6 +954,7 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LitInt(_, _) => self.parse_lit_int(),
+            TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::String(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
             TokenKind::True => self.parse_bool_literal(),
@@ -1092,19 +1093,14 @@ impl<'a> Parser<'a> {
             let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
             let parsed = filtered.parse::<f64>();
 
-            match parsed {
-                Ok(num) => {
-                    let expr = Expr::create_lit_float(self.generate_id(), pos, num, suffix);
-                    Ok(Box::new(expr))
-                }
+            if let Ok(num) = parsed {
+                let expr = Expr::create_lit_float(self.generate_id(), pos, num, suffix);
+                return Ok(Box::new(expr));
 
-                _ => {
-                    unreachable!()
-                }
             }
-        } else {
-            unreachable!();
         }
+
+        unreachable!()
     }
 
     fn parse_string(&mut self) -> ExprResult {
@@ -2623,5 +2619,14 @@ mod tests {
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
+    }
+
+    #[test]
+    fn parse_lit_float() {
+        let (expr, _) = parse_expr("1.2");
+
+        let lit = expr.to_lit_float().unwrap();
+
+        assert_eq!(1.2, lit.value);
     }
 }
