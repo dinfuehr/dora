@@ -113,6 +113,9 @@ internal class float {
   internal fun minus(rhs: float) -> float;
   internal fun times(rhs: float) -> float;
   internal fun div(rhs: float) -> float;
+
+  internal fun unaryPlus() -> float;
+  internal fun unaryMinus() -> float;
 }
 
 internal class double {
@@ -123,6 +126,9 @@ internal class double {
   internal fun minus(rhs: double) -> double;
   internal fun times(rhs: double) -> double;
   internal fun div(rhs: double) -> double;
+
+  internal fun unaryPlus() -> double;
+  internal fun unaryMinus() -> double;
 }
 
 internal class ByteArray {

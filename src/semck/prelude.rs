@@ -176,6 +176,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "times", Intrinsic::FloatMul);
     intrinsic_method(ctxt, clsid, "div", Intrinsic::FloatDiv);
 
+    intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::FloatPlus);
+    intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::FloatNeg);
+
     let clsid = ctxt.primitive_classes.double_class;
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::DoubleCmp);
@@ -184,6 +187,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "minus", Intrinsic::DoubleSub);
     intrinsic_method(ctxt, clsid, "times", Intrinsic::DoubleMul);
     intrinsic_method(ctxt, clsid, "div", Intrinsic::DoubleDiv);
+
+    intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::DoublePlus);
+    intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::DoubleNeg);
 
     let clsid = ctxt.primitive_classes.int_array;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);

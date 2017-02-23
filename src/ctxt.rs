@@ -221,6 +221,8 @@ impl PrimitiveClasses {
             BuiltinType::IntArray => Some(self.int_array),
             BuiltinType::ByteArray => Some(self.byte_array),
             BuiltinType::LongArray => Some(self.long_array),
+            BuiltinType::Float => Some(self.float_class),
+            BuiltinType::Double => Some(self.double_class),
             _ => None,
         }
     }
@@ -461,6 +463,9 @@ pub enum Intrinsic {
     FloatMul,
     FloatDiv,
 
+    FloatPlus,
+    FloatNeg,
+
     DoubleEq,
     DoubleCmp,
 
@@ -468,6 +473,9 @@ pub enum Intrinsic {
     DoubleSub,
     DoubleMul,
     DoubleDiv,
+
+    DoublePlus,
+    DoubleNeg,
 }
 
 #[derive(Debug)]

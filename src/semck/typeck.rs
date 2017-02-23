@@ -1886,10 +1886,10 @@ mod tests {
 
     #[test]
     fn test_literal_float_overflow() {
-        // err("fun f() { let x = -340282340000000000000000000000000000001F; }",
-        //     pos(1, 19),
-        //     Msg::NumberOverflow("float".into()));
-        // ok("fun f() { let x = -340282350000000000000000000000000000000F; }");
+        err("fun f() { let x = -340282350000000000000000000000000000000F; }",
+            pos(1, 20),
+            Msg::NumberOverflow("float".into()));
+        ok("fun f() { let x = -340282340000000000000000000000000000000F; }");
         err("fun f() { let x = 340282350000000000000000000000000000001F; }",
             pos(1, 19),
             Msg::NumberOverflow("float".into()));
