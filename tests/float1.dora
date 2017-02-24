@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     let a = 1F + 2F;
     let b = 1F - 2F;

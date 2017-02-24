@@ -202,7 +202,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             } else {
                 // reserve temp variable for object
                 let offset = self.reserve_temp_for_node(&e.object);
-                self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
+                self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
 
                 offset
             };
@@ -210,7 +210,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             // object instanceof T
 
             // tmp1 = <vtable of object>
-            self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Base(dest, 0));
+            self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(dest, 0));
 
             let disp = self.masm.add_addr(vtable as *const _ as *mut u8);
             let pos = self.masm.pos() as i32;
@@ -230,7 +230,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                 // tmp1 = tmp1.subtype_overflow
                 self.masm.load_mem(MachineMode::Ptr,
-                                   REG_TMP1,
+                                   REG_TMP1.into(),
                                    Mem::Base(REG_TMP1, VTable::offset_of_overflow()));
 
                 let overflow_offset = mem::ptr_width() *
@@ -250,7 +250,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.jump_if(CondCode::NonZero, lbl_false);
 
                     // otherwise load temp variable again
-                    self.masm.load_mem(MachineMode::Ptr, dest, Mem::Local(offset));
+                    self.masm.load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
                 }
 
                 // jmp lbl_finished
@@ -289,7 +289,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.jump_if(CondCode::NotEqual, lbl_bailout);
                     self.masm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
 
-                    self.masm.load_mem(MachineMode::Ptr, dest, Mem::Local(offset));
+                    self.masm.load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
                 }
             }
 
@@ -390,7 +390,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let var = self.src.var_self();
 
         self.masm.emit_comment(Comment::LoadSelf(var.id));
-        self.masm.load_mem(var.ty.mode(), dest, Mem::Local(var.offset));
+        self.masm.load_mem(var.ty.mode(), dest.into(), Mem::Local(var.offset));
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -416,7 +416,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let field = &cls.fields[fieldid];
 
         self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
-        self.masm.load_mem(field.ty.mode(), dest.reg(), Mem::Base(src, field.offset));
+        self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -462,7 +462,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         match ident {
             IdentType::Var(varid) => {
                 self.masm.emit_comment(Comment::LoadVar(varid));
-                codegen::var_load(self.masm, self.src, varid, dest.reg())
+                codegen::var_load(self.masm, self.src, varid, dest)
             }
 
             IdentType::Field(cls, field) => {
@@ -576,7 +576,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
-                codegen::var_store(&mut self.masm, self.src, dest.reg(), varid);
+                codegen::var_store(&mut self.masm, self.src, dest, varid);
             }
 
             IdentType::Field(clsid, fieldid) => {
@@ -595,15 +595,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 };
 
                 let temp_offset = self.reserve_temp_for_node(temp);
-                self.masm.store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT);
+                self.masm.store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
                 self.emit_expr(&e.rhs, REG_RESULT.into());
-                self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(temp_offset));
+                self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
                 self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
                 self.masm.store_mem(field.ty.mode(),
                                     Mem::Base(REG_TMP1, field.offset),
-                                    REG_RESULT);
+                                    REG_RESULT.into());
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest.reg() {
@@ -624,10 +624,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_expr(&e.lhs, REG_RESULT.into());
             let offset = self.reserve_temp_for_node(&e.lhs);
-            self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
+            self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
 
             self.emit_expr(&e.rhs, REG_TMP1.into());
-            self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
+            self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
             self.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
 
@@ -837,24 +837,24 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       dest: Reg) {
         self.emit_expr(object, REG_RESULT.into());
         let offset_object = self.reserve_temp_for_node(object);
-        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT);
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT.into());
 
         self.emit_expr(index, REG_RESULT.into());
         let offset_index = self.reserve_temp_for_node(index);
-        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT);
+        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT.into());
 
         self.emit_expr(rhs, REG_RESULT.into());
         let offset_value = self.reserve_temp_for_node(rhs);
-        self.masm.store_mem(mode, Mem::Local(offset_value), REG_RESULT);
+        self.masm.store_mem(mode, Mem::Local(offset_value), REG_RESULT.into());
 
-        self.masm.load_mem(MachineMode::Ptr, REG_TMP1, Mem::Local(offset_object));
-        self.masm.load_mem(MachineMode::Int32, REG_TMP2, Mem::Local(offset_index));
+        self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(offset_object));
+        self.masm.load_mem(MachineMode::Int32, REG_TMP2.into(), Mem::Local(offset_index));
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
         }
 
-        self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset_value));
+        self.masm.load_mem(mode, REG_RESULT.into(), Mem::Local(offset_value));
         self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT);
 
         self.free_temp_for_node(object, offset_object);
@@ -874,10 +874,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       dest: Reg) {
         self.emit_expr(object, REG_RESULT.into());
         let offset = self.reserve_temp_for_node(object);
-        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT);
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(index, REG_TMP1.into());
-        self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
+        self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm.check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1, REG_TMP2);
@@ -895,19 +895,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_set_uint8(&mut self, e: &'ast ExprCallType, _: Reg) {
         self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
-        self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT);
+        self.masm.store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(&e.args[1], REG_TMP1.into());
-        self.masm.load_mem(MachineMode::Int64, REG_RESULT, Mem::Local(offset));
+        self.masm.load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
 
-        self.masm.store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1);
+        self.masm.store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.object.as_ref().unwrap(), REG_RESULT.into());
         self.masm.test_if_nil_bailout(e.pos, REG_RESULT, Trap::NIL);
         self.masm.load_mem(MachineMode::Ptr,
-                           dest,
+                           dest.into(),
                            Mem::Base(REG_RESULT, Header::size()));
     }
 
@@ -923,10 +923,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
-        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT);
+        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(&e.args[1], REG_TMP1.into());
-        self.masm.load_mem(MachineMode::Int32, REG_RESULT, Mem::Local(offset));
+        self.masm.load_mem(MachineMode::Int32, REG_RESULT.into(), Mem::Local(offset));
 
         self.masm.int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
     }
@@ -987,19 +987,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_expr(lhs, lhs_reg);
         let offset = self.reserve_temp_for_node(lhs);
 
-        if mode.is_float() {
-            self.masm.storef_mem(mode, Mem::Local(offset), lhs_reg.freg());
-        } else {
-            self.masm.store_mem(mode, Mem::Local(offset), lhs_reg.reg());
-        }
+        self.masm.store_mem(mode, Mem::Local(offset), lhs_reg);
 
         self.emit_expr(rhs, rhs_reg);
 
-        if mode.is_float() {
-            self.masm.loadf_mem(mode, lhs_reg.freg(), Mem::Local(offset));
-        } else {
-            self.masm.load_mem(mode, lhs_reg.reg(), Mem::Local(offset));
-        }
+        self.masm.load_mem(mode, lhs_reg, Mem::Local(offset));
 
         if mode.is_float() {
             let lhs_reg = lhs_reg.freg();
@@ -1184,12 +1176,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                     self.masm.emit_comment(Comment::StoreVTable(cls_id));
                     self.masm.load_constpool(REG_TMP1, disp + pos);
-                    self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1);
+                    self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0),
+                                        REG_TMP1.into());
                 }
             }
 
             let offset = self.reserve_temp_for_arg(arg);
-            self.masm.store_mem(arg.ty().mode(), Mem::Local(offset), REG_RESULT);
+            self.masm.store_mem(arg.ty().mode(), Mem::Local(offset), REG_RESULT.into());
             temps.push((arg.ty(), offset));
         }
 
@@ -1201,7 +1194,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             if ind < REG_PARAMS.len() {
                 let reg = REG_PARAMS[ind];
-                self.masm.load_mem(ty.mode(), reg, Mem::Local(offset));
+                self.masm.load_mem(ty.mode(), reg.into(), Mem::Local(offset));
 
                 if ind == 0 {
                     let call_type = self.src.map_calls.get(id);
@@ -1212,8 +1205,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
             } else {
-                self.masm.load_mem(ty.mode(), REG_TMP1, Mem::Local(offset));
-                self.masm.store_mem(ty.mode(), Mem::Local(arg_offset), REG_TMP1);
+                self.masm.load_mem(ty.mode(), REG_TMP1.into(), Mem::Local(offset));
+                self.masm.store_mem(ty.mode(), Mem::Local(arg_offset), REG_TMP1.into());
 
                 arg_offset += 8;
             }
@@ -1252,7 +1245,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         if csite.args.len() > 0 {
             if let Arg::SelfieNew(_, _) = csite.args[0] {
                 let (ty, offset) = temps[0];
-                self.masm.load_mem(ty.mode(), dest.reg(), Mem::Local(offset));
+                self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
             }
         }
 

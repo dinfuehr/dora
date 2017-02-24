@@ -12,7 +12,7 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info;
 use baseline::map::CodeData;
-use cpu::{FREG_RESULT, Mem, Reg, REG_PARAMS, REG_RESULT};
+use cpu::{FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
@@ -221,7 +221,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let hidden_self = if self.fct.in_class() {
             let var = self.src.var_self();
             self.masm.emit_comment(Comment::StoreParam(var.id));
-            self.masm.store_mem(var.ty.mode(), Mem::Local(var.offset), REG_PARAMS[0]);
+            self.masm.store_mem(var.ty.mode(), Mem::Local(var.offset), REG_PARAMS[0].into());
 
             1
 
@@ -234,7 +234,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             .zip(&self.ast.params) {
             let var = *self.src.map_vars.get(p.id).unwrap();
             self.masm.emit_comment(Comment::StoreParam(var));
-            var_store(&mut self.masm, &self.src, reg, var);
+            var_store(&mut self.masm, &self.src, reg.into(), var);
         }
 
         self.masm.emit_comment(Comment::Newline);
@@ -259,7 +259,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
                 let offset = self.src.eh_return_value.unwrap();
-                self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT);
+                self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT.into());
             }
         }
 
@@ -270,7 +270,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
             let offset = self.src.eh_return_value.unwrap();
-            self.masm.load_mem(mode, REG_RESULT, Mem::Local(offset));
+            self.masm.load_mem(mode, REG_RESULT.into(), Mem::Local(offset));
         }
 
         self.emit_return();
@@ -391,10 +391,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
-            self.emit_expr(expr);
+            let value = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.masm, &self.src, REG_RESULT, var);
+            var_store(&mut self.masm, &self.src, value, var);
         }
 
         let reference_type = {
@@ -411,7 +411,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
-            var_store(&mut self.masm, &self.src, REG_RESULT, var);
+            var_store(&mut self.masm, &self.src, REG_RESULT.into(), var);
         }
     }
 
@@ -521,7 +521,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.visit_stmt(&finally_block.block);
 
-        self.masm.load_mem(MachineMode::Ptr, REG_RESULT, Mem::Local(offset));
+        self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
         self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();
@@ -589,12 +589,12 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(masm: &mut MacroAssembler, fct: &FctSrc, src: Reg, var_id: VarId) {
+pub fn var_store(masm: &mut MacroAssembler, fct: &FctSrc, src: ExprStore, var_id: VarId) {
     let var = &fct.vars[var_id];
     masm.store_mem(var.ty.mode(), Mem::Local(var.offset), src);
 }
 
-pub fn var_load(masm: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: Reg) {
+pub fn var_load(masm: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: ExprStore) {
     let var = &fct.vars[var_id];
     masm.load_mem(var.ty.mode(), dest, Mem::Local(var.offset));
 }
