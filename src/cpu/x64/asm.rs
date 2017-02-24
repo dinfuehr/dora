@@ -738,6 +738,29 @@ pub fn emit_cmpb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_u8(buf, imm);
 }
 
+pub fn cmov(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: Reg, cond: CondCode) {
+    let opcode = match cond {
+        CondCode::Zero | CondCode::Equal => 0x44,
+        CondCode::NonZero | CondCode::NotEqual => 0x45,
+        CondCode::Greater => 0x4F,
+        CondCode::GreaterEq => 0x4D,
+        CondCode::Less => 0x4C,
+        CondCode::LessEq => 0x4E,
+        CondCode::UnsignedGreater => 0x47, // above
+        CondCode::UnsignedGreaterEq => 0x43, // above or equal
+        CondCode::UnsignedLess => 0x42, // below
+        CondCode::UnsignedLessEq => 0x46, // below or equal
+    };
+
+    if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), 0, src.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, opcode);
+    emit_modrm(buf, 0b11, dest.and7(), src.and7());
+}
+
 pub fn emit_callq_reg(buf: &mut MacroAssembler, dest: Reg) {
     if dest.msb() != 0 {
         emit_rex(buf, 0, 0, 0, dest.msb());
@@ -1943,5 +1966,12 @@ mod tests {
     fn test_movss_store() {
         assert_emit!(0xf3, 0x0f, 0x11, 0x40, 1; movss_store(Mem::Base(RAX, 1), XMM0));
         assert_emit!(0xf2, 0x44, 0x0f, 0x11, 0x78, 1; movsd_store(Mem::Base(RAX, 1), XMM15));
+    }
+
+    #[test]
+    fn test_cmov() {
+        assert_emit!(0x44, 0x0f, 0x44, 0xf8; cmov(0, R15, RAX, CondCode::Equal));
+        assert_emit!(0x41, 0x0f, 0x45, 0xc5; cmov(0, RAX, R13, CondCode::NotEqual));
+        assert_emit!(0x48, 0x0f, 0x4f, 0xc1; cmov(1, RAX, RCX, CondCode::Greater));
     }
 }

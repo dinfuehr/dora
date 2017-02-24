@@ -1,6 +1,11 @@
 fun main() {
     let a = 1F + 2F;
-    let b = 1F - 2F;
+    let b = 2F - 1F;
     let c = 2F * 3F;
     let d = 4F / 2F;
+
+    assert(a == 3F);
+    assert(b == 1F);
+    assert(c == 6F);
+    assert(d == 2F);
 }

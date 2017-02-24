@@ -1099,8 +1099,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     _ => CondCode::Equal,
                 };
 
-                self.masm.cmp_freg(mode, lhs, rhs);
-                self.masm.set(dest.reg(), cond_code);
+                self.masm.float_cmp(mode, lhs, rhs, dest.reg(), cond_code);
             }
 
             Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
@@ -1113,8 +1112,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 if let Some(BinOp::Cmp(op)) = op {
                     let cond_code = to_cond_code(op);
 
-                    self.masm.cmp_freg(mode, lhs, rhs);
-                    self.masm.set(dest.reg(), cond_code);
+                    self.masm.float_cmp(mode, lhs, rhs, dest.reg(), cond_code);
                 } else {
                     unimplemented!();
                 }

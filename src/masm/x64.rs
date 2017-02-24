@@ -107,12 +107,19 @@ impl MacroAssembler {
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
-    pub fn cmp_freg(&mut self, mode: MachineMode, lhs: FReg, rhs: FReg) {
+    pub fn float_cmp(&mut self, mode: MachineMode, lhs: FReg, rhs: FReg, dest: Reg, cond: CondCode) {
+        let scratch = self.get_scratch();
+
+        self.load_int_const(MachineMode::Int32, *scratch, 1);
+        self.load_int_const(MachineMode::Int32, dest, 0);
+
         match mode {
             MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
             MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
             _ => unreachable!(),
         }
+
+        asm::cmov(self, 0, dest, *scratch, cond);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
@@ -478,15 +485,17 @@ impl MacroAssembler {
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
+        let pos = self.pos() as i32;
+
         match mode {
             MachineMode::Float32 => {
                 let off = self.dseg.add_f32(imm as f32);
-                asm::movss_load(self, dest, Mem::Base(RIP, off));
+                asm::movss_load(self, dest, Mem::Base(RIP, -(off + pos + 8)));
             }
 
             MachineMode::Float64 => {
                 let off = self.dseg.add_f64(imm);
-                asm::movsd_load(self, dest, Mem::Base(RIP, off));
+                asm::movsd_load(self, dest, Mem::Base(RIP, -(off + pos + 8)));
             }
 
             _ => unreachable!(),
