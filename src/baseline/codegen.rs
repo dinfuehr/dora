@@ -12,7 +12,7 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info;
 use baseline::map::CodeData;
-use cpu::{Mem, Reg, REG_PARAMS, REG_RESULT};
+use cpu::{FREG_RESULT, Mem, Reg, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
@@ -20,7 +20,7 @@ use masm::*;
 use os;
 use os::signal::Trap;
 use semck::always_returns;
-use ty::MachineMode;
+use ty::{BuiltinType, MachineMode};
 
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
@@ -254,7 +254,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
         if let Some(ref expr) = s.expr {
-            self.emit_expr(expr, REG_RESULT);
+            self.emit_expr(expr);
 
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
@@ -300,7 +300,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         } else {
             // execute condition, when condition is false jump to
             // end of while
-            self.emit_expr(&s.cond, REG_RESULT);
+            self.emit_expr(&s.cond);
             self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
 
@@ -349,7 +349,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             lbl_end
         };
 
-        self.emit_expr(&s.cond, REG_RESULT);
+        self.emit_expr(&s.cond);
         self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
         self.visit_stmt(&s.then_block);
@@ -373,7 +373,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
-        self.emit_expr(&s.expr, REG_RESULT);
+        self.emit_expr(&s.expr);
     }
 
     fn emit_stmt_block(&mut self, s: &'ast StmtBlockType) {
@@ -391,7 +391,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
-            self.emit_expr(expr, REG_RESULT);
+            self.emit_expr(expr);
             initialized = true;
 
             var_store(&mut self.masm, &self.src, REG_RESULT, var);
@@ -416,7 +416,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
-        self.emit_expr(&s.expr, REG_RESULT);
+        self.emit_expr(&s.expr);
         self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
         self.masm.trap(Trap::THROW);
@@ -529,7 +529,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         Some(finally_pos)
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr, dest: Reg) {
+    fn emit_expr(&mut self, e: &'ast Expr) -> ExprStore {
+        let ty = self.src.map_tys.get(e.id()).map(|ty| *ty).unwrap_or(BuiltinType::Int);
+
+        let dest: ExprStore = if ty.is_float() {
+            FREG_RESULT.into()
+        } else {
+            REG_RESULT.into()
+        };
+
         let expr_gen = ExprGen::new(self.ctxt,
                                     self.fct,
                                     self.src,
@@ -537,7 +545,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                                     &mut self.masm,
                                     &mut self.scopes);
 
-        expr_gen.generate(e, dest.into());
+        expr_gen.generate(e, dest);
+
+        dest
     }
 }
 

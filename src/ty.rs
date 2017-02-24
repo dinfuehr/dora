@@ -67,6 +67,14 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_float(&self) -> bool {
+        match self {
+            &BuiltinType::Float |
+            &BuiltinType::Double => true,
+            _ => false,
+        }
+    }
+
     pub fn cls_id(&self, ctxt: &Context) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,

@@ -491,6 +491,22 @@ impl MacroAssembler {
         }
     }
 
+    pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
+        match mode {
+            MachineMode::Float32 => {
+                let off = self.dseg.add_f32(imm as f32);
+                asm::movss_load(self, dest, Mem::Base(RIP, off));
+            }
+
+            MachineMode::Float64 => {
+                let off = self.dseg.add_f64(imm);
+                asm::movsd_load(self, dest, Mem::Base(RIP, off));
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
     pub fn load_true(&mut self, dest: Reg) {
         asm::emit_movl_imm_reg(self, 1, dest);
     }

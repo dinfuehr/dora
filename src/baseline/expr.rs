@@ -9,7 +9,7 @@ use cpu::{FReg, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
-use lexer::token::IntSuffix;
+use lexer::token::{FloatSuffix, IntSuffix};
 use masm::*;
 use mem;
 use object::{Header, Str};
@@ -96,7 +96,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
-            ExprLitFloat(_) => unimplemented!(),
+            ExprLitFloat(ref expr) => self.emit_lit_float(expr, dest.freg()),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
             ExprLitStruct(_) => unimplemented!(),
@@ -427,6 +427,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         };
 
         self.masm.load_int_const(ty, dest, lit.value as i64);
+    }
+
+    fn emit_lit_float(&mut self, lit: &'ast ExprLitFloatType, dest: FReg) {
+        let ty = match lit.suffix {
+            FloatSuffix::Float => MachineMode::Float32,
+            FloatSuffix::Double => MachineMode::Float64,
+        };
+
+        self.masm.load_float_const(ty, dest, lit.value);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {

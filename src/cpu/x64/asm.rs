@@ -902,7 +902,12 @@ fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, s
 
     let (base_msb, index_msb) = match src {
         Mem::Local(_) => (RBP.msb(), 0),
-        Mem::Base(base, _) => (base.msb(), 0),
+        Mem::Base(base, _) => {
+            let base_msb = if base == RIP { 0 } else { base.msb() };
+
+            (base_msb, 0)
+        },
+
         Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
     };
 
@@ -1930,6 +1935,8 @@ mod tests {
                      movss_load(XMM1, Mem::Index(R15, RCX, 4, 1)));
         assert_emit!(0xf2, 0x43, 0x0f, 0x10, 0x4c, 0xbf, 2;
                      movsd_load(XMM1, Mem::Index(R15, R15, 4, 2)));
+        assert_emit!(0xf3, 0x0f, 0x10, 0x05, 0xec, 0xff, 0xff, 0xff;
+                     movss_load(XMM0, Mem::Base(RIP, -20)));
     }
 
     #[test]

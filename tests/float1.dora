@@ -1,0 +1,8 @@
+//= ignore
+
+fun main() {
+    let a = 1F + 2F;
+    let b = 1F - 2F;
+    let c = 2F * 3F;
+    let d = 4F / 2F;
+}

@@ -1,3 +1,4 @@
+use std;
 use mem;
 
 #[derive(Debug)]
@@ -9,7 +10,24 @@ pub struct DSeg {
 #[derive(Debug)]
 struct Entry {
     disp: i32,
-    value: *const u8,
+    value: Value,
+}
+
+#[derive(Debug, PartialEq)]
+enum Value {
+    Ptr(*const u8),
+    Float(f32),
+    Double(f64),
+}
+
+impl Value {
+    fn size(&self) -> i32 {
+        match self {
+            &Value::Ptr(_) => mem::ptr_width(),
+            &Value::Float(_) => std::mem::size_of::<f32>() as i32,
+            &Value::Double(_) => std::mem::size_of::<f64>() as i32,
+        }
+    }
 }
 
 impl DSeg {
@@ -30,14 +48,27 @@ impl DSeg {
 
             unsafe {
                 let entry_ptr = ptr.offset(offset as isize);
-                *(entry_ptr as *mut (*const u8)) = entry.value;
+
+                match entry.value {
+                    Value::Ptr(v) => {
+                        *(entry_ptr as *mut (*const u8)) = v;
+                    }
+
+                    Value::Float(v) => {
+                        *(entry_ptr as *mut f32) = v;
+                    }
+
+                    Value::Double(v) => {
+                        *(entry_ptr as *mut f64) = v;
+                    }
+                }
             }
         }
     }
 
     pub fn add_addr_reuse(&mut self, ptr: *const u8) -> i32 {
         for entry in &self.entries {
-            if entry.value == ptr {
+            if entry.value == Value::Ptr(ptr) {
                 return entry.disp;
             }
         }
@@ -46,12 +77,26 @@ impl DSeg {
     }
 
     pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
-        self.size = mem::align_i32(self.size + mem::ptr_width(), mem::ptr_width());
+        self.add_value(Value::Ptr(ptr))
+    }
+
+    pub fn add_f32(&mut self, value: f32) -> i32 {
+        self.add_value(Value::Float(value))
+    }
+
+    pub fn add_f64(&mut self, value: f64) -> i32 {
+        self.add_value(Value::Double(value))
+    }
+
+    fn add_value(&mut self, value: Value) -> i32 {
+        let size = value.size();
+        self.size = mem::align_i32(self.size + size, size);
 
         let entry = Entry {
             disp: self.size,
-            value: ptr,
+            value: value,
         };
+
         self.entries.push(entry);
 
         self.size
