@@ -242,36 +242,59 @@ fn cls_addsub_shreg(sf: u32,
 }
 
 pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b00, 0, 0b01, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b00, 0, 0b01, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn ldrh_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b01, 0, 0b01, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b01, 0, 0b01, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn ldrw_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b10, 0, 0b01, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b10, 0, 0b01, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn ldrx_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b11, 0, 0b01, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b11, 0, 0b01, rm, extend, amount, rn, rt.asm())
+}
+
+pub fn ldrs_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 1, 0b01, rm, extend, amount, rn, rt.asm())
+}
+
+pub fn ldrd_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 1, 0b01, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b00, 0, 0b00, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b00, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strh_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b01, 0, 0b00, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b01, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
-
 pub fn strw_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b10, 0, 0b00, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b10, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strx_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    cls_ldst_regoffset(0b11, 0, 0b00, rm, extend, amount, rn, rt)
+    assert!(rt.is_gpr());
+    cls_ldst_regoffset(0b11, 0, 0b00, rm, extend, amount, rn, rt.asm())
+}
+
+pub fn strs_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b10, 1, 0b00, rm, extend, amount, rn, rt.asm())
+}
+
+pub fn strd_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
+    cls_ldst_regoffset(0b11, 1, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 fn cls_ldst_regoffset(size: u32,
@@ -281,7 +304,7 @@ fn cls_ldst_regoffset(size: u32,
                       option: LdStExtend,
                       s: u32,
                       rn: Reg,
-                      rt: Reg)
+                      rt: u32)
                       -> u32 {
     assert!(fits_u2(size));
     assert!(fits_bit(v));
@@ -289,10 +312,10 @@ fn cls_ldst_regoffset(size: u32,
     assert!(rm.is_gpr());
     assert!(fits_bit(s));
     assert!(rn.is_gpr_or_sp());
-    assert!(rt.is_gpr());
+    assert!(fits_u5(rt));
 
     0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 | v << 26 | opc << 22 |
-    rm.asm() << 16 | option.u32() << 13 | s << 12 | rn.asm() << 5 | rt.asm()
+    rm.asm() << 16 | option.u32() << 13 | s << 12 | rn.asm() << 5 | rt
 }
 
 pub fn ldrb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
