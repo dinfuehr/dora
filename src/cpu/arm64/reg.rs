@@ -10,6 +10,9 @@ pub const REG_TMP2: Reg = R11;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
 
+pub const FREG_RESULT: FReg = F0;
+pub const FREG_TMP1: FReg = F1;
+
 pub const REG_SP: Reg = Reg(32);
 pub const REG_ZERO: Reg = Reg(33);
 
