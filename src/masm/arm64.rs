@@ -286,31 +286,87 @@ impl MacroAssembler {
     }
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fadd(dbl, dest, lhs, rhs));
     }
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fsub(dbl, dest, lhs, rhs));
     }
 
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fmul(dbl, dest, lhs, rhs));
     }
 
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fdiv(dbl, dest, lhs, rhs));
     }
 
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fneg(dbl, dest, src));
     }
 
     pub fn float_cmp(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg, cond: CondCode) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        match cond {
+            CondCode::Equal | CondCode::NotEqual => {
+                self.emit_u32(asm::fcmp(dbl, lhs, rhs));
+                self.emit_u32(asm::cset(0, dest, cond.into()));
+            }
+
+            CondCode::Greater | CondCode::GreaterEq |
+            CondCode::Less | CondCode::LessEq => {
+                self.emit_u32(asm::fcmpe(dbl, lhs, rhs));
+                self.emit_u32(asm::cset(0, dest, cond.into()));
+            }
+
+            _ => unreachable!(),
+        }
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
-        unimplemented!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fcmp(dbl, src, src));
+        self.emit_u32(asm::cset(0, dest, Cond::VS));
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, value: f64) {
@@ -758,7 +814,7 @@ mod tests {
         let i2 = asm::ldrx_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1, Mem::Local(1));
+        masm.load_mem(Ptr, R1.into(), Mem::Local(1));
         assert_emit!(i1, i2; masm);
     }
 
@@ -768,7 +824,7 @@ mod tests {
         let i2 = asm::ldrw_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1, Mem::Local(2));
+        masm.load_mem(Int32, R1.into(), Mem::Local(2));
         assert_emit!(i1, i2; masm);
     }
 
@@ -778,7 +834,7 @@ mod tests {
         let i2 = asm::ldrb_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1, Mem::Local(3));
+        masm.load_mem(Int8, R1.into(), Mem::Local(3));
         assert_emit!(i1, i2; masm);
     }
 
@@ -788,7 +844,7 @@ mod tests {
         let i2 = asm::ldrx_ind(R1, R10, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1, Mem::Base(R10, 1));
+        masm.load_mem(Ptr, R1.into(), Mem::Base(R10, 1));
         assert_emit!(i1, i2; masm);
     }
 
@@ -798,7 +854,7 @@ mod tests {
         let i2 = asm::ldrw_ind(R1, R2, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1, Mem::Base(R2, 2));
+        masm.load_mem(Int32, R1.into(), Mem::Base(R2, 2));
         assert_emit!(i1, i2; masm);
     }
 
@@ -808,7 +864,7 @@ mod tests {
         let i2 = asm::ldrb_ind(R1, R3, R16, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1, Mem::Base(R3, 3));
+        masm.load_mem(Int8, R1.into(), Mem::Base(R3, 3));
         assert_emit!(i1, i2; masm);
     }
 
@@ -819,7 +875,7 @@ mod tests {
         let i3 = asm::ldrx_ind(R1, R16, R11, LdStExtend::LSL, 1);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Ptr, R1, Mem::Index(R10, R11, 8, 1));
+        masm.load_mem(Ptr, R1.into(), Mem::Index(R10, R11, 8, 1));
         assert_emit!(i1, i2, i3; masm);
     }
 
@@ -830,7 +886,7 @@ mod tests {
         let i3 = asm::ldrw_ind(R1, R16, R12, LdStExtend::LSL, 1);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int32, R1, Mem::Index(R2, R12, 4, 2));
+        masm.load_mem(Int32, R1.into(), Mem::Index(R2, R12, 4, 2));
         assert_emit!(i1, i2, i3; masm);
     }
 
@@ -841,7 +897,7 @@ mod tests {
         let i3 = asm::ldrb_ind(R1, R16, R13, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
-        masm.load_mem(Int8, R1, Mem::Index(R3, R13, 1, 3));
+        masm.load_mem(Int8, R1.into(), Mem::Index(R3, R13, 1, 3));
         assert_emit!(i1, i2, i3; masm);
     }
 }
