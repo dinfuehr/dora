@@ -8,4 +8,14 @@ fun main() {
     assert(b == 1F);
     assert(c == 6F);
     assert(d == 2F);
+
+    let a = 1D + 2D;
+    let b = 2D - 1D;
+    let c = 2D * 3D;
+    let d = 4D / 2D;
+
+    assert(a == 3D);
+    assert(b == 1D);
+    assert(c == 6D);
+    assert(d == 2D);
 }

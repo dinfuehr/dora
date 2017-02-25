@@ -481,7 +481,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::IntPlus | Intrinsic::LongPlus => {}
+                Intrinsic::IntPlus | Intrinsic::LongPlus |
+                Intrinsic::FloatPlus | Intrinsic::DoublePlus => {}
 
                 Intrinsic::IntNeg | Intrinsic::LongNeg => {
                     let dest = dest.reg();
@@ -493,6 +494,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     };
 
                     self.masm.int_neg(mode, dest, dest);
+                }
+
+                Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
+                    let dest = dest.freg();
+
+                    let mode = if intrinsic == Intrinsic::FloatNeg {
+                        MachineMode::Float32
+                    } else {
+                        MachineMode::Float64
+                    };
+
+                    self.masm.float_neg(mode, dest, dest);
                 }
 
                 Intrinsic::ByteNot => {
@@ -815,11 +828,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::FloatSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
 
                 Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
@@ -901,6 +916,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
 
         self.masm.store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+    }
+
+    fn emit_intrinsic_is_nan(&mut self, e: &'ast ExprCallType, dest: Reg, intrinsic: Intrinsic) {
+        self.emit_expr(&e.object.as_ref().unwrap(), FREG_RESULT.into());
+
+        let mode = match intrinsic {
+            Intrinsic::FloatIsNan => MachineMode::Float32,
+            Intrinsic::DoubleIsNan => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.masm.float_cmp_nan(mode, dest, FREG_RESULT);
     }
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1099,7 +1126,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     _ => CondCode::Equal,
                 };
 
-                self.masm.float_cmp(mode, lhs, rhs, dest.reg(), cond_code);
+                self.masm.float_cmp(mode, dest.reg(), lhs, rhs, cond_code);
             }
 
             Intrinsic::FloatCmp | Intrinsic::DoubleCmp => {
@@ -1112,7 +1139,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 if let Some(BinOp::Cmp(op)) = op {
                     let cond_code = to_cond_code(op);
 
-                    self.masm.float_cmp(mode, lhs, rhs, dest.reg(), cond_code);
+                    self.masm.float_cmp(mode, dest.reg(), lhs, rhs, cond_code);
                 } else {
                     unimplemented!();
                 }

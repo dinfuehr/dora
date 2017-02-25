@@ -107,7 +107,8 @@ impl MacroAssembler {
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
-    pub fn float_cmp(&mut self, mode: MachineMode, lhs: FReg, rhs: FReg, dest: Reg, cond: CondCode) {
+    pub fn float_cmp(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg,
+                     cond: CondCode) {
         let scratch = self.get_scratch();
 
         self.load_int_const(MachineMode::Int32, *scratch, 1);
@@ -120,6 +121,18 @@ impl MacroAssembler {
         }
 
         asm::cmov(self, 0, dest, *scratch, cond);
+    }
+
+    pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
+        self.load_int_const(MachineMode::Int32, dest, 0);
+
+        match mode {
+            MachineMode::Float32 => asm::ucomiss(self, src, src),
+            MachineMode::Float64 => asm::ucomisd(self, src, src),
+            _ => unreachable!(),
+        }
+
+        asm::emit_setb_reg_parity(self, dest);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
@@ -562,7 +575,7 @@ impl MacroAssembler {
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
             MachineMode::Float32 => asm::addss(self, lhs, rhs),
-            MachineMode::Int64 => asm::addsd(self, lhs, rhs),
+            MachineMode::Float64 => asm::addsd(self, lhs, rhs),
             _ => unimplemented!(),
         }
 
@@ -574,7 +587,7 @@ impl MacroAssembler {
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
             MachineMode::Float32 => asm::subss(self, lhs, rhs),
-            MachineMode::Int64 => asm::subsd(self, lhs, rhs),
+            MachineMode::Float64 => asm::subsd(self, lhs, rhs),
             _ => unimplemented!(),
         }
 
@@ -586,7 +599,7 @@ impl MacroAssembler {
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
             MachineMode::Float32 => asm::mulss(self, lhs, rhs),
-            MachineMode::Int64 => asm::mulsd(self, lhs, rhs),
+            MachineMode::Float64 => asm::mulsd(self, lhs, rhs),
             _ => unimplemented!(),
         }
 
@@ -598,13 +611,17 @@ impl MacroAssembler {
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
             MachineMode::Float32 => asm::divss(self, lhs, rhs),
-            MachineMode::Int64 => asm::divsd(self, lhs, rhs),
+            MachineMode::Float64 => asm::divsd(self, lhs, rhs),
             _ => unimplemented!(),
         }
 
         if dest != lhs {
             self.copy_freg(mode, dest, lhs);
         }
+    }
+
+    pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        unimplemented!();
     }
 
     pub fn trap(&mut self, trap: Trap) {

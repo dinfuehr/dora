@@ -702,6 +702,16 @@ pub fn emit_setb_reg(buf: &mut MacroAssembler, op: CondCode, reg: Reg) {
     emit_modrm(buf, 0b11, 0, reg.and7());
 }
 
+pub fn emit_setb_reg_parity(buf: &mut MacroAssembler, reg: Reg) {
+    if reg.msb() != 0 || !reg.is_basic_reg() {
+        emit_rex(buf, 0, 0, 0, reg.msb());
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, 0x9a);
+    emit_modrm(buf, 0b11, 0, reg.and7());
+}
+
 pub fn emit_movb_reg_reg(buf: &mut MacroAssembler, src: Reg, dest: Reg) {
     if src.msb() != 0 || dest.msb() != 0 || !src.is_basic_reg() {
         emit_rex(buf, 0, dest.msb(), 0, src.msb());
@@ -1973,5 +1983,16 @@ mod tests {
         assert_emit!(0x44, 0x0f, 0x44, 0xf8; cmov(0, R15, RAX, CondCode::Equal));
         assert_emit!(0x41, 0x0f, 0x45, 0xc5; cmov(0, RAX, R13, CondCode::NotEqual));
         assert_emit!(0x48, 0x0f, 0x4f, 0xc1; cmov(1, RAX, RCX, CondCode::Greater));
+    }
+
+    #[test]
+    fn test_setb_reg_parity() {
+        assert_emit!(0x0f, 0x9a, 0xc0; emit_setb_reg_parity(RAX));
+        assert_emit!(0x0f, 0x9a, 0xc1; emit_setb_reg_parity(RCX));
+        assert_emit!(0x0f, 0x9a, 0xc2; emit_setb_reg_parity(RDX));
+        assert_emit!(0x0f, 0x9a, 0xc3; emit_setb_reg_parity(RBX));
+
+        assert_emit!(0x40, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(RDI));
+        assert_emit!(0x41, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(R15));
     }
 }

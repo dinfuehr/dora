@@ -465,6 +465,7 @@ pub enum Intrinsic {
 
     FloatPlus,
     FloatNeg,
+    FloatIsNan,
 
     DoubleEq,
     DoubleCmp,
@@ -476,6 +477,7 @@ pub enum Intrinsic {
 
     DoublePlus,
     DoubleNeg,
+    DoubleIsNan,
 }
 
 #[derive(Debug)]
