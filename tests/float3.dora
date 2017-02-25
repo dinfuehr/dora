@@ -1,0 +1,11 @@
+fun main() {
+    let x = 1F;
+    let y = 2F;
+    let z = 0F / 0F;
+
+    assert(x == x);
+    assert(x != y);
+
+    assert(z.isNan());
+    assert(z != z);
+}

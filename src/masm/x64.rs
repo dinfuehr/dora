@@ -111,16 +111,52 @@ impl MacroAssembler {
                      cond: CondCode) {
         let scratch = self.get_scratch();
 
-        self.load_int_const(MachineMode::Int32, *scratch, 1);
-        self.load_int_const(MachineMode::Int32, dest, 0);
+        match cond {
+            CondCode::Equal | CondCode::NotEqual => {
+                let init = if cond == CondCode::Equal { 0 } else { 1 };
 
-        match mode {
-            MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
-            MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+                self.load_int_const(MachineMode::Int32, *scratch, init);
+                self.load_int_const(MachineMode::Int32, dest, 0);
+
+                match mode {
+                    MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
+                    MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+                    _ => unreachable!(),
+                }
+
+                let parity = if cond == CondCode::Equal {
+                    false
+                } else {
+                    true
+                };
+
+                asm::emit_setb_reg_parity(self, dest, parity);
+                asm::cmov(self, 0, dest, *scratch, CondCode::NotEqual);
+            }
+
+            CondCode::Greater | CondCode::GreaterEq |
+            CondCode::Less | CondCode::LessEq => {
+                self.load_int_const(MachineMode::Int32, dest, 0);
+
+                match mode {
+                    MachineMode::Float32 => asm::ucomiss(self, lhs, rhs),
+                    MachineMode::Float64 => asm::ucomisd(self, lhs, rhs),
+                    _ => unreachable!(),
+                }
+
+                let cond = match cond {
+                    CondCode::Greater => CondCode::UnsignedGreater,
+                    CondCode::GreaterEq => CondCode::UnsignedGreaterEq,
+                    CondCode::Less => CondCode::UnsignedLess,
+                    CondCode::LessEq => CondCode::UnsignedLessEq,
+                    _ => unreachable!(),
+                };
+
+                asm::emit_setb_reg(self, cond, dest);
+            }
+
             _ => unreachable!(),
         }
-
-        asm::cmov(self, 0, dest, *scratch, cond);
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
@@ -132,7 +168,7 @@ impl MacroAssembler {
             _ => unreachable!(),
         }
 
-        asm::emit_setb_reg_parity(self, dest);
+        asm::emit_setb_reg_parity(self, dest, true);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {

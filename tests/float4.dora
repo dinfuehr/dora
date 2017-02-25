@@ -1,0 +1,9 @@
+fun main() {
+    assert(1F < 3F);
+    assert(!(1F < 1F));
+    assert(1F <= 1F);
+
+    assert(3F > 1F);
+    assert(!(1F > 1F));
+    assert(1F >= 1F);
+}

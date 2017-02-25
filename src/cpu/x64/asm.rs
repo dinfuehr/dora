@@ -689,10 +689,10 @@ pub fn emit_setb_reg(buf: &mut MacroAssembler, op: CondCode, reg: Reg) {
         CondCode::LessEq => 0x9e,
         CondCode::Greater => 0x9f,
         CondCode::GreaterEq => 0x9d,
-        CondCode::UnsignedLess => 0x9c,
-        CondCode::UnsignedLessEq => 0x9e,
-        CondCode::UnsignedGreater => 0x9f,
-        CondCode::UnsignedGreaterEq => 0x9d,
+        CondCode::UnsignedGreater => 0x97, // above
+        CondCode::UnsignedGreaterEq => 0x93, // above or equal
+        CondCode::UnsignedLess => 0x92, // below
+        CondCode::UnsignedLessEq => 0x96, // below or equal
         CondCode::Zero | CondCode::Equal => 0x94,
         CondCode::NonZero | CondCode::NotEqual => 0x95,
     };
@@ -702,13 +702,15 @@ pub fn emit_setb_reg(buf: &mut MacroAssembler, op: CondCode, reg: Reg) {
     emit_modrm(buf, 0b11, 0, reg.and7());
 }
 
-pub fn emit_setb_reg_parity(buf: &mut MacroAssembler, reg: Reg) {
+pub fn emit_setb_reg_parity(buf: &mut MacroAssembler, reg: Reg, parity: bool) {
     if reg.msb() != 0 || !reg.is_basic_reg() {
         emit_rex(buf, 0, 0, 0, reg.msb());
     }
 
+    let opcode = if parity { 0x9a } else { 0x9b };
+
     emit_op(buf, 0x0f);
-    emit_op(buf, 0x9a);
+    emit_op(buf, opcode);
     emit_modrm(buf, 0b11, 0, reg.and7());
 }
 
@@ -1987,12 +1989,20 @@ mod tests {
 
     #[test]
     fn test_setb_reg_parity() {
-        assert_emit!(0x0f, 0x9a, 0xc0; emit_setb_reg_parity(RAX));
-        assert_emit!(0x0f, 0x9a, 0xc1; emit_setb_reg_parity(RCX));
-        assert_emit!(0x0f, 0x9a, 0xc2; emit_setb_reg_parity(RDX));
-        assert_emit!(0x0f, 0x9a, 0xc3; emit_setb_reg_parity(RBX));
+        assert_emit!(0x0f, 0x9a, 0xc0; emit_setb_reg_parity(RAX, true));
+        assert_emit!(0x0f, 0x9a, 0xc1; emit_setb_reg_parity(RCX, true));
+        assert_emit!(0x0f, 0x9a, 0xc2; emit_setb_reg_parity(RDX, true));
+        assert_emit!(0x0f, 0x9a, 0xc3; emit_setb_reg_parity(RBX, true));
 
-        assert_emit!(0x40, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(RDI));
-        assert_emit!(0x41, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(R15));
+        assert_emit!(0x40, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(RDI, true));
+        assert_emit!(0x41, 0x0f, 0x9a, 0xc7; emit_setb_reg_parity(R15, true));
+
+        assert_emit!(0x0f, 0x9b, 0xc0; emit_setb_reg_parity(RAX, false));
+        assert_emit!(0x0f, 0x9b, 0xc1; emit_setb_reg_parity(RCX, false));
+        assert_emit!(0x0f, 0x9b, 0xc2; emit_setb_reg_parity(RDX, false));
+        assert_emit!(0x0f, 0x9b, 0xc3; emit_setb_reg_parity(RBX, false));
+
+        assert_emit!(0x40, 0x0f, 0x9b, 0xc7; emit_setb_reg_parity(RDI, false));
+        assert_emit!(0x41, 0x0f, 0x9b, 0xc7; emit_setb_reg_parity(R15, false));
     }
 }
