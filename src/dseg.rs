@@ -18,6 +18,7 @@ enum Value {
     Ptr(*const u8),
     Float(f32),
     Double(f64),
+    Int(i32),
 }
 
 impl Value {
@@ -26,6 +27,7 @@ impl Value {
             &Value::Ptr(_) => mem::ptr_width(),
             &Value::Float(_) => std::mem::size_of::<f32>() as i32,
             &Value::Double(_) => std::mem::size_of::<f64>() as i32,
+            &Value::Int(_) => std::mem::size_of::<i32>() as i32,
         }
     }
 }
@@ -61,6 +63,10 @@ impl DSeg {
                     Value::Double(v) => {
                         *(entry_ptr as *mut f64) = v;
                     }
+
+                    Value::Int(v) => {
+                        *(entry_ptr as *mut i32) = v;
+                    }
                 }
             }
         }
@@ -78,6 +84,10 @@ impl DSeg {
 
     pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
         self.add_value(Value::Ptr(ptr))
+    }
+
+    pub fn add_i32(&mut self, value: i32) -> i32 {
+        self.add_value(Value::Int(value))
     }
 
     pub fn add_f32(&mut self, value: f32) -> i32 {
@@ -98,6 +108,13 @@ impl DSeg {
         };
 
         self.entries.push(entry);
+
+        self.size
+    }
+
+    pub fn align(&mut self, size: i32) -> i32 {
+        assert!(size > 0);
+        self.size = mem::align_i32(self.size, size);
 
         self.size
     }

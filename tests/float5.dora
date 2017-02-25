@@ -1,0 +1,9 @@
+fun main() {
+    let x = 1F;
+    assert(-x < x);
+    assert(x > -x);
+
+    let x = 1D;
+    assert(-x < x);
+    assert(x > -x);
+}

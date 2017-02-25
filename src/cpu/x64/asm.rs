@@ -916,6 +916,14 @@ pub fn cvttsd2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
     sse_float_reg_freg(buf, true, 0x2a, x64, dest, src);
 }
 
+pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
+    sse_float_freg_mem_66(buf, false, 0x57, dest, src);
+}
+
+pub fn xorpd(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
+    sse_float_freg_mem_66(buf, true, 0x57, dest, src);
+}
+
 fn sse_float_freg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: FReg) {
     let prefix = if dbl { 0xf2 } else { 0xf3 };
 
@@ -934,6 +942,44 @@ fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, s
     let prefix = if dbl { 0xf2 } else { 0xf3 };
 
     emit_op(buf, prefix);
+
+    let (base_msb, index_msb) = match src {
+        Mem::Local(_) => (RBP.msb(), 0),
+        Mem::Base(base, _) => {
+            let base_msb = if base == RIP { 0 } else { base.msb() };
+
+            (base_msb, 0)
+        },
+
+        Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
+    };
+
+    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
+        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
+    }
+
+    emit_op(buf, 0x0f);
+    emit_op(buf, op);
+
+    match src {
+        Mem::Local(offset) => {
+            emit_membase(buf, RBP, offset, Reg(dest.0));
+        }
+
+        Mem::Base(base, disp) => {
+            emit_membase(buf, base, disp, Reg(dest.0));
+        }
+
+        Mem::Index(base, index, scale, disp) => {
+            emit_membase_with_index_and_scale(buf, base, index, scale, disp, Reg(dest.0));
+        }
+    }
+}
+
+fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
+    if dbl {
+        emit_op(buf, 0x66);
+    }
 
     let (base_msb, index_msb) = match src {
         Mem::Local(_) => (RBP.msb(), 0),
@@ -2004,5 +2050,13 @@ mod tests {
 
         assert_emit!(0x40, 0x0f, 0x9b, 0xc7; emit_setb_reg_parity(RDI, false));
         assert_emit!(0x41, 0x0f, 0x9b, 0xc7; emit_setb_reg_parity(R15, false));
+    }
+
+    #[test]
+    fn test_xorps() {
+        assert_emit!(0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
+                     xorps(XMM0, Mem::Base(RIP, -10)));
+        assert_emit!(0x66, 0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
+                     xorpd(XMM0, Mem::Base(RIP, -10)));
     }
 }

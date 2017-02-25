@@ -657,7 +657,37 @@ impl MacroAssembler {
     }
 
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        unimplemented!();
+        let (fst, snd) = if mode == MachineMode::Float32 {
+            (1i32 << 31, 0)
+        } else {
+            (0, 1i32 << 31)
+        };
+
+        // align MMX data to 16 bytes
+        self.dseg.align(16);
+        self.dseg.add_i32(0);
+        self.dseg.add_i32(0);
+        self.dseg.add_i32(snd);
+        let disp = self.dseg.add_i32(fst);
+
+        let pos = self.pos() as i32;
+        let mem = Mem::Base(RIP, 0);
+
+        match mode {
+            MachineMode::Float32 => asm::xorps(self, src, mem),
+            MachineMode::Float64 => asm::xorpd(self, src, mem),
+            _ => unimplemented!(),
+        }
+
+        let after = self.pos() as i32;
+        let len = after - pos;
+
+        let offset = -(disp + pos + len);
+        self.emit_u32_at(after - 4, offset as u32);
+
+        if dest != src {
+            self.copy_freg(mode, dest, src);
+        }
     }
 
     pub fn trap(&mut self, trap: Trap) {

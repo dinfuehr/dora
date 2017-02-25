@@ -5,7 +5,7 @@ use std::rc::Rc;
 use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
                     LineNumberTable, GcPoints, GcPoint};
 use baseline::codegen::CondCode;
-use byteorder::{LittleEndian, WriteBytesExt};
+use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
 use ctxt::Context;
 use dseg::DSeg;
@@ -57,6 +57,9 @@ impl MacroAssembler {
     }
 
     pub fn jit(mut self, ctxt: &Context, stacksize: i32) -> JitFct {
+        // align data such that code starts at address that is
+        // aligned to 16
+        self.dseg.align(16);
         self.finish();
 
         JitFct::from_buffer(ctxt,
@@ -68,6 +71,11 @@ impl MacroAssembler {
                             self.comments,
                             self.linenos,
                             self.exception_handlers)
+    }
+
+    #[cfg(test)]
+    pub fn buffer(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn data(mut self) -> Vec<u8> {
@@ -177,8 +185,17 @@ impl MacroAssembler {
         self.data.write_u8(value).unwrap();
     }
 
+    pub fn emit_u8_at(&mut self, pos: i32, value: u8) {
+        self.data[pos as usize] = value;
+    }
+
     pub fn emit_u32(&mut self, value: u32) {
         self.data.write_u32::<LittleEndian>(value).unwrap();
+    }
+
+    pub fn emit_u32_at(&mut self, pos: i32, value: u32) {
+        let buf = &mut self.data[pos as usize..];
+        LittleEndian::write_u32(buf, value);
     }
 
     pub fn emit_u64(&mut self, value: u64) {
@@ -281,6 +298,16 @@ mod tests {
 
         assert_eq!(Label(0), masm.create_label());
         assert_eq!(Label(1), masm.create_label());
+    }
+
+    #[test]
+    fn test_emit_u32() {
+        let mut masm = MacroAssembler::new();
+        masm.emit_u32(0x11223344);
+        assert_eq!(&[0x44, 0x33, 0x22, 0x11], masm.buffer());
+
+        masm.emit_u32_at(0, 0x55667788);
+        assert_eq!(&[0x88, 0x77, 0x66, 0x55], masm.buffer());
     }
 
     #[test]
