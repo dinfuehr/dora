@@ -6,4 +6,12 @@ fun main() {
     assert(3F > 1F);
     assert(!(1F > 1F));
     assert(1F >= 1F);
+
+    assert(1D < 3D);
+    assert(!(1D < 1D));
+    assert(1D <= 1D);
+
+    assert(3D > 1D);
+    assert(!(1D > 1D));
+    assert(1D >= 1D);
 }
