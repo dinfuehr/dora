@@ -259,7 +259,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
                 let offset = self.src.eh_return_value.unwrap();
-                self.masm.store_mem(mode, Mem::Local(offset), REG_RESULT.into());
+                self.masm.store_mem(mode, Mem::Local(offset), register_for_mode(mode));
             }
         }
 
@@ -270,7 +270,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
             let offset = self.src.eh_return_value.unwrap();
-            self.masm.load_mem(mode, REG_RESULT.into(), Mem::Local(offset));
+            self.masm.load_mem(mode, register_for_mode(mode), Mem::Local(offset));
         }
 
         self.emit_return();
@@ -548,6 +548,14 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         expr_gen.generate(e, dest);
 
         dest
+    }
+}
+
+fn register_for_mode(mode: MachineMode) -> ExprStore {
+    if mode.is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
     }
 }
 

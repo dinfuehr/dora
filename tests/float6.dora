@@ -1,0 +1,15 @@
+fun main() {
+    let x = fone();
+    assert(1F == x);
+
+    let y = done();
+    assert(y == 1D);
+}
+
+fun fone() -> float {
+    return 1F;
+}
+
+fun done() -> double {
+    return 1D;
+}

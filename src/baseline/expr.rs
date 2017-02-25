@@ -18,7 +18,7 @@ use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum ExprStore {
     Reg(Reg),
     FReg(FReg),
@@ -1314,10 +1314,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.masm.emit_gcpoint(gcpoint);
 
-        let dest = dest.reg();
+        match dest {
+            ExprStore::FReg(dest) => {
+                if FREG_RESULT != dest {
+                    self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
+                }
+            }
 
-        if REG_RESULT != dest {
-            self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
+            ExprStore::Reg(dest) => {
+                if REG_RESULT != dest {
+                    self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
+                }
+            }
         }
     }
 }
