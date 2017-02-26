@@ -66,6 +66,8 @@ impl<'ast> Context<'ast> {
                 int_array: empty_class_id,
                 byte_array: empty_class_id,
                 long_array: empty_class_id,
+                float_array: empty_class_id,
+                double_array: empty_class_id,
             },
             gc: Mutex::new(gc),
             ast: ast,
@@ -208,6 +210,8 @@ pub struct PrimitiveClasses {
     pub int_array: ClassId,
     pub byte_array: ClassId,
     pub long_array: ClassId,
+    pub float_array: ClassId,
+    pub double_array: ClassId,
 }
 
 impl PrimitiveClasses {
@@ -216,13 +220,15 @@ impl PrimitiveClasses {
             BuiltinType::Byte => Some(self.byte_class),
             BuiltinType::Int => Some(self.int_class),
             BuiltinType::Long => Some(self.long_class),
+            BuiltinType::Float => Some(self.float_class),
+            BuiltinType::Double => Some(self.double_class),
             BuiltinType::Str => Some(self.str_class),
             BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::IntArray => Some(self.int_array),
             BuiltinType::ByteArray => Some(self.byte_array),
             BuiltinType::LongArray => Some(self.long_array),
-            BuiltinType::Float => Some(self.float_class),
-            BuiltinType::Double => Some(self.double_class),
+            BuiltinType::FloatArray => Some(self.float_array),
+            BuiltinType::DoubleArray => Some(self.double_array),
             _ => None,
         }
     }
@@ -467,6 +473,10 @@ pub enum Intrinsic {
     FloatNeg,
     FloatIsNan,
 
+    FloatArrayLen,
+    FloatArrayGet,
+    FloatArraySet,
+
     DoubleEq,
     DoubleCmp,
 
@@ -478,6 +488,10 @@ pub enum Intrinsic {
     DoublePlus,
     DoubleNeg,
     DoubleIsNan,
+
+    DoubleArrayLen,
+    DoubleArrayGet,
+    DoubleArraySet,
 }
 
 #[derive(Debug)]

@@ -59,16 +59,16 @@ impl MacroAssembler {
         self.emit_bailout_info(BailoutInfo::VirtCompile(index));
     }
 
-    pub fn load_array_elem(&mut self, mode: MachineMode, dest: Reg, array: Reg, index: Reg) {
+    pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
         self.load_mem(mode,
-                      dest.into(),
+                      dest,
                       Mem::Index(array, index, mode.size(), offset_of_array_data()));
     }
 
-    pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: Reg) {
+    pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: ExprStore) {
         self.store_mem(mode,
                        Mem::Index(array, index, mode.size(), offset_of_array_data()),
-                       value.into());
+                       value);
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {

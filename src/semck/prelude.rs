@@ -28,6 +28,10 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
     ctxt.primitive_classes.long_array =
         internal_class(ctxt, "LongArray", BuiltinType::LongArray, 0);
+    ctxt.primitive_classes.float_array =
+        internal_class(ctxt, "FloatArray", BuiltinType::FloatArray, 0);
+    ctxt.primitive_classes.double_array =
+        internal_class(ctxt, "DoubleArray", BuiltinType::DoubleArray, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>,
@@ -78,6 +82,18 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt,
                "emptyLongArray",
                stdlib::ctor_long_array_empty as *const u8);
+    native_fct(ctxt,
+               "floatArrayWith",
+               stdlib::ctor_float_array_elem as *const u8);
+    native_fct(ctxt,
+               "emptyFloatArray",
+               stdlib::ctor_float_array_empty as *const u8);
+    native_fct(ctxt,
+               "doubleArrayWith",
+               stdlib::ctor_double_array_elem as *const u8);
+    native_fct(ctxt,
+               "emptyDoubleArray",
+               stdlib::ctor_double_array_empty as *const u8);
 
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);
@@ -209,6 +225,16 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::LongArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::LongArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::LongArraySet);
+
+    let clsid = ctxt.primitive_classes.float_array;
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::FloatArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::FloatArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::FloatArraySet);
+
+    let clsid = ctxt.primitive_classes.double_array;
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::DoubleArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::DoubleArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::DoubleArraySet);
 }
 
 fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {

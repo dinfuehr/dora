@@ -1,0 +1,7 @@
+fun main() {
+    let array = emptyFloatArray();
+    assert(0 == array.len());
+
+    let array = emptyDoubleArray();
+    assert(0 == array.len());
+}

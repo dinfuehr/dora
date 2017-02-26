@@ -551,7 +551,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 }
 
-fn register_for_mode(mode: MachineMode) -> ExprStore {
+pub fn register_for_mode(mode: MachineMode) -> ExprStore {
     if mode.is_float() {
         FREG_RESULT.into()
     } else {

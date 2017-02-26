@@ -342,6 +342,8 @@ pub fn offset_of_array_data() -> i32 {
 pub type ByteArray = Array<u8>;
 pub type IntArray = Array<i32>;
 pub type LongArray = Array<i64>;
+pub type FloatArray = Array<f32>;
+pub type DoubleArray = Array<f64>;
 
 pub fn int_array_empty(ctxt: &Context) -> Handle<IntArray> {
     let clsid = ctxt.primitive_classes.int_array;
@@ -370,5 +372,25 @@ pub fn long_array_empty(ctxt: &Context) -> Handle<LongArray> {
 
 pub fn long_array_with(ctxt: &Context, len: usize, elem: i64) -> Handle<LongArray> {
     let clsid = ctxt.primitive_classes.long_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
+
+pub fn float_array_empty(ctxt: &Context) -> Handle<FloatArray> {
+    let clsid = ctxt.primitive_classes.float_array;
+    Array::alloc(ctxt, 0, 0f32, clsid)
+}
+
+pub fn float_array_with(ctxt: &Context, len: usize, elem: f32) -> Handle<FloatArray> {
+    let clsid = ctxt.primitive_classes.float_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
+
+pub fn double_array_empty(ctxt: &Context) -> Handle<DoubleArray> {
+    let clsid = ctxt.primitive_classes.double_array;
+    Array::alloc(ctxt, 0, 0f64, clsid)
+}
+
+pub fn double_array_with(ctxt: &Context, len: usize, elem: f64) -> Handle<DoubleArray> {
+    let clsid = ctxt.primitive_classes.double_array;
     Array::alloc(ctxt, len, elem, clsid)
 }

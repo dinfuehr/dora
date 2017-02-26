@@ -18,13 +18,27 @@ use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ExprStore {
     Reg(Reg),
     FReg(FReg),
 }
 
 impl ExprStore {
+    pub fn is_reg(&self) -> bool {
+        match self {
+            &ExprStore::Reg(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_freg(&self) -> bool {
+        match self {
+            &ExprStore::FReg(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn reg(&self) -> Reg {
         match self {
             &ExprStore::Reg(reg) => reg,
@@ -309,15 +323,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::LongArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest.reg())
+                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
                 }
 
                 Intrinsic::IntArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest.reg())
+                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
 
                 Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest.reg())
+                    self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
+                }
+
+                Intrinsic::FloatArrayGet => {
+                    self.emit_array_get(e.pos, MachineMode::Float32, &e.object, &e.index, dest)
+                }
+
+                Intrinsic::DoubleArrayGet => {
+                    self.emit_array_get(e.pos, MachineMode::Float64, &e.object, &e.index, dest)
                 }
 
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -551,7 +573,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest.reg())
+                                            dest)
                     }
 
                     Intrinsic::IntArraySet => {
@@ -560,7 +582,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest.reg())
+                                            dest)
                     }
 
                     Intrinsic::LongArraySet => {
@@ -569,7 +591,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
-                                            dest.reg())
+                                            dest)
+                    }
+
+                    Intrinsic::FloatArraySet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Float32,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
+                    }
+
+                    Intrinsic::DoubleArraySet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Float64,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
                     }
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -757,7 +797,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen | Intrinsic::LongArrayLen => {
+                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen | Intrinsic::LongArrayLen |
+                Intrinsic::FloatArrayLen | Intrinsic::DoubleArrayLen => {
                     self.emit_intrinsic_len(e, dest.reg())
                 }
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
@@ -769,7 +810,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                         MachineMode::Int8,
                                         e.object.as_ref().unwrap(),
                                         &e.args[0],
-                                        dest.reg())
+                                        dest)
                 }
 
                 Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
@@ -849,7 +890,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       object: &'ast Expr,
                       index: &'ast Expr,
                       rhs: &'ast Expr,
-                      dest: Reg) {
+                      dest: ExprStore) {
         self.emit_expr(object, REG_RESULT.into());
         let offset_object = self.reserve_temp_for_node(object);
         self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT.into());
@@ -858,9 +899,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let offset_index = self.reserve_temp_for_node(index);
         self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT.into());
 
-        self.emit_expr(rhs, REG_RESULT.into());
+        let res = if dest.is_reg() {
+            REG_RESULT.into()
+        } else {
+            FREG_RESULT.into()
+        };
+
+        self.emit_expr(rhs, res);
         let offset_value = self.reserve_temp_for_node(rhs);
-        self.masm.store_mem(mode, Mem::Local(offset_value), REG_RESULT.into());
+        self.masm.store_mem(mode, Mem::Local(offset_value), res);
 
         self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(offset_object));
         self.masm.load_mem(MachineMode::Int32, REG_TMP2.into(), Mem::Local(offset_index));
@@ -869,15 +916,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             self.masm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
         }
 
-        self.masm.load_mem(mode, REG_RESULT.into(), Mem::Local(offset_value));
-        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT);
+        self.masm.load_mem(mode, res, Mem::Local(offset_value));
+        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT.into());
 
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);
         self.free_temp_for_node(rhs, offset_value);
 
-        if dest != REG_RESULT {
-            self.masm.copy_reg(mode, dest, REG_RESULT);
+        if dest != res {
+            self.masm.copy(mode, dest, res);
         }
     }
 
@@ -886,7 +933,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       mode: MachineMode,
                       object: &'ast Expr,
                       index: &'ast Expr,
-                      dest: Reg) {
+                      dest: ExprStore) {
         self.emit_expr(object, REG_RESULT.into());
         let offset = self.reserve_temp_for_node(object);
         self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
@@ -898,12 +945,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             self.masm.check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1, REG_TMP2);
         }
 
-        self.masm.load_array_elem(mode, REG_RESULT, REG_RESULT, REG_TMP1);
+        let res = if dest.is_reg() {
+            REG_RESULT.into()
+        } else {
+            FREG_RESULT.into()
+        };
+
+        self.masm.load_array_elem(mode, res, REG_RESULT, REG_TMP1);
 
         self.free_temp_for_node(object, offset);
 
-        if dest != REG_RESULT {
-            self.masm.copy_reg(mode, dest, REG_RESULT);
+        if dest != res {
+            self.masm.copy(mode, dest, res);
         }
     }
 
@@ -1337,7 +1390,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long | BuiltinType::Float |
         BuiltinType::Double | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::ByteArray | BuiltinType::IntArray |
-        BuiltinType::LongArray => true,
+        BuiltinType::LongArray | BuiltinType::FloatArray | BuiltinType::DoubleArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
     }

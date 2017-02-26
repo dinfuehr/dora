@@ -30,6 +30,8 @@ pub enum BuiltinType {
     ByteArray,
     IntArray,
     LongArray,
+    FloatArray,
+    DoubleArray,
 
     // some class
     Class(ClassId),
@@ -82,6 +84,8 @@ impl BuiltinType {
             BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
             BuiltinType::IntArray => ctxt.primitive_classes.int_array,
             BuiltinType::LongArray => ctxt.primitive_classes.long_array,
+            BuiltinType::FloatArray => ctxt.primitive_classes.float_array,
+            BuiltinType::DoubleArray => ctxt.primitive_classes.double_array,
 
             _ => panic!(),
         }
@@ -132,6 +136,8 @@ impl BuiltinType {
             BuiltinType::ByteArray => "ByteArray".into(),
             BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::LongArray => "LongArray".into(),
+            BuiltinType::FloatArray => "FloatArray".into(),
+            BuiltinType::DoubleArray => "DoubleArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
@@ -158,6 +164,8 @@ impl BuiltinType {
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
+            BuiltinType::FloatArray |
+            BuiltinType::DoubleArray |
             BuiltinType::Class(_) => {
                 if *self == other || other.is_nil() {
                     return true;
@@ -187,6 +195,8 @@ impl BuiltinType {
             BuiltinType::IntArray |
             BuiltinType::LongArray |
             BuiltinType::Class(_) |
+            BuiltinType::FloatArray |
+            BuiltinType::DoubleArray |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
         }
@@ -206,6 +216,8 @@ impl BuiltinType {
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
+            BuiltinType::FloatArray |
+            BuiltinType::DoubleArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
@@ -226,6 +238,8 @@ impl BuiltinType {
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
+            BuiltinType::FloatArray |
+            BuiltinType::DoubleArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),

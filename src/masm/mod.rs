@@ -2,6 +2,7 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
+use baseline::expr::ExprStore;
 use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
                     LineNumberTable, GcPoints, GcPoint};
 use baseline::codegen::CondCode;
@@ -200,6 +201,16 @@ impl MacroAssembler {
 
     pub fn emit_u64(&mut self, value: u64) {
         self.data.write_u64::<LittleEndian>(value).unwrap();
+    }
+
+    pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
+        assert!(dest.is_reg() == src.is_reg());
+
+        if dest.is_reg() {
+            self.copy_reg(mode, dest.reg(), src.reg());
+        } else {
+            self.copy_freg(mode, dest.freg(), src.freg());
+        }
     }
 }
 

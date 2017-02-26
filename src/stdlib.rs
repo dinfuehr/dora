@@ -9,7 +9,7 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{self, ByteArray, Handle, IntArray, LongArray, Obj, Str};
+use object::{self, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -123,6 +123,30 @@ pub extern "C" fn ctor_long_array_elem(len: i32, value: i64) -> Handle<LongArray
     let ctxt = get_ctxt();
 
     object::long_array_with(ctxt, len as usize, value)
+}
+
+pub extern "C" fn ctor_float_array_empty() -> Handle<FloatArray> {
+    let ctxt = get_ctxt();
+
+    object::float_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_float_array_elem(len: i32, value: f32) -> Handle<FloatArray> {
+    let ctxt = get_ctxt();
+
+    object::float_array_with(ctxt, len as usize, value)
+}
+
+pub extern "C" fn ctor_double_array_empty() -> Handle<DoubleArray> {
+    let ctxt = get_ctxt();
+
+    object::double_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_double_array_elem(len: i32, value: f64) -> Handle<DoubleArray> {
+    let ctxt = get_ctxt();
+
+    object::double_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
