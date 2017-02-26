@@ -82,7 +82,7 @@ impl Reader {
                 self.col += 1;
             }
 
-            None => panic!("advancing from eof")
+            None => panic!("advancing from eof"),
         }
 
         self.cur = if self.next_pos < self.src.len() {

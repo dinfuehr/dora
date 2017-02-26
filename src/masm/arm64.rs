@@ -66,7 +66,9 @@ impl MacroAssembler {
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
         // load vtable entry into scratch
-        self.load_mem(MachineMode::Ptr, scratch.reg().into(), Mem::Base(*scratch, disp));
+        self.load_mem(MachineMode::Ptr,
+                      scratch.reg().into(),
+                      Mem::Base(*scratch, disp));
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
@@ -79,7 +81,10 @@ impl MacroAssembler {
                       Mem::Index(array, index, mode.size(), offset_of_array_data()));
     }
 
-    pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg,
+    pub fn store_array_elem(&mut self,
+                            mode: MachineMode,
+                            array: Reg,
+                            index: Reg,
                             value: ExprStore) {
         self.store_mem(mode,
                        Mem::Index(array, index, mode.size(), offset_of_array_data()),
@@ -336,7 +341,12 @@ impl MacroAssembler {
         self.emit_u32(asm::fneg(dbl, dest, src));
     }
 
-    pub fn float_cmp(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg, cond: CondCode) {
+    pub fn float_cmp(&mut self,
+                     mode: MachineMode,
+                     dest: Reg,
+                     lhs: FReg,
+                     rhs: FReg,
+                     cond: CondCode) {
         let dbl = match mode {
             MachineMode::Float32 => 0,
             MachineMode::Float64 => 1,
@@ -349,8 +359,7 @@ impl MacroAssembler {
                 self.emit_u32(asm::cset(0, dest, cond.into()));
             }
 
-            CondCode::Greater | CondCode::GreaterEq |
-            CondCode::Less | CondCode::LessEq => {
+            CondCode::Greater | CondCode::GreaterEq | CondCode::Less | CondCode::LessEq => {
                 self.emit_u32(asm::fcmpe(dbl, lhs, rhs));
                 self.emit_u32(asm::cset(0, dest, cond.into()));
             }
@@ -408,12 +417,22 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::ldrw_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => {
+                        asm::ldrb_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::ldrw_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::ldrx_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float32 => asm::ldrs_ind(dest.freg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float64 => asm::ldrd_ind(dest.freg(), REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => {
+                        asm::ldrx_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float32 => {
+                        asm::ldrs_ind(dest.freg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float64 => {
+                        asm::ldrd_ind(dest.freg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
                 };
 
                 self.emit_u32(inst);
@@ -424,12 +443,22 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::ldrw_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => {
+                        asm::ldrb_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::ldrw_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::ldrx_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float32 => asm::ldrs_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float64 => asm::ldrd_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => {
+                        asm::ldrx_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float32 => {
+                        asm::ldrs_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float64 => {
+                        asm::ldrd_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
                 };
 
                 self.emit_u32(inst);
@@ -443,12 +472,22 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, *scratch, *scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::ldrb_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::ldrw_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int8 => {
+                        asm::ldrb_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::ldrw_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::ldrx_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Float32 => asm::ldrs_ind(dest.freg(), *scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Float64 => asm::ldrd_ind(dest.freg(), *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr => {
+                        asm::ldrx_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
+                    MachineMode::Float32 => {
+                        asm::ldrs_ind(dest.freg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
+                    MachineMode::Float64 => {
+                        asm::ldrd_ind(dest.freg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
                 };
 
                 self.emit_u32(inst);
@@ -463,12 +502,22 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::strw_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => {
+                        asm::strb_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::strw_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::strx_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float32 => asm::strs_ind(src.freg(), REG_FP, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float64 => asm::strd_ind(src.freg(), REG_FP, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => {
+                        asm::strx_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float32 => {
+                        asm::strs_ind(src.freg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float64 => {
+                        asm::strd_ind(src.freg(), REG_FP, *scratch, LdStExtend::LSL, 0)
+                    }
                 };
 
                 self.emit_u32(inst);
@@ -479,12 +528,22 @@ impl MacroAssembler {
                 self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::strw_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Int8 => {
+                        asm::strb_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::strw_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::strx_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float32 => asm::strs_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0),
-                    MachineMode::Float64 => asm::strd_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0),
+                    MachineMode::Ptr => {
+                        asm::strx_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float32 => {
+                        asm::strs_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Float64 => {
+                        asm::strd_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0)
+                    }
                 };
 
                 self.emit_u32(inst);
@@ -498,12 +557,22 @@ impl MacroAssembler {
                 self.emit_u32(asm::add_reg(1, *scratch, *scratch, base));
 
                 let inst = match mode {
-                    MachineMode::Int8 => asm::strb_ind(src.reg(), *scratch, index, LdStExtend::LSL, 0),
-                    MachineMode::Int32 => asm::strw_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Int8 => {
+                        asm::strb_ind(src.reg(), *scratch, index, LdStExtend::LSL, 0)
+                    }
+                    MachineMode::Int32 => {
+                        asm::strw_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
                     MachineMode::Int64 |
-                    MachineMode::Ptr => asm::strx_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Float32 => asm::strs_ind(src.freg(), *scratch, index, LdStExtend::LSL, 1),
-                    MachineMode::Float64 => asm::strd_ind(src.freg(), *scratch, index, LdStExtend::LSL, 1),
+                    MachineMode::Ptr => {
+                        asm::strx_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
+                    MachineMode::Float32 => {
+                        asm::strs_ind(src.freg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
+                    MachineMode::Float64 => {
+                        asm::strd_ind(src.freg(), *scratch, index, LdStExtend::LSL, 1)
+                    }
                 };
 
                 self.emit_u32(inst);

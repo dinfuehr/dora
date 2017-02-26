@@ -52,7 +52,9 @@ impl MacroAssembler {
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
         // load vtable entry
-        self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_RESULT, disp));
+        self.load_mem(MachineMode::Ptr,
+                      REG_RESULT.into(),
+                      Mem::Base(REG_RESULT, disp));
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
@@ -65,7 +67,11 @@ impl MacroAssembler {
                       Mem::Index(array, index, mode.size(), offset_of_array_data()));
     }
 
-    pub fn store_array_elem(&mut self, mode: MachineMode, array: Reg, index: Reg, value: ExprStore) {
+    pub fn store_array_elem(&mut self,
+                            mode: MachineMode,
+                            array: Reg,
+                            index: Reg,
+                            value: ExprStore) {
         self.store_mem(mode,
                        Mem::Index(array, index, mode.size(), offset_of_array_data()),
                        value);
@@ -107,7 +113,11 @@ impl MacroAssembler {
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
-    pub fn float_cmp(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg,
+    pub fn float_cmp(&mut self,
+                     mode: MachineMode,
+                     dest: Reg,
+                     lhs: FReg,
+                     rhs: FReg,
                      cond: CondCode) {
         let scratch = self.get_scratch();
 
@@ -124,18 +134,13 @@ impl MacroAssembler {
                     _ => unreachable!(),
                 }
 
-                let parity = if cond == CondCode::Equal {
-                    false
-                } else {
-                    true
-                };
+                let parity = if cond == CondCode::Equal { false } else { true };
 
                 asm::emit_setb_reg_parity(self, dest, parity);
                 asm::cmov(self, 0, dest, *scratch, CondCode::NotEqual);
             }
 
-            CondCode::Greater | CondCode::GreaterEq |
-            CondCode::Less | CondCode::LessEq => {
+            CondCode::Greater | CondCode::GreaterEq | CondCode::Less | CondCode::LessEq => {
                 self.load_int_const(MachineMode::Int32, dest, 0);
 
                 match mode {
@@ -413,8 +418,7 @@ impl MacroAssembler {
                     MachineMode::Int32 |
                     MachineMode::Int64 |
                     MachineMode::Ptr => {
-                        asm::emit_mov_memindex_reg(self, mode, base, index, scale,
-                                                   disp, dest.reg())
+                        asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest.reg())
                     }
 
                     MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),

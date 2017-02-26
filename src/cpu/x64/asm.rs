@@ -949,7 +949,7 @@ fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, s
             let base_msb = if base == RIP { 0 } else { base.msb() };
 
             (base_msb, 0)
-        },
+        }
 
         Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
     };
@@ -987,7 +987,7 @@ fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg
             let base_msb = if base == RIP { 0 } else { base.msb() };
 
             (base_msb, 0)
-        },
+        }
 
         Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
     };

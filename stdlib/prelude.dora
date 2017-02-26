@@ -22,10 +22,10 @@ internal fun emptyIntArray() -> IntArray;
 internal fun longArrayWith(len: int, val: long) -> LongArray;
 internal fun emptyLongArray() -> LongArray;
 
-internal fun floatArrayWith(len: int, val: long) -> FloatArray;
+internal fun floatArrayWith(len: int, val: float) -> FloatArray;
 internal fun emptyFloatArray() -> FloatArray;
 
-internal fun doubleArrayWith(len: int, val: long) -> DoubleArray;
+internal fun doubleArrayWith(len: int, val: double) -> DoubleArray;
 internal fun emptyDoubleArray() -> DoubleArray;
 
 internal class bool {

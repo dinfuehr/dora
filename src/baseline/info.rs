@@ -1,10 +1,10 @@
-use std::cmp;
+use std::cmp::max;
 
 use ast::*;
 use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
-use cpu;
+use cpu::*;
 use ctxt::{Arg, Callee, CallSite, Context, Fct, FctSrc, Store, VarId};
 use mem;
 use ty::BuiltinType;
@@ -12,6 +12,8 @@ use ty::BuiltinType;
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
                               fct: &Fct<'ast>,
                               src: &'a mut FctSrc<'ast>) {
+    let start = if fct.in_class() { 1 } else { 0 };
+
     let mut ig = InfoGenerator {
         ctxt: ctxt,
         fct: fct,
@@ -23,10 +25,13 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
         cur_tempsize: 0,
         argsize: 0,
 
-        param_offset: cpu::PARAM_OFFSET,
+        param_offset: PARAM_OFFSET,
         leaf: true,
         eh_return_value: None,
         eh_status: None,
+
+        param_reg_idx: start,
+        param_freg_idx: 0,
     };
 
     ig.generate();
@@ -47,17 +52,25 @@ struct InfoGenerator<'a, 'ast: 'a> {
     eh_status: Option<i32>,
     param_offset: i32,
     leaf: bool,
+
+    param_reg_idx: usize,
+    param_freg_idx: usize,
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let idx = (p.idx as usize) + if self.fct.in_class() { 1 } else { 0 };
         let var = *self.src.map_vars.get(p.id).unwrap();
+        let is_float = self.src.vars[var].ty.is_float();
 
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
-        if idx < cpu::REG_PARAMS.len() {
+        if is_float && self.param_freg_idx < FREG_PARAMS.len() {
             self.reserve_stack_for_node(var);
+            self.param_freg_idx += 1;
+
+        } else if !is_float && self.param_reg_idx < REG_PARAMS.len() {
+            self.reserve_stack_for_node(var);
+            self.param_reg_idx += 1;
 
             // the rest of the parameters are already stored on the stack
             // just use the current offset
@@ -66,7 +79,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             var.offset = self.param_offset;
 
             // determine next `param_offset`
-            self.param_offset = cpu::next_param_offset(self.param_offset, var.ty);
+            self.param_offset = next_param_offset(self.param_offset, var.ty);
         }
     }
 
@@ -102,7 +115,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_expr_top(&mut self, e: &'ast Expr) {
         self.cur_tempsize = 0;
         self.visit_expr(e);
-        self.max_tempsize = cmp::max(self.cur_tempsize, self.max_tempsize);
+        self.max_tempsize = max(self.cur_tempsize, self.max_tempsize);
     }
 
     fn visit_expr(&mut self, e: &'ast Expr) {
@@ -248,17 +261,33 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // function invokes another function
         self.leaf = false;
 
+        let mut reg_args: i32 = 0;
+        let mut freg_args: i32 = 0;
+
         for arg in &args {
             match *arg {
-                Arg::Expr(ast, _, _) => self.visit_expr(ast),
+                Arg::Expr(ast, ty, _) => {
+                    self.visit_expr(ast);
+
+                    if ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
+                }
+
                 Arg::Selfie(_, _) |
-                Arg::SelfieNew(_, _) => {}
+                Arg::SelfieNew(_, _) => {
+                    reg_args += 1;
+                }
             }
         }
 
-        // reserve stack for arguments
-        let no_args = args.len() as i32;
-        let argsize = 8 * if no_args <= 6 { 0 } else { no_args - 6 };
+        // some register are reserved on stack
+        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32) +
+                            max(0, freg_args - FREG_PARAMS.len() as i32);
+
+        let argsize = 8 * args_on_stack;
 
         if argsize > self.argsize {
             self.argsize = argsize;

@@ -379,7 +379,7 @@ impl Lexer {
                     FloatSuffix::Float
                 }
 
-                _ => FloatSuffix::Double
+                _ => FloatSuffix::Double,
             };
 
             let ttype = TokenKind::LitFloat(value, suffix);
@@ -632,11 +632,26 @@ mod tests {
     #[test]
     fn test_float_numbers() {
         let mut reader = Lexer::from_str("1F 1.0 0.1F 1.3D 4D");
-        assert_tok(&mut reader, TokenKind::LitFloat("1".into(), FloatSuffix::Float), 1, 1);
-        assert_tok(&mut reader, TokenKind::LitFloat("1.0".into(), FloatSuffix::Double), 1, 4);
-        assert_tok(&mut reader, TokenKind::LitFloat("0.1".into(), FloatSuffix::Float), 1, 8);
-        assert_tok(&mut reader, TokenKind::LitFloat("1.3".into(), FloatSuffix::Double), 1, 13);
-        assert_tok(&mut reader, TokenKind::LitFloat("4".into(), FloatSuffix::Double), 1, 18);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1".into(), FloatSuffix::Float),
+                   1,
+                   1);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.0".into(), FloatSuffix::Double),
+                   1,
+                   4);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("0.1".into(), FloatSuffix::Float),
+                   1,
+                   8);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.3".into(), FloatSuffix::Double),
+                   1,
+                   13);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("4".into(), FloatSuffix::Double),
+                   1,
+                   18);
     }
 
     #[test]

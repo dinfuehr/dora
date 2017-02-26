@@ -12,7 +12,7 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info;
 use baseline::map::CodeData;
-use cpu::{FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
+use cpu::{FREG_PARAMS, FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
@@ -218,26 +218,54 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn store_register_params_on_stack(&mut self) {
-        let hidden_self = if self.fct.in_class() {
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
+
+        if self.fct.in_class() {
             let var = self.src.var_self();
+            let mode = var.ty.mode();
+
             self.masm.emit_comment(Comment::StoreParam(var.id));
-            self.masm.store_mem(var.ty.mode(), Mem::Local(var.offset), REG_PARAMS[0].into());
 
-            1
+            let dest = if mode.is_float() {
+                FREG_PARAMS[0].into()
+            } else {
+                REG_PARAMS[0].into()
+            };
 
-        } else {
-            0
-        };
+            self.masm.store_mem(mode, Mem::Local(var.offset), dest);
 
-        for (&reg, p) in REG_PARAMS.iter()
-            .skip(hidden_self)
-            .zip(&self.ast.params) {
-            let var = *self.src.map_vars.get(p.id).unwrap();
-            self.masm.emit_comment(Comment::StoreParam(var));
-            var_store(&mut self.masm, &self.src, reg.into(), var);
+            if mode.is_float() {
+                freg_idx += 1;
+            } else {
+                reg_idx += 1;
+            }
         }
 
-        self.masm.emit_comment(Comment::Newline);
+        for p in &self.ast.params {
+            let varid = *self.src.map_vars.get(p.id).unwrap();
+            let is_float = self.src.vars[varid].ty.mode().is_float();
+
+            if is_float && freg_idx < FREG_PARAMS.len() {
+                let reg = FREG_PARAMS[freg_idx];
+
+                self.masm.emit_comment(Comment::StoreParam(varid));
+                var_store(&mut self.masm, &self.src, reg.into(), varid);
+
+                freg_idx += 1;
+
+            } else if !is_float && reg_idx < REG_PARAMS.len() {
+                let reg = REG_PARAMS[reg_idx];
+
+                self.masm.emit_comment(Comment::StoreParam(varid));
+                var_store(&mut self.masm, &self.src, reg.into(), varid);
+
+                reg_idx += 1;
+
+            } else {
+                // ignore params not stored in register
+            }
+        }
     }
 
     fn emit_prolog(&mut self) {

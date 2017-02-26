@@ -47,8 +47,7 @@ pub const R30: Reg = Reg(30);
 
 pub const FREG_RESULT: FReg = F0;
 pub const FREG_TMP1: FReg = F1;
-pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3,
-                                     F4, F5, F6, F7];
+pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 
 pub const F0: FReg = FReg(0);
 pub const F1: FReg = FReg(1);

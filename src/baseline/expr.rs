@@ -1,11 +1,13 @@
 use ast::*;
 use ast::Expr::*;
-use baseline::codegen::{self, dump_asm, CondCode, Scopes, should_emit_asm, TempOffsets};
+use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
+                        TempOffsets};
 use baseline::fct::{CatchType, Comment};
 use baseline::native;
 use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
-use cpu::{FReg, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2, REG_PARAMS};
+use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
+          REG_PARAMS};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use lexer::position::Position;
@@ -503,8 +505,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::IntPlus | Intrinsic::LongPlus |
-                Intrinsic::FloatPlus | Intrinsic::DoublePlus => {}
+                Intrinsic::IntPlus | Intrinsic::LongPlus | Intrinsic::FloatPlus |
+                Intrinsic::DoublePlus => {}
 
                 Intrinsic::IntNeg | Intrinsic::LongNeg => {
                     let dest = dest.reg();
@@ -797,10 +799,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::ByteArrayLen | Intrinsic::IntArrayLen | Intrinsic::LongArrayLen |
-                Intrinsic::FloatArrayLen | Intrinsic::DoubleArrayLen => {
-                    self.emit_intrinsic_len(e, dest.reg())
-                }
+                Intrinsic::ByteArrayLen |
+                Intrinsic::IntArrayLen |
+                Intrinsic::LongArrayLen |
+                Intrinsic::FloatArrayLen |
+                Intrinsic::DoubleArrayLen => self.emit_intrinsic_len(e, dest.reg()),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
@@ -893,11 +896,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       dest: ExprStore) {
         self.emit_expr(object, REG_RESULT.into());
         let offset_object = self.reserve_temp_for_node(object);
-        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset_object), REG_RESULT.into());
+        self.masm.store_mem(MachineMode::Ptr,
+                            Mem::Local(offset_object),
+                            REG_RESULT.into());
 
         self.emit_expr(index, REG_RESULT.into());
         let offset_index = self.reserve_temp_for_node(index);
-        self.masm.store_mem(MachineMode::Int32, Mem::Local(offset_index), REG_RESULT.into());
+        self.masm.store_mem(MachineMode::Int32,
+                            Mem::Local(offset_index),
+                            REG_RESULT.into());
 
         let res = if dest.is_reg() {
             REG_RESULT.into()
@@ -910,7 +917,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.store_mem(mode, Mem::Local(offset_value), res);
 
         self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(offset_object));
-        self.masm.load_mem(MachineMode::Int32, REG_TMP2.into(), Mem::Local(offset_index));
+        self.masm.load_mem(MachineMode::Int32,
+                           REG_TMP2.into(),
+                           Mem::Local(offset_index));
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
@@ -1225,13 +1234,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
         for arg in &csite.args {
+            let mode = arg.ty().mode();
+            let dest = register_for_mode(mode);
+
             match *arg {
                 Arg::Expr(ast, _, _) => {
-                    self.emit_expr(ast, REG_RESULT.into());
+                    self.emit_expr(ast, dest);
                 }
 
                 Arg::Selfie(_, _) => {
-                    self.emit_self(REG_RESULT);
+                    self.emit_self(dest.reg());
                 }
 
                 Arg::SelfieNew(cls_id, _) => {
@@ -1246,7 +1258,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                     self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::OOM);
 
-
                     // store classptr in object
                     let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
                     let disp = self.masm.add_addr(cptr);
@@ -1254,40 +1265,65 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                     self.masm.emit_comment(Comment::StoreVTable(cls_id));
                     self.masm.load_constpool(REG_TMP1, disp + pos);
-                    self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0),
-                                        REG_TMP1.into());
+                    self.masm
+                        .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
                 }
             }
 
             let offset = self.reserve_temp_for_arg(arg);
-            self.masm.store_mem(arg.ty().mode(), Mem::Local(offset), REG_RESULT.into());
+            self.masm.store_mem(arg.ty().mode(), Mem::Local(offset), dest);
             temps.push((arg.ty(), offset));
         }
 
         let mut arg_offset = -self.src.stacksize();
+        let mut idx = 0;
+        let mut reg_idx = 0;
+        let mut freg_idx = 0;
 
-        for (ind, arg) in csite.args.iter().enumerate() {
+        for arg in &csite.args {
             let ty = arg.ty();
-            let offset = temps[ind].1;
+            let mode = ty.mode();
+            let is_float = mode.is_float();
+            let offset = temps[idx].1;
 
-            if ind < REG_PARAMS.len() {
-                let reg = REG_PARAMS[ind];
-                self.masm.load_mem(ty.mode(), reg.into(), Mem::Local(offset));
+            if is_float {
+                if freg_idx < FREG_PARAMS.len() {
+                    let freg = FREG_PARAMS[freg_idx];
+                    self.masm.load_mem(mode, freg.into(), Mem::Local(offset));
 
-                if ind == 0 {
-                    let call_type = self.src.map_calls.get(id);
+                    freg_idx += 1;
 
-                    if call_type.is_some() && call_type.unwrap().is_method() && check_for_nil(ty) {
-                        self.masm.test_if_nil_bailout(pos, reg, Trap::NIL);
-                    }
+                } else {
+                    self.masm.load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                    self.masm.store_mem(mode, Mem::Local(arg_offset), FREG_TMP1.into());
+
+                    arg_offset += 8;
                 }
 
             } else {
-                self.masm.load_mem(ty.mode(), REG_TMP1.into(), Mem::Local(offset));
-                self.masm.store_mem(ty.mode(), Mem::Local(arg_offset), REG_TMP1.into());
+                if reg_idx < REG_PARAMS.len() {
+                    let reg = REG_PARAMS[reg_idx];
+                    self.masm.load_mem(mode, reg.into(), Mem::Local(offset));
 
-                arg_offset += 8;
+                    if idx == 0 {
+                        let call_type = self.src.map_calls.get(id);
+
+                        if call_type.is_some() && call_type.unwrap().is_method() &&
+                           check_for_nil(ty) {
+                            self.masm.test_if_nil_bailout(pos, reg, Trap::NIL);
+                        }
+                    }
+
+                    reg_idx += 1;
+                } else {
+                    self.masm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                    self.masm.store_mem(mode, Mem::Local(arg_offset), REG_TMP1.into());
+
+                    arg_offset += 8;
+                }
             }
+
+            idx += 1;
         }
 
         match csite.callee {

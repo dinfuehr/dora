@@ -33,8 +33,7 @@ pub const RIP: Reg = Reg(16);
 pub const FREG_RESULT: FReg = XMM0;
 pub const FREG_TMP1: FReg = XMM1;
 
-pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3,
-                                     XMM4, XMM5, XMM6, XMM7];
+pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
 
 pub const XMM0: FReg = FReg(0);
 pub const XMM1: FReg = FReg(1);
