@@ -10,9 +10,6 @@ pub const REG_TMP2: Reg = R11;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
 
-pub const FREG_RESULT: FReg = F0;
-pub const FREG_TMP1: FReg = F1;
-
 pub const REG_SP: Reg = Reg(32);
 pub const REG_ZERO: Reg = Reg(33);
 
@@ -47,6 +44,11 @@ pub const R27: Reg = Reg(27);
 pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);
 pub const R30: Reg = Reg(30);
+
+pub const FREG_RESULT: FReg = F0;
+pub const FREG_TMP1: FReg = F1;
+pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3,
+                                     F4, F5, F6, F7];
 
 pub const F0: FReg = FReg(0);
 pub const F1: FReg = FReg(1);

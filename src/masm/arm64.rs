@@ -514,6 +514,16 @@ impl MacroAssembler {
         self.emit_u32(orr_shreg(size_flag(mode), dest, REG_ZERO, src, Shift::LSL, 0));
     }
 
+    pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unreachable!(),
+        };
+
+        self.emit_u32(fmov(dbl, dest, src));
+    }
+
     pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
         self.emit_u32(asm::sxtw(dest, src));
     }

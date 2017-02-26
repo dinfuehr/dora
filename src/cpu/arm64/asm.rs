@@ -703,6 +703,10 @@ fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) ->
     rn.asm() << 5 | rd.asm()
 }
 
+pub fn fmov(ty: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd)
+}
+
 pub fn fneg(ty: u32, rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd)
 }
