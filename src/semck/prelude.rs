@@ -184,6 +184,8 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
 
     let clsid = ctxt.primitive_classes.float_class;
+    native_method(ctxt, clsid, "toString", stdlib::float_to_string as *const u8);
+
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::FloatEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::FloatCmp);
 
@@ -198,6 +200,8 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::FloatIsNan);
 
     let clsid = ctxt.primitive_classes.double_class;
+    native_method(ctxt, clsid, "toString", stdlib::double_to_string as *const u8);
+
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::DoubleCmp);
 

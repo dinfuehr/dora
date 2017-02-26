@@ -1,0 +1,7 @@
+fun main() {
+    let x = 1F;
+    println(x.toString());
+
+    let x = 1D;
+    println(x.toString());
+}

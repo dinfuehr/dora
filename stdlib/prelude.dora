@@ -112,6 +112,8 @@ internal class Str {
 }
 
 internal class float {
+  internal fun toString() -> Str;
+
   internal fun equals(rhs: float) -> bool;
   internal fun compareTo(rhs: float) -> int;
 
@@ -127,6 +129,8 @@ internal class float {
 }
 
 internal class double {
+  internal fun toString() -> Str;
+
   internal fun equals(rhs: double) -> bool;
   internal fun compareTo(rhs: double) -> int;
 
