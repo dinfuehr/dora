@@ -729,16 +729,10 @@ impl CallType {
 
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
-    pub callee: Callee,
+    pub callee: FctId,
     pub args: Vec<Arg<'ast>>,
     pub super_call: bool,
     pub return_type: BuiltinType,
-}
-
-#[derive(Clone, Debug)]
-pub enum Callee {
-    Fct(FctId),
-    Ptr(*const u8),
 }
 
 #[derive(Copy, Clone, Debug)]

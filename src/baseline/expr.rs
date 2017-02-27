@@ -1326,34 +1326,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             idx += 1;
         }
 
-        match csite.callee {
-            Callee::Fct(fid) => {
-                let fct = self.ctxt.fcts[fid].borrow();
+        let fid = csite.callee;
+        let fct = self.ctxt.fcts[fid].borrow();
 
-                if csite.super_call {
-                    let ptr = self.ptr_for_fct_id(fid);
-                    self.masm.emit_comment(Comment::CallSuper(fid));
-                    self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
+        if csite.super_call {
+            let ptr = self.ptr_for_fct_id(fid);
+            self.masm.emit_comment(Comment::CallSuper(fid));
+            self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
 
-                } else if fct.is_virtual() {
-                    let vtable_index = fct.vtable_index.unwrap();
-                    self.masm.emit_comment(Comment::CallVirtual(fid));
-                    self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
+        } else if fct.is_virtual() {
+            let vtable_index = fct.vtable_index.unwrap();
+            self.masm.emit_comment(Comment::CallVirtual(fid));
+            self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
 
-                } else {
-                    let ptr = self.ptr_for_fct_id(fid);
-                    self.masm.emit_comment(Comment::CallDirect(fid));
-                    self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
-                }
-            }
-
-            Callee::Ptr(ptr) => {
-                self.emit_native_call_insn(ptr,
-                                           pos,
-                                           csite.return_type,
-                                           csite.args.len() as i32,
-                                           dest);
-            }
+        } else {
+            let ptr = self.ptr_for_fct_id(fid);
+            self.masm.emit_comment(Comment::CallDirect(fid));
+            self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
         }
 
         if csite.args.len() > 0 {

@@ -5,7 +5,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::*;
-use ctxt::{Arg, Callee, CallSite, Context, Fct, FctSrc, Store, VarId};
+use ctxt::{Arg, CallSite, Context, Fct, FctId, FctSrc, Store, VarId};
 use mem;
 use ty::BuiltinType;
 
@@ -256,7 +256,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                       id: NodeId,
                       args: Vec<Arg<'ast>>,
                       in_class: bool,
-                      callee: Option<Callee>,
+                      callee: Option<FctId>,
                       return_type: Option<BuiltinType>) {
         // function invokes another function
         self.leaf = false;
@@ -336,7 +336,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.ctxt.fcts[fid].borrow().return_type
         });
 
-        let callee = callee.unwrap_or_else(|| Callee::Fct(fid.unwrap()));
+        let callee = callee.unwrap_or_else(|| fid.unwrap());
 
         let csite = CallSite {
             callee: callee,
@@ -414,7 +414,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.universal_call(expr.id,
                                 args,
                                 false,
-                                Some(Callee::Fct(fid)),
+                                Some(fid),
                                 Some(BuiltinType::Bool));
         }
     }
@@ -433,7 +433,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.universal_call(expr.id,
                                 args,
                                 false,
-                                Some(Callee::Fct(fid)),
+                                Some(fid),
                                 Some(BuiltinType::Bool));
         }
     }
