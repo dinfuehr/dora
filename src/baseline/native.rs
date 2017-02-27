@@ -27,10 +27,10 @@ impl NativeFcts {
     }
 }
 
-pub struct InternalFct {
+pub struct InternalFct<'a> {
     pub ptr: *const u8,
+    pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
-    pub args: i32,
 }
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
@@ -49,7 +49,7 @@ struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     masm: MacroAssembler,
 
-    fct: InternalFct,
+    fct: InternalFct<'a>,
 }
 
 impl<'a, 'ast> NativeGen<'a, 'ast>
@@ -57,9 +57,10 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 {
     pub fn generate(mut self) -> JitFct {
         let save_return = self.fct.return_type != BuiltinType::Unit;
+        let args = self.fct.args.len();
 
         let framesize = size_of::<DoraToNativeInfo>() as i32 + if save_return { 8 } else { 0 } +
-                        self.fct.args * 8;
+                        (args * 8) as i32;
 
         let framesize = mem::align_i32(framesize, 16);
 
@@ -69,9 +70,9 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm.prolog(framesize);
 
-        assert!(self.fct.args <= REG_PARAMS.len() as i32);
+        assert!(args <= REG_PARAMS.len());
 
-        for (ind, &reg) in REG_PARAMS.iter().take(self.fct.args as usize).enumerate() {
+        for (ind, &reg) in REG_PARAMS.iter().take(args as usize).enumerate() {
             self.masm.store_mem(MachineMode::Ptr,
                                 Mem::Base(REG_SP, offset_args + ind as i32 * 8),
                                 reg.into());
@@ -80,7 +81,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.direct_call_without_info(start_native_call as *const u8);
 
-        for (ind, &reg) in REG_PARAMS.iter().take(self.fct.args as usize).enumerate() {
+        for (ind, &reg) in REG_PARAMS.iter().take(args as usize).enumerate() {
             self.masm.load_mem(MachineMode::Ptr,
                                reg.into(),
                                Mem::Base(REG_SP, offset_args + ind as i32 * 8));

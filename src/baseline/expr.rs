@@ -787,10 +787,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
                 FctKind::Native(ptr) => {
+                    let mut param_types = fct.params_types.clone();
+                    param_types.insert(0, BuiltinType::Ptr);
+
                     let internal_fct = InternalFct {
                         ptr: ptr,
+                        args: &param_types,
                         return_type: fct.return_type,
-                        args: fct.real_args(),
                     };
 
                     ensure_native_stub(self.ctxt, fid, internal_fct)
@@ -1261,8 +1264,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                     let internal_fct = InternalFct {
                         ptr: stdlib::gc_alloc as *mut u8,
+                        args: &[BuiltinType::Int],
                         return_type: BuiltinType::Ptr,
-                        args: 1,
                     };
 
                     self.emit_native_call_insn(pos, internal_fct, dest);
