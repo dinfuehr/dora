@@ -1,3 +1,5 @@
+//= output "1\n1\n"
+
 fun main() {
     let x = 1F;
     println(x.toString());
