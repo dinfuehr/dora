@@ -3,7 +3,7 @@ use ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
                         TempOffsets};
 use baseline::fct::{CatchType, Comment};
-use baseline::native;
+use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
 use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
@@ -787,7 +787,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
                 FctKind::Native(ptr) => {
-                    ensure_native_stub(self.ctxt, fid, ptr, fct.return_type, fct.real_args())
+                    let internal_fct = InternalFct {
+                        ptr: ptr,
+                        return_type: fct.return_type,
+                        args: fct.real_args(),
+                    };
+
+                    ensure_native_stub(self.ctxt, fid, internal_fct)
                 }
 
                 FctKind::Definition => unreachable!(),
@@ -1253,8 +1259,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let cls = self.ctxt.classes[cls_id].borrow();
                     self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
 
-                    let mptr = stdlib::gc_alloc as *mut u8;
-                    self.emit_native_call_insn(mptr, pos, BuiltinType::Ptr, 1, dest);
+                    let internal_fct = InternalFct {
+                        ptr: stdlib::gc_alloc as *mut u8,
+                        return_type: BuiltinType::Ptr,
+                        args: 1,
+                    };
+
+                    self.emit_native_call_insn(pos, internal_fct, dest);
 
                     self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::OOM);
 
@@ -1358,12 +1369,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_native_call_insn(&mut self,
-                             ptr: *const u8,
                              pos: Position,
-                             ty: BuiltinType,
-                             args: i32,
+                             internal_fct: InternalFct,
                              dest: ExprStore) {
-        let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
+        let ty = internal_fct.return_type;
+        let ptr = ensure_native_stub(self.ctxt, FctId(0), internal_fct);
 
         self.masm.direct_call_without_info(ptr);
         self.emit_after_call_insns(pos, ty, dest);
@@ -1425,17 +1435,16 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 
 fn ensure_native_stub(ctxt: &Context,
                       fct_id: FctId,
-                      ptr: *const u8,
-                      ty: BuiltinType,
-                      args: i32)
+                      internal_fct: InternalFct)
                       -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
+    let ptr = internal_fct.ptr;
 
     if let Some(ptr) = native_fcts.find_fct(ptr) {
         ptr
 
     } else {
-        let jit_fct = native::generate(ctxt, ptr, ty, args);
+        let jit_fct = native::generate(ctxt, internal_fct);
         let fct = ctxt.fcts[fct_id].borrow();
 
         if should_emit_asm(ctxt, &*fct) {

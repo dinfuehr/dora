@@ -27,17 +27,19 @@ impl NativeFcts {
     }
 }
 
+pub struct InternalFct {
+    pub ptr: *const u8,
+    pub return_type: BuiltinType,
+    pub args: i32,
+}
+
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
-                              ptr: *const u8,
-                              return_type: BuiltinType,
-                              args: i32)
+                              fct: InternalFct)
                               -> JitFct {
     let ngen = NativeGen {
         ctxt: ctxt,
-        ptr: ptr,
         masm: MacroAssembler::new(),
-        return_type: return_type,
-        args: args,
+        fct: fct,
     };
 
     ngen.generate()
@@ -45,21 +47,19 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
 
 struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    ptr: *const u8,
     masm: MacroAssembler,
 
-    return_type: BuiltinType,
-    args: i32,
+    fct: InternalFct,
 }
 
 impl<'a, 'ast> NativeGen<'a, 'ast>
     where 'ast: 'a
 {
     pub fn generate(mut self) -> JitFct {
-        let save_return = self.return_type != BuiltinType::Unit;
+        let save_return = self.fct.return_type != BuiltinType::Unit;
 
         let framesize = size_of::<DoraToNativeInfo>() as i32 + if save_return { 8 } else { 0 } +
-                        self.args * 8;
+                        self.fct.args * 8;
 
         let framesize = mem::align_i32(framesize, 16);
 
@@ -69,9 +69,9 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm.prolog(framesize);
 
-        assert!(self.args <= REG_PARAMS.len() as i32);
+        assert!(self.fct.args <= REG_PARAMS.len() as i32);
 
-        for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
+        for (ind, &reg) in REG_PARAMS.iter().take(self.fct.args as usize).enumerate() {
             self.masm.store_mem(MachineMode::Ptr,
                                 Mem::Base(REG_SP, offset_args + ind as i32 * 8),
                                 reg.into());
@@ -80,13 +80,13 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.direct_call_without_info(start_native_call as *const u8);
 
-        for (ind, &reg) in REG_PARAMS.iter().take(self.args as usize).enumerate() {
+        for (ind, &reg) in REG_PARAMS.iter().take(self.fct.args as usize).enumerate() {
             self.masm.load_mem(MachineMode::Ptr,
                                reg.into(),
                                Mem::Base(REG_SP, offset_args + ind as i32 * 8));
         }
 
-        self.masm.direct_call_without_info(self.ptr);
+        self.masm.direct_call_without_info(self.fct.ptr);
 
         if save_return {
             self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT.into());
