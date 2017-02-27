@@ -4,14 +4,14 @@ fun main() {
 
     let array = floatArrayWith(10, 2F);
     assert(10 == array.len());
-    // assert(2F == array[0]);
-    // assert(2F == array[9]);
+    assert(2F == array[0]);
+    assert(2F == array[9]);
 
     let array = emptyDoubleArray();
     assert(0 == array.len());
 
     let array = doubleArrayWith(12, 3D);
     assert(12 == array.len());
-    // assert(3D == array[0]);
-    // assert(3D == array[11]);
+    assert(3D == array[0]);
+    assert(3D == array[11]);
 }
