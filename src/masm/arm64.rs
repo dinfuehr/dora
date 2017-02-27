@@ -52,6 +52,16 @@ impl MacroAssembler {
         self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos));
     }
 
+    pub fn direct_call_without_info(&mut self, ptr: *const u8) {
+        let disp = self.add_addr(ptr);
+        let pos = self.pos() as i32;
+
+        let scratch = self.get_scratch();
+
+        self.load_constpool(*scratch, disp + pos);
+        self.emit_u32(asm::blr(*scratch));
+    }
+
     pub fn indirect_call(&mut self, index: u32) {
         let obj = REG_PARAMS[0];
 
