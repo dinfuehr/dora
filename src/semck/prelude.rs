@@ -194,6 +194,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
                   clsid,
                   "toString",
                   stdlib::float_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "toInt", Intrinsic::FloatToInt);
+    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::FloatToLong);
+    intrinsic_method(ctxt, clsid, "toDouble", Intrinsic::FloatToDouble);
 
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::FloatEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::FloatCmp);
@@ -213,6 +216,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
                   clsid,
                   "toString",
                   stdlib::double_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "toInt", Intrinsic::DoubleToInt);
+    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::DoubleToLong);
+    intrinsic_method(ctxt, clsid, "toFloat", Intrinsic::DoubleToFloat);
 
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::DoubleCmp);

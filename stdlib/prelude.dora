@@ -118,6 +118,9 @@ internal class Str {
 }
 
 internal class float {
+  internal fun toInt() -> int;
+  internal fun toLong() -> long;
+  internal fun toDouble() -> double;
   internal fun toString() -> Str;
 
   internal fun equals(rhs: float) -> bool;
@@ -135,6 +138,9 @@ internal class float {
 }
 
 internal class double {
+  internal fun toInt() -> int;
+  internal fun toLong() -> long;
+  internal fun toFloat() -> float;
   internal fun toString() -> Str;
 
   internal fun equals(rhs: double) -> bool;

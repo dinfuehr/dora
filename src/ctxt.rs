@@ -465,6 +465,9 @@ pub enum Intrinsic {
     LongNeg,
     LongPlus,
 
+    FloatToInt,
+    FloatToLong,
+    FloatToDouble,
     FloatEq,
     FloatCmp,
 
@@ -481,6 +484,9 @@ pub enum Intrinsic {
     FloatArrayGet,
     FloatArraySet,
 
+    DoubleToInt,
+    DoubleToLong,
+    DoubleToFloat,
     DoubleEq,
     DoubleCmp,
 

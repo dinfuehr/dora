@@ -893,11 +893,11 @@ pub fn movsd_store(buf: &mut MacroAssembler, mem: Mem, src: FReg) {
 }
 
 pub fn cvtsd2ss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, false, 0x5a, dest, src);
+    sse_float_freg_freg(buf, true, 0x5a, dest, src);
 }
 
 pub fn cvtss2sd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
-    sse_float_freg_freg(buf, true, 0x5a, dest, src);
+    sse_float_freg_freg(buf, false, 0x5a, dest, src);
 }
 
 pub fn cvtsi2ss(buf: &mut MacroAssembler, dest: FReg, x64: u8, src: Reg) {
@@ -909,11 +909,11 @@ pub fn cvtsi2sd(buf: &mut MacroAssembler, dest: FReg, x64: u8, src: Reg) {
 }
 
 pub fn cvttss2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
-    sse_float_reg_freg(buf, false, 0x2a, x64, dest, src);
+    sse_float_reg_freg(buf, false, 0x2c, x64, dest, src);
 }
 
 pub fn cvttsd2si(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: FReg) {
-    sse_float_reg_freg(buf, true, 0x2a, x64, dest, src);
+    sse_float_reg_freg(buf, true, 0x2c, x64, dest, src);
 }
 
 pub fn xorps(buf: &mut MacroAssembler, dest: FReg, src: Mem) {
@@ -1928,17 +1928,17 @@ mod tests {
     }
 
     #[test]
-    fn test_cvtsd2ss() {
-        assert_emit!(0xf3, 0x0f, 0x5a, 0xc1; cvtsd2ss(XMM0, XMM1));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x5a, 0xdf; cvtsd2ss(XMM3, XMM15));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x5a, 0xc4; cvtsd2ss(XMM8, XMM4));
+    fn test_cvtss2sd() {
+        assert_emit!(0xf3, 0x0f, 0x5a, 0xc1; cvtss2sd(XMM0, XMM1));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x5a, 0xdf; cvtss2sd(XMM3, XMM15));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x5a, 0xc4; cvtss2sd(XMM8, XMM4));
     }
 
     #[test]
-    fn test_cvtss2sd() {
-        assert_emit!(0xf2, 0x0f, 0x5a, 0xc1; cvtss2sd(XMM0, XMM1));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x5a, 0xdf; cvtss2sd(XMM3, XMM15));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x5a, 0xc4; cvtss2sd(XMM8, XMM4));
+    fn test_cvtsd2ss() {
+        assert_emit!(0xf2, 0x0f, 0x5a, 0xc1; cvtsd2ss(XMM0, XMM1));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x5a, 0xdf; cvtsd2ss(XMM3, XMM15));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x5a, 0xc4; cvtsd2ss(XMM8, XMM4));
     }
 
     #[test]
@@ -1965,24 +1965,24 @@ mod tests {
 
     #[test]
     fn test_cvttss2si() {
-        assert_emit!(0xf3, 0x0f, 0x2a, 0xc8; cvttss2si(0, RCX, XMM0));
-        assert_emit!(0xf3, 0x44, 0x0f, 0x2a, 0xfb; cvttss2si(0, R15, XMM3));
-        assert_emit!(0xf3, 0x41, 0x0f, 0x2a, 0xe0; cvttss2si(0, RSP, XMM8));
+        assert_emit!(0xf3, 0x0f, 0x2c, 0xc8; cvttss2si(0, RCX, XMM0));
+        assert_emit!(0xf3, 0x44, 0x0f, 0x2c, 0xfb; cvttss2si(0, R15, XMM3));
+        assert_emit!(0xf3, 0x41, 0x0f, 0x2c, 0xe0; cvttss2si(0, RSP, XMM8));
 
-        assert_emit!(0xf3, 0x48, 0x0f, 0x2a, 0xc8; cvttss2si(1, RCX, XMM0));
-        assert_emit!(0xf3, 0x4c, 0x0f, 0x2a, 0xfb; cvttss2si(1, R15, XMM3));
-        assert_emit!(0xf3, 0x49, 0x0f, 0x2a, 0xe0; cvttss2si(1, RSP, XMM8));
+        assert_emit!(0xf3, 0x48, 0x0f, 0x2c, 0xc8; cvttss2si(1, RCX, XMM0));
+        assert_emit!(0xf3, 0x4c, 0x0f, 0x2c, 0xfb; cvttss2si(1, R15, XMM3));
+        assert_emit!(0xf3, 0x49, 0x0f, 0x2c, 0xe0; cvttss2si(1, RSP, XMM8));
     }
 
     #[test]
     fn test_cvttsd2si() {
-        assert_emit!(0xf2, 0x0f, 0x2a, 0xc8; cvttsd2si(0, RCX, XMM0));
-        assert_emit!(0xf2, 0x44, 0x0f, 0x2a, 0xfb; cvttsd2si(0, R15, XMM3));
-        assert_emit!(0xf2, 0x41, 0x0f, 0x2a, 0xe0; cvttsd2si(0, RSP, XMM8));
+        assert_emit!(0xf2, 0x0f, 0x2c, 0xc8; cvttsd2si(0, RCX, XMM0));
+        assert_emit!(0xf2, 0x44, 0x0f, 0x2c, 0xfb; cvttsd2si(0, R15, XMM3));
+        assert_emit!(0xf2, 0x41, 0x0f, 0x2c, 0xe0; cvttsd2si(0, RSP, XMM8));
 
-        assert_emit!(0xf2, 0x48, 0x0f, 0x2a, 0xc8; cvttsd2si(1, RCX, XMM0));
-        assert_emit!(0xf2, 0x4c, 0x0f, 0x2a, 0xfb; cvttsd2si(1, R15, XMM3));
-        assert_emit!(0xf2, 0x49, 0x0f, 0x2a, 0xe0; cvttsd2si(1, RSP, XMM8));
+        assert_emit!(0xf2, 0x48, 0x0f, 0x2c, 0xc8; cvttsd2si(1, RCX, XMM0));
+        assert_emit!(0xf2, 0x4c, 0x0f, 0x2c, 0xfb; cvttsd2si(1, R15, XMM3));
+        assert_emit!(0xf2, 0x49, 0x0f, 0x2c, 0xe0; cvttsd2si(1, RSP, XMM8));
     }
 
     #[test]
