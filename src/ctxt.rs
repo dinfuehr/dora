@@ -419,6 +419,8 @@ pub enum Intrinsic {
 
     IntToByte,
     IntToLong,
+    IntToFloat,
+    IntToDouble,
     IntEq,
     IntCmp,
     IntAdd,
@@ -441,6 +443,8 @@ pub enum Intrinsic {
 
     LongToInt,
     LongToByte,
+    LongToFloat,
+    LongToDouble,
     LongEq,
     LongCmp,
     LongAdd,

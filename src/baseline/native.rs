@@ -33,9 +33,7 @@ pub struct InternalFct<'a> {
     pub return_type: BuiltinType,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
-                              fct: InternalFct)
-                              -> JitFct {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: InternalFct) -> JitFct {
     let ngen = NativeGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),

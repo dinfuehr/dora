@@ -50,6 +50,9 @@ internal class int {
   internal fun toLong() -> long;
   internal fun toString() -> Str;
 
+  internal fun toFloat() -> float;
+  internal fun toDouble() -> double;
+
   internal fun equals(rhs: int) -> bool;
   internal fun compareTo(rhs: int) -> int;
 
@@ -76,6 +79,9 @@ internal class long {
   internal fun toByte() -> byte;
   internal fun toInt() -> int;
   internal fun toString() -> Str;
+
+  internal fun toFloat() -> float;
+  internal fun toDouble() -> double;
 
   internal fun equals(rhs: long) -> bool;
   internal fun compareTo(rhs: long) -> int;

@@ -837,8 +837,21 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
                 Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest.reg()),
                 Intrinsic::LongToInt => self.emit_intrinsic_long_to_int(e, dest.reg()),
+                Intrinsic::LongToFloat => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                }
+                Intrinsic::LongToDouble => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                }
+
                 Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
+                Intrinsic::IntToFloat => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                }
+                Intrinsic::IntToDouble => {
+                    self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
+                }
 
                 Intrinsic::ByteEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::ByteCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
@@ -1050,6 +1063,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_intrinsic_int_to_long(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
         self.masm.extend_int_long(dest, REG_RESULT);
+    }
+
+    fn emit_intrinsic_int_to_float(&mut self,
+                                   e: &'ast ExprCallType,
+                                   dest: FReg,
+                                   intrinsic: Intrinsic) {
+        self.emit_expr(e.object.as_ref().unwrap(), REG_RESULT.into());
+
+        let (src_mode, dest_mode) = match intrinsic {
+            Intrinsic::IntToFloat => (MachineMode::Int32, MachineMode::Float32),
+            Intrinsic::IntToDouble => (MachineMode::Int32, MachineMode::Float64),
+            Intrinsic::LongToFloat => (MachineMode::Int64, MachineMode::Float32),
+            Intrinsic::LongToDouble => (MachineMode::Int64, MachineMode::Float64),
+            _ => unreachable!(),
+        };
+
+        self.masm.int_to_float(dest_mode, dest, src_mode, REG_RESULT);
     }
 
     fn emit_intrinsic_byte_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1440,10 +1470,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-fn ensure_native_stub(ctxt: &Context,
-                      fct_id: FctId,
-                      internal_fct: InternalFct)
-                      -> *const u8 {
+fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 

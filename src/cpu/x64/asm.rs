@@ -1042,7 +1042,7 @@ fn sse_float_reg_freg(buf: &mut MacroAssembler, dbl: bool, op: u8, x64: u8, dest
     emit_modrm(buf, 0b11, dest.and7(), src.and7());
 }
 
-fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
+pub fn pxor(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     emit_op(buf, 0x66);
 
     if dest.msb() != 0 || src.msb() != 0 {

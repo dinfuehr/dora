@@ -119,6 +119,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "toByte", Intrinsic::IntToByte);
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
+    intrinsic_method(ctxt, clsid, "toFloat", Intrinsic::IntToFloat);
+    intrinsic_method(ctxt, clsid, "toDouble", Intrinsic::IntToDouble);
+
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::IntEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::IntCmp);
 
@@ -144,6 +147,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::LongToInt);
     intrinsic_method(ctxt, clsid, "toByte", Intrinsic::LongToByte);
+
+    intrinsic_method(ctxt, clsid, "toFloat", Intrinsic::LongToFloat);
+    intrinsic_method(ctxt, clsid, "toDouble", Intrinsic::LongToDouble);
 
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::LongEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::LongCmp);
@@ -184,7 +190,10 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
 
     let clsid = ctxt.primitive_classes.float_class;
-    native_method(ctxt, clsid, "toString", stdlib::float_to_string as *const u8);
+    native_method(ctxt,
+                  clsid,
+                  "toString",
+                  stdlib::float_to_string as *const u8);
 
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::FloatEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::FloatCmp);
@@ -200,7 +209,10 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::FloatIsNan);
 
     let clsid = ctxt.primitive_classes.double_class;
-    native_method(ctxt, clsid, "toString", stdlib::double_to_string as *const u8);
+    native_method(ctxt,
+                  clsid,
+                  "toString",
+                  stdlib::double_to_string as *const u8);
 
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::DoubleEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::DoubleCmp);

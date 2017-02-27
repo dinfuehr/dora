@@ -411,11 +411,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id,
-                                args,
-                                false,
-                                Some(fid),
-                                Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }
     }
 
@@ -430,11 +426,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id,
-                                args,
-                                false,
-                                Some(fid),
-                                Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }
     }
 

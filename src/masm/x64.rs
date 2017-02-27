@@ -377,6 +377,26 @@ impl MacroAssembler {
         }
     }
 
+    pub fn int_to_float(&mut self,
+                        dest_mode: MachineMode,
+                        dest: FReg,
+                        src_mode: MachineMode,
+                        src: Reg) {
+        asm::pxor(self, dest, dest);
+
+        let x64 = match src_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        match dest_mode {
+            MachineMode::Float32 => asm::cvtsi2ss(self, dest, x64, src),
+            MachineMode::Float64 => asm::cvtsi2sd(self, dest, x64, src),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
         self.load_mem(MachineMode::Int32,
                       temp.into(),
