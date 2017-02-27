@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use baseline::fct::JitFct;
 use cpu::{Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{Context, FctId, get_ctxt};
+use ctxt::{Context, get_ctxt};
 use masm::MacroAssembler;
 use mem;
 use stacktrace::DoraToNativeInfo;
@@ -28,7 +28,6 @@ impl NativeFcts {
 }
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
-                              fct_id: FctId,
                               ptr: *const u8,
                               return_type: BuiltinType,
                               args: i32)
@@ -37,7 +36,6 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
         ctxt: ctxt,
         ptr: ptr,
         masm: MacroAssembler::new(),
-        fct_id: fct_id,
         return_type: return_type,
         args: args,
     };
@@ -49,7 +47,6 @@ struct NativeGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     ptr: *const u8,
     masm: MacroAssembler,
-    fct_id: FctId,
 
     return_type: BuiltinType,
     args: i32,

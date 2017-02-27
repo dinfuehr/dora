@@ -1375,7 +1375,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                              args: i32,
                              dest: ExprStore) {
         let ptr = ensure_native_stub(self.ctxt, FctId(0), ptr, ty, args);
-        self.emit_direct_call_insn(FctId(0), ptr, pos, ty, dest);
+
+        self.masm.direct_call_without_info(ptr);
+        self.emit_after_call_insns(pos, ty, dest);
     }
 
     fn emit_direct_call_insn(&mut self,
@@ -1444,7 +1446,7 @@ fn ensure_native_stub(ctxt: &Context,
         ptr
 
     } else {
-        let jit_fct = native::generate(ctxt, fct_id, ptr, ty, args);
+        let jit_fct = native::generate(ctxt, ptr, ty, args);
         let fct = ctxt.fcts[fct_id].borrow();
 
         if should_emit_asm(ctxt, &*fct) {
