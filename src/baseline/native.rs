@@ -2,7 +2,7 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
 use baseline::fct::JitFct;
-use cpu::{Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
+use cpu::{FREG_PARAMS, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{Context, get_ctxt};
 use masm::MacroAssembler;
 use mem;
@@ -70,22 +70,12 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm.prolog(framesize);
 
-        assert!(args <= REG_PARAMS.len());
-
-        for (ind, &reg) in REG_PARAMS.iter().take(args as usize).enumerate() {
-            self.masm.store_mem(MachineMode::Ptr,
-                                Mem::Base(REG_SP, offset_args + ind as i32 * 8),
-                                reg.into());
-        }
+        save_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.direct_call_without_info(start_native_call as *const u8);
 
-        for (ind, &reg) in REG_PARAMS.iter().take(args as usize).enumerate() {
-            self.masm.load_mem(MachineMode::Ptr,
-                               reg.into(),
-                               Mem::Base(REG_SP, offset_args + ind as i32 * 8));
-        }
+        restore_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.direct_call_without_info(self.fct.ptr);
 
@@ -102,6 +92,62 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         self.masm.epilog(framesize);
 
         self.masm.jit(self.ctxt, framesize)
+    }
+}
+
+fn save_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: i32) {
+    let mut reg_idx = 0;
+    let mut freg_idx = 0;
+    let mut idx = 0;
+
+    for &ty in args {
+        let mode = ty.mode();
+        let is_float = mode.is_float();
+        let offset = offset_args + idx as i32 * 8;
+
+        if is_float && freg_idx < FREG_PARAMS.len() {
+            let freg = FREG_PARAMS[freg_idx].into();
+            masm.store_mem(mode, Mem::Base(REG_SP, offset), freg);
+            freg_idx += 1;
+
+        } else if !is_float && reg_idx < REG_PARAMS.len() {
+            let reg = REG_PARAMS[reg_idx].into();
+            masm.store_mem(mode, Mem::Base(REG_SP, offset), reg);
+            reg_idx += 1;
+
+        } else {
+            panic!("parameter saved on stack");
+        }
+
+        idx += 1;
+    }
+}
+
+fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: i32) {
+    let mut reg_idx = 0;
+    let mut freg_idx = 0;
+    let mut idx = 0;
+
+    for &ty in args {
+        let mode = ty.mode();
+        let is_float = mode.is_float();
+        let offset = offset_args + idx as i32 * 8;
+
+        if is_float && freg_idx < FREG_PARAMS.len() {
+            let freg = FREG_PARAMS[freg_idx].into();
+            masm.load_mem(mode, freg, Mem::Base(REG_SP, offset));
+            freg_idx += 1;
+
+        } else if !is_float && reg_idx < REG_PARAMS.len() {
+            let reg = REG_PARAMS[reg_idx].into();
+            masm.load_mem(mode, reg, Mem::Base(REG_SP, offset));
+            reg_idx += 1;
+
+        } else {
+            panic!("parameter saved on stack");
+        }
+
+        idx += 1;
     }
 }
 
