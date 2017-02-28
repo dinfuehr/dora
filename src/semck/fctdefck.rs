@@ -1,63 +1,48 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, FctId, FctSrc};
+use ctxt::{Context, Fct, FctSrc};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
-    let last = ctxt.fcts.len();
+    for fct in &ctxt.fcts {
+        let mut fct = fct.borrow_mut();
+        let ast = fct.ast;
 
-    for id in 0..last {
-        let id = FctId(id);
+        if !fct.is_src() && !fct.kind.is_definition() {
+            continue;
+        }
 
-        let ast = {
-            let fct = ctxt.fcts[id].borrow();
-            if !fct.is_src() && !fct.kind.is_definition() {
-                continue;
-            }
+        for p in &ast.params {
+            let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
+            fct.param_types.push(ty);
 
-            fct.ast
-        };
+            if fct.is_src() {
+                let src = fct.src();
+                let mut src = src.lock().unwrap();
 
-        {
-            for p in &ast.params {
-                let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
-
-                let mut fct = ctxt.fcts[id].borrow_mut();
-                fct.param_types.push(ty);
-
-                if fct.is_src() {
-                    let src = fct.src();
-                    let mut src = src.lock().unwrap();
-
-                    let var = *src.map_vars.get(p.id).unwrap();
-                    src.vars[var].ty = ty;
-                }
-            }
-
-            if let Some(ret) = ast.return_type.as_ref() {
-                let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
-                let mut fct = ctxt.fcts[id].borrow_mut();
-                fct.return_type = ty;
+                let var = *src.map_vars.get(p.id).unwrap();
+                src.vars[var].ty = ty;
             }
         }
 
-        let src = {
-            let fct = ctxt.fcts[id].borrow();
-            if !fct.is_src() {
-                continue;
-            }
+        if let Some(ret) = ast.return_type.as_ref() {
+            let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
+            fct.return_type = ty;
+        }
 
-            fct.src()
-        };
+        if !fct.is_src() {
+            continue;
+        }
 
+        let src = fct.src();
         let mut src = src.lock().unwrap();
 
         let mut defck = FctDefCheck {
             ctxt: ctxt,
-            fct_id: id,
+            fct: &mut *fct,
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
@@ -69,7 +54,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct_id: FctId,
+    fct: &'a mut Fct<'ast>,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
@@ -83,20 +68,19 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
             return;
         }
 
-        let mut fct = self.ctxt.fcts[self.fct_id].borrow_mut();
-        fct.initialized = true;
+        self.fct.initialized = true;
 
-        if let Some(clsid) = fct.owner_class {
+        if let Some(clsid) = self.fct.owner_class {
             let cls = self.ctxt.classes[clsid].borrow();
 
             for &method in &cls.methods {
-                if method == fct.id {
+                if method == self.fct.id {
                     continue;
                 }
                 let method = self.ctxt.fcts[method].borrow();
 
-                if method.initialized && method.name == fct.name &&
-                   method.params_without_self() == fct.params_without_self() {
+                if method.initialized && method.name == self.fct.name &&
+                   method.params_without_self() == self.fct.params_without_self() {
                     let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
                     let param_names = method.params_without_self()
                         .iter()
