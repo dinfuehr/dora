@@ -88,7 +88,7 @@ impl Class {
             for &method in &cls.methods {
                 let method = ctxt.fcts[method].borrow();
 
-                if method.name == name && method.params_types == args {
+                if method.name == name && method.params_without_self() == args {
                     return Some(method.id);
                 }
             }

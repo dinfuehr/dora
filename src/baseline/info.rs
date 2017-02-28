@@ -318,7 +318,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                             } else {
                                 let ind = if in_class { ind - 1 } else { ind };
-                                self.ctxt.fcts[fid].borrow().params_types[ind]
+                                self.ctxt.fcts[fid].borrow().params_without_self()[ind]
                             }
                         }
 

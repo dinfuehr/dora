@@ -231,7 +231,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(cls_id, fct_id);
                 self.src.map_calls.insert(e.id, call_type);
 
-                let index_type = self.ctxt.fcts[fct_id].borrow().params_types[1];
+                let index_type = self.ctxt.fcts[fct_id].borrow().params_without_self()[1];
 
                 self.src.set_ty(e.id, index_type);
                 self.expr_type = index_type;
@@ -323,7 +323,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ctxt = self.ctxt;
 
             let candidates = cls.find_methods_with(ctxt, name, |method| {
-                args_compatible(ctxt, &method.params_types, args) &&
+                args_compatible(ctxt, &method.params_without_self(), args) &&
                 (return_type.is_none() || method.return_type == return_type.unwrap())
             });
 
@@ -358,7 +358,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ctxt = self.ctxt;
 
             let candidates = cls.find_methods_with(ctxt, name, |method| {
-                args_compatible(ctxt, &method.params_types, args) &&
+                args_compatible(ctxt, &method.params_without_self(), args) &&
                 (return_type.is_none() || method.return_type == return_type.unwrap())
             });
 
@@ -584,7 +584,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 for &ctor in &cls.ctors {
                     let ctor = self.ctxt.fcts[ctor].borrow();
 
-                    if args_compatible(self.ctxt, &ctor.params_types, &call_types) {
+                    if args_compatible(self.ctxt, &ctor.params_without_self(), &call_types) {
                         let call_type = CallType::CtorNew(cls_id, ctor.id);
                         self.src.map_calls.replace(e.id, call_type);
 
@@ -608,9 +608,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, callee.return_type);
                 self.expr_type = callee.return_type;
 
-                if !args_compatible(self.ctxt, &callee.params_types, &call_types) {
+                if !args_compatible(self.ctxt, &callee.params_without_self(), &call_types) {
                     let callee_name = self.ctxt.interner.str(callee.name).to_string();
-                    let callee_params = callee.params_types
+                    let callee_params = callee.params_without_self()
                         .iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<_>>();
@@ -676,7 +676,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor_id].borrow();
 
-            if args_compatible(self.ctxt, &ctor.params_types, &arg_types) {
+            if args_compatible(self.ctxt, &ctor.params_without_self(), &arg_types) {
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);

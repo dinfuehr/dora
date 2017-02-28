@@ -200,7 +200,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
     let parent = cls.parent_class.unwrap();
     let parent = ctxt.classes[parent].borrow();
 
-    let super_method = parent.find_method(ctxt, fct.name, &fct.params_types);
+    let super_method = parent.find_method(ctxt, fct.name, &fct.params_without_self());
 
     if let Some(super_method) = super_method {
         let super_method = ctxt.fcts[super_method].borrow();

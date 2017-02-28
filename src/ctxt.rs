@@ -256,7 +256,7 @@ pub struct Fct<'ast> {
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,
-    pub params_types: Vec<BuiltinType>,
+    pub param_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: ast::CtorType,
     pub vtable_index: Option<u32>,
@@ -287,7 +287,7 @@ impl<'ast> Fct<'ast> {
         repr.push_str(&ctxt.interner.str(self.name));
         repr.push_str("(");
 
-        for (ind, ty) in self.params_types.iter().enumerate() {
+        for (ind, ty) in self.params_without_self().iter().enumerate() {
             if ind > 0 {
                 repr.push_str(", ");
             }
@@ -334,8 +334,22 @@ impl<'ast> Fct<'ast> {
         self.owner_class.is_some()
     }
 
+    pub fn params_with_self(&self) -> &[BuiltinType] {
+        &self.param_types
+    }
+
+    pub fn params_without_self(&self) -> &[BuiltinType] {
+        // if self.owner_class.is_some() {
+        //     &self.param_types[1..]
+        // } else {
+        //     &self.param_types
+        // }
+
+        &self.param_types
+    }
+
     pub fn real_args(&self) -> i32 {
-        let params = self.params_types.len() as i32;
+        let params = self.param_types.len() as i32;
 
         if self.owner_class.is_some() {
             params + 1

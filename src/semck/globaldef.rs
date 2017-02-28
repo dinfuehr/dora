@@ -94,7 +94,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: f.pos,
             ast: f,
             name: f.name,
-            params_types: Vec::new(),
+            param_types: Vec::new(),
             return_type: BuiltinType::Unit,
             owner_class: None,
             has_override: f.has_override,

@@ -6,7 +6,7 @@ use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     let last = ctxt.fcts.len();
 
     for id in 0..last {
@@ -26,7 +26,7 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
                 let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
 
                 let mut fct = ctxt.fcts[id].borrow_mut();
-                fct.params_types.push(ty);
+                fct.param_types.push(ty);
 
                 if fct.is_src() {
                     let src = fct.src();
@@ -68,7 +68,7 @@ pub fn check<'a, 'ast>(ctxt: &mut Context<'ast>) {
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a mut Context<'ast>,
+    ctxt: &'a Context<'ast>,
     fct_id: FctId,
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
@@ -96,9 +96,9 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
                 let method = self.ctxt.fcts[method].borrow();
 
                 if method.initialized && method.name == fct.name &&
-                   method.params_types == fct.params_types {
+                   method.params_without_self() == fct.params_without_self() {
                     let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
-                    let param_names = method.params_types
+                    let param_names = method.params_without_self()
                         .iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<String>>();
