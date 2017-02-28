@@ -15,6 +15,11 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             continue;
         }
 
+        if let Some(owner_class) = fct.owner_class {
+            let cls = ctxt.classes[owner_class].borrow();
+            fct.param_types.push(cls.ty);
+        }
+
         for p in &ast.params {
             let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
             fct.param_types.push(ty);

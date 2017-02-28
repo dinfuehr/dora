@@ -787,16 +787,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
                 FctKind::Native(ptr) => {
-                    let mut param_types = fct.params_without_self().to_owned();
-
-                    if let Some(owner_class) = fct.owner_class {
-                        let cls = self.ctxt.classes[owner_class].borrow();
-                        param_types.insert(0, cls.ty);
-                    }
-
                     let internal_fct = InternalFct {
                         ptr: ptr,
-                        args: &param_types,
+                        args: fct.params_with_self(),
                         return_type: fct.return_type,
                     };
 

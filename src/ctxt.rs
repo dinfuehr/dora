@@ -339,13 +339,11 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn params_without_self(&self) -> &[BuiltinType] {
-        // if self.owner_class.is_some() {
-        //     &self.param_types[1..]
-        // } else {
-        //     &self.param_types
-        // }
-
-        &self.param_types
+        if self.owner_class.is_some() {
+            &self.param_types[1..]
+        } else {
+            &self.param_types
+        }
     }
 
     pub fn real_args(&self) -> i32 {
