@@ -58,6 +58,10 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>,
 }
 
 pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
+    native_fct(ctxt, "fatalError", stdlib::fatal_error as *const u8);
+    native_fct(ctxt, "abort", stdlib::abort as *const u8);
+    native_fct(ctxt, "exit", stdlib::exit as *const u8);
+
     native_fct(ctxt, "print", stdlib::print as *const u8);
     native_fct(ctxt, "println", stdlib::println as *const u8);
     intrinsic_fct(ctxt, "assert", Intrinsic::Assert);

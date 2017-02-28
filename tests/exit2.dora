@@ -1,0 +1,5 @@
+//= error code 2
+
+fun main() {
+    exit(2);
+}

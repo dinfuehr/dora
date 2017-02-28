@@ -1,0 +1,5 @@
+//= error code 1
+
+fun main() {
+    exit(1);
+}

@@ -82,7 +82,7 @@ def run_test(file)
   if $no_capture
     out_args = "2>&1 | tee #{$temp_out.path}"
   else
-    out_args = "2>&1 >#{$temp_out.path}"
+    out_args = ">#{$temp_out.path} 2>&1"
   end
 
   system("target/#{target}/dora #{testfile} #{args} #{out_args}")

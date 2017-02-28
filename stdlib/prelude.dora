@@ -6,6 +6,10 @@ fun abs(val: int) -> int {
   }
 }
 
+internal fun fatalError(msg: Str);
+internal fun abort();
+internal fun exit(status: int);
+
 internal fun print(text: Str);
 internal fun println(text: Str);
 internal fun assert(val: bool);

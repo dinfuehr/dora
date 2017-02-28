@@ -4,6 +4,7 @@ use std::ffi::CStr;
 use std::io::{self, Write};
 use std::mem;
 use std::os::raw::c_char;
+use std::process;
 use std::ptr;
 use std::slice;
 use std::str;
@@ -62,6 +63,27 @@ pub extern "C" fn print(val: Handle<Str>) {
         let buf = CStr::from_ptr(val.data() as *const c_char);
         io::stdout().write(buf.to_bytes()).unwrap();
     };
+}
+
+pub extern "C" fn fatal_error(msg: Handle<Str>) {
+    write!(&mut io::stderr(), "fatal error: ").expect("could not print to stderr");
+
+    unsafe {
+        let buf = CStr::from_ptr(msg.data() as *const c_char);
+        io::stderr().write(buf.to_bytes()).unwrap();
+    };
+
+    writeln!(&mut io::stderr(), "").expect("could not print to stderr");
+    process::exit(1);
+}
+
+pub extern "C" fn abort() {
+    writeln!(&mut io::stderr(), "program aborted.").expect("could not print to stderr");
+    process::exit(1);
+}
+
+pub extern "C" fn exit(status: i32) {
+    process::exit(status);
 }
 
 pub extern "C" fn println(val: Handle<Str>) {
