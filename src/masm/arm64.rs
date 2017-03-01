@@ -301,6 +301,54 @@ impl MacroAssembler {
         self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
+    pub fn int_to_float(&mut self,
+                        dest_mode: MachineMode,
+                        dest: FReg,
+                        src_mode: MachineMode,
+                        src: Reg) {
+        let x64 = match src_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        let flt = match dest_mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unreachable!(),
+        };
+
+        self.emit_u32(asm::scvtf(x64, flt, dest, src));
+    }
+
+    pub fn float_to_int(&mut self,
+                        dest_mode: MachineMode,
+                        dest: Reg,
+                        src_mode: MachineMode,
+                        src: FReg) {
+        let x64 = match dest_mode {
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 => 1,
+            _ => unreachable!(),
+        };
+
+        let flt = match src_mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unreachable!(),
+        };
+
+        self.emit_u32(asm::fcvtzs(x64, flt, dest, src));
+    }
+
+    pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
+        self.emit_u32(asm::fcvt_sd(dest, src));
+    }
+
+    pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
+        self.emit_u32(asm::fcvt_ds(dest, src));
+    }
+
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         let dbl = match mode {
             MachineMode::Float32 => 0,

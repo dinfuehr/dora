@@ -703,6 +703,14 @@ fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) ->
     rn.asm() << 5 | rd.asm()
 }
 
+pub fn fcvt_sd(rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd)
+}
+
+pub fn fcvt_ds(rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd)
+}
+
 pub fn fmov(ty: u32, rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, ty, 0b000000, rn, rd)
 }
@@ -711,28 +719,25 @@ pub fn fneg(ty: u32, rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, ty, 0b000010, rn, rd)
 }
 
-pub fn fcvts(ty: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, 0b11, 0b000100, rn, rd)
+pub fn scvtf(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {
+    cls_fp_int(sf, 0, ty, 0b00, 0b010, rn.asm(), rd.asm())
 }
 
-pub fn fcvtd(ty: u32, rd: FReg, rn: FReg) -> u32 {
-    cls_fp_dataproc1(0, 0, 0b11, 0b000101, rn, rd)
+pub fn fcvtzs(sf: u32, ty: u32, rd: Reg, rn: FReg) -> u32 {
+    cls_fp_int(sf, 0, ty, 0b11, 0b000, rn.asm(), rd.asm())
 }
 
-fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: Reg, rd: FReg) -> u32 {
+fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u32) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(s));
     assert!(fits_u2(ty));
     assert!(fits_u2(rmode));
     assert!(fits_u3(opcode));
-    assert!(rn.is_gpr());
+    assert!(fits_u5(rn));
+    assert!(fits_u5(rd));
 
     sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 |
-    rn.asm() << 5 | rd.asm()
-}
-
-pub fn scvtf(sf: u32, ty: u32, rd: FReg, rn: Reg) -> u32 {
-    cls_fp_int(sf, 0, ty, 0b00, 0b010, rn, rd)
+    rn << 5 | rd
 }
 
 pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {
@@ -1532,10 +1537,10 @@ mod tests {
 
     #[test]
     fn test_scvtf() {
-        asm(0x1e220041, scvtf(0, 0, F1, R2));
-        asm(0x1e620041, scvtf(0, 1, F1, R2));
-        asm(0x9e220083, scvtf(1, 0, F3, R4));
-        asm(0x9e620083, scvtf(1, 1, F3, R4));
+        assert_eq!(0x1e220041, scvtf(0, 0, F1, R2));
+        assert_eq!(0x1e620041, scvtf(0, 1, F1, R2));
+        assert_eq!(0x9e220083, scvtf(1, 0, F3, R4));
+        assert_eq!(0x9e620083, scvtf(1, 1, F3, R4));
     }
 
     #[test]
@@ -1562,6 +1567,14 @@ mod tests {
         assert_eq!(0x1e212010, fcmpe(0, F0, F1));
         assert_eq!(0x1e612010, fcmpe(1, F0, F1));
         assert_eq!(0x1e252090, fcmpe(0, F4, F5));
+    }
+
+    #[test]
+    fn test_fcvtzs() {
+        assert_eq!(0x9e780020, fcvtzs(1, 1, R0, F1)); // x0, d1
+        assert_eq!(0x9e380047, fcvtzs(1, 0, R7, F2)); // x7, s2
+        assert_eq!(0x1e780020, fcvtzs(0, 1, R0, F1)); // w0, d1
+        assert_eq!(0x1e380047, fcvtzs(0, 0, R7, F2)); // w7, s2
     }
 
     fn asm(op1: u32, op2: u32) {
