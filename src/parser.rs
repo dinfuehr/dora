@@ -149,7 +149,10 @@ impl<'a> Parser<'a> {
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
+            type_params: Vec::new(),
         };
+
+        self.parse_type_params(&mut cls)?;
 
         self.in_class = true;
         let ctor_params = self.parse_primary_ctor(&mut cls)?;
@@ -184,6 +187,27 @@ impl<'a> Parser<'a> {
         self.in_class = false;
 
         Ok(cls)
+    }
+
+    fn parse_type_params(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
+        if self.token.is(TokenKind::Lt) {
+            self.advance_token()?;
+
+            let params = self.parse_comma_list(TokenKind::Gt, |p| p.parse_type_param())?;
+            cls.type_params = params;
+        }
+
+        Ok(())
+    }
+
+    fn parse_type_param(&mut self) -> Result<TypeParam, MsgWithPos> {
+        let pos = self.token.position;
+        let name = self.expect_identifier()?;
+
+        Ok(TypeParam {
+            name: name,
+            pos: pos,
+        })
     }
 
     fn add_field_initializers_to_ctors(&mut self, cls: &mut Class) {
@@ -2628,5 +2652,30 @@ mod tests {
         let lit = expr.to_lit_float().unwrap();
 
         assert_eq!(1.2, lit.value);
+    }
+
+    #[test]
+    fn parse_class_type_params() {
+        let (prog, interner) = parse("class Foo<T>");
+        let cls = prog.cls0();
+
+        assert_eq!(1, cls.type_params.len());
+        assert_eq!("T", *interner.str(cls.type_params[0].name));
+
+        let (prog, interner) = parse("class Foo<X>");
+        let cls = prog.cls0();
+
+        assert_eq!(1, cls.type_params.len());
+        assert_eq!("X", *interner.str(cls.type_params[0].name));
+    }
+
+    #[test]
+    fn parse_multiple_class_type_params() {
+        let (prog, interner) = parse("class Foo<A, B>");
+        let cls = prog.cls0();
+
+        assert_eq!(2, cls.type_params.len());
+        assert_eq!("A", *interner.str(cls.type_params[0].name));
+        assert_eq!("B", *interner.str(cls.type_params[1].name));
     }
 }

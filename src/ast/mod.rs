@@ -271,6 +271,13 @@ pub struct Class {
     pub ctors: Vec<Function>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
+    pub type_params: Vec<TypeParam>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParam {
+    pub name: Name,
+    pub pos: Position,
 }
 
 #[derive(Clone, Debug)]
