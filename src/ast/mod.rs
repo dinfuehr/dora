@@ -145,6 +145,7 @@ pub struct TypeBasicType {
     pub id: NodeId,
     pub pos: Position,
     pub name: Name,
+    pub params: Vec<Box<Type>>,
 }
 
 #[derive(Clone, Debug)]
@@ -162,11 +163,12 @@ pub struct TypeArrayType {
 }
 
 impl Type {
-    pub fn create_basic(id: NodeId, pos: Position, name: Name) -> Type {
+    pub fn create_basic(id: NodeId, pos: Position, name: Name, params: Vec<Box<Type>>) -> Type {
         Type::TypeBasic(TypeBasicType {
             id: id,
             pos: pos,
             name: name,
+            params: params,
         })
     }
 

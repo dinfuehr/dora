@@ -619,7 +619,16 @@ impl<'a> Parser<'a> {
                 let pos = self.token.position;
                 let name = self.expect_identifier()?;
 
-                Ok(Type::create_basic(self.generate_id(), pos, name))
+                let params = if self.token.is(TokenKind::Lt) {
+                    self.advance_token()?;
+                    self.parse_comma_list(TokenKind::Gt, |p| {
+                        Ok(Box::new(p.parse_type()?))
+                    })?
+                } else {
+                    Vec::new()
+                };
+
+                Ok(Type::create_basic(self.generate_id(), pos, name, params))
             }
 
             TokenKind::LParen => {
@@ -1302,6 +1311,7 @@ impl<'a> Parser<'a> {
             id: id,
             pos: Position::new(1, 1),
             name: name,
+            params: Vec::new(),
         })
     }
 
@@ -2161,7 +2171,19 @@ mod tests {
         let (ty, interner) = parse_type("bla");
         let basic = ty.to_basic().unwrap();
 
+        assert_eq!(0, basic.params.len());
         assert_eq!("bla", *interner.str(basic.name));
+    }
+
+    #[test]
+    fn parse_type_basic_with_params() {
+        let (ty, interner) = parse_type("Foo<A, B>");
+        let basic = ty.to_basic().unwrap();
+
+        assert_eq!(2, basic.params.len());
+        assert_eq!("Foo", *interner.str(basic.name));
+        assert_eq!("A", *interner.str(basic.params[0].to_basic().unwrap().name));
+        assert_eq!("B", *interner.str(basic.params[1].to_basic().unwrap().name));
     }
 
     #[test]
