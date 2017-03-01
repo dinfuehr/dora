@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
@@ -51,6 +51,10 @@ pub struct Class {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub vtable: Option<VTableBox>,
+
+    pub type_params: Vec<Name>,
+    pub specialization_for: Option<ClassId>,
+    pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
 
     /// contains offset of all reference fields in this class.
     /// In contrast to `fields` it also stores fields of super classes.

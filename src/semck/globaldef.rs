@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use ast::*;
@@ -48,6 +49,11 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
             size: 0,
             vtable: None,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specializations: HashMap::new(),
+
             ref_fields: Vec::new(),
         };
 

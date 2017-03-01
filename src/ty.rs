@@ -2,7 +2,7 @@ use class::ClassId;
 use ctxt::{Context, StructId};
 use mem;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
     // type with only one value: ()
     Unit,
