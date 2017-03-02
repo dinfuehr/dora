@@ -350,6 +350,8 @@ impl<'a> Parser<'a> {
                 TokenKind::Override => Modifier::Override,
                 TokenKind::Final => Modifier::Final,
                 TokenKind::Internal => Modifier::Internal,
+                TokenKind::Pub => Modifier::Pub,
+                TokenKind::Static => Modifier::Static,
                 _ => {
                     break;
                 }

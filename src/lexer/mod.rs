@@ -57,6 +57,8 @@ impl Lexer {
         keywords.insert("as", TokenKind::As);
         keywords.insert("internal", TokenKind::Internal);
         keywords.insert("init", TokenKind::Init);
+        keywords.insert("pub", TokenKind::Pub);
+        keywords.insert("static", TokenKind::Static);
 
         Lexer {
             reader: reader,
@@ -793,6 +795,10 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Enum, 1, 13);
         assert_tok(&mut reader, TokenKind::Alias, 1, 18);
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
+
+        let mut reader = Lexer::from_str("pub static");
+        assert_tok(&mut reader, TokenKind::Pub, 1, 1);
+        assert_tok(&mut reader, TokenKind::Static, 1, 5);
     }
 
     #[test]

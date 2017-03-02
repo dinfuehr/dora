@@ -41,6 +41,8 @@ pub enum TokenKind {
     Finally,
     Final,
     Init,
+    Pub,
+    Static,
 
     Enum,
     Type,
@@ -149,6 +151,8 @@ impl TokenKind {
             TokenKind::Finally => "finally",
             TokenKind::Final => "final",
             TokenKind::Init => "init",
+            TokenKind::Pub => "pub",
+            TokenKind::Static => "static",
 
             TokenKind::Enum => "enum",
             TokenKind::Type => "type",

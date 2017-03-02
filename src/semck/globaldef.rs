@@ -106,6 +106,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,
+            is_pub: true,
+            is_static: false,
             internal: f.internal,
             internal_resolved: false,
             overrides: None,

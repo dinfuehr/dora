@@ -253,6 +253,8 @@ pub struct Fct<'ast> {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub is_static: bool,
+    pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,

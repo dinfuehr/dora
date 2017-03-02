@@ -410,6 +410,8 @@ pub enum Modifier {
     Open,
     Final,
     Internal,
+    Pub,
+    Static,
 }
 
 impl Modifier {
@@ -419,6 +421,8 @@ impl Modifier {
             Modifier::Override => "override",
             Modifier::Final => "final",
             Modifier::Internal => "internal",
+            Modifier::Pub => "pub",
+            Modifier::Static => "static",
         }
     }
 }
