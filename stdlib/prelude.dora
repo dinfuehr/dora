@@ -191,6 +191,77 @@ internal class DoubleArray {
   internal fun set(idx: int, val: double);
 }
 
+class IntVec {
+  var array: IntArray = nil;
+  var length: int = 0;
+
+  fun get(idx: int) -> int {
+    if idx < 0 || idx >= self.length {
+      fatalError("index out of bounds for vector");
+    }
+
+    return self.array[idx];
+  }
+
+  fun set(idx: int, val: int) {
+    if idx < 0 || idx >= self.length {
+      fatalError("index out of bounds for vector");
+    }
+
+    self.array[idx] = val;
+  }
+
+  fun push(val: int) {
+    var newcap = self.capacity();
+
+    if self.length == newcap {
+      if newcap == 0 {
+        newcap = 4;
+      } else {
+        newcap = newcap * 2;
+      }
+
+      let newarray = intArrayWith(newcap, 0);
+
+      var i = 0;
+
+      while i < self.length {
+        newarray[i] = self.array[i];
+        i = i + 1;
+      }
+
+      self.array = newarray;
+    }
+
+    self.array[self.length] = val;
+    self.length = self.length + 1;
+  }
+
+  fun pop() -> int {
+    if self.length == 0 {
+      fatalError("no element left to pop");
+    }
+
+    let newlength = self.length - 1;
+    let temp = self.array[newlength];
+    self.length = newlength;
+
+    return self.length;
+  }
+
+  fun len() -> int {
+    return self.length;
+  }
+
+  fun capacity() -> int {
+    if self.array === nil {
+      return 0;
+    } else {
+      return self.array.len();
+    }
+  }
+}
+
 internal fun loadFunction(name: Str) -> long;
 internal fun call0(fct: long) -> long;
 internal fun call1(fct: long, arg0: long) -> long;

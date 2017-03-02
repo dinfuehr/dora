@@ -1,0 +1,41 @@
+//= error
+
+fun main() {
+    let primes = sieve(100);
+}
+
+fun sieve(limit: int) -> IntVec {
+    let primes = IntVec();
+
+    if limit >= 2 {
+        let numbers = boolArrayWith(limit+1, true);
+        let sqrtLimit = limit.toDouble().sqrt().toInt();
+
+        var factor = 2;
+
+        while factor <= sqrtLimit {
+            if numbers[factor] {
+                var multiple = factor;
+
+                while multiple <= limit {
+                    numbers[multiple] = false;
+                    multiple = multiple + factor;
+                }
+            }
+
+            factor = factor + 1;
+        }
+
+        var i = 0;
+
+        for i <= limit {
+            if i >= 2 && numbers[i] {
+                primes.add(number);
+            }
+
+            i = i + 1;
+        }
+    }
+
+    return primes;
+}
