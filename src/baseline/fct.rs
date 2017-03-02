@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
 
@@ -19,15 +19,11 @@ pub struct JitFct {
     fct_len: usize,
 
     pub framesize: i32,
-
     pub bailouts: Bailouts,
-
+    pub nil_checks: HashSet<i32>,
     gcpoints: GcPoints,
-
     comments: Comments,
-
     linenos: LineNumberTable,
-
     pub exception_handlers: Vec<ExHandler>,
 }
 
@@ -36,6 +32,7 @@ impl JitFct {
                        dseg: &DSeg,
                        buffer: &[u8],
                        bailouts: Bailouts,
+                       nil_checks: HashSet<i32>,
                        gcpoints: GcPoints,
                        framesize: i32,
                        comments: Comments,
@@ -72,6 +69,7 @@ impl JitFct {
             code_start: ptr,
             code_end: unsafe { ptr.offset(size as isize) },
             bailouts: bailouts,
+            nil_checks: nil_checks,
             gcpoints: gcpoints,
             comments: comments,
             framesize: framesize,
@@ -88,6 +86,10 @@ impl JitFct {
 
     pub fn gcpoint_for_offset(&self, offset: i32) -> Option<&GcPoint> {
         self.gcpoints.get(offset)
+    }
+
+    pub fn nil_check_for_offset(&self, offset: i32) -> bool {
+        self.nil_checks.contains(&offset)
     }
 
     pub fn ptr_start(&self) -> *const u8 {

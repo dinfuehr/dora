@@ -432,14 +432,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         };
 
         self.emit_expr(&expr.object, REG_RESULT.into());
-        self.emit_field_access(cls, field, REG_RESULT, dest);
+        self.emit_field_access(expr.pos, cls, field, REG_RESULT, dest);
     }
 
-    fn emit_field_access(&mut self, clsid: ClassId, fieldid: FieldId, src: Reg, dest: ExprStore) {
+    fn emit_field_access(&mut self, pos: Position, clsid: ClassId, fieldid: FieldId,
+                         src: Reg, dest: ExprStore) {
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
         self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
+        self.masm.emit_nil_check();
+        self.masm.emit_lineno(pos.line as i32);
         self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
 
@@ -491,7 +494,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
-                self.emit_field_access(cls, field, REG_RESULT, dest);
+                self.emit_field_access(e.pos, cls, field, REG_RESULT, dest);
             }
 
             IdentType::Struct(_) => {

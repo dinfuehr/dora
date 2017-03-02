@@ -1,4 +1,5 @@
 use std::cell::Cell;
+use std::collections::HashSet;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -32,6 +33,7 @@ pub struct MacroAssembler {
     jumps: Vec<ForwardJump>,
     bailouts: Vec<(Label, Trap, Position)>,
     bailout_infos: Bailouts,
+    nil_checks: HashSet<i32>,
     dseg: DSeg,
     gcpoints: GcPoints,
     comments: Comments,
@@ -48,6 +50,7 @@ impl MacroAssembler {
             jumps: Vec::new(),
             bailouts: Vec::new(),
             bailout_infos: Bailouts::new(),
+            nil_checks: HashSet::new(),
             dseg: DSeg::new(),
             gcpoints: GcPoints::new(),
             comments: Comments::new(),
@@ -67,6 +70,7 @@ impl MacroAssembler {
                             &self.dseg,
                             &self.data,
                             self.bailout_infos,
+                            self.nil_checks,
                             self.gcpoints,
                             stacksize,
                             self.comments,
@@ -134,6 +138,11 @@ impl MacroAssembler {
     pub fn emit_bailout_info(&mut self, info: BailoutInfo) {
         let pos = self.pos() as i32;
         self.bailout_infos.insert(pos, info);
+    }
+
+    pub fn emit_nil_check(&mut self) {
+        let offset = self.pos() as i32;
+        self.nil_checks.insert(offset);
     }
 
     pub fn create_label(&mut self) -> Label {
