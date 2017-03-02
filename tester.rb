@@ -223,7 +223,11 @@ def test_case_expectation(file)
       when "ignore" then return :ignore
 
       when "output"
-        exp.output = arguments[1]
+        case arguments[1]
+        when "file" then exp.output = IO.read(file.sub(".dora", ".result"))
+        else
+          exp.output = arguments[1]
+        end
 
       when "args"
         exp.args = arguments[1..-1]

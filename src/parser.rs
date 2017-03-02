@@ -779,12 +779,22 @@ impl<'a> Parser<'a> {
         let cond = self.parse_expression_with_opts(&opts)?;
 
         let then_block = self.parse_block()?;
-        let mut else_block = None;
 
-        if self.token.is(TokenKind::Else) {
+        let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
-            else_block = Some(self.parse_block()?);
-        }
+
+            if self.token.is(TokenKind::If) {
+                let if_block = self.parse_if()?;
+                let block = Stmt::create_block(self.generate_id(),
+                                               if_block.pos(), vec![if_block]);
+
+                Some(Box::new(block))
+            } else {
+                Some(self.parse_block()?)
+            }
+        } else {
+            None
+        };
 
         Ok(Box::new(Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block)))
     }
