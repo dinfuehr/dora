@@ -249,6 +249,25 @@ class IntVec {
     return self.length;
   }
 
+  fun trimToLen() {
+    if self.length != self.capacity() {
+      if self.length == 0 {
+        self.array = nil;
+      } else {
+        let newarray = intArrayWith(self.length, 0);
+
+        var i = 0;
+
+        while i < self.length {
+          newarray[i] = self.array[i];
+          i = i + 1;
+        }
+
+        self.array = newarray;
+      }
+    }
+  }
+
   fun len() -> int {
     return self.length;
   }

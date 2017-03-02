@@ -27,4 +27,14 @@ fun main() {
 
     assert(vec[0] == 3);
     assert(vec[1] == 2);
+
+    vec.trimToLen();
+    assert(vec.len() == 5);
+    assert(vec.capacity() == 5);
+
+    assert(vec[0] == 3);
+    assert(vec[1] == 2);
+    assert(vec[2] == 3);
+    assert(vec[3] == 4);
+    assert(vec[4] == 5);
 }
