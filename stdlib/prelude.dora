@@ -1,11 +1,3 @@
-fun abs(val: int) -> int {
-  if val >= 0 {
-    return val;
-  } else {
-    return -val;
-  }
-}
-
 internal fun fatalError(msg: Str);
 internal fun abort();
 internal fun exit(status: int);
@@ -77,6 +69,14 @@ internal class int {
   internal fun unaryPlus() -> int;
   internal fun unaryMinus() -> int;
   internal fun not() -> int;
+
+  fun abs() -> int {
+    if self >= 0 {
+      return self;
+    } else {
+      return -self;
+    }
+  }
 }
 
 internal class long {

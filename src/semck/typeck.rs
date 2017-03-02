@@ -777,7 +777,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
         if let Some(clsid) = self.fct.owner_class {
-            let ty = BuiltinType::Class(clsid);
+            let ty = self.ctxt.classes[clsid].borrow().ty;
             self.src.set_ty(e.id, ty);
             self.expr_type = ty;
 
