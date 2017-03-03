@@ -868,6 +868,14 @@ pub fn divsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, true, 0x5e, dest, src);
 }
 
+pub fn sqrtss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
+    sse_float_freg_freg(buf, false, 0x51, dest, src);
+}
+
+pub fn sqrtsd(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
+    sse_float_freg_freg(buf, true, 0x51, dest, src);
+}
+
 pub fn movss(buf: &mut MacroAssembler, dest: FReg, src: FReg) {
     sse_float_freg_freg(buf, false, 0x10, dest, src);
 }

@@ -493,6 +493,7 @@ pub enum Intrinsic {
     FloatPlus,
     FloatNeg,
     FloatIsNan,
+    FloatSqrt,
 
     FloatArrayLen,
     FloatArrayGet,
@@ -512,6 +513,7 @@ pub enum Intrinsic {
     DoublePlus,
     DoubleNeg,
     DoubleIsNan,
+    DoubleSqrt,
 
     DoubleArrayLen,
     DoubleArrayGet,

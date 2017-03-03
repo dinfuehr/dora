@@ -139,6 +139,7 @@ internal class float {
   internal fun unaryMinus() -> float;
 
   internal fun isNan() -> bool;
+  internal fun sqrt() -> float;
 }
 
 internal class double {
@@ -159,6 +160,7 @@ internal class double {
   internal fun unaryMinus() -> double;
 
   internal fun isNan() -> bool;
+  internal fun sqrt() -> double;
 }
 
 internal class ByteArray {

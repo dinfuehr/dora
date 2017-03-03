@@ -751,6 +751,14 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        match mode {
+            MachineMode::Float32 => asm::sqrtss(self, dest, src),
+            MachineMode::Float64 => asm::sqrtsd(self, dest, src),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn trap(&mut self, trap: Trap) {
         let dest = R10;
 

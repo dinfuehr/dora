@@ -914,18 +914,32 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::FloatMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::FloatIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
+                Intrinsic::FloatSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
 
                 Intrinsic::DoubleAdd => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleSub => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleMul => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleDiv => self.emit_intrinsic_bin_call(e, dest, intrinsic),
                 Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
+                Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
 
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
         } else {
             self.emit_universal_call(e.id, e.pos, dest);
         }
+    }
+
+    fn emit_intrinsic_sqrt(&mut self, e: &'ast ExprCallType, dest: FReg, intrinsic: Intrinsic) {
+        self.emit_expr(e.object.as_ref().unwrap(), dest.into());
+
+        let mode = match intrinsic {
+            Intrinsic::FloatSqrt => MachineMode::Float32,
+            Intrinsic::DoubleSqrt => MachineMode::Float64,
+            _ => unreachable!(),
+        };
+
+        self.masm.float_sqrt(mode, dest, dest);
     }
 
     fn emit_array_set(&mut self,

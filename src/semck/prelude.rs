@@ -214,6 +214,7 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::FloatNeg);
 
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::FloatIsNan);
+    intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::FloatSqrt);
 
     let clsid = ctxt.primitive_classes.double_class;
     native_method(ctxt,
@@ -236,6 +237,7 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::DoubleNeg);
 
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::DoubleIsNan);
+    intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
 
     let clsid = ctxt.primitive_classes.int_array;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);
