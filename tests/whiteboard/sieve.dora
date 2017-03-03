@@ -1,7 +1,13 @@
-//= error
+//= output file
 
 fun main() {
     let primes = sieve(100);
+    var i = 0;
+
+    while i < primes.len() {
+        println(primes[i].toString());
+        i = i + 1;
+    }
 }
 
 fun sieve(limit: int) -> IntVec {
@@ -15,7 +21,7 @@ fun sieve(limit: int) -> IntVec {
 
         while factor <= sqrtLimit {
             if numbers[factor] {
-                var multiple = factor;
+                var multiple = factor * factor;
 
                 while multiple <= limit {
                     numbers[multiple] = false;
@@ -30,7 +36,7 @@ fun sieve(limit: int) -> IntVec {
 
         while i <= limit {
             if i >= 2 && numbers[i] {
-                primes.add(number);
+                primes.push(i);
             }
 
             i = i + 1;

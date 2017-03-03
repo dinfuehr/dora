@@ -91,9 +91,39 @@ impl Obj {
                 handle.size()
             }
 
+            BuiltinType::BoolArray => {
+                let handle: Handle<BoolArray> =
+                    Handle { ptr: self as *const Obj as *const BoolArray };
+                handle.size()
+            }
+
+            BuiltinType::ByteArray => {
+                let handle: Handle<ByteArray> =
+                    Handle { ptr: self as *const Obj as *const ByteArray };
+                handle.size()
+            }
+
             BuiltinType::IntArray => {
                 let handle: Handle<IntArray> =
                     Handle { ptr: self as *const Obj as *const IntArray };
+                handle.size()
+            }
+
+            BuiltinType::LongArray => {
+                let handle: Handle<LongArray> =
+                    Handle { ptr: self as *const Obj as *const LongArray };
+                handle.size()
+            }
+
+            BuiltinType::FloatArray => {
+                let handle: Handle<FloatArray> =
+                    Handle { ptr: self as *const Obj as *const FloatArray };
+                handle.size()
+            }
+
+            BuiltinType::DoubleArray => {
+                let handle: Handle<DoubleArray> =
+                    Handle { ptr: self as *const Obj as *const DoubleArray };
                 handle.size()
             }
 
