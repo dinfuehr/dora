@@ -328,6 +328,8 @@ pub struct Function {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub is_pub: bool,
+    pub is_static: bool,
     pub internal: bool,
     pub ctor: CtorType,
 

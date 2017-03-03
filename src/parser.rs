@@ -309,7 +309,9 @@ impl<'a> Parser<'a> {
             match self.token.kind {
                 TokenKind::Fun => {
                     let mods =
-                        &[Modifier::Internal, Modifier::Open, Modifier::Override, Modifier::Final];
+                        &[Modifier::Internal, Modifier::Open,
+                          Modifier::Override, Modifier::Final,
+                          Modifier::Pub, Modifier::Static];
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
@@ -412,6 +414,8 @@ impl<'a> Parser<'a> {
             has_open: false,
             has_override: false,
             has_final: false,
+            is_pub: true,
+            is_static: false,
             internal: false,
             ctor: CtorType::Secondary,
             params: params,
@@ -504,6 +508,8 @@ impl<'a> Parser<'a> {
             has_open: modifiers.contains(Modifier::Open),
             has_override: modifiers.contains(Modifier::Override),
             has_final: modifiers.contains(Modifier::Final),
+            is_pub: modifiers.contains(Modifier::Pub),
+            is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),
             ctor: CtorType::None,
             params: params,
@@ -1274,6 +1280,8 @@ impl<'a> Parser<'a> {
             has_open: false,
             has_override: false,
             has_final: false,
+            is_pub: true,
+            is_static: false,
             internal: false,
             ctor: CtorType::Primary,
             params: params,
