@@ -1,0 +1,12 @@
+//= error nil
+
+fun main() {
+    let a: A = nil;
+    a.foo();
+}
+
+open class A {
+    open fun foo() {
+        println("A::foo");
+    }
+}

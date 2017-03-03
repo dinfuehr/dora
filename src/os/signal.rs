@@ -157,7 +157,7 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
             }
         }
 
-    // is this is a failed nil check? 
+        // is this is a failed nil check?
     } else if detect_nil_check(ctxt, es.pc) {
         println!("nil check failed");
         let stacktrace = get_stacktrace(ctxt, &es);
@@ -166,7 +166,7 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
             libc::_exit(103);
         }
 
-    // otherwise trap not dected => crash
+        // otherwise trap not dected => crash
     } else {
         println!("error: trap not detected (signal {}).", signo);
         println!();
@@ -186,15 +186,15 @@ fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
 
     if let Some(CodeData::Fct(fid)) = code_map.get(pc as *const u8) {
-            let fct = ctxt.fcts[fid].borrow();
+        let fct = ctxt.fcts[fid].borrow();
 
-            let src = fct.src();
-            let src = src.lock().unwrap();
+        let src = fct.src();
+        let src = src.lock().unwrap();
 
-            let jit_fct = src.jit_fct.as_ref().unwrap();
-            let offset = pc - (jit_fct.fct_ptr() as usize);
+        let jit_fct = src.jit_fct.as_ref().unwrap();
+        let offset = pc - (jit_fct.fct_ptr() as usize);
 
-            jit_fct.nil_check_for_offset(offset as i32)
+        jit_fct.nil_check_for_offset(offset as i32)
     } else {
         false
     }

@@ -50,8 +50,11 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
-    pub fn indirect_call(&mut self, index: u32) {
+    pub fn indirect_call(&mut self, line: i32, index: u32) {
         let obj = REG_PARAMS[0];
+
+        self.emit_lineno(line);
+        self.emit_nil_check();
 
         // REG_RESULT = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));

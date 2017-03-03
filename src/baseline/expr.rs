@@ -435,8 +435,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_field_access(expr.pos, cls, field, REG_RESULT, dest);
     }
 
-    fn emit_field_access(&mut self, pos: Position, clsid: ClassId, fieldid: FieldId,
-                         src: Reg, dest: ExprStore) {
+    fn emit_field_access(&mut self,
+                         pos: Position,
+                         clsid: ClassId,
+                         fieldid: FieldId,
+                         src: Reg,
+                         dest: ExprStore) {
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
@@ -659,6 +663,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
                 self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
+                self.masm.emit_lineno(e.pos.line as i32);
+                self.masm.emit_nil_check();
                 self.masm.store_mem(field.ty.mode(),
                                     Mem::Base(REG_TMP1, field.offset),
                                     REG_RESULT.into());
@@ -844,18 +850,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::FloatToLong => {
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
-                Intrinsic::FloatToDouble => {
-                    self.emit_intrinsic_float_to_double(e, dest.freg())
-                }
+                Intrinsic::FloatToDouble => self.emit_intrinsic_float_to_double(e, dest.freg()),
                 Intrinsic::DoubleToInt => {
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
                 Intrinsic::DoubleToLong => {
                     self.emit_intrinsic_float_to_int(e, dest.reg(), intrinsic)
                 }
-                Intrinsic::DoubleToFloat => {
-                    self.emit_intrinsic_double_to_float(e, dest.freg())
-                }
+                Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
 
                 Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
@@ -1316,13 +1318,26 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let csite = self.src.map_csites.get(id).unwrap().clone();
         let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
-        for arg in &csite.args {
+        let fid = csite.callee;
+        let fct = self.ctxt.fcts[fid].borrow();
+
+        for (idx, arg) in csite.args.iter().enumerate() {
             let mode = arg.ty().mode();
             let dest = register_for_mode(mode);
 
             match *arg {
-                Arg::Expr(ast, _, _) => {
+                Arg::Expr(ast, ty, _) => {
                     self.emit_expr(ast, dest);
+
+                    // check first argument for nil for method calls
+                    //
+                    // no check necessary for:
+                    //   super calls (guaranteed to not be nil) and
+                    //   dynamic dispatch (implicit check when loading fctptr from vtable)
+                    if idx == 0 && fct.owner_class.is_some() && check_for_nil(ty) &&
+                       !csite.super_call && !fct.is_virtual() {
+                        self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
+                    }
                 }
 
                 Arg::Selfie(_, _) => {
@@ -1393,15 +1408,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     let reg = REG_PARAMS[reg_idx];
                     self.masm.load_mem(mode, reg.into(), Mem::Local(offset));
 
-                    if idx == 0 {
-                        let call_type = self.src.map_calls.get(id);
-
-                        if call_type.is_some() && call_type.unwrap().is_method() &&
-                           check_for_nil(ty) {
-                            self.masm.test_if_nil_bailout(pos, reg, Trap::NIL);
-                        }
-                    }
-
                     reg_idx += 1;
                 } else {
                     self.masm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
@@ -1413,9 +1419,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             idx += 1;
         }
-
-        let fid = csite.callee;
-        let fct = self.ctxt.fcts[fid].borrow();
 
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid);
@@ -1471,7 +1474,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                pos: Position,
                                ty: BuiltinType,
                                dest: ExprStore) {
-        self.masm.indirect_call(index);
+        self.masm.indirect_call(pos.line as i32, index);
         self.emit_after_call_insns(pos, ty, dest);
     }
 

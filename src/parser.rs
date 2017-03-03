@@ -308,10 +308,12 @@ impl<'a> Parser<'a> {
 
             match self.token.kind {
                 TokenKind::Fun => {
-                    let mods =
-                        &[Modifier::Internal, Modifier::Open,
-                          Modifier::Override, Modifier::Final,
-                          Modifier::Pub, Modifier::Static];
+                    let mods = &[Modifier::Internal,
+                                 Modifier::Open,
+                                 Modifier::Override,
+                                 Modifier::Final,
+                                 Modifier::Pub,
+                                 Modifier::Static];
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
@@ -629,9 +631,7 @@ impl<'a> Parser<'a> {
 
                 let params = if self.token.is(TokenKind::Lt) {
                     self.advance_token()?;
-                    self.parse_comma_list(TokenKind::Gt, |p| {
-                        Ok(Box::new(p.parse_type()?))
-                    })?
+                    self.parse_comma_list(TokenKind::Gt, |p| Ok(Box::new(p.parse_type()?)))?
                 } else {
                     Vec::new()
                 };
@@ -793,8 +793,7 @@ impl<'a> Parser<'a> {
 
             if self.token.is(TokenKind::If) {
                 let if_block = self.parse_if()?;
-                let block = Stmt::create_block(self.generate_id(),
-                                               if_block.pos(), vec![if_block]);
+                let block = Stmt::create_block(self.generate_id(), if_block.pos(), vec![if_block]);
 
                 Some(Box::new(block))
             } else {

@@ -1,0 +1,11 @@
+//= error nil
+
+fun main() {
+    initialize(nil);
+}
+
+fun initialize(x: Foo) {
+    x.x = 1;
+}
+
+class Foo(var x: int)

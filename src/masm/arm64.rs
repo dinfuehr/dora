@@ -62,12 +62,15 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
     }
 
-    pub fn indirect_call(&mut self, index: u32) {
+    pub fn indirect_call(&mut self, line: i32, index: u32) {
         let obj = REG_PARAMS[0];
 
         // need to use scratch register instead of REG_RESULT for calculations
         // since REG_RESULT (x0) is also the first parameter
         let scratch = self.get_scratch();
+
+        self.emit_lineno(line);
+        self.emit_nil_check();
 
         // scratch = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, scratch.reg().into(), Mem::Base(obj, 0));

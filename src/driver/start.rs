@@ -125,7 +125,8 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
     let fct = ctxt.fcts[fctid].borrow();
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0 {
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
+       fct.params_without_self().len() > 0 {
         let pos = fct.ast.pos;
         ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
         return None;
