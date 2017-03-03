@@ -27,6 +27,7 @@ pub enum BuiltinType {
     Str,
 
     // Array types
+    BoolArray,
     ByteArray,
     IntArray,
     LongArray,
@@ -81,6 +82,7 @@ impl BuiltinType {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
             BuiltinType::Str => ctxt.primitive_classes.str_class,
+            BuiltinType::BoolArray => ctxt.primitive_classes.bool_array,
             BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
             BuiltinType::IntArray => ctxt.primitive_classes.int_array,
             BuiltinType::LongArray => ctxt.primitive_classes.long_array,
@@ -128,6 +130,7 @@ impl BuiltinType {
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::Str => "Str".into(),
+            BuiltinType::BoolArray => "BoolArray".into(),
             BuiltinType::ByteArray => "ByteArray".into(),
             BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::LongArray => "LongArray".into(),
@@ -156,6 +159,7 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::Str |
+            BuiltinType::BoolArray |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
@@ -186,6 +190,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
+            BuiltinType::BoolArray |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
@@ -208,6 +213,7 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::Str |
+            BuiltinType::BoolArray |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
@@ -230,6 +236,7 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::Str |
+            BuiltinType::BoolArray |
             BuiltinType::ByteArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |

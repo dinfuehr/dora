@@ -28,7 +28,7 @@ fun sieve(limit: int) -> IntVec {
 
         var i = 0;
 
-        for i <= limit {
+        while i <= limit {
             if i >= 2 && numbers[i] {
                 primes.add(number);
             }

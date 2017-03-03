@@ -339,6 +339,7 @@ pub fn offset_of_array_data() -> i32 {
     offset_of!(Array<i32>, data) as i32
 }
 
+pub type BoolArray = Array<bool>;
 pub type ByteArray = Array<u8>;
 pub type IntArray = Array<i32>;
 pub type LongArray = Array<i64>;
@@ -362,6 +363,16 @@ pub fn byte_array_empty(ctxt: &Context) -> Handle<ByteArray> {
 
 pub fn byte_array_with(ctxt: &Context, len: usize, elem: u8) -> Handle<ByteArray> {
     let clsid = ctxt.primitive_classes.int_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
+
+pub fn bool_array_empty(ctxt: &Context) -> Handle<BoolArray> {
+    let clsid = ctxt.primitive_classes.bool_array;
+    Array::alloc(ctxt, 0, false, clsid)
+}
+
+pub fn bool_array_with(ctxt: &Context, len: usize, elem: bool) -> Handle<BoolArray> {
+    let clsid = ctxt.primitive_classes.bool_array;
     Array::alloc(ctxt, len, elem, clsid)
 }
 

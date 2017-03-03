@@ -10,7 +10,7 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{self, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray, Obj, Str};
+use object::{self, BoolArray, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -123,6 +123,18 @@ pub extern "C" fn gc_collect() {
     let mut gc = ctxt.gc.lock().unwrap();
 
     gc.collect(ctxt);
+}
+
+pub extern "C" fn ctor_bool_array_empty() -> Handle<BoolArray> {
+    let ctxt = get_ctxt();
+
+    object::bool_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_bool_array_elem(len: i32, value: bool) -> Handle<BoolArray> {
+    let ctxt = get_ctxt();
+
+    object::bool_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn ctor_byte_array_empty() -> Handle<ByteArray> {

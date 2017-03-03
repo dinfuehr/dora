@@ -9,6 +9,9 @@ internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 
+internal fun boolArrayWith(len: int, val: bool) -> BoolArray;
+internal fun emptyBoolArray() -> BoolArray;
+
 internal fun byteArrayWith(len: int, val: byte) -> ByteArray;
 internal fun emptyByteArray() -> ByteArray;
 
@@ -161,6 +164,12 @@ internal class double {
 
   internal fun isNan() -> bool;
   internal fun sqrt() -> double;
+}
+
+internal class BoolArray {
+  internal fun len() -> int;
+  internal fun get(idx: int) -> bool;
+  internal fun set(idx: int, val: bool);
 }
 
 internal class ByteArray {

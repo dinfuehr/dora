@@ -332,7 +332,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
 
-                Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
+                Intrinsic::BoolArrayGet | Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
                     self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
                 }
 
@@ -576,7 +576,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
-                    Intrinsic::ByteArraySet | Intrinsic::StrSet => {
+                    Intrinsic::BoolArraySet | Intrinsic::ByteArraySet | Intrinsic::StrSet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int8,
                                             &array.object,
@@ -814,6 +814,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
+                Intrinsic::BoolArrayLen |
                 Intrinsic::ByteArrayLen |
                 Intrinsic::IntArrayLen |
                 Intrinsic::LongArrayLen |
@@ -1520,8 +1521,9 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Str => true,
         BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long | BuiltinType::Float |
         BuiltinType::Double | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::ByteArray | BuiltinType::IntArray |
-        BuiltinType::LongArray | BuiltinType::FloatArray | BuiltinType::DoubleArray => true,
+        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
+        BuiltinType::IntArray | BuiltinType::LongArray | BuiltinType::FloatArray |
+        BuiltinType::DoubleArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
     }
