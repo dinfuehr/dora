@@ -38,6 +38,7 @@ pub struct Context<'ast> {
     pub structs: Vec<RefCell<StructData>>,
     pub classes: Vec<RefCell<Box<Class>>>, // stores all class definitions
     pub fcts: Vec<RefCell<Fct<'ast>>>, // stores all function definitions
+    pub traits: Vec<RefCell<TraitData>>, // store all trait definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub gc: Mutex<Gc>, // garbage collector
     pub sfi: RefCell<*const DoraToNativeInfo>,
@@ -54,6 +55,7 @@ impl<'ast> Context<'ast> {
             args: args,
             structs: Vec::new(),
             classes: Vec::new(),
+            traits: Vec::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 bool_class: empty_class_id,
@@ -151,6 +153,31 @@ impl<'ast> Index<FctId> for Vec<RefCell<Fct<'ast>>> {
 
     fn index(&self, index: FctId) -> &RefCell<Fct<'ast>> {
         &self[index.0]
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TraitId(u32);
+
+impl From<u32> for TraitId {
+    fn from(data: u32) -> TraitId {
+        TraitId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct TraitData {
+    pub id: TraitId,
+    pub pos: Position,
+    pub name: Name,
+    pub methods: Vec<FctId>,
+}
+
+impl Index<TraitId> for Vec<RefCell<TraitData>> {
+    type Output = RefCell<TraitData>;
+
+    fn index(&self, index: TraitId) -> &RefCell<TraitData> {
+        &self[index.0 as usize]
     }
 }
 

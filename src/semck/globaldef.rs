@@ -9,7 +9,7 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use sym::Sym::{self, SymClass, SymFct, SymStruct};
+use sym::Sym::{self, SymClass, SymFct, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>,
@@ -31,6 +31,25 @@ struct GlobalDef<'x, 'ast: 'x> {
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
+    fn visit_trait(&mut self, t: &'ast Trait) {
+        let id: TraitId = (self.ctxt.traits.len() as u32).into();
+        let xtrait = TraitData {
+            id: id,
+            pos: t.pos,
+            name: t.name,
+            methods: Vec::new(),
+        };
+
+        self.ctxt.traits.push(RefCell::new(xtrait));
+        let sym = SymTrait(id);
+
+        // self.map_trait_defs.insert(t.id, id);
+
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(t.name, sym) {
+            report(self.ctxt, t.name, t.pos, sym);
+        }
+    }
+
     fn visit_class(&mut self, c: &'ast Class) {
         let id: ClassId = self.ctxt.classes.len().into();
         let cls = class::Class {
@@ -131,6 +150,7 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
         SymClass(_) => Msg::ShadowClass(name),
         SymStruct(_) => Msg::ShadowStruct(name),
         SymFct(_) => Msg::ShadowFunction(name),
+        SymTrait(_) => Msg::ShadowTrait(name),
         _ => unimplemented!(),
     };
 
@@ -140,11 +160,10 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
 #[cfg(test)]
 mod tests {
     use semck::tests::*;
+    use error::msg::Msg;
 
     #[test]
     fn test_struct() {
-        use error::msg::Msg;
-
         ok("struct Foo {}");
         err("struct Foo {} struct Foo {}",
             pos(1, 15),
@@ -155,5 +174,19 @@ mod tests {
         err("struct Foo {} fun Foo() {}",
             pos(1, 15),
             Msg::ShadowStruct("Foo".into()));
+    }
+
+    #[test]
+    fn test_trait() {
+        ok("trait Foo {}");
+        err("trait Foo {} struct Foo {}",
+            pos(1, 14),
+            Msg::ShadowTrait("Foo".into()));
+        err("trait Foo {} class Foo {}",
+            pos(1, 14),
+            Msg::ShadowTrait("Foo".into()));
+        err("trait Foo {} fun Foo() {}",
+            pos(1, 14),
+            Msg::ShadowTrait("Foo".into()));
     }
 }
