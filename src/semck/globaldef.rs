@@ -15,12 +15,14 @@ use ty::BuiltinType;
 pub fn check<'ast>(ctxt: &mut Context<'ast>,
                    map_cls_defs: &mut NodeMap<ClassId>,
                    map_struct_defs: &mut NodeMap<StructId>,
-                   map_trait_defs: &mut NodeMap<TraitId>) {
+                   map_trait_defs: &mut NodeMap<TraitId>,
+                   map_impl_defs: &mut NodeMap<ImplId>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt,
         map_cls_defs: map_cls_defs,
         map_struct_defs: map_struct_defs,
         map_trait_defs: map_trait_defs,
+        map_impl_defs: map_impl_defs,
     };
 
     gdef.visit_ast(ctxt.ast);
@@ -31,6 +33,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
+    map_impl_defs: &'x mut NodeMap<ImplId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -51,6 +54,20 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(t.name, sym) {
             report(self.ctxt, t.name, t.pos, sym);
         }
+    }
+
+    fn visit_impl(&mut self, i: &'ast Impl) {
+        let id: ImplId = (self.ctxt.impls.len() as u32).into();
+        let ximpl = ImplData {
+            id: id,
+            pos: i.pos,
+            trait_id: None,
+            class_id: None,
+            methods: Vec::new(),
+        };
+
+        self.ctxt.impls.push(RefCell::new(ximpl));
+        self.map_impl_defs.insert(i.id, id);
     }
 
     fn visit_class(&mut self, c: &'ast Class) {

@@ -9,6 +9,7 @@ mod clsck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
+mod implck;
 mod nameck;
 mod prelude;
 mod typeck;
@@ -27,10 +28,15 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
+    let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
 
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies
-    globaldef::check(ctxt, &mut map_cls_defs, &mut map_struct_defs, &mut map_trait_defs);
+    globaldef::check(ctxt,
+                     &mut map_cls_defs,
+                     &mut map_struct_defs,
+                     &mut map_trait_defs,
+                     &mut map_impl_defs);
     return_on_error!(ctxt);
 
     // define internal classes
@@ -40,6 +46,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     clsck::check(ctxt, &mut map_cls_defs);
     structck::check(ctxt, &mut map_struct_defs);
     traitck::check(ctxt, &mut map_trait_defs);
+    implck::check(ctxt, &mut map_impl_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables

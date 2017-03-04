@@ -5,8 +5,7 @@ use error::msg::Msg;
 use lexer::position::Position;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>,
-                   map_trait_defs: &mut NodeMap<TraitId>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>, map_trait_defs: &mut NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
         ctxt: ctxt,
         ast: ctxt.ast,

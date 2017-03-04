@@ -11,8 +11,7 @@ use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>,
-                   map_cls_defs: &mut NodeMap<ClassId>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &mut NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
         ctxt: ctxt,
         ast: ctxt.ast,

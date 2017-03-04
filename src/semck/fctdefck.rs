@@ -83,7 +83,7 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
         let method = ctxt.fcts[method].borrow();
 
         if method.initialized && method.name == fct.name &&
-            method.params_with_self() == fct.params_with_self() {
+           method.params_with_self() == fct.params_with_self() {
             let cls_name = ty.name(ctxt);
             let param_names = method.params_without_self()
                 .iter()

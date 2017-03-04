@@ -1349,8 +1349,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.in_class() && check_for_nil(ty) &&
-                       !csite.super_call && !fct.is_virtual() {
+                    if idx == 0 && fct.in_class() && check_for_nil(ty) && !csite.super_call &&
+                       !fct.is_virtual() {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
                 }

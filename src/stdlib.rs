@@ -10,7 +10,8 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{self, BoolArray, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray, Obj, Str};
+use object::{self, BoolArray, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray,
+             Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
