@@ -51,8 +51,18 @@ impl Ast {
     }
 
     #[cfg(test)]
-    pub fn struc0(&self) -> &Struct {
-        self.files.last().unwrap().elements[0].to_struc().unwrap()
+    pub fn struct0(&self) -> &Struct {
+        self.files.last().unwrap().elements[0].to_struct().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn trai(&self, index: usize) -> &Trait {
+        self.files.last().unwrap().elements[index].to_trait().unwrap()
+    }
+
+    #[cfg(test)]
+    pub fn trait0(&self) -> &Trait {
+        self.files.last().unwrap().elements[0].to_trait().unwrap()
     }
 }
 
@@ -76,6 +86,7 @@ pub enum Elem {
     ElemFunction(Function),
     ElemClass(Class),
     ElemStruct(Struct),
+    ElemTrait(Trait),
 }
 
 impl Elem {
@@ -84,6 +95,7 @@ impl Elem {
             &ElemFunction(ref fct) => fct.id,
             &ElemClass(ref class) => class.id,
             &ElemStruct(ref s) => s.id,
+            &ElemTrait(ref t) => t.id,
         }
     }
 
@@ -101,9 +113,16 @@ impl Elem {
         }
     }
 
-    pub fn to_struc(&self) -> Option<&Struct> {
+    pub fn to_struct(&self) -> Option<&Struct> {
         match self {
             &ElemStruct(ref struc) => Some(struc),
+            _ => None,
+        }
+    }
+
+    pub fn to_trait(&self) -> Option<&Trait> {
+        match self {
+            &ElemTrait(ref trai) => Some(trai),
             _ => None,
         }
     }
@@ -258,6 +277,14 @@ impl Type {
             Type::TypeArray(ref val) => val.id,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Trait {
+    pub id: NodeId,
+    pub name: Name,
+    pub pos: Position,
+    pub methods: Vec<Function>,
 }
 
 #[derive(Clone, Debug)]

@@ -54,6 +54,7 @@ impl<'a> AstDumper<'a> {
                 ElemFunction(ref fct) => self.dump_fct(fct),
                 ElemClass(ref cls) => self.dump_class(cls),
                 ElemStruct(ref struc) => self.dump_struct(struc),
+                ElemTrait(ref etrait) => self.dump_trait(etrait),
             }
         }
     }
@@ -79,6 +80,19 @@ impl<'a> AstDumper<'a> {
               field.pos,
               field.id);
         self.indent(|d| d.dump_type(&field.data_type));
+    }
+
+    fn dump_trait(&mut self, t: &Trait) {
+        dump!(self,
+              "trait {} @ {} {}",
+              self.str(t.name),
+              t.pos,
+              t.id);
+        self.indent(|d| {
+            for m in &t.methods {
+                d.dump_fct(m);
+            }
+        });
     }
 
     fn dump_class(&mut self, cls: &Class) {

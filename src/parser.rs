@@ -94,11 +94,35 @@ impl<'a> Parser<'a> {
                 Ok(ElemStruct(struc))
             }
 
+            TokenKind::Trait => {
+                self.ban_modifiers(&modifiers)?;
+                let xtrait = self.parse_trait()?;
+                Ok(ElemTrait(xtrait))
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 Err(MsgWithPos::new(self.token.position, msg))
             }
         }
+    }
+
+    fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Trait)?.position;
+        let ident = self.expect_identifier()?;
+        let modifiers = Modifiers::new();
+
+        self.expect_token(TokenKind::LBrace)?;
+        let methods = self.parse_comma_list(TokenKind::RBrace, |p| {
+            p.parse_function(&modifiers)
+        })?;
+
+        Ok(Trait {
+            id: self.generate_id(),
+            name: ident,
+            pos: pos,
+            methods: methods,
+        })
     }
 
     fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
@@ -2625,7 +2649,7 @@ mod tests {
     #[test]
     fn parse_struct_empty() {
         let (prog, interner) = parse("struct Foo {}");
-        let struc = prog.struc0();
+        let struc = prog.struct0();
         assert_eq!(0, struc.fields.len());
         assert_eq!("Foo", *interner.str(struc.name));
     }
@@ -2635,7 +2659,7 @@ mod tests {
         let (prog, interner) = parse("struct Bar {
             f1: Foo1,
         }");
-        let struc = prog.struc0();
+        let struc = prog.struct0();
         assert_eq!(1, struc.fields.len());
         assert_eq!("Bar", *interner.str(struc.name));
 
@@ -2649,7 +2673,7 @@ mod tests {
             fa: Foo1,
             fb: Foo2,
         }");
-        let struc = prog.struc0();
+        let struc = prog.struct0();
         assert_eq!(2, struc.fields.len());
         assert_eq!("FooBar", *interner.str(struc.name));
 
@@ -2718,5 +2742,23 @@ mod tests {
         assert_eq!(2, cls.type_params.len());
         assert_eq!("A", *interner.str(cls.type_params[0].name));
         assert_eq!("B", *interner.str(cls.type_params[1].name));
+    }
+
+    #[test]
+    fn parse_empty_trait() {
+        let (prog, interner) = parse("trait Foo { }");
+        let xtrait = prog.trait0();
+
+        assert_eq!("Foo", *interner.str(xtrait.name));
+        assert_eq!(0, xtrait.methods.len());
+    }
+
+    #[test]
+    fn parse_trait_with_function() {
+        let (prog, interner) = parse("trait Foo { fun empty(); }");
+        let xtrait = prog.trait0();
+
+        assert_eq!("Foo", *interner.str(xtrait.name));
+        assert_eq!(1, xtrait.methods.len());
     }
 }
