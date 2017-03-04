@@ -17,6 +17,10 @@ pub trait Visitor<'v>: Sized {
         walk_trait(self, t);
     }
 
+    fn visit_impl(&mut self, i: &'v Impl) {
+        walk_impl(self, i);
+    }
+
     fn visit_class(&mut self, c: &'v Class) {
         walk_class(self, c);
     }
@@ -72,19 +76,26 @@ pub fn walk_ast<'v, V: Visitor<'v>>(v: &mut V, a: &'v Ast) {
     }
 }
 
-pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, a: &'v File) {
-    for e in &a.elements {
+pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
+    for e in &f.elements {
         match *e {
             ElemFunction(ref f) => v.visit_fct(f),
             ElemClass(ref c) => v.visit_class(c),
             ElemStruct(ref s) => v.visit_struct(s),
             ElemTrait(ref t) => v.visit_trait(t),
+            ElemImpl(ref i) => v.visit_impl(i),
         }
     }
 }
 
-pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, a: &'v Trait) {
-    for m in &a.methods {
+pub fn walk_trait<'v, V: Visitor<'v>>(v: &mut V, t: &'v Trait) {
+    for m in &t.methods {
+        v.visit_method(m);
+    }
+}
+
+pub fn walk_impl<'v, V: Visitor<'v>>(v: &mut V, i: &'v Impl) {
+    for m in &i.methods {
         v.visit_method(m);
     }
 }

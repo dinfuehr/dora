@@ -100,11 +100,43 @@ impl<'a> Parser<'a> {
                 Ok(ElemTrait(xtrait))
             }
 
+            TokenKind::Impl => {
+                self.ban_modifiers(&modifiers)?;
+                let ximpl = self.parse_impl()?;
+                Ok(ElemImpl(ximpl))
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 Err(MsgWithPos::new(self.token.position, msg))
             }
         }
+    }
+
+    fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Impl)?.position;
+        let trait_name = self.expect_identifier()?;
+        self.expect_token(TokenKind::For)?;
+        let class_name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::LBrace)?;
+
+        let mut methods = Vec::new();
+        let modifiers = Modifiers::new();
+
+        while !self.token.is(TokenKind::RBrace) {
+            methods.push(self.parse_function(&modifiers)?);
+        }
+
+        self.expect_token(TokenKind::RBrace)?;
+
+        Ok(Impl {
+            id: self.generate_id(),
+            trait_name: trait_name,
+            class_name: class_name,
+            pos: pos,
+            methods: methods,
+        })
     }
 
     fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
@@ -2765,5 +2797,25 @@ mod tests {
 
         assert_eq!("Foo", *interner.str(xtrait.name));
         assert_eq!(1, xtrait.methods.len());
+    }
+
+    #[test]
+    fn parse_empty_impl() {
+        let (prog, interner) = parse("impl Foo for A {}");
+        let ximpl = prog.impl0();
+
+        assert_eq!("Foo", *interner.str(ximpl.trait_name));
+        assert_eq!("A", *interner.str(ximpl.class_name));
+        assert_eq!(0, ximpl.methods.len());
+    }
+
+    #[test]
+    fn parse_impl_with_function() {
+        let (prog, interner) = parse("impl Bar for B { fun foo(); }");
+        let ximpl = prog.impl0();
+
+        assert_eq!("Bar", *interner.str(ximpl.trait_name));
+        assert_eq!("B", *interner.str(ximpl.class_name));
+        assert_eq!(1, ximpl.methods.len());
     }
 }

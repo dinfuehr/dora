@@ -25,6 +25,8 @@ pub enum TokenKind {
     If,
     Else,
     Loop,
+    For,
+    In,
     Break,
     Continue,
     Return,
@@ -49,6 +51,7 @@ pub enum TokenKind {
     Alias,
     Struct,
     Trait,
+    Impl,
 
     Underscore,
 
@@ -135,6 +138,8 @@ impl TokenKind {
             TokenKind::If => "if",
             TokenKind::Else => "else",
             TokenKind::Loop => "loop",
+            TokenKind::For => "for",
+            TokenKind::In => "in",
             TokenKind::Break => "break",
             TokenKind::Continue => "continue",
             TokenKind::Return => "return",
@@ -159,6 +164,7 @@ impl TokenKind {
             TokenKind::Alias => "alias",
             TokenKind::Struct => "struct",
             TokenKind::Trait => "trait",
+            TokenKind::Impl => "impl",
 
             TokenKind::Underscore => "_",
 

@@ -54,9 +54,25 @@ impl<'a> AstDumper<'a> {
                 ElemFunction(ref fct) => self.dump_fct(fct),
                 ElemClass(ref cls) => self.dump_class(cls),
                 ElemStruct(ref struc) => self.dump_struct(struc),
-                ElemTrait(ref etrait) => self.dump_trait(etrait),
+                ElemTrait(ref xtrait) => self.dump_trait(xtrait),
+                ElemImpl(ref ximpl) => self.dump_impl(ximpl),
             }
         }
+    }
+
+    fn dump_impl(&mut self, ximpl: &Impl) {
+        dump!(self,
+              "impl {} for {} @ {} {}",
+              self.str(ximpl.trait_name),
+              self.str(ximpl.class_name),
+              ximpl.pos,
+              ximpl.id);
+
+        self.indent(|d| {
+            for mtd in &ximpl.methods {
+                d.dump_fct(mtd);
+            }
+        });
     }
 
     fn dump_struct(&mut self, struc: &Struct) {
