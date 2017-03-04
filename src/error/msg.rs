@@ -77,6 +77,7 @@ pub enum Msg {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     RecursiveStructure,
+    TraitMethodWithBody,
     TryNeedsCall,
     TryCallNonThrowing,
     ThrowingCallWithoutTry,
@@ -246,6 +247,7 @@ impl Msg {
             }
             NoSuperClass(ref name) => format!("class `{}` does not have super class.", name),
             RecursiveStructure => "recursive structure is not allowed.".into(),
+            TraitMethodWithBody => "trait method is not allowed to have definition".into(),
             TryNeedsCall => "`try` expects function or method call.".into(),
             TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
             ThrowingCallWithoutTry => {

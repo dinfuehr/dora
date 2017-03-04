@@ -113,9 +113,14 @@ impl<'a> Parser<'a> {
         let modifiers = Modifiers::new();
 
         self.expect_token(TokenKind::LBrace)?;
-        let methods = self.parse_comma_list(TokenKind::RBrace, |p| {
-            p.parse_function(&modifiers)
-        })?;
+
+        let mut methods = Vec::new();
+
+        while !self.token.is(TokenKind::RBrace) {
+            methods.push(self.parse_function(&modifiers)?);
+        }
+
+        self.expect_token(TokenKind::RBrace)?;
 
         Ok(Trait {
             id: self.generate_id(),

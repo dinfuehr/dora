@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::{Context, StructId};
+use ctxt::{Context, StructId, TraitId};
 use mem;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -39,6 +39,9 @@ pub enum BuiltinType {
 
     // some struct
     Struct(StructId),
+
+    // some trait
+    Trait(TraitId),
 }
 
 impl BuiltinType {
@@ -144,6 +147,10 @@ impl BuiltinType {
                 let name = ctxt.structs[sid].borrow().name;
                 ctxt.interner.str(name).to_string()
             }
+            BuiltinType::Trait(tid) => {
+                let name = ctxt.traits[tid].borrow().name;
+                ctxt.interner.str(name).to_string()
+            }
         }
     }
 
@@ -172,6 +179,7 @@ impl BuiltinType {
 
                 other.subclass_from(ctxt, *self)
             }
+            BuiltinType::Trait(_) => unimplemented!(),
         }
     }
 
@@ -199,6 +207,7 @@ impl BuiltinType {
             BuiltinType::DoubleArray |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
+            BuiltinType::Trait(_) => 2 * mem::ptr_width(),
         }
     }
 
@@ -222,6 +231,7 @@ impl BuiltinType {
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
+            BuiltinType::Trait(_) => mem::ptr_width(),
         }
     }
 
@@ -245,6 +255,7 @@ impl BuiltinType {
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
+            BuiltinType::Trait(_) => unimplemented!(),
         }
     }
 }

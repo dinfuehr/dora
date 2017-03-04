@@ -135,7 +135,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
-        if self.fct.owner_class.is_some() {
+        if self.fct.in_class() {
             self.reserve_stack_for_self();
         }
 
@@ -312,7 +312,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                     super_call = true;
                                 }
 
-                                let cid = self.ctxt.fcts[fid].borrow().owner_class.unwrap();
+                                let cid = self.ctxt.fcts[fid].borrow().cls_id();
                                 let cls = self.ctxt.classes[cid].borrow();
                                 cls.ty
 

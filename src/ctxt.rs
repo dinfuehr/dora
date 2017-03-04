@@ -274,12 +274,19 @@ impl From<usize> for FctId {
 }
 
 #[derive(Debug)]
+pub enum FctParent {
+    Class(ClassId),
+    Trait(TraitId),
+    None,
+}
+
+#[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
     pub ast: &'ast ast::Function,
     pub pos: Position,
     pub name: Name,
-    pub owner_class: Option<ClassId>,
+    pub parent: FctParent,
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
@@ -304,13 +311,37 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn in_class(&self) -> bool {
-        self.owner_class.is_some()
+        match self.parent {
+            FctParent::Class(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn in_trait(&self) -> bool {
+        match self.parent {
+            FctParent::Trait(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn cls_id(&self) -> ClassId {
+        match self.parent {
+            FctParent::Class(clsid) => clsid,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn trait_id(&self) -> TraitId {
+        match self.parent {
+            FctParent::Trait(traitid) => traitid,
+            _ => unreachable!(),
+        }
     }
 
     pub fn full_name(&self, ctxt: &Context) -> String {
         let mut repr = String::new();
 
-        if let Some(class_id) = self.owner_class {
+        if let FctParent::Class(class_id) = self.parent {
             let name = ctxt.classes[class_id].borrow().name;
             repr.push_str(&ctxt.interner.str(name));
             repr.push_str(".");
@@ -363,7 +394,11 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn has_self(&self) -> bool {
-        self.owner_class.is_some()
+        if let FctParent::Class(_) = self.parent {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn params_with_self(&self) -> &[BuiltinType] {
@@ -371,20 +406,10 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn params_without_self(&self) -> &[BuiltinType] {
-        if self.owner_class.is_some() {
+        if let FctParent::Class(_) = self.parent {
             &self.param_types[1..]
         } else {
             &self.param_types
-        }
-    }
-
-    pub fn real_args(&self) -> i32 {
-        let params = self.param_types.len() as i32;
-
-        if self.owner_class.is_some() {
-            params + 1
-        } else {
-            params
         }
     }
 }

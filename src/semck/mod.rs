@@ -5,7 +5,7 @@ use error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct};
 use ty::BuiltinType;
 
-mod clsdefck;
+mod clsck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
@@ -13,7 +13,9 @@ mod nameck;
 mod prelude;
 mod typeck;
 mod returnck;
+mod structck;
 mod superck;
+mod traitck;
 
 macro_rules! return_on_error {
     ($ctxt: ident) => {{
@@ -24,17 +26,20 @@ macro_rules! return_on_error {
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
+    let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
 
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies
-    globaldef::check(ctxt, &mut map_cls_defs, &mut map_struct_defs);
+    globaldef::check(ctxt, &mut map_cls_defs, &mut map_struct_defs, &mut map_trait_defs);
     return_on_error!(ctxt);
 
     // define internal classes
     prelude::internal_classes(ctxt);
 
-    // checks class/struct definitions/bodies
-    clsdefck::check(ctxt, &mut map_cls_defs, &mut map_struct_defs);
+    // checks class/struct/trait definitions/bodies
+    clsck::check(ctxt, &mut map_cls_defs);
+    structck::check(ctxt, &mut map_struct_defs);
+    traitck::check(ctxt, &mut map_trait_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables
@@ -77,7 +82,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
             ctxt.diag.borrow_mut().report(fct.pos, Msg::UnresolvedInternal);
         }
 
-        if fct.kind.is_definition() {
+        if fct.kind.is_definition() && !fct.in_trait() {
             ctxt.diag.borrow_mut().report(fct.pos, Msg::MissingFctBody);
         }
     }

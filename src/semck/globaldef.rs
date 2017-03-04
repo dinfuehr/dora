@@ -14,11 +14,13 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>,
                    map_cls_defs: &mut NodeMap<ClassId>,
-                   map_struct_defs: &mut NodeMap<StructId>) {
+                   map_struct_defs: &mut NodeMap<StructId>,
+                   map_trait_defs: &mut NodeMap<TraitId>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt,
         map_cls_defs: map_cls_defs,
         map_struct_defs: map_struct_defs,
+        map_trait_defs: map_trait_defs,
     };
 
     gdef.visit_ast(ctxt.ast);
@@ -28,6 +30,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
+    map_trait_defs: &'x mut NodeMap<TraitId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -43,7 +46,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         self.ctxt.traits.push(RefCell::new(xtrait));
         let sym = SymTrait(id);
 
-        // self.map_trait_defs.insert(t.id, id);
+        self.map_trait_defs.insert(t.id, id);
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(t.name, sym) {
             report(self.ctxt, t.name, t.pos, sym);
@@ -121,7 +124,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             name: f.name,
             param_types: Vec::new(),
             return_type: BuiltinType::Unit,
-            owner_class: None,
+            parent: FctParent::None,
             has_override: f.has_override,
             has_open: f.has_open,
             has_final: f.has_final,

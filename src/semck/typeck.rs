@@ -1,6 +1,6 @@
 use std::{f32, f64};
 
-use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctSrc, IdentType};
+use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType};
 use class::ClassId;
 use error::msg::Msg;
 
@@ -331,7 +331,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let candidate = candidates[0];
                 let fct = self.ctxt.fcts[candidate].borrow();
 
-                return Some((fct.owner_class.unwrap(), candidate, fct.return_type));
+                return Some((fct.cls_id(), candidate, fct.return_type));
 
             } else if candidates.len() > 1 {
                 return None;
@@ -366,7 +366,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let candidate = candidates[0];
                 let fct = self.ctxt.fcts[candidate].borrow();
 
-                return Some((fct.owner_class.unwrap(), candidate, fct.return_type));
+                return Some((fct.cls_id(), candidate, fct.return_type));
 
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
@@ -645,7 +645,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             })
             .collect();
 
-        let owner = self.ctxt.classes[self.fct.owner_class.unwrap()].borrow();
+        let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
 
         // init(..) : super(..) is not allowed for classes with primary ctor
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
@@ -733,11 +733,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn super_type(&self, pos: Position) -> BuiltinType {
-        if let Some(clsid) = self.fct.owner_class {
+        if let FctParent::Class(clsid) = self.fct.parent {
             let cls = self.ctxt.classes[clsid].borrow();
 
             if let Some(superid) = cls.parent_class {
-                return BuiltinType::Class(superid);
+                return self.ctxt.classes[superid].borrow().ty;
             }
         }
 
@@ -776,7 +776,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
-        if let Some(clsid) = self.fct.owner_class {
+        if let FctParent::Class(clsid) = self.fct.parent {
             let ty = self.ctxt.classes[clsid].borrow().ty;
             self.src.set_ty(e.id, ty);
             self.expr_type = ty;

@@ -1349,7 +1349,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.owner_class.is_some() && check_for_nil(ty) &&
+                    if idx == 0 && fct.in_class() && check_for_nil(ty) &&
                        !csite.super_call && !fct.is_virtual() {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
@@ -1526,6 +1526,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::DoubleArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
+        BuiltinType::Trait(_) => false,
     }
 }
 

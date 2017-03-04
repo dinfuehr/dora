@@ -60,7 +60,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
-        let cls_id = self.fct.owner_class.unwrap();
+        let cls_id = self.fct.cls_id();
         let ast_id = self.fct.ast.id;
         let name = self.ctxt.interner.intern("self");
 
@@ -199,7 +199,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 // don't expand <var> to self.<var> in primary ctors
                 // otherwise `let b: int = b;` would be possible
                 if !self.fct.ctor.is_primary() {
-                    if let Some(clsid) = self.fct.owner_class {
+                    if let FctParent::Class(clsid) = self.fct.parent {
                         let cls = self.ctxt.classes[clsid].borrow();
 
                         for field in &cls.fields {

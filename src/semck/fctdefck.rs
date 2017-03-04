@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct, FctSrc};
+use ctxt::{Context, Fct, FctId, FctParent, FctSrc};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
@@ -11,11 +11,11 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
 
-        if !fct.is_src() && !fct.kind.is_definition() {
+        if !(fct.is_src() || fct.kind.is_definition()) {
             continue;
         }
 
-        if let Some(owner_class) = fct.owner_class {
+        if let FctParent::Class(owner_class) = fct.parent {
             let cls = ctxt.classes[owner_class].borrow();
             fct.param_types.push(cls.ty);
         }
@@ -38,6 +38,23 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             fct.return_type = ty;
         }
 
+        fct.initialized = true;
+
+        match fct.parent {
+            FctParent::Class(clsid) => {
+                let cls = ctxt.classes[clsid].borrow();
+                check_against_methods(ctxt, cls.ty, &*fct, &cls.methods);
+            }
+
+            FctParent::Trait(traitid) => {
+                let xtrait = ctxt.traits[traitid].borrow();
+                let ty = BuiltinType::Trait(traitid);
+                check_against_methods(ctxt, ty, &*fct, &xtrait.methods);
+            }
+
+            _ => {}
+        }
+
         if !fct.is_src() {
             continue;
         }
@@ -57,6 +74,30 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     }
 }
 
+fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
+    for &method in methods {
+        if method == fct.id {
+            continue;
+        }
+
+        let method = ctxt.fcts[method].borrow();
+
+        if method.initialized && method.name == fct.name &&
+            method.params_with_self() == fct.params_with_self() {
+            let cls_name = ty.name(ctxt);
+            let param_names = method.params_without_self()
+                .iter()
+                .map(|a| a.name(ctxt))
+                .collect::<Vec<String>>();
+            let method_name = ctxt.interner.str(method.name).to_string();
+
+            let msg = Msg::MethodExists(cls_name, method_name, param_names, method.pos);
+            ctxt.diag.borrow_mut().report(fct.ast.pos, msg);
+            return;
+        }
+    }
+}
+
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
@@ -68,37 +109,6 @@ struct FctDefCheck<'a, 'ast: 'a> {
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
     fn check(&mut self) {
         self.visit_fct(self.ast);
-
-        if self.ctxt.diag.borrow().has_errors() {
-            return;
-        }
-
-        self.fct.initialized = true;
-
-        if let Some(clsid) = self.fct.owner_class {
-            let cls = self.ctxt.classes[clsid].borrow();
-
-            for &method in &cls.methods {
-                if method == self.fct.id {
-                    continue;
-                }
-                let method = self.ctxt.fcts[method].borrow();
-
-                if method.initialized && method.name == self.fct.name &&
-                   method.params_without_self() == self.fct.params_without_self() {
-                    let cls_name = BuiltinType::Class(clsid).name(self.ctxt);
-                    let param_names = method.params_without_self()
-                        .iter()
-                        .map(|a| a.name(self.ctxt))
-                        .collect::<Vec<String>>();
-                    let method_name = self.ctxt.interner.str(method.name).to_string();
-
-                    let msg = Msg::MethodExists(cls_name, method_name, param_names, method.pos);
-                    self.ctxt.diag.borrow_mut().report(self.ast.pos, msg);
-                    return;
-                }
-            }
-        }
     }
 }
 
