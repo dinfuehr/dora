@@ -1,0 +1,18 @@
+//= output "1\n"
+
+trait Foo {
+    fun bla();
+}
+
+class A(let val: int)
+
+impl Foo for A {
+    fun bla() {
+        println(self.val.toString());
+    }
+}
+
+fun main() {
+    let a = A(1);
+    a.bla();
+}

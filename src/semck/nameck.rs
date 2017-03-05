@@ -46,7 +46,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
         self.ctxt.sym.borrow_mut().push_level();
 
-        if self.fct.in_class() {
+        if self.fct.has_self() {
             // add hidden this parameter for ctors and methods
             self.add_hidden_parameter_self();
         }
@@ -60,14 +60,24 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
-        let cls_id = self.fct.cls_id();
+        let ty = match self.fct.parent {
+            FctParent::Class(cls_id) => self.ctxt.classes[cls_id].borrow().ty,
+
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.ctxt.impls[impl_id].borrow();
+                self.ctxt.classes[ximpl.cls_id()].borrow().ty
+            }
+
+            _ => unreachable!(),
+        };
+
         let ast_id = self.fct.ast.id;
         let name = self.ctxt.interner.intern("self");
 
         let var = Var {
             id: VarId(0),
             name: name,
-            ty: BuiltinType::Class(cls_id),
+            ty: ty,
             reassignable: false,
             node_id: ast_id,
             offset: 0,

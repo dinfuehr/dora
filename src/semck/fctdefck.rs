@@ -15,9 +15,23 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             continue;
         }
 
-        if let FctParent::Class(owner_class) = fct.parent {
-            let cls = ctxt.classes[owner_class].borrow();
-            fct.param_types.push(cls.ty);
+        match fct.parent {
+            FctParent::Class(owner_class) => {
+                let cls = ctxt.classes[owner_class].borrow();
+                fct.param_types.push(cls.ty);
+            }
+
+            FctParent::Impl(impl_id) => {
+                let ximpl = ctxt.impls[impl_id].borrow();
+                let cls = ctxt.classes[ximpl.cls_id()].borrow();
+                fct.param_types.push(cls.ty);
+            }
+
+            FctParent::Trait(_) => {
+                fct.param_types.push(BuiltinType::This);
+            }
+
+            _ => {}
         }
 
         for p in &ast.params {

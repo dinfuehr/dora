@@ -19,20 +19,28 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                 defined.insert(fid);
 
             } else {
-                let args = method.params_without_self().iter().map(|a| a.name(ctxt)).collect::<Vec<String>>();
+                let args = method.params_without_self()
+                    .iter()
+                    .map(|a| a.name(ctxt))
+                    .collect::<Vec<String>>();
                 let mtd_name = ctxt.interner.str(method.name).to_string();
                 let trait_name = ctxt.interner.str(xtrait.name).to_string();
-                report(ctxt, method.pos, Msg::MethodNotInTrait(trait_name, mtd_name, args));
+                report(ctxt,
+                       method.pos,
+                       Msg::MethodNotInTrait(trait_name, mtd_name, args));
             }
         }
 
         for &method_id in all.difference(&defined) {
             let method = ctxt.fcts[method_id].borrow();
 
-            let args = method.params_without_self().iter().map(|a| a.name(ctxt)).collect::<Vec<String>>();
+            let args =
+                method.params_without_self().iter().map(|a| a.name(ctxt)).collect::<Vec<String>>();
             let mtd_name = ctxt.interner.str(method.name).to_string();
             let trait_name = ctxt.interner.str(xtrait.name).to_string();
-            report(ctxt, ximpl.pos, Msg::MethodMissingFromTrait(trait_name, mtd_name, args));
+            report(ctxt,
+                   ximpl.pos,
+                   Msg::MethodMissingFromTrait(trait_name, mtd_name, args));
         }
     }
 }
@@ -51,7 +59,7 @@ mod tests {
     fn impl_method_not_in_trait() {
         err("
             trait Foo {}
-            class A {}
+            class A
             impl Foo for A {
                 fun bar() {}
             }",
@@ -65,7 +73,7 @@ mod tests {
             trait Foo {
                 fun bar();
             }
-            class A {}
+            class A
             impl Foo for A {}",
             pos(6, 13),
             Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]));

@@ -133,6 +133,24 @@ impl Class {
                 }
             }
 
+            for &impl_id in &cls.impls {
+                let ximpl = ctxt.impls[impl_id].borrow();
+
+                for &method in &ximpl.methods {
+                    let method = ctxt.fcts[method].borrow();
+
+                    if method.name == name && f(&*method) {
+                        if let Some(overrides) = method.overrides {
+                            ignores.insert(overrides);
+                        }
+
+                        if !ignores.contains(&method.id) {
+                            candidates.push(method.id);
+                        }
+                    }
+                }
+            }
+
             if let Some(parent_class) = cls.parent_class {
                 classid = parent_class;
 

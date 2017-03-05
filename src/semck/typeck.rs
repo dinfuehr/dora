@@ -366,7 +366,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let candidate = candidates[0];
                 let fct = self.ctxt.fcts[candidate].borrow();
 
-                return Some((fct.cls_id(), candidate, fct.return_type));
+                let cls_id = match fct.parent {
+                    FctParent::Class(cls_id) => cls_id,
+                    FctParent::Impl(impl_id) => {
+                        let ximpl = self.ctxt.impls[impl_id].borrow();
+                        ximpl.cls_id()
+                    }
+                    _ => unreachable!(),
+                };
+
+                return Some((cls_id, candidate, fct.return_type));
 
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
@@ -776,16 +785,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
-        if let FctParent::Class(clsid) = self.fct.parent {
-            let ty = self.ctxt.classes[clsid].borrow().ty;
-            self.src.set_ty(e.id, ty);
-            self.expr_type = ty;
+        match self.fct.parent {
+            FctParent::Class(clsid) => {
+                let ty = self.ctxt.classes[clsid].borrow().ty;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+            }
 
-        } else {
-            let msg = Msg::ThisUnavailable;
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ty = self.ctxt.classes[ximpl.cls_id()].borrow().ty;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+            }
+
+            _ => {
+                let msg = Msg::ThisUnavailable;
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                self.src.set_ty(e.id, BuiltinType::Unit);
+                self.expr_type = BuiltinType::Unit;
+            }
         }
     }
 

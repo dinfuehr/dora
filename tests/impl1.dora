@@ -1,0 +1,18 @@
+//= output "xyz\n"
+
+trait Foo {
+    fun bla();
+}
+
+class A
+
+impl Foo for A {
+    fun bla() {
+        println("xyz");
+    }
+}
+
+fun main() {
+    let a = A();
+    a.bla();
+}

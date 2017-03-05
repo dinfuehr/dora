@@ -23,6 +23,9 @@ pub enum BuiltinType {
     // pointer to object, only used internally
     Ptr,
 
+    // self type
+    This,
+
     // String type
     Str,
 
@@ -132,6 +135,7 @@ impl BuiltinType {
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
+            BuiltinType::This => "Self".into(),
             BuiltinType::Str => "Str".into(),
             BuiltinType::BoolArray => "BoolArray".into(),
             BuiltinType::ByteArray => "ByteArray".into(),
@@ -165,6 +169,7 @@ impl BuiltinType {
             BuiltinType::Float | BuiltinType::Double => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
+            BuiltinType::This => unreachable!(),
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
@@ -197,6 +202,7 @@ impl BuiltinType {
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
+            BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
@@ -220,7 +226,8 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
-            BuiltinType::Nil => panic!("no size for nil."),
+            BuiltinType::Nil => panic!("no alignment for nil."),
+            BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
@@ -245,6 +252,7 @@ impl BuiltinType {
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
+            BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |

@@ -5,7 +5,7 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::*;
-use ctxt::{Arg, CallSite, Context, Fct, FctId, FctSrc, Store, VarId};
+use ctxt::{Arg, CallSite, Context, Fct, FctId, FctParent, FctSrc, Store, VarId};
 use mem;
 use ty::BuiltinType;
 
@@ -135,7 +135,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn generate(&mut self) {
-        if self.fct.in_class() {
+        if self.fct.has_self() {
             self.reserve_stack_for_self();
         }
 
@@ -149,7 +149,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_self(&mut self) {
-        let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+        let ty = match self.fct.parent {
+            FctParent::Class(clsid) => self.ctxt.classes[clsid].borrow().ty,
+
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.ctxt.impls[impl_id].borrow();
+                self.ctxt.classes[ximpl.cls_id()].borrow().ty
+            }
+
+            _ => unreachable!(),
+        };
+
+        let offset = self.reserve_stack_for_type(ty);
         self.src.var_self_mut().offset = offset;
     }
 
@@ -312,7 +323,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                     super_call = true;
                                 }
 
-                                let cid = self.ctxt.fcts[fid].borrow().cls_id();
+                                let fct = self.ctxt.fcts[fid].borrow();
+                                let cid = match fct.parent {
+                                    FctParent::Class(cid) => cid,
+                                    FctParent::Impl(impl_id) => {
+                                        let ximpl = self.ctxt.impls[impl_id].borrow();
+                                        ximpl.cls_id()
+                                    }
+                                    _ => unreachable!(),
+                                };
+
                                 let cls = self.ctxt.classes[cid].borrow();
                                 cls.ty
 

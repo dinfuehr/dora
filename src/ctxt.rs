@@ -181,7 +181,7 @@ impl ImplData {
         self.trait_id.expect("trait_id not initialized yet.")
     }
 
-    pub fn class_id(&self) -> ClassId {
+    pub fn cls_id(&self) -> ClassId {
         self.class_id.expect("trait_id not initialized yet.")
     }
 }
@@ -447,10 +447,12 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn has_self(&self) -> bool {
-        if let FctParent::Class(_) = self.parent {
-            true
-        } else {
-            false
+        match self.parent {
+            FctParent::Class(_) |
+            FctParent::Trait(_) |
+            FctParent::Impl(_) => true,
+
+            _ => false,
         }
     }
 
@@ -459,7 +461,7 @@ impl<'ast> Fct<'ast> {
     }
 
     pub fn params_without_self(&self) -> &[BuiltinType] {
-        if let FctParent::Class(_) = self.parent {
+        if self.has_self() {
             &self.param_types[1..]
         } else {
             &self.param_types
