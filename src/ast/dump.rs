@@ -56,8 +56,27 @@ impl<'a> AstDumper<'a> {
                 ElemStruct(ref struc) => self.dump_struct(struc),
                 ElemTrait(ref xtrait) => self.dump_trait(xtrait),
                 ElemImpl(ref ximpl) => self.dump_impl(ximpl),
+                ElemGlobal(ref global) => self.dump_global(global),
             }
         }
+    }
+
+    fn dump_global(&mut self, global: &Global) {
+        dump!(self,
+              "global {} @ {} {}",
+              self.str(global.name),
+              global.pos,
+              global.id);
+
+        self.indent(|d| {
+            d.dump_type(&global.data_type);
+
+            if let Some(ref expr) = global.expr {
+                d.dump_expr(expr);
+            } else {
+                dump!(d, "<no expr given>");
+            }
+        });
     }
 
     fn dump_impl(&mut self, ximpl: &Impl) {

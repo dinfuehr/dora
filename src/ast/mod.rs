@@ -69,6 +69,11 @@ impl Ast {
     pub fn impl0(&self) -> &Impl {
         self.files.last().unwrap().elements[0].to_impl().unwrap()
     }
+
+    #[cfg(test)]
+    pub fn global0(&self) -> &Global {
+        self.files.last().unwrap().elements[0].to_global().unwrap()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -93,6 +98,7 @@ pub enum Elem {
     ElemStruct(Struct),
     ElemTrait(Trait),
     ElemImpl(Impl),
+    ElemGlobal(Global),
 }
 
 impl Elem {
@@ -103,6 +109,7 @@ impl Elem {
             &ElemStruct(ref s) => s.id,
             &ElemTrait(ref t) => t.id,
             &ElemImpl(ref i) => i.id,
+            &ElemGlobal(ref g) => g.id,
         }
     }
 
@@ -140,6 +147,23 @@ impl Elem {
             _ => None,
         }
     }
+
+    pub fn to_global(&self) -> Option<&Global> {
+        match self {
+            &ElemGlobal(ref global) => Some(global),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Global {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+    pub reassignable: bool,
+    pub data_type: Type,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]

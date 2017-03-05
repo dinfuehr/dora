@@ -13,6 +13,10 @@ pub trait Visitor<'v>: Sized {
         walk_file(self, a);
     }
 
+    fn visit_global(&mut self, g: &'v Global) {
+        walk_global(self, g);
+    }
+
     fn visit_trait(&mut self, t: &'v Trait) {
         walk_trait(self, t);
     }
@@ -84,7 +88,16 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemStruct(ref s) => v.visit_struct(s),
             ElemTrait(ref t) => v.visit_trait(t),
             ElemImpl(ref i) => v.visit_impl(i),
+            ElemGlobal(ref g) => v.visit_global(g),
         }
+    }
+}
+
+pub fn walk_global<'v, V: Visitor<'v>>(v: &mut V, g: &'v Global) {
+    v.visit_type(&g.data_type);
+
+    if let Some(ref expr) = g.expr {
+        v.visit_expr_top(expr);
     }
 }
 

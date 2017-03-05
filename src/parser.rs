@@ -106,6 +106,12 @@ impl<'a> Parser<'a> {
                 Ok(ElemImpl(ximpl))
             }
 
+            TokenKind::Let | TokenKind::Var => {
+                self.ban_modifiers(&modifiers)?;
+                let global = self.parse_global()?;
+                Ok(ElemGlobal(global))
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 Err(MsgWithPos::new(self.token.position, msg))
@@ -136,6 +142,36 @@ impl<'a> Parser<'a> {
             class_name: class_name,
             pos: pos,
             methods: methods,
+        })
+    }
+
+    fn parse_global(&mut self) -> Result<Global, MsgWithPos> {
+        let pos = self.token.position;
+        let reassignable = self.token.is(TokenKind::Var);
+
+        self.advance_token()?;
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::Colon)?;
+        let data_type = self.parse_type()?;
+
+        let expr = if self.token.is(TokenKind::Eq) {
+            self.advance_token()?;
+
+            Some(self.parse_expression()?)
+        } else {
+            None
+        };
+
+        self.expect_semicolon()?;
+
+        Ok(Global {
+            id: self.generate_id(),
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            reassignable: reassignable,
+            expr: expr,
         })
     }
 
@@ -2823,5 +2859,23 @@ mod tests {
         assert_eq!("Bar", *interner.str(ximpl.trait_name));
         assert_eq!("B", *interner.str(ximpl.class_name));
         assert_eq!(1, ximpl.methods.len());
+    }
+
+    #[test]
+    fn parse_global_var() {
+        let (prog, interner) = parse("var a: int = 0;");
+        let global = prog.global0();
+
+        assert_eq!("a", *interner.str(global.name));
+        assert_eq!(true, global.reassignable);
+    }
+
+    #[test]
+    fn parse_global_let() {
+        let (prog, interner) = parse("let b: int = 0;");
+        let global = prog.global0();
+
+        assert_eq!("b", *interner.str(global.name));
+        assert_eq!(false, global.reassignable);
     }
 }
