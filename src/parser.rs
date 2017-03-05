@@ -686,6 +686,12 @@ impl<'a> Parser<'a> {
 
     fn parse_type(&mut self) -> Result<Type, MsgWithPos> {
         match self.token.kind {
+            TokenKind::CapitalThis => {
+                let pos = self.token.position;
+                self.advance_token()?;
+                Ok(Type::create_self(self.generate_id(), pos))
+            }
+
             TokenKind::Identifier(_) => {
                 let pos = self.token.position;
                 let name = self.expect_identifier()?;

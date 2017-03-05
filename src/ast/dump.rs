@@ -99,11 +99,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_trait(&mut self, t: &Trait) {
-        dump!(self,
-              "trait {} @ {} {}",
-              self.str(t.name),
-              t.pos,
-              t.id);
+        dump!(self, "trait {} @ {} {}", self.str(t.name), t.pos, t.id);
         self.indent(|d| {
             for m in &t.methods {
                 d.dump_fct(m);

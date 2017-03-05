@@ -1,5 +1,5 @@
 use ast::{Stmt, Type};
-use ast::Type::TypeBasic;
+use ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
 use error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct};
@@ -121,6 +121,10 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
 
 pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
+        TypeSelf(_) => {
+            return Some(BuiltinType::This);
+        }
+
         TypeBasic(ref basic) => {
             if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
                 match sym {

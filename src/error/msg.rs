@@ -39,6 +39,7 @@ pub enum Msg {
     MainNotFound,
     WrongMainDefinition,
     ThisUnavailable,
+    SelfTypeUnavailable,
     SuperUnavailable,
     SuperNeedsMethodCall,
     MultipleCandidates(String, String, Vec<String>),
@@ -184,6 +185,7 @@ impl Msg {
             MainNotFound => "no `main` function found in the program".into(),
             WrongMainDefinition => "`main` function has wrong definition".into(),
             ThisUnavailable => "`self` can only be used in methods not functions".into(),
+            SelfTypeUnavailable => "`Self` can only be used in traits.".into(),
             SuperUnavailable => {
                 "`super` only available in methods of classes with parent class".into()
             }

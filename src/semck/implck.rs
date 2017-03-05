@@ -8,6 +8,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     for ximpl in &ctxt.impls {
         let ximpl = ximpl.borrow();
         let xtrait = ctxt.traits[ximpl.trait_id()].borrow();
+        let cls = ctxt.classes[ximpl.cls_id()].borrow().ty;
 
         let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
         let mut defined = HashSet::new();
@@ -15,7 +16,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         for &method_id in &ximpl.methods {
             let method = ctxt.fcts[method_id].borrow();
 
-            if let Some(fid) = xtrait.find_method(ctxt, method.name, method.params_without_self()) {
+            if let Some(fid) =
+                xtrait.find_method(ctxt, method.name, Some(cls), method.params_without_self()) {
                 defined.insert(fid);
 
             } else {
@@ -77,5 +79,18 @@ mod tests {
             impl Foo for A {}",
             pos(6, 13),
             Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]));
+    }
+
+    #[test]
+    fn impl_self() {
+        ok("trait Foo {
+                fun foo() -> Self;
+            }
+
+            class A
+
+            impl Foo for A {
+                fun foo() -> A { return A(); }
+            }");
     }
 }

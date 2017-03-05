@@ -36,6 +36,11 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
         for p in &ast.params {
             let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
+
+            if ty == BuiltinType::This && !fct.in_trait() {
+                ctxt.diag.borrow_mut().report(p.data_type.pos(), Msg::SelfTypeUnavailable);
+            }
+
             fct.param_types.push(ty);
 
             if fct.is_src() {

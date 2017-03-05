@@ -160,10 +160,17 @@ pub struct StructField {
 
 #[derive(Clone, Debug)]
 pub enum Type {
+    TypeSelf(TypeSelfType),
     TypeBasic(TypeBasicType),
     TypeTuple(TypeTupleType),
     TypePtr(TypePtrType),
     TypeArray(TypeArrayType),
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeSelfType {
+    pub id: NodeId,
+    pub pos: Position,
 }
 
 #[derive(Clone, Debug)]
@@ -196,6 +203,10 @@ pub struct TypeArrayType {
 }
 
 impl Type {
+    pub fn create_self(id: NodeId, pos: Position) -> Type {
+        Type::TypeSelf(TypeSelfType { id: id, pos: pos })
+    }
+
     pub fn create_basic(id: NodeId, pos: Position, name: Name, params: Vec<Box<Type>>) -> Type {
         Type::TypeBasic(TypeBasicType {
             id: id,
@@ -259,6 +270,7 @@ impl Type {
 
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
+            Type::TypeSelf(_) => "Self".into(),
             Type::TypeBasic(ref val) => format!("{}", *interner.str(val.name)),
 
             Type::TypeTuple(ref val) => {
@@ -276,6 +288,7 @@ impl Type {
 
     pub fn pos(&self) -> Position {
         match *self {
+            Type::TypeSelf(ref val) => val.pos,
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
             Type::TypePtr(ref val) => val.pos,
@@ -285,6 +298,7 @@ impl Type {
 
     pub fn id(&self) -> NodeId {
         match *self {
+            Type::TypeSelf(ref val) => val.id,
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
             Type::TypePtr(ref val) => val.id,

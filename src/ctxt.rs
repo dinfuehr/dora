@@ -212,17 +212,47 @@ pub struct TraitData {
 }
 
 impl TraitData {
-    pub fn find_method(&self, ctxt: &Context, name: Name, args: &[BuiltinType]) -> Option<FctId> {
+    pub fn find_method(&self,
+                       ctxt: &Context,
+                       name: Name,
+                       replace: Option<BuiltinType>,
+                       args: &[BuiltinType])
+                       -> Option<FctId> {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
-            if method.name == name && method.params_without_self() == args {
+            if method.name == name && params_match(replace, method.params_without_self(), args) {
                 return Some(method.id);
             }
         }
 
         None
     }
+}
+
+fn params_match(replace: Option<BuiltinType>,
+                trait_args: &[BuiltinType],
+                args: &[BuiltinType])
+                -> bool {
+    if trait_args.len() != args.len() {
+        return false;
+    }
+
+    for (ind, &ty) in trait_args.iter().enumerate() {
+        let other = args[ind];
+
+        let found = if ty == BuiltinType::This {
+            replace.is_none() || replace.unwrap() == other
+        } else {
+            ty == other
+        };
+
+        if !found {
+            return false;
+        }
+    }
+
+    true
 }
 
 impl Index<TraitId> for Vec<RefCell<TraitData>> {

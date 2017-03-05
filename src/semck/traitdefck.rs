@@ -115,4 +115,14 @@ mod tests {
             pos(1, 24),
             Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(1, 13)));
     }
+
+    #[test]
+    fn trait_with_self() {
+        err("trait Foo {
+            fun foo() -> int;
+            fun foo() -> Self;
+        }",
+            pos(3, 13),
+            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(2, 13)));
+    }
 }

@@ -17,6 +17,7 @@ pub enum TokenKind {
     // Keywords
     Class,
     This,
+    CapitalThis,
     Super,
     Fun,
     Let,
@@ -129,7 +130,8 @@ impl TokenKind {
 
             // Keywords
             TokenKind::Class => "class",
-            TokenKind::This => "this",
+            TokenKind::This => "self",
+            TokenKind::CapitalThis => "Self",
             TokenKind::Super => "super",
             TokenKind::Fun => "fun",
             TokenKind::Let => "let",

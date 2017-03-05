@@ -25,6 +25,7 @@ impl Lexer {
         let mut keywords = HashMap::new();
         keywords.insert("class", TokenKind::Class);
         keywords.insert("self", TokenKind::This);
+        keywords.insert("Self", TokenKind::CapitalThis);
         keywords.insert("super", TokenKind::Super);
         keywords.insert("fun", TokenKind::Fun);
         keywords.insert("let", TokenKind::Let);
@@ -799,12 +800,13 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Alias, 1, 18);
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
 
-        let mut reader = Lexer::from_str("pub static for in impl");
+        let mut reader = Lexer::from_str("pub static for in impl Self");
         assert_tok(&mut reader, TokenKind::Pub, 1, 1);
         assert_tok(&mut reader, TokenKind::Static, 1, 5);
         assert_tok(&mut reader, TokenKind::For, 1, 12);
         assert_tok(&mut reader, TokenKind::In, 1, 16);
         assert_tok(&mut reader, TokenKind::Impl, 1, 19);
+        assert_tok(&mut reader, TokenKind::CapitalThis, 1, 24);
     }
 
     #[test]
