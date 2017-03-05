@@ -5,18 +5,18 @@ use error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct};
 use ty::BuiltinType;
 
-mod clsck;
+mod clsdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
-mod implck;
+mod impldefck;
 mod nameck;
 mod prelude;
 mod typeck;
 mod returnck;
-mod structck;
+mod structdefck;
 mod superck;
-mod traitck;
+mod traitdefck;
 
 macro_rules! return_on_error {
     ($ctxt: ident) => {{
@@ -43,10 +43,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     prelude::internal_classes(ctxt);
 
     // checks class/struct/trait definitions/bodies
-    clsck::check(ctxt, &mut map_cls_defs);
-    structck::check(ctxt, &mut map_struct_defs);
-    traitck::check(ctxt, &mut map_trait_defs);
-    implck::check(ctxt, &mut map_impl_defs);
+    clsdefck::check(ctxt, &mut map_cls_defs);
+    structdefck::check(ctxt, &mut map_struct_defs);
+    traitdefck::check(ctxt, &mut map_trait_defs);
+    impldefck::check(ctxt, &mut map_impl_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables
