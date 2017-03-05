@@ -6,7 +6,7 @@ use lexer::position::Position;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_struct_defs: &mut NodeMap<StructId>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -20,7 +20,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_struct_defs: &mut NodeMap<Struc
 struct StructCheck<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
-    map_struct_defs: &'x mut NodeMap<StructId>,
+    map_struct_defs: &'x NodeMap<StructId>,
 
     struct_id: Option<StructId>,
 }

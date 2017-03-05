@@ -496,6 +496,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 codegen::var_load(self.masm, self.src, varid, dest)
             }
 
+            IdentType::Global(_) => unimplemented!(),
+
             IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
                 self.emit_field_access(e.pos, cls, field, REG_RESULT, dest);
@@ -640,6 +642,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.emit_comment(Comment::StoreVar(varid));
                 codegen::var_store(&mut self.masm, self.src, dest, varid);
             }
+
+            IdentType::Global(_) => unimplemented!(),
 
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.classes[clsid].borrow();

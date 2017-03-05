@@ -11,7 +11,7 @@ use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &mut NodeMap<ClassId>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -25,7 +25,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &mut NodeMap<ClassId>
 struct ClsCheck<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
-    map_cls_defs: &'x mut NodeMap<ClassId>,
+    map_cls_defs: &'x NodeMap<ClassId>,
 
     cls_id: Option<ClassId>,
 }

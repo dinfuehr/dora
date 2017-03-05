@@ -1,12 +1,13 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct, FctId, FctParent, FctSrc};
+use ctxt::{Context, Fct, FctId, FctParent, FctSrc, GlobalId, NodeMap};
 use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &Context<'ast>,
+                       map_global_defs: &NodeMap<GlobalId>) {
     for fct in &ctxt.fcts {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -98,6 +99,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
+            map_global_defs: map_global_defs,
         };
 
         defck.check();
@@ -134,6 +136,7 @@ struct FctDefCheck<'a, 'ast: 'a> {
     src: &'a mut FctSrc<'ast>,
     ast: &'ast Function,
     current_type: BuiltinType,
+    map_global_defs: &'a NodeMap<GlobalId>,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
@@ -145,6 +148,14 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.visit_stmt(f.block());
+    }
+
+    fn visit_global(&mut self, g: &'ast Global) {
+        let global_id = *self.map_global_defs.get(g.id).unwrap();
+        let mut global = self.ctxt.globals[global_id].borrow_mut();
+
+        self.visit_type(&g.data_type);
+        global.ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -160,7 +171,6 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 if let Some(ref expr) = var.expr {
                     visit::walk_expr(self, expr);
                 }
-
             }
 
             StmtDo(ref try) => {

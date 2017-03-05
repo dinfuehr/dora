@@ -827,6 +827,7 @@ impl Store {
 #[derive(Debug, Copy, Clone)]
 pub enum IdentType {
     Var(VarId),
+    Global(GlobalId),
     Field(ClassId, FieldId),
     Struct(StructId),
 }

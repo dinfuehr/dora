@@ -46,10 +46,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     prelude::internal_classes(ctxt);
 
     // checks class/struct/trait definitions/bodies
-    clsdefck::check(ctxt, &mut map_cls_defs);
-    structdefck::check(ctxt, &mut map_struct_defs);
-    traitdefck::check(ctxt, &mut map_trait_defs);
-    impldefck::check(ctxt, &mut map_impl_defs);
+    clsdefck::check(ctxt, &map_cls_defs);
+    structdefck::check(ctxt, &map_struct_defs);
+    traitdefck::check(ctxt, &map_trait_defs);
+    impldefck::check(ctxt, &map_impl_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables
@@ -59,7 +59,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // check type definitions of params,
     // return types and local variables in functions
-    fctdefck::check(ctxt);
+    fctdefck::check(ctxt, &map_global_defs);
     return_on_error!(ctxt);
 
     // add size of super classes to field offsets

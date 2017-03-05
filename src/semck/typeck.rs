@@ -193,6 +193,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = ty;
             }
 
+            IdentType::Global(globalid) => {
+                let ty = self.ctxt.globals[globalid].borrow().ty;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+            }
+
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
@@ -254,6 +260,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
                         }
                     }
+
+                    &IdentType::Global(_) => unimplemented!(),
 
                     &IdentType::Field(clsid, fieldid) => {
                         if !self.fct.ctor.is() &&
@@ -998,6 +1006,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
+    fn visit_global(&mut self, g: &'ast Global) {
+        if let Some(ref expr) = g.expr {
+            self.visit_expr(expr);
+        }
+    }
+
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
@@ -1914,4 +1928,22 @@ mod tests {
             Msg::NumberOverflow("float".into()));
         ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
     }
+
+    // #[test]
+    // fn test_global() {
+    //     ok("let x: int = y+1;
+    //         let y: int = z+1;
+    //         let z: int = 1;");
+    //     err("let x: int = false;", pos(1, 1), Msg::Unimplemented);
+    // }
+
+    // #[test]
+    // fn test_global_in_function() {
+    //     ok("let x: int = 0;
+    //         fun getx() -> int { return x; }");
+    //     err("
+    //         let x: int = 0;
+    //         fun getx() -> bool { return x; }",
+    //         pos(1, 1), Msg::Unimplemented);
+    // }
 }

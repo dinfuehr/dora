@@ -196,6 +196,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 return;
             }
 
+            Some(SymGlobal(id)) => {
+                self.src.map_idents.insert(ident.id, IdentType::Global(id));
+                return;
+            }
+
             Some(SymStruct(id)) => {
                 self.src.map_idents.insert(ident.id, IdentType::Struct(id));
                 return;

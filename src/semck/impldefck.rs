@@ -8,7 +8,7 @@ use lexer::position::Position;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_impl_defs: &mut NodeMap<ImplId>) {
+pub fn check<'ast>(ctxt: &mut Context<'ast>, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -22,7 +22,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_impl_defs: &mut NodeMap<ImplId>
 struct ImplCheck<'x, 'ast: 'x> {
     ctxt: &'x mut Context<'ast>,
     ast: &'ast ast::Ast,
-    map_impl_defs: &'x mut NodeMap<ImplId>,
+    map_impl_defs: &'x NodeMap<ImplId>,
 
     impl_id: Option<ImplId>,
 }
