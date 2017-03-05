@@ -89,6 +89,9 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             size: 0,
             vtable: None,
 
+            traits: Vec::new(),
+            impls: Vec::new(),
+
             type_params: Vec::new(),
             specialization_for: None,
             specializations: HashMap::new(),

@@ -55,6 +55,12 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             report(self.ctxt, i.pos, Msg::ExpectedClass(name));
         }
 
+        if ximpl.trait_id.is_some() && ximpl.class_id.is_some() {
+            let mut cls = self.ctxt.classes[ximpl.class_id()].borrow_mut();
+            cls.traits.push(ximpl.trait_id());
+            cls.impls.push(ximpl.id);
+        }
+
         self.impl_id = None;
     }
 
@@ -118,6 +124,21 @@ mod tests {
             impl Foo for Bar { fun foo() -> int;}",
             pos(6, 32),
             Msg::MissingFctBody);
+    }
+
+    #[test]
+    fn impl_method_defined_twice() {
+        err("
+            trait Foo {
+                fun foo() -> int;
+            }
+            class Bar {}
+            impl Foo for Bar {
+                fun foo() -> int { return 0; }
+                fun foo() -> int { return 1; }
+            }",
+            pos(8, 17),
+            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(7, 17)));
     }
 
     #[test]

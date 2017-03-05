@@ -52,6 +52,12 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
                 check_against_methods(ctxt, ty, &*fct, &xtrait.methods);
             }
 
+            FctParent::Impl(implid) => {
+                let ximpl = ctxt.impls[implid].borrow();
+                let ty = BuiltinType::Trait(ximpl.trait_id());
+                check_against_methods(ctxt, ty, &*fct, &ximpl.methods);
+            }
+
             _ => {}
         }
 

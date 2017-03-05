@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
-use ctxt::{Context, Fct, FctId};
+use ctxt::{Context, Fct, FctId, ImplId, TraitId};
 use interner::Name;
 use lexer::position::Position;
 use vtable::VTableBox;
@@ -51,6 +51,9 @@ pub struct Class {
     pub methods: Vec<FctId>,
     pub size: i32,
     pub vtable: Option<VTableBox>,
+
+    pub traits: Vec<TraitId>,
+    pub impls: Vec<ImplId>,
 
     pub type_params: Vec<Name>,
     pub specialization_for: Option<ClassId>,

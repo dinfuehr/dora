@@ -176,6 +176,16 @@ pub struct ImplData {
     pub methods: Vec<FctId>,
 }
 
+impl ImplData {
+    pub fn trait_id(&self) -> TraitId {
+        self.trait_id.expect("trait_id not initialized yet.")
+    }
+
+    pub fn class_id(&self) -> ClassId {
+        self.class_id.expect("trait_id not initialized yet.")
+    }
+}
+
 impl Index<ImplId> for Vec<RefCell<ImplData>> {
     type Output = RefCell<ImplData>;
 
