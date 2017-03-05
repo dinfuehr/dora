@@ -9,20 +9,22 @@ use ctxt::*;
 use error::msg::Msg;
 use interner::Name;
 use lexer::position::Position;
-use sym::Sym::{self, SymClass, SymFct, SymStruct, SymTrait};
+use sym::Sym::{self, SymClass, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>,
                    map_cls_defs: &mut NodeMap<ClassId>,
                    map_struct_defs: &mut NodeMap<StructId>,
                    map_trait_defs: &mut NodeMap<TraitId>,
-                   map_impl_defs: &mut NodeMap<ImplId>) {
+                   map_impl_defs: &mut NodeMap<ImplId>,
+                   map_global_defs: &mut NodeMap<GlobalId>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt,
         map_cls_defs: map_cls_defs,
         map_struct_defs: map_struct_defs,
         map_trait_defs: map_trait_defs,
         map_impl_defs: map_impl_defs,
+        map_global_defs: map_global_defs,
     };
 
     gdef.visit_ast(ctxt.ast);
@@ -34,6 +36,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
+    map_global_defs: &'x mut NodeMap<GlobalId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -53,6 +56,25 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         if let Some(sym) = self.ctxt.sym.borrow_mut().insert(t.name, sym) {
             report(self.ctxt, t.name, t.pos, sym);
+        }
+    }
+
+    fn visit_global(&mut self, g: &'ast Global) {
+        let id: GlobalId = (self.ctxt.globals.len() as u32).into();
+        let global = GlobalData {
+            id: id,
+            pos: g.pos,
+            name: g.name,
+            ty: BuiltinType::Unit,
+        };
+
+        self.ctxt.globals.push(RefCell::new(global));
+
+        let sym = SymGlobal(id);
+        self.map_global_defs.insert(g.id, id);
+
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(g.name, sym) {
+            report(self.ctxt, g.name, g.pos, sym);
         }
     }
 
@@ -174,6 +196,7 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
         SymStruct(_) => Msg::ShadowStruct(name),
         SymFct(_) => Msg::ShadowFunction(name),
         SymTrait(_) => Msg::ShadowTrait(name),
+        SymGlobal(_) => Msg::ShadowGlobal(name),
         _ => unimplemented!(),
     };
 

@@ -85,6 +85,7 @@ pub enum Sym {
     SymClass(ClassId),
     SymStruct(StructId),
     SymTrait(TraitId),
+    SymGlobal(GlobalId),
 }
 
 impl Sym {
@@ -154,6 +155,20 @@ impl Sym {
     pub fn to_trait(&self) -> Option<TraitId> {
         match *self {
             SymTrait(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_global(&self) -> bool {
+        match *self {
+            SymGlobal(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_global(&self) -> Option<GlobalId> {
+        match *self {
+            SymGlobal(id) => Some(id),
             _ => None,
         }
     }

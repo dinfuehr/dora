@@ -41,6 +41,7 @@ pub struct Context<'ast> {
     pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
+    pub globals: Vec<RefCell<GlobalData>>, // stores all global variables
     pub gc: Mutex<Gc>, // garbage collector
     pub sfi: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
@@ -58,6 +59,7 @@ impl<'ast> Context<'ast> {
             classes: Vec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
+            globals: Vec::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 bool_class: empty_class_id,
@@ -155,6 +157,31 @@ impl<'ast> Index<FctId> for Vec<RefCell<Fct<'ast>>> {
 
     fn index(&self, index: FctId) -> &RefCell<Fct<'ast>> {
         &self[index.0]
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct GlobalId(u32);
+
+impl From<u32> for GlobalId {
+    fn from(data: u32) -> GlobalId {
+        GlobalId(data)
+    }
+}
+
+#[derive(Debug)]
+pub struct GlobalData {
+    pub id: GlobalId,
+    pub pos: Position,
+    pub ty: BuiltinType,
+    pub name: Name,
+}
+
+impl Index<GlobalId> for Vec<RefCell<GlobalData>> {
+    type Output = RefCell<GlobalData>;
+
+    fn index(&self, index: GlobalId) -> &RefCell<GlobalData> {
+        &self[index.0 as usize]
     }
 }
 
