@@ -54,6 +54,11 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
         if let Some(ret) = ast.return_type.as_ref() {
             let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
+
+            if ty == BuiltinType::This && !fct.in_trait() {
+                ctxt.diag.borrow_mut().report(ret.pos(), Msg::SelfTypeUnavailable);
+            }
+
             fct.return_type = ty;
         }
 
@@ -188,5 +193,25 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
     fn visit_type(&mut self, t: &'ast Type) {
         self.current_type = semck::read_type(self.ctxt, t).unwrap_or(BuiltinType::Unit);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use error::msg::Msg;
+    use semck::tests::*;
+
+    #[test]
+    fn self_param() {
+        err("fun foo(x: Self) {}",
+            pos(1, 12),
+            Msg::SelfTypeUnavailable);
+    }
+
+    #[test]
+    fn self_return_type() {
+        err("fun foo() -> Self {}",
+            pos(1, 14),
+            Msg::SelfTypeUnavailable);
     }
 }
