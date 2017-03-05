@@ -211,6 +211,20 @@ pub struct TraitData {
     pub methods: Vec<FctId>,
 }
 
+impl TraitData {
+    pub fn find_method(&self, ctxt: &Context, name: Name, args: &[BuiltinType]) -> Option<FctId> {
+        for &method in &self.methods {
+            let method = ctxt.fcts[method].borrow();
+
+            if method.name == name && method.params_without_self() == args {
+                return Some(method.id);
+            }
+        }
+
+        None
+    }
+}
+
 impl Index<TraitId> for Vec<RefCell<TraitData>> {
     type Output = RefCell<TraitData>;
 

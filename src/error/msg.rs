@@ -83,6 +83,8 @@ pub enum Msg {
     TryNeedsCall,
     TryCallNonThrowing,
     ThrowingCallWithoutTry,
+    MethodNotInTrait(String, String, Vec<String>),
+    MethodMissingFromTrait(String, String, Vec<String>),
 }
 
 impl Msg {
@@ -256,6 +258,18 @@ impl Msg {
             TryCallNonThrowing => "given function or method call for `try` does not throw.".into(),
             ThrowingCallWithoutTry => {
                 "function or method call that is able to throw, needs `try`.".into()
+            }
+            MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
+                let args = args.join(", ");
+
+                format!("trait `{}` does not define method `{}({})`.",
+                        trait_name, mtd_name, args)
+            }
+            MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
+                let args = args.join(", ");
+
+                format!("trait `{}` defines method `{}({})` but is missing in `impl`.",
+                        trait_name, mtd_name, args)
             }
         }
     }

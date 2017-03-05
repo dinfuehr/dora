@@ -9,6 +9,7 @@ mod clsdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
+mod implck;
 mod impldefck;
 mod nameck;
 mod prelude;
@@ -61,6 +62,9 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // add size of super classes to field offsets
     superck::check(ctxt);
+
+    // check impl methods against trait definition
+    implck::check(ctxt);
     return_on_error!(ctxt);
 
     // check types of expressions in functions
