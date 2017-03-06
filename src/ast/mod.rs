@@ -1050,6 +1050,7 @@ impl BinOp {
 pub enum Expr {
     ExprUn(ExprUnType),
     ExprBin(ExprBinType),
+    ExprLitChar(ExprLitCharType),
     ExprLitInt(ExprLitIntType),
     ExprLitFloat(ExprLitFloatType),
     ExprLitStr(ExprLitStrType),
@@ -1123,6 +1124,14 @@ impl Expr {
             pos: pos,
             object: object,
             index: index,
+        })
+    }
+
+    pub fn create_lit_char(id: NodeId, pos: Position, value: char) -> Expr {
+        Expr::ExprLitChar(ExprLitCharType {
+            id: id,
+            pos: pos,
+            value: value,
         })
     }
 
@@ -1305,6 +1314,20 @@ impl Expr {
         }
     }
 
+    pub fn to_lit_char(&self) -> Option<&ExprLitCharType> {
+        match *self {
+            Expr::ExprLitChar(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_lit_char(&self) -> bool {
+        match *self {
+            Expr::ExprLitChar(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
             Expr::ExprLitInt(ref val) => Some(val),
@@ -1477,6 +1500,7 @@ impl Expr {
         match *self {
             Expr::ExprUn(ref val) => val.id,
             Expr::ExprBin(ref val) => val.id,
+            Expr::ExprLitChar(ref val) => val.id,
             Expr::ExprLitInt(ref val) => val.id,
             Expr::ExprLitFloat(ref val) => val.id,
             Expr::ExprLitStr(ref val) => val.id,
@@ -1624,6 +1648,14 @@ pub struct ExprArrayType {
 
     pub object: Box<Expr>,
     pub index: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprLitCharType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub value: char,
 }
 
 #[derive(Clone, Debug)]

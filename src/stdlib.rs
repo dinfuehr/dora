@@ -20,6 +20,13 @@ pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     Str::from_buffer(ctxt, buffer.as_bytes())
 }
 
+pub extern "C" fn char_to_string(val: char) -> Handle<Str> {
+    let buffer = val.to_string();
+    let ctxt = get_ctxt();
+
+    Str::from_buffer(ctxt, buffer.as_bytes())
+}
+
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
     let buffer = val.to_string();
     let ctxt = get_ctxt();

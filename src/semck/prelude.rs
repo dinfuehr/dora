@@ -10,6 +10,9 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     let size = BuiltinType::Byte.size(ctxt);
     ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", BuiltinType::Byte, size);
 
+    let size = BuiltinType::Char.size(ctxt);
+    ctxt.primitive_classes.char_class = internal_class(ctxt, "char", BuiltinType::Char, size);
+
     let size = BuiltinType::Int.size(ctxt);
     ctxt.primitive_classes.int_class = internal_class(ctxt, "int", BuiltinType::Int, size);
 
@@ -125,6 +128,14 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::ByteEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::ByteCmp);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::ByteNot);
+
+    let clsid = ctxt.primitive_classes.char_class;
+    native_method(ctxt, clsid, "toString", stdlib::char_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::CharToLong);
+    intrinsic_method(ctxt, clsid, "toInt", Intrinsic::CharToInt);
+
+    intrinsic_method(ctxt, clsid, "equals", Intrinsic::CharEq);
+    intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::CharCmp);
 
     let clsid = ctxt.primitive_classes.int_class;
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);

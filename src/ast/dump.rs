@@ -389,6 +389,7 @@ impl<'a> AstDumper<'a> {
             ExprBin(ref bin) => self.dump_expr_bin(bin),
             ExprField(ref field) => self.dump_expr_field(field),
             ExprArray(ref array) => self.dump_expr_array(array),
+            ExprLitChar(ref lit) => self.dump_expr_lit_char(lit),
             ExprLitInt(ref lit) => self.dump_expr_lit_int(lit),
             ExprLitFloat(ref lit) => self.dump_expr_lit_float(lit),
             ExprLitStr(ref lit) => self.dump_expr_lit_str(lit),
@@ -438,6 +439,10 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_nil(&mut self, nil: &ExprNilType) {
         dump!(self, "nil @ {} {}", nil.pos, nil.id);
+    }
+
+    fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {
+        dump!(self, "lit char {} {} @ {} {}", lit.value, lit.value as u32, lit.pos, lit.id);
     }
 
     fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {

@@ -1014,6 +1014,10 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
+            ExprLitChar(ExprLitCharType { id, .. }) => {
+                self.src.set_ty(id, BuiltinType::Char);
+                self.expr_type = BuiltinType::Char;
+            }
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
@@ -1927,6 +1931,18 @@ mod tests {
             pos(1, 19),
             Msg::NumberOverflow("float".into()));
         ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
+    }
+
+    #[test]
+    fn test_char() {
+        ok("fun foo() -> char { return 'c'; }");
+        ok("fun foo(a: char) -> char { return a; }");
+        err("fun foo() -> char { return false; }",
+            pos(1, 21),
+            Msg::ReturnType("char".into(), "bool".into()));
+        err("fun foo() -> char { return 10; }",
+            pos(1, 21),
+            Msg::ReturnType("char".into(), "int".into()));
     }
 
     // #[test]

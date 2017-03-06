@@ -6,8 +6,7 @@ use error::msg::Msg;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'ast>,
-                       map_global_defs: &NodeMap<GlobalId>) {
+pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>) {
     for fct in &ctxt.fcts {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -213,15 +212,11 @@ mod tests {
 
     #[test]
     fn self_param() {
-        err("fun foo(x: Self) {}",
-            pos(1, 12),
-            Msg::SelfTypeUnavailable);
+        err("fun foo(x: Self) {}", pos(1, 12), Msg::SelfTypeUnavailable);
     }
 
     #[test]
     fn self_return_type() {
-        err("fun foo() -> Self {}",
-            pos(1, 14),
-            Msg::SelfTypeUnavailable);
+        err("fun foo() -> Self {}", pos(1, 14), Msg::SelfTypeUnavailable);
     }
 }

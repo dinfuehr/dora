@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use lexer::position::Position;
 use lexer::reader::Reader;
 use lexer::token::{FloatSuffix, IntSuffix, Token, TokenKind};
 use error::msg::{Msg, MsgWithPos};
@@ -100,6 +101,9 @@ impl Lexer {
             } else if is_quote(ch) {
                 return self.read_string();
 
+            } else if is_char_quote(ch) {
+                return self.read_char_literal();
+
             } else if is_operator(ch) {
                 return self.read_operator();
 
@@ -184,44 +188,66 @@ impl Lexer {
         Ok(Token::new(ttype, pos))
     }
 
+    fn read_char_literal(&mut self) -> Result<Token, MsgWithPos> {
+        let pos = self.reader.pos();
+
+        self.read_char();
+        let ch = self.read_escaped_char(pos, Msg::UnclosedChar)?;
+
+        if is_char_quote(self.cur()) {
+            self.read_char();
+
+            let ttype = TokenKind::LitChar(ch);
+            Ok(Token::new(ttype, pos))
+        } else {
+            Err(MsgWithPos::new(pos, Msg::UnclosedChar))
+        }
+    }
+
+    fn read_escaped_char(&mut self, pos: Position, unclosed: Msg) -> Result<char, MsgWithPos> {
+        if let Some(ch) = self.cur() {
+            self.read_char();
+
+            if ch == '\\' {
+                let ch = if let Some(ch) = self.cur() {
+                    ch
+                } else {
+                    return Err(MsgWithPos::new(pos, unclosed));
+                };
+
+                self.read_char();
+
+                match ch {
+                    '\\' => Ok('\\'),
+                    'n' => Ok('\n'),
+                    't' => Ok('\t'),
+                    'r' => Ok('\r'),
+                    '\"' => Ok('\"'),
+                    '\'' => Ok('\''),
+                    _ => Err(MsgWithPos::new(pos, unclosed)),
+                }
+
+            } else {
+                Ok(ch)
+            }
+
+        } else {
+            Err(MsgWithPos::new(pos, unclosed))
+        }
+    }
+
     fn read_string(&mut self) -> Result<Token, MsgWithPos> {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        let mut escape = false;
-
         self.read_char();
 
-        while !self.cur().is_none() && (escape || !is_quote(self.cur())) {
-            let mut ch = self.cur().unwrap();
-            self.read_char();
-
-            if escape {
-                ch = match ch {
-                    '\\' => '\\',
-                    'n' => '\n',
-                    't' => '\t',
-                    'r' => '\r',
-                    '\"' => '\"',
-                    '\'' => '\'',
-                    _ => {
-                        let msg = Msg::InvalidEscapeSequence(ch);
-                        let msg = MsgWithPos::new(pos, msg);
-                        return Err(msg);
-                    }
-                };
-
-                escape = false;
-
-            } else if ch == '\\' {
-                escape = true;
-                continue;
-            }
-
+        while !self.cur().is_none() && !is_quote(self.cur()) {
+            let ch = self.read_escaped_char(pos, Msg::UnclosedString)?;
             value.push(ch);
         }
 
-        if !escape && is_quote(self.cur()) {
+        if is_quote(self.cur()) {
             self.read_char();
 
             let ttype = TokenKind::String(value);
@@ -479,6 +505,10 @@ fn is_newline(ch: Option<char>) -> bool {
 
 fn is_quote(ch: Option<char>) -> bool {
     ch == Some('\"')
+}
+
+fn is_char_quote(ch: Option<char>) -> bool {
+    ch == Some('\'')
 }
 
 fn is_operator(ch: Option<char>) -> bool {
@@ -763,6 +793,24 @@ mod tests {
     fn test_unclosed_string() {
         let mut reader = Lexer::from_str("\"abc");
         assert_err(&mut reader, Msg::UnclosedString, 1, 1);
+    }
+
+    #[test]
+    fn test_unclosed_char() {
+        let mut reader = Lexer::from_str("'a");
+        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+
+        let mut reader = Lexer::from_str("'\\");
+        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+
+        let mut reader = Lexer::from_str("'\\a");
+        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+
+        let mut reader = Lexer::from_str("'ab'");
+        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
+
+        let mut reader = Lexer::from_str("'");
+        assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
     }
 
     #[test]

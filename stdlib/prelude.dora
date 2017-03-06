@@ -44,6 +44,15 @@ internal class byte {
   internal fun compareTo(rhs: byte) -> int;
 }
 
+internal class char {
+  internal fun toInt() -> int;
+  internal fun toLong() -> long;
+  internal fun toString() -> Str;
+
+  internal fun equals(rhs: char) -> bool;
+  internal fun compareTo(rhs: char) -> int;
+}
+
 internal class int {
   internal fun toByte() -> byte;
   internal fun toLong() -> long;

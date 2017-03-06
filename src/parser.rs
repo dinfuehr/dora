@@ -1106,6 +1106,7 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self, opts: &ExprParsingOpts) -> ExprResult {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
+            TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::String(_) => self.parse_string(),
@@ -1207,6 +1208,18 @@ impl<'a> Parser<'a> {
         };
 
         Ok(Box::new(Expr::create_try(self.generate_id(), pos, exp, mode)))
+    }
+
+    fn parse_lit_char(&mut self) -> ExprResult {
+        let tok = self.advance_token()?;
+        let pos = tok.position;
+
+        if let TokenKind::LitChar(val) = tok.kind {
+            Ok(Box::new(Expr::create_lit_char(self.generate_id(), pos, val)))
+
+        } else {
+            unreachable!();
+        }
     }
 
     fn parse_lit_int(&mut self) -> ExprResult {
@@ -2877,5 +2890,13 @@ mod tests {
 
         assert_eq!("b", *interner.str(global.name));
         assert_eq!(false, global.reassignable);
+    }
+
+    #[test]
+    fn parse_lit_char() {
+        let (expr, _) = parse_expr("'a'");
+        let lit = expr.to_lit_char().unwrap();
+
+        assert_eq!('a', lit.value);
     }
 }

@@ -6,6 +6,7 @@ use lexer::position::Position;
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
     String(String),
+    LitChar(char),
     LitInt(String, IntSuffix),
     LitFloat(String, FloatSuffix),
     Identifier(String),
@@ -114,6 +115,8 @@ impl TokenKind {
                     IntSuffix::Long => "long number",
                 }
             }
+
+            TokenKind::LitChar(_) => "char",
 
             TokenKind::LitFloat(_, suffix) => {
                 match suffix {

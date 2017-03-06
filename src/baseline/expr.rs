@@ -111,6 +111,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_expr(&mut self, e: &'ast Expr, dest: ExprStore) {
         match *e {
+            ExprLitChar(ref expr) => self.emit_lit_char(expr, dest.reg()),
             ExprLitInt(ref expr) => self.emit_lit_int(expr, dest.reg()),
             ExprLitFloat(ref expr) => self.emit_lit_float(expr, dest.freg()),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
@@ -448,6 +449,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.emit_nil_check();
         self.masm.emit_lineno(pos.line as i32);
         self.masm.load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
+    }
+
+    fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
+        self.masm.load_int_const(MachineMode::Int32, dest, lit.value as i64);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -864,6 +869,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
                 Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
 
+                Intrinsic::CharToInt => {
+                    self.emit_expr(e.object.as_ref().unwrap(), dest);
+                }
+
+                Intrinsic::CharToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
+                Intrinsic::CharEq => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+                Intrinsic::CharCmp => self.emit_intrinsic_bin_call(e, dest, intrinsic),
+
                 Intrinsic::IntToByte => self.emit_intrinsic_int_to_byte(e, dest.reg()),
                 Intrinsic::IntToLong => self.emit_intrinsic_int_to_long(e, dest.reg()),
                 Intrinsic::IntToFloat => {
@@ -1197,6 +1210,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             self.emit_intrinsic_int(dest.reg(), lhs_reg, rhs_reg, intr, op);
         }
+
+        self.free_temp_for_node(lhs, offset);
     }
 
     fn emit_intrinsic_int(&mut self,
@@ -1206,7 +1221,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                           intr: Intrinsic,
                           op: Option<BinOp>) {
         match intr {
-            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::IntEq | Intrinsic::LongEq => {
+            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::CharEq | Intrinsic::IntEq |
+            Intrinsic::LongEq => {
                 let mode = if intr == Intrinsic::LongEq {
                     MachineMode::Int64
                 } else {
@@ -1222,7 +1238,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.set(dest, cond_code);
             }
 
-            Intrinsic::ByteCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
+            Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
                 let mode = if intr == Intrinsic::LongCmp {
                     MachineMode::Int64
                 } else {
@@ -1523,8 +1539,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Unit => false,
         BuiltinType::Str => true,
-        BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long | BuiltinType::Float |
-        BuiltinType::Double | BuiltinType::Bool => false,
+        BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
+        BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
         BuiltinType::IntArray | BuiltinType::LongArray | BuiltinType::FloatArray |
         BuiltinType::DoubleArray => true,

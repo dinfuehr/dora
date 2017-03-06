@@ -64,6 +64,7 @@ impl<'ast> Context<'ast> {
             primitive_classes: PrimitiveClasses {
                 bool_class: empty_class_id,
                 byte_class: empty_class_id,
+                char_class: empty_class_id,
                 int_class: empty_class_id,
                 long_class: empty_class_id,
                 float_class: empty_class_id,
@@ -338,13 +339,14 @@ pub struct StructFieldData {
 
 #[derive(Debug)]
 pub struct PrimitiveClasses {
+    pub bool_class: ClassId,
     pub byte_class: ClassId,
+    pub char_class: ClassId,
     pub int_class: ClassId,
     pub long_class: ClassId,
     pub float_class: ClassId,
     pub double_class: ClassId,
     pub str_class: ClassId,
-    pub bool_class: ClassId,
     pub int_array: ClassId,
     pub bool_array: ClassId,
     pub byte_array: ClassId,
@@ -356,13 +358,14 @@ pub struct PrimitiveClasses {
 impl PrimitiveClasses {
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
+            BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::Byte => Some(self.byte_class),
+            BuiltinType::Char => Some(self.char_class),
             BuiltinType::Int => Some(self.int_class),
             BuiltinType::Long => Some(self.long_class),
             BuiltinType::Float => Some(self.float_class),
             BuiltinType::Double => Some(self.double_class),
             BuiltinType::Str => Some(self.str_class),
-            BuiltinType::Bool => Some(self.bool_class),
             BuiltinType::IntArray => Some(self.int_array),
             BuiltinType::BoolArray => Some(self.bool_array),
             BuiltinType::ByteArray => Some(self.byte_array),
@@ -602,6 +605,11 @@ pub enum Intrinsic {
     ByteNot,
     ByteToInt,
     ByteToLong,
+
+    CharEq,
+    CharCmp,
+    CharToInt,
+    CharToLong,
 
     IntToByte,
     IntToLong,

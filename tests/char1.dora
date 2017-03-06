@@ -1,0 +1,16 @@
+//= output "a\n"
+
+fun main() {
+    let ch = 'a';
+    println(ch.toString());
+
+    let ch1 = 'a';
+    let ch2 = 'b';
+
+    assert(ch == ch1);
+    assert(ch != ch2);
+    assert(ch < ch2);
+
+    assert(ch.toInt() == 97);
+    assert(ch.toLong() == 97L);
+}

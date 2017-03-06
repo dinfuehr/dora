@@ -8,6 +8,7 @@ pub enum BuiltinType {
     Unit,
 
     // value types
+    Char,
     Byte,
     Int,
     Long,
@@ -128,6 +129,7 @@ impl BuiltinType {
         match *self {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Byte => "byte".into(),
+            BuiltinType::Char => "char".into(),
             BuiltinType::Int => "int".into(),
             BuiltinType::Long => "long".into(),
             BuiltinType::Float => "float".into(),
@@ -163,6 +165,7 @@ impl BuiltinType {
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
+            BuiltinType::Char |
             BuiltinType::Struct(_) => *self == other,
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
@@ -197,6 +200,7 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
+            BuiltinType::Char => 4,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
@@ -222,6 +226,7 @@ impl BuiltinType {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
+            BuiltinType::Char => 4,
             BuiltinType::Int => 4,
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
@@ -247,6 +252,7 @@ impl BuiltinType {
             BuiltinType::Unit => panic!("no machine mode for ()."),
             BuiltinType::Bool => MachineMode::Int8,
             BuiltinType::Byte => MachineMode::Int8,
+            BuiltinType::Char => MachineMode::Int32,
             BuiltinType::Int => MachineMode::Int32,
             BuiltinType::Long => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
