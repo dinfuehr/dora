@@ -849,7 +849,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_intrinsic_byte_to_long(e, dest.reg())
                 }
                 Intrinsic::LongToByte => self.emit_intrinsic_long_to_byte(e, dest.reg()),
-                Intrinsic::LongToInt => self.emit_intrinsic_long_to_int(e, dest.reg()),
+                Intrinsic::LongToChar | Intrinsic::LongToInt => {
+                    self.emit_intrinsic_long_to_int(e, dest.reg())
+                }
                 Intrinsic::LongToFloat => {
                     self.emit_intrinsic_int_to_float(e, dest.freg(), intrinsic)
                 }
@@ -870,7 +872,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
                 Intrinsic::DoubleToFloat => self.emit_intrinsic_double_to_float(e, dest.freg()),
 
-                Intrinsic::CharToInt => {
+                Intrinsic::CharToInt | Intrinsic::IntToChar => {
                     self.emit_expr(e.object.as_ref().unwrap(), dest);
                 }
 

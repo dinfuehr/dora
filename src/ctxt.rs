@@ -619,6 +619,7 @@ pub enum Intrinsic {
     CharToLong,
 
     IntToByte,
+    IntToChar,
     IntToLong,
     IntToFloat,
     IntToDouble,
@@ -643,6 +644,7 @@ pub enum Intrinsic {
     IntPlus,
 
     LongToInt,
+    LongToChar,
     LongToByte,
     LongToFloat,
     LongToDouble,

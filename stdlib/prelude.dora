@@ -58,6 +58,7 @@ internal class char {
 
 internal class int {
   internal fun toByte() -> byte;
+  internal fun toChar() -> char;
   internal fun toLong() -> long;
   internal fun toString() -> Str;
 
@@ -96,6 +97,7 @@ internal class int {
 
 internal class long {
   internal fun toByte() -> byte;
+  internal fun toChar() -> char;
   internal fun toInt() -> int;
   internal fun toString() -> Str;
 

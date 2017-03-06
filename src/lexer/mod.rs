@@ -807,7 +807,7 @@ mod tests {
         let mut reader = Lexer::from_str("'\\");
         assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
 
-        let mut reader = Lexer::from_str("'\\a");
+        let mut reader = Lexer::from_str("'\\n");
         assert_err(&mut reader, Msg::UnclosedChar, 1, 1);
 
         let mut reader = Lexer::from_str("'ab'");

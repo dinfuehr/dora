@@ -146,8 +146,9 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::CharCmp);
 
     let clsid = ctxt.primitive_classes.int_class;
-    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
     intrinsic_method(ctxt, clsid, "toByte", Intrinsic::IntToByte);
+    intrinsic_method(ctxt, clsid, "toChar", Intrinsic::IntToChar);
+    intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
     native_method(ctxt, clsid, "toString", stdlib::int_to_string as *const u8);
 
     intrinsic_method(ctxt, clsid, "toFloat", Intrinsic::IntToFloat);
@@ -176,6 +177,7 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     let clsid = ctxt.primitive_classes.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
+    intrinsic_method(ctxt, clsid, "toChar", Intrinsic::LongToChar);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::LongToInt);
     intrinsic_method(ctxt, clsid, "toByte", Intrinsic::LongToByte);
 

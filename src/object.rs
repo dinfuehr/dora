@@ -103,6 +103,12 @@ impl Obj {
                 handle.size()
             }
 
+            BuiltinType::CharArray => {
+                let handle: Handle<CharArray> =
+                    Handle { ptr: self as *const Obj as *const CharArray };
+                handle.size()
+            }
+
             BuiltinType::IntArray => {
                 let handle: Handle<IntArray> =
                     Handle { ptr: self as *const Obj as *const IntArray };
