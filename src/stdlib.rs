@@ -10,8 +10,8 @@ use std::slice;
 use std::str;
 
 use ctxt::get_ctxt;
-use object::{self, BoolArray, ByteArray, Handle, IntArray, LongArray, FloatArray, DoubleArray,
-             Obj, Str};
+use object::{self, BoolArray, ByteArray, CharArray, Handle, IntArray, LongArray, FloatArray,
+             DoubleArray, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -156,6 +156,19 @@ pub extern "C" fn ctor_byte_array_elem(len: i32, value: u8) -> Handle<ByteArray>
 
     object::byte_array_with(ctxt, len as usize, value)
 }
+
+pub extern "C" fn ctor_char_array_empty() -> Handle<CharArray> {
+    let ctxt = get_ctxt();
+
+    object::char_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_char_array_elem(len: i32, value: char) -> Handle<CharArray> {
+    let ctxt = get_ctxt();
+
+    object::char_array_with(ctxt, len as usize, value)
+}
+
 
 pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {
     let ctxt = get_ctxt();

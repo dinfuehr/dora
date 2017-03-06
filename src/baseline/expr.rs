@@ -329,7 +329,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
                 }
 
-                Intrinsic::IntArrayGet => {
+                Intrinsic::CharArrayGet | Intrinsic::IntArrayGet => {
                     self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
 
@@ -592,7 +592,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             dest)
                     }
 
-                    Intrinsic::IntArraySet => {
+                    Intrinsic::CharArraySet | Intrinsic::IntArraySet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int32,
                                             &array.object,
@@ -825,6 +825,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             match intrinsic {
                 Intrinsic::BoolArrayLen |
                 Intrinsic::ByteArrayLen |
+                Intrinsic::CharArrayLen |
                 Intrinsic::IntArrayLen |
                 Intrinsic::LongArrayLen |
                 Intrinsic::FloatArrayLen |
@@ -1542,8 +1543,8 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
         BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
-        BuiltinType::IntArray | BuiltinType::LongArray | BuiltinType::FloatArray |
-        BuiltinType::DoubleArray => true,
+        BuiltinType::CharArray | BuiltinType::IntArray | BuiltinType::LongArray |
+        BuiltinType::FloatArray | BuiltinType::DoubleArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
         BuiltinType::Trait(_) => false,

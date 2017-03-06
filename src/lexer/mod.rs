@@ -224,7 +224,11 @@ impl Lexer {
                     'r' => Ok('\r'),
                     '\"' => Ok('\"'),
                     '\'' => Ok('\''),
-                    _ => Err(MsgWithPos::new(pos, unclosed)),
+                    '0' => Ok('\0'),
+                    _ => {
+                        let msg = Msg::InvalidEscapeSequence(ch);
+                        Err(MsgWithPos::new(pos, msg))
+                    }
                 }
 
             } else {

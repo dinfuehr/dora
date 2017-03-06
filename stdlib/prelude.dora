@@ -15,6 +15,9 @@ internal fun emptyBoolArray() -> BoolArray;
 internal fun byteArrayWith(len: int, val: byte) -> ByteArray;
 internal fun emptyByteArray() -> ByteArray;
 
+internal fun charArrayWith(len: int, val: char) -> CharArray;
+internal fun emptyCharArray() -> CharArray;
+
 internal fun intArrayWith(len: int, val: int) -> IntArray;
 internal fun emptyIntArray() -> IntArray;
 
@@ -185,6 +188,12 @@ internal class ByteArray {
   internal fun len() -> int;
   internal fun get(idx: int) -> byte;
   internal fun set(idx: int, val: byte);
+}
+
+internal class CharArray {
+  internal fun len() -> int;
+  internal fun get(idx: int) -> char;
+  internal fun set(idx: int, val: char);
 }
 
 internal class IntArray {

@@ -269,13 +269,17 @@ impl Msg {
                 let args = args.join(", ");
 
                 format!("trait `{}` does not define method `{}({})`.",
-                        trait_name, mtd_name, args)
+                        trait_name,
+                        mtd_name,
+                        args)
             }
             MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!("trait `{}` defines method `{}({})` but is missing in `impl`.",
-                        trait_name, mtd_name, args)
+                        trait_name,
+                        mtd_name,
+                        args)
             }
         }
     }

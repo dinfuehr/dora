@@ -371,10 +371,21 @@ pub fn offset_of_array_data() -> i32 {
 
 pub type BoolArray = Array<bool>;
 pub type ByteArray = Array<u8>;
+pub type CharArray = Array<char>;
 pub type IntArray = Array<i32>;
 pub type LongArray = Array<i64>;
 pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
+
+pub fn char_array_empty(ctxt: &Context) -> Handle<CharArray> {
+    let clsid = ctxt.primitive_classes.char_array;
+    Array::alloc(ctxt, 0, '\0', clsid)
+}
+
+pub fn char_array_with(ctxt: &Context, len: usize, elem: char) -> Handle<CharArray> {
+    let clsid = ctxt.primitive_classes.char_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
 
 pub fn int_array_empty(ctxt: &Context) -> Handle<IntArray> {
     let clsid = ctxt.primitive_classes.int_array;

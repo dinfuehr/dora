@@ -30,6 +30,8 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
         internal_class(ctxt, "BoolArray", BuiltinType::BoolArray, 0);
     ctxt.primitive_classes.byte_array =
         internal_class(ctxt, "ByteArray", BuiltinType::ByteArray, 0);
+    ctxt.primitive_classes.char_array =
+        internal_class(ctxt, "CharArray", BuiltinType::CharArray, 0);
     ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
     ctxt.primitive_classes.long_array =
         internal_class(ctxt, "LongArray", BuiltinType::LongArray, 0);
@@ -79,6 +81,12 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt,
                "emptyIntArray",
                stdlib::ctor_int_array_empty as *const u8);
+    native_fct(ctxt,
+               "charArrayWith",
+               stdlib::ctor_char_array_elem as *const u8);
+    native_fct(ctxt,
+               "emptyCharArray",
+               stdlib::ctor_char_array_empty as *const u8);
     native_fct(ctxt,
                "boolArrayWith",
                stdlib::ctor_bool_array_elem as *const u8);
@@ -257,6 +265,11 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
 
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::DoubleIsNan);
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
+
+    let clsid = ctxt.primitive_classes.char_array;
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::CharArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::CharArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::CharArraySet);
 
     let clsid = ctxt.primitive_classes.int_array;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);

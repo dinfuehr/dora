@@ -33,6 +33,7 @@ pub enum BuiltinType {
     // Array types
     BoolArray,
     ByteArray,
+    CharArray,
     IntArray,
     LongArray,
     FloatArray,
@@ -91,6 +92,7 @@ impl BuiltinType {
             BuiltinType::Str => ctxt.primitive_classes.str_class,
             BuiltinType::BoolArray => ctxt.primitive_classes.bool_array,
             BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
+            BuiltinType::CharArray => ctxt.primitive_classes.char_array,
             BuiltinType::IntArray => ctxt.primitive_classes.int_array,
             BuiltinType::LongArray => ctxt.primitive_classes.long_array,
             BuiltinType::FloatArray => ctxt.primitive_classes.float_array,
@@ -141,6 +143,7 @@ impl BuiltinType {
             BuiltinType::Str => "Str".into(),
             BuiltinType::BoolArray => "BoolArray".into(),
             BuiltinType::ByteArray => "ByteArray".into(),
+            BuiltinType::CharArray => "CharArray".into(),
             BuiltinType::IntArray => "IntArray".into(),
             BuiltinType::LongArray => "LongArray".into(),
             BuiltinType::FloatArray => "FloatArray".into(),
@@ -176,6 +179,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
+            BuiltinType::CharArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
@@ -210,6 +214,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
+            BuiltinType::CharArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
             BuiltinType::Class(_) |
@@ -236,6 +241,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
+            BuiltinType::CharArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
@@ -262,6 +268,7 @@ impl BuiltinType {
             BuiltinType::Str |
             BuiltinType::BoolArray |
             BuiltinType::ByteArray |
+            BuiltinType::CharArray |
             BuiltinType::IntArray |
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
