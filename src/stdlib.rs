@@ -11,7 +11,7 @@ use std::str;
 
 use ctxt::get_ctxt;
 use object::{self, BoolArray, ByteArray, CharArray, Handle, IntArray, LongArray, FloatArray,
-             DoubleArray, Obj, Str};
+             DoubleArray, Obj, Str, StrArray};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -216,6 +216,18 @@ pub extern "C" fn ctor_double_array_elem(len: i32, value: f64) -> Handle<DoubleA
     let ctxt = get_ctxt();
 
     object::double_array_with(ctxt, len as usize, value)
+}
+
+pub extern "C" fn ctor_str_array_empty() -> Handle<StrArray> {
+    let ctxt = get_ctxt();
+
+    object::str_array_empty(ctxt)
+}
+
+pub extern "C" fn ctor_str_array_elem(len: i32, value: Handle<Str>) -> Handle<StrArray> {
+    let ctxt = get_ctxt();
+
+    object::str_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {

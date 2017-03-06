@@ -38,6 +38,7 @@ pub enum BuiltinType {
     LongArray,
     FloatArray,
     DoubleArray,
+    StrArray,
 
     // some class
     Class(ClassId),
@@ -97,6 +98,7 @@ impl BuiltinType {
             BuiltinType::LongArray => ctxt.primitive_classes.long_array,
             BuiltinType::FloatArray => ctxt.primitive_classes.float_array,
             BuiltinType::DoubleArray => ctxt.primitive_classes.double_array,
+            BuiltinType::StrArray => ctxt.primitive_classes.str_array,
 
             _ => panic!(),
         }
@@ -148,6 +150,7 @@ impl BuiltinType {
             BuiltinType::LongArray => "LongArray".into(),
             BuiltinType::FloatArray => "FloatArray".into(),
             BuiltinType::DoubleArray => "DoubleArray".into(),
+            BuiltinType::StrArray => "StrArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
@@ -184,6 +187,7 @@ impl BuiltinType {
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
             BuiltinType::DoubleArray |
+            BuiltinType::StrArray |
             BuiltinType::Class(_) => {
                 if *self == other || other.is_nil() {
                     return true;
@@ -220,6 +224,7 @@ impl BuiltinType {
             BuiltinType::Class(_) |
             BuiltinType::FloatArray |
             BuiltinType::DoubleArray |
+            BuiltinType::StrArray |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
@@ -246,6 +251,7 @@ impl BuiltinType {
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
             BuiltinType::DoubleArray |
+            BuiltinType::StrArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
@@ -273,6 +279,7 @@ impl BuiltinType {
             BuiltinType::LongArray |
             BuiltinType::FloatArray |
             BuiltinType::DoubleArray |
+            BuiltinType::StrArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),

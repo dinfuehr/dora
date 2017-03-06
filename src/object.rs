@@ -155,6 +155,12 @@ pub struct Handle<T> {
 }
 
 impl<T> Handle<T> {
+    pub fn null() -> Handle<T> {
+        Handle {
+            ptr: ptr::null(),
+        }
+    }
+
     pub fn raw(&self) -> *const T {
         self.ptr
     }
@@ -382,6 +388,17 @@ pub type IntArray = Array<i32>;
 pub type LongArray = Array<i64>;
 pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
+pub type StrArray = Array<Handle<Str>>;
+
+pub fn str_array_empty(ctxt: &Context) -> Handle<StrArray> {
+    let clsid = ctxt.primitive_classes.str_array;
+    Array::alloc(ctxt, 0, Handle::null(), clsid)
+}
+
+pub fn str_array_with(ctxt: &Context, len: usize, elem: Handle<Str>) -> Handle<StrArray> {
+    let clsid = ctxt.primitive_classes.str_array;
+    Array::alloc(ctxt, len, elem, clsid)
+}
 
 pub fn char_array_empty(ctxt: &Context) -> Handle<CharArray> {
     let clsid = ctxt.primitive_classes.char_array;

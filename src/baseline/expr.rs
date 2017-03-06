@@ -329,6 +329,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
                 }
 
+                Intrinsic::StrArrayGet => {
+                    self.emit_array_get(e.pos, MachineMode::Ptr, &e.object, &e.index, dest)
+                }
+
                 Intrinsic::CharArrayGet | Intrinsic::IntArrayGet => {
                     self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
                 }
@@ -601,6 +605,15 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             dest)
                     }
 
+                    Intrinsic::StrArraySet => {
+                        self.emit_array_set(e.pos,
+                                            MachineMode::Ptr,
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
+                    }
+
                     Intrinsic::LongArraySet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int64,
@@ -829,7 +842,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::IntArrayLen |
                 Intrinsic::LongArrayLen |
                 Intrinsic::FloatArrayLen |
-                Intrinsic::DoubleArrayLen => self.emit_intrinsic_len(e, dest.reg()),
+                Intrinsic::DoubleArrayLen |
+                Intrinsic::StrArrayLen => self.emit_intrinsic_len(e, dest.reg()),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
@@ -1546,7 +1560,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
         BuiltinType::CharArray | BuiltinType::IntArray | BuiltinType::LongArray |
-        BuiltinType::FloatArray | BuiltinType::DoubleArray => true,
+        BuiltinType::FloatArray | BuiltinType::DoubleArray | BuiltinType::StrArray => true,
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
         BuiltinType::Trait(_) => false,

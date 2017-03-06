@@ -77,6 +77,7 @@ impl<'ast> Context<'ast> {
                 long_array: empty_class_id,
                 float_array: empty_class_id,
                 double_array: empty_class_id,
+                str_array: empty_class_id,
             },
             gc: Mutex::new(gc),
             ast: ast,
@@ -355,6 +356,7 @@ pub struct PrimitiveClasses {
     pub long_array: ClassId,
     pub float_array: ClassId,
     pub double_array: ClassId,
+    pub str_array: ClassId,
 }
 
 impl PrimitiveClasses {
@@ -375,6 +377,7 @@ impl PrimitiveClasses {
             BuiltinType::LongArray => Some(self.long_array),
             BuiltinType::FloatArray => Some(self.float_array),
             BuiltinType::DoubleArray => Some(self.double_array),
+            BuiltinType::StrArray => Some(self.str_array),
             _ => None,
         }
     }
@@ -592,6 +595,10 @@ pub enum Intrinsic {
     ByteArrayLen,
     ByteArrayGet,
     ByteArraySet,
+
+    StrArrayLen,
+    StrArrayGet,
+    StrArraySet,
 
     Assert,
     Shl,
