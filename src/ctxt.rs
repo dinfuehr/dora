@@ -41,7 +41,7 @@ pub struct Context<'ast> {
     pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
-    pub globals: Vec<RefCell<GlobalData>>, // stores all global variables
+    pub globals: Vec<RefCell<GlobalData<'ast>>>, // stores all global variables
     pub gc: Mutex<Gc>, // garbage collector
     pub sfi: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
@@ -170,17 +170,18 @@ impl From<u32> for GlobalId {
 }
 
 #[derive(Debug)]
-pub struct GlobalData {
+pub struct GlobalData<'ast> {
     pub id: GlobalId,
+    pub ast: &'ast ast::Global,
     pub pos: Position,
     pub ty: BuiltinType,
     pub name: Name,
 }
 
-impl Index<GlobalId> for Vec<RefCell<GlobalData>> {
-    type Output = RefCell<GlobalData>;
+impl<'ast> Index<GlobalId> for Vec<RefCell<GlobalData<'ast>>> {
+    type Output = RefCell<GlobalData<'ast>>;
 
-    fn index(&self, index: GlobalId) -> &RefCell<GlobalData> {
+    fn index(&self, index: GlobalId) -> &RefCell<GlobalData<'ast>> {
         &self[index.0 as usize]
     }
 }
