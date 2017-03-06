@@ -133,6 +133,12 @@ impl Obj {
                 handle.size()
             }
 
+            BuiltinType::StrArray => {
+                let handle: Handle<StrArray> =
+                    Handle { ptr: self as *const Obj as *const StrArray };
+                handle.size()
+            }
+
             _ => panic!("size unknown"),
         }
     }
@@ -142,6 +148,22 @@ impl Obj {
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
+
+        if cls.ty == BuiltinType::StrArray {
+            let array = unsafe { &*(self as *const _ as *const StrArray) };
+
+            // walk through all objects in array
+            let mut ptr = array.data() as *mut *mut Obj;
+            let last = unsafe { ptr.offset(array.len() as isize) };
+
+            while ptr < last {
+                f((ptr as usize).into());
+
+                unsafe { ptr = ptr.offset(1) }
+            }
+
+            return;
+        }
 
         for &offset in &cls.ref_fields {
             let obj = (self as *mut Obj as usize) + offset as usize;

@@ -1,4 +1,4 @@
-//= output "ab\n"
+//= output "abxy\n"
 
 fun main() {
     let x = emptyStrArray();
@@ -7,12 +7,16 @@ fun main() {
     let x = strArrayWith(10, nil);
     assert(x.len() == 10);
 
-    x[0] = "a";
-    x[1] = "b";
+    x[0] = "a" + "b";
+    x[1] = "x" + "y";
+
+    forceCollect();
 
     print(x[0]);
     println(x[1]);
 
+    assert(x[0] == "ab");
+    assert(x[1] == "xy");
     assert(x[2] === nil);
     assert(x[9] === nil);
 }
