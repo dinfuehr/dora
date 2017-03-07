@@ -47,6 +47,7 @@ pub enum TokenKind {
     Init,
     Pub,
     Static,
+    Spawn,
 
     Enum,
     Type,
@@ -163,6 +164,7 @@ impl TokenKind {
             TokenKind::Init => "init",
             TokenKind::Pub => "pub",
             TokenKind::Static => "static",
+            TokenKind::Spawn => "spawn",
 
             TokenKind::Enum => "enum",
             TokenKind::Type => "type",

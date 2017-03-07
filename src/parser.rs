@@ -771,8 +771,18 @@ impl<'a> Parser<'a> {
             TokenKind::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
             TokenKind::Throw => self.parse_throw(),
             TokenKind::Do => self.parse_do(),
+            TokenKind::Spawn => self.parse_spawn(),
             _ => self.parse_expression_statement(),
         }
+    }
+
+    fn parse_spawn(&mut self) -> StmtResult {
+        let pos = self.expect_token(TokenKind::Spawn)?.position;
+        let expr = self.parse_expression()?;
+
+        self.expect_semicolon()?;
+
+        Ok(Box::new(Stmt::create_spawn(self.generate_id(), pos, expr)))
     }
 
     fn parse_throw(&mut self) -> StmtResult {
@@ -2899,5 +2909,12 @@ mod tests {
         let lit = expr.to_lit_char().unwrap();
 
         assert_eq!('a', lit.value);
+    }
+
+    #[test]
+    fn parse_spawn() {
+        let stmt = parse_stmt("spawn 1;");
+        let spawn = stmt.to_spawn().unwrap();
+        assert!(spawn.expr.is_lit_int());
     }
 }

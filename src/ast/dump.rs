@@ -241,6 +241,7 @@ impl<'a> AstDumper<'a> {
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
+            StmtSpawn(ref stmt) => self.dump_stmt_spawn(stmt),
         }
     }
 
@@ -362,6 +363,11 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt_throw(&mut self, stmt: &StmtThrowType) {
         dump!(self, "throw @ {} {}", stmt.pos, stmt.id);
+        self.indent(|d| d.dump_expr(&stmt.expr));
+    }
+
+    fn dump_stmt_spawn(&mut self, stmt: &StmtSpawnType) {
+        dump!(self, "spawn @ {} {}", stmt.pos, stmt.id);
         self.indent(|d| d.dump_expr(&stmt.expr));
     }
 

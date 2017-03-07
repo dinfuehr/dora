@@ -64,6 +64,7 @@ impl Lexer {
         keywords.insert("init", TokenKind::Init);
         keywords.insert("pub", TokenKind::Pub);
         keywords.insert("static", TokenKind::Static);
+        keywords.insert("spawn", TokenKind::Spawn);
 
         Lexer {
             reader: reader,
@@ -852,13 +853,14 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Alias, 1, 18);
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
 
-        let mut reader = Lexer::from_str("pub static for in impl Self");
+        let mut reader = Lexer::from_str("pub static for in impl Self spawn");
         assert_tok(&mut reader, TokenKind::Pub, 1, 1);
         assert_tok(&mut reader, TokenKind::Static, 1, 5);
         assert_tok(&mut reader, TokenKind::For, 1, 12);
         assert_tok(&mut reader, TokenKind::In, 1, 16);
         assert_tok(&mut reader, TokenKind::Impl, 1, 19);
         assert_tok(&mut reader, TokenKind::CapitalThis, 1, 24);
+        assert_tok(&mut reader, TokenKind::Spawn, 1, 29);
     }
 
     #[test]

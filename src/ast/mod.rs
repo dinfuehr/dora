@@ -540,6 +540,7 @@ pub enum Stmt {
     StmtReturn(StmtReturnType),
     StmtThrow(StmtThrowType),
     StmtDo(StmtDoType),
+    StmtSpawn(StmtSpawnType),
 }
 
 impl Stmt {
@@ -647,6 +648,17 @@ impl Stmt {
         })
     }
 
+    pub fn create_spawn(id: NodeId,
+                     pos: Position,
+                     expr: Box<Expr>)
+                     -> Stmt {
+        Stmt::StmtSpawn(StmtSpawnType {
+            id: id,
+            pos: pos,
+            expr: expr,
+        })
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Stmt::StmtVar(ref stmt) => stmt.id,
@@ -660,6 +672,7 @@ impl Stmt {
             Stmt::StmtReturn(ref stmt) => stmt.id,
             Stmt::StmtThrow(ref stmt) => stmt.id,
             Stmt::StmtDo(ref stmt) => stmt.id,
+            Stmt::StmtSpawn(ref stmt) => stmt.id,
         }
     }
 
@@ -676,6 +689,7 @@ impl Stmt {
             Stmt::StmtReturn(ref stmt) => stmt.pos,
             Stmt::StmtThrow(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
+            Stmt::StmtSpawn(ref stmt) => stmt.pos,
         }
     }
 
@@ -832,6 +846,20 @@ impl Stmt {
             _ => false,
         }
     }
+
+    pub fn to_spawn(&self) -> Option<&StmtSpawnType> {
+        match *self {
+            Stmt::StmtSpawn(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_spawn(&self) -> bool {
+        match *self {
+            Stmt::StmtSpawn(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -917,6 +945,13 @@ pub struct StmtDoType {
     pub do_block: Box<Stmt>,
     pub catch_blocks: Vec<CatchBlock>,
     pub finally_block: Option<FinallyBlock>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StmtSpawnType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
