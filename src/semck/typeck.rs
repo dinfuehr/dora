@@ -1506,7 +1506,7 @@ mod tests {
     #[test]
     fn type_throw() {
         ok("fun f() { throw \"abc\"; }");
-        ok("fun f() { throw emptyIntArray(); }");
+        ok("fun f() { throw IntArray(); }");
         err("fun f() { throw 1; }",
             pos(1, 11),
             Msg::ReferenceTypeExpected("int".into()));
@@ -1579,7 +1579,7 @@ mod tests {
                do {
                  throw \"test\";
                } catch x: IntArray {
-                 x = emptyIntArray();
+                 x = IntArray();
                }
              }",
             pos(5, 20),

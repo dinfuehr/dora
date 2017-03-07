@@ -14,7 +14,7 @@ fun sieve(limit: int) -> IntVec {
     let primes = IntVec();
 
     if limit >= 2 {
-        let numbers = boolArrayWith(limit+1, true);
+        let numbers = BoolArray(limit+1, true);
         let sqrtLimit = limit.toDouble().sqrt().toInt();
 
         var factor = 2;

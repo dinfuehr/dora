@@ -1,6 +1,6 @@
 fun main() {
   do {
-    throw intArrayWith(5, 1);
+    throw IntArray(5, 1);
 
   } catch x: IntArray {
     forceCollect();

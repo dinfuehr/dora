@@ -418,6 +418,12 @@ pub struct Fct<'ast> {
     pub param_types: Vec<BuiltinType>,
     pub return_type: BuiltinType,
     pub ctor: ast::CtorType,
+
+    /// true if ctor allocates memory for object.
+    /// no allocation before ctor invocation necessary, ctor returns allocated object.
+    /// This also means that ctor doesn't get a hidden self parameter.
+    pub ctor_allocates: bool,
+
     pub vtable_index: Option<u32>,
     pub initialized: bool,
     pub throws: bool,
@@ -515,7 +521,7 @@ impl<'ast> Fct<'ast> {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) |
+            FctParent::Class(_) => !(self.ctor.is() && self.internal),
             FctParent::Trait(_) |
             FctParent::Impl(_) => true,
 

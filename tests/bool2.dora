@@ -1,8 +1,8 @@
 fun main() {
-    let x = emptyBoolArray();
+    let x = BoolArray();
     assert(x.len() == 0);
 
-    let y = boolArrayWith(10, true);
+    let y = BoolArray(10, true);
     assert(y.len() == 10);
     assert(y[0] == true);
     assert(y[9] == true);

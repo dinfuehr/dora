@@ -221,7 +221,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             if let Some(ref object) = expr.object {
                 self.visit_expr(object);
-                self.reserve_temp_for_node_with_type(object.id(), BuiltinType::Ptr);
+                self.reserve_temp_for_node(object);
             }
 
             return;
@@ -243,7 +243,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(object);
             args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
         } else if call_type.is_ctor_new() {
-            args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
+            let ctor = self.ctxt.fcts[call_type.fct_id()].borrow();
+
+            if !ctor.ctor_allocates {
+                args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
+            }
         } else {
             in_class = false;
         }
@@ -318,12 +322,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 match *arg {
                     Arg::Expr(ast, mut ty, _) => {
                         if let Some(fid) = fid {
-                            ty = if ind == 0 && in_class {
+                            let fct = self.ctxt.fcts[fid].borrow();
+                            ty = if ind == 0 && in_class && !fct.ctor_allocates {
                                 if ast.is_super() {
                                     super_call = true;
                                 }
 
-                                let fct = self.ctxt.fcts[fid].borrow();
                                 let cid = match fct.parent {
                                     FctParent::Class(cid) => cid,
                                     FctParent::Impl(impl_id) => {
@@ -337,8 +341,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                 cls.ty
 
                             } else {
-                                let ind = if in_class { ind - 1 } else { ind };
-                                self.ctxt.fcts[fid].borrow().params_without_self()[ind]
+                                fct.params_with_self()[ind]
                             }
                         }
 

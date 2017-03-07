@@ -178,6 +178,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             overrides: None,
             throws: f.throws,
             ctor: CtorType::None,
+            ctor_allocates: false,
             vtable_index: None,
             initialized: false,
             kind: kind,

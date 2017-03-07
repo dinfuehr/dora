@@ -1,8 +1,8 @@
 fun main() {
-    let x = emptyCharArray();
+    let x = CharArray();
     assert(x.len() == 0);
 
-    let x = charArrayWith(10, '\0');
+    let x = CharArray(10, '\0');
     assert(x[0] == '\0');
     assert(x[9] == '\0');
 

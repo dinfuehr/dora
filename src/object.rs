@@ -178,9 +178,7 @@ pub struct Handle<T> {
 
 impl<T> Handle<T> {
     pub fn null() -> Handle<T> {
-        Handle {
-            ptr: ptr::null(),
-        }
+        Handle { ptr: ptr::null() }
     }
 
     pub fn raw(&self) -> *const T {

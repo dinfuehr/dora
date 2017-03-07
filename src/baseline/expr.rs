@@ -1,7 +1,7 @@
 use ast::*;
 use ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
-                        TempOffsets};
+                        should_emit_debug, TempOffsets};
 use baseline::fct::{CatchType, Comment};
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
@@ -1387,7 +1387,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
                     if idx == 0 && fct.in_class() && check_for_nil(ty) && !csite.super_call &&
-                       !fct.is_virtual() {
+                       !fct.is_virtual() && !fct.ctor_allocates {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
                 }
@@ -1576,8 +1576,10 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) 
         ptr
 
     } else {
-        let jit_fct = native::generate(ctxt, internal_fct);
         let fct = ctxt.fcts[fct_id].borrow();
+        let dbg = should_emit_debug(ctxt, &*fct);
+
+        let jit_fct = native::generate(ctxt, internal_fct, dbg);
 
         if should_emit_asm(ctxt, &*fct) {
             dump_asm(ctxt,

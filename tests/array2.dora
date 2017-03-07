@@ -1,5 +1,5 @@
 fun main() {
-  assert(0 == len(emptyIntArray()));
+  assert(0 == len(IntArray()));
 }
 
 fun len(a: IntArray) -> int { return a.len(); }

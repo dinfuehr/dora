@@ -9,30 +9,6 @@ internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 
-internal fun boolArrayWith(len: int, val: bool) -> BoolArray;
-internal fun emptyBoolArray() -> BoolArray;
-
-internal fun byteArrayWith(len: int, val: byte) -> ByteArray;
-internal fun emptyByteArray() -> ByteArray;
-
-internal fun charArrayWith(len: int, val: char) -> CharArray;
-internal fun emptyCharArray() -> CharArray;
-
-internal fun intArrayWith(len: int, val: int) -> IntArray;
-internal fun emptyIntArray() -> IntArray;
-
-internal fun longArrayWith(len: int, val: long) -> LongArray;
-internal fun emptyLongArray() -> LongArray;
-
-internal fun floatArrayWith(len: int, val: float) -> FloatArray;
-internal fun emptyFloatArray() -> FloatArray;
-
-internal fun doubleArrayWith(len: int, val: double) -> DoubleArray;
-internal fun emptyDoubleArray() -> DoubleArray;
-
-internal fun strArrayWith(len: int, val: Str) -> StrArray;
-internal fun emptyStrArray() -> StrArray;
-
 internal class bool {
   internal fun toInt() -> int;
   internal fun toString() -> Str;
@@ -184,48 +160,72 @@ internal class double {
 }
 
 internal class BoolArray {
+  internal init();
+  internal init(len: int, value: bool);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> bool;
   internal fun set(idx: int, val: bool);
 }
 
 internal class ByteArray {
+  internal init();
+  internal init(len: int, value: byte);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> byte;
   internal fun set(idx: int, val: byte);
 }
 
 internal class CharArray {
+  internal init();
+  internal init(len: int, value: char);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> char;
   internal fun set(idx: int, val: char);
 }
 
 internal class IntArray {
+  internal init();
+  internal init(len: int, value: int);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> int;
   internal fun set(idx: int, val: int);
 }
 
 internal class LongArray {
+  internal init();
+  internal init(len: int, value: long);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> long;
   internal fun set(idx: int, val: long);
 }
 
 internal class FloatArray {
+  internal init();
+  internal init(len: int, value: float);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> float;
   internal fun set(idx: int, val: float);
 }
 
 internal class DoubleArray {
+  internal init();
+  internal init(len: int, value: double);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> double;
   internal fun set(idx: int, val: double);
 }
 
 internal class StrArray {
+  internal init();
+  internal init(len: int, value: Str);
+
   internal fun len() -> int;
   internal fun get(idx: int) -> Str;
   internal fun set(idx: int, val: Str);
@@ -261,7 +261,7 @@ class IntVec {
         newcap = newcap * 2;
       }
 
-      let newarray = intArrayWith(newcap, 0);
+      let newarray = IntArray(newcap, 0);
 
       var i = 0;
 
@@ -294,7 +294,7 @@ class IntVec {
       if self.length == 0 {
         self.array = nil;
       } else {
-        let newarray = intArrayWith(self.length, 0);
+        let newarray = IntArray(self.length, 0);
 
         var i = 0;
 

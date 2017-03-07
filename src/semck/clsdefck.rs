@@ -102,6 +102,12 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_ctor(&mut self, f: &'ast ast::Function) {
         let clsid = self.cls_id.unwrap();
 
+        let kind = if f.block.is_some() {
+            FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
+        } else {
+            FctKind::Definition
+        };
+
         let fct = Fct {
             id: FctId(0),
             pos: f.pos,
@@ -120,9 +126,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             overrides: None,
             throws: f.throws,
             ctor: f.ctor,
+            ctor_allocates: false,
             vtable_index: None,
             initialized: false,
-            kind: FctKind::Source(Arc::new(Mutex::new(FctSrc::new()))),
+            kind: kind,
         };
 
         let fctid = self.ctxt.add_fct(fct);
@@ -160,6 +167,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             overrides: None,
             throws: f.throws,
             ctor: ast::CtorType::None,
+            ctor_allocates: false,
             vtable_index: None,
             initialized: false,
             kind: kind,

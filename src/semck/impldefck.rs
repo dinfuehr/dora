@@ -93,6 +93,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             overrides: None,
             throws: f.throws,
             ctor: ast::CtorType::None,
+            ctor_allocates: false,
             vtable_index: None,
             initialized: false,
             kind: kind,

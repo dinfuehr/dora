@@ -1,8 +1,8 @@
 fun main() {
-    let ba = emptyByteArray();
+    let ba = ByteArray();
     assert(ba.len() == 0);
 
-    let ba = byteArrayWith(10, 2B);
+    let ba = ByteArray(10, 2B);
     assert(ba.len() == 10);
 
     ba[0] = 10B;

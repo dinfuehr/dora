@@ -18,7 +18,10 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
         match fct.parent {
             FctParent::Class(owner_class) => {
                 let cls = ctxt.classes[owner_class].borrow();
-                fct.param_types.push(cls.ty);
+
+                if fct.has_self() {
+                    fct.param_types.push(cls.ty);
+                }
             }
 
             FctParent::Impl(impl_id) => {

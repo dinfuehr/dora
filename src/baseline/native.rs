@@ -33,11 +33,12 @@ pub struct InternalFct<'a> {
     pub return_type: BuiltinType,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: InternalFct) -> JitFct {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: InternalFct, dbg: bool) -> JitFct {
     let ngen = NativeGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
         fct: fct,
+        dbg: dbg,
     };
 
     ngen.generate()
@@ -48,6 +49,7 @@ struct NativeGen<'a, 'ast: 'a> {
     masm: MacroAssembler,
 
     fct: InternalFct<'a>,
+    dbg: bool,
 }
 
 impl<'a, 'ast> NativeGen<'a, 'ast>
@@ -65,6 +67,10 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         let offset_return = 0;
         let offset_args = offset_return + if save_return { 8 } else { 0 };
         // let offset_sfi = offset_args + self.args * 8;
+
+        if self.dbg {
+            self.masm.debug();
+        }
 
         self.masm.prolog(framesize);
 

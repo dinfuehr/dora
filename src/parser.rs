@@ -418,9 +418,10 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::Init => {
-                    self.ban_modifiers(&modifiers)?;
+                    let mods = &[Modifier::Internal];
+                    self.restrict_modifiers(&modifiers, mods)?;
 
-                    let ctor = self.parse_ctor(cls)?;
+                    let ctor = self.parse_ctor(cls, &modifiers)?;
                     cls.ctors.push(ctor);
                 }
 
@@ -488,7 +489,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_ctor(&mut self, cls: &Class) -> Result<Function, MsgWithPos> {
+    fn parse_ctor(&mut self, cls: &Class, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
         let pos = self.expect_token(TokenKind::Init)?.position;
         let params = self.parse_function_params()?;
         let delegation = self.parse_delegation()?;
@@ -515,7 +516,7 @@ impl<'a> Parser<'a> {
             has_final: false,
             is_pub: true,
             is_static: false,
-            internal: false,
+            internal: modifiers.contains(Modifier::Internal),
             ctor: CtorType::Secondary,
             params: params,
             throws: false,
