@@ -346,6 +346,13 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::StrArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::StrArraySet);
+
+    let iname = ctxt.interner.intern("Thread");
+    let clsid = ctxt.sym.borrow().get_class(iname);
+
+    if let Some(clsid) = clsid {
+        native_method(ctxt, clsid, "start", stdlib::spawn_thread as *const u8);
+    }
 }
 
 fn native_ctor<'ast>(ctxt: &mut Context<'ast>,

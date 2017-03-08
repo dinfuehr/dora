@@ -176,6 +176,8 @@ pub struct Handle<T> {
     ptr: *const T,
 }
 
+unsafe impl<T> Send for Handle<T> {}
+
 impl<T> Handle<T> {
     pub fn null() -> Handle<T> {
         Handle { ptr: ptr::null() }

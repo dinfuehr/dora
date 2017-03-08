@@ -357,6 +357,11 @@ fun getppid() -> int {
   return call0(fct).toInt();
 }
 
+fun sleep(seconds: int) {
+  let fct = loadFunction("sleep");
+  call1(fct, seconds.toLong());
+}
+
 class File(let name: Str) {
   fun delete() throws {
     let ptr = native_string(self.name);
@@ -371,3 +376,11 @@ class File(let name: Str) {
 }
 
 class Exception(msg: Str)
+
+open class Thread {
+  internal fun start();
+
+  open fun run() {
+    fatalError("run() not implemented");
+  }
+}

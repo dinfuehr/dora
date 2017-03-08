@@ -1,0 +1,30 @@
+//= output "done\n"
+
+class MyThread(var executed: bool) : Thread {
+    override fun run() {
+        f(self);
+    }
+}
+
+fun f(thread: MyThread) {
+    g(thread);
+}
+
+fun g(thread: MyThread) {
+    thread.executed = true;
+}
+
+fun h(thread: MyThread) {
+    while !thread.executed {
+        sleep(1);
+    }
+
+    println("done");
+}
+
+fun main() {
+    let thread = MyThread(false);
+    thread.start();
+
+    h(thread);
+}

@@ -8,6 +8,7 @@ use std::process;
 use std::ptr;
 use std::slice;
 use std::str;
+use std::thread;
 
 use ctxt::get_ctxt;
 use object::{self, BoolArray, ByteArray, CharArray, Handle, IntArray, LongArray, FloatArray,
@@ -308,4 +309,26 @@ pub extern "C" fn native_malloc(size: usize) -> *const u8 {
 
 pub extern "C" fn native_free(addr: *const u8) {
     unsafe { libc::free(addr as *mut libc::c_void) }
+}
+
+pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
+    use baseline;
+    use stacktrace::DoraToNativeInfo;
+
+    thread::spawn(move || {
+        let ctxt = get_ctxt();
+
+        let main = {
+            let cls = obj.header().vtbl().class();
+            cls.methods[0]
+        };
+
+        let fct_ptr = {
+            let mut sfi = DoraToNativeInfo::new();
+            ctxt.use_sfi(&mut sfi, || baseline::generate(ctxt, main))
+        };
+
+        let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };
+        fct(obj);
+    });
 }
