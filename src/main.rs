@@ -2,7 +2,6 @@
 #![feature(alloc)]
 #![feature(heap_api)]
 #![feature(box_syntax)]
-#![feature(field_init_shorthand)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
