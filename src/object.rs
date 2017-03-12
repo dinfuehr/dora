@@ -310,13 +310,13 @@ impl Str {
 fn str_alloc_heap(ctxt: &Context, len: usize) -> Handle<Str> {
     str_alloc(ctxt,
               len,
-              |ctxt, size| ctxt.gc.lock().unwrap().alloc(ctxt, size) as *const u8)
+              |ctxt, size| ctxt.gc.alloc(ctxt, size) as *const u8)
 }
 
 fn str_alloc_perm(ctxt: &Context, len: usize) -> Handle<Str> {
     str_alloc(ctxt,
               len,
-              |ctxt, size| ctxt.gc.lock().unwrap().alloc_perm(size))
+              |ctxt, size| ctxt.gc.alloc_perm(size))
 }
 
 fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
@@ -378,7 +378,7 @@ impl<T> Array<T>
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = ctxt.gc.lock().unwrap().alloc(ctxt, size) as usize;
+        let ptr = ctxt.gc.alloc(ctxt, size) as usize;
         let cls = ctxt.classes[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();

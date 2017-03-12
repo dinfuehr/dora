@@ -40,11 +40,7 @@ impl JitFct {
                        mut exception_handlers: Vec<ExHandler>)
                        -> JitFct {
         let size = dseg.size() as usize + buffer.len();
-
-        let ptr = {
-            let mut gc = ctxt.gc.lock().unwrap();
-            gc.alloc_code(size)
-        };
+        let ptr = ctxt.gc.alloc_code(size);
 
         dseg.finish(ptr);
 

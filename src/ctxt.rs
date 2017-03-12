@@ -42,7 +42,7 @@ pub struct Context<'ast> {
     pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub globals: Vec<RefCell<GlobalData<'ast>>>, // stores all global variables
-    pub gc: Mutex<Gc>, // garbage collector
+    pub gc: Gc, // garbage collector
     pub sfi: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
@@ -79,7 +79,7 @@ impl<'ast> Context<'ast> {
                 double_array: empty_class_id,
                 str_array: empty_class_id,
             },
-            gc: Mutex::new(gc),
+            gc: gc,
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),

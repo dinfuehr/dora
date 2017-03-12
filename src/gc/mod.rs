@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use ctxt::Context;
 use driver::cmd::Args;
 use gc::copy::CopyCollector;
@@ -24,10 +26,8 @@ const PERM_SPACE_LIMIT: usize = 16 * 1024;
 pub struct Gc {
     collector: Box<Collector>,
 
-    code_space: Space,
-    perm_space: Space,
-
-    pub stats: GcStats,
+    code_space: Mutex<Space>,
+    perm_space: Mutex<Space>,
 }
 
 impl Gc {
@@ -57,42 +57,28 @@ impl Gc {
         };
 
         Gc {
-            stats: GcStats {
-                collect_duration: 0,
-                total_allocated: 0,
-                collections: 0,
-                allocations: 0,
-            },
-
             collector: collector,
 
-            code_space: Space::new(code_config, "code"),
-            perm_space: Space::new(perm_config, "perm"),
+            code_space: Mutex::new(Space::new(code_config, "code")),
+            perm_space: Mutex::new(Space::new(perm_config, "perm")),
         }
     }
 
-    pub fn alloc_code(&mut self, size: usize) -> *mut u8 {
-        self.code_space.alloc(size)
+    pub fn alloc_code(&self, size: usize) -> *mut u8 {
+        self.code_space.lock().unwrap().alloc(size)
     }
 
-    pub fn alloc_perm(&mut self, size: usize) -> *mut u8 {
-        self.perm_space.alloc(size)
+    pub fn alloc_perm(&self, size: usize) -> *mut u8 {
+        self.perm_space.lock().unwrap().alloc(size)
     }
 
-    pub fn alloc(&mut self, ctxt: &Context, size: usize) -> *const u8 {
+    pub fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
         self.collector.alloc(ctxt, size)
     }
 
-    pub fn collect(&mut self, ctxt: &Context) {
+    pub fn collect(&self, ctxt: &Context) {
         self.collector.collect(ctxt);
     }
-}
-
-pub struct GcStats {
-    pub collect_duration: u64,
-    pub total_allocated: u64,
-    pub collections: u64,
-    pub allocations: u64,
 }
 
 trait Collector {

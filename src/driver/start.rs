@@ -14,7 +14,6 @@ use os;
 use parser::Parser;
 use semck;
 use stacktrace::DoraToNativeInfo;
-use timer::in_ms;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -69,17 +68,6 @@ pub fn start() -> i32 {
 
     let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct();
-
-    if ctxt.args.flag_gc_stats {
-        let gc = ctxt.gc.lock().unwrap();
-
-        println!("GC stats:");
-        println!("\tcollect duration: {} ms",
-                 in_ms(gc.stats.collect_duration));
-        println!("\t{} allocations", gc.stats.allocations);
-        println!("\t{} collections", gc.stats.collections);
-        println!("\t{} bytes allocated", gc.stats.total_allocated);
-    }
 
     let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
 

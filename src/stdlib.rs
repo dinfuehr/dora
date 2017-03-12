@@ -122,16 +122,12 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
 
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
-
-    gc.alloc(ctxt, size) as *mut Obj
+    ctxt.gc.alloc(ctxt, size) as *mut Obj
 }
 
 pub extern "C" fn gc_collect() {
     let ctxt = get_ctxt();
-    let mut gc = ctxt.gc.lock().unwrap();
-
-    gc.collect(ctxt);
+    ctxt.gc.collect(ctxt);
 }
 
 pub extern "C" fn ctor_bool_array_empty() -> Handle<BoolArray> {
