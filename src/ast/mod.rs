@@ -648,10 +648,7 @@ impl Stmt {
         })
     }
 
-    pub fn create_spawn(id: NodeId,
-                     pos: Position,
-                     expr: Box<Expr>)
-                     -> Stmt {
+    pub fn create_spawn(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
         Stmt::StmtSpawn(StmtSpawnType {
             id: id,
             pos: pos,

@@ -30,8 +30,9 @@ Options:
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
     --gc-copy               Use Copy Collection with Cheney Algorithm
+    --gc-zero               Use Zero Garbage Collector
 
-    --heap-max=<SIZE>       Set maximum size of heap
+    --heap-size=<SIZE>       Set heap size
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -50,7 +51,8 @@ pub struct Args {
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_copy: bool,
-    pub flag_gc_heap_size: Option<MemSize>,
+    pub flag_gc_zero: bool,
+    pub flag_heap_size: Option<MemSize>,
 }
 
 impl Default for Args {
@@ -70,7 +72,8 @@ impl Default for Args {
             flag_gc_stress: false,
             flag_gc_stats: false,
             flag_gc_copy: false,
-            flag_gc_heap_size: None,
+            flag_gc_zero: false,
+            flag_heap_size: None,
         }
     }
 }

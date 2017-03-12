@@ -5,6 +5,7 @@ use gc::malloc::MallocSpace;
 use gc::old::OldSpace;
 use gc::root::get_rootset;
 use gc::space::{Space, SpaceConfig};
+use gc::zero::ZeroCollector;
 use os;
 
 pub mod arena;
@@ -14,6 +15,7 @@ pub mod malloc;
 pub mod old;
 pub mod root;
 pub mod space;
+pub mod zero;
 
 const INITIAL_SIZE: usize = 64 * 1024;
 const LARGE_OBJECT_SIZE: usize = 64 * 1024;
@@ -31,6 +33,8 @@ pub struct Gc {
 
     code_space: Space,
     perm_space: Space,
+
+    zero_gc: Option<ZeroCollector>,
 
     pub stats: GcStats,
 }
@@ -51,7 +55,13 @@ impl Gc {
             align: 8,
         };
 
-        let size = args.flag_gc_heap_size.map(|x| *x).unwrap_or(INITIAL_SIZE) / 2;
+        let size = args.flag_heap_size.map(|x| *x).unwrap_or(INITIAL_SIZE) / 2;
+
+        let zero_gc = if args.flag_gc_zero {
+            Some(ZeroCollector::new(args))
+        } else {
+            None
+        };
 
         Gc {
             stats: GcStats {
@@ -69,6 +79,8 @@ impl Gc {
 
             code_space: Space::new(code_config, "code"),
             perm_space: Space::new(perm_config, "perm"),
+
+            zero_gc: zero_gc,
         }
     }
 
@@ -83,6 +95,8 @@ impl Gc {
     pub fn alloc(&mut self, ctxt: &Context, size: usize) -> *const u8 {
         if ctxt.args.flag_gc_copy {
             self.alloc_copy(ctxt, size)
+        } else if ctxt.args.flag_gc_zero {
+            self.zero_gc.as_ref().unwrap().alloc(ctxt, size)
         } else {
             self.malloc_space.alloc(ctxt, &mut self.stats, size)
         }
@@ -111,6 +125,8 @@ impl Gc {
 
         if ctxt.args.flag_gc_copy {
             minor_collect(ctxt, &mut self.from_space, &mut self.to_space, rootset);
+        } else if ctxt.args.flag_gc_zero {
+            self.zero_gc.as_ref().unwrap().collect(ctxt);
         } else {
             self.malloc_space.collect(ctxt, &mut self.stats, rootset);
         }

@@ -39,7 +39,7 @@ impl Arena {
     }
 }
 
-fn reserve(size: usize) -> *mut u8 {
+pub fn reserve(size: usize) -> *mut u8 {
     use libc;
 
     let ptr = unsafe {
@@ -58,7 +58,7 @@ fn reserve(size: usize) -> *mut u8 {
     }
 }
 
-fn commit(ptr: *const u8, size: usize) -> bool {
+pub fn commit(ptr: *const u8, size: usize) -> bool {
     use libc;
 
     unsafe {
@@ -71,7 +71,7 @@ fn commit(ptr: *const u8, size: usize) -> bool {
     }
 }
 
-fn uncommit(ptr: *const u8, size: usize) -> bool {
+pub fn uncommit(ptr: *const u8, size: usize) -> bool {
     use libc;
 
     unsafe {
