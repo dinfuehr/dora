@@ -26,7 +26,6 @@ impl ZeroCollector {
             panic!("could not commit memory");
         }
 
-
         ZeroCollector {
             start: ptr,
             end: unsafe { ptr.offset(heap_size as isize) },

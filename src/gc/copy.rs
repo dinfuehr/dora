@@ -1,12 +1,74 @@
 use std::mem::swap;
 use std::ptr;
+use std::sync::Mutex;
 
 use ctxt::Context;
-use gc::root::IndirectObj;
+use driver::cmd::Args;
+use gc::Collector;
+use gc::root::{get_rootset, IndirectObj};
 use mem;
 use object::Obj;
 use os;
 use timer::{in_ms, Timer};
+
+pub struct CopyCollector {
+    spaces: Mutex<Spaces>,
+}
+
+struct Spaces {
+    from_space: SemiSpace,
+    to_space: SemiSpace,
+}
+
+impl Spaces {
+    fn new(size: usize) -> Spaces {
+        Spaces {
+            from_space: SemiSpace::new(size),
+            to_space: SemiSpace::new(size),
+        }
+    }
+}
+
+impl CopyCollector {
+    pub fn new(args: &Args) -> CopyCollector {
+        let heap_size = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024) / 2;
+
+        CopyCollector {
+            spaces: Mutex::new(Spaces::new(heap_size)),
+        }
+    }
+}
+
+impl Collector for CopyCollector {
+    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+        let mut spaces = self.spaces.lock().unwrap();
+        let mut spaces = &mut *spaces;
+
+        if ctxt.args.flag_gc_stress {
+            let rootset = get_rootset(ctxt);
+            minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+        }
+
+        let mut ptr = spaces.to_space.allocate(size);
+
+        if ptr.is_null() {
+            let rootset = get_rootset(ctxt);
+            minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+
+            ptr = spaces.to_space.allocate(size);
+        }
+
+        ptr
+    }
+
+    fn collect(&self, ctxt: &Context) {
+        let mut spaces = self.spaces.lock().unwrap();
+        let mut spaces = &mut *spaces;
+
+        let rootset = get_rootset(ctxt);
+        minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+    }
+}
 
 pub struct SemiSpace {
     start: *const u8,

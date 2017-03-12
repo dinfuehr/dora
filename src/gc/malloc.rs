@@ -1,15 +1,40 @@
 use libc;
 
 use std::ptr;
+use std::sync::Mutex;
 
 use ctxt::Context;
+use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
-use gc::GcStats;
 use object::Obj;
 use timer::{in_ms, Timer};
 
 const INITIAL_THRESHOLD: usize = 128;
 const USED_RATIO: f64 = 0.75;
+
+pub struct MallocCollector {
+    space: Mutex<MallocSpace>,
+}
+
+impl MallocCollector {
+    pub fn new() -> MallocCollector {
+        MallocCollector {
+            space: Mutex::new(MallocSpace::new())
+        }
+    }
+}
+
+impl Collector for MallocCollector {
+    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+        let mut space = self.space.lock().unwrap();
+        space.alloc(ctxt, size)
+    }
+
+    fn collect(&self, ctxt: &Context) {
+        let mut space = self.space.lock().unwrap();
+        space.collect(ctxt);
+    }
+}
 
 pub struct MallocSpace {
     obj_start: *mut Obj,
@@ -30,18 +55,15 @@ impl MallocSpace {
         }
     }
 
-    pub fn alloc(&mut self, ctxt: &Context, stats: &mut GcStats, size: usize) -> *mut u8 {
+    pub fn alloc(&mut self, ctxt: &Context, size: usize) -> *mut u8 {
         if ctxt.args.flag_gc_stress {
             // with --gc-stress collect garbage at every allocation
             // useful for testing
-            let rootset = get_rootset(ctxt);
-            self.collect(ctxt, stats, rootset);
+            self.collect(ctxt);
 
             // do we pass threshold with this allocation?
         } else if self.bytes_allocated + size > self.threshold {
-            // collect garbage
-            let rootset = get_rootset(ctxt);
-            self.collect(ctxt, stats, rootset);
+            self.collect(ctxt);
 
             // if still more memory than USED_RATIO % of the threshold,
             // we need to increase the threshold
@@ -82,29 +104,25 @@ impl MallocSpace {
         }
 
         self.bytes_allocated += size;
-        stats.total_allocated += size as u64;
-        stats.allocations += 1;
 
         ptr as *mut u8
     }
 
-    pub fn collect(&mut self, ctxt: &Context, stats: &mut GcStats, rootset: Vec<IndirectObj>) {
+    pub fn collect(&mut self, ctxt: &Context) {
+        let rootset = get_rootset(ctxt);
         let active_timer = ctxt.args.flag_gc_events || ctxt.args.flag_gc_stats;
         let mut timer = Timer::new(active_timer);
 
         mark_rootset(rootset, self.cur_marked);
 
         let cur_marked = self.cur_marked;
-        sweep(self, stats, cur_marked);
+        sweep(self, cur_marked);
 
         // switch cur_marked value, so that we don't have to unmark all
         // objects in the beginning of the next collection
         self.cur_marked = !self.cur_marked;
-        stats.collections += 1;
 
         timer.stop_with(|dur| {
-            stats.collect_duration += dur;
-
             if ctxt.args.flag_gc_events {
                 println!("GC: collect garbage ({} ms)", in_ms(dur));
             }
@@ -158,7 +176,7 @@ fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
     }
 }
 
-fn sweep(gc: &mut MallocSpace, _: &mut GcStats, cur_marked: bool) {
+fn sweep(gc: &mut MallocSpace, cur_marked: bool) {
     let mut obj = gc.obj_start;
     let mut last: *mut Obj = ptr::null_mut();
 
