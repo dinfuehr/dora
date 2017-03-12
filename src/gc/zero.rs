@@ -3,7 +3,7 @@ use std::ptr;
 
 use ctxt::Context;
 use driver::cmd::Args;
-use gc::arena;
+use gc::{arena, Collector};
 
 
 pub struct ZeroCollector {
@@ -33,8 +33,10 @@ impl ZeroCollector {
             next: AtomicPtr::new(ptr),
         }
     }
+}
 
-    pub fn alloc(&self, _: &Context, size: usize) -> *const u8 {
+impl Collector for ZeroCollector {
+    fn alloc(&self, _: &Context, size: usize) -> *const u8 {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 
@@ -57,7 +59,7 @@ impl ZeroCollector {
         old
     }
 
-    pub fn collect(&self, _: &Context) {
+    fn collect(&self, _: &Context) {
         // do nothing
     }
 }

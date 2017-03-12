@@ -139,3 +139,8 @@ pub struct GcStats {
     pub collections: u64,
     pub allocations: u64,
 }
+
+trait Collector {
+    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8;
+    fn collect(&self, ctxt: &Context);
+}
