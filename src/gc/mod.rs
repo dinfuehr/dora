@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use ctxt::Context;
-use driver::cmd::Args;
+use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::malloc::MallocCollector;
 use gc::space::{Space, SpaceConfig};
@@ -46,14 +46,12 @@ impl Gc {
             align: 8,
         };
 
-        let collector: Box<Collector> = if args.flag_gc_zero {
-            box ZeroCollector::new(args)
+        let collector_name = args.flag_gc.unwrap_or(CollectorName::Malloc);
 
-        } else if args.flag_gc_copy {
-            box CopyCollector::new(args)
-
-        } else {
-            box MallocCollector::new()
+        let collector: Box<Collector> = match collector_name {
+            CollectorName::Zero => box ZeroCollector::new(args),
+            CollectorName::Copy => box CopyCollector::new(args),
+            CollectorName::Malloc => box MallocCollector::new(),
         };
 
         Gc {

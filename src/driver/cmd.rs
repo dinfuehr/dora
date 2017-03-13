@@ -29,8 +29,7 @@ Options:
     --gc-events             Dump GC events
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
-    --gc-copy               Use Copy Collection with Cheney Algorithm
-    --gc-zero               Use Zero Garbage Collector
+    --gc=<name>             Switch GC. Possible values: zero, copy, malloc (default)
 
     --heap-size=<SIZE>       Set heap size
 ";
@@ -50,8 +49,7 @@ pub struct Args {
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
-    pub flag_gc_copy: bool,
-    pub flag_gc_zero: bool,
+    pub flag_gc: Option<CollectorName>,
     pub flag_heap_size: Option<MemSize>,
 }
 
@@ -71,11 +69,17 @@ impl Default for Args {
             flag_gc_events: false,
             flag_gc_stress: false,
             flag_gc_stats: false,
-            flag_gc_copy: false,
-            flag_gc_zero: false,
+            flag_gc: None,
             flag_heap_size: None,
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, RustcDecodable)]
+pub enum CollectorName {
+    Zero,
+    Copy,
+    Malloc,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]
