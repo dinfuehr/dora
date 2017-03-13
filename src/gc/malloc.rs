@@ -18,9 +18,7 @@ pub struct MallocCollector {
 
 impl MallocCollector {
     pub fn new() -> MallocCollector {
-        MallocCollector {
-            space: Mutex::new(MallocSpace::new())
-        }
+        MallocCollector { space: Mutex::new(MallocSpace::new()) }
     }
 }
 

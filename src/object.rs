@@ -314,9 +314,7 @@ fn str_alloc_heap(ctxt: &Context, len: usize) -> Handle<Str> {
 }
 
 fn str_alloc_perm(ctxt: &Context, len: usize) -> Handle<Str> {
-    str_alloc(ctxt,
-              len,
-              |ctxt, size| ctxt.gc.alloc_perm(size))
+    str_alloc(ctxt, len, |ctxt, size| ctxt.gc.alloc_perm(size))
 }
 
 fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>

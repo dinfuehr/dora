@@ -477,11 +477,14 @@ mod tests {
     use super::*;
 
     use ctxt::*;
+    use os;
     use test;
 
     fn info<F>(code: &'static str, f: F)
         where F: FnOnce(&FctSrc)
     {
+        os::init_page_size();
+
         test::parse(code, |ctxt| {
             let fid = ctxt.fct_by_name("f").unwrap();
             let fct = ctxt.fcts[fid].borrow();

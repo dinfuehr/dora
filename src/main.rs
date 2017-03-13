@@ -48,6 +48,7 @@ mod parser;
 mod semck;
 mod stacktrace;
 mod stdlib;
+mod safepoint;
 mod sym;
 mod timer;
 mod ty;
