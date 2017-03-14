@@ -335,6 +335,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
             this.visit_stmt(&s.block);
+
+            this.emit_safepoint();
             this.masm.jump(lbl_start);
         });
 
@@ -348,10 +350,21 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
+
+            this.emit_safepoint();
             this.masm.jump(lbl_start);
         });
 
         self.masm.bind_label(lbl_end);
+    }
+
+    fn emit_safepoint(&mut self) {
+        self.masm.emit_comment(Comment::ReadPollingPage);
+        self.masm.check_polling_page(self.ctxt.polling_page.addr());
+
+        let temps = TempOffsets::new();
+        let gcpoint = create_gcpoint(&self.scopes, &temps);
+        self.masm.emit_gcpoint(gcpoint);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)

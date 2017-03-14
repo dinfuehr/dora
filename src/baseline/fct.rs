@@ -185,6 +185,7 @@ pub enum Comment {
     StoreVar(VarId),
     LoadVar(VarId),
     LoadSelf(VarId),
+    ReadPollingPage,
 }
 
 impl Comment {
@@ -295,6 +296,10 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let var = &self.fct_src.unwrap().vars[vid];
 
                 write!(f, "load self from offset {}", var.offset)
+            }
+
+            &Comment::ReadPollingPage => {
+                write!(f, "read polling page (safepoint)")
             }
         }
     }

@@ -437,6 +437,46 @@ pub fn emit_testl_reg_reg(buf: &mut MacroAssembler, op1: Reg, op2: Reg) {
     emit_modrm(buf, 0b11, op1.and7(), op2.and7());
 }
 
+pub fn testl_reg_mem(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
+    emit_rex_mem(buf, dest, &src);
+    emit_op(buf, 0x85);
+    emit_mem(buf, dest, &src);
+
+}
+
+fn emit_rex_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
+    let (base_msb, index_msb) = match src {
+        &Mem::Local(_) => (RBP.msb(), 0),
+        &Mem::Base(base, _) => {
+            let base_msb = if base == RIP { 0 } else { base.msb() };
+
+            (base_msb, 0)
+        }
+
+        &Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
+    };
+
+    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
+        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
+    }
+}
+
+fn emit_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
+    match src {
+        &Mem::Local(offset) => {
+            emit_membase(buf, RBP, offset, dest);
+        }
+
+        &Mem::Base(base, disp) => {
+            emit_membase(buf, base, disp, dest);
+        }
+
+        &Mem::Index(base, index, scale, disp) => {
+            emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
+        }
+    }
+}
+
 pub fn emit_testq_reg_reg(buf: &mut MacroAssembler, op1: Reg, op2: Reg) {
     emit_rex(buf, 1, op1.msb(), 0, op2.msb());
 
@@ -1231,6 +1271,13 @@ mod tests {
         assert_emit!(0x85, 0xc0; emit_testl_reg_reg(RAX, RAX));
         assert_emit!(0x85, 0xc6; emit_testl_reg_reg(RAX, RSI));
         assert_emit!(0x41, 0x85, 0xc7; emit_testl_reg_reg(RAX, R15));
+    }
+
+    #[test]
+    fn test_testl_reg_mem() {
+        assert_emit!(0x85, 0x05, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(RAX, Mem::Base(RIP, -10)));
+        assert_emit!(0x44, 0x85, 0x3d, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(R15, Mem::Base(RIP, -10)));
+        assert_emit!(0x44, 0x85, 0x79, 0xf6; testl_reg_mem(R15, Mem::Base(RCX, -10)));
     }
 
     #[test]

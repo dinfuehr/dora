@@ -802,6 +802,15 @@ impl MacroAssembler {
             slice.write_u32::<LittleEndian>(diff as u32).unwrap();
         }
     }
+
+    pub fn check_polling_page(&mut self, page: *const u8) {
+        let disp = self.dseg.add_addr_reuse(page);
+        let pos = self.pos() as i32;
+
+        let offset = -(disp + pos);
+
+        asm::testl_reg_mem(self, RAX, Mem::Base(RIP, offset));
+    }
 }
 
 #[derive(Debug)]
