@@ -23,7 +23,10 @@ impl NativeFcts {
     }
 
     pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFct) -> *const u8 {
-        self.map.entry(ptr).or_insert(fct).fct_start as *const u8
+        self.map
+            .entry(ptr)
+            .or_insert(fct)
+            .fct_start as *const u8
     }
 }
 

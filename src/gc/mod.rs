@@ -63,11 +63,17 @@ impl Gc {
     }
 
     pub fn alloc_code(&self, size: usize) -> *mut u8 {
-        self.code_space.lock().unwrap().alloc(size)
+        self.code_space
+            .lock()
+            .unwrap()
+            .alloc(size)
     }
 
     pub fn alloc_perm(&self, size: usize) -> *mut u8 {
-        self.perm_space.lock().unwrap().alloc(size)
+        self.perm_space
+            .lock()
+            .unwrap()
+            .alloc(size)
     }
 
     pub fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {

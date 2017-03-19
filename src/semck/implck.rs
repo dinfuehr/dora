@@ -10,14 +10,19 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         let xtrait = ctxt.traits[ximpl.trait_id()].borrow();
         let cls = ctxt.classes[ximpl.cls_id()].borrow().ty;
 
-        let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
+        let all: HashSet<_> = xtrait.methods
+            .iter()
+            .cloned()
+            .collect();
         let mut defined = HashSet::new();
 
         for &method_id in &ximpl.methods {
             let method = ctxt.fcts[method_id].borrow();
 
-            if let Some(fid) =
-                xtrait.find_method(ctxt, method.name, Some(cls), method.params_without_self()) {
+            if let Some(fid) = xtrait.find_method(ctxt,
+                                                  method.name,
+                                                  Some(cls),
+                                                  method.params_without_self()) {
                 defined.insert(fid);
 
             } else {
@@ -36,8 +41,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         for &method_id in all.difference(&defined) {
             let method = ctxt.fcts[method_id].borrow();
 
-            let args =
-                method.params_without_self().iter().map(|a| a.name(ctxt)).collect::<Vec<String>>();
+            let args = method.params_without_self()
+                .iter()
+                .map(|a| a.name(ctxt))
+                .collect::<Vec<String>>();
             let mtd_name = ctxt.interner.str(method.name).to_string();
             let trait_name = ctxt.interner.str(xtrait.name).to_string();
             report(ctxt,

@@ -40,7 +40,10 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
 
         for field in &cls.fields {
             if field.name == name {
-                let name = self.ctxt.interner.str(name).to_string();
+                let name = self.ctxt
+                    .interner
+                    .str(name)
+                    .to_string();
                 report(self.ctxt, pos, Msg::ShadowField(name));
             }
         }
@@ -64,8 +67,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         visit::walk_class(self, c);
 
         if let Some(ref parent_class) = c.parent_class {
-            let name = self.ctxt.interner.str(parent_class.name).to_string();
-            let sym = self.ctxt.sym.borrow().get(parent_class.name);
+            let name = self.ctxt
+                .interner
+                .str(parent_class.name)
+                .to_string();
+            let sym = self.ctxt
+                .sym
+                .borrow()
+                .get(parent_class.name);
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
@@ -76,13 +85,19 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
-                        self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(parent_class.pos, msg);
                     }
                 }
 
                 _ => {
                     let msg = Msg::UnknownClass(name);
-                    self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(parent_class.pos, msg);
                 }
             };
         }
@@ -95,7 +110,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
-            self.ctxt.diag.borrow_mut().report(f.pos, Msg::LetMissingInitialization);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(f.pos, Msg::LetMissingInitialization);
         }
     }
 

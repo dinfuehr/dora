@@ -59,7 +59,10 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let var = *self.src.map_vars.get(p.id).unwrap();
+        let var = *self.src
+                       .map_vars
+                       .get(p.id)
+                       .unwrap();
         let is_float = self.src.vars[var].ty.is_float();
 
         // only some parameters are passed in registers
@@ -85,7 +88,10 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            let var = *self.src.map_vars.get(var.id).unwrap();
+            let var = *self.src
+                           .map_vars
+                           .get(var.id)
+                           .unwrap();
             self.reserve_stack_for_node(var);
         }
 
@@ -93,13 +99,16 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             let ret = self.fct.return_type;
 
             if !ret.is_unit() {
-                self.eh_return_value = Some(self.eh_return_value
-                    .unwrap_or_else(|| self.reserve_stack_for_type(ret)));
+                self.eh_return_value =
+                    Some(self.eh_return_value.unwrap_or_else(|| self.reserve_stack_for_type(ret)));
             }
 
             // we also need space for catch block parameters
             for catch in &try.catch_blocks {
-                let var = *self.src.map_vars.get(catch.id).unwrap();
+                let var = *self.src
+                               .map_vars
+                               .get(catch.id)
+                               .unwrap();
                 self.reserve_stack_for_node(var);
             }
 
@@ -194,7 +203,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
-        let is_valid = self.src.map_convs.get(e.id).unwrap().valid;
+        let is_valid = self.src
+            .map_convs
+            .get(e.id)
+            .unwrap()
+            .valid;
 
         if !e.is && !is_valid {
             self.reserve_temp_for_node(&e.object);
@@ -202,7 +215,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
-        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+        let fid = self.src
+            .map_calls
+            .get(id)
+            .unwrap()
+            .fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -227,7 +244,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src.map_calls.get(expr.id).unwrap();
+        let call_type = *self.src
+                             .map_calls
+                             .get(expr.id)
+                             .unwrap();
 
         let mut args = expr.args
             .iter()
@@ -261,7 +281,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let cls_id = *self.src.map_cls.get(expr.id).unwrap();
+        let cls_id = *self.src
+                          .map_cls
+                          .get(expr.id)
+                          .unwrap();
         args.insert(0, Arg::Selfie(cls_id, 0));
 
         self.universal_call(expr.id, args, true, None, None);
@@ -309,7 +332,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         let fid = if callee.is_none() {
-            Some(self.src.map_calls.get(id).unwrap().fct_id())
+            Some(self.src
+                     .map_calls
+                     .get(id)
+                     .unwrap()
+                     .fct_id())
         } else {
             None
         };
@@ -318,46 +345,44 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let args = args.iter()
             .enumerate()
-            .map(|(ind, arg)| {
-                match *arg {
-                    Arg::Expr(ast, mut ty, _) => {
-                        if let Some(fid) = fid {
-                            let fct = self.ctxt.fcts[fid].borrow();
-                            ty = if ind == 0 && in_class && !fct.ctor_allocates {
-                                if ast.is_super() {
-                                    super_call = true;
-                                }
-
-                                let cid = match fct.parent {
-                                    FctParent::Class(cid) => cid,
-                                    FctParent::Impl(impl_id) => {
-                                        let ximpl = self.ctxt.impls[impl_id].borrow();
-                                        ximpl.cls_id()
-                                    }
-                                    _ => unreachable!(),
-                                };
-
-                                let cls = self.ctxt.classes[cid].borrow();
-                                cls.ty
-
-                            } else {
-                                fct.params_with_self()[ind]
-                            }
+            .map(|(ind, arg)| match *arg {
+                     Arg::Expr(ast, mut ty, _) => {
+                if let Some(fid) = fid {
+                    let fct = self.ctxt.fcts[fid].borrow();
+                    ty = if ind == 0 && in_class && !fct.ctor_allocates {
+                        if ast.is_super() {
+                            super_call = true;
                         }
 
-                        Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
-                    }
+                        let cid = match fct.parent {
+                            FctParent::Class(cid) => cid,
+                            FctParent::Impl(impl_id) => {
+                                let ximpl = self.ctxt.impls[impl_id].borrow();
+                                ximpl.cls_id()
+                            }
+                            _ => unreachable!(),
+                        };
 
-                    Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
-                    Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
+                        let cls = self.ctxt.classes[cid].borrow();
+                        cls.ty
+
+                    } else {
+                        fct.params_with_self()[ind]
+                    }
                 }
-            })
+
+                Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
+            }
+
+                     Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
+                     Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
+                 })
             .collect::<Vec<_>>();
 
         let return_type = return_type.unwrap_or_else(|| {
-            let fid = fid.unwrap();
-            self.ctxt.fcts[fid].borrow().return_type
-        });
+                                                         let fid = fid.unwrap();
+                                                         self.ctxt.fcts[fid].borrow().return_type
+                                                     });
 
         let callee = callee.unwrap_or_else(|| fid.unwrap());
 
@@ -377,7 +402,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             let lhs = e.lhs.to_ident().unwrap();
-            let field = self.src.map_idents.get(lhs.id).unwrap().is_field();
+            let field = self.src
+                .map_idents
+                .get(lhs.id)
+                .unwrap()
+                .is_field();
 
             if field {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
@@ -432,7 +461,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         } else {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
-            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+            let fid = self.src
+                .map_calls
+                .get(expr.id)
+                .unwrap()
+                .fct_id();
 
             self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }
@@ -447,7 +480,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         } else {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
-            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+            let fid = self.src
+                .map_calls
+                .get(expr.id)
+                .unwrap()
+                .fct_id();
 
             self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }

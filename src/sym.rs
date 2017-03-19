@@ -53,7 +53,10 @@ impl SymTable {
     }
 
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        self.levels.last_mut().unwrap().insert(name, sym)
+        self.levels
+            .last_mut()
+            .unwrap()
+            .insert(name, sym)
     }
 }
 

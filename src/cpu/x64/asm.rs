@@ -1276,7 +1276,8 @@ mod tests {
     #[test]
     fn test_testl_reg_mem() {
         assert_emit!(0x85, 0x05, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(RAX, Mem::Base(RIP, -10)));
-        assert_emit!(0x44, 0x85, 0x3d, 0xf6, 0xff, 0xff, 0xff; testl_reg_mem(R15, Mem::Base(RIP, -10)));
+        assert_emit!(0x44, 0x85, 0x3d, 0xf6, 0xff, 0xff, 0xff;
+                     testl_reg_mem(R15, Mem::Base(RIP, -10)));
         assert_emit!(0x44, 0x85, 0x79, 0xf6; testl_reg_mem(R15, Mem::Base(RCX, -10)));
     }
 

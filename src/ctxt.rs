@@ -784,7 +784,10 @@ impl<'ast> FctSrc<'ast> {
     }
 
     pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
-        self.map_tys.get(id).unwrap().clone()
+        self.map_tys
+            .get(id)
+            .unwrap()
+            .clone()
     }
 
     pub fn stacksize(&self) -> i32 {

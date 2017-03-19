@@ -324,9 +324,8 @@ fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
                                              depth as usize - DISPLAY_SIZE);
                 }
 
-                let ptr = vtable.subtype_overflow
-                    .offset(depth as isize -
-                            DISPLAY_SIZE as isize) as *mut _;
+                let ptr = vtable.subtype_overflow.offset(depth as isize - DISPLAY_SIZE as isize) as
+                          *mut _;
 
                 *ptr = &**vtable as *const _;
             }
@@ -338,8 +337,8 @@ fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_display[0..depth_fixed]
-            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
+        vtable.subtype_display[0..depth_fixed].clone_from_slice(&parent_vtable.subtype_display
+                                                                     [0..depth_fixed]);
 
         depth
 
@@ -385,7 +384,10 @@ mod tests {
     fn class_size(code: &'static str) -> i32 {
         ok_with_test(code, |ctxt| {
             let name = ctxt.interner.intern("Foo");
-            let cid = ctxt.sym.borrow().get_class(name).unwrap();
+            let cid = ctxt.sym
+                .borrow()
+                .get_class(name)
+                .unwrap();
             let cls = ctxt.classes[cid].borrow();
 
             cls.size
@@ -406,7 +408,10 @@ mod tests {
 
     fn class_size_name(ctxt: &Context, name: &'static str) -> i32 {
         let name = ctxt.interner.intern(name);
-        let cid = ctxt.sym.borrow().get_class(name).unwrap();
+        let cid = ctxt.sym
+            .borrow()
+            .get_class(name)
+            .unwrap();
         let cls = ctxt.classes[cid].borrow();
 
         cls.size
@@ -730,7 +735,10 @@ mod tests {
 
     fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> ClassId {
         let name = ctxt.interner.intern(name);
-        ctxt.sym.borrow().get_class(name).expect("class not found")
+        ctxt.sym
+            .borrow()
+            .get_class(name)
+            .expect("class not found")
     }
 
     fn check_class<'ast>(ctxt: &Context<'ast>,
@@ -738,10 +746,17 @@ mod tests {
                          size: i32,
                          parent: Option<&'static str>) {
         let name = ctxt.interner.intern(name);
-        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
+        let cls_id = ctxt.sym
+            .borrow()
+            .get_class(name)
+            .unwrap();
 
-        let parent_id = parent.map(|name| ctxt.interner.intern(name))
-            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
+        let parent_id = parent.map(|name| ctxt.interner.intern(name)).map(|name| {
+                                                                              ctxt.sym
+                                                                      .borrow()
+                                                                      .get_class(name)
+                                                                      .unwrap()
+                                                                          });
 
         let cls = ctxt.classes[cls_id].borrow();
         assert_eq!(parent_id, cls.parent_class);
@@ -754,7 +769,10 @@ mod tests {
                          offset: i32) {
         let cls_name = ctxt.interner.intern(cls_name);
         let field_name = ctxt.interner.intern(field_name);
-        let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
+        let cls_id = ctxt.sym
+            .borrow()
+            .get_class(cls_name)
+            .unwrap();
         let cls = ctxt.classes[cls_id].borrow();
 
         for field in &cls.fields {

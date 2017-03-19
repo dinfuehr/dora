@@ -166,7 +166,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 if let Some(ref data_type) = var.data_type {
                     self.visit_type(data_type);
 
-                    let varid = *self.src.map_vars.get(var.id).unwrap();
+                    let varid = *self.src
+                                     .map_vars
+                                     .get(var.id)
+                                     .unwrap();
                     self.src.vars[varid].ty = self.current_type;
                 }
 
@@ -180,7 +183,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.visit_type(&catch.data_type);
                     self.src.set_ty(catch.id, self.current_type);
 
-                    let var = *self.src.map_vars.get(catch.id).unwrap();
+                    let var = *self.src
+                                   .map_vars
+                                   .get(catch.id)
+                                   .unwrap();
                     self.src.vars[var].ty = self.current_type;
 
                     if !self.current_type.reference_type() {
@@ -193,7 +199,10 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 }
 
                 if try.catch_blocks.is_empty() && try.finally_block.is_none() {
-                    self.ctxt.diag.borrow_mut().report(try.pos, Msg::CatchOrFinallyExpected);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(try.pos, Msg::CatchOrFinallyExpected);
                 }
 
                 visit::walk_stmt(self, s);

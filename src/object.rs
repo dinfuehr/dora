@@ -78,12 +78,18 @@ impl Obj {
     }
 
     pub fn size(&self) -> usize {
-        let size = self.header().vtbl().class().size;
+        let size = self.header()
+            .vtbl()
+            .class()
+            .size;
         if size > 0 {
             return size as usize;
         }
 
-        let ty = self.header().vtbl().class().ty;
+        let ty = self.header()
+            .vtbl()
+            .class()
+            .ty;
 
         match ty {
             BuiltinType::Str => {
@@ -249,7 +255,7 @@ impl Str {
     pub fn size(&self) -> usize {
         Header::size() as usize         // Object header
             + mem::ptr_width() as usize // length field
-            + self.len() + 1   // string content
+            + self.len() + 1 // string content
     }
 
     /// allocates string from buffer in permanent space
@@ -322,7 +328,7 @@ fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
 {
     let size = Header::size() as usize     // Object header
                 + mem::ptr_width() as usize // length field
-                + len + 1;                  // string content
+                + len + 1; // string content
 
     let ptr = alloc(ctxt, size) as usize;
 

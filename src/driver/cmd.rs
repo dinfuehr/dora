@@ -5,9 +5,7 @@ use docopt::Docopt;
 use rustc_serialize;
 
 pub fn parse() -> Args {
-    Docopt::new(USAGE)
-        .and_then(|d| d.decode())
-        .unwrap_or_else(|e| e.exit())
+    Docopt::new(USAGE).and_then(|d| d.decode()).unwrap_or_else(|e| e.exit())
 }
 
 // Write the Docopt usage string.

@@ -59,9 +59,9 @@ impl<'a> Parser<'a> {
         }
 
         self.ast.files.push(File {
-            path: self.lexer.filename().to_string(),
-            elements: elements,
-        });
+                                path: self.lexer.filename().to_string(),
+                                elements: elements,
+                            });
 
         Ok(())
     }
@@ -137,12 +137,12 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Impl {
-            id: self.generate_id(),
-            trait_name: trait_name,
-            class_name: class_name,
-            pos: pos,
-            methods: methods,
-        })
+               id: self.generate_id(),
+               trait_name: trait_name,
+               class_name: class_name,
+               pos: pos,
+               methods: methods,
+           })
     }
 
     fn parse_global(&mut self) -> Result<Global, MsgWithPos> {
@@ -166,13 +166,13 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Global {
-            id: self.generate_id(),
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            reassignable: reassignable,
-            expr: expr,
-        })
+               id: self.generate_id(),
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               reassignable: reassignable,
+               expr: expr,
+           })
     }
 
     fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
@@ -191,11 +191,11 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Trait {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            methods: methods,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               methods: methods,
+           })
     }
 
     fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
@@ -206,11 +206,11 @@ impl<'a> Parser<'a> {
         let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
 
         Ok(Struct {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            fields: fields,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               fields: fields,
+           })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, MsgWithPos> {
@@ -221,11 +221,11 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type()?;
 
         Ok(StructField {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            data_type: ty,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               data_type: ty,
+           })
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
@@ -302,9 +302,9 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
 
         Ok(TypeParam {
-            name: name,
-            pos: pos,
-        })
+               name: name,
+               pos: pos,
+           })
     }
 
     fn add_field_initializers_to_ctors(&mut self, cls: &mut Class) {
@@ -374,23 +374,23 @@ impl<'a> Parser<'a> {
 
         if field {
             cls.fields.push(Field {
-                id: self.generate_id(),
-                name: name,
-                pos: pos,
-                data_type: data_type.clone(),
-                primary_ctor: true,
-                expr: None,
-                reassignable: reassignable,
-            })
+                                id: self.generate_id(),
+                                name: name,
+                                pos: pos,
+                                data_type: data_type.clone(),
+                                primary_ctor: true,
+                                expr: None,
+                                reassignable: reassignable,
+                            })
         }
 
         Ok(PrimaryCtorParam {
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            field: field,
-            reassignable: reassignable,
-        })
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               field: field,
+               reassignable: reassignable,
+           })
     }
 
     fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
@@ -507,22 +507,22 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Function {
-            id: self.generate_id(),
-            pos: pos,
-            name: cls.name,
-            method: true,
-            has_open: false,
-            has_override: false,
-            has_final: false,
-            is_pub: true,
-            is_static: false,
-            internal: modifiers.contains(Modifier::Internal),
-            ctor: CtorType::Secondary,
-            params: params,
-            throws: false,
-            return_type: None,
-            block: block,
-        })
+               id: self.generate_id(),
+               pos: pos,
+               name: cls.name,
+               method: true,
+               has_open: false,
+               has_override: false,
+               has_final: false,
+               is_pub: true,
+               is_static: false,
+               internal: modifiers.contains(Modifier::Internal),
+               ctor: CtorType::Secondary,
+               params: params,
+               throws: false,
+               return_type: None,
+               block: block,
+           })
     }
 
     fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
@@ -548,10 +548,10 @@ impl<'a> Parser<'a> {
         let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
         Ok(Some(Delegation {
-            pos: pos,
-            ty: ty,
-            args: args,
-        }))
+                    pos: pos,
+                    ty: ty,
+                    args: args,
+                }))
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -581,14 +581,14 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Field {
-            id: self.generate_id(),
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            primary_ctor: false,
-            expr: expr,
-            reassignable: reassignable,
-        })
+               id: self.generate_id(),
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               primary_ctor: false,
+               expr: expr,
+               reassignable: reassignable,
+           })
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
@@ -601,22 +601,22 @@ impl<'a> Parser<'a> {
         let block = self.parse_function_block()?;
 
         Ok(Function {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            method: self.in_class,
-            has_open: modifiers.contains(Modifier::Open),
-            has_override: modifiers.contains(Modifier::Override),
-            has_final: modifiers.contains(Modifier::Final),
-            is_pub: modifiers.contains(Modifier::Pub),
-            is_static: modifiers.contains(Modifier::Static),
-            internal: modifiers.contains(Modifier::Internal),
-            ctor: CtorType::None,
-            params: params,
-            throws: throws,
-            return_type: return_type,
-            block: block,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               method: self.in_class,
+               has_open: modifiers.contains(Modifier::Open),
+               has_override: modifiers.contains(Modifier::Override),
+               has_final: modifiers.contains(Modifier::Final),
+               is_pub: modifiers.contains(Modifier::Pub),
+               is_static: modifiers.contains(Modifier::Static),
+               internal: modifiers.contains(Modifier::Internal),
+               ctor: CtorType::None,
+               params: params,
+               throws: throws,
+               return_type: return_type,
+               block: block,
+           })
     }
 
     fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
@@ -689,13 +689,13 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         Ok(Param {
-            id: self.generate_id(),
-            idx: self.param_idx - 1,
-            reassignable: reassignable,
-            name: name,
-            pos: pos,
-            data_type: data_type,
-        })
+               id: self.generate_id(),
+               idx: self.param_idx - 1,
+               reassignable: reassignable,
+               name: name,
+               pos: pos,
+               data_type: data_type,
+           })
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
@@ -1169,11 +1169,11 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expression()?;
 
         Ok(StructArg {
-            id: self.generate_id(),
-            pos: pos,
-            name: name,
-            expr: expr,
-        })
+               id: self.generate_id(),
+               pos: pos,
+               name: name,
+               expr: expr,
+           })
     }
 
     fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
@@ -1382,7 +1382,11 @@ impl<'a> Parser<'a> {
             .map(|field| {
                 let this = self.build_this();
                 let lhs = self.build_field(this, field.name);
-                let ass = self.build_assign(lhs, field.expr.as_ref().unwrap().clone());
+                let ass = self.build_assign(lhs,
+                                            field.expr
+                                                .as_ref()
+                                                .unwrap()
+                                                .clone());
 
                 self.build_stmt_expr(ass)
             })
@@ -1421,10 +1425,10 @@ impl<'a> Parser<'a> {
         let id = self.generate_id();
 
         Box::new(Stmt::StmtExpr(StmtExprType {
-            id: id,
-            pos: Position::new(1, 1),
-            expr: expr,
-        }))
+                                    id: id,
+                                    pos: Position::new(1, 1),
+                                    expr: expr,
+                                }))
     }
 
     fn build_param(&mut self, idx: u32, name: Name, ty: Type) -> Param {
@@ -1444,62 +1448,62 @@ impl<'a> Parser<'a> {
         let id = self.generate_id();
 
         Box::new(Stmt::StmtBlock(StmtBlockType {
-            id: id,
-            pos: Position::new(1, 1),
-            stmts: stmts,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     stmts: stmts,
+                                 }))
     }
 
     fn build_type(&mut self, name: Name) -> Type {
         let id = self.generate_id();
 
         Type::TypeBasic(TypeBasicType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name,
-            params: Vec::new(),
-        })
+                            id: id,
+                            pos: Position::new(1, 1),
+                            name: name,
+                            params: Vec::new(),
+                        })
     }
 
     fn build_ident(&mut self, name: Name) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprIdent(ExprIdentType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     name: name,
+                                 }))
     }
 
     fn build_this(&mut self) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprSelf(ExprSelfType {
-            id: id,
-            pos: Position::new(1, 1),
-        }))
+                                    id: id,
+                                    pos: Position::new(1, 1),
+                                }))
     }
 
     fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprAssign(ExprAssignType {
-            id: id,
-            pos: Position::new(1, 1),
-            lhs: lhs,
-            rhs: rhs,
-        }))
+                                      id: id,
+                                      pos: Position::new(1, 1),
+                                      lhs: lhs,
+                                      rhs: rhs,
+                                  }))
     }
 
     fn build_field(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprField(ExprFieldType {
-            id: id,
-            pos: Position::new(1, 1),
-            object: object,
-            name: name,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     object: object,
+                                     name: name,
+                                 }))
     }
 }
 
@@ -1685,7 +1689,10 @@ mod tests {
     #[test]
     fn parse_field_negated() {
         let (expr, _) = parse_expr("-obj.field");
-        assert!(expr.to_un().unwrap().opnd.is_field());
+        assert!(expr.to_un()
+                    .unwrap()
+                    .opnd
+                    .is_field());
     }
 
     #[test]
@@ -1768,8 +1775,16 @@ mod tests {
 
         let mul = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul.op);
-        assert_eq!(6, mul.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, mul.rhs.to_lit_int().unwrap().value);
+        assert_eq!(6,
+                   mul.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(3,
+                   mul.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1781,10 +1796,22 @@ mod tests {
 
         let mul2 = mul1.lhs.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul2.op);
-        assert_eq!(6, mul2.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, mul2.rhs.to_lit_int().unwrap().value);
+        assert_eq!(6,
+                   mul2.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(3,
+                   mul2.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
 
-        assert_eq!(4, mul1.rhs.to_lit_int().unwrap().value);
+        assert_eq!(4,
+                   mul1.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1793,8 +1820,16 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Div, div.op);
-        assert_eq!(4, div.lhs.to_lit_int().unwrap().value);
-        assert_eq!(5, div.rhs.to_lit_int().unwrap().value);
+        assert_eq!(4,
+                   div.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(5,
+                   div.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1803,8 +1838,16 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mod, div.op);
-        assert_eq!(2, div.lhs.to_lit_int().unwrap().value);
-        assert_eq!(15, div.rhs.to_lit_int().unwrap().value);
+        assert_eq!(2,
+                   div.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(15,
+                   div.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1813,8 +1856,16 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Add, add.op);
-        assert_eq!(2, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(2,
+                   add.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(3,
+                   add.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1822,11 +1873,23 @@ mod tests {
         let (expr, _) = parse_expr("1+2+3");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(3,
+                   add.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
 
         let lhs = add.lhs.to_bin().unwrap();
-        assert_eq!(1, lhs.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, lhs.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   lhs.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   lhs.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1834,11 +1897,23 @@ mod tests {
         let (expr, _) = parse_expr("1+(2+3)");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   add.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
 
         let rhs = add.rhs.to_bin().unwrap();
-        assert_eq!(2, rhs.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, rhs.rhs.to_lit_int().unwrap().value);
+        assert_eq!(2,
+                   rhs.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(3,
+                   rhs.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1847,8 +1922,16 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   add.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   add.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1857,8 +1940,16 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Or, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   add.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   add.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1867,8 +1958,16 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::And, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   add.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   add.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1877,8 +1976,16 @@ mod tests {
 
         let or = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitOr, or.op);
-        assert_eq!(1, or.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, or.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   or.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   or.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1887,8 +1994,16 @@ mod tests {
 
         let and = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitAnd, and.op);
-        assert_eq!(1, and.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, and.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   and.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   and.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1897,8 +2012,16 @@ mod tests {
 
         let xor = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitXor, xor.op);
-        assert_eq!(1, xor.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, xor.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   xor.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   xor.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1907,8 +2030,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1917,8 +2048,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1927,8 +2066,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1937,8 +2084,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1947,8 +2102,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1957,8 +2120,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1967,8 +2138,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1977,8 +2156,16 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   cmp.lhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
+        assert_eq!(2,
+                   cmp.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -1987,7 +2174,11 @@ mod tests {
 
         let assign = expr.to_assign().unwrap();
         assert!(assign.lhs.is_ident());
-        assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
+        assert_eq!(4,
+                   assign.rhs
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -2065,8 +2256,16 @@ mod tests {
         assert_eq!("a", *interner1.str(p1.name));
         assert_eq!("a", *interner2.str(p2.name));
 
-        assert_eq!("int", *interner1.str(p1.data_type.to_basic().unwrap().name));
-        assert_eq!("int", *interner2.str(p2.data_type.to_basic().unwrap().name));
+        assert_eq!("int",
+                   *interner1.str(p1.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
+        assert_eq!("int",
+                   *interner2.str(p2.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
     }
 
     #[test]
@@ -2089,14 +2288,26 @@ mod tests {
         assert_eq!("b", *interner2.str(p2b.name));
 
         assert_eq!("int",
-                   *interner1.str(p1a.data_type.to_basic().unwrap().name));
+                   *interner1.str(p1a.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
         assert_eq!("int",
-                   *interner2.str(p2a.data_type.to_basic().unwrap().name));
+                   *interner2.str(p2a.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
 
         assert_eq!("str",
-                   *interner1.str(p1b.data_type.to_basic().unwrap().name));
+                   *interner1.str(p1b.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
         assert_eq!("str",
-                   *interner2.str(p2b.data_type.to_basic().unwrap().name));
+                   *interner2.str(p2b.data_type
+                                      .to_basic()
+                                      .unwrap()
+                                      .name));
     }
 
     #[test]
@@ -2106,7 +2317,10 @@ mod tests {
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_none());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
+        assert!(var.expr
+                    .as_ref()
+                    .unwrap()
+                    .is_lit_int());
     }
 
     #[test]
@@ -2116,7 +2330,10 @@ mod tests {
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_none());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
+        assert!(var.expr
+                    .as_ref()
+                    .unwrap()
+                    .is_lit_int());
     }
 
     #[test]
@@ -2126,7 +2343,10 @@ mod tests {
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_some());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
+        assert!(var.expr
+                    .as_ref()
+                    .unwrap()
+                    .is_lit_int());
     }
 
     #[test]
@@ -2136,7 +2356,10 @@ mod tests {
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_some());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
+        assert!(var.expr
+                    .as_ref()
+                    .unwrap()
+                    .is_lit_int());
     }
 
     #[test]
@@ -2241,7 +2464,11 @@ mod tests {
         let stmt = parse_stmt("loop { 1; }");
         let block = &stmt.to_loop().unwrap().block;
 
-        assert_eq!(1, block.to_block().unwrap().stmts.len());
+        assert_eq!(1,
+                   block.to_block()
+                       .unwrap()
+                       .stmts
+                       .len());
     }
 
     #[test]
@@ -2296,7 +2523,13 @@ mod tests {
         let stmt = parse_stmt("return 1;");
         let ret = stmt.to_return().unwrap();
 
-        assert_eq!(1, ret.expr.as_ref().unwrap().to_lit_int().unwrap().value);
+        assert_eq!(1,
+                   ret.expr
+                       .as_ref()
+                       .unwrap()
+                       .to_lit_int()
+                       .unwrap()
+                       .value);
     }
 
     #[test]
@@ -2380,14 +2613,24 @@ mod tests {
         assert_eq!("zero", *interner.str(mtd1.name));
         assert_eq!(0, mtd1.params.len());
         assert_eq!(true, mtd1.method);
-        let rt1 = mtd1.return_type.as_ref().unwrap().to_basic().unwrap().name;
+        let rt1 = mtd1.return_type
+            .as_ref()
+            .unwrap()
+            .to_basic()
+            .unwrap()
+            .name;
         assert_eq!("int", *interner.str(rt1));
 
         let mtd2 = &cls.methods[1];
         assert_eq!("id", *interner.str(mtd2.name));
         assert_eq!(1, mtd2.params.len());
         assert_eq!(true, mtd2.method);
-        let rt2 = mtd2.return_type.as_ref().unwrap().to_basic().unwrap().name;
+        let rt2 = mtd2.return_type
+            .as_ref()
+            .unwrap()
+            .to_basic()
+            .unwrap()
+            .name;
         assert_eq!("Str", *interner.str(rt2));
     }
 
@@ -2462,7 +2705,11 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!("Bar",
-                   interner.str(class.parent_class.as_ref().unwrap().name).to_string());
+                   interner.str(class.parent_class
+                                    .as_ref()
+                                    .unwrap()
+                                    .name)
+                       .to_string());
     }
 
     #[test]
@@ -2495,8 +2742,16 @@ mod tests {
     fn parse_array_index() {
         let (expr, interner) = parse_expr("a[b]");
         let expr = expr.to_array().unwrap();
-        assert_eq!("a", *interner.str(expr.object.to_ident().unwrap().name));
-        assert_eq!("b", *interner.str(expr.index.to_ident().unwrap().name));
+        assert_eq!("a",
+                   *interner.str(expr.object
+                                     .to_ident()
+                                     .unwrap()
+                                     .name));
+        assert_eq!("b",
+                   *interner.str(expr.index
+                                     .to_ident()
+                                     .unwrap()
+                                     .name));
     }
 
     #[test]
@@ -2672,8 +2927,18 @@ mod tests {
         let cls = prog.cls0();
         assert_eq!(2, cls.ctors.len());
 
-        let block = cls.ctors[0].block.as_ref().unwrap().to_block().unwrap();
-        let delegation = block.stmts[0].to_expr().unwrap().expr.to_delegation().unwrap();
+        let block = cls.ctors[0]
+            .block
+            .as_ref()
+            .unwrap()
+            .to_block()
+            .unwrap();
+        let delegation = block.stmts[0]
+            .to_expr()
+            .unwrap()
+            .expr
+            .to_delegation()
+            .unwrap();
 
         assert_eq!(DelegationType::This, delegation.ty);
         assert_eq!(1, delegation.args.len());
@@ -2686,8 +2951,18 @@ mod tests {
         let cls = prog.cls(1);
         assert_eq!(1, cls.ctors.len());
 
-        let block = cls.ctors[0].block.as_ref().unwrap().to_block().unwrap();
-        let delegation = block.stmts[0].to_expr().unwrap().expr.to_delegation().unwrap();
+        let block = cls.ctors[0]
+            .block
+            .as_ref()
+            .unwrap()
+            .to_block()
+            .unwrap();
+        let delegation = block.stmts[0]
+            .to_expr()
+            .unwrap()
+            .expr
+            .to_delegation()
+            .unwrap();
 
         assert_eq!(DelegationType::Super, delegation.ty);
         assert_eq!(1, delegation.args.len());

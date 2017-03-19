@@ -52,7 +52,10 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
-                self.ctxt.diag.borrow_mut().report(pos, Msg::NoReturnValue);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(pos, Msg::NoReturnValue);
             }
 
         } else {
@@ -133,7 +136,10 @@ mod tests {
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern("f");
-            let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
+            let fct_id = ctxt.sym
+                .borrow()
+                .get_fct(name)
+                .unwrap();
 
             let fct = ctxt.fcts[fct_id].borrow();
             let src = fct.src();

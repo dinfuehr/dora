@@ -102,8 +102,8 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     }
 
     let start_addr = jit_fct.fct_ptr() as u64;
-    let instrs = engine.disasm(buf, start_addr, jit_fct.fct_len())
-        .expect("could not disassemble code");
+    let instrs =
+        engine.disasm(buf, start_addr, jit_fct.fct_len()).expect("could not disassemble code");
 
     let name = fct.full_name(ctxt);
 
@@ -206,7 +206,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         let jit_fct = self.masm.jit(self.ctxt, self.src.stacksize());
 
-        let mut code_map = self.ctxt.code_map.lock().unwrap();
+        let mut code_map = self.ctxt
+            .code_map
+            .lock()
+            .unwrap();
         let cdata = CodeData::Fct(self.fct.id);
         code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
 
@@ -243,7 +246,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         }
 
         for p in &self.ast.params {
-            let varid = *self.src.map_vars.get(p.id).unwrap();
+            let varid = *self.src
+                             .map_vars
+                             .get(p.id)
+                             .unwrap();
             let is_float = self.src.vars[varid].ty.mode().is_float();
 
             if is_float && freg_idx < FREG_PARAMS.len() {
@@ -429,7 +435,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
-        let var = *self.src.map_vars.get(s.id).unwrap();
+        let var = *self.src
+                       .map_vars
+                       .get(s.id)
+                       .unwrap();
 
         if let Some(ref expr) = s.expr {
             let value = self.emit_expr(expr);
@@ -473,7 +482,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.masm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            let offset = *self.src.map_offsets.get(s.id).unwrap();
+            let offset = *self.src
+                              .map_offsets
+                              .get(s.id)
+                              .unwrap();
             self.masm.emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
@@ -493,7 +505,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let mut ret = Vec::new();
 
         for catch in &s.catch_blocks {
-            let varid = *self.src.map_vars.get(catch.id).unwrap();
+            let varid = *self.src
+                             .map_vars
+                             .get(catch.id)
+                             .unwrap();
             let offset = self.src.vars[varid].offset;
 
             self.scopes.push_scope();
@@ -557,7 +572,10 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.scopes.push_scope();
 
-        let offset = *self.src.map_offsets.get(s.id).unwrap();
+        let offset = *self.src
+                          .map_offsets
+                          .get(s.id)
+                          .unwrap();
         self.scopes.add_var_offset(offset);
 
         self.visit_stmt(&finally_block.block);
@@ -571,7 +589,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> ExprStore {
-        let ty = self.src.map_tys.get(e.id()).map(|ty| *ty).unwrap_or(BuiltinType::Int);
+        let ty = self.src
+            .map_tys
+            .get(e.id())
+            .map(|ty| *ty)
+            .unwrap_or(BuiltinType::Int);
 
         let dest: ExprStore = if ty.is_float() {
             FREG_RESULT.into()

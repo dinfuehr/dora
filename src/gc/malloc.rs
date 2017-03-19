@@ -120,11 +120,9 @@ impl MallocSpace {
         // objects in the beginning of the next collection
         self.cur_marked = !self.cur_marked;
 
-        timer.stop_with(|dur| {
-            if ctxt.args.flag_gc_events {
-                println!("GC: collect garbage ({} ms)", in_ms(dur));
-            }
-        });
+        timer.stop_with(|dur| if ctxt.args.flag_gc_events {
+                            println!("GC: collect garbage ({} ms)", in_ms(dur));
+                        });
     }
 }
 

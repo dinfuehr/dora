@@ -47,7 +47,10 @@ pub fn start() -> i32 {
 
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
-        let no_errors = ctxt.diag.borrow().errors().len();
+        let no_errors = ctxt.diag
+            .borrow()
+            .errors()
+            .len();
 
         if no_errors == 1 {
             println!("{} error found.", no_errors);

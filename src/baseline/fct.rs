@@ -166,7 +166,10 @@ impl Comments {
     }
 
     pub fn insert(&mut self, pos: i32, comment: Comment) {
-        self.comments.entry(pos).or_insert(Vec::new()).push(comment);
+        self.comments
+            .entry(pos)
+            .or_insert(Vec::new())
+            .push(comment);
     }
 }
 
@@ -298,9 +301,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 write!(f, "load self from offset {}", var.offset)
             }
 
-            &Comment::ReadPollingPage => {
-                write!(f, "read polling page (safepoint)")
-            }
+            &Comment::ReadPollingPage => write!(f, "read polling page (safepoint)"),
         }
     }
 }

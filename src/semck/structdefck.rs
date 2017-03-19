@@ -48,7 +48,10 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
 
         for field in &struc.fields {
             if field.name == f.name {
-                let name = self.ctxt.interner.str(f.name).to_string();
+                let name = self.ctxt
+                    .interner
+                    .str(f.name)
+                    .to_string();
                 report(self.ctxt, f.pos, Msg::ShadowField(name));
                 return;
             }

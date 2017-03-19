@@ -221,16 +221,17 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
         let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
 
         let offset = ra - jit_fct.fct_ptr() as usize;
-        jit_fct.bailouts.get(offset as i32).expect("bailout info not found").clone()
+        jit_fct.bailouts
+            .get(offset as i32)
+            .expect("bailout info not found")
+            .clone()
     };
 
     let mut sfi = cpu::sfi_from_execution_state(es);
 
-    ctxt.use_sfi(&mut sfi, || {
-        match bailout {
-            BailoutInfo::Compile(fct_id, disp) => patch_fct_call(ctxt, es, ra, fct_id, disp),
-            BailoutInfo::VirtCompile(vtable_index) => patch_vtable_call(ctxt, es, vtable_index),
-        }
+    ctxt.use_sfi(&mut sfi, || match bailout {
+        BailoutInfo::Compile(fct_id, disp) => patch_fct_call(ctxt, es, ra, fct_id, disp),
+        BailoutInfo::VirtCompile(vtable_index) => patch_vtable_call(ctxt, es, vtable_index),
     });
 
     write_execstate(es, ucontext as *mut u8);

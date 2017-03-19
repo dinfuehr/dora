@@ -198,7 +198,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         // return false if object is nil
         let lbl_nil = self.masm.test_if_nil(dest);
-        let conv = *self.src.map_convs.get(e.id).unwrap();
+        let conv = *self.src
+                        .map_convs
+                        .get(e.id)
+                        .unwrap();
 
         if conv.valid {
             if e.is {
@@ -428,7 +431,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: ExprStore) {
         let (cls, field) = {
-            let ident_type = self.src.map_idents.get(expr.id).unwrap();
+            let ident_type = self.src
+                .map_idents
+                .get(expr.id)
+                .unwrap();
 
             match ident_type {
                 &IdentType::Field(cls, field) => (cls, field),
@@ -497,7 +503,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {
-        let &ident = self.src.map_idents.get(e.id).unwrap();
+        let &ident = self.src
+            .map_idents
+            .get(e.id)
+            .unwrap();
 
         match ident {
             IdentType::Var(varid) => {
@@ -651,7 +660,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             return;
         }
 
-        let &ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
+        let &ident_type = self.src
+            .map_idents
+            .get(e.lhs.id())
+            .unwrap();
 
         match ident_type {
             IdentType::Var(varid) => {
@@ -1363,11 +1375,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
-        self.src.map_csites.get(id).is_some()
+        self.src
+            .map_csites
+            .get(id)
+            .is_some()
     }
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
-        let csite = self.src.map_csites.get(id).unwrap().clone();
+        let csite = self.src
+            .map_csites
+            .get(id)
+            .unwrap()
+            .clone();
         let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
 
         let fid = csite.callee;
@@ -1387,7 +1406,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
                     if idx == 0 && fct.in_class() && check_for_nil(ty) && !csite.super_call &&
-                       !fct.is_virtual() && !fct.ctor_allocates {
+                       !fct.is_virtual() &&
+                       !fct.ctor_allocates {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
                 }
@@ -1420,8 +1440,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
                     self.masm.emit_comment(Comment::StoreVTable(cls_id));
                     self.masm.load_constpool(REG_TMP1, disp + pos);
-                    self.masm
-                        .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+                    self.masm.store_mem(MachineMode::Ptr,
+                                        Mem::Base(REG_RESULT, 0),
+                                        REG_TMP1.into());
                 }
             }
 

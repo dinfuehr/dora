@@ -54,12 +54,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
-        let var = *self.src.map_vars.get(s.id).unwrap();
+        let var = *self.src
+                       .map_vars
+                       .get(s.id)
+                       .unwrap();
 
         let expr_type = s.expr.as_ref().map(|expr| {
-            self.visit_expr(&expr);
-            self.expr_type
-        });
+                                                self.visit_expr(&expr);
+                                                self.expr_type
+                                            });
 
         let defined_type = if let Some(_) = s.data_type {
             let ty = self.src.vars[var].ty;
@@ -75,8 +78,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let defined_type = match defined_type {
             Some(ty) => ty,
             None => {
-                let tyname = self.ctxt.interner.str(s.name).to_string();
-                self.ctxt.diag.borrow_mut().report(s.pos, Msg::VarNeedsTypeInfo(tyname));
+                let tyname = self.ctxt
+                    .interner
+                    .str(s.name)
+                    .to_string();
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(s.pos, Msg::VarNeedsTypeInfo(tyname));
 
                 return;
             }
@@ -88,16 +97,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if let Some(expr_type) = expr_type {
             if !defined_type.allows(self.ctxt, expr_type) {
-                let name = self.ctxt.interner.str(s.name).to_string();
+                let name = self.ctxt
+                    .interner
+                    .str(s.name)
+                    .to_string();
                 let defined_type = defined_type.name(self.ctxt);
                 let expr_type = expr_type.name(self.ctxt);
                 let msg = Msg::AssignType(name, defined_type, expr_type);
-                self.ctxt.diag.borrow_mut().report(s.pos, msg);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(s.pos, msg);
             }
 
             // let variable binding needs to be assigned
         } else if !s.reassignable {
-            self.ctxt.diag.borrow_mut().report(s.pos, Msg::LetMissingInitialization);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::LetMissingInitialization);
         }
     }
 
@@ -107,7 +125,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if self.expr_type != BuiltinType::Bool {
             let expr_type = self.expr_type.name(self.ctxt);
             let msg = Msg::WhileCondType(expr_type);
-            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, msg);
         }
 
         self.visit_stmt(&s.block);
@@ -119,7 +140,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if self.expr_type != BuiltinType::Bool {
             let expr_type = self.expr_type.name(self.ctxt);
             let msg = Msg::IfCondType(expr_type);
-            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, msg);
         }
 
         self.visit_stmt(&s.then_block);
@@ -133,10 +157,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s.expr
             .as_ref()
             .map(|expr| {
-                self.visit_expr(&expr);
+                     self.visit_expr(&expr);
 
-                self.expr_type
-            })
+                     self.expr_type
+                 })
             .unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
@@ -153,7 +177,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 Msg::ReturnType(fct_type, expr_type)
             };
 
-            self.ctxt.diag.borrow_mut().report(s.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, msg);
         }
     }
 
@@ -162,12 +189,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = self.expr_type;
 
         if ty.is_nil() {
-            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowNil);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::ThrowNil);
 
 
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ReferenceTypeExpected(tyname));
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::ReferenceTypeExpected(tyname));
         }
     }
 
@@ -184,7 +217,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
-        let ident_type = *self.src.map_idents.get(e.id).unwrap();
+        let ident_type = *self.src
+                              .map_idents
+                              .get(e.id)
+                              .unwrap();
 
         match ident_type {
             IdentType::Var(varid) => {
@@ -257,7 +293,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 match ident_type {
                     &IdentType::Var(varid) => {
                         if !self.src.vars[varid].reassignable {
-                            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -266,7 +305,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     &IdentType::Field(clsid, fieldid) => {
                         if !self.fct.ctor.is() &&
                            !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable {
-                            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LetReassigned);
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -278,7 +320,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 if !lhs_type.allows(self.ctxt, rhs_type) {
                     let msg = if e.lhs.is_ident() {
                         let ident = e.lhs.to_ident().unwrap();
-                        let name = self.ctxt.interner.str(ident.name).to_string();
+                        let name = self.ctxt
+                            .interner
+                            .str(ident.name)
+                            .to_string();
                         let lhs_type = lhs_type.name(self.ctxt);
                         let rhs_type = rhs_type.name(self.ctxt);
 
@@ -286,7 +331,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     } else {
                         let field = e.lhs.to_field().unwrap();
-                        let name = self.ctxt.interner.str(field.name).to_string();
+                        let name = self.ctxt
+                            .interner
+                            .str(field.name)
+                            .to_string();
 
                         let field_type = self.src.ty(field.object.id());
                         let field_type = field_type.name(self.ctxt);
@@ -297,7 +345,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         Msg::AssignField(name, field_type, lhs_type, rhs_type)
                     };
 
-                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, msg);
                 }
 
                 lhs_type
@@ -309,7 +360,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.expr_type = assign_type;
 
         } else {
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::LvalueExpected);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::LvalueExpected);
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
         }
@@ -388,18 +442,30 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             } else if candidates.len() > 1 {
                 let object_type = object_type.name(self.ctxt);
                 let args = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
-                let name = self.ctxt.interner.str(name).to_string();
+                let name = self.ctxt
+                    .interner
+                    .str(name)
+                    .to_string();
                 let msg = Msg::MultipleCandidates(object_type, name, args);
-                self.ctxt.diag.borrow_mut().report(pos, msg);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(pos, msg);
                 return None;
             }
         }
 
         let type_name = object_type.name(self.ctxt);
-        let name = self.ctxt.interner.str(name).to_string();
+        let name = self.ctxt
+            .interner
+            .str(name)
+            .to_string();
         let param_names = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
         let msg = Msg::UnknownMethod(type_name, name, param_names);
-        self.ctxt.diag.borrow_mut().report(pos, msg);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(pos, msg);
 
         None
     }
@@ -442,7 +508,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ty = ty.name(self.ctxt);
             let msg = Msg::UnOpType(op.as_str().into(), ty);
 
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
 
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
@@ -508,7 +577,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let rhs_type = rhs_type.name(self.ctxt);
             let msg = Msg::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
 
             self.src.set_ty(e.id, BuiltinType::Unit);
             self.expr_type = BuiltinType::Unit;
@@ -524,12 +596,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.reference_type() {
                     let lhs_type = lhs_type.name(self.ctxt);
-                    self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(lhs_type));
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::ReferenceTypeExpected(lhs_type));
                 }
 
                 if !rhs_type.reference_type() {
                     let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(rhs_type));
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::ReferenceTypeExpected(rhs_type));
                 }
 
                 if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type)) &&
@@ -571,7 +649,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let rhs_type = rhs_type.name(self.ctxt);
             let msg = Msg::BinOpType(op, lhs_type, rhs_type);
 
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
         }
     }
 
@@ -581,14 +662,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src.map_calls.get(e.id).unwrap();
+        let call_type = *self.src
+                             .map_calls
+                             .get(e.id)
+                             .unwrap();
 
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
 
         match call_type {
@@ -611,12 +695,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 if !found {
-                    let call_types = call_types.iter()
-                        .map(|a| a.name(self.ctxt))
-                        .collect::<Vec<_>>();
-                    let name = self.ctxt.interner.str(cls.name).to_string();
+                    let call_types =
+                        call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
+                    let name = self.ctxt
+                        .interner
+                        .str(cls.name)
+                        .to_string();
                     let msg = Msg::UnknownCtor(name, call_types);
-                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, msg);
                 }
             }
 
@@ -626,16 +715,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = callee.return_type;
 
                 if !args_compatible(self.ctxt, &callee.params_without_self(), &call_types) {
-                    let callee_name = self.ctxt.interner.str(callee.name).to_string();
+                    let callee_name = self.ctxt
+                        .interner
+                        .str(callee.name)
+                        .to_string();
                     let callee_params = callee.params_without_self()
                         .iter()
                         .map(|a| a.name(self.ctxt))
                         .collect::<Vec<_>>();
-                    let call_types = call_types.iter()
-                        .map(|a| a.name(self.ctxt))
-                        .collect::<Vec<_>>();
+                    let call_types =
+                        call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
                     let msg = Msg::ParamTypesIncompatible(callee_name, callee_params, call_types);
-                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, msg);
                 }
             }
 
@@ -648,7 +742,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if throws {
                 let msg = Msg::ThrowingCallWithoutTry;
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(e.pos, msg);
             }
         }
     }
@@ -657,27 +754,39 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let arg_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
 
         // init(..) : super(..) is not allowed for classes with primary ctor
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
-            let name = self.ctxt.interner.str(owner.name).to_string();
+            let name = self.ctxt
+                .interner
+                .str(owner.name)
+                .to_string();
             let msg = Msg::NoSuperDelegationWithPrimaryCtor(name);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
 
             return;
         }
 
         // init(..) : super(..) not allowed for classes without base class
         if e.ty.is_super() && owner.parent_class.is_none() {
-            let name = self.ctxt.interner.str(owner.name).to_string();
+            let name = self.ctxt
+                .interner
+                .str(owner.name)
+                .to_string();
             let msg = Msg::NoSuperClass(name);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
 
             return;
         }
@@ -702,10 +811,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
         }
 
-        let name = self.ctxt.interner.str(cls.name).to_string();
+        let name = self.ctxt
+            .interner
+            .str(cls.name)
+            .to_string();
         let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
         let msg = Msg::UnknownCtor(name, arg_types);
-        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(e.pos, msg);
     }
 
     fn check_method_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
@@ -723,9 +838,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
 
         if let Some((cls_id, fct_id, return_type)) =
@@ -740,7 +855,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 if throws {
                     let msg = Msg::ThrowingCallWithoutTry;
-                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, msg);
                 }
             }
         } else {
@@ -759,7 +877,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let msg = Msg::SuperUnavailable;
-        self.ctxt.diag.borrow_mut().report(pos, msg);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(pos, msg);
 
         BuiltinType::Unit
     }
@@ -783,10 +904,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         // field not found, report error
-        let field_name = self.ctxt.interner.str(e.name).to_string();
+        let field_name = self.ctxt
+            .interner
+            .str(e.name)
+            .to_string();
         let expr_name = self.expr_type.name(self.ctxt);
         let msg = Msg::UnknownField(field_name, expr_name);
-        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(e.pos, msg);
         // we don't know the type of the field, just assume ()
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
@@ -809,7 +936,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             _ => {
                 let msg = Msg::ThisUnavailable;
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(e.pos, msg);
                 self.src.set_ty(e.id, BuiltinType::Unit);
                 self.expr_type = BuiltinType::Unit;
             }
@@ -818,7 +948,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_super(&mut self, e: &'ast ExprSuperType) {
         let msg = Msg::SuperNeedsMethodCall;
-        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(e.pos, msg);
         self.src.set_ty(e.id, BuiltinType::Unit);
         self.expr_type = BuiltinType::Unit;
     }
@@ -857,11 +990,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let e_type = self.expr_type;
             self.src.set_ty(e.id, e_type);
 
-            let fct_id = self.src.map_calls.get(call.id).unwrap().fct_id();
+            let fct_id = self.src
+                .map_calls
+                .get(call.id)
+                .unwrap()
+                .fct_id();
             let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
             if !throws {
-                self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryCallNonThrowing);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(e.pos, Msg::TryCallNonThrowing);
             }
 
             match e.mode {
@@ -874,7 +1014,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let e_type = e_type.name(self.ctxt);
                         let alt_type = alt_type.name(self.ctxt);
                         let msg = Msg::TypesIncompatible(e_type, alt_type);
-                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(e.pos, msg);
                     }
                 }
 
@@ -884,7 +1027,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.expr_type = e_type;
         } else {
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryNeedsCall);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::TryNeedsCall);
 
             self.expr_type = BuiltinType::Unit;
             self.src.set_ty(e.id, BuiltinType::Unit);
@@ -905,7 +1051,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !check_type.reference_type() {
             let name = check_type.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::ReferenceTypeExpected(name));
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::ReferenceTypeExpected(name));
             return;
         }
 
@@ -924,7 +1073,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let object_type = object_type.name(self.ctxt);
             let check_type = check_type.name(self.ctxt);
             let msg = Msg::TypesIncompatible(object_type, check_type);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
         }
 
         self.src.map_convs.insert(e.id,
@@ -937,7 +1089,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
-        let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
+        let sid = self.src
+            .map_idents
+            .get(e.id)
+            .unwrap()
+            .struct_id();
 
         let ty = BuiltinType::Struct(sid);
         self.src.set_ty(e.id, ty);
@@ -967,7 +1123,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 IntSuffix::Long => "long",
             };
 
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::NumberOverflow(ty.into()));
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty.into()));
         }
 
         self.src.set_ty(e.id, ty);
@@ -997,7 +1156,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 FloatSuffix::Double => "double",
             };
 
-            self.ctxt.diag.borrow_mut().report(e.pos, Msg::NumberOverflow(ty.into()));
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty.into()));
         }
 
         self.src.set_ty(e.id, ty);
