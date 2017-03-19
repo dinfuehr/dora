@@ -1,6 +1,7 @@
 use std::ptr;
 use libc;
 
+use execstate::ExecState;
 use os;
 
 pub struct PollingPage {
@@ -62,4 +63,12 @@ fn alloc_polling_page() -> *const u8 {
     }
 
     ptr as *const u8
+}
+
+pub fn enter(es: &ExecState) {
+    println!("enter safepoint");
+
+    unsafe {
+        libc::_exit(189)
+    }
 }

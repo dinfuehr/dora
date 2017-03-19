@@ -10,6 +10,7 @@ use ctxt::{Context, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
+use safepoint;
 use stacktrace::{handle_exception, get_stacktrace};
 
 #[cfg(target_family = "windows")]
@@ -169,10 +170,8 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         }
 
     } else if detect_polling_page_check(ctxt, signo, addr) {
-        println!("polling page read failed");
-        unsafe {
-            libc::_exit(189);
-        }
+        // polling page read failed => enter safepoint
+        safepoint::enter(&es);
 
         // otherwise trap not dected => crash
     } else {
