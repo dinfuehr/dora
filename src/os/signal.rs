@@ -72,9 +72,11 @@ fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
 }
 
 #[cfg(target_family = "unix")]
-fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
+fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     let mut es = read_execstate(ucontext);
     let ctxt = get_ctxt();
+
+    let addr = unsafe { (*info).si_addr } as *const u8;
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
         match trap {
@@ -166,11 +168,19 @@ fn handler(signo: libc::c_int, _: *const u8, ucontext: *const u8) {
             libc::_exit(103);
         }
 
+    } else if detect_polling_page_check(ctxt, signo, addr) {
+        println!("polling page read failed");
+        unsafe {
+            libc::_exit(189);
+        }
+
         // otherwise trap not dected => crash
     } else {
-        println!("error: trap not detected (signal {}).", signo);
+        println!("error: trap not detected (signal {}, addr {:?}).", signo, addr);
         println!();
         println!("{:?}", &es);
+        println!();
+        println!("polling page = {:?}", ctxt.polling_page.addr());
         println!();
 
         let code_map = ctxt.code_map.lock().unwrap();
@@ -198,6 +208,10 @@ fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
     } else {
         false
     }
+}
+
+fn detect_polling_page_check(ctxt: &Context, signo: libc::c_int, addr: *const u8) -> bool {
+    signo == libc::SIGSEGV && ctxt.polling_page.addr() == addr
 }
 
 fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
@@ -317,4 +331,11 @@ impl Trap {
             _ => None,
         }
     }
+}
+
+struct siginfo_t {
+    pub si_signo: libc::c_int,
+    pub si_errno: libc::c_int,
+    pub si_code: libc::c_int,
+    pub si_addr: *const libc::c_void,
 }

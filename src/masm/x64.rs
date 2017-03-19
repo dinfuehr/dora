@@ -814,9 +814,10 @@ impl MacroAssembler {
         let disp = self.dseg.add_addr_reuse(page);
         let pos = self.pos() as i32;
 
-        let offset = -(disp + pos);
+        let scratch = self.get_scratch();
+        self.load_constpool(*scratch, disp + pos);
 
-        asm::testl_reg_mem(self, RAX, Mem::Base(RIP, offset));
+        asm::testl_reg_mem(self, RAX, Mem::Base(*scratch, 0));
     }
 }
 
