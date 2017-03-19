@@ -277,7 +277,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_epilog(&mut self) {
         self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
-        self.masm.epilog(self.src.stacksize());
+        self.masm.epilog(self.src.stacksize(), self.ctxt.polling_page.addr());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {

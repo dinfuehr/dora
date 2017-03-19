@@ -93,7 +93,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
             self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_SP, 0));
         }
 
-        self.masm.epilog(framesize);
+        self.masm.epilog(framesize, self.ctxt.polling_page.addr());
 
         self.masm.jit(self.ctxt, framesize)
     }

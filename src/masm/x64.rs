@@ -1,5 +1,6 @@
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
+use baseline::fct::GcPoint;
 use baseline::fct::BailoutInfo;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
@@ -22,12 +23,18 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog(&mut self, stacksize: i32) {
+    pub fn epilog(&mut self, stacksize: i32, polling_page: *const u8) {
         if stacksize > 0 {
             asm::emit_addq_imm_reg(self, stacksize, RSP);
         }
 
         asm::emit_popq_reg(self, RBP);
+
+        self.check_polling_page(polling_page);
+
+        let gcpoint = GcPoint::new();
+        self.emit_gcpoint(gcpoint);
+
         asm::emit_retq(self);
     }
 
