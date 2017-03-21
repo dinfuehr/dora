@@ -315,7 +315,14 @@ impl Lexer {
             '~' => TokenKind::Tilde,
             ',' => TokenKind::Comma,
             ';' => TokenKind::Semicolon,
-            ':' => TokenKind::Colon,
+            ':' => {
+                if nch == ':' {
+                    self.read_char();
+                    TokenKind::Sep
+                } else {
+                    TokenKind::Colon
+                }
+            }
             '.' => TokenKind::Dot,
             '=' => {
                 if nch == '=' {
@@ -903,10 +910,11 @@ mod tests {
                    1,
                    9);
 
-        let mut reader = Lexer::from_str(">><<>>>_");
+        let mut reader = Lexer::from_str(">><<>>>_::");
         assert_tok(&mut reader, TokenKind::GtGt, 1, 1);
         assert_tok(&mut reader, TokenKind::LtLt, 1, 3);
         assert_tok(&mut reader, TokenKind::GtGtGt, 1, 5);
         assert_tok(&mut reader, TokenKind::Underscore, 1, 8);
+        assert_tok(&mut reader, TokenKind::Sep, 1, 9);
     }
 }

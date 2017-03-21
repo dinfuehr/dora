@@ -79,6 +79,7 @@ pub enum TokenKind {
     Semicolon,
     Dot,
     Colon,
+    Sep, // ::
     Arrow,
     Tilde,
     BitOr,
@@ -196,6 +197,7 @@ impl TokenKind {
             TokenKind::Semicolon => ";",
             TokenKind::Dot => ".",
             TokenKind::Colon => ":",
+            TokenKind::Sep => "::",
             TokenKind::Arrow => "=>",
             TokenKind::Tilde => "~",
             TokenKind::BitOr => "|",
