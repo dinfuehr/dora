@@ -50,6 +50,7 @@ mod stacktrace;
 mod stdlib;
 mod safepoint;
 mod sym;
+mod threads;
 mod timer;
 mod ty;
 mod vtable;
