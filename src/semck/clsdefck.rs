@@ -65,12 +65,9 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        visit::walk_class(self, c);
-
         if let Some(ref type_params) = c.type_params {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
-                let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
@@ -85,6 +82,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             .report(type_param.pos, msg);
                     }
 
+                    let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
                     cls.type_params.push(type_param.name);
                 }
 
@@ -96,6 +94,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     .report(c.pos, msg);
             }
         }
+
+        visit::walk_class(self, c);
 
         if let Some(ref parent_class) = c.parent_class {
             let name = self.ctxt
@@ -343,5 +343,10 @@ mod tests {
         err("class A<T, T>",
             pos(1, 12),
             Msg::TypeParamNameNotUnique("T".into()));
+    }
+
+    #[test]
+    fn test_generic_argument() {
+        ok("class A<T>(val: T)");
     }
 }

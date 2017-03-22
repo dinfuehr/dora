@@ -2,7 +2,7 @@ use ast::{Stmt, Type};
 use ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
 use error::msg::Msg;
-use sym::Sym::{SymClass, SymStruct};
+use sym::Sym::{SymClass, SymStruct, SymTypeParam};
 use ty::BuiltinType;
 
 mod clsdefck;
@@ -137,6 +137,10 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
 
                     SymStruct(struct_id) => {
                         return Some(BuiltinType::Struct(struct_id));
+                    }
+
+                    SymTypeParam(type_param_id) => {
+                        return Some(BuiltinType::TypeParam(type_param_id));
                     }
 
                     _ => {

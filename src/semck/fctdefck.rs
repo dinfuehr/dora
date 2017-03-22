@@ -4,9 +4,11 @@ use ast::visit::*;
 use ctxt::{Context, Fct, FctId, FctParent, FctSrc, GlobalId, NodeMap};
 use error::msg::Msg;
 use semck;
+use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>) {
+    println!("start fctdefck");
     for fct in &ctxt.fcts {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -15,12 +17,22 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
             continue;
         }
 
+        ctxt.sym.borrow_mut().push_level();
+
         match fct.parent {
             FctParent::Class(owner_class) => {
                 let cls = ctxt.classes[owner_class].borrow();
 
                 if fct.has_self() {
                     fct.param_types.push(cls.ty);
+                }
+
+                let mut type_param_id = 0;
+
+                for &name in &cls.type_params {
+                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    ctxt.sym.borrow_mut().insert(name, sym);
+                    type_param_id += 1;
                 }
             }
 
@@ -105,6 +117,8 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
         };
 
         defck.check();
+
+        ctxt.sym.borrow_mut().pop_level();
     }
 }
 

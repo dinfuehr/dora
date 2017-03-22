@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::Sym::*;
 
-use class::ClassId;
+use class::{ClassId, TypeParamId};
 use ctxt::*;
 use interner::Name;
 
@@ -89,6 +89,7 @@ pub enum Sym {
     SymStruct(StructId),
     SymTrait(TraitId),
     SymGlobal(GlobalId),
+    SymTypeParam(TypeParamId),
 }
 
 impl Sym {
@@ -172,6 +173,20 @@ impl Sym {
     pub fn to_global(&self) -> Option<GlobalId> {
         match *self {
             SymGlobal(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_type_param(&self) -> bool {
+        match *self {
+            SymTypeParam(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_type_param(&self) -> Option<TypeParamId> {
+        match *self {
+            SymTypeParam(id) => Some(id),
             _ => None,
         }
     }

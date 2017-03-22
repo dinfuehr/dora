@@ -1,4 +1,4 @@
-use class::ClassId;
+use class::{ClassId, TypeParamId};
 use ctxt::{Context, StructId, TraitId};
 use mem;
 
@@ -48,6 +48,9 @@ pub enum BuiltinType {
 
     // some trait
     Trait(TraitId),
+
+    // some type variable
+    TypeParam(TypeParamId),
 }
 
 impl BuiltinType {
@@ -163,6 +166,7 @@ impl BuiltinType {
                 let name = ctxt.traits[tid].borrow().name;
                 ctxt.interner.str(name).to_string()
             }
+            BuiltinType::TypeParam(_) => "type variable".into(),
         }
     }
 
@@ -196,6 +200,7 @@ impl BuiltinType {
                 other.subclass_from(ctxt, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::TypeParam(_) => unimplemented!(),
         }
     }
 
@@ -228,6 +233,7 @@ impl BuiltinType {
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
+            BuiltinType::TypeParam(_) => panic!("no size for type variable."),
         }
     }
 
@@ -256,6 +262,7 @@ impl BuiltinType {
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
             BuiltinType::Trait(_) => mem::ptr_width(),
+            BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
         }
     }
 
@@ -284,6 +291,7 @@ impl BuiltinType {
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
+            BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
         }
     }
 }

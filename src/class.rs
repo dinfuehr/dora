@@ -183,6 +183,15 @@ impl Class {
     }
 }
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct TypeParamId(usize);
+
+impl From<usize> for TypeParamId {
+    fn from(data: usize) -> TypeParamId {
+        TypeParamId(data)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldId(usize);
 
