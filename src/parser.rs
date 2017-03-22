@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
-            type_params: Vec::new(),
+            type_params: None,
         };
 
         self.parse_type_params(&mut cls)?;
@@ -291,7 +291,7 @@ impl<'a> Parser<'a> {
             self.advance_token()?;
 
             let params = self.parse_comma_list(TokenKind::Gt, |p| p.parse_type_param())?;
-            cls.type_params = params;
+            cls.type_params = Some(params);
         }
 
         Ok(())
@@ -1058,10 +1058,20 @@ impl<'a> Parser<'a> {
                     let tok = self.advance_token()?;
                     let ident = self.expect_identifier()?;
 
+                    let type_params = if self.token.is(TokenKind::Sep) {
+                        self.advance_token()?;
+                        self.expect_token(TokenKind::Lt)?;
+
+                        Some(self.parse_comma_list(TokenKind::Gt, |p| p.parse_type())?)
+                    } else {
+                        None
+                    };
+
                     if self.token.is(TokenKind::LParen) {
-                        self.parse_call(tok.position, Some(left), ident)?
+                        self.parse_call(tok.position, Some(left), ident, type_params)?
 
                     } else {
+                        assert!(type_params.is_none());
                         Box::new(Expr::create_field(self.generate_id(), tok.position, left, ident))
                     }
                 }
@@ -1140,16 +1150,26 @@ impl<'a> Parser<'a> {
         let pos = self.token.position;
         let ident = self.expect_identifier()?;
 
+        let type_params = if self.token.is(TokenKind::Sep) {
+            self.advance_token()?;
+            self.expect_token(TokenKind::Lt)?;
+
+            Some(self.parse_comma_list(TokenKind::Gt, |p| p.parse_type())?)
+        } else {
+            None
+        };
+
         // is this a function call?
         if self.token.is(TokenKind::LParen) {
-            self.parse_call(pos, None, ident)
+            self.parse_call(pos, None, ident, type_params)
 
         } else if self.token.is(TokenKind::LBrace) && opts.parse_struct_lit {
+            assert!(type_params.is_none());
             self.parse_lit_struct(pos, ident)
 
-            // if not we have a simple variable
+            // if not we have a simple identifier
         } else {
-            Ok(Box::new(Expr::create_ident(self.generate_id(), pos, ident)))
+            Ok(Box::new(Expr::create_ident(self.generate_id(), pos, ident, type_params)))
         }
     }
 
@@ -1176,12 +1196,17 @@ impl<'a> Parser<'a> {
            })
     }
 
-    fn parse_call(&mut self, pos: Position, object: Option<Box<Expr>>, ident: Name) -> ExprResult {
+    fn parse_call(&mut self,
+                  pos: Position,
+                  object: Option<Box<Expr>>,
+                  ident: Name,
+                  type_params: Option<Vec<Type>>)
+                  -> ExprResult {
         self.expect_token(TokenKind::LParen)?;
 
         let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
-        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, object, args)))
+        Ok(Box::new(Expr::create_call(self.generate_id(), pos, ident, object, args, type_params)))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1472,6 +1497,7 @@ impl<'a> Parser<'a> {
                                      id: id,
                                      pos: Position::new(1, 1),
                                      name: name,
+                                     type_params: None,
                                  }))
     }
 
@@ -3102,14 +3128,16 @@ mod tests {
         let (prog, interner) = parse("class Foo<T>");
         let cls = prog.cls0();
 
-        assert_eq!(1, cls.type_params.len());
-        assert_eq!("T", *interner.str(cls.type_params[0].name));
+        let type_params = cls.type_params.as_ref().unwrap();
+        assert_eq!(1, type_params.len());
+        assert_eq!("T", *interner.str(type_params[0].name));
 
         let (prog, interner) = parse("class Foo<X>");
         let cls = prog.cls0();
 
-        assert_eq!(1, cls.type_params.len());
-        assert_eq!("X", *interner.str(cls.type_params[0].name));
+        let type_params = cls.type_params.as_ref().unwrap();
+        assert_eq!(1, type_params.len());
+        assert_eq!("X", *interner.str(type_params[0].name));
     }
 
     #[test]
@@ -3117,9 +3145,10 @@ mod tests {
         let (prog, interner) = parse("class Foo<A, B>");
         let cls = prog.cls0();
 
-        assert_eq!(2, cls.type_params.len());
-        assert_eq!("A", *interner.str(cls.type_params[0].name));
-        assert_eq!("B", *interner.str(cls.type_params[1].name));
+        let type_params = cls.type_params.as_ref().unwrap();
+        assert_eq!(2, type_params.len());
+        assert_eq!("A", *interner.str(type_params[0].name));
+        assert_eq!("B", *interner.str(type_params[1].name));
     }
 
     #[test]
@@ -3191,5 +3220,28 @@ mod tests {
         let stmt = parse_stmt("spawn 1;");
         let spawn = stmt.to_spawn().unwrap();
         assert!(spawn.expr.is_lit_int());
+    }
+
+    #[test]
+    fn parse_fct_call_with_type_param() {
+        let (expr, _) = parse_expr("Array::<int>()");
+        let ident = expr.to_call().unwrap();
+
+        assert_eq!(1, ident.type_params.as_ref().unwrap().len());
+
+        let (expr, _) = parse_expr("Foo::<int, long>()");
+        let ident = expr.to_call().unwrap();
+
+        assert_eq!(2, ident.type_params.as_ref().unwrap().len());
+
+        let (expr, _) = parse_expr("Bar::<>()");
+        let ident = expr.to_call().unwrap();
+
+        assert_eq!(0, ident.type_params.as_ref().unwrap().len());
+
+        let (expr, _) = parse_expr("Vec()");
+        let ident = expr.to_call().unwrap();
+
+        assert!(ident.type_params.is_none());
     }
 }

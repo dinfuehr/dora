@@ -175,7 +175,9 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
         // otherwise trap not dected => crash
     } else {
-        println!("error: trap not detected (signal {}, addr {:?}).", signo, addr);
+        println!("error: trap not detected (signal {}, addr {:?}).",
+                 signo,
+                 addr);
         println!();
         println!("{:?}", &es);
         println!();

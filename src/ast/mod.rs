@@ -408,7 +408,7 @@ pub struct Class {
     pub ctors: Vec<Function>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: Option<Vec<TypeParam>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1272,11 +1272,16 @@ impl Expr {
         Expr::ExprNil(ExprNilType { id: id, pos: pos })
     }
 
-    pub fn create_ident(id: NodeId, pos: Position, name: Name) -> Expr {
+    pub fn create_ident(id: NodeId,
+                        pos: Position,
+                        name: Name,
+                        type_params: Option<Vec<Type>>)
+                        -> Expr {
         Expr::ExprIdent(ExprIdentType {
                             id: id,
                             pos: pos,
                             name: name,
+                            type_params: type_params,
                         })
     }
 
@@ -1284,7 +1289,8 @@ impl Expr {
                        pos: Position,
                        name: Name,
                        object: Option<Box<Expr>>,
-                       args: Vec<Box<Expr>>)
+                       args: Vec<Box<Expr>>,
+                       type_params: Option<Vec<Type>>)
                        -> Expr {
         Expr::ExprCall(ExprCallType {
                            id: id,
@@ -1292,6 +1298,7 @@ impl Expr {
                            name: name,
                            args: args,
                            object: object,
+                           type_params: type_params,
                        })
     }
 
@@ -1798,6 +1805,7 @@ pub struct ExprIdentType {
     pub pos: Position,
 
     pub name: Name,
+    pub type_params: Option<Vec<Type>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1808,6 +1816,7 @@ pub struct ExprCallType {
     pub name: Name,
     pub object: Option<Box<Expr>>,
     pub args: Vec<Box<Expr>>,
+    pub type_params: Option<Vec<Type>>,
 }
 
 #[derive(Clone, Debug)]

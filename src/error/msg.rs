@@ -86,6 +86,8 @@ pub enum Msg {
     TryNeedsCall,
     TryCallNonThrowing,
     ThrowingCallWithoutTry,
+    TypeParamsExpected,
+    TypeParamNameNotUnique(String),
     MethodNotInTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
 }
@@ -265,6 +267,8 @@ impl Msg {
             ThrowingCallWithoutTry => {
                 "function or method call that is able to throw, needs `try`.".into()
             }
+            TypeParamsExpected => "type params expected".into(),
+            TypeParamNameNotUnique(ref name) => format!("type param `{}` name already used", name),
             MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 

@@ -13,8 +13,6 @@ pub struct ThreadLocalData {
 
 impl ThreadLocalData {
     pub fn new() -> ThreadLocalData {
-        ThreadLocalData {
-            d2n: ptr::null(),
-        }
+        ThreadLocalData { d2n: ptr::null() }
     }
 }

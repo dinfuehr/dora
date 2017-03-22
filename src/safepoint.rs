@@ -65,7 +65,7 @@ fn alloc_polling_page() -> *const u8 {
     ptr as *const u8
 }
 
-pub fn enter(es: &ExecState) {
+pub fn enter(_: &ExecState) {
     println!("enter safepoint");
 
     unsafe { libc::_exit(189) }

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use ast;
@@ -65,6 +66,36 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
         visit::walk_class(self, c);
+
+        if let Some(ref type_params) = c.type_params {
+            if type_params.len() > 0 {
+                let mut names = HashSet::new();
+                let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+
+                for type_param in type_params {
+                    if !names.insert(type_param.name) {
+                        let name = self.ctxt
+                            .interner
+                            .str(type_param.name)
+                            .to_string();
+                        let msg = Msg::TypeParamNameNotUnique(name);
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(type_param.pos, msg);
+                    }
+
+                    cls.type_params.push(type_param.name);
+                }
+
+            } else {
+                let msg = Msg::TypeParamsExpected;
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(c.pos, msg);
+            }
+        }
 
         if let Some(ref parent_class) = c.parent_class {
             let name = self.ctxt
@@ -303,5 +334,14 @@ mod tests {
         err("class Foo(a: int) { var b: int = b; }",
             pos(1, 34),
             Msg::UnknownIdentifier("b".into()));
+    }
+
+    #[test]
+    fn test_generic_class() {
+        ok("class A<T>");
+        ok("class A<X, Y>");
+        err("class A<T, T>",
+            pos(1, 12),
+            Msg::TypeParamNameNotUnique("T".into()));
     }
 }
