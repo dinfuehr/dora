@@ -42,8 +42,6 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
         parser.parse().unwrap()
     }
 
-    ast::dump::dump(&ast, &interner);
-
     let mut ctxt = Context::new(args, &ast, interner);
 
     semck::check(&mut ctxt);

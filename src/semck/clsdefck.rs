@@ -65,9 +65,12 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
+        self.ctxt.sym.borrow_mut().push_level();
+
         if let Some(ref type_params) = c.type_params {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
+                let mut type_param_id = 0;
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
@@ -84,6 +87,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                     let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
                     cls.type_params.push(type_param.name);
+
+                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
+                    type_param_id += 1;
                 }
 
             } else {
@@ -134,6 +141,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
+        self.ctxt.sym.borrow_mut().pop_level();
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {
@@ -348,5 +356,7 @@ mod tests {
     #[test]
     fn test_generic_argument() {
         ok("class A<T>(val: T)");
+        //ok("class A<T>(var val: T)");
+        //ok("class A<T>(let val: T)");
     }
 }
