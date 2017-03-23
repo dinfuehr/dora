@@ -65,7 +65,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.ctxt.sym.borrow_mut().push_level();
+        self.ctxt
+            .sym
+            .borrow_mut()
+            .push_level();
 
         if let Some(ref type_params) = c.type_params {
             if type_params.len() > 0 {
@@ -89,7 +92,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     cls.type_params.push(type_param.name);
 
                     let sym = Sym::SymTypeParam(type_param_id.into());
-                    self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
+                    self.ctxt
+                        .sym
+                        .borrow_mut()
+                        .insert(type_param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -141,7 +147,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
-        self.ctxt.sym.borrow_mut().pop_level();
+        self.ctxt
+            .sym
+            .borrow_mut()
+            .pop_level();
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {

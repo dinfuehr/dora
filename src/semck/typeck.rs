@@ -677,60 +677,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match call_type {
             CallType::CtorNew(cls_id, _) => {
-                let cls = self.ctxt.classes[cls_id].borrow();
-                self.src.set_ty(e.id, cls.ty);
-                self.expr_type = cls.ty;
-                let mut found = false;
-
-                for &ctor in &cls.ctors {
-                    let ctor = self.ctxt.fcts[ctor].borrow();
-
-                    if args_compatible(self.ctxt, &ctor.params_without_self(), &call_types) {
-                        let call_type = CallType::CtorNew(cls_id, ctor.id);
-                        self.src.map_calls.replace(e.id, call_type);
-
-                        found = true;
-                        break;
-                    }
-                }
-
-                if !found {
-                    let call_types =
-                        call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
-                    let name = self.ctxt
-                        .interner
-                        .str(cls.name)
-                        .to_string();
-                    let msg = Msg::UnknownCtor(name, call_types);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, msg);
-                }
+                self.check_expr_call_ctor(e, cls_id, call_types);
             }
 
             CallType::Fct(callee_id) => {
-                let callee = self.ctxt.fcts[callee_id].borrow();
-                self.src.set_ty(e.id, callee.return_type);
-                self.expr_type = callee.return_type;
-
-                if !args_compatible(self.ctxt, &callee.params_without_self(), &call_types) {
-                    let callee_name = self.ctxt
-                        .interner
-                        .str(callee.name)
-                        .to_string();
-                    let callee_params = callee.params_without_self()
-                        .iter()
-                        .map(|a| a.name(self.ctxt))
-                        .collect::<Vec<_>>();
-                    let call_types =
-                        call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
-                    let msg = Msg::ParamTypesIncompatible(callee_name, callee_params, call_types);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, msg);
-                }
+                self.check_expr_call_fct(e, callee_id, call_types);
             }
 
             _ => panic!("invocation of method"),
@@ -747,6 +698,97 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .borrow_mut()
                     .report(e.pos, msg);
             }
+        }
+    }
+
+    fn check_expr_call_ctor(&mut self,
+                            e: &'ast ExprCallType,
+                            cls_id: ClassId,
+                            call_types: Vec<BuiltinType>) {
+        if let Some(ref type_params) = e.type_params {
+            let mut types = Vec::new();
+
+            for type_param in type_params {
+                let ty = read_type(self.ctxt, type_param).unwrap_or(BuiltinType::Unit);
+                types.push(ty);
+            }
+
+            let cls = self.ctxt.classes[cls_id].borrow();
+
+            if cls.type_params.len() != types.len() {
+                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), types.len());
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(e.pos, msg);
+            }
+        } else {
+            let cls = self.ctxt.classes[cls_id].borrow();
+
+            if cls.type_params.len() > 0 {
+                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), 0);
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(e.pos, msg);
+            }
+        }
+
+        let cls = self.ctxt.classes[cls_id].borrow();
+        let mut found = false;
+
+        for &ctor in &cls.ctors {
+            let ctor = self.ctxt.fcts[ctor].borrow();
+
+            if args_compatible(self.ctxt, &ctor.params_without_self(), &call_types) {
+                let call_type = CallType::CtorNew(cls_id, ctor.id);
+                self.src.map_calls.replace(e.id, call_type);
+
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            let call_types = call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
+            let name = self.ctxt
+                .interner
+                .str(cls.name)
+                .to_string();
+            let msg = Msg::UnknownCtor(name, call_types);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
+        }
+
+        self.src.set_ty(e.id, cls.ty);
+        self.expr_type = cls.ty;
+    }
+
+    fn check_expr_call_fct(&mut self,
+                           e: &'ast ExprCallType,
+                           callee_id: FctId,
+                           call_types: Vec<BuiltinType>) {
+        let callee = self.ctxt.fcts[callee_id].borrow();
+        self.src.set_ty(e.id, callee.return_type);
+        self.expr_type = callee.return_type;
+
+        if !args_compatible(self.ctxt, &callee.params_without_self(), &call_types) {
+            let callee_name = self.ctxt
+                .interner
+                .str(callee.name)
+                .to_string();
+            let callee_params = callee.params_without_self()
+                .iter()
+                .map(|a| a.name(self.ctxt))
+                .collect::<Vec<_>>();
+            let call_types = call_types.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
+            let msg = Msg::ParamTypesIncompatible(callee_name, callee_params, call_types);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, msg);
         }
     }
 
@@ -2106,6 +2148,24 @@ mod tests {
         err("fun foo() -> char { return 10; }",
             pos(1, 21),
             Msg::ReturnType("char".into(), "int".into()));
+    }
+
+    #[test]
+    fn test_generic_arguments_mismatch() {
+        err("class A<T>
+            fun foo() {
+                let a = A::<int, int>();
+            }", pos(3, 25), Msg::WrongNumberTypeParams(1, 2));
+
+        err("class A<T>
+            fun foo() {
+                let a = A();
+            }", pos(3, 25), Msg::WrongNumberTypeParams(1, 0));
+
+        err("class A
+            fun foo() {
+                let a = A::<int>();
+            }", pos(3, 25), Msg::WrongNumberTypeParams(0, 1));
     }
 
     // #[test]

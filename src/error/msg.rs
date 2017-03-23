@@ -90,6 +90,7 @@ pub enum Msg {
     TypeParamNameNotUnique(String),
     MethodNotInTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
+    WrongNumberTypeParams(usize, usize),
 }
 
 impl Msg {
@@ -284,6 +285,9 @@ impl Msg {
                         trait_name,
                         mtd_name,
                         args)
+            }
+            WrongNumberTypeParams(exp, actual) => {
+                format!("expected {} type parameters but got {}.", exp, actual)
             }
         }
     }
