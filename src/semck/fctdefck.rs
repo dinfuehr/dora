@@ -8,7 +8,6 @@ use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>) {
-    println!("start fctdefck");
     for fct in &ctxt.fcts {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
