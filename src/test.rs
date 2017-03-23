@@ -1,6 +1,6 @@
 use ctxt::Context;
 use driver::cmd::Args;
-use ast::{self, Ast};
+use ast::Ast;
 use interner::Interner;
 use lexer::reader::Reader;
 use os;

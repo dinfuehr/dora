@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn test_generic_argument() {
         ok("class A<T>(val: T)");
-        //ok("class A<T>(var val: T)");
-        //ok("class A<T>(let val: T)");
+        ok("class A<T>(var val: T)");
+        ok("class A<T>(let val: T)");
     }
 }

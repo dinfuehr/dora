@@ -117,7 +117,7 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
 
         // internal classes like IntArray should have size 0, since
         // their "real" size is dynamic and not static
-        if !cls.internal {
+        if !cls.internal && !cls.is_generic() {
             determine_class_size(ctxt, &mut *cls, &mut sizes);
         }
     }

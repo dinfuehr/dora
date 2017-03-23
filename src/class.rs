@@ -65,6 +65,10 @@ pub struct Class {
 }
 
 impl Class {
+    pub fn is_generic(&self) -> bool {
+        self.type_params.len() > 0
+    }
+
     pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 

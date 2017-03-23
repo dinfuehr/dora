@@ -200,7 +200,7 @@ impl BuiltinType {
                 other.subclass_from(ctxt, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
-            BuiltinType::TypeParam(_) => unimplemented!(),
+            BuiltinType::TypeParam(_) => *self == other,
         }
     }
 
