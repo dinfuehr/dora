@@ -63,7 +63,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_global(&mut self, g: &'ast Global) {
-        let id: GlobalId = (self.ctxt.globals.len() as u32).into();
+        let id: GlobalId = (self.ctxt.globals.borrow().len() as u32).into();
         let global = GlobalData {
             id: id,
             ast: g,
@@ -72,7 +72,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ty: BuiltinType::Unit,
         };
 
-        self.ctxt.globals.push(RefCell::new(global));
+        self.ctxt.globals.borrow_mut().push(global);
 
         let sym = SymGlobal(id);
         self.map_global_defs.insert(g.id, id);

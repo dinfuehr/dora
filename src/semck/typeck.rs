@@ -230,7 +230,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Global(globalid) => {
-                let ty = self.ctxt.globals[globalid].borrow().ty;
+                let ty = self.ctxt.globals.borrow()[globalid].ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }

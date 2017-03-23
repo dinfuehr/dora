@@ -167,10 +167,9 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
     fn visit_global(&mut self, g: &'ast Global) {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
-        let mut global = self.ctxt.globals[global_id].borrow_mut();
 
         self.visit_type(&g.data_type);
-        global.ty = self.current_type;
+        self.ctxt.globals.borrow_mut()[global_id].ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
