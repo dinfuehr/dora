@@ -58,6 +58,7 @@ pub struct Class {
 
     pub type_params: Vec<Name>,
     pub specialization_for: Option<ClassId>,
+    pub specialization_params: Vec<BuiltinType>,
     pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
 
     /// contains offset of all reference fields in this class.
@@ -190,6 +191,12 @@ impl Class {
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct TypeParamId(usize);
+
+impl TypeParamId {
+    pub fn idx(self) -> usize {
+        self.0
+    }
+}
 
 impl From<usize> for TypeParamId {
     fn from(data: usize) -> TypeParamId {

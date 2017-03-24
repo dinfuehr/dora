@@ -1,7 +1,8 @@
 use std::{f32, f64};
+use std::collections::HashMap;
 
 use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType};
-use class::ClassId;
+use class::{self, ClassId};
 use error::msg::Msg;
 
 use ast::*;
@@ -703,7 +704,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_ctor(&mut self,
                             e: &'ast ExprCallType,
-                            cls_id: ClassId,
+                            mut cls_id: ClassId,
                             call_types: Vec<BuiltinType>) {
         if let Some(ref type_params) = e.type_params {
             let mut types = Vec::new();
@@ -713,7 +714,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 types.push(ty);
             }
 
-            let cls = self.ctxt.classes[cls_id].borrow();
+            let mut cls = self.ctxt.classes[cls_id].borrow_mut();
 
             if cls.type_params.len() != types.len() {
                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), types.len());
@@ -722,6 +723,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .borrow_mut()
                     .report(e.pos, msg);
             }
+
+            cls_id = specialize_class(self.ctxt, &mut *cls, types);
         } else {
             let cls = self.ctxt.classes[cls_id].borrow();
 
@@ -1281,6 +1284,66 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
     }
 
     true
+}
+
+fn specialize_class(ctxt: &Context, cls: &mut class::Class, type_params: Vec<BuiltinType>) -> ClassId {
+    if let Some(&id) = cls.specializations.get(&type_params) {
+        return id;
+    }
+
+    let id = create_specialized_class(ctxt, cls, type_params.clone());
+    cls.specializations.insert(type_params, id);
+
+    id
+}
+
+fn create_specialized_class(ctxt: &Context, cls: &mut class::Class, type_params: Vec<BuiltinType>) -> ClassId {
+    let id = ctxt.classes.len().into();
+
+    let cloned_fields = cls.fields.iter().map(|field| {
+        let ty = match field.ty {
+            BuiltinType::TypeParam(id) => type_params[id.idx()],
+            _ => field.ty,
+        };
+
+        class::Field {
+            id: field.id,
+            name: field.name,
+            ty: ty,
+            offset: field.offset,
+            reassignable: field.reassignable,
+        }
+    }).collect();
+
+    ctxt.classes.push(class::Class {
+        id: id,
+        pos: cls.pos,
+        name: cls.name,
+        ty: BuiltinType::Class(id),
+        parent_class: cls.parent_class,
+        has_open: cls.has_open,
+        internal: cls.internal,
+        internal_resolved: cls.internal_resolved,
+        primary_ctor: cls.primary_ctor,
+
+        ctors: cls.ctors.clone(),
+        fields: cloned_fields,
+        methods: cls.methods.clone(),
+        size: 0,
+        vtable: None,
+
+        traits: cls.traits.clone(),
+        impls: cls.impls.clone(),
+
+        type_params: Vec::new(),
+        specialization_for: Some(cls.id),
+        specialization_params: type_params,
+        specializations: HashMap::new(),
+
+        ref_fields: Vec::new(),
+    });
+
+    id
 }
 
 #[cfg(test)]
