@@ -88,7 +88,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn internalck<'ast>(ctxt: &Context<'ast>) {
-    for fct in &ctxt.fcts {
+    for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
         if fct.internal && !fct.internal_resolved {
@@ -100,7 +100,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
         }
     }
 
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
         if cls.internal && !cls.internal_resolved {

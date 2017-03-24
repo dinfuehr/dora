@@ -30,7 +30,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
         let mut map: HashSet<ClassId> = HashSet::new();
@@ -56,7 +56,7 @@ fn determine_struct_sizes<'ast>(ctxt: &Context<'ast>) {
     let mut path = Vec::new();
     let mut sizes = HashMap::new();
 
-    for struc in &ctxt.structs {
+    for struc in ctxt.structs.iter() {
         let mut struc = struc.borrow_mut();
         determine_struct_size(ctxt, &mut path, &mut sizes, &mut *struc);
     }
@@ -112,7 +112,7 @@ fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
 fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
     let mut sizes = HashMap::new();
 
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
 
         // internal classes like IntArray should have size 0, since
@@ -168,7 +168,7 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
 }
 
 fn check_override<'ast>(ctxt: &Context<'ast>) {
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
         for &fct_id in &cls.methods {
@@ -237,7 +237,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
 }
 
 fn create_vtables<'ast>(ctxt: &Context<'ast>) {
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
         ensure_super_vtables(ctxt, &mut *cls);
     }
@@ -290,7 +290,7 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
 }
 
 fn create_displays<'ast>(ctxt: &Context<'ast>) {
-    for cls in &ctxt.classes {
+    for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
 
         ensure_display(ctxt, &mut *cls);

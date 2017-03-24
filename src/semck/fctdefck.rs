@@ -8,7 +8,7 @@ use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>) {
-    for fct in &ctxt.fcts {
+    for fct in ctxt.fcts.iter() {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
 
@@ -169,7 +169,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
 
         self.visit_type(&g.data_type);
-        self.ctxt.globals.borrow_mut()[global_id].ty = self.current_type;
+        self.ctxt.globals[global_id].borrow_mut().ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {

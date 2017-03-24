@@ -22,6 +22,7 @@ use stacktrace::DoraToNativeInfo;
 use sym::*;
 use sym::Sym::*;
 use ty::BuiltinType;
+use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
 
@@ -36,13 +37,13 @@ pub struct Context<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
-    pub structs: Vec<RefCell<StructData>>,
-    pub classes: Vec<RefCell<Box<Class>>>, // stores all class definitions
-    pub fcts: Vec<RefCell<Fct<'ast>>>, // stores all function definitions
+    pub structs: GrowableVec<StructData>, // stores all struct definitions
+    pub classes: GrowableVec<Class>, // stores all class definitions
+    pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
     pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
-    pub globals: RefCell<Vec<GlobalData<'ast>>>, // stores all global variables
+    pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc, // garbage collector
     pub sfi: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
@@ -57,11 +58,11 @@ impl<'ast> Context<'ast> {
 
         Context {
             args: args,
-            structs: Vec::new(),
-            classes: Vec::new(),
+            structs: GrowableVec::new(),
+            classes: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
-            globals: RefCell::new(Vec::new()),
+            globals: GrowableVec::new(),
             interner: interner,
             primitive_classes: PrimitiveClasses {
                 bool_class: empty_class_id,
@@ -85,7 +86,7 @@ impl<'ast> Context<'ast> {
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
-            fcts: Vec::new(),
+            fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             sfi: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
@@ -130,7 +131,7 @@ impl<'ast> Context<'ast> {
 
         fct.id = fctid;
 
-        self.fcts.push(RefCell::new(fct));
+        self.fcts.push(fct);
 
         fctid
     }
@@ -158,7 +159,7 @@ impl<'ast> Context<'ast> {
     }
 }
 
-impl<'ast> Index<FctId> for Vec<RefCell<Fct<'ast>>> {
+impl<'ast> Index<FctId> for GrowableVec<Fct<'ast>> {
     type Output = RefCell<Fct<'ast>>;
 
     fn index(&self, index: FctId) -> &RefCell<Fct<'ast>> {
@@ -184,17 +185,11 @@ pub struct GlobalData<'ast> {
     pub name: Name,
 }
 
-impl<'ast> Index<GlobalId> for Vec<GlobalData<'ast>> {
-    type Output = GlobalData<'ast>;
+impl<'ast> Index<GlobalId> for GrowableVec<GlobalData<'ast>> {
+    type Output = RefCell<GlobalData<'ast>>;
 
-    fn index(&self, index: GlobalId) -> &GlobalData<'ast> {
+    fn index(&self, index: GlobalId) -> &RefCell<GlobalData<'ast>> {
         &self[index.0 as usize]
-    }
-}
-
-impl<'ast> IndexMut<GlobalId> for Vec<GlobalData<'ast>> {
-    fn index_mut(&mut self, index: GlobalId) -> &mut GlobalData<'ast> {
-        &mut self [index.0 as usize]
     }
 }
 
@@ -306,7 +301,7 @@ impl Index<TraitId> for Vec<RefCell<TraitData>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl Index<StructId> for Vec<RefCell<StructData>> {
+impl Index<StructId> for GrowableVec<StructData> {
     type Output = RefCell<StructData>;
 
     fn index(&self, index: StructId) -> &RefCell<StructData> {

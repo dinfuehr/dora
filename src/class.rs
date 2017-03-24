@@ -8,6 +8,7 @@ use interner::Name;
 use lexer::position::Position;
 use vtable::VTableBox;
 use ty::BuiltinType;
+use utils::GrowableVec;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
@@ -24,10 +25,10 @@ impl From<usize> for ClassId {
     }
 }
 
-impl Index<ClassId> for Vec<RefCell<Box<Class>>> {
-    type Output = RefCell<Box<Class>>;
+impl Index<ClassId> for GrowableVec<Class> {
+    type Output = RefCell<Class>;
 
-    fn index(&self, index: ClassId) -> &RefCell<Box<Class>> {
+    fn index(&self, index: ClassId) -> &RefCell<Class> {
         &self[index.0]
     }
 }

@@ -15,7 +15,7 @@ use semck::read_type;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
-    for fct in &ctxt.fcts {
+    for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
         if !fct.is_src() {
@@ -230,7 +230,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Global(globalid) => {
-                let ty = self.ctxt.globals.borrow()[globalid].ty;
+                let ty = self.ctxt.globals[globalid].borrow().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }

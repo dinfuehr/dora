@@ -53,6 +53,7 @@ mod sym;
 mod threads;
 mod timer;
 mod ty;
+mod utils;
 mod vtable;
 
 #[cfg(test)]

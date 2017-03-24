@@ -8,7 +8,7 @@ use lexer::position::Position;
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
-    for fct in &ctxt.fcts {
+    for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
         if !fct.is_src() {
