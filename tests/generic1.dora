@@ -1,0 +1,7 @@
+//= ignore
+
+fun main() {
+    let a = A::<int>(1);
+}
+
+class A<T>(let x: T)

@@ -738,15 +738,10 @@ pub struct FctSrc<'ast> {
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
 
-    pub tempsize: i32, // size of temporary variables on stack
-    pub localsize: i32, // size of local variables on stack
-    pub argsize: i32, // size of arguments on stack (need to be on bottom)
-    pub leaf: bool, // false if fct calls other functions
     pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub jit_fct: Option<JitFct>, // compile function
-    pub eh_return_value: Option<i32>, // stack slot for return value storage
 }
 
 impl<'ast> Clone for FctSrc<'ast> {
@@ -762,14 +757,9 @@ impl<'ast> Clone for FctSrc<'ast> {
             map_convs: self.map_convs.clone(),
             map_cls: self.map_cls.clone(),
 
-            tempsize: self.tempsize,
-            localsize: self.localsize,
-            argsize: self.argsize,
-            leaf: self.leaf,
             vars: self.vars.clone(),
             always_returns: self.always_returns,
             jit_fct: None,
-            eh_return_value: self.eh_return_value,
         }
     }
 }
@@ -787,14 +777,9 @@ impl<'ast> FctSrc<'ast> {
             map_convs: NodeMap::new(),
             map_cls: NodeMap::new(),
 
-            tempsize: 0,
-            localsize: 0,
-            argsize: 0,
-            leaf: false,
             vars: Vec::new(),
             always_returns: false,
             jit_fct: None,
-            eh_return_value: None,
         }
     }
 
@@ -814,10 +799,6 @@ impl<'ast> FctSrc<'ast> {
             .get(id)
             .unwrap()
             .clone()
-    }
-
-    pub fn stacksize(&self) -> i32 {
-        mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
     }
 
     pub fn var_self(&self) -> &Var {

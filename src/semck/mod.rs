@@ -62,8 +62,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     fctdefck::check(ctxt, &map_global_defs);
     return_on_error!(ctxt);
 
-    // add size of super classes to field offsets
-    superck::check(ctxt);
+    superck::check_override(ctxt);
+    return_on_error!(ctxt);
 
     // check impl methods against trait definition
     implck::check(ctxt);
@@ -78,6 +78,9 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // checks if function has a return value
     returnck::check(ctxt);
+
+    // add size of super classes to field offsets
+    superck::check(ctxt);
 
     // define internal functions
     prelude::internal_functions(ctxt);

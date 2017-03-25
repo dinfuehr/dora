@@ -17,7 +17,6 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         return;
     }
 
-    check_override(ctxt);
     if ctxt.diag.borrow().has_errors() {
         return;
     }
@@ -167,7 +166,7 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
     cls.size
 }
 
-fn check_override<'ast>(ctxt: &Context<'ast>) {
+pub fn check_override<'ast>(ctxt: &Context<'ast>) {
     for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 

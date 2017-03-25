@@ -3,6 +3,7 @@ use ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
                         should_emit_debug, TempOffsets};
 use baseline::fct::{CatchType, Comment};
+use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassId, FieldId};
@@ -77,6 +78,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
     scopes: &'a mut Scopes,
     tempsize: i32,
     temps: TempOffsets,
+    jit_info: &'a JitInfo,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast>
@@ -87,7 +89,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                src: &'a mut FctSrc<'ast>,
                ast: &'ast Function,
                masm: &'a mut MacroAssembler,
-               scopes: &'a mut Scopes)
+               scopes: &'a mut Scopes,
+               jit_info: &'a JitInfo)
                -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -98,6 +101,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             tempsize: 0,
             scopes: scopes,
             temps: TempOffsets::new(),
+            jit_info: jit_info,
         }
     }
 
@@ -363,7 +367,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
         let ty = self.src.ty(id);
-        let offset = -(self.src.localsize + self.src.get_store(id).offset());
+        let offset = -(self.jit_info.localsize + self.src.get_store(id).offset());
 
         if ty.reference_type() {
             self.temps.insert(offset);
@@ -373,7 +377,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn reserve_temp_for_arg(&mut self, arg: &Arg<'ast>) -> i32 {
-        let offset = -(self.src.localsize + arg.offset());
+        let offset = -(self.jit_info.localsize + arg.offset());
         let ty = arg.ty();
 
         if ty.reference_type() {
@@ -1451,7 +1455,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             temps.push((arg.ty(), offset));
         }
 
-        let mut arg_offset = -self.src.stacksize();
+        let mut arg_offset = -self.jit_info.stacksize();
         let mut idx = 0;
         let mut reg_idx = 0;
         let mut freg_idx = 0;

@@ -185,7 +185,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                     if entry.try_start < pc && pc <= entry.try_end &&
                        (entry.catch_type == CatchType::Any ||
                         entry.catch_type == CatchType::Class(cls_id)) {
-                        let stacksize = src.stacksize() as usize;
+                        let stacksize = jit_fct.framesize as usize;
                         resume_with_handler(es, entry, fp, exception, stacksize);
 
                         return HandlerFound::Yes;

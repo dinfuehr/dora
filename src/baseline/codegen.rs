@@ -10,7 +10,7 @@ use ast::visit::*;
 
 use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
-use baseline::info;
+use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use cpu::{FREG_PARAMS, FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
 use ctxt::{Context, Fct, FctId, FctSrc, VarId};
@@ -40,6 +40,7 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
 
     let ast = fct.ast;
 
+    let jit_info = info::generate(ctxt, fct, src);
     let jit_fct = CodeGen {
             ctxt: ctxt,
             fct: &fct,
@@ -47,6 +48,7 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
             masm: MacroAssembler::new(),
             scopes: Scopes::new(),
             src: src,
+            jit_info: jit_info,
 
             lbl_break: None,
             lbl_continue: None,
@@ -178,6 +180,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     masm: MacroAssembler,
     scopes: Scopes,
     src: &'a mut FctSrc<'ast>,
+    jit_info: JitInfo,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -188,8 +191,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     where 'ast: 'a
 {
     pub fn generate(mut self) -> JitFct {
-        info::generate(self.ctxt, self.fct, self.src);
-
         if should_emit_debug(self.ctxt, self.fct) {
             self.masm.debug();
         }
@@ -204,7 +205,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.jit(self.ctxt, self.src.stacksize());
+        let jit_fct = self.masm.jit(self.ctxt, self.jit_info.stacksize());
 
         let mut code_map = self.ctxt
             .code_map
@@ -275,7 +276,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_prolog(&mut self) {
-        self.masm.prolog(self.src.stacksize());
+        self.masm.prolog(self.jit_info.stacksize());
         self.masm.emit_comment(Comment::Lit("prolog end"));
         self.masm.emit_comment(Comment::Newline);
     }
@@ -283,7 +284,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_epilog(&mut self) {
         self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
-        self.masm.epilog(self.src.stacksize(), self.ctxt.polling_page.addr());
+        self.masm.epilog(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -292,7 +293,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
-                let offset = self.src.eh_return_value.unwrap();
+                let offset = self.jit_info.eh_return_value.unwrap();
                 self.masm.store_mem(mode, Mem::Local(offset), register_for_mode(mode));
             }
         }
@@ -303,7 +304,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_return_with_value(&mut self) {
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
-            let offset = self.src.eh_return_value.unwrap();
+            let offset = self.jit_info.eh_return_value.unwrap();
             self.masm.load_mem(mode, register_for_mode(mode), Mem::Local(offset));
         }
 
@@ -606,7 +607,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                                     self.src,
                                     self.ast,
                                     &mut self.masm,
-                                    &mut self.scopes);
+                                    &mut self.scopes,
+                                    &self.jit_info);
 
         expr_gen.generate(e, dest);
 
