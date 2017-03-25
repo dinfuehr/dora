@@ -366,7 +366,7 @@ fn native_ctor<'ast>(ctxt: &mut Context<'ast>,
 fn internal_ctor<'ast>(ctxt: &mut Context<'ast>,
                        clsid: ClassId,
                        param_types: Vec<BuiltinType>,
-                       kind: FctKind<'ast>,
+                       kind: FctKind,
                        allocates: bool) {
     let cls = ctxt.classes[clsid].borrow();
 
@@ -401,7 +401,7 @@ fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>,
 fn internal_method<'ast>(ctxt: &mut Context<'ast>,
                          clsid: ClassId,
                          name: &str,
-                         kind: FctKind<'ast>) {
+                         kind: FctKind) {
     let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 
@@ -424,7 +424,7 @@ fn intrinsic_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, intrinsic: Intrinsi
     internal_fct(ctxt, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind<'ast>) {
+fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind) {
     let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.borrow().get_fct(name);
 

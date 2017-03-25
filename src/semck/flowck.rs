@@ -32,7 +32,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 struct FlowCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
-    src: &'a mut FctSrc<'ast>,
+    src: &'a mut FctSrc,
     ast: &'ast Function,
     in_loop: bool,
 }

@@ -202,7 +202,7 @@ impl Comment {
 
 pub struct CommentFormat<'a, 'ast: 'a> {
     pub comment: &'a Comment,
-    pub fct_src: Option<&'a FctSrc<'ast>>,
+    pub fct_src: Option<&'a FctSrc>,
     pub ctxt: &'a Context<'ast>,
 }
 

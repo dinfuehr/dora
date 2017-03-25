@@ -32,7 +32,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
 
 pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
                           fct: &Fct<'ast>,
-                          src: &mut FctSrc<'ast>)
+                          src: &mut FctSrc)
                           -> *const u8 {
     if let Some(ref jit) = src.jit_fct {
         return jit.fct_ptr();
@@ -40,7 +40,8 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
 
     let ast = fct.ast;
 
-    let jit_info = info::generate(ctxt, fct, src);
+    let mut jit_info = JitInfo::new();
+    info::generate(ctxt, fct, src, &mut jit_info);
     let jit_fct = CodeGen {
             ctxt: ctxt,
             fct: &fct,
@@ -87,7 +88,7 @@ fn get_engine() -> Result<Engine, Error> {
 pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
                       fct: &Fct<'ast>,
                       jit_fct: &JitFct,
-                      fct_src: Option<&FctSrc<'ast>>,
+                      fct_src: Option<&FctSrc>,
                       asm_syntax: AsmSyntax) {
     use capstone::*;
 
@@ -179,8 +180,8 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ast: &'ast Function,
     masm: MacroAssembler,
     scopes: Scopes,
-    src: &'a mut FctSrc<'ast>,
-    jit_info: JitInfo,
+    src: &'a mut FctSrc,
+    jit_info: JitInfo<'ast>,
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
@@ -483,7 +484,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.masm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            let offset = *self.src
+            let offset = *self.jit_info
                               .map_offsets
                               .get(s.id)
                               .unwrap();
@@ -573,7 +574,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.scopes.push_scope();
 
-        let offset = *self.src
+        let offset = *self.jit_info
                           .map_offsets
                           .get(s.id)
                           .unwrap();

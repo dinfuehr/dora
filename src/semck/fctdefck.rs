@@ -148,7 +148,7 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a mut Fct<'ast>,
-    src: &'a mut FctSrc<'ast>,
+    src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,
     map_global_defs: &'a NodeMap<GlobalId>,

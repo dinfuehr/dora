@@ -72,13 +72,13 @@ impl From<FReg> for ExprStore {
 pub struct ExprGen<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
-    src: &'a mut FctSrc<'ast>,
+    src: &'a mut FctSrc,
     ast: &'ast Function,
     masm: &'a mut MacroAssembler,
     scopes: &'a mut Scopes,
     tempsize: i32,
     temps: TempOffsets,
-    jit_info: &'a JitInfo,
+    jit_info: &'a JitInfo<'ast>,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast>
@@ -86,11 +86,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 {
     pub fn new(ctxt: &'a Context<'ast>,
                fct: &'a Fct<'ast>,
-               src: &'a mut FctSrc<'ast>,
+               src: &'a mut FctSrc,
                ast: &'ast Function,
                masm: &'a mut MacroAssembler,
                scopes: &'a mut Scopes,
-               jit_info: &'a JitInfo)
+               jit_info: &'a JitInfo<'ast>)
                -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -367,7 +367,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
         let ty = self.src.ty(id);
-        let offset = -(self.jit_info.localsize + self.src.get_store(id).offset());
+        let offset = -(self.jit_info.localsize + self.jit_info.get_store(id).offset());
 
         if ty.reference_type() {
             self.temps.insert(offset);
@@ -1379,14 +1379,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
-        self.src
+        self.jit_info
             .map_csites
             .get(id)
             .is_some()
     }
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
-        let csite = self.src
+        let csite = self.jit_info
             .map_csites
             .get(id)
             .unwrap()
@@ -1619,7 +1619,7 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) 
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc<'ast>, ctxt: &Context) -> *const u8 {
+fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc, ctxt: &Context) -> *const u8 {
     if let Some(ref jit) = src.jit_fct {
         return jit.fct_ptr();
     }

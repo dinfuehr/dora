@@ -16,7 +16,6 @@ use class::{Class, ClassId, FieldId};
 use gc::Gc;
 use interner::*;
 use lexer::position::Position;
-use mem;
 use safepoint::PollingPage;
 use stacktrace::DoraToNativeInfo;
 use sym::*;
@@ -432,7 +431,7 @@ pub struct Fct<'ast> {
     pub initialized: bool,
     pub throws: bool,
 
-    pub kind: FctKind<'ast>,
+    pub kind: FctKind,
 }
 
 impl<'ast> Fct<'ast> {
@@ -512,7 +511,7 @@ impl<'ast> Fct<'ast> {
         self.ast.pos
     }
 
-    pub fn src(&self) -> Arc<Mutex<FctSrc<'ast>>> {
+    pub fn src(&self) -> Arc<Mutex<FctSrc>> {
         match self.kind {
             FctKind::Source(ref src) => src.clone(),
             _ => panic!("source expected"),
@@ -547,14 +546,14 @@ impl<'ast> Fct<'ast> {
 }
 
 #[derive(Clone, Debug)]
-pub enum FctKind<'ast> {
-    Source(Arc<Mutex<FctSrc<'ast>>>),
+pub enum FctKind {
+    Source(Arc<Mutex<FctSrc>>),
     Definition,
     Native(*const u8),
     Builtin(Intrinsic),
 }
 
-impl<'ast> FctKind<'ast> {
+impl FctKind {
     pub fn is_src(&self) -> bool {
         match *self {
             FctKind::Source(_) => true,
@@ -562,7 +561,7 @@ impl<'ast> FctKind<'ast> {
         }
     }
 
-    pub fn src(&self) -> MutexGuard<FctSrc<'ast>> {
+    pub fn src(&self) -> MutexGuard<FctSrc> {
         match *self {
             FctKind::Source(ref src) => src.lock().unwrap(),
             _ => panic!(),
@@ -727,14 +726,11 @@ pub enum Intrinsic {
 }
 
 #[derive(Debug)]
-pub struct FctSrc<'ast> {
+pub struct FctSrc {
     pub map_calls: NodeMap<CallType>, // maps function call to FctId
-    pub map_stores: NodeMap<Store>,
-    pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
     pub map_vars: NodeMap<VarId>,
-    pub map_offsets: NodeMap<i32>,
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
 
@@ -744,16 +740,13 @@ pub struct FctSrc<'ast> {
     pub jit_fct: Option<JitFct>, // compile function
 }
 
-impl<'ast> Clone for FctSrc<'ast> {
-    fn clone(&self) -> FctSrc<'ast> {
+impl Clone for FctSrc {
+    fn clone(&self) -> FctSrc {
         FctSrc {
             map_calls: self.map_calls.clone(),
-            map_stores: self.map_stores.clone(),
-            map_csites: self.map_csites.clone(),
             map_idents: self.map_idents.clone(),
             map_tys: self.map_tys.clone(),
             map_vars: self.map_vars.clone(),
-            map_offsets: self.map_offsets.clone(),
             map_convs: self.map_convs.clone(),
             map_cls: self.map_cls.clone(),
 
@@ -764,29 +757,19 @@ impl<'ast> Clone for FctSrc<'ast> {
     }
 }
 
-impl<'ast> FctSrc<'ast> {
-    pub fn new() -> FctSrc<'ast> {
+impl FctSrc {
+    pub fn new() -> FctSrc {
         FctSrc {
             map_calls: NodeMap::new(),
-            map_stores: NodeMap::new(),
-            map_csites: NodeMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
-            map_offsets: NodeMap::new(),
             map_convs: NodeMap::new(),
             map_cls: NodeMap::new(),
 
             vars: Vec::new(),
             always_returns: false,
             jit_fct: None,
-        }
-    }
-
-    pub fn get_store(&self, id: ast::NodeId) -> Store {
-        match self.map_stores.get(id) {
-            Some(store) => *store,
-            None => Store::Reg,
         }
     }
 

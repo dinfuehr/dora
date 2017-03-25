@@ -5,13 +5,14 @@ use ast::Stmt::*;
 use ast::Expr::*;
 use ast::visit::*;
 use cpu::*;
-use ctxt::{Arg, CallSite, Context, Fct, FctId, FctParent, FctSrc, Store, VarId};
+use ctxt::{Arg, CallSite, Context, Fct, FctId, FctParent, FctSrc, NodeMap, Store, VarId};
 use mem;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
                               fct: &Fct<'ast>,
-                              src: &'a mut FctSrc<'ast>) -> JitInfo {
+                              src: &'a mut FctSrc,
+                              jit_info: &'a mut JitInfo<'ast>) {
     let start = if fct.in_class() { 1 } else { 0 };
 
     let mut ig = InfoGenerator {
@@ -19,6 +20,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
         fct: fct,
         ast: fct.ast,
         src: src,
+        jit_info: jit_info,
 
         localsize: 0,
         max_tempsize: 0,
@@ -34,28 +36,54 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
         param_freg_idx: 0,
     };
 
-    ig.generate()
+    ig.generate();
 }
 
-pub struct JitInfo {
+pub struct JitInfo<'ast> {
     pub tempsize: i32, // size of temporary variables on stack
     pub localsize: i32, // size of local variables on stack
     pub argsize: i32, // size of arguments on stack (need to be on bottom)
     pub leaf: bool, // false if fct calls other functions
     pub eh_return_value: Option<i32>, // stack slot for return value storage
+
+    pub map_stores: NodeMap<Store>,
+    pub map_csites: NodeMap<CallSite<'ast>>,
+    pub map_offsets: NodeMap<i32>,
 }
 
-impl JitInfo {
+impl<'ast> JitInfo<'ast> {
+    pub fn get_store(&self, id: NodeId) -> Store {
+        match self.map_stores.get(id) {
+            Some(store) => *store,
+            None => Store::Reg,
+        }
+    }
+
     pub fn stacksize(&self) -> i32 {
         mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
+    }
+
+    pub fn new() -> JitInfo<'ast> {
+        JitInfo {
+            tempsize: 0,
+            localsize: 0,
+            argsize: 0,
+            leaf: false,
+            eh_return_value: None,
+
+            map_stores: NodeMap::new(),
+            map_csites: NodeMap::new(),
+            map_offsets: NodeMap::new(),
+        }
     }
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
-    src: &'a mut FctSrc<'ast>,
+    src: &'a mut FctSrc,
     ast: &'ast Function,
+    jit_info: &'a mut JitInfo<'ast>,
 
     localsize: i32,
     max_tempsize: i32,
@@ -128,7 +156,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             if try.finally_block.is_some() {
                 let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-                self.src.map_offsets.insert(try.id, offset);
+                self.jit_info.map_offsets.insert(try.id, offset);
             }
         }
 
@@ -157,20 +185,18 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 }
 
 impl<'a, 'ast> InfoGenerator<'a, 'ast> {
-    fn generate(&mut self) -> JitInfo {
+    fn generate(&mut self) {
         if self.fct.has_self() {
             self.reserve_stack_for_self();
         }
 
         self.visit_fct(self.ast);
 
-        JitInfo {
-            localsize: self.localsize,
-            tempsize: self.max_tempsize,
-            argsize: self.argsize,
-            leaf: self.leaf,
-            eh_return_value: self.eh_return_value,
-        }
+        self.jit_info.localsize = self.localsize;
+        self.jit_info.tempsize = self.max_tempsize;
+        self.jit_info.argsize = self.argsize;
+        self.jit_info.leaf = self.leaf;
+        self.jit_info.eh_return_value = self.eh_return_value;
     }
 
     fn reserve_stack_for_self(&mut self) {
@@ -410,7 +436,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         };
 
         // remember args
-        self.src.map_csites.insert_or_replace(id, csite);
+        self.jit_info.map_csites.insert_or_replace(id, csite);
     }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {
@@ -519,7 +545,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = ty.size(self.ctxt);
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.src.map_stores.insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
+        self.jit_info.map_stores.insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
 
         self.cur_tempsize
     }
@@ -543,7 +569,9 @@ mod tests {
             let fct = ctxt.fcts[fid].borrow();
             let src = fct.src();
             let mut src = src.lock().unwrap();
-            let jit_info = generate(ctxt, &fct, &mut src);
+            let mut jit_info = JitInfo::new();
+
+            generate(ctxt, &fct, &mut src, &mut jit_info);
 
             f(&src, &jit_info);
         });
