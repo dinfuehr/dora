@@ -12,7 +12,7 @@ use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
                               fct: &Fct<'ast>,
-                              src: &'a mut FctSrc,
+                              src: &'a FctSrc,
                               jit_info: &'a mut JitInfo<'ast>) {
     let start = if fct.in_class() { 1 } else { 0 };
 
@@ -88,7 +88,7 @@ impl<'ast> JitInfo<'ast> {
 struct InfoGenerator<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
     fct: &'a Fct<'ast>,
-    src: &'a mut FctSrc,
+    src: &'a FctSrc,
     ast: &'ast Function,
     jit_info: &'a mut JitInfo<'ast>,
 
@@ -127,7 +127,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             // the rest of the parameters are already stored on the stack
             // just use the current offset
         } else {
-            let var = &mut self.src.vars[var];
+            let var = &self.src.vars[var];
             self.jit_info.map_var_offsets.insert(var.id, self.param_offset);
 
             // determine next `param_offset`
