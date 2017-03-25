@@ -115,12 +115,8 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
-            let op = if var.offset < 0 { "-" } else { "" };
-            println!("  var `{}`: offset {} ({}0x{:02x}) type {}",
+            println!("  var `{}`: type {}",
                      name,
-                     var.offset,
-                     op,
-                     var.offset.abs(),
                      var.ty.name(ctxt));
         }
 
@@ -238,7 +234,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 REG_PARAMS[0].into()
             };
 
-            self.masm.store_mem(mode, Mem::Local(var.offset), dest);
+            let offset = self.jit_info.offset(var.id);
+            self.masm.store_mem(mode, Mem::Local(offset), dest);
 
             if mode.is_float() {
                 freg_idx += 1;
@@ -258,7 +255,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.masm.emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm, &self.src, reg.into(), varid);
+                var_store(&mut self.masm, &self.src, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
 
@@ -266,7 +263,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 let reg = REG_PARAMS[reg_idx];
 
                 self.masm.emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm, &self.src, reg.into(), varid);
+                var_store(&mut self.masm, &self.src, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
 
@@ -446,14 +443,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             let value = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.masm, &self.src, value, var);
+            var_store(&mut self.masm, &self.src, &self.jit_info, value, var);
         }
 
         let reference_type = {
             let var = &self.src.vars[var];
 
             if var.ty.reference_type() {
-                self.scopes.add_var(var.id, var.offset);
+                let offset = self.jit_info.offset(var.id);
+                self.scopes.add_var(var.id, offset);
             }
 
             var.ty.reference_type()
@@ -463,7 +461,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
-            var_store(&mut self.masm, &self.src, REG_RESULT.into(), var);
+            var_store(&mut self.masm, &self.src, &self.jit_info, REG_RESULT.into(), var);
         }
     }
 
@@ -511,7 +509,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                              .map_vars
                              .get(catch.id)
                              .unwrap();
-            let offset = self.src.vars[varid].offset;
+            let offset = self.jit_info.offset(varid);
 
             self.scopes.push_scope();
             self.scopes.add_var(varid, offset);
@@ -664,14 +662,16 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(masm: &mut MacroAssembler, fct: &FctSrc, src: ExprStore, var_id: VarId) {
-    let var = &fct.vars[var_id];
-    masm.store_mem(var.ty.mode(), Mem::Local(var.offset), src);
+pub fn var_store(masm: &mut MacroAssembler, fsrc: &FctSrc, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
+    let var = &fsrc.vars[var_id];
+    let offset = jit_info.offset(var_id);
+    masm.store_mem(var.ty.mode(), Mem::Local(offset), src);
 }
 
-pub fn var_load(masm: &mut MacroAssembler, fct: &FctSrc, var_id: VarId, dest: ExprStore) {
-    let var = &fct.vars[var_id];
-    masm.load_mem(var.ty.mode(), dest, Mem::Local(var.offset));
+pub fn var_load(masm: &mut MacroAssembler, fsrc: &FctSrc, jit_info: &JitInfo, var_id: VarId, dest: ExprStore) {
+    let var = &fsrc.vars[var_id];
+    let offset = jit_info.offset(var_id);
+    masm.load_mem(var.ty.mode(), dest, Mem::Local(offset));
 }
 
 pub struct Scopes {

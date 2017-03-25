@@ -734,10 +734,10 @@ pub struct FctSrc {
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
 
-    pub vars: Vec<Var>, // variables in functions
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub jit_fct: Option<JitFct>, // compile function
+    pub vars: Vec<Var>, // variables in functions
 }
 
 impl Clone for FctSrc {
@@ -999,7 +999,6 @@ pub struct Var {
     pub ty: BuiltinType,
     pub reassignable: bool,
     pub node_id: ast::NodeId,
-    pub offset: i32,
 }
 
 impl Index<VarId> for Vec<Var> {

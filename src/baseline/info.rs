@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::collections::HashMap;
 
 use ast::*;
 use ast::Stmt::*;
@@ -49,6 +50,7 @@ pub struct JitInfo<'ast> {
     pub map_stores: NodeMap<Store>,
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
+    pub map_var_offsets: HashMap<VarId, i32>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -63,6 +65,10 @@ impl<'ast> JitInfo<'ast> {
         mem::align_i32(self.tempsize + self.localsize + self.argsize, 16)
     }
 
+    pub fn offset(&self, var_id: VarId) -> i32 {
+        *self.map_var_offsets.get(&var_id).unwrap()
+    }
+
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
             tempsize: 0,
@@ -74,6 +80,7 @@ impl<'ast> JitInfo<'ast> {
             map_stores: NodeMap::new(),
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
+            map_var_offsets: HashMap::new(),
         }
     }
 }
@@ -121,7 +128,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             // just use the current offset
         } else {
             let var = &mut self.src.vars[var];
-            var.offset = self.param_offset;
+            self.jit_info.map_var_offsets.insert(var.id, self.param_offset);
 
             // determine next `param_offset`
             self.param_offset = next_param_offset(self.param_offset, var.ty);
@@ -212,13 +219,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         };
 
         let offset = self.reserve_stack_for_type(ty);
-        self.src.var_self_mut().offset = offset;
+
+        let id = self.src.var_self().id;
+        self.jit_info.map_var_offsets.insert(id, offset);
     }
 
     fn reserve_stack_for_node(&mut self, id: VarId) {
         let ty = self.src.vars[id].ty;
         let offset = self.reserve_stack_for_type(ty);
-        self.src.vars[id].offset = offset;
+
+        self.jit_info.map_var_offsets.insert(id, offset);
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
@@ -630,7 +640,7 @@ mod tests {
             assert_eq!(12, jit_info.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -8, -12]) {
-                assert_eq!(*offset, var.offset);
+                assert_eq!(*offset, jit_info.offset(var.id));
             }
         });
     }
@@ -647,7 +657,7 @@ mod tests {
             let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, var.offset);
+                assert_eq!(*offset, jit_info.offset(var.id));
             }
         });
     }
@@ -665,7 +675,7 @@ mod tests {
             let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
             for (var, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, var.offset);
+                assert_eq!(*offset, jit_info.offset(var.id));
             }
         });
     }
@@ -677,7 +687,7 @@ mod tests {
             assert_eq!(16, jit_info.localsize);
 
             for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                assert_eq!(*offset, var.offset);
+                assert_eq!(*offset, jit_info.offset(var.id));
             }
         });
     }

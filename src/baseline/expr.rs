@@ -426,7 +426,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let var = self.src.var_self();
 
         self.masm.emit_comment(Comment::LoadSelf(var.id));
-        self.masm.load_mem(var.ty.mode(), dest.into(), Mem::Local(var.offset));
+
+        let offset = self.jit_info.offset(var.id);
+        self.masm.load_mem(var.ty.mode(), dest.into(), Mem::Local(offset));
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -515,7 +517,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         match ident {
             IdentType::Var(varid) => {
                 self.masm.emit_comment(Comment::LoadVar(varid));
-                codegen::var_load(self.masm, self.src, varid, dest)
+                codegen::var_load(self.masm, self.src, self.jit_info, varid, dest)
             }
 
             IdentType::Global(_) => unimplemented!(),
@@ -674,7 +676,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
-                codegen::var_store(&mut self.masm, self.src, dest, varid);
+                codegen::var_store(&mut self.masm, self.src, self.jit_info, dest, varid);
             }
 
             IdentType::Global(_) => unimplemented!(),

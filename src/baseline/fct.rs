@@ -252,7 +252,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let var = &self.fct_src.unwrap().vars[vid];
                 let name = self.ctxt.interner.str(var.name);
 
-                write!(f, "store param {} at offset {}", name, var.offset)
+                write!(f, "store param {}", name)
             }
 
             &Comment::Newline => write!(f, ""),
@@ -285,20 +285,18 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let var = &self.fct_src.unwrap().vars[vid];
                 let name = self.ctxt.interner.str(var.name);
 
-                write!(f, "store var {} in offset {}", name, var.offset)
+                write!(f, "store var {}", name)
             }
 
             &Comment::LoadVar(vid) => {
                 let var = &self.fct_src.unwrap().vars[vid];
                 let name = self.ctxt.interner.str(var.name);
 
-                write!(f, "load var {} from offset {}", name, var.offset)
+                write!(f, "load var {}", name)
             }
 
-            &Comment::LoadSelf(vid) => {
-                let var = &self.fct_src.unwrap().vars[vid];
-
-                write!(f, "load self from offset {}", var.offset)
+            &Comment::LoadSelf(_) => {
+                write!(f, "load self")
             }
 
             &Comment::ReadPollingPage => write!(f, "read polling page (safepoint)"),

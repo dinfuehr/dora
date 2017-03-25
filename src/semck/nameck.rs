@@ -86,7 +86,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             ty: ty,
             reassignable: false,
             node_id: ast_id,
-            offset: 0,
         };
 
         self.src.vars.push(var);
@@ -133,7 +132,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             reassignable: var.reassignable,
             ty: BuiltinType::Unit,
             node_id: var.id,
-            offset: 0,
         };
 
         // variables are not allowed to replace types, other variables
@@ -169,7 +167,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 ty: BuiltinType::Unit,
                 reassignable: false,
                 node_id: try.id,
-                offset: 0,
             };
 
             // variables are not allowed to replace types, other variables
@@ -334,7 +331,6 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             reassignable: p.reassignable,
             ty: BuiltinType::Unit,
             node_id: p.id,
-            offset: 0,
         };
 
         // params are only allowed to replace functions,
