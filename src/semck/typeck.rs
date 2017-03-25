@@ -939,7 +939,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
                 let cls = self.ctxt.classes[cls_id].borrow();
                 let ident_type = IdentType::Field(cls_id, field_id);
-                self.src.map_idents.insert(e.id, ident_type);
+                self.src.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &cls.fields[field_id];
                 self.src.set_ty(e.id, field.ty);
@@ -1286,7 +1286,10 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
     true
 }
 
-fn specialize_class(ctxt: &Context, cls: &mut class::Class, type_params: Vec<BuiltinType>) -> ClassId {
+fn specialize_class(ctxt: &Context,
+                    cls: &mut class::Class,
+                    type_params: Vec<BuiltinType>)
+                    -> ClassId {
     if let Some(&id) = cls.specializations.get(&type_params) {
         return id;
     }
@@ -1297,53 +1300,104 @@ fn specialize_class(ctxt: &Context, cls: &mut class::Class, type_params: Vec<Bui
     id
 }
 
-fn create_specialized_class(ctxt: &Context, cls: &mut class::Class, type_params: Vec<BuiltinType>) -> ClassId {
+fn create_specialized_class(ctxt: &Context,
+                            cls: &mut class::Class,
+                            type_params: Vec<BuiltinType>)
+                            -> ClassId {
     let id = ctxt.classes.len().into();
 
-    let cloned_fields = cls.fields.iter().map(|field| {
-        let ty = match field.ty {
-            BuiltinType::TypeParam(id) => type_params[id.idx()],
-            _ => field.ty,
-        };
+    let cloned_ctors = cls.ctors
+        .iter()
+        .map(|&ctor_id| {
+            let ctor = ctxt.fcts[ctor_id].borrow();
+            let fct_id = ctxt.fcts.len().into();
 
-        class::Field {
-            id: field.id,
-            name: field.name,
-            ty: ty,
-            offset: field.offset,
-            reassignable: field.reassignable,
-        }
-    }).collect();
+            let param_types = ctor.param_types
+                .iter()
+                .map(|&t| specialize_type(t, &type_params))
+                .collect();
+
+            let fct = Fct {
+                id: fct_id,
+                ast: ctor.ast,
+                pos: ctor.pos,
+                name: ctor.name,
+                parent: ctor.parent.clone(),
+                has_open: ctor.has_open,
+                has_override: ctor.has_override,
+                has_final: ctor.has_final,
+                is_static: ctor.is_static,
+                is_pub: ctor.is_pub,
+                internal: ctor.internal,
+                internal_resolved: ctor.internal_resolved,
+                overrides: ctor.overrides,
+                param_types: param_types,
+                return_type: specialize_type(ctor.return_type, &type_params),
+                ctor: ctor.ctor,
+
+                ctor_allocates: ctor.ctor_allocates,
+
+                vtable_index: ctor.vtable_index,
+                initialized: ctor.initialized,
+                throws: ctor.throws,
+                kind: ctor.kind.clone(),
+            };
+
+            ctxt.fcts.push(fct);
+
+            fct_id
+        })
+        .collect();
+
+    let cloned_fields = cls.fields
+        .iter()
+        .map(|field| {
+            class::Field {
+                id: field.id,
+                name: field.name,
+                ty: specialize_type(field.ty, &type_params),
+                offset: field.offset,
+                reassignable: field.reassignable,
+            }
+        })
+        .collect();
 
     ctxt.classes.push(class::Class {
-        id: id,
-        pos: cls.pos,
-        name: cls.name,
-        ty: BuiltinType::Class(id),
-        parent_class: cls.parent_class,
-        has_open: cls.has_open,
-        internal: cls.internal,
-        internal_resolved: cls.internal_resolved,
-        primary_ctor: cls.primary_ctor,
+                          id: id,
+                          pos: cls.pos,
+                          name: cls.name,
+                          ty: BuiltinType::Class(id),
+                          parent_class: cls.parent_class,
+                          has_open: cls.has_open,
+                          internal: cls.internal,
+                          internal_resolved: cls.internal_resolved,
+                          primary_ctor: cls.primary_ctor,
 
-        ctors: cls.ctors.clone(),
-        fields: cloned_fields,
-        methods: cls.methods.clone(),
-        size: 0,
-        vtable: None,
+                          ctors: cloned_ctors,
+                          fields: cloned_fields,
+                          methods: cls.methods.clone(),
+                          size: 0,
+                          vtable: None,
 
-        traits: cls.traits.clone(),
-        impls: cls.impls.clone(),
+                          traits: cls.traits.clone(),
+                          impls: cls.impls.clone(),
 
-        type_params: Vec::new(),
-        specialization_for: Some(cls.id),
-        specialization_params: type_params,
-        specializations: HashMap::new(),
+                          type_params: Vec::new(),
+                          specialization_for: Some(cls.id),
+                          specialization_params: type_params,
+                          specializations: HashMap::new(),
 
-        ref_fields: Vec::new(),
-    });
+                          ref_fields: Vec::new(),
+                      });
 
     id
+}
+
+fn specialize_type(ty: BuiltinType, type_params: &[BuiltinType]) -> BuiltinType {
+    match ty {
+        BuiltinType::TypeParam(id) => type_params[id.idx()],
+        _ => ty,
+    }
 }
 
 #[cfg(test)]
@@ -2218,17 +2272,23 @@ mod tests {
         err("class A<T>
             fun foo() {
                 let a = A::<int, int>();
-            }", pos(3, 25), Msg::WrongNumberTypeParams(1, 2));
+            }",
+            pos(3, 25),
+            Msg::WrongNumberTypeParams(1, 2));
 
         err("class A<T>
             fun foo() {
                 let a = A();
-            }", pos(3, 25), Msg::WrongNumberTypeParams(1, 0));
+            }",
+            pos(3, 25),
+            Msg::WrongNumberTypeParams(1, 0));
 
         err("class A
             fun foo() {
                 let a = A::<int>();
-            }", pos(3, 25), Msg::WrongNumberTypeParams(0, 1));
+            }",
+            pos(3, 25),
+            Msg::WrongNumberTypeParams(0, 1));
     }
 
     // #[test]

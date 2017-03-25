@@ -3227,17 +3227,29 @@ mod tests {
         let (expr, _) = parse_expr("Array::<int>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(1, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(1,
+                   ident.type_params
+                       .as_ref()
+                       .unwrap()
+                       .len());
 
         let (expr, _) = parse_expr("Foo::<int, long>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(2, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(2,
+                   ident.type_params
+                       .as_ref()
+                       .unwrap()
+                       .len());
 
         let (expr, _) = parse_expr("Bar::<>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(0, ident.type_params.as_ref().unwrap().len());
+        assert_eq!(0,
+                   ident.type_params
+                       .as_ref()
+                       .unwrap()
+                       .len());
 
         let (expr, _) = parse_expr("Vec()");
         let ident = expr.to_call().unwrap();

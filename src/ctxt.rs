@@ -396,7 +396,7 @@ impl From<usize> for FctId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FctParent {
     Class(ClassId),
     Trait(TraitId),
@@ -546,7 +546,7 @@ impl<'ast> Fct<'ast> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FctKind<'ast> {
     Source(Arc<Mutex<FctSrc<'ast>>>),
     Definition,
@@ -749,6 +749,31 @@ pub struct FctSrc<'ast> {
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 }
 
+impl<'ast> Clone for FctSrc<'ast> {
+    fn clone(&self) -> FctSrc<'ast> {
+        FctSrc {
+            map_calls: self.map_calls.clone(),
+            map_stores: self.map_stores.clone(),
+            map_csites: self.map_csites.clone(),
+            map_idents: self.map_idents.clone(),
+            map_tys: self.map_tys.clone(),
+            map_vars: self.map_vars.clone(),
+            map_offsets: self.map_offsets.clone(),
+            map_convs: self.map_convs.clone(),
+            map_cls: self.map_cls.clone(),
+
+            tempsize: self.tempsize,
+            localsize: self.localsize,
+            argsize: self.argsize,
+            leaf: self.leaf,
+            vars: self.vars.clone(),
+            always_returns: self.always_returns,
+            jit_fct: None,
+            eh_return_value: self.eh_return_value,
+        }
+    }
+}
+
 impl<'ast> FctSrc<'ast> {
     pub fn new() -> FctSrc<'ast> {
         FctSrc {
@@ -804,12 +829,16 @@ impl<'ast> FctSrc<'ast> {
     }
 }
 
-#[derive(Debug)]
-pub struct NodeMap<V> {
+#[derive(Clone, Debug)]
+pub struct NodeMap<V>
+    where V: Clone
+{
     map: HashMap<ast::NodeId, V>,
 }
 
-impl<V> NodeMap<V> {
+impl<V> NodeMap<V>
+    where V: Clone
+{
     pub fn new() -> NodeMap<V> {
         NodeMap { map: HashMap::new() }
     }
@@ -999,7 +1028,7 @@ impl<'ast> Arg<'ast> {
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct VarId(pub usize);
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Var {
     pub id: VarId,
     pub name: Name,

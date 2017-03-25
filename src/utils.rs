@@ -7,9 +7,7 @@ pub struct GrowableVec<T> {
 
 impl<T> GrowableVec<T> {
     pub fn new() -> GrowableVec<T> {
-        GrowableVec {
-            elements: RefCell::new(Vec::new()),
-        }
+        GrowableVec { elements: RefCell::new(Vec::new()) }
     }
 
     pub fn push(&self, val: T) {
@@ -39,7 +37,9 @@ impl<T> Index<usize> for GrowableVec<T> {
     }
 }
 
-pub struct GrowableVecIter<'a, T> where T: 'a {
+pub struct GrowableVecIter<'a, T>
+    where T: 'a
+{
     vec: &'a GrowableVec<T>,
     idx: usize,
 }
@@ -77,4 +77,3 @@ fn test_push() {
 
     assert_eq!(7, vec.len());
 }
-
