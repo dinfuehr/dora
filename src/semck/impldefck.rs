@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
 
 use ast;
 use ast::visit::{self, Visitor};
@@ -87,7 +87,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             report(self.ctxt, f.pos, Msg::MissingFctBody);
         }
 
-        let kind = FctKind::Source(Arc::new(Mutex::new(FctSrc::new())));
+        let kind = FctKind::Source(RefCell::new(FctSrc::new()));
 
         let fct = Fct {
             id: FctId(0),

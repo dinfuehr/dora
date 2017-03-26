@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 use ast::*;
 use ast::visit::*;
@@ -171,7 +170,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
-            FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
+            FctKind::Source(RefCell::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };

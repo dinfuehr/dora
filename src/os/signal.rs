@@ -200,7 +200,7 @@ fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
         let fct = ctxt.fcts[fid].borrow();
 
         let src = fct.src();
-        let src = src.lock().unwrap();
+        let src = src.borrow();
 
         let jit_fct = src.jit_fct.read().unwrap();
         let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
@@ -233,7 +233,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
 
         let fct = ctxt.fcts[fct_id].borrow();
         let src = fct.src();
-        let src = src.lock().unwrap();
+        let src = src.borrow();
         let jit_fct = src.jit_fct.read().unwrap();
         let jit_fct = jit_fct.as_ref().expect("jitted fct not found");
 

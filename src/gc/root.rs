@@ -43,7 +43,7 @@ fn determine_rootset(rootset: &mut Vec<IndirectObj>, ctxt: &Context, fp: usize, 
         let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {
-            let src = src.lock().unwrap();
+            let src = src.borrow();
             let jit_fct = src.jit_fct.read().unwrap();
             let jit_fct = jit_fct.as_ref().expect("no jit information");
             let offset = pc - (jit_fct.fct_ptr() as usize);

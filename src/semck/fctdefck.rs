@@ -59,7 +59,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
 
             if fct.is_src() {
                 let src = fct.src();
-                let mut src = src.lock().unwrap();
+                let mut src = src.borrow_mut();
 
                 let var = *src.map_vars.get(p.id).unwrap();
                 src.vars[var].ty = ty;
@@ -104,7 +104,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
         }
 
         let src = fct.src();
-        let mut src = src.lock().unwrap();
+        let mut src = src.borrow_mut();
 
         let mut defck = FctDefCheck {
             ctxt: ctxt,

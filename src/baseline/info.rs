@@ -578,7 +578,7 @@ mod tests {
             let fid = ctxt.fct_by_name("f").unwrap();
             let fct = ctxt.fcts[fid].borrow();
             let src = fct.src();
-            let mut src = src.lock().unwrap();
+            let mut src = src.borrow_mut();
             let mut jit_info = JitInfo::new();
 
             generate(ctxt, &fct, &mut src, &mut jit_info);

@@ -16,7 +16,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
         }
 
         let src = fct.src();
-        let mut src = src.lock().unwrap();
+        let mut src = src.borrow_mut();
         let ast = fct.ast;
 
         let mut returnck = ReturnCheck {
@@ -143,7 +143,7 @@ mod tests {
 
             let fct = ctxt.fcts[fct_id].borrow();
             let src = fct.src();
-            let src = src.lock().unwrap();
+            let src = src.borrow();
 
             assert_eq!(value, src.always_returns);
         });

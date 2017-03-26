@@ -14,7 +14,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
         }
 
         let src = fct.src();
-        let mut src = src.lock().unwrap();
+        let mut src = src.borrow_mut();
         let ast = fct.ast;
 
         let mut flowck = FlowCheck {

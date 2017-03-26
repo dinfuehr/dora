@@ -25,7 +25,7 @@ use ty::{BuiltinType, MachineMode};
 pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
-    let mut src = src.lock().unwrap();
+    let mut src = src.borrow_mut();
 
     generate_fct(ctxt, &fct, &mut src)
 }

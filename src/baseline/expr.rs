@@ -830,7 +830,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             match fct.kind {
                 FctKind::Source(_) => {
                     let src = fct.src();
-                    let mut src = src.lock().unwrap();
+                    let mut src = src.borrow_mut();
 
                     ensure_jit_or_stub_ptr(&mut src, self.ctxt)
                 }

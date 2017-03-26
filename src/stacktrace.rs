@@ -101,7 +101,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
         let mut lineno = 0;
         let fct = ctxt.fcts[fct_id].borrow();
         if let FctKind::Source(ref src) = fct.kind {
-            let src = src.lock().unwrap();
+            let src = src.borrow();
             let jit_fct = src.jit_fct.read().unwrap();
             let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
             let offset = pc - (jit_fct.fct_ptr() as usize);
@@ -171,7 +171,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
         let fct = ctxt.fcts[fct_id].borrow();
 
         if let FctKind::Source(ref src) = fct.kind {
-            let src = src.lock().unwrap();
+            let src = src.borrow();
             let jit_fct = src.jit_fct.read().unwrap();
             let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
 

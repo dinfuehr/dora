@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::ptr;
-use std::sync::{Arc, Mutex, MutexGuard, RwLock};
+use std::sync::{Mutex, RwLock};
 
 use driver::cmd::Args;
 use error::diag::Diagnostic;
@@ -511,9 +511,9 @@ impl<'ast> Fct<'ast> {
         self.ast.pos
     }
 
-    pub fn src(&self) -> Arc<Mutex<FctSrc>> {
+    pub fn src(&self) -> &RefCell<FctSrc> {
         match self.kind {
-            FctKind::Source(ref src) => src.clone(),
+            FctKind::Source(ref src) => src,
             _ => panic!("source expected"),
         }
     }
@@ -547,7 +547,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Clone, Debug)]
 pub enum FctKind {
-    Source(Arc<Mutex<FctSrc>>),
+    Source(RefCell<FctSrc>),
     Definition,
     Native(*const u8),
     Builtin(Intrinsic),
@@ -558,13 +558,6 @@ impl FctKind {
         match *self {
             FctKind::Source(_) => true,
             _ => false,
-        }
-    }
-
-    pub fn src(&self) -> MutexGuard<FctSrc> {
-        match *self {
-            FctKind::Source(ref src) => src.lock().unwrap(),
-            _ => panic!(),
         }
     }
 

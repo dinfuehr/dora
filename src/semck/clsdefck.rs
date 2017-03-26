@@ -1,5 +1,5 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
 
 use ast;
 use ast::visit::{self, Visitor};
@@ -169,7 +169,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         let clsid = self.cls_id.unwrap();
 
         let kind = if f.block.is_some() {
-            FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
+            FctKind::Source(RefCell::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };
@@ -210,7 +210,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         }
 
         let kind = if f.block.is_some() {
-            FctKind::Source(Arc::new(Mutex::new(FctSrc::new())))
+            FctKind::Source(RefCell::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };
