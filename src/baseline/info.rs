@@ -589,13 +589,13 @@ mod tests {
 
     #[test]
     fn test_tempsize() {
-        info("fun f() { 1+2*3; }", |fct, jit_info| {
+        info("fun f() { 1+2*3; }", |_, jit_info| {
             assert_eq!(8, jit_info.tempsize);
         });
-        info("fun f() { 2*3+4+5; }", |fct, jit_info| {
+        info("fun f() { 2*3+4+5; }", |_, jit_info| {
             assert_eq!(12, jit_info.tempsize);
         });
-        info("fun f() { 1+(2+(3+4)); }", |fct, jit_info| {
+        info("fun f() { 1+(2+(3+4)); }", |_, jit_info| {
             assert_eq!(12, jit_info.tempsize);
         })
     }
@@ -604,13 +604,13 @@ mod tests {
     fn test_tempsize_for_fct_call() {
         info("fun f() { g(1,2,3,4,5,6); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}",
-             |fct, jit_info| {
+             |_, jit_info| {
                  assert_eq!(24, jit_info.tempsize);
              });
 
         info("fun f() { g(1,2,3,4,5,6,7,8); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}",
-             |fct, jit_info| {
+             |_, jit_info| {
                  assert_eq!(32, jit_info.tempsize);
              });
 
@@ -618,18 +618,18 @@ mod tests {
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }",
-             |fct, jit_info| {
+             |_, jit_info| {
                  assert_eq!(40, jit_info.tempsize);
              });
     }
 
     #[test]
     fn test_invocation_flag() {
-        info("fun f() { g(); } fun g() { }", |fct, jit_info| {
+        info("fun f() { g(); } fun g() { }", |_, jit_info| {
             assert!(!jit_info.leaf);
         });
 
-        info("fun f() { }", |fct, jit_info| {
+        info("fun f() { }", |_, jit_info| {
             assert!(jit_info.leaf);
         });
     }

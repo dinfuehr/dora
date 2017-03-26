@@ -108,7 +108,6 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
 
         let mut defck = FctDefCheck {
             ctxt: ctxt,
-            fct: &mut *fct,
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
@@ -147,7 +146,6 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
 
 struct FctDefCheck<'a, 'ast: 'a> {
     ctxt: &'a Context<'ast>,
-    fct: &'a mut Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,
