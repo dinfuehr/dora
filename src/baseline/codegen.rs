@@ -34,8 +34,12 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
                           fct: &Fct<'ast>,
                           src: &mut FctSrc)
                           -> *const u8 {
-    if let Some(ref jit) = src.jit_fct {
-        return jit.fct_ptr();
+    {
+        let src_jit_fct = src.jit_fct.read().unwrap();
+
+        if let Some(ref jit) = *src_jit_fct {
+            return jit.fct_ptr();
+        }
     }
 
     let ast = fct.ast;
@@ -66,7 +70,14 @@ pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
     }
 
     let fct_ptr = jit_fct.fct_ptr();
-    src.jit_fct = Some(jit_fct);
+
+    let mut src_jit_fct = src.jit_fct.write().unwrap();
+
+    if let Some(ref jit) = *src_jit_fct {
+        return jit.fct_ptr();
+    }
+
+    *src_jit_fct = Some(jit_fct);
 
     fct_ptr
 }

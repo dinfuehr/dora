@@ -202,7 +202,8 @@ fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
         let src = fct.src();
         let src = src.lock().unwrap();
 
-        let jit_fct = src.jit_fct.as_ref().unwrap();
+        let jit_fct = src.jit_fct.read().unwrap();
+        let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
         let offset = pc - (jit_fct.fct_ptr() as usize);
 
         jit_fct.nil_check_for_offset(offset as i32)
@@ -233,7 +234,8 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
         let fct = ctxt.fcts[fct_id].borrow();
         let src = fct.src();
         let src = src.lock().unwrap();
-        let jit_fct = src.jit_fct.as_ref().expect("jitted fct not found");
+        let jit_fct = src.jit_fct.read().unwrap();
+        let jit_fct = jit_fct.as_ref().expect("jitted fct not found");
 
         let offset = ra - jit_fct.fct_ptr() as usize;
         jit_fct.bailouts

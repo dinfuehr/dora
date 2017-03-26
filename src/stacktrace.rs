@@ -102,7 +102,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize)
         let fct = ctxt.fcts[fct_id].borrow();
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
-            let jit_fct = src.jit_fct.as_ref().unwrap();
+            let jit_fct = src.jit_fct.read().unwrap();
+            let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
             let offset = pc - (jit_fct.fct_ptr() as usize);
             lineno = jit_fct.lineno_for_offset(offset as i32);
 
@@ -171,31 +172,31 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
 
         if let FctKind::Source(ref src) = fct.kind {
             let src = src.lock().unwrap();
+            let jit_fct = src.jit_fct.read().unwrap();
+            let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
 
-            if let Some(ref jit_fct) = src.jit_fct {
-                let cls_id = exception.header()
-                    .vtbl()
-                    .class()
-                    .id;
+            let cls_id = exception.header()
+                .vtbl()
+                .class()
+                .id;
 
-                for entry in &jit_fct.exception_handlers {
-                    // println!("entry = {:x} to {:x} for {:?}",
-                    //          entry.try_start, entry.try_end, entry.catch_type);
+            for entry in &jit_fct.exception_handlers {
+                // println!("entry = {:x} to {:x} for {:?}",
+                //          entry.try_start, entry.try_end, entry.catch_type);
 
-                    if entry.try_start < pc && pc <= entry.try_end &&
-                       (entry.catch_type == CatchType::Any ||
-                        entry.catch_type == CatchType::Class(cls_id)) {
-                        let stacksize = jit_fct.framesize as usize;
-                        resume_with_handler(es, entry, fp, exception, stacksize);
+                if entry.try_start < pc && pc <= entry.try_end &&
+                    (entry.catch_type == CatchType::Any ||
+                    entry.catch_type == CatchType::Class(cls_id)) {
+                    let stacksize = jit_fct.framesize as usize;
+                    resume_with_handler(es, entry, fp, exception, stacksize);
 
-                        return HandlerFound::Yes;
+                    return HandlerFound::Yes;
 
-                    } else if pc > entry.try_end {
-                        // exception handlers are sorted, no more possible handlers
-                        // in this function
+                } else if pc > entry.try_end {
+                    // exception handlers are sorted, no more possible handlers
+                    // in this function
 
-                        return HandlerFound::No;
-                    }
+                    return HandlerFound::No;
                 }
             }
 

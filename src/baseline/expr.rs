@@ -1622,7 +1622,9 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) 
 }
 
 fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc, ctxt: &Context) -> *const u8 {
-    if let Some(ref jit) = src.jit_fct {
+    let jit_fct = src.jit_fct.read().unwrap();
+
+    if let Some(ref jit) = *jit_fct {
         return jit.fct_ptr();
     }
 

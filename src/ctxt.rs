@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::ptr;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 use driver::cmd::Args;
 use error::diag::Diagnostic;
@@ -736,7 +736,7 @@ pub struct FctSrc {
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub jit_fct: Option<JitFct>, // compile function
+    pub jit_fct: RwLock<Option<JitFct>>, // compile function
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -752,7 +752,7 @@ impl Clone for FctSrc {
 
             vars: self.vars.clone(),
             always_returns: self.always_returns,
-            jit_fct: None,
+            jit_fct: RwLock::new(None),
         }
     }
 }
@@ -769,7 +769,7 @@ impl FctSrc {
 
             vars: Vec::new(),
             always_returns: false,
-            jit_fct: None,
+            jit_fct: RwLock::new(None),
         }
     }
 

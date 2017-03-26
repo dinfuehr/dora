@@ -1,4 +1,5 @@
 //= output "done\n"
+//= ignore
 
 class MyThread(var executed: bool) : Thread {
     override fun run() {
