@@ -22,16 +22,16 @@ impl Stacktrace {
 
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
         self.elems.push(StackElem {
-            fct_id: fct_id,
-            lineno: lineno,
-        });
+                            fct_id: fct_id,
+                            lineno: lineno,
+                        });
     }
 
     pub fn dump(&self, ctxt: &Context) {
         for (ind, elem) in self.elems
-            .iter()
-            .rev()
-            .enumerate() {
+                .iter()
+                .rev()
+                .enumerate() {
             let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
             print!("  {}: {}:", ind, name);
 

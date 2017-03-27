@@ -19,8 +19,10 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         for &method_id in &ximpl.methods {
             let method = ctxt.fcts[method_id].borrow();
 
-            if let Some(fid) =
-                xtrait.find_method(ctxt, method.name, Some(cls), method.params_without_self()) {
+            if let Some(fid) = xtrait.find_method(ctxt,
+                                                  method.name,
+                                                  Some(cls),
+                                                  method.params_without_self()) {
                 defined.insert(fid);
 
             } else {

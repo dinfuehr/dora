@@ -121,8 +121,8 @@ impl MallocSpace {
         self.cur_marked = !self.cur_marked;
 
         timer.stop_with(|dur| if ctxt.args.flag_gc_events {
-            println!("GC: collect garbage ({} ms)", in_ms(dur));
-        });
+                            println!("GC: collect garbage ({} ms)", in_ms(dur));
+                        });
     }
 }
 

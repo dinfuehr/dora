@@ -15,6 +15,7 @@ use interner::Name;
 use lexer::position::Position;
 use lexer::token::{FloatSuffix, IntSuffix};
 use semck::read_type;
+use sym::Sym::SymClass;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
@@ -58,14 +59,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let var = *self.src
-            .map_vars
-            .get(s.id)
-            .unwrap();
+                       .map_vars
+                       .get(s.id)
+                       .unwrap();
 
         let expr_type = s.expr.as_ref().map(|expr| {
-            self.visit_expr(&expr);
-            self.expr_type
-        });
+                                                self.visit_expr(&expr);
+                                                self.expr_type
+                                            });
 
         let defined_type = if let Some(_) = s.data_type {
             let ty = self.src.vars[var].ty;
@@ -160,10 +161,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s.expr
             .as_ref()
             .map(|expr| {
-                self.visit_expr(&expr);
+                     self.visit_expr(&expr);
 
-                self.expr_type
-            })
+                     self.expr_type
+                 })
             .unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
@@ -221,9 +222,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
         let ident_type = *self.src
-            .map_idents
-            .get(e.id)
-            .unwrap();
+                              .map_idents
+                              .get(e.id)
+                              .unwrap();
 
         match ident_type {
             IdentType::Var(varid) => {
@@ -272,7 +273,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ret_type = Some(BuiltinType::Unit);
 
             if let Some((cls_id, fct_id, _)) =
-                self.find_method(e.pos, object_type, name, &args, ret_type) {
+                self.find_method(e.pos, object_type, false, name, &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
                 self.src.map_calls.insert(e.id, call_type);
 
@@ -409,6 +410,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn find_method(&mut self,
                    pos: Position,
                    object_type: BuiltinType,
+                   is_static: bool,
                    name: Name,
                    args: &[BuiltinType],
                    return_type: Option<BuiltinType>)
@@ -424,6 +426,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             let candidates = cls.find_methods_with(ctxt, name, |method| {
                 args_compatible(ctxt, &method.params_without_self(), args) &&
+                method.is_static == is_static &&
                 (return_type.is_none() || method.return_type == return_type.unwrap())
             });
 
@@ -665,18 +668,58 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src
-            .map_calls
-            .get(e.id)
-            .unwrap();
-
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
+
+        let call_type = if e.path.len() > 1 {
+            match self.ctxt
+                      .sym
+                      .borrow()
+                      .get(e.path[0]) {
+                Some(SymClass(cls_id)) => {
+                    let cls = self.ctxt.classes[cls_id].borrow();
+
+                    assert_eq!(2, e.path.len());
+
+                    if let Some((_, fct_id, _)) =
+                        self.find_method(e.pos, cls.ty, true, e.path[1], &call_types, None) {
+                        let call_type = CallType::Fct(fct_id);
+                        self.src.map_calls.insert(e.id, call_type);
+
+                        call_type
+
+                    } else {
+                        self.expr_type = BuiltinType::Unit;
+                        return;
+                    }
+                }
+
+                _ => {
+                    let name = self.ctxt
+                        .interner
+                        .str(e.path[0])
+                        .to_string();
+                    let msg = Msg::ClassExpected(name);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, msg);
+
+                    self.expr_type = BuiltinType::Unit;
+                    return;
+                }
+            }
+        } else {
+            *self.src
+                 .map_calls
+                 .get(e.id)
+                 .unwrap()
+        };
 
         match call_type {
             CallType::CtorNew(cls_id, _) => {
@@ -801,9 +844,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let arg_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
@@ -885,13 +928,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                self.visit_expr(arg);
-                self.expr_type
-            })
+                     self.visit_expr(arg);
+                     self.expr_type
+                 })
             .collect();
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, e.path.name(), &call_types, None) {
+            self.find_method(e.pos, object_type, false, e.path.name(), &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
             self.src.set_ty(e.id, return_type);
@@ -1019,7 +1062,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let args = vec![index_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, name, &args, None) {
+            self.find_method(e.pos, object_type, false, name, &args, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
 
@@ -1341,17 +1384,17 @@ fn create_specialized_class(ctxt: &Context,
                         .collect();
 
                     FctKind::Source(RefCell::new(FctSrc {
-                        map_calls: src.map_calls.clone(),
-                        map_idents: src.map_idents.clone(),
-                        map_tys: src.map_tys.clone(),
-                        map_vars: src.map_vars.clone(),
-                        map_convs: src.map_convs.clone(),
-                        map_cls: src.map_cls.clone(),
+                                                     map_calls: src.map_calls.clone(),
+                                                     map_idents: src.map_idents.clone(),
+                                                     map_tys: src.map_tys.clone(),
+                                                     map_vars: src.map_vars.clone(),
+                                                     map_convs: src.map_convs.clone(),
+                                                     map_cls: src.map_cls.clone(),
 
-                        always_returns: src.always_returns,
-                        jit_fct: RwLock::new(None),
-                        vars: cloned_vars,
-                    }))
+                                                     always_returns: src.always_returns,
+                                                     jit_fct: RwLock::new(None),
+                                                     vars: cloned_vars,
+                                                 }))
                 }
 
                 FctKind::Definition => FctKind::Definition,
@@ -1405,32 +1448,32 @@ fn create_specialized_class(ctxt: &Context,
         .collect();
 
     ctxt.classes.push(class::Class {
-        id: id,
-        pos: cls.pos,
-        name: cls.name,
-        ty: BuiltinType::Class(id),
-        parent_class: cls.parent_class,
-        has_open: cls.has_open,
-        internal: cls.internal,
-        internal_resolved: cls.internal_resolved,
-        primary_ctor: cls.primary_ctor,
+                          id: id,
+                          pos: cls.pos,
+                          name: cls.name,
+                          ty: BuiltinType::Class(id),
+                          parent_class: cls.parent_class,
+                          has_open: cls.has_open,
+                          internal: cls.internal,
+                          internal_resolved: cls.internal_resolved,
+                          primary_ctor: cls.primary_ctor,
 
-        ctors: cloned_ctors,
-        fields: cloned_fields,
-        methods: cls.methods.clone(),
-        size: 0,
-        vtable: None,
+                          ctors: cloned_ctors,
+                          fields: cloned_fields,
+                          methods: cls.methods.clone(),
+                          size: 0,
+                          vtable: None,
 
-        traits: cls.traits.clone(),
-        impls: cls.impls.clone(),
+                          traits: cls.traits.clone(),
+                          impls: cls.impls.clone(),
 
-        type_params: Vec::new(),
-        specialization_for: Some(cls.id),
-        specialization_params: type_params,
-        specializations: HashMap::new(),
+                          type_params: Vec::new(),
+                          specialization_for: Some(cls.id),
+                          specialization_params: type_params,
+                          specializations: HashMap::new(),
 
-        ref_fields: Vec::new(),
-    });
+                          ref_fields: Vec::new(),
+                      });
 
     id
 }

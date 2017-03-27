@@ -323,9 +323,8 @@ fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
                                              depth as usize - DISPLAY_SIZE);
                 }
 
-                let ptr = vtable.subtype_overflow
-                    .offset(depth as isize -
-                            DISPLAY_SIZE as isize) as *mut _;
+                let ptr = vtable.subtype_overflow.offset(depth as isize - DISPLAY_SIZE as isize) as
+                          *mut _;
 
                 *ptr = &**vtable as *const _;
             }
@@ -337,8 +336,8 @@ fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_display[0..depth_fixed]
-            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
+        vtable.subtype_display[0..depth_fixed].clone_from_slice(&parent_vtable.subtype_display
+                                                                     [0..depth_fixed]);
 
         depth
 
@@ -752,11 +751,11 @@ mod tests {
             .unwrap();
 
         let parent_id = parent.map(|name| ctxt.interner.intern(name)).map(|name| {
-            ctxt.sym
+                                                                              ctxt.sym
                 .borrow()
                 .get_class(name)
                 .unwrap()
-        });
+                                                                          });
 
         let cls = ctxt.classes[cls_id].borrow();
         assert_eq!(parent_id, cls.parent_class);

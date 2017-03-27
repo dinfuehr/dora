@@ -34,91 +34,91 @@ impl Ast {
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_function()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_function()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
         self.files
-                .last()
-                .unwrap()
-                .elements[index]
-            .to_function()
+            .last()
             .unwrap()
+            .elements[index]
+                .to_function()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_class()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_class()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
         self.files
-                .last()
-                .unwrap()
-                .elements[index]
-            .to_class()
+            .last()
             .unwrap()
+            .elements[index]
+                .to_class()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_struct()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_struct()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
         self.files
-                .last()
-                .unwrap()
-                .elements[index]
-            .to_trait()
+            .last()
             .unwrap()
+            .elements[index]
+                .to_trait()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_trait()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_trait()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_impl()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_impl()
+                .unwrap()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
         self.files
-                .last()
-                .unwrap()
-                .elements[0]
-            .to_global()
+            .last()
             .unwrap()
+            .elements[0]
+                .to_global()
+                .unwrap()
     }
 }
 
@@ -279,35 +279,35 @@ impl Type {
 
     pub fn create_basic(id: NodeId, pos: Position, name: Name, params: Vec<Box<Type>>) -> Type {
         Type::TypeBasic(TypeBasicType {
-            id: id,
-            pos: pos,
-            name: name,
-            params: params,
-        })
+                            id: id,
+                            pos: pos,
+                            name: name,
+                            params: params,
+                        })
     }
 
     pub fn create_ptr(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
         Type::TypePtr(TypePtrType {
-            id: id,
-            pos: pos,
-            subtype: subtype,
-        })
+                          id: id,
+                          pos: pos,
+                          subtype: subtype,
+                      })
     }
 
     pub fn create_array(id: NodeId, pos: Position, subtype: Box<Type>) -> Type {
         Type::TypeArray(TypeArrayType {
-            id: id,
-            pos: pos,
-            subtype: subtype,
-        })
+                            id: id,
+                            pos: pos,
+                            subtype: subtype,
+                        })
     }
 
     pub fn create_tuple(id: NodeId, pos: Position, subtypes: Vec<Box<Type>>) -> Type {
         Type::TypeTuple(TypeTupleType {
-            id: id,
-            pos: pos,
-            subtypes: subtypes,
-        })
+                            id: id,
+                            pos: pos,
+                            subtypes: subtypes,
+                        })
     }
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
@@ -529,9 +529,9 @@ impl Modifiers {
 
     pub fn add(&mut self, modifier: Modifier, pos: Position) {
         self.0.push(ModifierElement {
-            value: modifier,
-            pos: pos,
-        });
+                        value: modifier,
+                        pos: pos,
+                    });
     }
 
     pub fn iter(&self) -> Iter<ModifierElement> {
@@ -603,30 +603,30 @@ impl Stmt {
                       expr: Option<Box<Expr>>)
                       -> Stmt {
         Stmt::StmtVar(StmtVarType {
-            id: id,
-            pos: pos,
-            name: name,
-            reassignable: reassignable,
-            data_type: data_type,
-            expr: expr,
-        })
+                          id: id,
+                          pos: pos,
+                          name: name,
+                          reassignable: reassignable,
+                          data_type: data_type,
+                          expr: expr,
+                      })
     }
 
     pub fn create_while(id: NodeId, pos: Position, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
         Stmt::StmtWhile(StmtWhileType {
-            id: id,
-            pos: pos,
-            cond: cond,
-            block: block,
-        })
+                            id: id,
+                            pos: pos,
+                            cond: cond,
+                            block: block,
+                        })
     }
 
     pub fn create_loop(id: NodeId, pos: Position, block: Box<Stmt>) -> Stmt {
         Stmt::StmtLoop(StmtLoopType {
-            id: id,
-            pos: pos,
-            block: block,
-        })
+                           id: id,
+                           pos: pos,
+                           block: block,
+                       })
     }
 
     pub fn create_if(id: NodeId,
@@ -636,28 +636,28 @@ impl Stmt {
                      else_block: Option<Box<Stmt>>)
                      -> Stmt {
         Stmt::StmtIf(StmtIfType {
-            id: id,
-            pos: pos,
-            cond: cond,
-            then_block: then_block,
-            else_block: else_block,
-        })
+                         id: id,
+                         pos: pos,
+                         cond: cond,
+                         then_block: then_block,
+                         else_block: else_block,
+                     })
     }
 
     pub fn create_expr(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
         Stmt::StmtExpr(StmtExprType {
-            id: id,
-            pos: pos,
-            expr: expr,
-        })
+                           id: id,
+                           pos: pos,
+                           expr: expr,
+                       })
     }
 
     pub fn create_block(id: NodeId, pos: Position, stmts: Vec<Box<Stmt>>) -> Stmt {
         Stmt::StmtBlock(StmtBlockType {
-            id: id,
-            pos: pos,
-            stmts: stmts,
-        })
+                            id: id,
+                            pos: pos,
+                            stmts: stmts,
+                        })
     }
 
     pub fn create_break(id: NodeId, pos: Position) -> Stmt {
@@ -670,18 +670,18 @@ impl Stmt {
 
     pub fn create_return(id: NodeId, pos: Position, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::StmtReturn(StmtReturnType {
-            id: id,
-            pos: pos,
-            expr: expr,
-        })
+                             id: id,
+                             pos: pos,
+                             expr: expr,
+                         })
     }
 
     pub fn create_throw(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
         Stmt::StmtThrow(StmtThrowType {
-            id: id,
-            pos: pos,
-            expr: expr,
-        })
+                            id: id,
+                            pos: pos,
+                            expr: expr,
+                        })
     }
 
     pub fn create_do(id: NodeId,
@@ -691,20 +691,20 @@ impl Stmt {
                      finally_block: Option<FinallyBlock>)
                      -> Stmt {
         Stmt::StmtDo(StmtDoType {
-            id: id,
-            pos: pos,
-            do_block: do_block,
-            catch_blocks: catch_blocks,
-            finally_block: finally_block,
-        })
+                         id: id,
+                         pos: pos,
+                         do_block: do_block,
+                         catch_blocks: catch_blocks,
+                         finally_block: finally_block,
+                     })
     }
 
     pub fn create_spawn(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
         Stmt::StmtSpawn(StmtSpawnType {
-            id: id,
-            pos: pos,
-            expr: expr,
-        })
+                            id: id,
+                            pos: pos,
+                            expr: expr,
+                        })
     }
 
     pub fn id(&self) -> NodeId {
@@ -1155,20 +1155,20 @@ pub enum Expr {
 impl Expr {
     pub fn create_un(id: NodeId, pos: Position, op: UnOp, opnd: Box<Expr>) -> Expr {
         Expr::ExprUn(ExprUnType {
-            id: id,
-            pos: pos,
-            op: op,
-            opnd: opnd,
-        })
+                         id: id,
+                         pos: pos,
+                         op: op,
+                         opnd: opnd,
+                     })
     }
 
     pub fn create_try(id: NodeId, pos: Position, expr: Box<Expr>, mode: TryMode) -> Expr {
         Expr::ExprTry(ExprTryType {
-            id: id,
-            pos: pos,
-            expr: expr,
-            mode: mode,
-        })
+                          id: id,
+                          pos: pos,
+                          expr: expr,
+                          mode: mode,
+                      })
     }
 
     pub fn create_bin(id: NodeId,
@@ -1178,12 +1178,12 @@ impl Expr {
                       rhs: Box<Expr>)
                       -> Expr {
         Expr::ExprBin(ExprBinType {
-            id: id,
-            pos: pos,
-            op: op,
-            lhs: lhs,
-            rhs: rhs,
-        })
+                          id: id,
+                          pos: pos,
+                          op: op,
+                          lhs: lhs,
+                          rhs: rhs,
+                      })
     }
 
     pub fn create_conv(id: NodeId,
@@ -1193,72 +1193,72 @@ impl Expr {
                        is: bool)
                        -> Expr {
         Expr::ExprConv(ExprConvType {
-            id: id,
-            pos: pos,
-            object: object,
-            data_type: data_type,
-            is: is,
-        })
+                           id: id,
+                           pos: pos,
+                           object: object,
+                           data_type: data_type,
+                           is: is,
+                       })
     }
 
     pub fn create_array(id: NodeId, pos: Position, object: Box<Expr>, index: Box<Expr>) -> Expr {
         Expr::ExprArray(ExprArrayType {
-            id: id,
-            pos: pos,
-            object: object,
-            index: index,
-        })
+                            id: id,
+                            pos: pos,
+                            object: object,
+                            index: index,
+                        })
     }
 
     pub fn create_lit_char(id: NodeId, pos: Position, value: char) -> Expr {
         Expr::ExprLitChar(ExprLitCharType {
-            id: id,
-            pos: pos,
-            value: value,
-        })
+                              id: id,
+                              pos: pos,
+                              value: value,
+                          })
     }
 
     pub fn create_lit_int(id: NodeId, pos: Position, value: u64, suffix: IntSuffix) -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
-            id: id,
-            pos: pos,
-            value: value,
-            suffix: suffix,
-        })
+                             id: id,
+                             pos: pos,
+                             value: value,
+                             suffix: suffix,
+                         })
     }
 
     pub fn create_lit_float(id: NodeId, pos: Position, value: f64, suffix: FloatSuffix) -> Expr {
         Expr::ExprLitFloat(ExprLitFloatType {
-            id: id,
-            pos: pos,
-            value: value,
-            suffix: suffix,
-        })
+                               id: id,
+                               pos: pos,
+                               value: value,
+                               suffix: suffix,
+                           })
     }
 
     pub fn create_lit_str(id: NodeId, pos: Position, value: String) -> Expr {
         Expr::ExprLitStr(ExprLitStrType {
-            id: id,
-            pos: pos,
-            value: value,
-        })
+                             id: id,
+                             pos: pos,
+                             value: value,
+                         })
     }
 
     pub fn create_lit_bool(id: NodeId, pos: Position, value: bool) -> Expr {
         Expr::ExprLitBool(ExprLitBoolType {
-            id: id,
-            pos: pos,
-            value: value,
-        })
+                              id: id,
+                              pos: pos,
+                              value: value,
+                          })
     }
 
     pub fn create_lit_struct(id: NodeId, pos: Position, path: Path, args: Vec<StructArg>) -> Expr {
         Expr::ExprLitStruct(ExprLitStructType {
-            id: id,
-            pos: pos,
-            path: path,
-            args: args,
-        })
+                                id: id,
+                                pos: pos,
+                                path: path,
+                                args: args,
+                            })
     }
 
     pub fn create_this(id: NodeId, pos: Position) -> Expr {
@@ -1279,11 +1279,11 @@ impl Expr {
                         type_params: Option<Vec<Type>>)
                         -> Expr {
         Expr::ExprIdent(ExprIdentType {
-            id: id,
-            pos: pos,
-            name: name,
-            type_params: type_params,
-        })
+                            id: id,
+                            pos: pos,
+                            name: name,
+                            type_params: type_params,
+                        })
     }
 
     pub fn create_call(id: NodeId,
@@ -1294,13 +1294,13 @@ impl Expr {
                        type_params: Option<Vec<Type>>)
                        -> Expr {
         Expr::ExprCall(ExprCallType {
-            id: id,
-            pos: pos,
-            path: path,
-            args: args,
-            object: object,
-            type_params: type_params,
-        })
+                           id: id,
+                           pos: pos,
+                           path: path,
+                           args: args,
+                           object: object,
+                           type_params: type_params,
+                       })
     }
 
     pub fn create_delegation(id: NodeId,
@@ -1309,29 +1309,29 @@ impl Expr {
                              args: Vec<Box<Expr>>)
                              -> Expr {
         Expr::ExprDelegation(ExprDelegationType {
-            id: id,
-            pos: pos,
-            ty: ty,
-            args: args,
-        })
+                                 id: id,
+                                 pos: pos,
+                                 ty: ty,
+                                 args: args,
+                             })
     }
 
     pub fn create_assign(id: NodeId, pos: Position, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
         Expr::ExprAssign(ExprAssignType {
-            id: id,
-            pos: pos,
-            lhs: lhs,
-            rhs: rhs,
-        })
+                             id: id,
+                             pos: pos,
+                             lhs: lhs,
+                             rhs: rhs,
+                         })
     }
 
     pub fn create_field(id: NodeId, pos: Position, object: Box<Expr>, name: Name) -> Expr {
         Expr::ExprField(ExprFieldType {
-            id: id,
-            pos: pos,
-            object: object,
-            name: name,
-        })
+                            id: id,
+                            pos: pos,
+                            object: object,
+                            name: name,
+                        })
     }
 
     pub fn to_un(&self) -> Option<&ExprUnType> {

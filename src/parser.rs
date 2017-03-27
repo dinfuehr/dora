@@ -59,9 +59,9 @@ impl<'a> Parser<'a> {
         }
 
         self.ast.files.push(File {
-            path: self.lexer.filename().to_string(),
-            elements: elements,
-        });
+                                path: self.lexer.filename().to_string(),
+                                elements: elements,
+                            });
 
         Ok(())
     }
@@ -137,12 +137,12 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Impl {
-            id: self.generate_id(),
-            trait_name: trait_name,
-            class_name: class_name,
-            pos: pos,
-            methods: methods,
-        })
+               id: self.generate_id(),
+               trait_name: trait_name,
+               class_name: class_name,
+               pos: pos,
+               methods: methods,
+           })
     }
 
     fn parse_global(&mut self) -> Result<Global, MsgWithPos> {
@@ -166,13 +166,13 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Global {
-            id: self.generate_id(),
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            reassignable: reassignable,
-            expr: expr,
-        })
+               id: self.generate_id(),
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               reassignable: reassignable,
+               expr: expr,
+           })
     }
 
     fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
@@ -191,11 +191,11 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace)?;
 
         Ok(Trait {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            methods: methods,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               methods: methods,
+           })
     }
 
     fn parse_struct(&mut self) -> Result<Struct, MsgWithPos> {
@@ -206,11 +206,11 @@ impl<'a> Parser<'a> {
         let fields = self.parse_comma_list(TokenKind::RBrace, |p| p.parse_struct_field())?;
 
         Ok(Struct {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            fields: fields,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               fields: fields,
+           })
     }
 
     fn parse_struct_field(&mut self) -> Result<StructField, MsgWithPos> {
@@ -221,11 +221,11 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type()?;
 
         Ok(StructField {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            data_type: ty,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               data_type: ty,
+           })
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
@@ -302,9 +302,9 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier()?;
 
         Ok(TypeParam {
-            name: name,
-            pos: pos,
-        })
+               name: name,
+               pos: pos,
+           })
     }
 
     fn add_field_initializers_to_ctors(&mut self, cls: &mut Class) {
@@ -374,23 +374,23 @@ impl<'a> Parser<'a> {
 
         if field {
             cls.fields.push(Field {
-                id: self.generate_id(),
-                name: name,
-                pos: pos,
-                data_type: data_type.clone(),
-                primary_ctor: true,
-                expr: None,
-                reassignable: reassignable,
-            })
+                                id: self.generate_id(),
+                                name: name,
+                                pos: pos,
+                                data_type: data_type.clone(),
+                                primary_ctor: true,
+                                expr: None,
+                                reassignable: reassignable,
+                            })
         }
 
         Ok(PrimaryCtorParam {
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            field: field,
-            reassignable: reassignable,
-        })
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               field: field,
+               reassignable: reassignable,
+           })
     }
 
     fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
@@ -507,22 +507,22 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Function {
-            id: self.generate_id(),
-            pos: pos,
-            name: cls.name,
-            method: true,
-            has_open: false,
-            has_override: false,
-            has_final: false,
-            is_pub: true,
-            is_static: false,
-            internal: modifiers.contains(Modifier::Internal),
-            ctor: CtorType::Secondary,
-            params: params,
-            throws: false,
-            return_type: None,
-            block: block,
-        })
+               id: self.generate_id(),
+               pos: pos,
+               name: cls.name,
+               method: true,
+               has_open: false,
+               has_override: false,
+               has_final: false,
+               is_pub: true,
+               is_static: false,
+               internal: modifiers.contains(Modifier::Internal),
+               ctor: CtorType::Secondary,
+               params: params,
+               throws: false,
+               return_type: None,
+               block: block,
+           })
     }
 
     fn parse_delegation(&mut self) -> Result<Option<Delegation>, MsgWithPos> {
@@ -548,10 +548,10 @@ impl<'a> Parser<'a> {
         let args = self.parse_comma_list(TokenKind::RParen, |p| p.parse_expression())?;
 
         Ok(Some(Delegation {
-            pos: pos,
-            ty: ty,
-            args: args,
-        }))
+                    pos: pos,
+                    ty: ty,
+                    args: args,
+                }))
     }
 
     fn parse_field(&mut self) -> Result<Field, MsgWithPos> {
@@ -581,14 +581,14 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Field {
-            id: self.generate_id(),
-            name: name,
-            pos: pos,
-            data_type: data_type,
-            primary_ctor: false,
-            expr: expr,
-            reassignable: reassignable,
-        })
+               id: self.generate_id(),
+               name: name,
+               pos: pos,
+               data_type: data_type,
+               primary_ctor: false,
+               expr: expr,
+               reassignable: reassignable,
+           })
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, MsgWithPos> {
@@ -601,22 +601,22 @@ impl<'a> Parser<'a> {
         let block = self.parse_function_block()?;
 
         Ok(Function {
-            id: self.generate_id(),
-            name: ident,
-            pos: pos,
-            method: self.in_class,
-            has_open: modifiers.contains(Modifier::Open),
-            has_override: modifiers.contains(Modifier::Override),
-            has_final: modifiers.contains(Modifier::Final),
-            is_pub: modifiers.contains(Modifier::Pub),
-            is_static: modifiers.contains(Modifier::Static),
-            internal: modifiers.contains(Modifier::Internal),
-            ctor: CtorType::None,
-            params: params,
-            throws: throws,
-            return_type: return_type,
-            block: block,
-        })
+               id: self.generate_id(),
+               name: ident,
+               pos: pos,
+               method: self.in_class,
+               has_open: modifiers.contains(Modifier::Open),
+               has_override: modifiers.contains(Modifier::Override),
+               has_final: modifiers.contains(Modifier::Final),
+               is_pub: modifiers.contains(Modifier::Pub),
+               is_static: modifiers.contains(Modifier::Static),
+               internal: modifiers.contains(Modifier::Internal),
+               ctor: CtorType::None,
+               params: params,
+               throws: throws,
+               return_type: return_type,
+               block: block,
+           })
     }
 
     fn parse_throws(&mut self) -> Result<bool, MsgWithPos> {
@@ -689,13 +689,13 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         Ok(Param {
-            id: self.generate_id(),
-            idx: self.param_idx - 1,
-            reassignable: reassignable,
-            name: name,
-            pos: pos,
-            data_type: data_type,
-        })
+               id: self.generate_id(),
+               idx: self.param_idx - 1,
+               reassignable: reassignable,
+               name: name,
+               pos: pos,
+               data_type: data_type,
+           })
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
@@ -1199,11 +1199,11 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expression()?;
 
         Ok(StructArg {
-            id: self.generate_id(),
-            pos: pos,
-            name: name,
-            expr: expr,
-        })
+               id: self.generate_id(),
+               pos: pos,
+               name: name,
+               expr: expr,
+           })
     }
 
     fn parse_call(&mut self,
@@ -1460,10 +1460,10 @@ impl<'a> Parser<'a> {
         let id = self.generate_id();
 
         Box::new(Stmt::StmtExpr(StmtExprType {
-            id: id,
-            pos: Position::new(1, 1),
-            expr: expr,
-        }))
+                                    id: id,
+                                    pos: Position::new(1, 1),
+                                    expr: expr,
+                                }))
     }
 
     fn build_param(&mut self, idx: u32, name: Name, ty: Type) -> Param {
@@ -1483,63 +1483,63 @@ impl<'a> Parser<'a> {
         let id = self.generate_id();
 
         Box::new(Stmt::StmtBlock(StmtBlockType {
-            id: id,
-            pos: Position::new(1, 1),
-            stmts: stmts,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     stmts: stmts,
+                                 }))
     }
 
     fn build_type(&mut self, name: Name) -> Type {
         let id = self.generate_id();
 
         Type::TypeBasic(TypeBasicType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name,
-            params: Vec::new(),
-        })
+                            id: id,
+                            pos: Position::new(1, 1),
+                            name: name,
+                            params: Vec::new(),
+                        })
     }
 
     fn build_ident(&mut self, name: Name) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprIdent(ExprIdentType {
-            id: id,
-            pos: Position::new(1, 1),
-            name: name,
-            type_params: None,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     name: name,
+                                     type_params: None,
+                                 }))
     }
 
     fn build_this(&mut self) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprSelf(ExprSelfType {
-            id: id,
-            pos: Position::new(1, 1),
-        }))
+                                    id: id,
+                                    pos: Position::new(1, 1),
+                                }))
     }
 
     fn build_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprAssign(ExprAssignType {
-            id: id,
-            pos: Position::new(1, 1),
-            lhs: lhs,
-            rhs: rhs,
-        }))
+                                      id: id,
+                                      pos: Position::new(1, 1),
+                                      lhs: lhs,
+                                      rhs: rhs,
+                                  }))
     }
 
     fn build_field(&mut self, object: Box<Expr>, name: Name) -> Box<Expr> {
         let id = self.generate_id();
 
         Box::new(Expr::ExprField(ExprFieldType {
-            id: id,
-            pos: Position::new(1, 1),
-            object: object,
-            name: name,
-        }))
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     object: object,
+                                     name: name,
+                                 }))
     }
 }
 

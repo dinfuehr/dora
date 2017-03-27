@@ -91,6 +91,7 @@ pub enum Msg {
     MethodNotInTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
+    ClassExpected(String),
 }
 
 impl Msg {
@@ -289,6 +290,7 @@ impl Msg {
             WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
+            ClassExpected(ref name) => format!("`{}` is not a class", name),
         }
     }
 }

@@ -177,9 +177,9 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.visit_type(data_type);
 
                     let varid = *self.src
-                        .map_vars
-                        .get(var.id)
-                        .unwrap();
+                                     .map_vars
+                                     .get(var.id)
+                                     .unwrap();
                     self.src.vars[varid].ty = self.current_type;
                 }
 
@@ -194,9 +194,9 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                     self.src.set_ty(catch.id, self.current_type);
 
                     let var = *self.src
-                        .map_vars
-                        .get(catch.id)
-                        .unwrap();
+                                   .map_vars
+                                   .get(catch.id)
+                                   .unwrap();
                     self.src.vars[var].ty = self.current_type;
 
                     if !self.current_type.reference_type() {

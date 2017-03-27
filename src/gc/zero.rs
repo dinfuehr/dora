@@ -46,8 +46,8 @@ impl Collector for ZeroCollector {
                 return ptr::null();
             }
 
-            let res = self.next
-                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
+            let res =
+                self.next.compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
                 Ok(_) => break,
