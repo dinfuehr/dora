@@ -545,7 +545,7 @@ impl<'ast> Fct<'ast> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum FctKind {
     Source(RefCell<FctSrc>),
     Definition,

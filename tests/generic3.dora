@@ -1,0 +1,19 @@
+//= ignore
+
+fun main() {
+  assert(is_nil(nil));
+}
+
+fun is_nil(a: A<int>) -> bool {
+  return a === nil;
+}
+
+fun get_x_or_default(a: A<int>, val: int) -> int {
+  if a !== nil {
+    return val;
+  } else {
+    return a.x;
+  }
+}
+
+class A<T>(let x: T)

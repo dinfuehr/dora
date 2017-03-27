@@ -1,7 +1,9 @@
 use std::{f32, f64};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
-use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType};
+use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctKind, FctParent, FctSrc, IdentType, Var};
 use class::{self, ClassId};
 use error::msg::Msg;
 
@@ -1312,17 +1314,54 @@ fn create_specialized_class(ctxt: &Context,
             let ctor = ctxt.fcts[ctor_id].borrow();
             let fct_id = ctxt.fcts.len().into();
 
-            let param_types = ctor.param_types
+            let mut param_types: Vec<_> = ctor.param_types
                 .iter()
                 .map(|&t| specialize_type(t, &type_params))
                 .collect();
+
+            if ctor.has_self() {
+                param_types[0] = BuiltinType::Class(id);
+            }
+
+            let cloned_kind = match ctor.kind {
+                FctKind::Source(ref src)  => {
+                    let src = src.borrow();
+
+                    let cloned_vars = src.vars.iter().map(|v| {
+                        Var {
+                            id: v.id,
+                            name: v.name,
+                            ty: specialize_type(v.ty, &type_params),
+                            reassignable: v.reassignable,
+                            node_id: v.node_id,
+                        }
+                    }).collect();
+
+                    FctKind::Source(RefCell::new(FctSrc {
+                        map_calls: src.map_calls.clone(),
+                        map_idents: src.map_idents.clone(),
+                        map_tys: src.map_tys.clone(),
+                        map_vars: src.map_vars.clone(),
+                        map_convs: src.map_convs.clone(),
+                        map_cls: src.map_cls.clone(),
+
+                        always_returns: src.always_returns,
+                        jit_fct: RwLock::new(None),
+                        vars: cloned_vars,
+                    }))
+                }
+
+                FctKind::Definition => FctKind::Definition,
+                FctKind::Native(ptr) => FctKind::Native(ptr),
+                FctKind::Builtin(intr) => FctKind::Builtin(intr),
+            };
 
             let fct = Fct {
                 id: fct_id,
                 ast: ctor.ast,
                 pos: ctor.pos,
                 name: ctor.name,
-                parent: ctor.parent.clone(),
+                parent: FctParent::Class(id),
                 has_open: ctor.has_open,
                 has_override: ctor.has_override,
                 has_final: ctor.has_final,
@@ -1340,7 +1379,7 @@ fn create_specialized_class(ctxt: &Context,
                 vtable_index: ctor.vtable_index,
                 initialized: ctor.initialized,
                 throws: ctor.throws,
-                kind: ctor.kind.clone(),
+                kind: cloned_kind,
             };
 
             ctxt.fcts.push(fct);

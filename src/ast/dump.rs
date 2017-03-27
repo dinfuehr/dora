@@ -23,6 +23,15 @@ pub fn dump(ast: &Ast, interner: &Interner) {
     dumper.dump_ast(ast);
 }
 
+pub fn dump_fct(fct: &Function, interner: &Interner) {
+    let mut dumper = AstDumper {
+        interner: interner,
+        indent: 0,
+    };
+
+    dumper.dump_fct(fct);
+}
+
 pub fn dump_expr<'a>(expr: &'a Expr, interner: &'a Interner) {
     let mut dumper = AstDumper {
         interner: interner,

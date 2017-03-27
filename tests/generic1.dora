@@ -1,7 +1,8 @@
-//= ignore
+//= output "1"
 
 fun main() {
     let a = A::<int>(1);
+    print(a.x.toString());
 }
 
 class A<T>(let x: T)
