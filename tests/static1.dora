@@ -1,0 +1,12 @@
+//= ignore
+
+fun main() {
+    let x = Foo::test(2, 3);
+    assert(x == 5);
+}
+
+class Foo {
+    static fun test(a: int, b: int) -> int {
+        return a + b;
+    }
+}
