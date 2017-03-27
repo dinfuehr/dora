@@ -398,10 +398,7 @@ fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>,
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_method<'ast>(ctxt: &mut Context<'ast>,
-                         clsid: ClassId,
-                         name: &str,
-                         kind: FctKind) {
+fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
     let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 

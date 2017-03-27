@@ -22,16 +22,16 @@ impl Stacktrace {
 
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
         self.elems.push(StackElem {
-                            fct_id: fct_id,
-                            lineno: lineno,
-                        });
+            fct_id: fct_id,
+            lineno: lineno,
+        });
     }
 
     pub fn dump(&self, ctxt: &Context) {
         for (ind, elem) in self.elems
-                .iter()
-                .rev()
-                .enumerate() {
+            .iter()
+            .rev()
+            .enumerate() {
             let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
             print!("  {}: {}:", ind, name);
 
@@ -185,7 +185,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                 //          entry.try_start, entry.try_end, entry.catch_type);
 
                 if entry.try_start < pc && pc <= entry.try_end &&
-                    (entry.catch_type == CatchType::Any ||
+                   (entry.catch_type == CatchType::Any ||
                     entry.catch_type == CatchType::Class(cls_id)) {
                     let stacksize = jit_fct.framesize as usize;
                     resume_with_handler(es, entry, fp, exception, stacksize);

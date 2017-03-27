@@ -524,7 +524,7 @@ impl<'ast> Fct<'ast> {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) => !(self.ctor.is() && self.internal),
+            FctParent::Class(_) => !self.is_static && !(self.ctor.is() && self.internal),
             FctParent::Trait(_) |
             FctParent::Impl(_) => true,
 

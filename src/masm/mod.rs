@@ -179,12 +179,12 @@ impl MacroAssembler {
                                   offset: Option<i32>,
                                   catch_type: CatchType) {
         self.exception_handlers.push(ExHandler {
-                                         try_start: span.0,
-                                         try_end: span.1,
-                                         catch: catch,
-                                         offset: offset,
-                                         catch_type: catch_type,
-                                     });
+            try_start: span.0,
+            try_end: span.1,
+            catch: catch,
+            offset: offset,
+            catch_type: catch_type,
+        });
     }
 
     pub fn get_scratch(&self) -> ScratchReg {
@@ -263,10 +263,10 @@ impl ScratchRegisters {
                 self.value.set(value | bitmask);
 
                 return ScratchReg {
-                           ind: ind as u32,
-                           reg: reg,
-                           scratch: self.clone(),
-                       };
+                    ind: ind as u32,
+                    reg: reg,
+                    scratch: self.clone(),
+                };
             }
         }
 

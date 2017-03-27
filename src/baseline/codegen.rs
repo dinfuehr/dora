@@ -30,10 +30,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     generate_fct(ctxt, &fct, &mut src)
 }
 
-pub fn generate_fct<'ast>(ctxt: &Context<'ast>,
-                          fct: &Fct<'ast>,
-                          src: &mut FctSrc)
-                          -> *const u8 {
+pub fn generate_fct<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>, src: &mut FctSrc) -> *const u8 {
     {
         let src_jit_fct = src.jit_fct.read().unwrap();
 
@@ -116,8 +113,8 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     }
 
     let start_addr = jit_fct.fct_ptr() as u64;
-    let instrs =
-        engine.disasm(buf, start_addr, jit_fct.fct_len()).expect("could not disassemble code");
+    let instrs = engine.disasm(buf, start_addr, jit_fct.fct_len())
+        .expect("could not disassemble code");
 
     let name = fct.full_name(ctxt);
 
@@ -126,9 +123,7 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
-            println!("  var `{}`: type {}",
-                     name,
-                     var.ty.name(ctxt));
+            println!("  var `{}`: type {}", name, var.ty.name(ctxt));
         }
 
         if fct_src.vars.len() > 0 {
@@ -257,9 +252,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         for p in &self.ast.params {
             let varid = *self.src
-                             .map_vars
-                             .get(p.id)
-                             .unwrap();
+                .map_vars
+                .get(p.id)
+                .unwrap();
             let is_float = self.src.vars[varid].ty.mode().is_float();
 
             if is_float && freg_idx < FREG_PARAMS.len() {
@@ -446,9 +441,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
         let var = *self.src
-                       .map_vars
-                       .get(s.id)
-                       .unwrap();
+            .map_vars
+            .get(s.id)
+            .unwrap();
 
         if let Some(ref expr) = s.expr {
             let value = self.emit_expr(expr);
@@ -472,7 +467,11 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
-            var_store(&mut self.masm, &self.src, &self.jit_info, REG_RESULT.into(), var);
+            var_store(&mut self.masm,
+                      &self.src,
+                      &self.jit_info,
+                      REG_RESULT.into(),
+                      var);
         }
     }
 
@@ -494,9 +493,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info
-                              .map_offsets
-                              .get(s.id)
-                              .unwrap();
+                .map_offsets
+                .get(s.id)
+                .unwrap();
             self.masm.emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
@@ -517,9 +516,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         for catch in &s.catch_blocks {
             let varid = *self.src
-                             .map_vars
-                             .get(catch.id)
-                             .unwrap();
+                .map_vars
+                .get(catch.id)
+                .unwrap();
             let offset = self.jit_info.offset(varid);
 
             self.scopes.push_scope();
@@ -584,9 +583,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.scopes.push_scope();
 
         let offset = *self.jit_info
-                          .map_offsets
-                          .get(s.id)
-                          .unwrap();
+            .map_offsets
+            .get(s.id)
+            .unwrap();
         self.scopes.add_var_offset(offset);
 
         self.visit_stmt(&finally_block.block);
@@ -673,13 +672,21 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(masm: &mut MacroAssembler, fsrc: &FctSrc, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
+pub fn var_store(masm: &mut MacroAssembler,
+                 fsrc: &FctSrc,
+                 jit_info: &JitInfo,
+                 src: ExprStore,
+                 var_id: VarId) {
     let var = &fsrc.vars[var_id];
     let offset = jit_info.offset(var_id);
     masm.store_mem(var.ty.mode(), Mem::Local(offset), src);
 }
 
-pub fn var_load(masm: &mut MacroAssembler, fsrc: &FctSrc, jit_info: &JitInfo, var_id: VarId, dest: ExprStore) {
+pub fn var_load(masm: &mut MacroAssembler,
+                fsrc: &FctSrc,
+                jit_info: &JitInfo,
+                var_id: VarId,
+                dest: ExprStore) {
     let var = &fsrc.vars[var_id];
     let offset = jit_info.offset(var_id);
     masm.load_mem(var.ty.mode(), dest, Mem::Local(offset));

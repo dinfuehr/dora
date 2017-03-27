@@ -58,14 +58,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let var = *self.src
-                       .map_vars
-                       .get(s.id)
-                       .unwrap();
+            .map_vars
+            .get(s.id)
+            .unwrap();
 
         let expr_type = s.expr.as_ref().map(|expr| {
-                                                self.visit_expr(&expr);
-                                                self.expr_type
-                                            });
+            self.visit_expr(&expr);
+            self.expr_type
+        });
 
         let defined_type = if let Some(_) = s.data_type {
             let ty = self.src.vars[var].ty;
@@ -160,10 +160,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s.expr
             .as_ref()
             .map(|expr| {
-                     self.visit_expr(&expr);
+                self.visit_expr(&expr);
 
-                     self.expr_type
-                 })
+                self.expr_type
+            })
             .unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
@@ -221,9 +221,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_ident(&mut self, e: &'ast ExprIdentType) {
         let ident_type = *self.src
-                              .map_idents
-                              .get(e.id)
-                              .unwrap();
+            .map_idents
+            .get(e.id)
+            .unwrap();
 
         match ident_type {
             IdentType::Var(varid) => {
@@ -666,16 +666,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let call_type = *self.src
-                             .map_calls
-                             .get(e.id)
-                             .unwrap();
+            .map_calls
+            .get(e.id)
+            .unwrap();
 
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
+                self.visit_expr(arg);
+                self.expr_type
+            })
             .collect();
 
         match call_type {
@@ -801,9 +801,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let arg_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
+                self.visit_expr(arg);
+                self.expr_type
+            })
             .collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
@@ -885,13 +885,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
+                self.visit_expr(arg);
+                self.expr_type
+            })
             .collect();
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, e.name, &call_types, None) {
+            self.find_method(e.pos, object_type, e.path.name(), &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
             self.src.set_ty(e.id, return_type);
@@ -1324,18 +1324,21 @@ fn create_specialized_class(ctxt: &Context,
             }
 
             let cloned_kind = match ctor.kind {
-                FctKind::Source(ref src)  => {
+                FctKind::Source(ref src) => {
                     let src = src.borrow();
 
-                    let cloned_vars = src.vars.iter().map(|v| {
-                        Var {
-                            id: v.id,
-                            name: v.name,
-                            ty: specialize_type(v.ty, &type_params),
-                            reassignable: v.reassignable,
-                            node_id: v.node_id,
-                        }
-                    }).collect();
+                    let cloned_vars = src.vars
+                        .iter()
+                        .map(|v| {
+                            Var {
+                                id: v.id,
+                                name: v.name,
+                                ty: specialize_type(v.ty, &type_params),
+                                reassignable: v.reassignable,
+                                node_id: v.node_id,
+                            }
+                        })
+                        .collect();
 
                     FctKind::Source(RefCell::new(FctSrc {
                         map_calls: src.map_calls.clone(),
@@ -1402,32 +1405,32 @@ fn create_specialized_class(ctxt: &Context,
         .collect();
 
     ctxt.classes.push(class::Class {
-                          id: id,
-                          pos: cls.pos,
-                          name: cls.name,
-                          ty: BuiltinType::Class(id),
-                          parent_class: cls.parent_class,
-                          has_open: cls.has_open,
-                          internal: cls.internal,
-                          internal_resolved: cls.internal_resolved,
-                          primary_ctor: cls.primary_ctor,
+        id: id,
+        pos: cls.pos,
+        name: cls.name,
+        ty: BuiltinType::Class(id),
+        parent_class: cls.parent_class,
+        has_open: cls.has_open,
+        internal: cls.internal,
+        internal_resolved: cls.internal_resolved,
+        primary_ctor: cls.primary_ctor,
 
-                          ctors: cloned_ctors,
-                          fields: cloned_fields,
-                          methods: cls.methods.clone(),
-                          size: 0,
-                          vtable: None,
+        ctors: cloned_ctors,
+        fields: cloned_fields,
+        methods: cls.methods.clone(),
+        size: 0,
+        vtable: None,
 
-                          traits: cls.traits.clone(),
-                          impls: cls.impls.clone(),
+        traits: cls.traits.clone(),
+        impls: cls.impls.clone(),
 
-                          type_params: Vec::new(),
-                          specialization_for: Some(cls.id),
-                          specialization_params: type_params,
-                          specializations: HashMap::new(),
+        type_params: Vec::new(),
+        specialization_for: Some(cls.id),
+        specialization_params: type_params,
+        specializations: HashMap::new(),
 
-                          ref_fields: Vec::new(),
-                      });
+        ref_fields: Vec::new(),
+    });
 
     id
 }

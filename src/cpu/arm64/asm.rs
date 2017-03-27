@@ -736,8 +736,8 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u3
     assert!(fits_u5(rn));
     assert!(fits_u5(rd));
 
-    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 |
-    rn << 5 | rd
+    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 | rn << 5 |
+    rd
 }
 
 pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {

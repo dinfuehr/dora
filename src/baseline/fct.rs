@@ -295,9 +295,7 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 write!(f, "load var {}", name)
             }
 
-            &Comment::LoadSelf(_) => {
-                write!(f, "load self")
-            }
+            &Comment::LoadSelf(_) => write!(f, "load self"),
 
             &Comment::ReadPollingPage => write!(f, "read polling page (safepoint)"),
         }

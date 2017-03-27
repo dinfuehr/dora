@@ -100,9 +100,9 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var.id = var_id;
 
         let result = match self.ctxt
-                  .sym
-                  .borrow()
-                  .get(name) {
+            .sym
+            .borrow()
+            .get(name) {
             Some(sym) => {
                 if replacable(&sym) {
                     Ok(var_id)
@@ -274,10 +274,12 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             return;
         }
 
+        let name = call.path.name();
+
         if let Some(sym) = self.ctxt
-               .sym
-               .borrow()
-               .get(call.name) {
+            .sym
+            .borrow()
+            .get(name) {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id);
@@ -296,7 +298,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         if !found {
-            let name = str(self.ctxt, call.name);
+            let name = str(self.ctxt, name);
             report(self.ctxt, call.pos, Msg::UnknownFunction(name));
         }
 
@@ -308,15 +310,15 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
         if let Some(sid) = self.ctxt
-               .sym
-               .borrow()
-               .get_struct(struc.name) {
+            .sym
+            .borrow()
+            .get_struct(struc.path.name()) {
             self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
 
         } else {
             let name = self.ctxt
                 .interner
-                .str(struc.name)
+                .str(struc.path.name())
                 .to_string();
             report(self.ctxt, struc.pos, Msg::UnknownStruct(name));
         }

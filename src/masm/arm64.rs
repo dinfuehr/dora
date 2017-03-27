@@ -159,10 +159,10 @@ impl MacroAssembler {
                 let pos = self.pos();
                 self.emit_u32(0);
                 self.jumps.push(ForwardJump {
-                                    at: pos,
-                                    to: lbl,
-                                    ty: JumpType::JumpIf(cond),
-                                });
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::JumpIf(cond),
+                });
             }
         }
     }
@@ -184,10 +184,10 @@ impl MacroAssembler {
                 let pos = self.pos();
                 self.emit_u32(0);
                 self.jumps.push(ForwardJump {
-                                    at: pos,
-                                    to: lbl,
-                                    ty: JumpType::Jump,
-                                });
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::Jump,
+                });
             }
         }
     }
