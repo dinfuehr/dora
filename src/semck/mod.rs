@@ -15,6 +15,7 @@ mod nameck;
 mod prelude;
 mod typeck;
 mod returnck;
+mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;

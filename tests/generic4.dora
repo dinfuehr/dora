@@ -1,0 +1,17 @@
+//= output "hello1"
+
+fun main() {
+  let a = A::<Str>(foo(1));
+  forceCollect();
+  print(a.getx());
+}
+
+class A<T>(let x: T) {
+    fun getx() -> T {
+        return self.x;
+    }
+}
+
+fun foo(a: int) -> Str {
+  return "hello" + a.toString();
+}
