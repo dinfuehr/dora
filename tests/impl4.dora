@@ -1,0 +1,16 @@
+fun main() {
+    let x = A::default();
+    assert(x === nil);
+}
+
+trait DefaultValue {
+    static fun default() -> Self;
+}
+
+class A(let a: int)
+
+impl DefaultValue for A {
+    static fun default() -> A {
+        return nil;
+    }
+}
