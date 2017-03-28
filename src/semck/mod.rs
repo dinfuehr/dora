@@ -2,6 +2,7 @@ use ast::{Stmt, Type};
 use ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
 use error::msg::Msg;
+use semck::specialize::specialize_class;
 use sym::Sym::{SymClass, SymStruct, SymTypeParam};
 use ty::BuiltinType;
 
@@ -135,8 +136,37 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
             if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
                 match sym {
                     SymClass(cls_id) => {
-                        let cls = ctxt.classes[cls_id].borrow();
-                        return Some(cls.ty);
+                        let ty = if basic.params.len() > 0 {
+                            let mut type_params = Vec::new();
+
+                            for param in &basic.params {
+                                let param = read_type(ctxt, param);
+
+                                if let Some(param) = param {
+                                    type_params.push(param);
+                                } else {
+                                    return None;
+                                }
+                            }
+
+                            let mut cls = ctxt.classes[cls_id].borrow_mut();
+
+                            if cls.type_params.len() != type_params.len() {
+                                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), type_params.len());
+                                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                return None;
+                            }
+
+                            let cls_id = specialize_class(ctxt, &mut *cls, type_params);
+
+                            BuiltinType::Class(cls_id)
+                        } else {
+                            let cls = ctxt.classes[cls_id].borrow();
+
+                            cls.ty
+                        };
+
+                        return Some(ty);
                     }
 
                     SymStruct(struct_id) => {

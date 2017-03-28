@@ -519,15 +519,11 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn hidden_self(&self) -> bool {
-        self.ctor.is()
-    }
-
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) => !self.is_static && !(self.ctor.is() && self.internal),
+            FctParent::Class(_) |
             FctParent::Trait(_) |
-            FctParent::Impl(_) => true,
+            FctParent::Impl(_) => !self.is_static && !(self.ctor.is() && self.internal),
 
             _ => false,
         }

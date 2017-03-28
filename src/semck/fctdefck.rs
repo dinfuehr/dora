@@ -38,11 +38,16 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
             FctParent::Impl(impl_id) => {
                 let ximpl = ctxt.impls[impl_id].borrow();
                 let cls = ctxt.classes[ximpl.cls_id()].borrow();
-                fct.param_types.push(cls.ty);
+
+                if fct.has_self() {
+                    fct.param_types.push(cls.ty);
+                }
             }
 
             FctParent::Trait(_) => {
-                fct.param_types.push(BuiltinType::This);
+                if fct.has_self() {
+                    fct.param_types.push(BuiltinType::This);
+                }
             }
 
             _ => {}
