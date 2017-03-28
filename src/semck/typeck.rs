@@ -467,7 +467,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .str(name)
             .to_string();
         let param_names = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<String>>();
-        let msg = Msg::UnknownMethod(type_name, name, param_names);
+        let msg = if is_static {
+            Msg::UnknownStaticMethod(type_name, name, param_names)
+        } else {
+            Msg::UnknownMethod(type_name, name, param_names)
+        };
+
         self.ctxt
             .diag
             .borrow_mut()
@@ -2374,6 +2379,22 @@ mod tests {
             }",
             pos(3, 25),
             Msg::WrongNumberTypeParams(0, 1));
+    }
+
+    #[test]
+    fn test_invoke_static_method_as_instance_method() {
+        err("class A {
+                static fun foo() {}
+                fun test() { self.foo(); }
+            }", pos(3, 34), Msg::UnknownMethod("A".into(), "foo".into(), vec![]));
+    }
+
+    #[test]
+    fn test_invoke_method_as_static() {
+        err("class A {
+                fun foo() {}
+                static fun test() { A::foo(); }
+            }", pos(3, 37), Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]));
     }
 
     // #[test]

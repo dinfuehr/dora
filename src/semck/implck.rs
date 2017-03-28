@@ -20,6 +20,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
             let method = ctxt.fcts[method_id].borrow();
 
             if let Some(fid) = xtrait.find_method(ctxt,
+                                                  method.is_static,
                                                   method.name,
                                                   Some(cls),
                                                   method.params_without_self()) {
@@ -32,9 +33,16 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                     .collect::<Vec<String>>();
                 let mtd_name = ctxt.interner.str(method.name).to_string();
                 let trait_name = ctxt.interner.str(xtrait.name).to_string();
+
+                let msg = if method.is_static {
+                    Msg::StaticMethodNotInTrait(trait_name, mtd_name, args)
+                } else {
+                    Msg::MethodNotInTrait(trait_name, mtd_name, args)
+                };
+
                 report(ctxt,
                        method.pos,
-                       Msg::MethodNotInTrait(trait_name, mtd_name, args));
+                       msg);
             }
         }
 
@@ -47,9 +55,16 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                 .collect::<Vec<String>>();
             let mtd_name = ctxt.interner.str(method.name).to_string();
             let trait_name = ctxt.interner.str(xtrait.name).to_string();
+
+            let msg = if method.is_static {
+                Msg::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
+            } else {
+                Msg::MethodMissingFromTrait(trait_name, mtd_name, args)
+            };
+
             report(ctxt,
                    ximpl.pos,
-                   Msg::MethodMissingFromTrait(trait_name, mtd_name, args));
+                   msg);
         }
     }
 }
@@ -65,7 +80,7 @@ mod tests {
     use semck::tests::*;
 
     #[test]
-    fn impl_method_not_in_trait() {
+    fn method_not_in_trait() {
         err("
             trait Foo {}
             class A
@@ -77,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn impl_method_missing_from_trait() {
+    fn method_missing_in_impl() {
         err("
             trait Foo {
                 fun bar();
@@ -89,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn impl_self() {
+    fn method_returning_self() {
         ok("trait Foo {
                 fun foo() -> Self;
             }
@@ -99,5 +114,29 @@ mod tests {
             impl Foo for A {
                 fun foo() -> A { return A(); }
             }");
+    }
+
+    #[test]
+    fn static_method_not_in_trait() {
+        err("
+            trait Foo {}
+            class A
+            impl Foo for A {
+                static fun bar() {}
+            }",
+            pos(5, 24),
+            Msg::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]));
+    }
+
+    #[test]
+    fn static_method_missing_in_impl() {
+        err("
+            trait Foo {
+                static fun bar();
+            }
+            class A
+            impl Foo for A {}",
+            pos(6, 13),
+            Msg::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]));
     }
 }

@@ -128,9 +128,12 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LBrace)?;
 
         let mut methods = Vec::new();
-        let modifiers = Modifiers::new();
 
         while !self.token.is(TokenKind::RBrace) {
+            let modifiers = self.parse_modifiers()?;
+            let mods = &[Modifier::Static];
+            self.restrict_modifiers(&modifiers, mods)?;
+
             methods.push(self.parse_function(&modifiers)?);
         }
 
@@ -178,13 +181,16 @@ impl<'a> Parser<'a> {
     fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
         let pos = self.expect_token(TokenKind::Trait)?.position;
         let ident = self.expect_identifier()?;
-        let modifiers = Modifiers::new();
 
         self.expect_token(TokenKind::LBrace)?;
 
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
+            let modifiers = self.parse_modifiers()?;
+            let mods = &[Modifier::Static];
+            self.restrict_modifiers(&modifiers, mods)?;
+
             methods.push(self.parse_function(&modifiers)?);
         }
 
@@ -3177,6 +3183,17 @@ mod tests {
 
         assert_eq!("Foo", *interner.str(xtrait.name));
         assert_eq!(1, xtrait.methods.len());
+        assert_eq!(false, xtrait.methods[0].is_static);
+    }
+
+    #[test]
+    fn parse_trait_with_static_function() {
+        let (prog, interner) = parse("trait Foo { static fun empty(); }");
+        let xtrait = prog.trait0();
+
+        assert_eq!("Foo", *interner.str(xtrait.name));
+        assert_eq!(1, xtrait.methods.len());
+        assert_eq!(true, xtrait.methods[0].is_static);
     }
 
     #[test]
@@ -3197,6 +3214,18 @@ mod tests {
         assert_eq!("Bar", *interner.str(ximpl.trait_name));
         assert_eq!("B", *interner.str(ximpl.class_name));
         assert_eq!(1, ximpl.methods.len());
+        assert_eq!(false, ximpl.methods[0].is_static);
+    }
+
+    #[test]
+    fn parse_impl_with_static_function() {
+        let (prog, interner) = parse("impl Bar for B { static fun foo(); }");
+        let ximpl = prog.impl0();
+
+        assert_eq!("Bar", *interner.str(ximpl.trait_name));
+        assert_eq!("B", *interner.str(ximpl.class_name));
+        assert_eq!(1, ximpl.methods.len());
+        assert_eq!(true, ximpl.methods[0].is_static);
     }
 
     #[test]

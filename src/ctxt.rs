@@ -248,6 +248,7 @@ pub struct TraitData {
 impl TraitData {
     pub fn find_method(&self,
                        ctxt: &Context,
+                       is_static: bool,
                        name: Name,
                        replace: Option<BuiltinType>,
                        args: &[BuiltinType])
@@ -255,7 +256,7 @@ impl TraitData {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
-            if method.name == name && params_match(replace, method.params_without_self(), args) {
+            if method.name == name && method.is_static == is_static && params_match(replace, method.params_without_self(), args) {
                 return Some(method.id);
             }
         }

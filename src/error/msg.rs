@@ -14,6 +14,7 @@ pub enum Msg {
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
+    UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
     MethodExists(String, String, Vec<String>, Position),
     IncompatibleWithNil(String),
@@ -88,7 +89,9 @@ pub enum Msg {
     ThrowingCallWithoutTry,
     TypeParamsExpected,
     TypeParamNameNotUnique(String),
+    StaticMethodNotInTrait(String, String, Vec<String>),
     MethodNotInTrait(String, String, Vec<String>),
+    StaticMethodMissingFromTrait(String, String, Vec<String>),
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     ClassExpected(String),
@@ -109,6 +112,13 @@ impl Msg {
                         name,
                         args,
                         cls)
+            }
+            UnknownStaticMethod(ref cls, ref name, ref args) => {
+                let args = args.join(", ");
+                format!("no static method `{}::{}({})`.",
+                        cls,
+                        name,
+                        args)
             }
             UnknownCtor(ref name, ref args) => {
                 let args = args.join(", ");
@@ -271,10 +281,26 @@ impl Msg {
             }
             TypeParamsExpected => "type params expected".into(),
             TypeParamNameNotUnique(ref name) => format!("type param `{}` name already used", name),
+            StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
+                let args = args.join(", ");
+
+                format!("trait `{}` does not define static method `{}({})`.",
+                        trait_name,
+                        mtd_name,
+                        args)
+            }
             MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
                 format!("trait `{}` does not define method `{}({})`.",
+                        trait_name,
+                        mtd_name,
+                        args)
+            }
+            StaticMethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
+                let args = args.join(", ");
+
+                format!("trait `{}` defines static method `{}({})` but is missing in `impl`.",
                         trait_name,
                         mtd_name,
                         args)
