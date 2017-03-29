@@ -11,7 +11,6 @@ use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
 use lexer::token::{FloatSuffix, IntSuffix};
-use semck::read_type;
 use semck::specialize::specialize_class;
 use sym::Sym::SymClass;
 use ty::BuiltinType;
@@ -758,7 +757,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let mut types = Vec::new();
 
             for type_param in type_params {
-                let ty = read_type(self.ctxt, type_param).unwrap_or(BuiltinType::Unit);
+                let ty = self.src.ty(type_param.id());
                 types.push(ty);
             }
 
@@ -1135,12 +1134,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let object_type = self.expr_type;
         self.src.set_ty(e.object.id(), self.expr_type);
 
-        let check_type = match read_type(self.ctxt, &e.data_type) {
-            Some(ty) => ty,
-            None => {
-                return;
-            }
-        };
+        let check_type = self.src.ty(e.data_type.id());
 
         if !check_type.reference_type() {
             let name = check_type.name(self.ctxt);

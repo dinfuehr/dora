@@ -10,6 +10,7 @@ mod clsdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
+mod globaldefck;
 mod implck;
 mod impldefck;
 mod nameck;
@@ -52,6 +53,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     structdefck::check(ctxt, &map_struct_defs);
     traitdefck::check(ctxt, &map_trait_defs);
     impldefck::check(ctxt, &map_impl_defs);
+    globaldefck::check(ctxt, &map_global_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables
@@ -61,7 +63,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // check type definitions of params,
     // return types and local variables in functions
-    fctdefck::check(ctxt, &map_global_defs);
+    fctdefck::check(ctxt);
     return_on_error!(ctxt);
 
     superck::check_override(ctxt);

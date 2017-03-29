@@ -277,6 +277,12 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
                 v.visit_expr(object);
             }
 
+            if let Some(ref type_params) = call.type_params {
+                for ty in type_params {
+                    v.visit_type(ty);
+                }
+            }
+
             for arg in &call.args {
                 v.visit_expr(arg);
             }

@@ -528,7 +528,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
             self.scopes.pop_scope();
 
-            let ty = self.src.ty(catch.id);
+            let ty = self.src.ty(catch.data_type.id());
             let catch_type = CatchType::Class(ty.cls_id(self.ctxt));
             self.masm.emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 

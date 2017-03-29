@@ -1,13 +1,13 @@
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
-use ctxt::{Context, Fct, FctId, FctParent, FctSrc, GlobalId, NodeMap};
+use ctxt::{Context, Fct, FctId, FctParent, FctSrc};
 use error::msg::Msg;
 use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>) {
+pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -116,7 +116,6 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>, map_global_defs: &NodeMap<GlobalId>
             src: &mut src,
             ast: ast,
             current_type: BuiltinType::Unit,
-            map_global_defs: map_global_defs,
         };
 
         defck.check();
@@ -154,7 +153,6 @@ struct FctDefCheck<'a, 'ast: 'a> {
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,
-    map_global_defs: &'a NodeMap<GlobalId>,
 }
 
 impl<'a, 'ast> FctDefCheck<'a, 'ast> {
@@ -166,13 +164,6 @@ impl<'a, 'ast> FctDefCheck<'a, 'ast> {
 impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
     fn visit_fct(&mut self, f: &'ast Function) {
         self.visit_stmt(f.block());
-    }
-
-    fn visit_global(&mut self, g: &'ast Global) {
-        let global_id = *self.map_global_defs.get(g.id).unwrap();
-
-        self.visit_type(&g.data_type);
-        self.ctxt.globals[global_id].borrow_mut().ty = self.current_type;
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
@@ -194,18 +185,19 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
             }
 
             StmtDo(ref try) => {
+                visit::walk_stmt(self, s);
+
                 for catch in &try.catch_blocks {
-                    self.visit_type(&catch.data_type);
-                    self.src.set_ty(catch.id, self.current_type);
+                    let ty = self.src.ty(catch.data_type.id());
 
                     let var = *self.src
                                    .map_vars
                                    .get(catch.id)
                                    .unwrap();
-                    self.src.vars[var].ty = self.current_type;
+                    self.src.vars[var].ty = ty;
 
-                    if !self.current_type.reference_type() {
-                        let ty = self.current_type.name(self.ctxt);
+                    if !ty.reference_type() {
+                        let ty = ty.name(self.ctxt);
                         self.ctxt
                             .diag
                             .borrow_mut()
@@ -219,8 +211,6 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                         .borrow_mut()
                         .report(try.pos, Msg::CatchOrFinallyExpected);
                 }
-
-                visit::walk_stmt(self, s);
             }
 
             _ => visit::walk_stmt(self, s),
@@ -229,6 +219,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
     fn visit_type(&mut self, t: &'ast Type) {
         self.current_type = semck::read_type(self.ctxt, t).unwrap_or(BuiltinType::Unit);
+        self.src.set_ty(t.id(), self.current_type);
     }
 }
 

@@ -38,6 +38,7 @@ def run_tests
   tests = 0
   passed = 0
   failed = 0
+  ignore = 0
 
   for file in test_files
     file = Pathname.new(file)
@@ -53,6 +54,7 @@ def run_tests
 
     elsif res == :ignore
       puts "ignore"
+      ignore += 1
 
     else
       print "failed"
@@ -64,9 +66,24 @@ def run_tests
   end
 
   puts
-  puts "#{passed} tests passed; #{failed} tests failed"
 
-  failed == 0
+  ret = failed == 0
+
+  passed = "#{passed} #{test_name(passed)} passed"
+  failed = "#{failed} #{test_name(failed)} failed"
+
+  if ignore > 0
+    ignore = "#{ignore} #{test_name(ignore)} ignored"
+    puts "#{passed}; #{ignore}; #{failed}"
+  else
+    puts "#{passed}; #{failed}"
+  end
+
+  ret
+end
+
+def test_name(num)
+  num == 1 ? "test" : "tests"
 end
 
 def run_test(file)
