@@ -504,7 +504,8 @@ fn is_digit(ch: Option<char>) -> bool {
 }
 
 fn is_digit_or_underscore(ch: Option<char>) -> bool {
-    ch.map(|ch| ch.is_digit(10) || ch == '_').unwrap_or(false)
+    ch.map(|ch| ch.is_digit(10) || ch == '_')
+        .unwrap_or(false)
 }
 
 fn is_whitespace(ch: Option<char>) -> bool {
@@ -524,7 +525,8 @@ fn is_char_quote(ch: Option<char>) -> bool {
 }
 
 fn is_operator(ch: Option<char>) -> bool {
-    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch)).unwrap_or(false)
+    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>".contains(ch))
+        .unwrap_or(false)
 }
 
 fn is_identifier_start(ch: Option<char>) -> bool {

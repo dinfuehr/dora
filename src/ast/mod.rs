@@ -33,92 +33,63 @@ impl Ast {
 
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[0]
+            .to_function()
             .unwrap()
-            .elements[0]
-                .to_function()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[index]
+            .to_function()
             .unwrap()
-            .elements[index]
-                .to_function()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[0]
+            .to_class()
             .unwrap()
-            .elements[0]
-                .to_class()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[index]
+            .to_class()
             .unwrap()
-            .elements[index]
-                .to_class()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[0]
+            .to_struct()
             .unwrap()
-            .elements[0]
-                .to_struct()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn trai(&self, index: usize) -> &Trait {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[index]
+            .to_trait()
             .unwrap()
-            .elements[index]
-                .to_trait()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[0]
+            .to_trait()
             .unwrap()
-            .elements[0]
-                .to_trait()
-                .unwrap()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.files
-            .last()
-            .unwrap()
-            .elements[0]
-                .to_impl()
-                .unwrap()
+        self.files.last().unwrap().elements[0].to_impl().unwrap()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.files
-            .last()
+        self.files.last().unwrap().elements[0]
+            .to_global()
             .unwrap()
-            .elements[0]
-                .to_global()
-                .unwrap()
     }
 }
 
@@ -521,17 +492,15 @@ impl Modifiers {
     }
 
     pub fn contains(&self, modifier: Modifier) -> bool {
-        self.0
-            .iter()
-            .find(|el| el.value == modifier)
-            .is_some()
+        self.0.iter().find(|el| el.value == modifier).is_some()
     }
 
     pub fn add(&mut self, modifier: Modifier, pos: Position) {
-        self.0.push(ModifierElement {
-                        value: modifier,
-                        pos: pos,
-                    });
+        self.0
+            .push(ModifierElement {
+                      value: modifier,
+                      pos: pos,
+                  });
     }
 
     pub fn iter(&self) -> Iter<ModifierElement> {

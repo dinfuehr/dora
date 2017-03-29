@@ -108,10 +108,7 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
-        let var = *self.src
-                       .map_vars
-                       .get(p.id)
-                       .unwrap();
+        let var = *self.src.map_vars.get(p.id).unwrap();
         let is_float = self.src.vars[var].ty.is_float();
 
         // only some parameters are passed in registers
@@ -128,7 +125,9 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             // just use the current offset
         } else {
             let var = &self.src.vars[var];
-            self.jit_info.map_var_offsets.insert(var.id, self.param_offset);
+            self.jit_info
+                .map_var_offsets
+                .insert(var.id, self.param_offset);
 
             // determine next `param_offset`
             self.param_offset = next_param_offset(self.param_offset, var.ty);
@@ -137,10 +136,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
         if let StmtVar(ref var) = *s {
-            let var = *self.src
-                           .map_vars
-                           .get(var.id)
-                           .unwrap();
+            let var = *self.src.map_vars.get(var.id).unwrap();
             self.reserve_stack_for_node(var);
         }
 
@@ -149,15 +145,13 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
 
             if !ret.is_unit() {
                 self.eh_return_value =
-                    Some(self.eh_return_value.unwrap_or_else(|| self.reserve_stack_for_type(ret)));
+                    Some(self.eh_return_value
+                             .unwrap_or_else(|| self.reserve_stack_for_type(ret)));
             }
 
             // we also need space for catch block parameters
             for catch in &try.catch_blocks {
-                let var = *self.src
-                               .map_vars
-                               .get(catch.id)
-                               .unwrap();
+                let var = *self.src.map_vars.get(catch.id).unwrap();
                 self.reserve_stack_for_node(var);
             }
 
@@ -255,11 +249,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
-        let is_valid = self.src
-            .map_convs
-            .get(e.id)
-            .unwrap()
-            .valid;
+        let is_valid = self.src.map_convs.get(e.id).unwrap().valid;
 
         if !e.is && !is_valid {
             self.reserve_temp_for_node(&e.object);
@@ -267,11 +257,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn is_intrinsic(&self, id: NodeId) -> bool {
-        let fid = self.src
-            .map_calls
-            .get(id)
-            .unwrap()
-            .fct_id();
+        let fid = self.src.map_calls.get(id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
@@ -296,10 +282,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src
-                             .map_calls
-                             .get(expr.id)
-                             .unwrap();
+        let call_type = *self.src.map_calls.get(expr.id).unwrap();
 
         let mut args = expr.args
             .iter()
@@ -333,10 +316,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let cls_id = *self.src
-                          .map_cls
-                          .get(expr.id)
-                          .unwrap();
+        let cls_id = *self.src.map_cls.get(expr.id).unwrap();
         args.insert(0, Arg::Selfie(cls_id, 0));
 
         self.universal_call(expr.id, args, true, None, None);
@@ -384,11 +364,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         let fid = if callee.is_none() {
-            Some(self.src
-                     .map_calls
-                     .get(id)
-                     .unwrap()
-                     .fct_id())
+            Some(self.src.map_calls.get(id).unwrap().fct_id())
         } else {
             None
         };
@@ -454,11 +430,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             let lhs = e.lhs.to_ident().unwrap();
-            let field = self.src
-                .map_idents
-                .get(lhs.id)
-                .unwrap()
-                .is_field();
+            let field = self.src.map_idents.get(lhs.id).unwrap().is_field();
 
             if field {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
@@ -513,11 +485,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         } else {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
-            let fid = self.src
-                .map_calls
-                .get(expr.id)
-                .unwrap()
-                .fct_id();
+            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
             self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }
@@ -532,11 +500,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         } else {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
-            let fid = self.src
-                .map_calls
-                .get(expr.id)
-                .unwrap()
-                .fct_id();
+            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
             self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
         }
@@ -555,7 +519,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ty_size = ty.size(self.ctxt);
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
-        self.jit_info.map_stores.insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
+        self.jit_info
+            .map_stores
+            .insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
 
         self.cur_tempsize
     }
@@ -653,13 +619,13 @@ mod tests {
                   let i : int = 1;
               }",
              |fct, jit_info| {
-            assert_eq!(28, jit_info.localsize);
-            let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
+                 assert_eq!(28, jit_info.localsize);
+                 let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-            for (var, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, jit_info.offset(var.id));
-            }
-        });
+                 for (var, offset) in fct.vars.iter().zip(&offsets) {
+                     assert_eq!(*offset, jit_info.offset(var.id));
+                 }
+             });
     }
 
     #[test]
@@ -671,24 +637,24 @@ mod tests {
                   let k : int = 1;
               }",
              |fct, jit_info| {
-            assert_eq!(36, jit_info.localsize);
-            let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
+                 assert_eq!(36, jit_info.localsize);
+                 let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
-            for (var, offset) in fct.vars.iter().zip(&offsets) {
-                assert_eq!(*offset, jit_info.offset(var.id));
-            }
-        });
+                 for (var, offset) in fct.vars.iter().zip(&offsets) {
+                     assert_eq!(*offset, jit_info.offset(var.id));
+                 }
+             });
     }
 
     #[test]
     fn test_var_offset() {
         info("fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
              |fct, jit_info| {
-            assert_eq!(16, jit_info.localsize);
+                 assert_eq!(16, jit_info.localsize);
 
-            for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                assert_eq!(*offset, jit_info.offset(var.id));
-            }
-        });
+                 for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+                     assert_eq!(*offset, jit_info.offset(var.id));
+                 }
+             });
     }
 }

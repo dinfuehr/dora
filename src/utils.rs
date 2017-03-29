@@ -11,7 +11,9 @@ impl<T> GrowableVec<T> {
     }
 
     pub fn push(&self, val: T) {
-        self.elements.borrow_mut().push(Box::new(RefCell::new(val)));
+        self.elements
+            .borrow_mut()
+            .push(Box::new(RefCell::new(val)));
     }
 
     pub fn len(&self) -> usize {
@@ -19,10 +21,7 @@ impl<T> GrowableVec<T> {
     }
 
     pub fn iter(&self) -> GrowableVecIter<T> {
-        GrowableVecIter {
-            vec: self,
-            idx: 0,
-        }
+        GrowableVecIter { vec: self, idx: 0 }
     }
 }
 

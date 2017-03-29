@@ -58,10 +58,12 @@ impl<'a> Parser<'a> {
             elements.push(el);
         }
 
-        self.ast.files.push(File {
-                                path: self.lexer.filename().to_string(),
-                                elements: elements,
-                            });
+        self.ast
+            .files
+            .push(File {
+                      path: self.lexer.filename().to_string(),
+                      elements: elements,
+                  });
 
         Ok(())
     }
@@ -379,15 +381,16 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         if field {
-            cls.fields.push(Field {
-                                id: self.generate_id(),
-                                name: name,
-                                pos: pos,
-                                data_type: data_type.clone(),
-                                primary_ctor: true,
-                                expr: None,
-                                reassignable: reassignable,
-                            })
+            cls.fields
+                .push(Field {
+                          id: self.generate_id(),
+                          name: name,
+                          pos: pos,
+                          data_type: data_type.clone(),
+                          primary_ctor: true,
+                          expr: None,
+                          reassignable: reassignable,
+                      })
         }
 
         Ok(PrimaryCtorParam {
@@ -1279,7 +1282,10 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         if let TokenKind::LitInt(value, suffix) = tok.kind {
-            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+            let filtered = value
+                .chars()
+                .filter(|&ch| ch != '_')
+                .collect::<String>();
             let parsed = filtered.parse::<u64>();
 
             match parsed {
@@ -1308,7 +1314,10 @@ impl<'a> Parser<'a> {
         let pos = tok.position;
 
         if let TokenKind::LitFloat(value, suffix) = tok.kind {
-            let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+            let filtered = value
+                .chars()
+                .filter(|&ch| ch != '_')
+                .collect::<String>();
             let parsed = filtered.parse::<f64>();
 
             if let Ok(num) = parsed {
@@ -1405,40 +1414,39 @@ impl<'a> Parser<'a> {
             Vec::new()
         };
 
-        let param_assignments: Vec<Box<Stmt>> = ctor_params.iter()
+        let param_assignments: Vec<Box<Stmt>> = ctor_params
+            .iter()
             .filter(|param| param.field)
             .map(|param| {
-                let this = self.build_this();
-                let lhs = self.build_field(this, param.name);
-                let rhs = self.build_ident(param.name);
-                let ass = self.build_assign(lhs, rhs);
+                     let this = self.build_this();
+                     let lhs = self.build_field(this, param.name);
+                     let rhs = self.build_ident(param.name);
+                     let ass = self.build_assign(lhs, rhs);
 
-                self.build_stmt_expr(ass)
-            })
+                     self.build_stmt_expr(ass)
+                 })
             .collect();
 
         let field_assignments: Vec<Box<Stmt>> = cls.fields
             .iter()
             .filter(|field| field.expr.is_some())
             .map(|field| {
-                let this = self.build_this();
-                let lhs = self.build_field(this, field.name);
-                let ass = self.build_assign(lhs,
-                                            field.expr
-                                                .as_ref()
-                                                .unwrap()
-                                                .clone());
+                     let this = self.build_this();
+                     let lhs = self.build_field(this, field.name);
+                     let ass = self.build_assign(lhs, field.expr.as_ref().unwrap().clone());
 
-                self.build_stmt_expr(ass)
-            })
+                     self.build_stmt_expr(ass)
+                 })
             .collect();
 
-        let assignments = delegation.into_iter()
+        let assignments = delegation
+            .into_iter()
             .chain(param_assignments.into_iter())
             .chain(field_assignments.into_iter())
             .collect();
 
-        let params = ctor_params.iter()
+        let params = ctor_params
+            .iter()
             .enumerate()
             .map(|(idx, field)| self.build_param(idx as u32, field.name, field.data_type.clone()))
             .collect();
@@ -1657,7 +1665,9 @@ mod tests {
         let mut ast = Ast::new();
 
         let reader = Reader::from_string(code);
-        Parser::new(reader, &mut ast, &mut interner).parse().unwrap();
+        Parser::new(reader, &mut ast, &mut interner)
+            .parse()
+            .unwrap();
 
         (ast, interner)
     }
@@ -1667,7 +1677,9 @@ mod tests {
         let mut ast = Ast::new();
 
         let reader = Reader::from_string(code);
-        Parser::new(reader, &mut ast, &mut interner).parse().unwrap_err()
+        Parser::new(reader, &mut ast, &mut interner)
+            .parse()
+            .unwrap_err()
     }
 
     #[test]

@@ -178,13 +178,14 @@ impl MacroAssembler {
                                   catch: usize,
                                   offset: Option<i32>,
                                   catch_type: CatchType) {
-        self.exception_handlers.push(ExHandler {
-                                         try_start: span.0,
-                                         try_end: span.1,
-                                         catch: catch,
-                                         offset: offset,
-                                         catch_type: catch_type,
-                                     });
+        self.exception_handlers
+            .push(ExHandler {
+                      try_start: span.0,
+                      try_end: span.1,
+                      catch: catch,
+                      offset: offset,
+                      catch_type: catch_type,
+                  });
     }
 
     pub fn get_scratch(&self) -> ScratchReg {

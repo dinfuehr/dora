@@ -19,14 +19,13 @@ impl NativeFcts {
     }
 
     pub fn find_fct(&self, ptr: *const u8) -> Option<*const u8> {
-        self.map.get(&ptr).map(|jit_fct| jit_fct.fct_start as *const u8)
+        self.map
+            .get(&ptr)
+            .map(|jit_fct| jit_fct.fct_start as *const u8)
     }
 
     pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFct) -> *const u8 {
-        self.map
-            .entry(ptr)
-            .or_insert(fct)
-            .fct_start as *const u8
+        self.map.entry(ptr).or_insert(fct).fct_start as *const u8
     }
 }
 
@@ -79,24 +78,30 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         save_params(&mut self.masm, self.fct.args, offset_args);
 
-        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
-        self.masm.direct_call_without_info(start_native_call as *const u8);
+        self.masm
+            .copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
+        self.masm
+            .direct_call_without_info(start_native_call as *const u8);
 
         restore_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.direct_call_without_info(self.fct.ptr);
 
         if save_return {
-            self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT.into());
+            self.masm
+                .store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT.into());
         }
 
-        self.masm.direct_call_without_info(finish_native_call as *const u8);
+        self.masm
+            .direct_call_without_info(finish_native_call as *const u8);
 
         if save_return {
-            self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_SP, 0));
+            self.masm
+                .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_SP, 0));
         }
 
-        self.masm.epilog(framesize, self.ctxt.polling_page.addr());
+        self.masm
+            .epilog(framesize, self.ctxt.polling_page.addr());
 
         self.masm.jit(self.ctxt, framesize)
     }

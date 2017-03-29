@@ -41,31 +41,17 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].borrow_mut();
 
-        if let Some(Sym::SymTrait(trait_id)) =
-            self.ctxt
-                .sym
-                .borrow()
-                .get(i.trait_name) {
+        if let Some(Sym::SymTrait(trait_id)) = self.ctxt.sym.borrow().get(i.trait_name) {
             ximpl.trait_id = Some(trait_id);
         } else {
-            let name = self.ctxt
-                .interner
-                .str(i.trait_name)
-                .to_string();
+            let name = self.ctxt.interner.str(i.trait_name).to_string();
             report(self.ctxt, i.pos, Msg::ExpectedTrait(name));
         }
 
-        if let Some(Sym::SymClass(class_id)) =
-            self.ctxt
-                .sym
-                .borrow()
-                .get(i.class_name) {
+        if let Some(Sym::SymClass(class_id)) = self.ctxt.sym.borrow().get(i.class_name) {
             ximpl.class_id = Some(class_id);
         } else {
-            let name = self.ctxt
-                .interner
-                .str(i.class_name)
-                .to_string();
+            let name = self.ctxt.interner.str(i.class_name).to_string();
             report(self.ctxt, i.pos, Msg::ExpectedClass(name));
         }
 

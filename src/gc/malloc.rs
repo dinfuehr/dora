@@ -162,12 +162,12 @@ fn mark_recursive(obj: *mut Obj, cur_marked: bool) {
             obj.header_mut().set_mark(cur_marked);
 
             obj.visit_reference_fields(|child| {
-                let child = child.get();
+                                           let child = child.get();
 
-                if !child.is_null() {
-                    elements.push(child);
-                }
-            });
+                                           if !child.is_null() {
+                                               elements.push(child);
+                                           }
+                                       });
         }
     }
 }

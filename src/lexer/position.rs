@@ -12,10 +12,7 @@ impl Position {
         assert!(l >= 1);
         assert!(c >= 1);
 
-        Position {
-            line: l,
-            column: c,
-        }
+        Position { line: l, column: c }
     }
 }
 

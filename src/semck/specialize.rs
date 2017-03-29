@@ -7,9 +7,9 @@ use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, Var};
 use ty::BuiltinType;
 
 pub fn specialize_class(ctxt: &Context,
-                    cls: &mut class::Class,
-                    type_params: Vec<BuiltinType>)
-                    -> ClassId {
+                        cls: &mut class::Class,
+                        type_params: Vec<BuiltinType>)
+                        -> ClassId {
     if let Some(&id) = cls.specializations.get(&type_params) {
         return id;
     }
@@ -29,15 +29,18 @@ fn create_specialized_class(ctxt: &Context,
     let cloned_ctors = cls.ctors
         .iter()
         .map(|&ctor_id| {
-            let ctor = ctxt.fcts[ctor_id].borrow();
-            specialize_fct(ctxt, id, &*ctor, &type_params)
-        })
+                 let ctor = ctxt.fcts[ctor_id].borrow();
+                 specialize_fct(ctxt, id, &*ctor, &type_params)
+             })
         .collect();
 
-    let cloned_methods = cls.methods.iter().map(|&method_id| {
-        let mtd = ctxt.fcts[method_id].borrow();
-        specialize_fct(ctxt, id, &*mtd, &type_params)
-    }).collect();
+    let cloned_methods = cls.methods
+        .iter()
+        .map(|&method_id| {
+                 let mtd = ctxt.fcts[method_id].borrow();
+                 specialize_fct(ctxt, id, &*mtd, &type_params)
+             })
+        .collect();
 
     let cloned_fields = cls.fields
         .iter()
@@ -52,38 +55,43 @@ fn create_specialized_class(ctxt: &Context,
         })
         .collect();
 
-    ctxt.classes.push(class::Class {
-                          id: id,
-                          pos: cls.pos,
-                          name: cls.name,
-                          ty: BuiltinType::Class(id),
-                          parent_class: cls.parent_class,
-                          has_open: cls.has_open,
-                          internal: cls.internal,
-                          internal_resolved: cls.internal_resolved,
-                          primary_ctor: cls.primary_ctor,
+    ctxt.classes
+        .push(class::Class {
+                  id: id,
+                  pos: cls.pos,
+                  name: cls.name,
+                  ty: BuiltinType::Class(id),
+                  parent_class: cls.parent_class,
+                  has_open: cls.has_open,
+                  internal: cls.internal,
+                  internal_resolved: cls.internal_resolved,
+                  primary_ctor: cls.primary_ctor,
 
-                          ctors: cloned_ctors,
-                          fields: cloned_fields,
-                          methods: cloned_methods,
-                          size: 0,
-                          vtable: None,
+                  ctors: cloned_ctors,
+                  fields: cloned_fields,
+                  methods: cloned_methods,
+                  size: 0,
+                  vtable: None,
 
-                          traits: cls.traits.clone(),
-                          impls: cls.impls.clone(),
+                  traits: cls.traits.clone(),
+                  impls: cls.impls.clone(),
 
-                          type_params: Vec::new(),
-                          specialization_for: Some(cls.id),
-                          specialization_params: type_params,
-                          specializations: HashMap::new(),
+                  type_params: Vec::new(),
+                  specialization_for: Some(cls.id),
+                  specialization_params: type_params,
+                  specializations: HashMap::new(),
 
-                          ref_fields: Vec::new(),
-                      });
+                  ref_fields: Vec::new(),
+              });
 
     id
 }
 
-fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>, id: ClassId, fct: &Fct<'ast>, type_params: &[BuiltinType]) -> FctId {
+fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
+                                id: ClassId,
+                                fct: &Fct<'ast>,
+                                type_params: &[BuiltinType])
+                                -> FctId {
     let fct_id = ctxt.fcts.len().into();
 
     let mut param_types: Vec<_> = fct.param_types
@@ -113,17 +121,17 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>, id: ClassId, fct: &Fct<'as
                 .collect();
 
             FctKind::Source(RefCell::new(FctSrc {
-                                                map_calls: src.map_calls.clone(),
-                                                map_idents: src.map_idents.clone(),
-                                                map_tys: src.map_tys.clone(),
-                                                map_vars: src.map_vars.clone(),
-                                                map_convs: src.map_convs.clone(),
-                                                map_cls: src.map_cls.clone(),
+                                             map_calls: src.map_calls.clone(),
+                                             map_idents: src.map_idents.clone(),
+                                             map_tys: src.map_tys.clone(),
+                                             map_vars: src.map_vars.clone(),
+                                             map_convs: src.map_convs.clone(),
+                                             map_cls: src.map_cls.clone(),
 
-                                                always_returns: src.always_returns,
-                                                jit_fct: RwLock::new(None),
-                                                vars: cloned_vars,
-                                            }))
+                                             always_returns: src.always_returns,
+                                             jit_fct: RwLock::new(None),
+                                             vars: cloned_vars,
+                                         }))
         }
 
         FctKind::Definition => FctKind::Definition,

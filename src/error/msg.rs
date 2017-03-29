@@ -115,10 +115,7 @@ impl Msg {
             }
             UnknownStaticMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
-                format!("no static method `{}::{}({})`.",
-                        cls,
-                        name,
-                        args)
+                format!("no static method `{}::{}({})`.", cls, name, args)
             }
             UnknownCtor(ref name, ref args) => {
                 let args = args.join(", ");
@@ -329,10 +326,7 @@ pub struct MsgWithPos {
 
 impl MsgWithPos {
     pub fn new(pos: Position, msg: Msg) -> MsgWithPos {
-        MsgWithPos {
-            pos: pos,
-            msg: msg,
-        }
+        MsgWithPos { pos: pos, msg: msg }
     }
 
     pub fn message(&self) -> String {

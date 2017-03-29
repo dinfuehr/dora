@@ -47,7 +47,9 @@ fn determine_rootset(rootset: &mut Vec<IndirectObj>, ctxt: &Context, fp: usize, 
             let jit_fct = src.jit_fct.read().unwrap();
             let jit_fct = jit_fct.as_ref().expect("no jit information");
             let offset = pc - (jit_fct.fct_ptr() as usize);
-            let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect("no gcpoint");
+            let gcpoint = jit_fct
+                .gcpoint_for_offset(offset as i32)
+                .expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {
                 let addr = (fp as isize + offset as isize) as usize;

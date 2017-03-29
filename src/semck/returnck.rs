@@ -136,10 +136,7 @@ mod tests {
     fn test_always_returns(code: &'static str, value: bool) {
         parse(code, |ctxt| {
             let name = ctxt.interner.intern("f");
-            let fct_id = ctxt.sym
-                .borrow()
-                .get_fct(name)
-                .unwrap();
+            let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
 
             let fct = ctxt.fcts[fct_id].borrow();
             let src = fct.src();

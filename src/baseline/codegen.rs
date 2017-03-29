@@ -113,8 +113,9 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
     }
 
     let start_addr = jit_fct.fct_ptr() as u64;
-    let instrs =
-        engine.disasm(buf, start_addr, jit_fct.fct_len()).expect("could not disassemble code");
+    let instrs = engine
+        .disasm(buf, start_addr, jit_fct.fct_len())
+        .expect("could not disassemble code");
 
     let name = fct.full_name(ctxt);
 
@@ -210,10 +211,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         let jit_fct = self.masm.jit(self.ctxt, self.jit_info.stacksize());
 
-        let mut code_map = self.ctxt
-            .code_map
-            .lock()
-            .unwrap();
+        let mut code_map = self.ctxt.code_map.lock().unwrap();
         let cdata = CodeData::Fct(self.fct.id);
         code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
 
@@ -251,10 +249,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         }
 
         for p in &self.ast.params {
-            let varid = *self.src
-                             .map_vars
-                             .get(p.id)
-                             .unwrap();
+            let varid = *self.src.map_vars.get(p.id).unwrap();
             let is_float = self.src.vars[varid].ty.mode().is_float();
 
             if is_float && freg_idx < FREG_PARAMS.len() {
@@ -288,7 +283,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_epilog(&mut self) {
         self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
-        self.masm.epilog(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
+        self.masm
+            .epilog(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -298,7 +294,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             if self.lbl_finally.is_some() {
                 let mode = self.fct.return_type.mode();
                 let offset = self.jit_info.eh_return_value.unwrap();
-                self.masm.store_mem(mode, Mem::Local(offset), register_for_mode(mode));
+                self.masm
+                    .store_mem(mode, Mem::Local(offset), register_for_mode(mode));
             }
         }
 
@@ -309,7 +306,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         if !self.fct.return_type.is_unit() {
             let mode = self.fct.return_type.mode();
             let offset = self.jit_info.eh_return_value.unwrap();
-            self.masm.load_mem(mode, register_for_mode(mode), Mem::Local(offset));
+            self.masm
+                .load_mem(mode, register_for_mode(mode), Mem::Local(offset));
         }
 
         self.emit_return();
@@ -340,7 +338,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             // execute condition, when condition is false jump to
             // end of while
             self.emit_expr(&s.cond);
-            self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
+            self.masm
+                .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -371,7 +370,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_safepoint(&mut self) {
         self.masm.emit_comment(Comment::ReadPollingPage);
-        self.masm.check_polling_page(self.ctxt.polling_page.addr());
+        self.masm
+            .check_polling_page(self.ctxt.polling_page.addr());
 
         let temps = TempOffsets::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
@@ -402,7 +402,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         };
 
         self.emit_expr(&s.cond);
-        self.masm.test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
@@ -440,10 +441,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_var(&mut self, s: &'ast StmtVarType) {
         let mut initialized = false;
-        let var = *self.src
-                       .map_vars
-                       .get(s.id)
-                       .unwrap();
+        let var = *self.src.map_vars.get(s.id).unwrap();
 
         if let Some(ref expr) = s.expr {
             let value = self.emit_expr(expr);
@@ -477,7 +475,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         self.emit_expr(&s.expr);
-        self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
+        self.masm
+            .test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
         self.masm.trap(Trap::THROW);
     }
@@ -492,17 +491,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         self.masm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
-            let offset = *self.jit_info
-                              .map_offsets
-                              .get(s.id)
-                              .unwrap();
-            self.masm.emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
+            let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
+            self.masm
+                .emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.masm.emit_exception_handler(catch_span,
-                                                 finally_start,
-                                                 Some(offset),
-                                                 CatchType::Any);
+                self.masm
+                    .emit_exception_handler(catch_span,
+                                            finally_start,
+                                            Some(offset),
+                                            CatchType::Any);
             }
         }
     }
@@ -515,10 +513,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let mut ret = Vec::new();
 
         for catch in &s.catch_blocks {
-            let varid = *self.src
-                             .map_vars
-                             .get(catch.id)
-                             .unwrap();
+            let varid = *self.src.map_vars.get(catch.id).unwrap();
             let offset = self.jit_info.offset(varid);
 
             self.scopes.push_scope();
@@ -530,7 +525,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
             let ty = self.src.ty(catch.data_type.id());
             let catch_type = CatchType::Class(ty.cls_id(self.ctxt));
-            self.masm.emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
+            self.masm
+                .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
             ret.push(catch_span);
         }
@@ -582,15 +578,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         self.scopes.push_scope();
 
-        let offset = *self.jit_info
-                          .map_offsets
-                          .get(s.id)
-                          .unwrap();
+        let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
         self.scopes.add_var_offset(offset);
 
         self.visit_stmt(&finally_block.block);
 
-        self.masm.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
+        self.masm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
         self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();

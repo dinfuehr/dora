@@ -256,7 +256,8 @@ impl TraitData {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
-            if method.name == name && method.is_static == is_static && params_match(replace, method.params_without_self(), args) {
+            if method.name == name && method.is_static == is_static &&
+               params_match(replace, method.params_without_self(), args) {
                 return Some(method.id);
             }
         }
@@ -768,10 +769,7 @@ impl FctSrc {
     }
 
     pub fn ty(&self, id: ast::NodeId) -> BuiltinType {
-        self.map_tys
-            .get(id)
-            .unwrap()
-            .clone()
+        self.map_tys.get(id).unwrap().clone()
     }
 
     pub fn var_self(&self) -> &Var {

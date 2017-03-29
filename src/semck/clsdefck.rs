@@ -41,10 +41,7 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
 
         for field in &cls.fields {
             if field.name == name {
-                let name = self.ctxt
-                    .interner
-                    .str(name)
-                    .to_string();
+                let name = self.ctxt.interner.str(name).to_string();
                 report(self.ctxt, pos, Msg::ShadowField(name));
             }
         }
@@ -65,10 +62,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     fn visit_class(&mut self, c: &'ast ast::Class) {
         self.cls_id = Some(*self.map_cls_defs.get(c.id).unwrap());
 
-        self.ctxt
-            .sym
-            .borrow_mut()
-            .push_level();
+        self.ctxt.sym.borrow_mut().push_level();
 
         if let Some(ref type_params) = c.type_params {
             if type_params.len() > 0 {
@@ -77,48 +71,30 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
-                        let name = self.ctxt
-                            .interner
-                            .str(type_param.name)
-                            .to_string();
+                        let name = self.ctxt.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        self.ctxt
-                            .diag
-                            .borrow_mut()
-                            .report(type_param.pos, msg);
+                        self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
                     let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
                     cls.type_params.push(type_param.name);
 
                     let sym = Sym::SymTypeParam(type_param_id.into());
-                    self.ctxt
-                        .sym
-                        .borrow_mut()
-                        .insert(type_param.name, sym);
+                    self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
 
             } else {
                 let msg = Msg::TypeParamsExpected;
-                self.ctxt
-                    .diag
-                    .borrow_mut()
-                    .report(c.pos, msg);
+                self.ctxt.diag.borrow_mut().report(c.pos, msg);
             }
         }
 
         visit::walk_class(self, c);
 
         if let Some(ref parent_class) = c.parent_class {
-            let name = self.ctxt
-                .interner
-                .str(parent_class.name)
-                .to_string();
-            let sym = self.ctxt
-                .sym
-                .borrow()
-                .get(parent_class.name);
+            let name = self.ctxt.interner.str(parent_class.name).to_string();
+            let sym = self.ctxt.sym.borrow().get(parent_class.name);
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
@@ -147,10 +123,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         }
 
         self.cls_id = None;
-        self.ctxt
-            .sym
-            .borrow_mut()
-            .pop_level();
+        self.ctxt.sym.borrow_mut().pop_level();
     }
 
     fn visit_field(&mut self, f: &'ast ast::Field) {

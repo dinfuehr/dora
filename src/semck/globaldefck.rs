@@ -38,4 +38,3 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         self.ctxt.globals[global_id].borrow_mut().ty = ty;
     }
 }
-

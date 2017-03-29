@@ -268,12 +268,12 @@ impl<'a> AstDumper<'a> {
         dump!(self, "while @ {} {}", stmt.pos, stmt.id);
 
         self.indent(|d| {
-            dump!(d, "cond");
-            d.indent(|d| { d.dump_expr(&stmt.cond); });
+                        dump!(d, "cond");
+                        d.indent(|d| { d.dump_expr(&stmt.cond); });
 
-            dump!(d, "body");
-            d.indent(|d| { d.dump_stmt(&stmt.block); });
-        });
+                        dump!(d, "body");
+                        d.indent(|d| { d.dump_stmt(&stmt.block); });
+                    });
     }
 
     fn dump_stmt_loop(&mut self, stmt: &StmtLoopType) {
@@ -285,12 +285,12 @@ impl<'a> AstDumper<'a> {
         dump!(self, "if @ {} {}", stmt.pos, stmt.id);
 
         self.indent(|d| {
-            d.indent(|d| { d.dump_expr(&stmt.cond); });
-            dump!(d, "then");
-            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
-            dump!(d, "else");
-            d.indent(|d| { d.dump_stmt(&stmt.then_block); });
-        });
+                        d.indent(|d| { d.dump_expr(&stmt.cond); });
+                        dump!(d, "then");
+                        d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+                        dump!(d, "else");
+                        d.indent(|d| { d.dump_stmt(&stmt.then_block); });
+                    });
     }
 
     fn dump_stmt_expr(&mut self, stmt: &StmtExprType) {

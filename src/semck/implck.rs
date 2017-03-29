@@ -10,10 +10,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
         let xtrait = ctxt.traits[ximpl.trait_id()].borrow();
         let cls = ctxt.classes[ximpl.cls_id()].borrow().ty;
 
-        let all: HashSet<_> = xtrait.methods
-            .iter()
-            .cloned()
-            .collect();
+        let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
         let mut defined = HashSet::new();
 
         for &method_id in &ximpl.methods {
@@ -27,7 +24,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                 defined.insert(fid);
 
             } else {
-                let args = method.params_without_self()
+                let args = method
+                    .params_without_self()
                     .iter()
                     .map(|a| a.name(ctxt))
                     .collect::<Vec<String>>();
@@ -40,16 +38,15 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                     Msg::MethodNotInTrait(trait_name, mtd_name, args)
                 };
 
-                report(ctxt,
-                       method.pos,
-                       msg);
+                report(ctxt, method.pos, msg);
             }
         }
 
         for &method_id in all.difference(&defined) {
             let method = ctxt.fcts[method_id].borrow();
 
-            let args = method.params_without_self()
+            let args = method
+                .params_without_self()
                 .iter()
                 .map(|a| a.name(ctxt))
                 .collect::<Vec<String>>();
@@ -62,9 +59,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                 Msg::MethodMissingFromTrait(trait_name, mtd_name, args)
             };
 
-            report(ctxt,
-                   ximpl.pos,
-                   msg);
+            report(ctxt, ximpl.pos, msg);
         }
     }
 }

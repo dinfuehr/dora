@@ -31,7 +31,9 @@ impl Spaces {
 
 impl CopyCollector {
     pub fn new(args: &Args) -> CopyCollector {
-        let heap_size = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024) / 2;
+        let heap_size = args.flag_heap_size
+            .map(|s| *s)
+            .unwrap_or(32 * 1024 * 1024) / 2;
 
         CopyCollector { spaces: Mutex::new(Spaces::new(heap_size)) }
     }
@@ -154,12 +156,12 @@ pub fn minor_collect(ctxt: &Context,
         let object = unsafe { &mut *(to_space.scan as *mut Obj) };
 
         object.visit_reference_fields(|child| {
-            let child_ptr = child.get();
+                                          let child_ptr = child.get();
 
-            if from_space.includes(child_ptr as *const u8) {
-                child.set(copy(child_ptr, to_space));
-            }
-        });
+                                          if from_space.includes(child_ptr as *const u8) {
+                                              child.set(copy(child_ptr, to_space));
+                                          }
+                                      });
 
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
     }
@@ -171,12 +173,12 @@ pub fn minor_collect(ctxt: &Context,
     }
 
     timer.stop_with(|dur| {
-        // self.collect_duration += dur;
+                        // self.collect_duration += dur;
 
-        if ctxt.args.flag_gc_events {
-            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
-        }
-    });
+                        if ctxt.args.flag_gc_events {
+                            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
+                        }
+                    });
 }
 
 pub fn copy(obj: *mut Obj, to_space: &mut SemiSpace) -> *mut Obj {

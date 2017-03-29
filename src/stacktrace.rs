@@ -21,17 +21,15 @@ impl Stacktrace {
     }
 
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
-        self.elems.push(StackElem {
-                            fct_id: fct_id,
-                            lineno: lineno,
-                        });
+        self.elems
+            .push(StackElem {
+                      fct_id: fct_id,
+                      lineno: lineno,
+                  });
     }
 
     pub fn dump(&self, ctxt: &Context) {
-        for (ind, elem) in self.elems
-                .iter()
-                .rev()
-                .enumerate() {
+        for (ind, elem) in self.elems.iter().rev().enumerate() {
             let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
             print!("  {}: {}:", ind, name);
 
@@ -175,10 +173,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
             let jit_fct = src.jit_fct.read().unwrap();
             let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
 
-            let cls_id = exception.header()
-                .vtbl()
-                .class()
-                .id;
+            let cls_id = exception.header().vtbl().class().id;
 
             for entry in &jit_fct.exception_handlers {
                 // println!("entry = {:x} to {:x} for {:?}",

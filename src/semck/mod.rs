@@ -99,11 +99,15 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
         let fct = fct.borrow();
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag.borrow_mut().report(fct.pos, Msg::UnresolvedInternal);
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag.borrow_mut().report(fct.pos, Msg::MissingFctBody);
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -111,18 +115,24 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
         let cls = cls.borrow();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag.borrow_mut().report(cls.pos, Msg::UnresolvedInternal);
+            ctxt.diag
+                .borrow_mut()
+                .report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
             let method = ctxt.fcts[*method].borrow();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag.borrow_mut().report(method.pos, Msg::UnresolvedInternal);
+                ctxt.diag
+                    .borrow_mut()
+                    .report(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() {
-                ctxt.diag.borrow_mut().report(method.pos, Msg::MissingFctBody);
+                ctxt.diag
+                    .borrow_mut()
+                    .report(method.pos, Msg::MissingFctBody);
             }
         }
     }
@@ -154,7 +164,8 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                             let mut cls = ctxt.classes[cls_id].borrow_mut();
 
                             if cls.type_params.len() != type_params.len() {
-                                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), type_params.len());
+                                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(),
+                                                                     type_params.len());
                                 ctxt.diag.borrow_mut().report(basic.pos, msg);
                                 return None;
                             }

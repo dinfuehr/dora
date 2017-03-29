@@ -21,7 +21,8 @@ impl Diagnostic {
     }
 
     pub fn report_unimplemented(&mut self, pos: Position) {
-        self.errors.push(MsgWithPos::new(pos, Msg::Unimplemented));
+        self.errors
+            .push(MsgWithPos::new(pos, Msg::Unimplemented));
     }
 
     pub fn has_errors(&self) -> bool {

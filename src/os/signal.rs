@@ -223,7 +223,9 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
     let bailout = {
         let data = {
             let code_map = ctxt.code_map.lock().unwrap();
-            code_map.get(ra as *const u8).expect("return address not found")
+            code_map
+                .get(ra as *const u8)
+                .expect("return address not found")
         };
 
         let fct_id = match data {
@@ -238,7 +240,8 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
         let jit_fct = jit_fct.as_ref().expect("jitted fct not found");
 
         let offset = ra - jit_fct.fct_ptr() as usize;
-        jit_fct.bailouts
+        jit_fct
+            .bailouts
             .get(offset as i32)
             .expect("bailout info not found")
             .clone()

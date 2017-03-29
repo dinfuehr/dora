@@ -47,10 +47,7 @@ pub fn start() -> i32 {
 
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
-        let no_errors = ctxt.diag
-            .borrow()
-            .errors()
-            .len();
+        let no_errors = ctxt.diag.borrow().errors().len();
 
         if no_errors == 1 {
             println!("{} error found.", no_errors);
@@ -108,7 +105,9 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,
         None => {
-            ctxt.diag.borrow_mut().report(Position::new(1, 1), Msg::MainNotFound);
+            ctxt.diag
+                .borrow_mut()
+                .report(Position::new(1, 1), Msg::MainNotFound);
             return None;
         }
     };
@@ -119,7 +118,9 @@ fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
        fct.params_without_self().len() > 0 {
         let pos = fct.ast.pos;
-        ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
+        ctxt.diag
+            .borrow_mut()
+            .report(pos, Msg::WrongMainDefinition);
         return None;
     }
 

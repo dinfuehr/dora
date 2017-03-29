@@ -41,7 +41,9 @@ fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag.borrow_mut().report(cls.pos, Msg::CycleInHierarchy);
+                ctxt.diag
+                    .borrow_mut()
+                    .report(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
@@ -78,7 +80,9 @@ fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
 
             } else {
                 if path.iter().find(|&&x| x == id).is_some() {
-                    ctxt.diag.borrow_mut().report(field.pos, Msg::RecursiveStructure);
+                    ctxt.diag
+                        .borrow_mut()
+                        .report(field.pos, Msg::RecursiveStructure);
                     return (0, 0);
                 }
 
@@ -182,14 +186,18 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
         let name = ctxt.interner.str(fct.name).to_string();
-        ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOpen(name));
+        ctxt.diag
+            .borrow_mut()
+            .report(fct.pos(), Msg::SuperfluousOpen(name));
         return;
     }
 
     if cls.parent_class.is_none() {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::SuperfluousOverride(name));
             return;
         }
 
@@ -206,31 +214,41 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
 
         if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::MissingOverride(name));
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::MethodNotOverridable(name));
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::ThrowsDifference(name));
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
             let pos = fct.pos();
             let fct = fct.return_type.name(ctxt);
             let sup = super_method.return_type.name(ctxt);
-            ctxt.diag.borrow_mut().report(pos, Msg::ReturnTypeMismatch(fct, sup));
+            ctxt.diag
+                .borrow_mut()
+                .report(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
 
         fct.overrides = Some(super_method.id);
     } else {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(fct.pos(), Msg::SuperfluousOverride(name));
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::SuperfluousOverride(name));
         }
     }
 }
@@ -323,7 +341,9 @@ fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
                                              depth as usize - DISPLAY_SIZE);
                 }
 
-                let ptr = vtable.subtype_overflow.offset(depth as isize - DISPLAY_SIZE as isize) as
+                let ptr = vtable
+                    .subtype_overflow
+                    .offset(depth as isize - DISPLAY_SIZE as isize) as
                           *mut _;
 
                 *ptr = &**vtable as *const _;
@@ -383,10 +403,7 @@ mod tests {
     fn class_size(code: &'static str) -> i32 {
         ok_with_test(code, |ctxt| {
             let name = ctxt.interner.intern("Foo");
-            let cid = ctxt.sym
-                .borrow()
-                .get_class(name)
-                .unwrap();
+            let cid = ctxt.sym.borrow().get_class(name).unwrap();
             let cls = ctxt.classes[cid].borrow();
 
             cls.size
@@ -407,10 +424,7 @@ mod tests {
 
     fn class_size_name(ctxt: &Context, name: &'static str) -> i32 {
         let name = ctxt.interner.intern(name);
-        let cid = ctxt.sym
-            .borrow()
-            .get_class(name)
-            .unwrap();
+        let cid = ctxt.sym.borrow().get_class(name).unwrap();
         let cls = ctxt.classes[cid].borrow();
 
         cls.size
@@ -422,13 +436,13 @@ mod tests {
             open class B: A { var b1: int; var b2: int; }
             class C: B { var c: Str; }",
                      |ctxt| {
-            check_class(ctxt, "A", 4, None);
-            check_field(ctxt, "A", "a", Header::size());
-            check_class(ctxt, "B", 4 * 3, Some("A"));
-            check_field(ctxt, "B", "b1", Header::size() + 4);
-            check_class(ctxt, "C", 4 * 4 + 8, Some("B"));
-            check_field(ctxt, "C", "c", Header::size() + 4 * 4);
-        });
+                         check_class(ctxt, "A", 4, None);
+                         check_field(ctxt, "A", "a", Header::size());
+                         check_class(ctxt, "B", 4 * 3, Some("A"));
+                         check_field(ctxt, "B", "b1", Header::size() + 4);
+                         check_class(ctxt, "C", 4 * 4 + 8, Some("B"));
+                         check_field(ctxt, "C", "c", Header::size() + 4 * 4);
+                     });
     }
 
     #[test]
@@ -745,17 +759,11 @@ mod tests {
                          size: i32,
                          parent: Option<&'static str>) {
         let name = ctxt.interner.intern(name);
-        let cls_id = ctxt.sym
-            .borrow()
-            .get_class(name)
-            .unwrap();
+        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
 
-        let parent_id = parent.map(|name| ctxt.interner.intern(name)).map(|name| {
-                                                                              ctxt.sym
-                .borrow()
-                .get_class(name)
-                .unwrap()
-                                                                          });
+        let parent_id = parent
+            .map(|name| ctxt.interner.intern(name))
+            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
 
         let cls = ctxt.classes[cls_id].borrow();
         assert_eq!(parent_id, cls.parent_class);
@@ -768,10 +776,7 @@ mod tests {
                          offset: i32) {
         let cls_name = ctxt.interner.intern(cls_name);
         let field_name = ctxt.interner.intern(field_name);
-        let cls_id = ctxt.sym
-            .borrow()
-            .get_class(cls_name)
-            .unwrap();
+        let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
         let cls = ctxt.classes[cls_id].borrow();
 
         for field in &cls.fields {

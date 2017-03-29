@@ -57,7 +57,9 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag.borrow_mut().report(p.data_type.pos(), Msg::SelfTypeUnavailable);
+                ctxt.diag
+                    .borrow_mut()
+                    .report(p.data_type.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.param_types.push(ty);
@@ -75,7 +77,9 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag.borrow_mut().report(ret.pos(), Msg::SelfTypeUnavailable);
+                ctxt.diag
+                    .borrow_mut()
+                    .report(ret.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -135,7 +139,8 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static &&
            method.params_with_self() == fct.params_with_self() {
             let cls_name = ty.name(ctxt);
-            let param_names = method.params_without_self()
+            let param_names = method
+                .params_without_self()
                 .iter()
                 .map(|a| a.name(ctxt))
                 .collect::<Vec<String>>();
@@ -172,10 +177,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 if let Some(ref data_type) = var.data_type {
                     self.visit_type(data_type);
 
-                    let varid = *self.src
-                                     .map_vars
-                                     .get(var.id)
-                                     .unwrap();
+                    let varid = *self.src.map_vars.get(var.id).unwrap();
                     self.src.vars[varid].ty = self.current_type;
                 }
 
@@ -190,10 +192,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 for catch in &try.catch_blocks {
                     let ty = self.src.ty(catch.data_type.id());
 
-                    let var = *self.src
-                                   .map_vars
-                                   .get(catch.id)
-                                   .unwrap();
+                    let var = *self.src.map_vars.get(catch.id).unwrap();
                     self.src.vars[var].ty = ty;
 
                     if !ty.reference_type() {

@@ -44,17 +44,11 @@ impl Space {
     /// is probably lost.
     pub fn alloc(&mut self, size: usize) -> *mut u8 {
         let size = mem::align_usize(size, self.config.align);
-        let mut ptr = self.chunks
-            .last_mut()
-            .unwrap()
-            .alloc(size);
+        let mut ptr = self.chunks.last_mut().unwrap().alloc(size);
 
         if ptr.is_null() {
             self.add_chunk(size);
-            ptr = self.chunks
-                .last_mut()
-                .unwrap()
-                .alloc(size);
+            ptr = self.chunks.last_mut().unwrap().alloc(size);
         }
 
         ptr as *mut u8

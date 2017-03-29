@@ -78,18 +78,12 @@ impl Obj {
     }
 
     pub fn size(&self) -> usize {
-        let size = self.header()
-            .vtbl()
-            .class()
-            .size;
+        let size = self.header().vtbl().class().size;
         if size > 0 {
             return size as usize;
         }
 
-        let ty = self.header()
-            .vtbl()
-            .class()
-            .ty;
+        let ty = self.header().vtbl().class().ty;
 
         match ty {
             BuiltinType::Str => {
