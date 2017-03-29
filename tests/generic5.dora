@@ -1,0 +1,8 @@
+//= ignore
+
+fun main() {
+    let x: A<int> = nil;
+    assert(x === nil);
+}
+
+class A<T>(let x: T)

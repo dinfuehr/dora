@@ -91,7 +91,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>, id: ClassId, fct: &Fct<'as
         .map(|&t| specialize_type(t, &type_params))
         .collect();
 
-    if fct.has_self() {
+    if fct.has_self() && fct.initialized {
         param_types[0] = BuiltinType::Class(id);
     }
 
