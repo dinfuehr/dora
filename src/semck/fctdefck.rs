@@ -132,7 +132,7 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
 
         let method = ctxt.fcts[method].borrow();
 
-        if method.initialized && method.name == fct.name &&
+        if method.initialized && method.name == fct.name && method.is_static == fct.is_static &&
            method.params_with_self() == fct.params_with_self() {
             let cls_name = ty.name(ctxt);
             let param_names = method.params_without_self()
@@ -236,5 +236,14 @@ mod tests {
     #[test]
     fn self_return_type() {
         err("fun foo() -> Self {}", pos(1, 14), Msg::SelfTypeUnavailable);
+    }
+
+    #[test]
+    fn allow_same_method_as_static_and_non_static() {
+        ok("class Foo {
+                static fun foo() {}
+                fun foo() {}
+                static fun foo(x: Foo) {}
+            }");
     }
 }
