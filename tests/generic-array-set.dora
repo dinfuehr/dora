@@ -1,0 +1,27 @@
+fun main() {}
+
+fun int_array_set(x: Array<int>, idx: int, val: int) {
+  x[idx] = val;
+}
+
+fun long_array_set(x: Array<long>, idx: int, val: long) {
+  x[idx] = val;
+}
+
+fun float_array_set(x: Array<float>, idx: int, val: float) {
+  x[idx] = val;
+}
+
+fun double_array_set(x: Array<double>, idx: int, val: double) {
+  x[idx] = val;
+}
+
+fun str_array_set(x: Array<Str>, idx: int, val: Str) {
+  x[idx] = val;
+}
+
+fun foo_array_set(x: Array<Foo>, idx: int, val: Foo) {
+  x[idx] = val;
+}
+
+class Foo

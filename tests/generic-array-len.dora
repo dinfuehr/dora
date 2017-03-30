@@ -1,28 +1,26 @@
-//= ignore
-
 fun main() {}
 
-fun int_array_len(x: Array<int>) {
+fun int_array_len(x: Array<int>) -> int {
   return x.len();
 }
 
-fun long_array_len(x: Array<long>) {
+fun long_array_len(x: Array<long>) -> int {
   return x.len();
 }
 
-fun float_array_len(x: Array<float>) {
+fun float_array_len(x: Array<float>) -> int {
   return x.len();
 }
 
-fun double_array_len(x: Array<double>) {
+fun double_array_len(x: Array<double>) -> int {
   return x.len();
 }
 
-fun str_array_len(x: Array<Str>) {
+fun str_array_len(x: Array<Str>) -> int {
   return x.len();
 }
 
-fun foo_array_len(x: Array<Foo>) {
+fun foo_array_len(x: Array<Foo>) -> int {
   return x.len();
 }
 

@@ -381,7 +381,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                    args: &[BuiltinType],
                    return_type: Option<BuiltinType>)
                    -> Option<(ClassId, FctId, BuiltinType)> {
-        let cls_id = match object_type {
+        let cls_id = match object_type.to_specialized(self.ctxt) {
             BuiltinType::Class(cls_id) => Some(cls_id),
             _ => self.ctxt.primitive_classes.find_class(object_type),
         };

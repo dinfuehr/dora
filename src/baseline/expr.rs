@@ -339,6 +339,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_array(&mut self, e: &'ast ExprArrayType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
+                Intrinsic::GenericArrayGet => {
+                    let ty = self.src.ty(e.id).to_specialized(self.ctxt);
+                    self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
+                }
+
                 Intrinsic::LongArrayGet => {
                     self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
                 }
@@ -607,6 +612,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
+                    Intrinsic::GenericArraySet => {
+                        let ty = self.src.ty(e.id).to_specialized(self.ctxt);
+                        self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs, dest)
+                    }
+
                     Intrinsic::BoolArraySet | Intrinsic::ByteArraySet | Intrinsic::StrSet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int8,
@@ -867,6 +877,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
+                Intrinsic::GenericArrayLen |
                 Intrinsic::BoolArrayLen |
                 Intrinsic::ByteArrayLen |
                 Intrinsic::CharArrayLen |
@@ -1440,8 +1451,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.has_self() && check_for_nil(self.ctxt, ty) && !csite.super_call &&
-                       !fct.is_virtual() &&
+                    if idx == 0 && fct.has_self() && check_for_nil(self.ctxt, ty) &&
+                       !csite.super_call && !fct.is_virtual() &&
                        !fct.ctor_allocates {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
@@ -1622,6 +1633,7 @@ fn check_for_nil(ctxt: &Context, ty: BuiltinType) -> bool {
         BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
         BuiltinType::CharArray | BuiltinType::IntArray | BuiltinType::LongArray |
         BuiltinType::FloatArray | BuiltinType::DoubleArray | BuiltinType::StrArray => true,
+        BuiltinType::Array => unreachable!(),
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,
         BuiltinType::Trait(_) => false,

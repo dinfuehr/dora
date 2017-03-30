@@ -72,6 +72,9 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     implck::check(ctxt);
     return_on_error!(ctxt);
 
+    // define internal functions
+    prelude::internal_functions(ctxt);
+
     specialize_types(ctxt);
 
     // check types of expressions in functions
@@ -86,9 +89,6 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // add size of super classes to field offsets
     superck::check(ctxt);
-
-    // define internal functions
-    prelude::internal_functions(ctxt);
 
     // check for internal functions or classes
     internalck(ctxt);

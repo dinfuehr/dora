@@ -1,0 +1,27 @@
+fun main() {}
+
+fun int_array_get(x: Array<int>, idx: int) -> int {
+  return x[idx];
+}
+
+fun long_array_get(x: Array<long>, idx: int) -> long {
+  return x[idx];
+}
+
+fun float_array_get(x: Array<float>, idx: int) -> float {
+  return x[idx];
+}
+
+fun double_array_get(x: Array<double>, idx: int) -> double {
+  return x[idx];
+}
+
+fun str_array_get(x: Array<Str>, idx: int) -> Str {
+  return x[idx];
+}
+
+fun foo_array_get(x: Array<Foo>, idx: int) -> Foo {
+  return x[idx];
+}
+
+class Foo

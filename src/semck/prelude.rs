@@ -41,7 +41,7 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
         internal_class(ctxt, "DoubleArray", BuiltinType::DoubleArray, 0);
     ctxt.primitive_classes.str_array = internal_class(ctxt, "StrArray", BuiltinType::StrArray, 0);
 
-    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", BuiltinType::StrArray, 0);
+    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", BuiltinType::Array, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>,

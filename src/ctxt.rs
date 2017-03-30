@@ -381,6 +381,7 @@ impl PrimitiveClasses {
             BuiltinType::Float => Some(self.float_class),
             BuiltinType::Double => Some(self.double_class),
             BuiltinType::Str => Some(self.str_class),
+            BuiltinType::Array => Some(self.generic_array),
             BuiltinType::CharArray => Some(self.char_array),
             BuiltinType::IntArray => Some(self.int_array),
             BuiltinType::BoolArray => Some(self.bool_array),

@@ -35,6 +35,7 @@ pub enum BuiltinType {
     Str,
 
     // Array types
+    Array,
     BoolArray,
     ByteArray,
     CharArray,
@@ -116,6 +117,7 @@ impl BuiltinType {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
             BuiltinType::Str => ctxt.primitive_classes.str_class,
+            BuiltinType::Array => ctxt.primitive_classes.generic_array,
             BuiltinType::BoolArray => ctxt.primitive_classes.bool_array,
             BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
             BuiltinType::CharArray => ctxt.primitive_classes.char_array,
@@ -176,6 +178,7 @@ impl BuiltinType {
             BuiltinType::Double => "float".into(),
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
+            BuiltinType::Array => "Array".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Str => "Str".into(),
@@ -225,6 +228,7 @@ impl BuiltinType {
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
             BuiltinType::Float | BuiltinType::Double => *self == other,
+            BuiltinType::Array => unreachable!(),
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
@@ -238,11 +242,8 @@ impl BuiltinType {
             BuiltinType::DoubleArray |
             BuiltinType::StrArray |
             BuiltinType::Class(_) => {
-                if *self == other || other.is_nil() {
-                    return true;
-                }
-
-                other.subclass_from(ctxt, *self)
+                *self == other || other.is_nil() || other.subclass_from(ctxt, *self) ||
+                (other.is_generic() && self.allows(ctxt, other.to_specialized(ctxt)))
             }
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::TypeParam(_) => *self == other,
@@ -266,6 +267,7 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
+            BuiltinType::Array => panic!("no size for Array."),
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Str |
@@ -296,6 +298,7 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
+            BuiltinType::Array => panic!("no alignment for Array."),
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Str |
@@ -326,6 +329,7 @@ impl BuiltinType {
             BuiltinType::Long => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
+            BuiltinType::Array => panic!("no machine mode for Array."),
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Str |
