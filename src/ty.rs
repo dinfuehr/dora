@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use class::{ClassId, TypeParamId};
 use ctxt::{Context, StructId, TraitId};
 use mem;
@@ -51,6 +55,10 @@ pub enum BuiltinType {
 
     // some type variable
     TypeParam(TypeParamId),
+
+    // generic types can have multiple params
+    // use TypeId to store params
+    Generic(TypeId),
 }
 
 impl BuiltinType {
@@ -90,6 +98,20 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_generic(&self) -> bool {
+        match self {
+            &BuiltinType::Generic(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn type_id(&self) -> TypeId {
+        match self {
+            &BuiltinType::Generic(id) => id,
+            _ => panic!(),
+        }
+    }
+
     pub fn cls_id(&self, ctxt: &Context) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
@@ -104,6 +126,17 @@ impl BuiltinType {
             BuiltinType::StrArray => ctxt.primitive_classes.str_array,
 
             _ => panic!(),
+        }
+    }
+
+    pub fn to_specialized(&self, ctxt: &Context) -> BuiltinType {
+        match self {
+            &BuiltinType::Generic(id) => {
+                let cls_id = ctxt.types.borrow().get_cls_id(id);
+                BuiltinType::Class(cls_id.expect("no specialized class exists"))
+            }
+
+            _ => *self,
         }
     }
 
@@ -167,6 +200,18 @@ impl BuiltinType {
                 ctxt.interner.str(name).to_string()
             }
             BuiltinType::TypeParam(_) => "type variable".into(),
+            BuiltinType::Generic(id) => {
+                let generic = ctxt.types.borrow().get(id);
+                let base = generic.base.name(ctxt);
+                let params = generic
+                    .params
+                    .iter()
+                    .map(|ty| ty.name(ctxt))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                format!("{}<{}>", base, params)
+            }
         }
     }
 
@@ -201,6 +246,9 @@ impl BuiltinType {
             }
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::TypeParam(_) => *self == other,
+            BuiltinType::Generic(_) => {
+                *self == other || self.to_specialized(ctxt).allows(ctxt, other)
+            }
         }
     }
 
@@ -234,6 +282,7 @@ impl BuiltinType {
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
             BuiltinType::TypeParam(_) => panic!("no size for type variable."),
+            BuiltinType::Generic(_) => self.to_specialized(ctxt).size(ctxt),
         }
     }
 
@@ -263,6 +312,7 @@ impl BuiltinType {
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
             BuiltinType::Trait(_) => mem::ptr_width(),
             BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
+            BuiltinType::Generic(_) => self.to_specialized(ctxt).align(ctxt),
         }
     }
 
@@ -292,6 +342,7 @@ impl BuiltinType {
             BuiltinType::Struct(_) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
+            BuiltinType::Generic(_) => MachineMode::Ptr,
         }
     }
 }
@@ -324,6 +375,77 @@ impl MachineMode {
             MachineMode::Float64 => true,
             _ => false,
         }
+    }
+}
+
+pub struct Types {
+    types: HashMap<Rc<TypeWithParams>, TypeId>,
+    values: Vec<Rc<TypeWithParams>>,
+    classes: RefCell<Vec<Option<ClassId>>>,
+    next_type_id: usize,
+}
+
+impl Types {
+    pub fn new() -> Types {
+        Types {
+            types: HashMap::new(),
+            values: Vec::new(),
+            classes: RefCell::new(Vec::new()),
+            next_type_id: 0,
+        }
+    }
+
+    pub fn values(&self) -> &[Rc<TypeWithParams>] {
+        &self.values
+    }
+
+    pub fn insert(&mut self, ty: BuiltinType, params: Vec<BuiltinType>) -> TypeId {
+        let ty = TypeWithParams {
+            base: ty,
+            params: params,
+        };
+
+        if let Some(&val) = self.types.get(&ty) {
+            return val;
+        }
+
+        let type_id = TypeId(self.next_type_id);
+        let ty = Rc::new(ty);
+        self.types.insert(ty.clone(), type_id);
+
+        self.values.push(ty);
+        self.classes.borrow_mut().push(None);
+
+        self.next_type_id += 1;
+
+        type_id
+    }
+
+    pub fn set_cls_id(&self, id: TypeId, cls_id: ClassId) {
+        self.classes.borrow_mut()[id.0] = Some(cls_id);
+    }
+
+    pub fn get_cls_id(&self, id: TypeId) -> Option<ClassId> {
+        self.classes.borrow()[id.0]
+    }
+
+    pub fn get(&self, id: TypeId) -> Rc<TypeWithParams> {
+        self.values[id.0].clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeWithParams {
+    pub base: BuiltinType,
+    pub params: Vec<BuiltinType>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct TypeId(usize);
+
+impl From<usize> for TypeId {
+    fn from(val: usize) -> TypeId {
+        TypeId(val)
     }
 }
 

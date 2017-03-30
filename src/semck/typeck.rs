@@ -882,7 +882,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
         self.visit_expr(&e.object);
 
-        if let BuiltinType::Class(cls_id) = self.expr_type {
+        let ty = self.expr_type.to_specialized(self.ctxt);
+
+        if let BuiltinType::Class(cls_id) = ty {
             let cls = self.ctxt.classes[cls_id].borrow();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
@@ -899,7 +901,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // field not found, report error
         let field_name = self.ctxt.interner.str(e.name).to_string();
-        let expr_name = self.expr_type.name(self.ctxt);
+        let expr_name = ty.name(self.ctxt);
         let msg = Msg::UnknownField(field_name, expr_name);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
         // we don't know the type of the field, just assume ()

@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     let x: A<int> = nil;
     assert(x === nil);

@@ -1,7 +1,7 @@
-//= ignore
-
 fun main() {
   assert(is_nil(nil));
+  assert(get_x_or_default(nil, 10) == 10);
+  assert(get_x_or_default(A::<int>(9), 10) == 9);
 }
 
 fun is_nil(a: A<int>) -> bool {
@@ -9,7 +9,7 @@ fun is_nil(a: A<int>) -> bool {
 }
 
 fun get_x_or_default(a: A<int>, val: int) -> int {
-  if a !== nil {
+  if a === nil {
     return val;
   } else {
     return a.x;

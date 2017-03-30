@@ -38,3 +38,17 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         self.ctxt.globals[global_id].borrow_mut().ty = ty;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use error::msg::Msg;
+    use semck::tests::*;
+
+    #[test]
+    fn check_global_type() {
+        ok("let a: int = 0; var b: char = 'x';");
+        err("var x: Foo = nil;",
+            pos(1, 8),
+            Msg::UnknownType("Foo".into()));
+    }
+}

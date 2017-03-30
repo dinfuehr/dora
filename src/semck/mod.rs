@@ -2,7 +2,6 @@ use ast::{Stmt, Type};
 use ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
 use error::msg::Msg;
-use semck::specialize::specialize_class;
 use sym::Sym::{SymClass, SymStruct, SymTypeParam};
 use ty::BuiltinType;
 
@@ -73,6 +72,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     implck::check(ctxt);
     return_on_error!(ctxt);
 
+    specialize_types(ctxt);
+
     // check types of expressions in functions
     typeck::check(ctxt);
     return_on_error!(ctxt);
@@ -92,6 +93,18 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // check for internal functions or classes
     internalck(ctxt);
     return_on_error!(ctxt);
+}
+
+fn specialize_types<'ast>(ctxt: &Context<'ast>) {
+    use semck::specialize::specialize_class;
+    let types = ctxt.types.borrow();
+
+    for (id, ty) in types.values().iter().enumerate() {
+        let cls_id = ty.base.cls_id(ctxt);
+        let mut cls = ctxt.classes[cls_id].borrow_mut();
+        let special_id = specialize_class(ctxt, &mut *cls, ty.params.clone());
+        types.set_cls_id(id.into(), special_id);
+    }
 }
 
 fn internalck<'ast>(ctxt: &Context<'ast>) {
@@ -161,7 +174,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                                 }
                             }
 
-                            let mut cls = ctxt.classes[cls_id].borrow_mut();
+                            let cls = ctxt.classes[cls_id].borrow_mut();
 
                             if cls.type_params.len() != type_params.len() {
                                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(),
@@ -170,9 +183,9 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                                 return None;
                             }
 
-                            let cls_id = specialize_class(ctxt, &mut *cls, type_params);
+                            let type_id = ctxt.types.borrow_mut().insert(cls.ty, type_params);
+                            BuiltinType::Generic(type_id)
 
-                            BuiltinType::Class(cls_id)
                         } else {
                             let cls = ctxt.classes[cls_id].borrow();
 

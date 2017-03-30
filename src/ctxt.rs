@@ -20,7 +20,7 @@ use safepoint::PollingPage;
 use stacktrace::DoraToNativeInfo;
 use sym::*;
 use sym::Sym::*;
-use ty::BuiltinType;
+use ty::{BuiltinType, Types};
 use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
@@ -48,6 +48,7 @@ pub struct Context<'ast> {
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
     pub polling_page: PollingPage,
+    pub types: RefCell<Types>,
 }
 
 impl<'ast> Context<'ast> {
@@ -91,6 +92,7 @@ impl<'ast> Context<'ast> {
             native_fcts: Mutex::new(NativeFcts::new()),
             compile_stub: RefCell::new(None),
             polling_page: PollingPage::new(),
+            types: RefCell::new(Types::new()),
         }
     }
 
