@@ -40,6 +40,8 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.double_array =
         internal_class(ctxt, "DoubleArray", BuiltinType::DoubleArray, 0);
     ctxt.primitive_classes.str_array = internal_class(ctxt, "StrArray", BuiltinType::StrArray, 0);
+
+    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", BuiltinType::StrArray, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>,
@@ -331,6 +333,11 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::DoubleArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::DoubleArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::DoubleArraySet);
+
+    let clsid = ctxt.primitive_classes.generic_array;
+    intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
+    intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
+    intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
 
     let clsid = ctxt.primitive_classes.str_array;
     native_ctor(ctxt,

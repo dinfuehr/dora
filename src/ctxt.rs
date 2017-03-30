@@ -73,6 +73,8 @@ impl<'ast> Context<'ast> {
                 float_class: empty_class_id,
                 double_class: empty_class_id,
                 str_class: empty_class_id,
+
+                generic_array: empty_class_id,
                 bool_array: empty_class_id,
                 char_array: empty_class_id,
                 int_array: empty_class_id,
@@ -356,6 +358,8 @@ pub struct PrimitiveClasses {
     pub float_class: ClassId,
     pub double_class: ClassId,
     pub str_class: ClassId,
+
+    pub generic_array: ClassId,
     pub char_array: ClassId,
     pub int_array: ClassId,
     pub bool_array: ClassId,
@@ -578,6 +582,10 @@ impl FctKind {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
+    GenericArrayLen,
+    GenericArrayGet,
+    GenericArraySet,
+
     LongArrayLen,
     LongArrayGet,
     LongArraySet,

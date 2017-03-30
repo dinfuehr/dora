@@ -159,6 +159,15 @@ internal class double {
   internal fun sqrt() -> double;
 }
 
+internal class Array<T> {
+  // internal init();
+  // internal init(len: int, value: T);
+
+  internal fun len() -> int;
+  internal fun get(idx: int) -> T;
+  internal fun set(idx: int, val: T);
+}
+
 internal class BoolArray {
   internal init();
   internal init(len: int, value: bool);
