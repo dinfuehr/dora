@@ -335,6 +335,8 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "set", Intrinsic::DoubleArraySet);
 
     let clsid = ctxt.primitive_classes.generic_array;
+    intrinsic_ctor(ctxt, clsid, vec![], Intrinsic::GenericArrayCtorEmpty, true);
+    intrinsic_ctor(ctxt, clsid, vec![BuiltinType::Int, BuiltinType::TypeParam(0.into())], Intrinsic::GenericArrayCtorElem, true);
     intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
@@ -368,6 +370,14 @@ fn native_ctor<'ast>(ctxt: &mut Context<'ast>,
                      fctptr: *const u8,
                      allocates: bool) {
     internal_ctor(ctxt, clsid, param_types, FctKind::Native(fctptr), allocates);
+}
+
+fn intrinsic_ctor<'ast>(ctxt: &mut Context<'ast>,
+                     clsid: ClassId,
+                     param_types: Vec<BuiltinType>,
+                     intr: Intrinsic,
+                     allocates: bool) {
+    internal_ctor(ctxt, clsid, param_types, FctKind::Builtin(intr), allocates);
 }
 
 fn internal_ctor<'ast>(ctxt: &mut Context<'ast>,
@@ -439,6 +449,40 @@ fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind) {
             fct.kind = kind;
             fct.internal_resolved = true;
         }
+    }
+}
+
+pub fn specialize_builtin(intr: Intrinsic, type_params: &[BuiltinType]) -> FctKind {
+    match intr {
+        Intrinsic::GenericArrayCtorEmpty => {
+            let ptr = match type_params[0] {
+                BuiltinType::Byte => stdlib::ctor_byte_array_empty as *const u8,
+                BuiltinType::Char => stdlib::ctor_char_array_empty as *const u8,
+                BuiltinType::Int => stdlib::ctor_int_array_empty as *const u8,
+                BuiltinType::Long => stdlib::ctor_long_array_empty as *const u8,
+                BuiltinType::Float => stdlib::ctor_float_array_empty as *const u8,
+                BuiltinType::Double => stdlib::ctor_double_array_empty as *const u8,
+                _ => stdlib::ctor_str_array_empty as *const u8,
+            };
+
+            FctKind::Native(ptr)
+        }
+
+        Intrinsic::GenericArrayCtorElem => {
+            let ptr = match type_params[0] {
+                BuiltinType::Byte => stdlib::ctor_byte_array_elem as *const u8,
+                BuiltinType::Char => stdlib::ctor_char_array_elem as *const u8,
+                BuiltinType::Int => stdlib::ctor_int_array_elem as *const u8,
+                BuiltinType::Long => stdlib::ctor_long_array_elem as *const u8,
+                BuiltinType::Float => stdlib::ctor_float_array_elem as *const u8,
+                BuiltinType::Double => stdlib::ctor_double_array_elem as *const u8,
+                _ => stdlib::ctor_str_array_elem as *const u8,
+            };
+
+            FctKind::Native(ptr)
+        }
+
+        _ => FctKind::Builtin(intr),
     }
 }
 

@@ -1,4 +1,34 @@
-fun main() {}
+fun main() {
+  let x = Array::<int>(2, 100);
+  int_array_set(x, 1, 200);
+  assert(x[0] == 100);
+  assert(x[1] == 200);
+
+  let x = Array::<long>(2, 200L);
+  long_array_set(x, 1, 100L);
+  assert(x[0] == 200L);
+  assert(x[1] == 100L);
+
+  let x = Array::<float>(2, 1.0F);
+  float_array_set(x, 1, 2.0F);
+  assert(x[0] == 1.0F);
+  assert(x[1] == 2.0F);
+
+  let x = Array::<double>(2, 2.0);
+  double_array_set(x, 1, 1.0);
+  assert(x[0] == 2.0);
+  assert(x[1] == 1.0);
+
+  let x = Array::<Str>(2, "hello");
+  str_array_set(x, 1, "abc");
+  assert(x[0] == "hello");
+  assert(x[1] == "abc");
+
+  let x = Array::<Foo>(2, Foo(1));
+  foo_array_set(x, 1, Foo(2));
+  assert(x[0].y == 1);
+  assert(x[1].y == 2);
+}
 
 fun int_array_set(x: Array<int>, idx: int, val: int) {
   x[idx] = val;
@@ -24,4 +54,4 @@ fun foo_array_set(x: Array<Foo>, idx: int, val: Foo) {
   x[idx] = val;
 }
 
-class Foo
+class Foo(let y: int)

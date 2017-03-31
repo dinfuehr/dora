@@ -8,7 +8,7 @@ fun f() -> int {
   do {
     print("hello ");
     return 6;
-  } catch e: IntArray {
+  } catch e: Array<int> {
     return 4;
   } finally {
     println("world!");

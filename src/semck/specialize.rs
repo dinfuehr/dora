@@ -4,6 +4,7 @@ use std::sync::RwLock;
 
 use class::{self, ClassId};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, Var};
+use semck::prelude::specialize_builtin;
 use ty::BuiltinType;
 
 pub fn specialize_class(ctxt: &Context,
@@ -136,7 +137,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
 
         FctKind::Definition => FctKind::Definition,
         FctKind::Native(ptr) => FctKind::Native(ptr),
-        FctKind::Builtin(intr) => FctKind::Builtin(intr),
+        FctKind::Builtin(intr) => specialize_builtin(intr, &type_params),
     };
 
     let fct = Fct {

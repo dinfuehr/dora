@@ -583,6 +583,8 @@ impl FctKind {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
+    GenericArrayCtorEmpty,
+    GenericArrayCtorElem,
     GenericArrayLen,
     GenericArrayGet,
     GenericArraySet,

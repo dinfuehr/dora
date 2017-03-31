@@ -1,0 +1,17 @@
+//= error nil
+//= output file
+
+fun main() {
+  f(Foo(1));
+  f(nil);
+}
+
+fun f(x: Foo) {
+  assert(id(x).y == 1);
+}
+
+fun id(x: Foo) -> Foo {
+  return x;
+}
+
+class Foo(let y: int)

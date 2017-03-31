@@ -433,11 +433,12 @@ impl MacroAssembler {
         asm::cvtsd2ss(self, dest, src);
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+        let scratch = self.get_scratch();
         self.load_mem(MachineMode::Int32,
-                      temp.into(),
+                      (*scratch).into(),
                       Mem::Base(array, offset_of_array_length()));
-        self.cmp_reg(MachineMode::Int32, index, temp);
+        self.cmp_reg(MachineMode::Int32, index, *scratch);
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);

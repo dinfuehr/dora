@@ -1,4 +1,52 @@
-fun main() {}
+fun main() {
+  let x = Array::<int>();
+  assert(x.len() == 0);
+  assert(int_array_len(x) == 0);
+
+  let x = Array::<int>(5, 100);
+  assert(x.len() == 5);
+  assert(int_array_len(x) == 5);
+
+  let x = Array::<long>();
+  assert(x.len() == 0);
+  assert(long_array_len(x) == 0);
+
+  let x = Array::<long>(7, 100L);
+  assert(x.len() == 7);
+  assert(long_array_len(x) == 7);
+
+  let x = Array::<float>();
+  assert(x.len() == 0);
+  assert(float_array_len(x) == 0);
+
+  let x = Array::<float>(6, 1.0F);
+  assert(x.len() == 6);
+  assert(float_array_len(x) == 6);
+
+  let x = Array::<double>();
+  assert(x.len() == 0);
+  assert(double_array_len(x) == 0);
+
+  let x = Array::<double>(4, 1.0);
+  assert(x.len() == 4);
+  assert(double_array_len(x) == 4);
+
+  let x = Array::<Str>();
+  assert(x.len() == 0);
+  assert(str_array_len(x) == 0);
+
+  let x = Array::<Str>(3, "hello");
+  assert(x.len() == 3);
+  assert(str_array_len(x) == 3);
+
+  let x = Array::<Foo>();
+  assert(x.len() == 0);
+  assert(foo_array_len(x) == 0);
+
+  let x = Array::<Foo>(1, Foo());
+  assert(x.len() == 1);
+  assert(foo_array_len(x) == 1);
+}
 
 fun int_array_len(x: Array<int>) -> int {
   return x.len();

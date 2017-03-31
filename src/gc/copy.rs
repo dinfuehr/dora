@@ -166,6 +166,8 @@ pub fn minor_collect(ctxt: &Context,
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
     }
 
+    // memset from-space to garbage data for debug builds
+    // makes sure that no pointer into from-space is left
     if cfg!(debug_assertions) {
         unsafe {
             ptr::write_bytes(from_space.start as *mut u8, 0xcc, from_space.size());

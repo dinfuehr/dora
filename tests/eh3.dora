@@ -5,7 +5,7 @@ fun main() {
 fun f() -> int {
   do {
     return 6;
-  } catch e: IntArray {
+  } catch e: Array<int> {
     return 4;
   }
 }

@@ -160,8 +160,8 @@ internal class double {
 }
 
 internal class Array<T> {
-  // internal init();
-  // internal init(len: int, value: T);
+  internal init();
+  internal init(len: int, value: T);
 
   internal fun len() -> int;
   internal fun get(idx: int) -> T;

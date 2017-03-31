@@ -1,0 +1,3 @@
+nil check failed
+  0: main():6
+  1: f(Foo):10

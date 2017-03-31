@@ -474,7 +474,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm
             .emit_comment(Comment::LoadField(clsid, fieldid));
         self.masm.emit_nil_check();
-        self.masm.emit_lineno(pos.line as i32);
+        self.masm.emit_lineno_if_missing(pos.line as i32);
         self.masm
             .load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
     }
@@ -1059,12 +1059,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm
-                .check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2, REG_RESULT);
+                .check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
         self.masm.load_mem(mode, res, Mem::Local(offset_value));
         self.masm
-            .store_array_elem(mode, REG_TMP1, REG_TMP2, REG_RESULT.into());
+            .store_array_elem(mode, REG_TMP1, REG_TMP2, res);
 
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);
@@ -1092,7 +1092,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm
-                .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1, REG_TMP2);
+                .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
 
         let res = if dest.is_reg() {

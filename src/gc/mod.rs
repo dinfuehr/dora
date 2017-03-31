@@ -46,7 +46,7 @@ impl Gc {
             align: 8,
         };
 
-        let collector_name = args.flag_gc.unwrap_or(CollectorName::Malloc);
+        let collector_name = args.flag_gc.unwrap_or(CollectorName::Copy);
 
         let collector: Box<Collector> = match collector_name {
             CollectorName::Zero => box ZeroCollector::new(args),

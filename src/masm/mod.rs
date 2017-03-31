@@ -130,6 +130,14 @@ impl MacroAssembler {
         self.linenos.insert(pos, lineno);
     }
 
+    pub fn emit_lineno_if_missing(&mut self, lineno: i32) {
+        let pos = self.pos() as i32;
+
+        if self.linenos.get(pos) == 0 {
+            self.linenos.insert(pos, lineno);
+        }
+    }
+
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
         let pos = self.pos() as i32;
         self.gcpoints.insert(pos, gcpoint);

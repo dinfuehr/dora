@@ -1,0 +1,10 @@
+fun main() {
+  let x = Array::<Foo>(5, nil);
+  x[0] = Foo(1);
+  x[4] = Foo(2);
+  forceCollect();
+  assert(x[0].x == 1);
+  assert(x[4].x == 2);
+}
+
+class Foo(let x: int)
