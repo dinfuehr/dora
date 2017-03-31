@@ -1433,7 +1433,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
         let csite = self.jit_info.map_csites.get(id).unwrap().clone();
-        let mut temps: Vec<(BuiltinType, i32)> = Vec::new();
+        let mut temps: Vec<(BuiltinType, i32, Option<ClassId>)> = Vec::new();
 
         let fid = csite.callee;
         let fct = self.ctxt.fcts[fid].borrow();
@@ -1463,14 +1463,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
                 Arg::SelfieNew(cls_id, _) => {
-                    self.emit_allocation(pos, cls_id, dest.reg());
+                    let offset = self.reserve_temp_for_arg(arg);
+                    temps.push((arg.ty(), offset, Some(cls_id)));
+                    continue;
                 }
             }
 
             let offset = self.reserve_temp_for_arg(arg);
             self.masm
                 .store_mem(arg.ty().mode(), Mem::Local(offset), dest);
-            temps.push((arg.ty(), offset));
+            temps.push((arg.ty(), offset, None));
         }
 
         let mut arg_offset = -self.jit_info.stacksize();
@@ -1483,6 +1485,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             let mode = ty.mode();
             let is_float = mode.is_float();
             let offset = temps[idx].1;
+
+            if idx == 0 {
+                if let Some(cls_id) = temps[idx].2 {
+                    let reg = REG_PARAMS[reg_idx];
+                    self.emit_allocation(pos, &*fct, &csite, cls_id, offset, reg);
+
+                    reg_idx += 1;
+                    idx += 1;
+                    continue;
+                }
+            }
 
             if is_float {
                 if freg_idx < FREG_PARAMS.len() {
@@ -1537,7 +1550,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         if csite.args.len() > 0 {
             if let Arg::SelfieNew(_, _) = csite.args[0] {
-                let (ty, offset) = temps[0];
+                let (ty, offset, _) = temps[0];
                 self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
             }
         }
@@ -1547,13 +1560,30 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_allocation(&mut self, pos: Position, cls_id: ClassId, dest: Reg) {
+    fn emit_allocation(&mut self, pos: Position, fct: &Fct<'ast>, csite: &CallSite<'ast>, cls_id: ClassId, offset: i32, dest: Reg) {
         // allocate storage for object
         self.masm.emit_comment(Comment::Alloc(cls_id));
 
         let cls = self.ctxt.classes[cls_id].borrow();
-        self.masm
-            .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
+
+        if cls.size > 0 {
+            self.masm
+                .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
+
+        } else if fct.params_without_self().len() == 0 {
+            let size = (Header::size() + mem::ptr_width()) as i64;
+            self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+
+        } else {
+            self.masm.load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(csite.args[1].offset()));
+            let size = cls.specialization_params[0].size(self.ctxt);
+            self.masm.load_int_const(MachineMode::Int32, REG_RESULT, size as i64);
+            self.masm.int_mul(MachineMode::Int32, REG_TMP1, REG_TMP1, REG_RESULT);
+
+            let size = (Header::size() + mem::ptr_width()) as i64;
+            self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+            self.masm.int_add(MachineMode::Int32, REG_PARAMS[0], REG_PARAMS[0], REG_TMP1);
+        }
 
         let internal_fct = InternalFct {
             ptr: stdlib::gc_alloc as *mut u8,
@@ -1565,6 +1595,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
 
+        // store gc object in temporary storage
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
+
         // store classptr in object
         let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
         let disp = self.masm.add_addr(cptr);
@@ -1573,7 +1606,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.emit_comment(Comment::StoreVTable(cls_id));
         self.masm.load_constpool(REG_TMP1, disp + pos);
         self.masm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+            .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), REG_TMP1.into());
     }
 
     fn emit_native_call_insn(&mut self,
