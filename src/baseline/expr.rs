@@ -1463,32 +1463,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
 
                 Arg::SelfieNew(cls_id, _) => {
-                    // allocate storage for object
-                    self.masm.emit_comment(Comment::Alloc(cls_id));
-
-                    let cls = self.ctxt.classes[cls_id].borrow();
-                    self.masm
-                        .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
-
-                    let internal_fct = InternalFct {
-                        ptr: stdlib::gc_alloc as *mut u8,
-                        args: &[BuiltinType::Int],
-                        return_type: BuiltinType::Ptr,
-                    };
-
-                    self.emit_native_call_insn(pos, internal_fct, dest);
-
-                    self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::OOM);
-
-                    // store classptr in object
-                    let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
-                    let disp = self.masm.add_addr(cptr);
-                    let pos = self.masm.pos() as i32;
-
-                    self.masm.emit_comment(Comment::StoreVTable(cls_id));
-                    self.masm.load_constpool(REG_TMP1, disp + pos);
-                    self.masm
-                        .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+                    self.emit_allocation(pos, cls_id, dest.reg());
                 }
             }
 
@@ -1570,6 +1545,35 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         for temp in temps.into_iter() {
             self.free_temp_with_type(temp.0, temp.1);
         }
+    }
+
+    fn emit_allocation(&mut self, pos: Position, cls_id: ClassId, dest: Reg) {
+        // allocate storage for object
+        self.masm.emit_comment(Comment::Alloc(cls_id));
+
+        let cls = self.ctxt.classes[cls_id].borrow();
+        self.masm
+            .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
+
+        let internal_fct = InternalFct {
+            ptr: stdlib::gc_alloc as *mut u8,
+            args: &[BuiltinType::Int],
+            return_type: BuiltinType::Ptr,
+        };
+
+        self.emit_native_call_insn(pos, internal_fct, dest.into());
+
+        self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+
+        // store classptr in object
+        let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
+        let disp = self.masm.add_addr(cptr);
+        let pos = self.masm.pos() as i32;
+
+        self.masm.emit_comment(Comment::StoreVTable(cls_id));
+        self.masm.load_constpool(REG_TMP1, disp + pos);
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
     fn emit_native_call_insn(&mut self,
