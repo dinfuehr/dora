@@ -1,8 +1,8 @@
 fun main() {
-    let x = CharArray();
+    let x = Array::<char>();
     assert(x.len() == 0);
 
-    let x = CharArray(10, '\0');
+    let x = Array::<char>(10, '\0');
     assert(x[0] == '\0');
     assert(x[9] == '\0');
 

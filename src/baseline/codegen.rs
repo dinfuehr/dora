@@ -228,7 +228,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         if self.fct.has_self() {
             let var = self.src.var_self();
-            let mode = var.ty.mode();
+            let mode = var.ty.to_specialized(self.ctxt).mode();
 
             self.masm.emit_comment(Comment::StoreParam(var.id));
 
@@ -523,7 +523,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
             self.scopes.pop_scope();
 
-            let ty = self.src.ty(catch.data_type.id()).to_specialized(self.ctxt);
+            let ty = self.src
+                .ty(catch.data_type.id())
+                .to_specialized(self.ctxt);
             let catch_type = CatchType::Class(ty.cls_id(self.ctxt));
             self.masm
                 .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);

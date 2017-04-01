@@ -26,21 +26,6 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.double_class = internal_class(ctxt, "double", BuiltinType::Double, size);
 
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
-    ctxt.primitive_classes.bool_array =
-        internal_class(ctxt, "BoolArray", BuiltinType::BoolArray, 0);
-    ctxt.primitive_classes.byte_array =
-        internal_class(ctxt, "ByteArray", BuiltinType::ByteArray, 0);
-    ctxt.primitive_classes.char_array =
-        internal_class(ctxt, "CharArray", BuiltinType::CharArray, 0);
-    ctxt.primitive_classes.int_array = internal_class(ctxt, "IntArray", BuiltinType::IntArray, 0);
-    ctxt.primitive_classes.long_array =
-        internal_class(ctxt, "LongArray", BuiltinType::LongArray, 0);
-    ctxt.primitive_classes.float_array =
-        internal_class(ctxt, "FloatArray", BuiltinType::FloatArray, 0);
-    ctxt.primitive_classes.double_array =
-        internal_class(ctxt, "DoubleArray", BuiltinType::DoubleArray, 0);
-    ctxt.primitive_classes.str_array = internal_class(ctxt, "StrArray", BuiltinType::StrArray, 0);
-
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", BuiltinType::Array, 0);
 }
 
@@ -229,178 +214,16 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::DoubleIsNan);
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
 
-    let clsid = ctxt.primitive_classes.char_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_char_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Char],
-                stdlib::ctor_char_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::CharArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::CharArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::CharArraySet);
-
-    let clsid = ctxt.primitive_classes.int_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_int_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Int],
-                stdlib::ctor_int_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::IntArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::IntArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::IntArraySet);
-
-    let clsid = ctxt.primitive_classes.bool_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_bool_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Bool],
-                stdlib::ctor_bool_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::BoolArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::BoolArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::BoolArraySet);
-
-    let clsid = ctxt.primitive_classes.byte_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_byte_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Byte],
-                stdlib::ctor_byte_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::ByteArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::ByteArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::ByteArraySet);
-
-    let clsid = ctxt.primitive_classes.long_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_long_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Long],
-                stdlib::ctor_long_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::LongArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::LongArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::LongArraySet);
-
-    let clsid = ctxt.primitive_classes.float_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_float_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Float],
-                stdlib::ctor_float_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::FloatArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::FloatArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::FloatArraySet);
-
-    let clsid = ctxt.primitive_classes.double_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_double_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Double],
-                stdlib::ctor_double_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::DoubleArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::DoubleArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::DoubleArraySet);
-
     let clsid = ctxt.primitive_classes.generic_array;
-    intrinsic_ctor(ctxt, clsid, vec![], Intrinsic::GenericArrayCtorEmpty, true);
-    intrinsic_ctor(ctxt, clsid, vec![BuiltinType::Int, BuiltinType::TypeParam(0.into())], Intrinsic::GenericArrayCtorElem, true);
     intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
-
-    let clsid = ctxt.primitive_classes.str_array;
-    native_ctor(ctxt,
-                clsid,
-                vec![],
-                stdlib::ctor_str_array_empty as *const u8,
-                true);
-    native_ctor(ctxt,
-                clsid,
-                vec![BuiltinType::Int, BuiltinType::Str],
-                stdlib::ctor_str_array_elem as *const u8,
-                true);
-    intrinsic_method(ctxt, clsid, "len", Intrinsic::StrArrayLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::StrArrayGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::StrArraySet);
 
     let iname = ctxt.interner.intern("Thread");
     let clsid = ctxt.sym.borrow().get_class(iname);
 
     if let Some(clsid) = clsid {
         native_method(ctxt, clsid, "start", stdlib::spawn_thread as *const u8);
-    }
-}
-
-fn native_ctor<'ast>(ctxt: &mut Context<'ast>,
-                     clsid: ClassId,
-                     param_types: Vec<BuiltinType>,
-                     fctptr: *const u8,
-                     allocates: bool) {
-    internal_ctor(ctxt, clsid, param_types, FctKind::Native(fctptr), allocates);
-}
-
-fn intrinsic_ctor<'ast>(ctxt: &mut Context<'ast>,
-                     clsid: ClassId,
-                     param_types: Vec<BuiltinType>,
-                     intr: Intrinsic,
-                     allocates: bool) {
-    internal_ctor(ctxt, clsid, param_types, FctKind::Builtin(intr), allocates);
-}
-
-fn internal_ctor<'ast>(ctxt: &mut Context<'ast>,
-                       clsid: ClassId,
-                       param_types: Vec<BuiltinType>,
-                       kind: FctKind,
-                       allocates: bool) {
-    let cls = ctxt.classes[clsid].borrow();
-
-    for &ctor_id in &cls.ctors {
-        let mut ctor = ctxt.fcts[ctor_id].borrow_mut();
-
-        if ctor.params_without_self() == &param_types[..] && ctor.internal {
-            ctor.ctor_allocates = allocates;
-
-            if allocates {
-                ctor.return_type = cls.ty;
-            }
-
-            ctor.kind = kind;
-            ctor.internal_resolved = true;
-            break;
-        }
     }
 }
 
@@ -449,40 +272,6 @@ fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind) {
             fct.kind = kind;
             fct.internal_resolved = true;
         }
-    }
-}
-
-pub fn specialize_builtin(intr: Intrinsic, type_params: &[BuiltinType]) -> FctKind {
-    match intr {
-        Intrinsic::GenericArrayCtorEmpty => {
-            let ptr = match type_params[0] {
-                BuiltinType::Byte => stdlib::ctor_byte_array_empty as *const u8,
-                BuiltinType::Char => stdlib::ctor_char_array_empty as *const u8,
-                BuiltinType::Int => stdlib::ctor_int_array_empty as *const u8,
-                BuiltinType::Long => stdlib::ctor_long_array_empty as *const u8,
-                BuiltinType::Float => stdlib::ctor_float_array_empty as *const u8,
-                BuiltinType::Double => stdlib::ctor_double_array_empty as *const u8,
-                _ => stdlib::ctor_str_array_empty as *const u8,
-            };
-
-            FctKind::Native(ptr)
-        }
-
-        Intrinsic::GenericArrayCtorElem => {
-            let ptr = match type_params[0] {
-                BuiltinType::Byte => stdlib::ctor_byte_array_elem as *const u8,
-                BuiltinType::Char => stdlib::ctor_char_array_elem as *const u8,
-                BuiltinType::Int => stdlib::ctor_int_array_elem as *const u8,
-                BuiltinType::Long => stdlib::ctor_long_array_elem as *const u8,
-                BuiltinType::Float => stdlib::ctor_float_array_elem as *const u8,
-                BuiltinType::Double => stdlib::ctor_double_array_elem as *const u8,
-                _ => stdlib::ctor_str_array_elem as *const u8,
-            };
-
-            FctKind::Native(ptr)
-        }
-
-        _ => FctKind::Builtin(intr),
     }
 }
 

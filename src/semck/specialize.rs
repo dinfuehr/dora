@@ -4,7 +4,6 @@ use std::sync::RwLock;
 
 use class::{self, ClassId};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, Var};
-use semck::prelude::specialize_builtin;
 use ty::BuiltinType;
 
 pub fn specialize_class(ctxt: &Context,
@@ -49,7 +48,7 @@ fn create_specialized_class(ctxt: &Context,
             class::Field {
                 id: field.id,
                 name: field.name,
-                ty: specialize_type(field.ty, &type_params),
+                ty: specialize_type(field.ty, id, &type_params),
                 offset: field.offset,
                 reassignable: field.reassignable,
             }
@@ -97,7 +96,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
 
     let mut param_types: Vec<_> = fct.param_types
         .iter()
-        .map(|&t| specialize_type(t, &type_params))
+        .map(|&t| specialize_type(t, id, &type_params))
         .collect();
 
     if fct.has_self() && fct.initialized {
@@ -114,7 +113,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
                     Var {
                         id: v.id,
                         name: v.name,
-                        ty: specialize_type(v.ty, &type_params),
+                        ty: specialize_type(v.ty, id, &type_params),
                         reassignable: v.reassignable,
                         node_id: v.node_id,
                     }
@@ -137,7 +136,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
 
         FctKind::Definition => FctKind::Definition,
         FctKind::Native(ptr) => FctKind::Native(ptr),
-        FctKind::Builtin(intr) => specialize_builtin(intr, &type_params),
+        FctKind::Builtin(intr) => FctKind::Builtin(intr),
     };
 
     let fct = Fct {
@@ -155,10 +154,8 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
         internal_resolved: true,
         overrides: fct.overrides,
         param_types: param_types,
-        return_type: specialize_type(fct.return_type, &type_params),
+        return_type: specialize_type(fct.return_type, id, &type_params),
         ctor: fct.ctor,
-
-        ctor_allocates: fct.ctor_allocates,
 
         vtable_index: fct.vtable_index,
         initialized: fct.initialized,
@@ -171,9 +168,10 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
     fct_id
 }
 
-fn specialize_type(ty: BuiltinType, type_params: &[BuiltinType]) -> BuiltinType {
+fn specialize_type(ty: BuiltinType, id: ClassId, type_params: &[BuiltinType]) -> BuiltinType {
     match ty {
         BuiltinType::TypeParam(id) => type_params[id.idx()],
+        BuiltinType::Array => BuiltinType::Class(id),
         _ => ty,
     }
 }

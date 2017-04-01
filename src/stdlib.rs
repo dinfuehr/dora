@@ -166,7 +166,6 @@ pub extern "C" fn ctor_char_array_elem(len: i32, value: char) -> Handle<CharArra
     object::char_array_with(ctxt, len as usize, value)
 }
 
-
 pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {
     let ctxt = get_ctxt();
 

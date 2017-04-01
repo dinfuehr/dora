@@ -5,9 +5,9 @@ fun main() {
 }
 
 fun fannkuch(n: int) -> int {
-  let perm = IntArray(n, 0);
-  let perm1 = IntArray(n, 0);
-  let count = IntArray(n, 0);
+  let perm = Array::<int>(n, 0);
+  let perm1 = Array::<int>(n, 0);
+  let count = Array::<int>(n, 0);
   var maxFlipsCount = 0;
   var permCount = 0;
   var checksum = 0;

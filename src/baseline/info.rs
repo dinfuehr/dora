@@ -298,11 +298,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(object);
             args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
         } else if call_type.is_ctor_new() {
-            let ctor = self.ctxt.fcts[call_type.fct_id()].borrow();
-
-            if !ctor.ctor_allocates {
-                args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
-            }
+            args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
         } else {
             in_class = false;
         }
@@ -377,7 +373,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                      Arg::Expr(ast, mut ty, _) => {
                 if let Some(fid) = fid {
                     let fct = self.ctxt.fcts[fid].borrow();
-                    ty = if ind == 0 && in_class && !fct.ctor_allocates {
+                    ty = if ind == 0 && in_class {
                         if ast.is_super() {
                             super_call = true;
                         }

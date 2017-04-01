@@ -118,7 +118,7 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
     for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
 
-        // internal classes like IntArray should have size 0, since
+        // internal classes like Array should have size 0, since
         // their "real" size is dynamic and not static
         if !cls.internal && !cls.is_generic() {
             determine_class_size(ctxt, &mut *cls, &mut sizes);
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn test_internal_class_size() {
         ok_with_test("", |ctxt| {
-            assert_eq!(0, class_size_name(ctxt, "IntArray"));
+            assert_eq!(0, class_size_name(ctxt, "Array"));
             assert_eq!(0, class_size_name(ctxt, "Str"));
             assert_eq!(1, class_size_name(ctxt, "bool"));
             assert_eq!(4, class_size_name(ctxt, "int"));

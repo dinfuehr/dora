@@ -1,8 +1,8 @@
 fun main() {
-    let ba = LongArray();
+    let ba = Array::<long>();
     assert(ba.len() == 0);
 
-    let ba = LongArray(10, 2L);
+    let ba = Array::<long>(10, 2L);
     assert(ba.len() == 10);
 
     ba[0] = 10L;

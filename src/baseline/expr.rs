@@ -614,7 +614,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let ty = self.src.ty(e.id).to_specialized(self.ctxt);
-                        self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs, dest)
+                        self.emit_array_set(e.pos,
+                                            ty.mode(),
+                                            &array.object,
+                                            &array.index,
+                                            &e.rhs,
+                                            dest)
                     }
 
                     Intrinsic::BoolArraySet | Intrinsic::ByteArraySet | Intrinsic::StrSet => {
@@ -1063,8 +1068,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
 
         self.masm.load_mem(mode, res, Mem::Local(offset_value));
-        self.masm
-            .store_array_elem(mode, REG_TMP1, REG_TMP2, res);
+        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, res);
 
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);
@@ -1452,8 +1456,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
                     if idx == 0 && fct.has_self() && check_for_nil(self.ctxt, ty) &&
-                       !csite.super_call && !fct.is_virtual() &&
-                       !fct.ctor_allocates {
+                       !csite.super_call && !fct.is_virtual() {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
                 }
@@ -1489,7 +1492,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             if idx == 0 {
                 if let Some(cls_id) = temps[idx].2 {
                     let reg = REG_PARAMS[reg_idx];
-                    self.emit_allocation(pos, &*fct, &csite, cls_id, offset, reg);
+                    self.emit_allocation(pos, &*fct, &temps, cls_id, offset, reg);
 
                     reg_idx += 1;
                     idx += 1;
@@ -1560,11 +1563,18 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_allocation(&mut self, pos: Position, fct: &Fct<'ast>, csite: &CallSite<'ast>, cls_id: ClassId, offset: i32, dest: Reg) {
+    fn emit_allocation(&mut self,
+                       pos: Position,
+                       fct: &Fct<'ast>,
+                       temps: &[(BuiltinType, i32, Option<ClassId>)],
+                       cls_id: ClassId,
+                       offset: i32,
+                       dest: Reg) {
         // allocate storage for object
         self.masm.emit_comment(Comment::Alloc(cls_id));
 
         let cls = self.ctxt.classes[cls_id].borrow();
+
 
         if cls.size > 0 {
             self.masm
@@ -1572,17 +1582,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         } else if fct.params_without_self().len() == 0 {
             let size = (Header::size() + mem::ptr_width()) as i64;
-            self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+            self.masm
+                .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
 
         } else {
-            self.masm.load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(csite.args[1].offset()));
+            self.masm
+                .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
             let size = cls.specialization_params[0].size(self.ctxt);
-            self.masm.load_int_const(MachineMode::Int32, REG_RESULT, size as i64);
-            self.masm.int_mul(MachineMode::Int32, REG_TMP1, REG_TMP1, REG_RESULT);
+            self.masm
+                .load_int_const(MachineMode::Int32, REG_RESULT, size as i64);
+            self.masm
+                .int_mul(MachineMode::Int32, REG_TMP1, REG_TMP1, REG_RESULT);
 
             let size = (Header::size() + mem::ptr_width()) as i64;
-            self.masm.load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
-            self.masm.int_add(MachineMode::Int32, REG_PARAMS[0], REG_PARAMS[0], REG_TMP1);
+            self.masm
+                .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+            self.masm
+                .int_add(MachineMode::Int32, REG_PARAMS[0], REG_PARAMS[0], REG_TMP1);
         }
 
         let internal_fct = InternalFct {
@@ -1596,7 +1612,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
 
         // store gc object in temporary storage
-        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
 
         // store classptr in object
         let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
@@ -1607,6 +1624,16 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.load_constpool(REG_TMP1, disp + pos);
         self.masm
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), REG_TMP1.into());
+
+        // store length in object
+        if cls.size == 0 && fct.params_without_self().len() > 0 {
+            self.masm
+                .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
+            self.masm
+                .store_mem(MachineMode::Ptr,
+                           Mem::Base(dest, Header::size()),
+                           REG_TMP1.into());
+        }
     }
 
     fn emit_native_call_insn(&mut self,

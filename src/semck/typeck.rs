@@ -1614,29 +1614,29 @@ mod tests {
 
     #[test]
     fn type_array() {
-        ok("fun f(a: IntArray) -> int { return a[1]; }");
-        err("fun f(a: IntArray) -> Str { return a[1]; }",
-            pos(1, 29),
+        ok("fun f(a: Array<int>) -> int { return a[1]; }");
+        err("fun f(a: Array<int>) -> Str { return a[1]; }",
+            pos(1, 31),
             Msg::ReturnType("Str".into(), "int".into()));
     }
 
     #[test]
     fn type_array_assign() {
-        ok("fun f(a: IntArray) -> int { return a[3] = 4; }");
-        err("fun f(a: IntArray) { a[3] = \"b\"; }",
-            pos(1, 27),
-            Msg::UnknownMethod("IntArray".into(),
+        ok("fun f(a: Array<int>) -> int { return a[3] = 4; }");
+        err("fun f(a: Array<int>) { a[3] = \"b\"; }",
+            pos(1, 29),
+            Msg::UnknownMethod("Array<int>".into(),
                                "set".into(),
                                vec!["int".into(), "Str".into()]));
-        err("fun f(a: IntArray) -> Str { return a[3] = 4; }",
-            pos(1, 29),
+        err("fun f(a: Array<int>) -> Str { return a[3] = 4; }",
+            pos(1, 31),
             Msg::ReturnType("Str".into(), "int".into()));
     }
 
     #[test]
     fn type_throw() {
         ok("fun f() { throw \"abc\"; }");
-        ok("fun f() { throw IntArray(); }");
+        ok("fun f() { throw Array::<int>(); }");
         err("fun f() { throw 1; }",
             pos(1, 11),
             Msg::ReferenceTypeExpected("int".into()));
@@ -1646,7 +1646,7 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { do {} catch a: Str { print(a); } }");
-        ok("fun f() { var x = 0; do {} catch a: IntArray { x=a.len(); } }");
+        ok("fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }");
     }
 
     #[test]
@@ -1663,18 +1663,18 @@ mod tests {
 
     #[test]
     fn try_check_blocks() {
-        err("fun f() { do {} catch a: IntArray {} a.len(); }",
-            pos(1, 38),
+        err("fun f() { do {} catch a: Array<int> {} a.len(); }",
+            pos(1, 40),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do {} catch a: IntArray {} finally { a.len(); } }",
-            pos(1, 48),
+        err("fun f() { do {} catch a: Array<int> {} finally { a.len(); } }",
+            pos(1, 50),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do { return a; } catch a: IntArray {} }",
+        err("fun f() { do { return a; } catch a: Array<int> {} }",
             pos(1, 23),
             Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do { } catch a: IntArray { return a; } }",
-            pos(1, 38),
-            Msg::ReturnType("()".into(), "IntArray".into()));
+        err("fun f() { do { } catch a: Array<int> { return a; } }",
+            pos(1, 40),
+            Msg::ReturnType("()".into(), "Array<int>".into()));
     }
 
     #[test]
@@ -1708,8 +1708,8 @@ mod tests {
         err("fun f() {
                do {
                  throw \"test\";
-               } catch x: IntArray {
-                 x = IntArray();
+               } catch x: Array<int> {
+                 x = Array::<int>();
                }
              }",
             pos(5, 20),

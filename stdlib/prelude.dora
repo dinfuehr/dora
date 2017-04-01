@@ -160,88 +160,23 @@ internal class double {
 }
 
 internal class Array<T> {
-  internal init();
-  internal init(len: int, value: T);
+  init() {}
+  init(len: int, value: T) {
+    var i = 0;
+
+    while i < len {
+      self[i] = value;
+      i = i + 1;
+    }
+  }
 
   internal fun len() -> int;
   internal fun get(idx: int) -> T;
   internal fun set(idx: int, val: T);
 }
 
-internal class BoolArray {
-  internal init();
-  internal init(len: int, value: bool);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> bool;
-  internal fun set(idx: int, val: bool);
-}
-
-internal class ByteArray {
-  internal init();
-  internal init(len: int, value: byte);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> byte;
-  internal fun set(idx: int, val: byte);
-}
-
-internal class CharArray {
-  internal init();
-  internal init(len: int, value: char);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> char;
-  internal fun set(idx: int, val: char);
-}
-
-internal class IntArray {
-  internal init();
-  internal init(len: int, value: int);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> int;
-  internal fun set(idx: int, val: int);
-}
-
-internal class LongArray {
-  internal init();
-  internal init(len: int, value: long);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> long;
-  internal fun set(idx: int, val: long);
-}
-
-internal class FloatArray {
-  internal init();
-  internal init(len: int, value: float);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> float;
-  internal fun set(idx: int, val: float);
-}
-
-internal class DoubleArray {
-  internal init();
-  internal init(len: int, value: double);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> double;
-  internal fun set(idx: int, val: double);
-}
-
-internal class StrArray {
-  internal init();
-  internal init(len: int, value: Str);
-
-  internal fun len() -> int;
-  internal fun get(idx: int) -> Str;
-  internal fun set(idx: int, val: Str);
-}
-
 class IntVec {
-  var array: IntArray = nil;
+  var array: Array<int> = nil;
   var length: int = 0;
 
   fun get(idx: int) -> int {
@@ -270,7 +205,7 @@ class IntVec {
         newcap = newcap * 2;
       }
 
-      let newarray = IntArray(newcap, 0);
+      let newarray = Array::<int>(newcap, 0);
 
       var i = 0;
 
@@ -303,7 +238,7 @@ class IntVec {
       if self.length == 0 {
         self.array = nil;
       } else {
-        let newarray = IntArray(self.length, 0);
+        let newarray = Array::<int>(self.length, 0);
 
         var i = 0;
 

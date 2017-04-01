@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 
 use class::ClassId;
-use ctxt::Context;
+use ctxt::{Context, get_ctxt};
 use gc::root::IndirectObj;
 use mem;
 use ty::BuiltinType;
@@ -78,12 +78,24 @@ impl Obj {
     }
 
     pub fn size(&self) -> usize {
-        let size = self.header().vtbl().class().size;
+        let cls = self.header().vtbl().class();
+        let size = cls.size;
+
         if size > 0 {
             return size as usize;
         }
 
-        let ty = self.header().vtbl().class().ty;
+        let ty = cls.ty;
+        let ctxt = get_ctxt();
+
+        if Some(ctxt.primitive_classes.generic_array) == cls.specialization_for {
+            let handle: Handle<ByteArray> = Handle { ptr: self as *const Obj as *const ByteArray };
+
+            let value = Header::size() as usize + mem::ptr_width() as usize +
+                   cls.specialization_params[0].size(get_ctxt()) as usize * handle.len() as usize;
+
+            return value;
+        }
 
         match ty {
             BuiltinType::Str => {
@@ -148,8 +160,9 @@ impl Obj {
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
+        let ctxt = get_ctxt();
 
-        if cls.ty == BuiltinType::StrArray {
+        if cls.ty == BuiltinType::StrArray || (Some(ctxt.primitive_classes.generic_array) == cls.specialization_for && cls.specialization_params[0].reference_type()) {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
