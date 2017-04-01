@@ -161,6 +161,7 @@ internal class double {
 
 internal class Array<T> {
   init() {}
+  init(len: int) {}
   init(len: int, value: T) {
     var i = 0;
 
