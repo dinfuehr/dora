@@ -1062,6 +1062,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       REG_TMP2.into(),
                       Mem::Local(offset_index));
 
+        self.masm
+            .test_if_nil_bailout(pos, REG_TMP1, Trap::NIL);
+
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm
                 .check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
@@ -1093,6 +1096,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.emit_expr(index, REG_TMP1.into());
         self.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
+
+        self.masm
+            .test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm

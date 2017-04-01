@@ -1,0 +1,9 @@
+//= error nil
+
+fun main() {
+    set_first(nil);
+}
+
+fun set_first(f: Array<int>) {
+    f[0] = 0;
+}

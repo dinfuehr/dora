@@ -1,0 +1,9 @@
+//= error nil
+
+fun main() {
+    first(nil);
+}
+
+fun first(f: Array<int>) -> int {
+    return f[0];
+}
