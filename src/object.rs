@@ -93,13 +93,13 @@ impl Obj {
             let value = Header::size() as usize + mem::ptr_width() as usize +
                    cls.element_size as usize * handle.len() as usize;
 
-            return value;
+            return mem::align_usize(value, mem::ptr_width() as usize);
         }
 
         match ty {
             BuiltinType::Str => {
                 let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
-                handle.size()
+                mem::align_usize(handle.size(), mem::ptr_width() as usize)
             }
 
             _ => panic!("size unknown"),
@@ -287,6 +287,7 @@ fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
                 + mem::ptr_width() as usize // length field
                 + len + 1; // string content
 
+    let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(ctxt, size) as usize;
 
     let clsid = ctxt.primitive_classes.str_class;

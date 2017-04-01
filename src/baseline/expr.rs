@@ -1588,17 +1588,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         } else {
             self.masm
                 .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
-            let size = cls.specialization_params[0].size(self.ctxt);
-            self.masm
-                .load_int_const(MachineMode::Int32, REG_RESULT, size as i64);
-            self.masm
-                .int_mul(MachineMode::Int32, REG_TMP1, REG_TMP1, REG_RESULT);
-
-            let size = (Header::size() + mem::ptr_width()) as i64;
-            self.masm
-                .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
-            self.masm
-                .int_add(MachineMode::Int32, REG_PARAMS[0], REG_PARAMS[0], REG_TMP1);
+            self.masm.determine_array_size(REG_PARAMS[0], REG_TMP1, cls.element_size);
         }
 
         let internal_fct = InternalFct {

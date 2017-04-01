@@ -128,25 +128,25 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
 
 fn determine_class_size<'ast>(ctxt: &Context<'ast>,
                               cls: &mut Class,
-                              sizes: &mut HashMap<ClassId, i32>)
-                              -> i32 {
-    if let Some(&size) = sizes.get(&cls.id) {
-        return size;
+                              sizes: &mut HashMap<ClassId, (i32, i32)>)
+                              -> (i32, i32) {
+    if let Some(&(size, size_without_padding)) = sizes.get(&cls.id) {
+        return (size, size_without_padding);
     }
 
     let mut size = if let Some(parent) = cls.parent_class {
         let mut parent_cls = ctxt.classes[parent].borrow_mut();
-        let size = determine_class_size(ctxt, &mut *parent_cls, sizes);
+        let (_, size_without_padding) = determine_class_size(ctxt, &mut *parent_cls, sizes);
 
         cls.ref_fields = parent_cls.ref_fields.to_vec();
 
-        size
+        size_without_padding
 
     } else {
         Header::size()
     };
 
-    let mut align = 0;
+    let mut align = mem::ptr_width();
 
     for f in &mut cls.fields {
         let field_size = f.ty.size(ctxt);
@@ -164,10 +164,11 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
         }
     }
 
+    let size_without_padding = size;
     cls.size = mem::align_i32(size, align);
-    sizes.insert(cls.id, cls.size);
+    sizes.insert(cls.id, (cls.size, size_without_padding));
 
-    cls.size
+    (cls.size, size_without_padding)
 }
 
 pub fn check_override<'ast>(ctxt: &Context<'ast>) {
@@ -395,7 +396,9 @@ mod tests {
     #[test]
     fn test_class_size() {
         assert_eq!(Header::size(), class_size("class Foo"));
-        assert_eq!(Header::size() + 4, class_size("class Foo(let a: int)"));
+        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: int)"));
+        assert_eq!(Header::size() + 8, class_size("class Foo(let a: long)"));
+        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: bool)"));
         assert_eq!(Header::size() + mem::ptr_width(),
                    class_size("class Foo(let a: Str)"));
     }
@@ -436,12 +439,20 @@ mod tests {
             open class B: A { var b1: int; var b2: int; }
             class C: B { var c: Str; }",
                      |ctxt| {
-                         check_class(ctxt, "A", 4, None);
+                         check_class(ctxt, "A", mem::ptr_width(), None);
                          check_field(ctxt, "A", "a", Header::size());
-                         check_class(ctxt, "B", 4 * 3, Some("A"));
+                         check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
                          check_field(ctxt, "B", "b1", Header::size() + 4);
-                         check_class(ctxt, "C", 4 * 4 + 8, Some("B"));
-                         check_field(ctxt, "C", "c", Header::size() + 4 * 4);
+                         check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
+
+                         // if pointer size is 32-bit, we need 4 words, on
+                         // 64-bit systems we need 3 words
+                         let words = if mem::ptr_width() == 4 { 4 } else { 3 };
+                         check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
+
+                         // if pointer size is 32-bit, we do not need padding
+                         let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4};
+                         check_field(ctxt, "C", "c", Header::size() + offset);
                      });
     }
 

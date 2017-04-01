@@ -31,7 +31,15 @@ impl From<FReg> for u32 {
 }
 
 pub enum Mem {
+    // rbp + val1
     Local(i32),
+
+    // reg1 + val1
     Base(Reg, i32),
+
+    // reg1 + reg2 * val1 + val2
     Index(Reg, Reg, i32, i32),
+
+    // reg1 * val1 + val2
+    Offset(Reg, i32, i32),
 }

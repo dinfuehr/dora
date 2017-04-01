@@ -96,6 +96,8 @@ impl SemiSpace {
     }
 
     pub fn allocate(&mut self, size: usize) -> *const u8 {
+        debug_assert!(size % (mem::ptr_width() as usize) == 0);
+
         if self.end as usize - self.next as usize > size {
             let next = unsafe { self.next.offset(size as isize) };
 

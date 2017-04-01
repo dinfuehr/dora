@@ -223,6 +223,10 @@ pub fn emit_addq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_aluq_imm_reg(buf, 1, imm, reg, 0x05, 0);
 }
 
+pub fn emit_andq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
+    emit_aluq_imm_reg(buf, 1, imm, reg, 0x25, 4);
+}
+
 fn emit_aluq_imm_reg(buf: &mut MacroAssembler,
                      x64: u8,
                      imm: i32,
@@ -438,13 +442,20 @@ pub fn emit_testl_reg_reg(buf: &mut MacroAssembler, op1: Reg, op2: Reg) {
 }
 
 pub fn testl_reg_mem(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
-    emit_rex_mem(buf, dest, &src);
+    emit_rex_mem(buf, 0, dest, &src);
     emit_op(buf, 0x85);
     emit_mem(buf, dest, &src);
-
 }
 
-fn emit_rex_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
+pub fn lea(buf: &mut MacroAssembler, dest: Reg, src: Mem) {
+    emit_rex_mem(buf, 1, dest, &src);
+    emit_op(buf, 0x8D);
+    emit_mem(buf, dest, &src);
+}
+
+fn emit_rex_mem(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: &Mem) {
+    assert!(x64 == 0 || x64 == 1);
+
     let (base_msb, index_msb) = match src {
         &Mem::Local(_) => (RBP.msb(), 0),
         &Mem::Base(base, _) => {
@@ -454,10 +465,11 @@ fn emit_rex_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
         }
 
         &Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
+        &Mem::Offset(index, _, _) => (0, index.msb()),
     };
 
-    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
-        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
+    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 || x64 != 0 {
+        emit_rex(buf, x64, dest.msb(), index_msb, base_msb);
     }
 }
 
@@ -473,6 +485,10 @@ fn emit_mem(buf: &mut MacroAssembler, dest: Reg, src: &Mem) {
 
         &Mem::Index(base, index, scale, disp) => {
             emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
+        }
+
+        &Mem::Offset(index, scale, disp) => {
+            emit_membase_without_base(buf, index, scale, disp, dest);
         }
     }
 }
@@ -677,6 +693,25 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
 
     emit_op(buf, opcode);
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
+}
+
+fn emit_membase_without_base(buf: &mut MacroAssembler,
+                             index: Reg,
+                             scale: i32,
+                             disp: i32,
+                             dest: Reg) {
+    assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
+
+    let scale = match scale {
+        8 => 3,
+        4 => 2,
+        2 => 1,
+        _ => 0,
+    };
+
+    emit_modrm(buf, 0, dest.and7(), 4);
+    emit_sib(buf, scale, index.and7(), 5);
+    emit_u32(buf, disp as u32);
 }
 
 fn emit_membase_with_index_and_scale(buf: &mut MacroAssembler,
@@ -990,38 +1025,10 @@ fn sse_float_freg_mem(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, s
     let prefix = if dbl { 0xf2 } else { 0xf3 };
 
     emit_op(buf, prefix);
-
-    let (base_msb, index_msb) = match src {
-        Mem::Local(_) => (RBP.msb(), 0),
-        Mem::Base(base, _) => {
-            let base_msb = if base == RIP { 0 } else { base.msb() };
-
-            (base_msb, 0)
-        }
-
-        Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
-    };
-
-    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
-        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
-    }
-
+    emit_rex_mem(buf, 0, Reg(dest.0), &src);
     emit_op(buf, 0x0f);
     emit_op(buf, op);
-
-    match src {
-        Mem::Local(offset) => {
-            emit_membase(buf, RBP, offset, Reg(dest.0));
-        }
-
-        Mem::Base(base, disp) => {
-            emit_membase(buf, base, disp, Reg(dest.0));
-        }
-
-        Mem::Index(base, index, scale, disp) => {
-            emit_membase_with_index_and_scale(buf, base, index, scale, disp, Reg(dest.0));
-        }
-    }
+    emit_mem(buf, Reg(dest.0), &src);
 }
 
 fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, src: Mem) {
@@ -1029,37 +1036,10 @@ fn sse_float_freg_mem_66(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg
         emit_op(buf, 0x66);
     }
 
-    let (base_msb, index_msb) = match src {
-        Mem::Local(_) => (RBP.msb(), 0),
-        Mem::Base(base, _) => {
-            let base_msb = if base == RIP { 0 } else { base.msb() };
-
-            (base_msb, 0)
-        }
-
-        Mem::Index(base, index, _, _) => (base.msb(), index.msb()),
-    };
-
-    if dest.msb() != 0 || index_msb != 0 || base_msb != 0 {
-        emit_rex(buf, 0, dest.msb(), index_msb, base_msb);
-    }
-
+    emit_rex_mem(buf, 0, Reg(dest.0), &src);
     emit_op(buf, 0x0f);
     emit_op(buf, op);
-
-    match src {
-        Mem::Local(offset) => {
-            emit_membase(buf, RBP, offset, Reg(dest.0));
-        }
-
-        Mem::Base(base, disp) => {
-            emit_membase(buf, base, disp, Reg(dest.0));
-        }
-
-        Mem::Index(base, index, scale, disp) => {
-            emit_membase_with_index_and_scale(buf, base, index, scale, disp, Reg(dest.0));
-        }
-    }
+    emit_mem(buf, Reg(dest.0), &src);
 }
 
 fn sse_float_freg_reg(buf: &mut MacroAssembler, dbl: bool, op: u8, dest: FReg, x64: u8, src: Reg) {
@@ -2114,5 +2094,39 @@ mod tests {
                      xorps(XMM0, Mem::Base(RIP, -10)));
         assert_emit!(0x66, 0x0f, 0x57, 0x05, 0xf6, 0xff, 0xff, 0xff;
                      xorpd(XMM0, Mem::Base(RIP, -10)));
+    }
+
+    #[test]
+    fn test_lea() {
+        // lea rax, [rax*8]
+        assert_emit!(0x48, 0x8d, 0x04, 0xc5, 0, 0, 0, 0;
+                     lea(RAX, Mem::Offset(RAX, 8, 0)));
+
+        // lea rax, [rax*8+16]
+        assert_emit!(0x48, 0x8d, 0x04, 0xc5, 0x10, 0, 0, 0;
+                     lea(RAX, Mem::Offset(RAX, 8, 16)));
+
+        // lea r9,[rax*8+16]
+        assert_emit!(0x4c, 0x8d, 0x0c, 0xc5, 0x10, 0, 0, 0;
+                     lea(R9, Mem::Offset(RAX, 8, 16)));
+
+        // lea rax,[r9*8+16]
+        assert_emit!(0x4a, 0x8d, 0x04, 0xcd, 0x10, 0, 0, 0;
+                     lea(RAX, Mem::Offset(R9, 8, 16)));
+    }
+
+    #[test]
+    fn test_andq_imm_reg() {
+        // and rax, -8
+        assert_emit!(0x48, 0x83, 0xe0, 0xf8; emit_andq_imm_reg(-8, RAX));
+
+        // and rax, 128
+        assert_emit!(0x48, 0x25, 0x80, 0, 0, 0; emit_andq_imm_reg(128, RAX));
+
+        // and r9, -8
+        assert_emit!(0x49, 0x83, 0xe1, 0xf8; emit_andq_imm_reg(-8, R9));
+
+        // and r9, 128
+        assert_emit!(0x49, 0x81, 0xe1, 0x80, 0, 0, 0; emit_andq_imm_reg(128, R9));
     }
 }

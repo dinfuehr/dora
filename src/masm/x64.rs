@@ -8,7 +8,7 @@ use ctxt::FctId;
 use lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::{ptr_width, fits_i32};
-use object::{offset_of_array_data, offset_of_array_length};
+use object::{Header, offset_of_array_data, offset_of_array_length};
 use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
@@ -107,6 +107,7 @@ impl MacroAssembler {
             Mem::Index(base, index, scale, disp) => {
                 asm::emit_cmp_memindex_reg(self, mode, base, index, scale, disp, rhs)
             }
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
@@ -115,6 +116,7 @@ impl MacroAssembler {
             Mem::Local(_) => unimplemented!(),
             Mem::Base(base, disp) => asm::emit_cmp_mem_imm(self, mode, base, disp, imm),
             Mem::Index(_, _, _, _) => unimplemented!(),
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
@@ -433,6 +435,17 @@ impl MacroAssembler {
         asm::cvtsd2ss(self, dest, src);
     }
 
+    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
+        assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
+
+        let size = Header::size() + ptr_width();
+        asm::lea(self, dest, Mem::Offset(length, element_size, size));
+
+        // round size to multiple of 8
+        asm::lea(self, dest, Mem::Base(dest, 7));
+        asm::emit_andq_imm_reg(self, -8, dest);
+    }
+
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
         self.load_mem(MachineMode::Int32,
@@ -490,6 +503,8 @@ impl MacroAssembler {
                     MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
                 }
             }
+
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
@@ -530,6 +545,8 @@ impl MacroAssembler {
                     MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
                 }
             }
+
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
