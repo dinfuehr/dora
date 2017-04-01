@@ -75,14 +75,6 @@ impl<'ast> Context<'ast> {
                 str_class: empty_class_id,
 
                 generic_array: empty_class_id,
-                bool_array: empty_class_id,
-                char_array: empty_class_id,
-                int_array: empty_class_id,
-                byte_array: empty_class_id,
-                long_array: empty_class_id,
-                float_array: empty_class_id,
-                double_array: empty_class_id,
-                str_array: empty_class_id,
             },
             gc: gc,
             ast: ast,
@@ -360,14 +352,6 @@ pub struct PrimitiveClasses {
     pub str_class: ClassId,
 
     pub generic_array: ClassId,
-    pub char_array: ClassId,
-    pub int_array: ClassId,
-    pub bool_array: ClassId,
-    pub byte_array: ClassId,
-    pub long_array: ClassId,
-    pub float_array: ClassId,
-    pub double_array: ClassId,
-    pub str_array: ClassId,
 }
 
 impl PrimitiveClasses {
@@ -382,14 +366,6 @@ impl PrimitiveClasses {
             BuiltinType::Double => Some(self.double_class),
             BuiltinType::Str => Some(self.str_class),
             BuiltinType::Array => Some(self.generic_array),
-            BuiltinType::CharArray => Some(self.char_array),
-            BuiltinType::IntArray => Some(self.int_array),
-            BuiltinType::BoolArray => Some(self.bool_array),
-            BuiltinType::ByteArray => Some(self.byte_array),
-            BuiltinType::LongArray => Some(self.long_array),
-            BuiltinType::FloatArray => Some(self.float_array),
-            BuiltinType::DoubleArray => Some(self.double_array),
-            BuiltinType::StrArray => Some(self.str_array),
             _ => None,
         }
     }

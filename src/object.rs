@@ -103,54 +103,6 @@ impl Obj {
                 handle.size()
             }
 
-            BuiltinType::BoolArray => {
-                let handle: Handle<BoolArray> =
-                    Handle { ptr: self as *const Obj as *const BoolArray };
-                handle.size()
-            }
-
-            BuiltinType::ByteArray => {
-                let handle: Handle<ByteArray> =
-                    Handle { ptr: self as *const Obj as *const ByteArray };
-                handle.size()
-            }
-
-            BuiltinType::CharArray => {
-                let handle: Handle<CharArray> =
-                    Handle { ptr: self as *const Obj as *const CharArray };
-                handle.size()
-            }
-
-            BuiltinType::IntArray => {
-                let handle: Handle<IntArray> =
-                    Handle { ptr: self as *const Obj as *const IntArray };
-                handle.size()
-            }
-
-            BuiltinType::LongArray => {
-                let handle: Handle<LongArray> =
-                    Handle { ptr: self as *const Obj as *const LongArray };
-                handle.size()
-            }
-
-            BuiltinType::FloatArray => {
-                let handle: Handle<FloatArray> =
-                    Handle { ptr: self as *const Obj as *const FloatArray };
-                handle.size()
-            }
-
-            BuiltinType::DoubleArray => {
-                let handle: Handle<DoubleArray> =
-                    Handle { ptr: self as *const Obj as *const DoubleArray };
-                handle.size()
-            }
-
-            BuiltinType::StrArray => {
-                let handle: Handle<StrArray> =
-                    Handle { ptr: self as *const Obj as *const StrArray };
-                handle.size()
-            }
-
             _ => panic!("size unknown"),
         }
     }
@@ -162,7 +114,7 @@ impl Obj {
         let cls = unsafe { &*classptr };
         let ctxt = get_ctxt();
 
-        if cls.ty == BuiltinType::StrArray || (Some(ctxt.primitive_classes.generic_array) == cls.specialization_for && cls.specialization_params[0].reference_type()) {
+        if Some(ctxt.primitive_classes.generic_array) == cls.specialization_for && cls.specialization_params[0].reference_type() {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -422,83 +374,3 @@ pub type LongArray = Array<i64>;
 pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
-
-pub fn str_array_empty(ctxt: &Context) -> Handle<StrArray> {
-    let clsid = ctxt.primitive_classes.str_array;
-    Array::alloc(ctxt, 0, Handle::null(), clsid)
-}
-
-pub fn str_array_with(ctxt: &Context, len: usize, elem: Handle<Str>) -> Handle<StrArray> {
-    let clsid = ctxt.primitive_classes.str_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn char_array_empty(ctxt: &Context) -> Handle<CharArray> {
-    let clsid = ctxt.primitive_classes.char_array;
-    Array::alloc(ctxt, 0, '\0', clsid)
-}
-
-pub fn char_array_with(ctxt: &Context, len: usize, elem: char) -> Handle<CharArray> {
-    let clsid = ctxt.primitive_classes.char_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn int_array_empty(ctxt: &Context) -> Handle<IntArray> {
-    let clsid = ctxt.primitive_classes.int_array;
-    Array::alloc(ctxt, 0, 0, clsid)
-}
-
-pub fn int_array_with(ctxt: &Context, len: usize, elem: i32) -> Handle<IntArray> {
-    let clsid = ctxt.primitive_classes.int_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn byte_array_empty(ctxt: &Context) -> Handle<ByteArray> {
-    let clsid = ctxt.primitive_classes.int_array;
-    Array::alloc(ctxt, 0, 0, clsid)
-}
-
-pub fn byte_array_with(ctxt: &Context, len: usize, elem: u8) -> Handle<ByteArray> {
-    let clsid = ctxt.primitive_classes.int_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn bool_array_empty(ctxt: &Context) -> Handle<BoolArray> {
-    let clsid = ctxt.primitive_classes.bool_array;
-    Array::alloc(ctxt, 0, false, clsid)
-}
-
-pub fn bool_array_with(ctxt: &Context, len: usize, elem: bool) -> Handle<BoolArray> {
-    let clsid = ctxt.primitive_classes.bool_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn long_array_empty(ctxt: &Context) -> Handle<LongArray> {
-    let clsid = ctxt.primitive_classes.long_array;
-    Array::alloc(ctxt, 0, 0, clsid)
-}
-
-pub fn long_array_with(ctxt: &Context, len: usize, elem: i64) -> Handle<LongArray> {
-    let clsid = ctxt.primitive_classes.long_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn float_array_empty(ctxt: &Context) -> Handle<FloatArray> {
-    let clsid = ctxt.primitive_classes.float_array;
-    Array::alloc(ctxt, 0, 0f32, clsid)
-}
-
-pub fn float_array_with(ctxt: &Context, len: usize, elem: f32) -> Handle<FloatArray> {
-    let clsid = ctxt.primitive_classes.float_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}
-
-pub fn double_array_empty(ctxt: &Context) -> Handle<DoubleArray> {
-    let clsid = ctxt.primitive_classes.double_array;
-    Array::alloc(ctxt, 0, 0f64, clsid)
-}
-
-pub fn double_array_with(ctxt: &Context, len: usize, elem: f64) -> Handle<DoubleArray> {
-    let clsid = ctxt.primitive_classes.double_array;
-    Array::alloc(ctxt, len, elem, clsid)
-}

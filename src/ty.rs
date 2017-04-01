@@ -36,14 +36,6 @@ pub enum BuiltinType {
 
     // Array types
     Array,
-    BoolArray,
-    ByteArray,
-    CharArray,
-    IntArray,
-    LongArray,
-    FloatArray,
-    DoubleArray,
-    StrArray,
 
     // some class
     Class(ClassId),
@@ -118,14 +110,6 @@ impl BuiltinType {
             BuiltinType::Class(cls_id) => cls_id,
             BuiltinType::Str => ctxt.primitive_classes.str_class,
             BuiltinType::Array => ctxt.primitive_classes.generic_array,
-            BuiltinType::BoolArray => ctxt.primitive_classes.bool_array,
-            BuiltinType::ByteArray => ctxt.primitive_classes.byte_array,
-            BuiltinType::CharArray => ctxt.primitive_classes.char_array,
-            BuiltinType::IntArray => ctxt.primitive_classes.int_array,
-            BuiltinType::LongArray => ctxt.primitive_classes.long_array,
-            BuiltinType::FloatArray => ctxt.primitive_classes.float_array,
-            BuiltinType::DoubleArray => ctxt.primitive_classes.double_array,
-            BuiltinType::StrArray => ctxt.primitive_classes.str_array,
 
             _ => panic!(),
         }
@@ -182,14 +166,6 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Str => "Str".into(),
-            BuiltinType::BoolArray => "BoolArray".into(),
-            BuiltinType::ByteArray => "ByteArray".into(),
-            BuiltinType::CharArray => "CharArray".into(),
-            BuiltinType::IntArray => "IntArray".into(),
-            BuiltinType::LongArray => "LongArray".into(),
-            BuiltinType::FloatArray => "FloatArray".into(),
-            BuiltinType::DoubleArray => "DoubleArray".into(),
-            BuiltinType::StrArray => "StrArray".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
@@ -233,14 +209,6 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
             BuiltinType::Str |
-            BuiltinType::BoolArray |
-            BuiltinType::ByteArray |
-            BuiltinType::CharArray |
-            BuiltinType::IntArray |
-            BuiltinType::LongArray |
-            BuiltinType::FloatArray |
-            BuiltinType::DoubleArray |
-            BuiltinType::StrArray |
             BuiltinType::Class(_) => {
                 *self == other || other.is_nil() || other.subclass_from(ctxt, *self) ||
                 (other.is_generic() && self.allows(ctxt, other.to_specialized(ctxt)))
@@ -271,15 +239,7 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Str |
-            BuiltinType::BoolArray |
-            BuiltinType::ByteArray |
-            BuiltinType::CharArray |
-            BuiltinType::IntArray |
-            BuiltinType::LongArray |
             BuiltinType::Class(_) |
-            BuiltinType::FloatArray |
-            BuiltinType::DoubleArray |
-            BuiltinType::StrArray |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
@@ -302,14 +262,6 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Str |
-            BuiltinType::BoolArray |
-            BuiltinType::ByteArray |
-            BuiltinType::CharArray |
-            BuiltinType::IntArray |
-            BuiltinType::LongArray |
-            BuiltinType::FloatArray |
-            BuiltinType::DoubleArray |
-            BuiltinType::StrArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
@@ -333,14 +285,6 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Str |
-            BuiltinType::BoolArray |
-            BuiltinType::ByteArray |
-            BuiltinType::CharArray |
-            BuiltinType::IntArray |
-            BuiltinType::LongArray |
-            BuiltinType::FloatArray |
-            BuiltinType::DoubleArray |
-            BuiltinType::StrArray |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
@@ -470,9 +414,6 @@ mod tests {
         assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
         assert_eq!(MachineMode::Int32, BuiltinType::Int.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
-        assert_eq!(MachineMode::Ptr, BuiltinType::ByteArray.mode());
-        assert_eq!(MachineMode::Ptr, BuiltinType::IntArray.mode());
-        assert_eq!(MachineMode::Ptr, BuiltinType::LongArray.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Str.mode());
     }
 

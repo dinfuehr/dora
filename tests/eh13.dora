@@ -1,0 +1,21 @@
+//= output "DONE\n"
+
+fun main() {
+  do {
+    try foo();
+  } catch x: Array<Bar> {
+    assert(x.len() == 5);
+    println("DONE");
+  }
+}
+
+fun foo() throws {
+  do {
+    throw Array::<Bar>(5, nil);
+  } catch x: Array<Foo> {
+    fatalError("should not be caught");
+  }
+}
+
+class Foo
+class Bar

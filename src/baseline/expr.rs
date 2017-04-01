@@ -1694,9 +1694,7 @@ fn check_for_nil(ctxt: &Context, ty: BuiltinType) -> bool {
         BuiltinType::Str => true,
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
         BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
-        BuiltinType::Nil | BuiltinType::Ptr | BuiltinType::BoolArray | BuiltinType::ByteArray |
-        BuiltinType::CharArray | BuiltinType::IntArray | BuiltinType::LongArray |
-        BuiltinType::FloatArray | BuiltinType::DoubleArray | BuiltinType::StrArray => true,
+        BuiltinType::Nil | BuiltinType::Ptr => true,
         BuiltinType::Array => unreachable!(),
         BuiltinType::Class(_) => true,
         BuiltinType::Struct(_) => false,

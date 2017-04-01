@@ -11,8 +11,7 @@ use std::str;
 use std::thread;
 
 use ctxt::get_ctxt;
-use object::{self, BoolArray, ByteArray, CharArray, Handle, IntArray, LongArray, FloatArray,
-             DoubleArray, Obj, Str, StrArray};
+use object::{Handle, Obj, Str};
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -128,102 +127,6 @@ pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
 pub extern "C" fn gc_collect() {
     let ctxt = get_ctxt();
     ctxt.gc.collect(ctxt);
-}
-
-pub extern "C" fn ctor_bool_array_empty() -> Handle<BoolArray> {
-    let ctxt = get_ctxt();
-
-    object::bool_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_bool_array_elem(len: i32, value: bool) -> Handle<BoolArray> {
-    let ctxt = get_ctxt();
-
-    object::bool_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_byte_array_empty() -> Handle<ByteArray> {
-    let ctxt = get_ctxt();
-
-    object::byte_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_byte_array_elem(len: i32, value: u8) -> Handle<ByteArray> {
-    let ctxt = get_ctxt();
-
-    object::byte_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_char_array_empty() -> Handle<CharArray> {
-    let ctxt = get_ctxt();
-
-    object::char_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_char_array_elem(len: i32, value: char) -> Handle<CharArray> {
-    let ctxt = get_ctxt();
-
-    object::char_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_int_array_empty() -> Handle<IntArray> {
-    let ctxt = get_ctxt();
-
-    object::int_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_int_array_elem(len: i32, value: i32) -> Handle<IntArray> {
-    let ctxt = get_ctxt();
-
-    object::int_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_long_array_empty() -> Handle<LongArray> {
-    let ctxt = get_ctxt();
-
-    object::long_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_long_array_elem(len: i32, value: i64) -> Handle<LongArray> {
-    let ctxt = get_ctxt();
-
-    object::long_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_float_array_empty() -> Handle<FloatArray> {
-    let ctxt = get_ctxt();
-
-    object::float_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_float_array_elem(len: i32, value: f32) -> Handle<FloatArray> {
-    let ctxt = get_ctxt();
-
-    object::float_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_double_array_empty() -> Handle<DoubleArray> {
-    let ctxt = get_ctxt();
-
-    object::double_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_double_array_elem(len: i32, value: f64) -> Handle<DoubleArray> {
-    let ctxt = get_ctxt();
-
-    object::double_array_with(ctxt, len as usize, value)
-}
-
-pub extern "C" fn ctor_str_array_empty() -> Handle<StrArray> {
-    let ctxt = get_ctxt();
-
-    object::str_array_empty(ctxt)
-}
-
-pub extern "C" fn ctor_str_array_elem(len: i32, value: Handle<Str>) -> Handle<StrArray> {
-    let ctxt = get_ctxt();
-
-    object::str_array_with(ctxt, len as usize, value)
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
