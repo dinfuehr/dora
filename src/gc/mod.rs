@@ -3,7 +3,6 @@ use std::sync::Mutex;
 use ctxt::Context;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
-use gc::malloc::MallocCollector;
 use gc::space::{Space, SpaceConfig};
 use gc::zero::ZeroCollector;
 use os;
@@ -11,7 +10,6 @@ use os;
 pub mod arena;
 pub mod chunk;
 pub mod copy;
-pub mod malloc;
 pub mod root;
 pub mod space;
 pub mod zero;
@@ -51,7 +49,6 @@ impl Gc {
         let collector: Box<Collector> = match collector_name {
             CollectorName::Zero => box ZeroCollector::new(args),
             CollectorName::Copy => box CopyCollector::new(args),
-            CollectorName::Malloc => box MallocCollector::new(),
         };
 
         Gc {

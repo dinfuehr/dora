@@ -79,7 +79,6 @@ impl Default for Args {
 pub enum CollectorName {
     Zero,
     Copy,
-    Malloc,
 }
 
 #[derive(Copy, Clone, Debug, RustcDecodable)]

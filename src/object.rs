@@ -19,9 +19,6 @@ pub struct Header {
     // additional information>
     // bit 0 - marked flag
     info: usize,
-
-    // next allocated object
-    next: *mut Obj,
 }
 
 impl Header {
@@ -47,14 +44,6 @@ impl Header {
 
     pub fn marked(&self) -> bool {
         if (self.info & 1) != 0 { true } else { false }
-    }
-
-    pub fn set_succ(&mut self, ptr: *mut Obj) {
-        self.next = ptr;
-    }
-
-    pub fn succ(&self) -> *mut Obj {
-        self.next
     }
 }
 
