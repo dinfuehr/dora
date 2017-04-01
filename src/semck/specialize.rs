@@ -55,6 +55,14 @@ fn create_specialized_class(ctxt: &Context,
         })
         .collect();
 
+    let is_array = cls.ty == BuiltinType::Array;
+    let is_object_array = is_array && type_params[0].to_specialized(ctxt).reference_type();
+    let element_size = if is_array {
+        type_params[0].to_specialized(ctxt).size(ctxt)
+    } else {
+        0
+    };
+
     ctxt.classes
         .push(class::Class {
                   id: id,
@@ -80,6 +88,10 @@ fn create_specialized_class(ctxt: &Context,
                   specialization_for: Some(cls.id),
                   specialization_params: type_params,
                   specializations: HashMap::new(),
+
+                  is_array: is_array,
+                  is_object_array: is_object_array,
+                  element_size: element_size,
 
                   ref_fields: Vec::new(),
               });

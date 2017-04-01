@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 
 use class::ClassId;
-use ctxt::{Context, get_ctxt};
+use ctxt::Context;
 use gc::root::IndirectObj;
 use mem;
 use ty::BuiltinType;
@@ -86,13 +86,12 @@ impl Obj {
         }
 
         let ty = cls.ty;
-        let ctxt = get_ctxt();
 
-        if Some(ctxt.primitive_classes.generic_array) == cls.specialization_for {
+        if cls.is_array {
             let handle: Handle<ByteArray> = Handle { ptr: self as *const Obj as *const ByteArray };
 
             let value = Header::size() as usize + mem::ptr_width() as usize +
-                   cls.specialization_params[0].size(get_ctxt()) as usize * handle.len() as usize;
+                   cls.element_size as usize * handle.len() as usize;
 
             return value;
         }
@@ -112,9 +111,8 @@ impl Obj {
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
-        let ctxt = get_ctxt();
 
-        if Some(ctxt.primitive_classes.generic_array) == cls.specialization_for && cls.specialization_params[0].reference_type() {
+        if cls.is_object_array {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array

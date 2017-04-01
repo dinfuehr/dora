@@ -61,6 +61,15 @@ pub struct Class {
     pub specialization_params: Vec<BuiltinType>,
     pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
 
+    // true if this class is specialization of generic Array class
+    pub is_array: bool,
+
+    // true if `is_array` is true and element type is some reference type
+    pub is_object_array: bool,
+
+    // size of single element in array
+    pub element_size: i32,
+
     /// contains offset of all reference fields in this class.
     /// In contrast to `fields` it also stores fields of super classes.
     pub ref_fields: Vec<i32>,

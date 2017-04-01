@@ -119,6 +119,10 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             specialization_params: Vec::new(),
             specializations: HashMap::new(),
 
+            is_array: false,
+            is_object_array: false,
+            element_size: 0,
+
             ref_fields: Vec::new(),
         };
 
