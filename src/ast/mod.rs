@@ -445,6 +445,7 @@ pub struct Function {
 
     pub return_type: Option<Type>,
     pub block: Option<Box<Stmt>>,
+    pub type_params: Option<Vec<TypeParam>>,
 }
 
 impl Function {

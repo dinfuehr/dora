@@ -242,6 +242,7 @@ impl<'a> Parser<'a> {
 
         let pos = self.expect_token(TokenKind::Class)?.position;
         let ident = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
 
         let mut cls = Class {
             id: self.generate_id(),
@@ -254,10 +255,8 @@ impl<'a> Parser<'a> {
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
-            type_params: None,
+            type_params: type_params,
         };
-
-        self.parse_type_params(&mut cls)?;
 
         self.in_class = true;
         let ctor_params = self.parse_primary_ctor(&mut cls)?;
@@ -294,15 +293,15 @@ impl<'a> Parser<'a> {
         Ok(cls)
     }
 
-    fn parse_type_params(&mut self, cls: &mut Class) -> Result<(), MsgWithPos> {
+    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, MsgWithPos> {
         if self.token.is(TokenKind::Lt) {
             self.advance_token()?;
-
             let params = self.parse_comma_list(TokenKind::Gt, |p| p.parse_type_param())?;
-            cls.type_params = Some(params);
-        }
 
-        Ok(())
+            Ok(Some(params))
+        } else {
+            Ok(None)
+        }
     }
 
     fn parse_type_param(&mut self) -> Result<TypeParam, MsgWithPos> {
@@ -531,6 +530,7 @@ impl<'a> Parser<'a> {
                throws: false,
                return_type: None,
                block: block,
+               type_params: None,
            })
     }
 
@@ -604,6 +604,7 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
 
+        let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
         let throws = self.parse_throws()?;
         let return_type = self.parse_function_type()?;
@@ -625,6 +626,7 @@ impl<'a> Parser<'a> {
                throws: throws,
                return_type: return_type,
                block: block,
+               type_params: type_params,
            })
     }
 
@@ -1467,6 +1469,7 @@ impl<'a> Parser<'a> {
             throws: false,
             return_type: None,
             block: Some(self.build_block(assignments)),
+            type_params: None,
         }
     }
 
@@ -3328,5 +3331,13 @@ mod tests {
         assert_eq!(2, call.path.len());
         assert_eq!("Foo", *interner.str(call.path[0]));
         assert_eq!("get", *interner.str(call.path[1]));
+    }
+
+    #[test]
+    fn parse_fct_with_type_params() {
+        let (prog, _) = parse("fun f<T>() {}");
+        let fct = prog.fct0();
+
+        assert_eq!(1, fct.type_params.as_ref().unwrap().len());
     }
 }
