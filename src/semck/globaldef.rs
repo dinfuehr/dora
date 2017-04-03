@@ -184,6 +184,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ctor: CtorType::None,
             vtable_index: None,
             initialized: false,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specialization_params: Vec::new(),
+            specializations: HashMap::new(),
+
             kind: kind,
         };
 

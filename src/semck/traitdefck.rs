@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ast;
 use ast::visit::{self, Visitor};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
@@ -68,6 +70,12 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specialization_params: Vec::new(),
+            specializations: HashMap::new(),
+
             kind: FctKind::Definition,
         };
 

@@ -411,6 +411,11 @@ pub struct Fct<'ast> {
     pub initialized: bool,
     pub throws: bool,
 
+    pub type_params: Vec<Name>,
+    pub specialization_for: Option<ClassId>,
+    pub specialization_params: Vec<BuiltinType>,
+    pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
+
     pub kind: FctKind,
 }
 

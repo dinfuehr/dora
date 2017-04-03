@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use ast;
 use ast::visit::{self, Visitor};
@@ -68,6 +68,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
                 let mut type_param_id = 0;
+                let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
@@ -76,7 +77,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
                     cls.type_params.push(type_param.name);
 
                     let sym = Sym::SymTypeParam(type_param_id.into());
@@ -167,6 +167,12 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             ctor: f.ctor,
             vtable_index: None,
             initialized: false,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specialization_params: Vec::new(),
+            specializations: HashMap::new(),
+
             kind: kind,
         };
 
@@ -207,6 +213,12 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specialization_params: Vec::new(),
+            specializations: HashMap::new(),
+
             kind: kind,
         };
 
@@ -331,6 +343,7 @@ mod tests {
         err("class A<T, T>",
             pos(1, 12),
             Msg::TypeParamNameNotUnique("T".into()));
+        err("class A<>", pos(1, 1), Msg::TypeParamsExpected);
     }
 
     #[test]

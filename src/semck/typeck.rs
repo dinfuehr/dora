@@ -11,7 +11,7 @@ use ast::visit::Visitor;
 use interner::Name;
 use lexer::position::Position;
 use lexer::token::{FloatSuffix, IntSuffix};
-use semck::specialize::specialize_class;
+use semck::specialize;
 use sym::Sym::SymClass;
 use ty::BuiltinType;
 
@@ -705,7 +705,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            cls_id = specialize_class(self.ctxt, &mut *cls, types);
+            cls_id = specialize::specialize_class(self.ctxt, &mut *cls, types);
         } else {
             let cls = self.ctxt.classes[cls_id].borrow();
 
@@ -748,7 +748,39 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                            e: &'ast ExprCallType,
                            callee_id: FctId,
                            call_types: Vec<BuiltinType>) {
+        let callee_type_params_len = if self.fct.id == callee_id {
+            self.fct.type_params.len()
+        } else {
+            let callee = self.ctxt.fcts[callee_id].borrow();
+
+            callee.type_params.len()
+        };
+
+        if let Some(ref type_params) = e.type_params {
+            let mut types = Vec::new();
+
+            for type_param in type_params {
+                let ty = self.src.ty(type_param.id());
+                types.push(ty);
+            }
+
+            // let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
+
+            if callee_type_params_len != types.len() {
+                let msg = Msg::WrongNumberTypeParams(callee_type_params_len, types.len());
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            }
+
+            // callee_id = specialize::specialize_fct(self.ctxt, &mut *callee, types);
+        } else {
+            if callee_type_params_len > 0 {
+                let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);
+                self.ctxt.diag.borrow_mut().report(e.pos, msg);
+            }
+        }
+
         let callee = self.ctxt.fcts[callee_id].borrow();
+
         self.src.set_ty(e.id, callee.return_type);
         self.expr_type = callee.return_type;
 
@@ -2117,6 +2149,17 @@ mod tests {
             }",
             pos(3, 37),
             Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]));
+    }
+
+    #[test]
+    fn test_fct_with_type_params() {
+        err("fun f() {} fun g() { f::<int>(); }",
+            pos(1, 22),
+            Msg::WrongNumberTypeParams(0, 1));
+        err("fun f<T>() {} fun g() { f(); }",
+            pos(1, 25),
+            Msg::WrongNumberTypeParams(1, 0));
+        ok("fun f<T>() {} fun g() { f::<int>(); }");
     }
 
     // #[test]

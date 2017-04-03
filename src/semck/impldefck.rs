@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 use ast;
 use ast::visit::{self, Visitor};
@@ -95,6 +96,12 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
+
+            type_params: Vec::new(),
+            specialization_for: None,
+            specialization_params: Vec::new(),
+            specializations: HashMap::new(),
+
             kind: kind,
         };
 

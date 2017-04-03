@@ -1062,8 +1062,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       REG_TMP2.into(),
                       Mem::Local(offset_index));
 
-        self.masm
-            .test_if_nil_bailout(pos, REG_TMP1, Trap::NIL);
+        self.masm.test_if_nil_bailout(pos, REG_TMP1, Trap::NIL);
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm
@@ -1097,8 +1096,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
-        self.masm
-            .test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
+        self.masm.test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
 
         if !self.ctxt.args.flag_omit_bounds_check {
             self.masm
@@ -1594,7 +1592,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         } else {
             self.masm
                 .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
-            self.masm.determine_array_size(REG_PARAMS[0], REG_TMP1, cls.element_size);
+            self.masm
+                .determine_array_size(REG_PARAMS[0], REG_TMP1, cls.element_size);
         }
 
         let internal_fct = InternalFct {

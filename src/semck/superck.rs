@@ -439,21 +439,21 @@ mod tests {
             open class B: A { var b1: int; var b2: int; }
             class C: B { var c: Str; }",
                      |ctxt| {
-                         check_class(ctxt, "A", mem::ptr_width(), None);
-                         check_field(ctxt, "A", "a", Header::size());
-                         check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
-                         check_field(ctxt, "B", "b1", Header::size() + 4);
-                         check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
+            check_class(ctxt, "A", mem::ptr_width(), None);
+            check_field(ctxt, "A", "a", Header::size());
+            check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
+            check_field(ctxt, "B", "b1", Header::size() + 4);
+            check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
 
-                         // if pointer size is 32-bit, we need 4 words, on
-                         // 64-bit systems we need 3 words
-                         let words = if mem::ptr_width() == 4 { 4 } else { 3 };
-                         check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
+            // if pointer size is 32-bit, we need 4 words, on
+            // 64-bit systems we need 3 words
+            let words = if mem::ptr_width() == 4 { 4 } else { 3 };
+            check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
 
-                         // if pointer size is 32-bit, we do not need padding
-                         let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4};
-                         check_field(ctxt, "C", "c", Header::size() + offset);
-                     });
+            // if pointer size is 32-bit, we do not need padding
+            let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4 };
+            check_field(ctxt, "C", "c", Header::size() + offset);
+        });
     }
 
     #[test]

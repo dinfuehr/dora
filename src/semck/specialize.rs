@@ -172,6 +172,12 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
         vtable_index: fct.vtable_index,
         initialized: fct.initialized,
         throws: fct.throws,
+
+        type_params: Vec::new(),
+        specialization_for: None,
+        specialization_params: Vec::new(),
+        specializations: HashMap::new(),
+
         kind: cloned_kind,
     };
 

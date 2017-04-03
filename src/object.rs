@@ -80,7 +80,7 @@ impl Obj {
             let handle: Handle<ByteArray> = Handle { ptr: self as *const Obj as *const ByteArray };
 
             let value = Header::size() as usize + mem::ptr_width() as usize +
-                   cls.element_size as usize * handle.len() as usize;
+                        cls.element_size as usize * handle.len() as usize;
 
             return mem::align_usize(value, mem::ptr_width() as usize);
         }

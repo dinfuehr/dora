@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ast::*;
 use ast::Stmt::*;
 use ast::visit::*;
@@ -83,6 +85,31 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
             }
 
             fct.return_type = ty;
+        }
+
+        if let Some(ref type_params) = ast.type_params {
+            if type_params.len() > 0 {
+                let mut names = HashSet::new();
+                let mut type_param_id = 0;
+
+                for type_param in type_params {
+                    if !names.insert(type_param.name) {
+                        let name = ctxt.interner.str(type_param.name).to_string();
+                        let msg = Msg::TypeParamNameNotUnique(name);
+                        ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                    }
+
+                    fct.type_params.push(type_param.name);
+
+                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    ctxt.sym.borrow_mut().insert(type_param.name, sym);
+                    type_param_id += 1;
+                }
+
+            } else {
+                let msg = Msg::TypeParamsExpected;
+                ctxt.diag.borrow_mut().report(fct.pos, msg);
+            }
         }
 
         fct.initialized = true;
@@ -244,5 +271,15 @@ mod tests {
                 fun foo() {}
                 static fun foo(x: Foo) {}
             }");
+    }
+
+    #[test]
+    fn fct_with_type_params() {
+        ok("fun f<T>() {}");
+        ok("fun f<X, Y>() {}");
+        err("fun f<T, T>() {}",
+            pos(1, 10),
+            Msg::TypeParamNameNotUnique("T".into()));
+        err("fun f<>() {}", pos(1, 1), Msg::TypeParamsExpected);
     }
 }
