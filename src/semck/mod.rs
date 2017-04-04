@@ -103,7 +103,7 @@ fn specialize_types<'ast>(ctxt: &Context<'ast>) {
         if ctxt.types.borrow().get_cls_id(ind.into()).is_none() {
             let ty = ctxt.types.borrow().get(ind.into());
 
-            let cls_id = ty.base.cls_id(ctxt);
+            let cls_id = ty.base.cls_id();
             let mut cls = ctxt.classes[cls_id].borrow_mut();
 
             let special_id = specialize_class(ctxt, &mut *cls, ty.params.clone());

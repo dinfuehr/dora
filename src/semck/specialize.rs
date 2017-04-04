@@ -66,7 +66,7 @@ fn create_specialized_class(ctxt: &Context,
         BuiltinType::Generic(type_id) => {
             let ty = ctxt.types.borrow().get(type_id);
 
-            if ty.base.cls_id(ctxt) == ctxt.primitive_classes.generic_array {
+            if ty.base.cls_id() == ctxt.primitive_classes.generic_array {
                 is_array = true;
 
                 let type_param = type_params[0].to_specialized(ctxt);

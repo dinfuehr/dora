@@ -1084,7 +1084,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map_convs
             .insert(e.id,
                     ConvInfo {
-                        cls_id: check_type.cls_id(self.ctxt),
+                        cls_id: check_type.cls_id(),
                         valid: valid,
                     });
 
@@ -1182,8 +1182,9 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
-                self.src.set_ty(id, BuiltinType::Str);
-                self.expr_type = BuiltinType::Str;
+                let str_ty = BuiltinType::Class(self.ctxt.primitive_classes.str_class);
+                self.src.set_ty(id, str_ty);
+                self.expr_type = str_ty;
             }
             ExprLitBool(ExprLitBoolType { id, .. }) => {
                 self.src.set_ty(id, BuiltinType::Bool);

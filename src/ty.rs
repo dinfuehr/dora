@@ -31,9 +31,6 @@ pub enum BuiltinType {
     // self type
     This,
 
-    // String type
-    Str,
-
     // some class
     Class(ClassId),
 
@@ -73,13 +70,6 @@ impl BuiltinType {
         }
     }
 
-    pub fn is_str(&self) -> bool {
-        match *self {
-            BuiltinType::Str => true,
-            _ => false,
-        }
-    }
-
     pub fn is_float(&self) -> bool {
         match self {
             &BuiltinType::Float |
@@ -109,11 +99,9 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls_id(&self, ctxt: &Context) -> ClassId {
+    pub fn cls_id(&self) -> ClassId {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
-            BuiltinType::Str => ctxt.primitive_classes.str_class,
-
             _ => panic!(),
         }
     }
@@ -149,9 +137,9 @@ impl BuiltinType {
             return false;
         }
 
-        let cls_id = self.cls_id(ctxt);
+        let cls_id = self.cls_id();
         let cls = ctxt.classes[cls_id].borrow();
-        cls.subclass_from(ctxt, ty.cls_id(ctxt))
+        cls.subclass_from(ctxt, ty.cls_id())
     }
 
     pub fn name(&self, ctxt: &Context) -> String {
@@ -167,7 +155,6 @@ impl BuiltinType {
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
-            BuiltinType::Str => "Str".into(),
             BuiltinType::Class(cid) => {
                 let cls = ctxt.classes[cid].borrow();
                 ctxt.interner.str(cls.name).to_string()
@@ -209,7 +196,6 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
-            BuiltinType::Str |
             BuiltinType::Class(_) => {
                 *self == other || other.is_nil() || other.subclass_from(ctxt, *self) ||
                 (other.is_generic() && self.allows(ctxt, other.to_specialized(ctxt)))
@@ -238,7 +224,6 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Str |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
@@ -260,7 +245,6 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Str |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
@@ -282,7 +266,6 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Str |
             BuiltinType::Class(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
@@ -414,7 +397,6 @@ mod tests {
         assert_eq!(MachineMode::Int8, BuiltinType::Bool.mode());
         assert_eq!(MachineMode::Int32, BuiltinType::Int.mode());
         assert_eq!(MachineMode::Ptr, BuiltinType::Ptr.mode());
-        assert_eq!(MachineMode::Ptr, BuiltinType::Str.mode());
     }
 
     #[test]

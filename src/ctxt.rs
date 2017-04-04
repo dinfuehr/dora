@@ -364,7 +364,6 @@ impl PrimitiveClasses {
             BuiltinType::Long => Some(self.long_class),
             BuiltinType::Float => Some(self.float_class),
             BuiltinType::Double => Some(self.double_class),
-            BuiltinType::Str => Some(self.str_class),
             _ => None,
         }
     }

@@ -1686,7 +1686,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 fn check_for_nil(ctxt: &Context, ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Unit => false,
-        BuiltinType::Str => true,
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
         BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,

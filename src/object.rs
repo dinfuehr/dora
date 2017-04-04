@@ -6,10 +6,9 @@ use std::ptr;
 use std::slice;
 
 use class::ClassId;
-use ctxt::Context;
+use ctxt::{Context, get_ctxt};
 use gc::root::IndirectObj;
 use mem;
-use ty::BuiltinType;
 use vtable::VTable;
 
 pub struct Header {
@@ -85,13 +84,11 @@ impl Obj {
             return mem::align_usize(value, mem::ptr_width() as usize);
         }
 
-        match ty {
-            BuiltinType::Str => {
-                let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
-                mem::align_usize(handle.size(), mem::ptr_width() as usize)
-            }
-
-            _ => panic!("size unknown"),
+        if ty.cls_id() == get_ctxt().primitive_classes.str_class {
+            let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
+            mem::align_usize(handle.size(), mem::ptr_width() as usize)
+        } else {
+            panic!("size unknown");
         }
     }
 
