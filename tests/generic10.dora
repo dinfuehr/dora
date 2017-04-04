@@ -1,0 +1,17 @@
+//= ignore
+
+fun main() {
+    let bar = Bar::<int>(11);
+    assert(bar.x.a == 11);
+    assert(bar.x.b == 10);
+
+    let bar = Bar::<Str>("hello");
+    assert(bar.x.a == "hello");
+    assert(bar.x.b == 10);
+}
+
+class Foo<A, B>(let a: A, let b: B)
+
+class Bar<T>(val: T) {
+    let x: Foo<T, int> = Foo::<T, int>(val, 10);
+}
