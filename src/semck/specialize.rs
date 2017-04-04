@@ -27,13 +27,13 @@ fn create_specialized_class(ctxt: &Context,
                             cls: &mut class::Class,
                             type_params: Vec<BuiltinType>)
                             -> ClassId {
-    let id = ctxt.classes.len().into();
+    let id: ClassId = ctxt.classes.len().into();
 
     let cloned_ctors = cls.ctors
         .iter()
         .map(|&ctor_id| {
                  let ctor = ctxt.fcts[ctor_id].borrow();
-                 specialize_fct(ctxt, id, &*ctor, &type_params)
+                 specialize_fct(ctxt, FctParent::Class(id), &*ctor, &type_params)
              })
         .collect();
 
@@ -41,7 +41,7 @@ fn create_specialized_class(ctxt: &Context,
         .iter()
         .map(|&method_id| {
                  let mtd = ctxt.fcts[method_id].borrow();
-                 specialize_fct(ctxt, id, &*mtd, &type_params)
+                 specialize_fct(ctxt, FctParent::Class(id), &*mtd, &type_params)
              })
         .collect();
 
@@ -117,8 +117,8 @@ fn create_specialized_class(ctxt: &Context,
     id
 }
 
-fn specialize_fct<'ast>(ctxt: &Context<'ast>,
-                        id: ClassId,
+pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
+                        parent: FctParent,
                         fct: &Fct<'ast>,
                         type_params: &[BuiltinType])
                         -> FctId {
@@ -130,7 +130,13 @@ fn specialize_fct<'ast>(ctxt: &Context<'ast>,
         .collect();
 
     if fct.has_self() && fct.initialized {
-        param_types[0] = BuiltinType::Class(id);
+        match parent {
+            FctParent::Class(cls_id) => {
+                param_types[0] = BuiltinType::Class(cls_id);
+            }
+
+            _ => unreachable!(),
+        }
     }
 
     let cloned_kind = match fct.kind {
@@ -174,7 +180,7 @@ fn specialize_fct<'ast>(ctxt: &Context<'ast>,
         ast: fct.ast,
         pos: fct.pos,
         name: fct.name,
-        parent: FctParent::Class(id),
+        parent: parent,
         has_open: fct.has_open,
         has_override: fct.has_override,
         has_final: fct.has_final,

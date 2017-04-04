@@ -746,7 +746,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_fct(&mut self,
                            e: &'ast ExprCallType,
-                           callee_id: FctId,
+                           mut callee_id: FctId,
                            call_types: Vec<BuiltinType>) {
         let callee_type_params_len = if self.fct.id == callee_id {
             self.fct.type_params.len()
@@ -764,14 +764,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 types.push(ty);
             }
 
-            // let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
-
             if callee_type_params_len != types.len() {
                 let msg = Msg::WrongNumberTypeParams(callee_type_params_len, types.len());
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            // callee_id = specialize::specialize_fct(self.ctxt, &mut *callee, types);
+            let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
+            callee_id = specialize::specialize_fct(self.ctxt, FctParent::None, &mut *callee, &types);
         } else {
             if callee_type_params_len > 0 {
                 let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);
