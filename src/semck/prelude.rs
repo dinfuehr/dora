@@ -20,10 +20,12 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.long_class = internal_class(ctxt, "long", Some(BuiltinType::Long), size);
 
     let size = BuiltinType::Float.size(ctxt);
-    ctxt.primitive_classes.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float), size);
+    ctxt.primitive_classes.float_class =
+        internal_class(ctxt, "float", Some(BuiltinType::Float), size);
 
     let size = BuiltinType::Double.size(ctxt);
-    ctxt.primitive_classes.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double), size);
+    ctxt.primitive_classes.double_class =
+        internal_class(ctxt, "double", Some(BuiltinType::Double), size);
 
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None, 0);
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);

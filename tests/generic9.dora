@@ -1,0 +1,16 @@
+fun main() {
+    let a = A::<int>();
+    consume(a.x);
+}
+
+class A<T> {
+    var x: Array<T> = nil;
+
+    init() {
+        self.x = Array::<T>(10);
+    }
+}
+
+fun consume(x: Array<int>) {
+    assert(x[9] == 0);
+}

@@ -470,19 +470,19 @@ impl<'ast> Fct<'ast> {
             repr.push_str("<");
 
             repr.push_str(&self.type_params
-                .iter()
-                .map(|&n| ctxt.interner.str(n).to_string())
-                .collect::<Vec<_>>()
-                .join(", "));
+                               .iter()
+                               .map(|&n| ctxt.interner.str(n).to_string())
+                               .collect::<Vec<_>>()
+                               .join(", "));
             repr.push_str(">");
 
         } else if self.specialization_params.len() > 0 {
             repr.push_str("<");
             repr.push_str(&self.specialization_params
-                .iter()
-                .map(|&ty| ty.name(ctxt))
-                .collect::<Vec<_>>()
-                .join(", "));
+                               .iter()
+                               .map(|&ty| ty.name(ctxt))
+                               .collect::<Vec<_>>()
+                               .join(", "));
             repr.push_str(">");
         }
 

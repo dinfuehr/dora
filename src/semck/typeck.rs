@@ -250,7 +250,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if let Some((cls_id, fct_id, _)) =
                 self.find_method(e.pos, object_type, false, name, &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
-                self.src.map_calls.insert(e.id, call_type);
+                self.src.map_calls.insert_or_replace(e.id, call_type);
 
                 let index_type = self.ctxt.fcts[fct_id].borrow().params_without_self()[1];
 
@@ -533,7 +533,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.lookup_method(lhs_type, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
-            self.src.map_calls.insert(e.id, call_type);
+            self.src.map_calls.insert_or_replace(e.id, call_type);
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -690,14 +690,42 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                             e: &'ast ExprCallType,
                             mut cls_id: ClassId,
                             call_types: Vec<BuiltinType>) {
+        let mut ty = BuiltinType::Class(cls_id);
+
         if let Some(ref type_params) = e.type_params {
             let mut types = Vec::new();
 
             for type_param in type_params {
                 let ty = self.src.ty(type_param.id());
+
+                let ty = match self.fct.parent {
+                    FctParent::Class(cls_id) => {
+                        let cls = self.ctxt.classes[cls_id].borrow();
+
+                        if cls.specialization_for.is_some() {
+                            specialize::specialize_type(self.ctxt, ty, &cls.specialization_params)
+                        } else {
+                            ty
+                        }
+                    }
+
+                    FctParent::None => {
+                        if self.fct.specialization_for.is_some() {
+                            specialize::specialize_type(self.ctxt,
+                                                        ty,
+                                                        &self.fct.specialization_params)
+                        } else {
+                            ty
+                        }
+                    }
+
+                    _ => ty,
+                };
+
                 types.push(ty);
             }
 
+            let original_cls_id = cls_id;
             let mut cls = self.ctxt.classes[cls_id].borrow_mut();
 
             if cls.type_params.len() != types.len() {
@@ -705,7 +733,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            cls_id = specialize::specialize_class(self.ctxt, &mut *cls, types);
+            cls_id = specialize::specialize_class(self.ctxt, &mut *cls, types.clone());
+
+            let type_id = self.ctxt
+                .types
+                .borrow_mut()
+                .insert(BuiltinType::Class(original_cls_id), types);
+            self.ctxt.types.borrow().set_cls_id(type_id, cls_id);
+
+            ty = BuiltinType::Generic(type_id);
+
         } else {
             let cls = self.ctxt.classes[cls_id].borrow();
 
@@ -740,8 +777,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        self.src.set_ty(e.id, cls.ty);
-        self.expr_type = cls.ty;
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_expr_call_fct(&mut self,
@@ -770,9 +807,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
-            callee_id = specialize::specialize_fct(self.ctxt, FctParent::None, &mut *callee, &types);
+            callee_id =
+                specialize::specialize_fct(self.ctxt, FctParent::None, &mut *callee, &types);
 
-            self.src.map_calls.insert_or_replace(e.id, CallType::Fct(callee_id));
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, CallType::Fct(callee_id));
         } else {
             if callee_type_params_len > 0 {
                 let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);

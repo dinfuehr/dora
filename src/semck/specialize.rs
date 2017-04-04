@@ -10,14 +10,21 @@ pub fn specialize_class(ctxt: &Context,
                         cls: &mut class::Class,
                         type_params: Vec<BuiltinType>)
                         -> ClassId {
+    if !concrete_types(&type_params) {
+        return cls.id;
+    }
+
     if let Some(&id) = cls.specializations.get(&type_params) {
         return id;
     }
 
+
     let id = create_specialized_class(ctxt, cls, type_params.clone());
     cls.specializations.insert(type_params.clone(), id);
 
-    let type_id = ctxt.types.borrow_mut().insert(BuiltinType::Class(cls.id), type_params);
+    let type_id = ctxt.types
+        .borrow_mut()
+        .insert(BuiltinType::Class(cls.id), type_params);
     ctxt.types.borrow().set_cls_id(type_id, id);
 
     id
@@ -118,10 +125,14 @@ fn create_specialized_class(ctxt: &Context,
 }
 
 pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
-                        parent: FctParent,
-                        fct: &Fct<'ast>,
-                        type_params: &[BuiltinType])
-                        -> FctId {
+                            parent: FctParent,
+                            fct: &Fct<'ast>,
+                            type_params: &[BuiltinType])
+                            -> FctId {
+    if !concrete_types(type_params) {
+        return fct.id;
+    }
+
     let fct_id = ctxt.fcts.len().into();
 
     let mut param_types: Vec<_> = fct.param_types
@@ -210,10 +221,10 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
     fct_id
 }
 
-fn specialize_type<'ast>(ctxt: &Context<'ast>,
-                         ty: BuiltinType,
-                         type_params: &[BuiltinType])
-                         -> BuiltinType {
+pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
+                             ty: BuiltinType,
+                             type_params: &[BuiltinType])
+                             -> BuiltinType {
     match ty {
         BuiltinType::TypeParam(id) => type_params[id.idx()],
         BuiltinType::Generic(type_id) => {
@@ -230,4 +241,14 @@ fn specialize_type<'ast>(ctxt: &Context<'ast>,
 
         _ => ty,
     }
+}
+
+fn concrete_types(types: &[BuiltinType]) -> bool {
+    for &ty in types {
+        if ty.is_generic() {
+            return false;
+        }
+    }
+
+    true
 }
