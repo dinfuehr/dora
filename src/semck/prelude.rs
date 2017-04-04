@@ -5,33 +5,33 @@ use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     let size = BuiltinType::Bool.size(ctxt);
-    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", BuiltinType::Bool, size);
+    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", Some(BuiltinType::Bool), size);
 
     let size = BuiltinType::Byte.size(ctxt);
-    ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", BuiltinType::Byte, size);
+    ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", Some(BuiltinType::Byte), size);
 
     let size = BuiltinType::Char.size(ctxt);
-    ctxt.primitive_classes.char_class = internal_class(ctxt, "char", BuiltinType::Char, size);
+    ctxt.primitive_classes.char_class = internal_class(ctxt, "char", Some(BuiltinType::Char), size);
 
     let size = BuiltinType::Int.size(ctxt);
-    ctxt.primitive_classes.int_class = internal_class(ctxt, "int", BuiltinType::Int, size);
+    ctxt.primitive_classes.int_class = internal_class(ctxt, "int", Some(BuiltinType::Int), size);
 
     let size = BuiltinType::Long.size(ctxt);
-    ctxt.primitive_classes.long_class = internal_class(ctxt, "long", BuiltinType::Long, size);
+    ctxt.primitive_classes.long_class = internal_class(ctxt, "long", Some(BuiltinType::Long), size);
 
     let size = BuiltinType::Float.size(ctxt);
-    ctxt.primitive_classes.float_class = internal_class(ctxt, "float", BuiltinType::Float, size);
+    ctxt.primitive_classes.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float), size);
 
     let size = BuiltinType::Double.size(ctxt);
-    ctxt.primitive_classes.double_class = internal_class(ctxt, "double", BuiltinType::Double, size);
+    ctxt.primitive_classes.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double), size);
 
-    ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", BuiltinType::Str, 0);
-    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", BuiltinType::Array, 0);
+    ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", Some(BuiltinType::Str), 0);
+    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut Context<'ast>,
                         name: &str,
-                        ty: BuiltinType,
+                        ty: Option<BuiltinType>,
                         size: i32)
                         -> ClassId {
     let iname = ctxt.interner.intern(name);
@@ -41,7 +41,10 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>,
         let mut cls = ctxt.classes[clsid].borrow_mut();
 
         if cls.internal {
-            cls.ty = ty;
+            if let Some(ty) = ty {
+                cls.ty = ty;
+            }
+
             cls.size = size;
             cls.internal_resolved = true;
         }

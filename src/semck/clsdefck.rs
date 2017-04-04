@@ -69,6 +69,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 let mut names = HashSet::new();
                 let mut type_param_id = 0;
                 let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+                let mut params = Vec::new();
 
                 for type_param in type_params {
                     if !names.insert(type_param.name) {
@@ -78,11 +79,16 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     }
 
                     cls.type_params.push(type_param.name);
+                    params.push(BuiltinType::TypeParam(type_param_id.into()));
 
                     let sym = Sym::SymTypeParam(type_param_id.into());
                     self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
+
+                let type_id = self.ctxt.types.borrow_mut().insert(cls.ty, params);
+                self.ctxt.types.borrow().set_cls_id(type_id, cls.id);
+                cls.ty = BuiltinType::Generic(type_id);
 
             } else {
                 let msg = Msg::TypeParamsExpected;

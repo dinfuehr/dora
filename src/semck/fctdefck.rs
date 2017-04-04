@@ -23,17 +23,16 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
         match fct.parent {
             FctParent::Class(owner_class) => {
                 let cls = ctxt.classes[owner_class].borrow();
-
-                if fct.has_self() {
-                    fct.param_types.push(cls.ty);
-                }
-
                 let mut type_param_id = 0;
 
                 for &name in &cls.type_params {
                     let sym = Sym::SymTypeParam(type_param_id.into());
                     ctxt.sym.borrow_mut().insert(name, sym);
                     type_param_id += 1;
+                }
+
+                if fct.has_self() {
+                    fct.param_types.push(cls.ty);
                 }
             }
 

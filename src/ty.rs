@@ -34,9 +34,6 @@ pub enum BuiltinType {
     // String type
     Str,
 
-    // Array types
-    Array,
-
     // some class
     Class(ClassId),
 
@@ -98,6 +95,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_type_param(&self) -> bool {
+        match self {
+            &BuiltinType::TypeParam(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn type_id(&self) -> TypeId {
         match self {
             &BuiltinType::Generic(id) => id,
@@ -109,7 +113,6 @@ impl BuiltinType {
         match *self {
             BuiltinType::Class(cls_id) => cls_id,
             BuiltinType::Str => ctxt.primitive_classes.str_class,
-            BuiltinType::Array => ctxt.primitive_classes.generic_array,
 
             _ => panic!(),
         }
@@ -162,7 +165,6 @@ impl BuiltinType {
             BuiltinType::Double => "float".into(),
             BuiltinType::Bool => "bool".into(),
             BuiltinType::Nil => "nil".into(),
-            BuiltinType::Array => "Array".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Str => "Str".into(),
@@ -178,7 +180,7 @@ impl BuiltinType {
                 let name = ctxt.traits[tid].borrow().name;
                 ctxt.interner.str(name).to_string()
             }
-            BuiltinType::TypeParam(_) => "type variable".into(),
+            BuiltinType::TypeParam(id) => format!("#{}", id.idx()),
             BuiltinType::Generic(id) => {
                 let generic = ctxt.types.borrow().get(id);
                 let base = generic.base.name(ctxt);
@@ -204,7 +206,6 @@ impl BuiltinType {
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
             BuiltinType::Float | BuiltinType::Double => *self == other,
-            BuiltinType::Array => unreachable!(),
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
@@ -235,7 +236,6 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
-            BuiltinType::Array => panic!("no size for Array."),
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Str |
@@ -258,7 +258,6 @@ impl BuiltinType {
             BuiltinType::Long => 8,
             BuiltinType::Float => 4,
             BuiltinType::Double => 8,
-            BuiltinType::Array => panic!("no alignment for Array."),
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Str |
@@ -281,7 +280,6 @@ impl BuiltinType {
             BuiltinType::Long => MachineMode::Int64,
             BuiltinType::Float => MachineMode::Float32,
             BuiltinType::Double => MachineMode::Float64,
-            BuiltinType::Array => panic!("no machine mode for Array."),
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Str |
@@ -343,11 +341,13 @@ impl Types {
         }
     }
 
-    pub fn values(&self) -> &[Rc<TypeWithParams>] {
-        &self.values
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 
     pub fn insert(&mut self, ty: BuiltinType, params: Vec<BuiltinType>) -> TypeId {
+        assert!(ty.is_cls());
+
         let ty = TypeWithParams {
             base: ty,
             params: params,

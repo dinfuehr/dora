@@ -97,13 +97,20 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
 fn specialize_types<'ast>(ctxt: &Context<'ast>) {
     use semck::specialize::specialize_class;
-    let types = ctxt.types.borrow();
+    let mut ind = 0;
 
-    for (id, ty) in types.values().iter().enumerate() {
-        let cls_id = ty.base.cls_id(ctxt);
-        let mut cls = ctxt.classes[cls_id].borrow_mut();
-        let special_id = specialize_class(ctxt, &mut *cls, ty.params.clone());
-        types.set_cls_id(id.into(), special_id);
+    while ind < ctxt.types.borrow().len() {
+        if ctxt.types.borrow().get_cls_id(ind.into()).is_none() {
+            let ty = ctxt.types.borrow().get(ind.into());
+
+            let cls_id = ty.base.cls_id(ctxt);
+            let mut cls = ctxt.classes[cls_id].borrow_mut();
+
+            let special_id = specialize_class(ctxt, &mut *cls, ty.params.clone());
+            ctxt.types.borrow().set_cls_id(ind.into(), special_id);
+        }
+
+        ind += 1;
     }
 }
 
@@ -183,7 +190,8 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                                 return None;
                             }
 
-                            let type_id = ctxt.types.borrow_mut().insert(cls.ty, type_params);
+                            let cls_type = BuiltinType::Class(cls.id);
+                            let type_id = ctxt.types.borrow_mut().insert(cls_type, type_params);
                             BuiltinType::Generic(type_id)
 
                         } else {

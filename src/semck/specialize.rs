@@ -15,7 +15,10 @@ pub fn specialize_class(ctxt: &Context,
     }
 
     let id = create_specialized_class(ctxt, cls, type_params.clone());
-    cls.specializations.insert(type_params, id);
+    cls.specializations.insert(type_params.clone(), id);
+
+    let type_id = ctxt.types.borrow_mut().insert(BuiltinType::Class(cls.id), type_params);
+    ctxt.types.borrow().set_cls_id(type_id, id);
 
     id
 }
@@ -48,20 +51,35 @@ fn create_specialized_class(ctxt: &Context,
             class::Field {
                 id: field.id,
                 name: field.name,
-                ty: specialize_type(field.ty, id, &type_params),
+                ty: specialize_type(ctxt, field.ty, &type_params),
                 offset: field.offset,
                 reassignable: field.reassignable,
             }
         })
         .collect();
 
-    let is_array = cls.ty == BuiltinType::Array;
-    let is_object_array = is_array && type_params[0].to_specialized(ctxt).reference_type();
-    let element_size = if is_array {
-        type_params[0].to_specialized(ctxt).size(ctxt)
-    } else {
-        0
-    };
+    let mut is_array = false;
+    let mut is_object_array = false;
+    let mut element_size = 0;
+
+    match cls.ty {
+        BuiltinType::Generic(type_id) => {
+            let ty = ctxt.types.borrow().get(type_id);
+
+            if ty.base.cls_id(ctxt) == ctxt.primitive_classes.generic_array {
+                is_array = true;
+
+                let type_param = type_params[0].to_specialized(ctxt);
+
+                if !type_param.is_type_param() {
+                    is_object_array = type_param.reference_type();
+                    element_size = type_param.size(ctxt);
+                }
+            }
+        }
+
+        _ => {}
+    }
 
     ctxt.classes
         .push(class::Class {
@@ -99,16 +117,16 @@ fn create_specialized_class(ctxt: &Context,
     id
 }
 
-fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
-                                id: ClassId,
-                                fct: &Fct<'ast>,
-                                type_params: &[BuiltinType])
-                                -> FctId {
+fn specialize_fct<'ast>(ctxt: &Context<'ast>,
+                        id: ClassId,
+                        fct: &Fct<'ast>,
+                        type_params: &[BuiltinType])
+                        -> FctId {
     let fct_id = ctxt.fcts.len().into();
 
     let mut param_types: Vec<_> = fct.param_types
         .iter()
-        .map(|&t| specialize_type(t, id, &type_params))
+        .map(|&t| specialize_type(ctxt, t, &type_params))
         .collect();
 
     if fct.has_self() && fct.initialized {
@@ -125,7 +143,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
                     Var {
                         id: v.id,
                         name: v.name,
-                        ty: specialize_type(v.ty, id, &type_params),
+                        ty: specialize_type(ctxt, v.ty, &type_params),
                         reassignable: v.reassignable,
                         node_id: v.node_id,
                     }
@@ -166,7 +184,7 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
         internal_resolved: true,
         overrides: fct.overrides,
         param_types: param_types,
-        return_type: specialize_type(fct.return_type, id, &type_params),
+        return_type: specialize_type(ctxt, fct.return_type, &type_params),
         ctor: fct.ctor,
 
         vtable_index: fct.vtable_index,
@@ -186,10 +204,24 @@ fn specialize_fct<'a, 'ast: 'a>(ctxt: &Context<'ast>,
     fct_id
 }
 
-fn specialize_type(ty: BuiltinType, id: ClassId, type_params: &[BuiltinType]) -> BuiltinType {
+fn specialize_type<'ast>(ctxt: &Context<'ast>,
+                         ty: BuiltinType,
+                         type_params: &[BuiltinType])
+                         -> BuiltinType {
     match ty {
         BuiltinType::TypeParam(id) => type_params[id.idx()],
-        BuiltinType::Array => BuiltinType::Class(id),
+        BuiltinType::Generic(type_id) => {
+            let ty = ctxt.types.borrow().get(type_id);
+
+            let params = ty.params
+                .iter()
+                .map(|&t| specialize_type(ctxt, t, type_params))
+                .collect();
+
+            let type_id = ctxt.types.borrow_mut().insert(ty.base, params);
+            BuiltinType::Generic(type_id)
+        }
+
         _ => ty,
     }
 }

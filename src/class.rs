@@ -80,6 +80,30 @@ impl Class {
         self.type_params.len() > 0
     }
 
+    pub fn long_name(&self, ctxt: &Context) -> String {
+        let name = ctxt.interner.str(self.name);
+
+        let params = if self.type_params.len() > 0 {
+            self.type_params
+                .iter()
+                .map(|&n| ctxt.interner.str(n).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+
+        } else if self.specialization_params.len() > 0 {
+            self.specialization_params
+                .iter()
+                .map(|&ty| ty.name(ctxt))
+                .collect::<Vec<_>>()
+                .join(", ")
+
+        } else {
+            return name.to_string();
+        };
+
+        format!("{}<{}>", name, params)
+    }
+
     pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
