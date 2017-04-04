@@ -181,7 +181,7 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                                 }
                             }
 
-                            let cls = ctxt.classes[cls_id].borrow_mut();
+                            let cls = ctxt.classes[cls_id].borrow();
 
                             if cls.type_params.len() != type_params.len() {
                                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(),

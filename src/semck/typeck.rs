@@ -771,6 +771,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
             callee_id = specialize::specialize_fct(self.ctxt, FctParent::None, &mut *callee, &types);
+
+            self.src.map_calls.insert_or_replace(e.id, CallType::Fct(callee_id));
         } else {
             if callee_type_params_len > 0 {
                 let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);

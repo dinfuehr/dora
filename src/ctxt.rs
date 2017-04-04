@@ -410,7 +410,7 @@ pub struct Fct<'ast> {
     pub throws: bool,
 
     pub type_params: Vec<Name>,
-    pub specialization_for: Option<ClassId>,
+    pub specialization_for: Option<FctId>,
     pub specialization_params: Vec<BuiltinType>,
     pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
 
@@ -456,10 +456,36 @@ impl<'ast> Fct<'ast> {
         if let FctParent::Class(class_id) = self.parent {
             let name = ctxt.classes[class_id].borrow().name;
             repr.push_str(&ctxt.interner.str(name));
-            repr.push_str(".");
+
+            if self.is_static {
+                repr.push_str("::");
+            } else {
+                repr.push_str(".");
+            }
         }
 
         repr.push_str(&ctxt.interner.str(self.name));
+
+        if self.type_params.len() > 0 {
+            repr.push_str("<");
+
+            repr.push_str(&self.type_params
+                .iter()
+                .map(|&n| ctxt.interner.str(n).to_string())
+                .collect::<Vec<_>>()
+                .join(", "));
+            repr.push_str(">");
+
+        } else if self.specialization_params.len() > 0 {
+            repr.push_str("<");
+            repr.push_str(&self.specialization_params
+                .iter()
+                .map(|&ty| ty.name(ctxt))
+                .collect::<Vec<_>>()
+                .join(", "));
+            repr.push_str(">");
+        }
+
         repr.push_str("(");
 
         for (ind, ty) in self.params_without_self().iter().enumerate() {

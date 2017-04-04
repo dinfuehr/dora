@@ -243,7 +243,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                             Arg::Expr(&expr.index, BuiltinType::Unit, 0)];
 
-            self.universal_call(expr.id, args, true, None, None);
+            self.universal_call(expr.id, args, None, None);
         }
     }
 
@@ -289,8 +289,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let mut in_class = true;
-
         if call_type.is_ctor() {
             args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
         } else if call_type.is_method() {
@@ -299,11 +297,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
         } else if call_type.is_ctor_new() {
             args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
-        } else {
-            in_class = false;
         }
 
-        self.universal_call(expr.id, args, in_class, None, None);
+        self.universal_call(expr.id, args, None, None);
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
@@ -315,13 +311,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls_id = *self.src.map_cls.get(expr.id).unwrap();
         args.insert(0, Arg::Selfie(cls_id, 0));
 
-        self.universal_call(expr.id, args, true, None, None);
+        self.universal_call(expr.id, args, None, None);
     }
 
     fn universal_call(&mut self,
                       id: NodeId,
                       args: Vec<Arg<'ast>>,
-                      in_class: bool,
                       callee: Option<FctId>,
                       return_type: Option<BuiltinType>) {
         // function invokes another function
@@ -342,9 +337,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                Arg::Selfie(_, _) |
-                Arg::SelfieNew(_, _) => {
-                    reg_args += 1;
+                Arg::Selfie(cls_id, _) |
+                Arg::SelfieNew(cls_id, _) => {
+                    if self.ctxt.classes[cls_id].borrow().ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
                 }
             }
         }
@@ -373,7 +372,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                      Arg::Expr(ast, mut ty, _) => {
                 if let Some(fid) = fid {
                     let fct = self.ctxt.fcts[fid].borrow();
-                    ty = if ind == 0 && in_class {
+                    ty = if ind == 0 && fct.has_self() {
                         if ast.is_super() {
                             super_call = true;
                         }
@@ -458,7 +457,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                 Arg::Expr(&array.index, BuiltinType::Unit, 0),
                                 Arg::Expr(&e.rhs, BuiltinType::Unit, 0)];
 
-                self.universal_call(e.id, args, true, None, None);
+                self.universal_call(e.id, args, None, None);
             }
         }
     }
@@ -483,7 +482,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, Some(fid), Some(BuiltinType::Bool));
         }
     }
 
@@ -498,7 +497,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, false, Some(fid), Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, Some(fid), Some(BuiltinType::Bool));
         }
     }
 

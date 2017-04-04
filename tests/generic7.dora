@@ -1,0 +1,7 @@
+fun main() {
+    assert(1 == foo::<int>(1));
+    assert(3F == foo::<float>(3F));
+    assert("hel" + "lo" == foo::<Str>("hello"));
+}
+
+fun foo<T>(val: T) -> T { return val; }

@@ -1,0 +1,12 @@
+fun main() {
+    let a = A::<int>();
+    consume(a.x);
+}
+
+class A<T> {
+    let x: Array<T> = nil;
+}
+
+fun consume(x: Array<int>) {
+    assert(x === nil);
+}

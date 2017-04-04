@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     foo::<int>(1);
     foo::<float>(3F);

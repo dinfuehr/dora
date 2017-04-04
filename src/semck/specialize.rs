@@ -198,8 +198,8 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
         throws: fct.throws,
 
         type_params: Vec::new(),
-        specialization_for: None,
-        specialization_params: Vec::new(),
+        specialization_for: Some(fct.id),
+        specialization_params: type_params.to_owned(),
         specializations: HashMap::new(),
 
         kind: cloned_kind,
