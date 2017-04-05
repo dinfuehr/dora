@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 
 use class::{self, ClassId};
-use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, Var};
+use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, Var};
 use ty::{BuiltinType, TypeId};
 
 pub fn specialize_class(ctxt: &Context,
@@ -169,10 +169,17 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
                 })
                 .collect();
 
+            let mut cloned_map_tys = NodeMap::new();
+
+            for (&id, &ty) in src.map_tys.iter() {
+                let ty = specialize_type(ctxt, ty, &type_params);
+                cloned_map_tys.insert(id, ty);
+            }
+
             FctKind::Source(RefCell::new(FctSrc {
                                              map_calls: src.map_calls.clone(),
                                              map_idents: src.map_idents.clone(),
-                                             map_tys: src.map_tys.clone(),
+                                             map_tys: cloned_map_tys,
                                              map_vars: src.map_vars.clone(),
                                              map_convs: src.map_convs.clone(),
                                              map_cls: src.map_cls.clone(),

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::ptr;
@@ -832,6 +833,10 @@ impl<V> NodeMap<V>
 
     pub fn clear(&mut self) {
         self.map.clear();
+    }
+
+    pub fn iter(&self) -> Iter<ast::NodeId, V> {
+        self.map.iter()
     }
 }
 
