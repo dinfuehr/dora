@@ -4,66 +4,37 @@ use std::sync::RwLock;
 
 use class::{self, ClassId};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, Var};
-use ty::BuiltinType;
+use ty::{BuiltinType, TypeId};
 
 pub fn specialize_class(ctxt: &Context,
-                        cls: &mut class::Class,
+                        cls: &class::Class,
                         type_params: Vec<BuiltinType>)
-                        -> ClassId {
-    if !concrete_types(&type_params) {
-        return cls.id;
+                        -> (ClassId, TypeId) {
+    if let Some(&id) = cls.specializations.borrow().get(&type_params) {
+        let type_id = ctxt.types
+            .borrow_mut()
+            .insert(BuiltinType::Class(cls.id), type_params);
+        return (id, type_id);
     }
 
-    if let Some(&id) = cls.specializations.get(&type_params) {
-        return id;
-    }
-
+    cls.specializations.borrow_mut().insert(type_params.clone(), ClassId::max());
 
     let id = create_specialized_class(ctxt, cls, type_params.clone());
-    cls.specializations.insert(type_params.clone(), id);
+    cls.specializations.borrow_mut().insert(type_params.clone(), id);
 
     let type_id = ctxt.types
         .borrow_mut()
         .insert(BuiltinType::Class(cls.id), type_params);
     ctxt.types.borrow().set_cls_id(type_id, id);
 
-    id
+    (id, type_id)
 }
 
 fn create_specialized_class(ctxt: &Context,
-                            cls: &mut class::Class,
+                            cls: &class::Class,
                             type_params: Vec<BuiltinType>)
                             -> ClassId {
     let id: ClassId = ctxt.classes.len().into();
-
-    let cloned_ctors = cls.ctors
-        .iter()
-        .map(|&ctor_id| {
-                 let ctor = ctxt.fcts[ctor_id].borrow();
-                 specialize_fct(ctxt, FctParent::Class(id), &*ctor, &type_params)
-             })
-        .collect();
-
-    let cloned_methods = cls.methods
-        .iter()
-        .map(|&method_id| {
-                 let mtd = ctxt.fcts[method_id].borrow();
-                 specialize_fct(ctxt, FctParent::Class(id), &*mtd, &type_params)
-             })
-        .collect();
-
-    let cloned_fields = cls.fields
-        .iter()
-        .map(|field| {
-            class::Field {
-                id: field.id,
-                name: field.name,
-                ty: specialize_type(ctxt, field.ty, &type_params),
-                offset: field.offset,
-                reassignable: field.reassignable,
-            }
-        })
-        .collect();
 
     let mut is_array = false;
     let mut is_object_array = false;
@@ -88,6 +59,8 @@ fn create_specialized_class(ctxt: &Context,
         _ => {}
     }
 
+    let is_generic = type_params.iter().any(|t| t.is_type_param());
+
     ctxt.classes
         .push(class::Class {
                   id: id,
@@ -100,9 +73,9 @@ fn create_specialized_class(ctxt: &Context,
                   internal_resolved: true,
                   primary_ctor: cls.primary_ctor,
 
-                  ctors: cloned_ctors,
-                  fields: cloned_fields,
-                  methods: cloned_methods,
+                  ctors: Vec::new(),
+                  fields: Vec::new(),
+                  methods: Vec::new(),
                   size: 0,
                   vtable: None,
 
@@ -110,9 +83,10 @@ fn create_specialized_class(ctxt: &Context,
                   impls: cls.impls.clone(),
 
                   type_params: Vec::new(),
+                  is_generic: is_generic,
                   specialization_for: Some(cls.id),
-                  specialization_params: type_params,
-                  specializations: HashMap::new(),
+                  specialization_params: type_params.clone(),
+                  specializations: RefCell::new(HashMap::new()),
 
                   is_array: is_array,
                   is_object_array: is_object_array,
@@ -120,6 +94,38 @@ fn create_specialized_class(ctxt: &Context,
 
                   ref_fields: Vec::new(),
               });
+
+    let cloned_ctors = cls.ctors
+        .iter()
+        .map(|&ctor_id| {
+                 let ctor = ctxt.fcts[ctor_id].borrow();
+                 specialize_fct(ctxt, FctParent::Class(id), &*ctor, &type_params)
+             })
+        .collect();
+    ctxt.classes[id].borrow_mut().ctors = cloned_ctors;
+
+    let cloned_methods = cls.methods
+        .iter()
+        .map(|&method_id| {
+                 let mtd = ctxt.fcts[method_id].borrow();
+                 specialize_fct(ctxt, FctParent::Class(id), &*mtd, &type_params)
+             })
+        .collect();
+    ctxt.classes[id].borrow_mut().methods = cloned_methods;
+
+    let cloned_fields = cls.fields
+        .iter()
+        .map(|field| {
+            class::Field {
+                id: field.id,
+                name: field.name,
+                ty: specialize_type(ctxt, field.ty, &type_params),
+                offset: field.offset,
+                reassignable: field.reassignable,
+            }
+        })
+        .collect();
+    ctxt.classes[id].borrow_mut().fields = cloned_fields;
 
     id
 }
@@ -129,10 +135,6 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
                             fct: &Fct<'ast>,
                             type_params: &[BuiltinType])
                             -> FctId {
-    if !concrete_types(type_params) {
-        return fct.id;
-    }
-
     let fct_id = ctxt.fcts.len().into();
 
     let mut param_types: Vec<_> = fct.param_types
@@ -230,12 +232,15 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
         BuiltinType::Generic(type_id) => {
             let ty = ctxt.types.borrow().get(type_id);
 
-            let params = ty.params
+            let params: Vec<_> = ty.params
                 .iter()
                 .map(|&t| specialize_type(ctxt, t, type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.base, params);
+            let cls_id = ty.base.cls_id();
+            let cls = ctxt.classes[cls_id].borrow();
+
+            let (_, type_id) = specialize_class(ctxt, &*cls, params.clone());
             BuiltinType::Generic(type_id)
         }
 
@@ -243,12 +248,3 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
     }
 }
 
-fn concrete_types(types: &[BuiltinType]) -> bool {
-    for &ty in types {
-        if ty.is_generic() {
-            return false;
-        }
-    }
-
-    true
-}

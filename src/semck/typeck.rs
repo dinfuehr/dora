@@ -725,22 +725,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 types.push(ty);
             }
 
-            let original_cls_id = cls_id;
-            let mut cls = self.ctxt.classes[cls_id].borrow_mut();
+            let cls = self.ctxt.classes[cls_id].borrow();
 
             if cls.type_params.len() != types.len() {
                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), types.len());
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            cls_id = specialize::specialize_class(self.ctxt, &mut *cls, types.clone());
+            let (specialized_cls_id, type_id) = specialize::specialize_class(self.ctxt, &*cls, types.clone());
 
-            let type_id = self.ctxt
-                .types
-                .borrow_mut()
-                .insert(BuiltinType::Class(original_cls_id), types);
-            self.ctxt.types.borrow().set_cls_id(type_id, cls_id);
-
+            cls_id = specialized_cls_id;
             ty = BuiltinType::Generic(type_id);
 
         } else {
@@ -2202,6 +2196,7 @@ mod tests {
             pos(1, 25),
             Msg::WrongNumberTypeParams(1, 0));
         ok("fun f<T>() {} fun g() { f::<int>(); }");
+        ok("fun f<T1, T2>() {} fun g() { f::<int, Str>(); }");
     }
 
     // #[test]

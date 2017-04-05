@@ -78,7 +78,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    cls.type_params.push(type_param.name);
                     params.push(BuiltinType::TypeParam(type_param_id.into()));
 
                     let sym = Sym::SymTypeParam(type_param_id.into());

@@ -94,7 +94,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
     fn visit_class(&mut self, c: &'ast Class) {
         let id: ClassId = self.ctxt.classes.len().into();
-        let cls = class::Class {
+        let mut cls = class::Class {
             id: id,
             name: c.name,
             pos: c.pos,
@@ -115,9 +115,10 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             impls: Vec::new(),
 
             type_params: Vec::new(),
+            is_generic: false,
             specialization_for: None,
             specialization_params: Vec::new(),
-            specializations: HashMap::new(),
+            specializations: RefCell::new(HashMap::new()),
 
             is_array: false,
             is_object_array: false,
@@ -125,6 +126,16 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
             ref_fields: Vec::new(),
         };
+
+        if let Some(ref type_params) = c.type_params {
+            for param in type_params {
+                cls.type_params.push(param.name);
+            }
+
+            if cls.type_params.len() > 0 {
+                cls.is_generic = true;
+            }
+        }
 
         self.ctxt.classes.push(cls);
         let sym = SymClass(id);

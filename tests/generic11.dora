@@ -1,0 +1,12 @@
+//= ignore
+
+fun main() {
+  assert(Foo::id::<int>(1) == 1);
+  assert(Foo::id::<Str>("hello") == "hel" + "lo");
+}
+
+class Foo {
+  static fun id<T>(val: T) -> T {
+    return val;
+  }
+}

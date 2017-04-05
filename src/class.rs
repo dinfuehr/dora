@@ -13,6 +13,12 @@ use utils::GrowableVec;
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
 
+impl ClassId {
+    pub fn max() -> ClassId {
+        ClassId(usize::max_value())
+    }
+}
+
 impl From<ClassId> for usize {
     fn from(data: ClassId) -> usize {
         data.0
@@ -57,9 +63,10 @@ pub struct Class {
     pub impls: Vec<ImplId>,
 
     pub type_params: Vec<Name>,
+    pub is_generic: bool,
     pub specialization_for: Option<ClassId>,
     pub specialization_params: Vec<BuiltinType>,
-    pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
+    pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassId>>,
 
     // true if this class is specialization of generic Array class
     pub is_array: bool,
@@ -77,7 +84,7 @@ pub struct Class {
 
 impl Class {
     pub fn is_generic(&self) -> bool {
-        self.type_params.len() > 0
+        self.is_generic
     }
 
     pub fn long_name(&self, ctxt: &Context) -> String {
