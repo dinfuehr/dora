@@ -1,0 +1,10 @@
+fun main() {
+    let x = Vec::<int>();
+    x.push(1);
+    x.push(2);
+    x.push(3);
+
+    assert(x.pop() == 3);
+    assert(x.pop() == 2);
+    assert(x.pop() == 1);
+}

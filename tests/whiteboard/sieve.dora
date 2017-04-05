@@ -10,8 +10,8 @@ fun main() {
     }
 }
 
-fun sieve(limit: int) -> IntVec {
-    let primes = IntVec();
+fun sieve(limit: int) -> Vec<int> {
+    let primes = Vec::<int>();
 
     if limit >= 2 {
         let numbers = Array::<bool>(limit+1, true);

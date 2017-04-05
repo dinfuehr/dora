@@ -176,11 +176,11 @@ internal class Array<T> {
   internal fun set(idx: int, val: T);
 }
 
-class IntVec {
-  var array: Array<int> = nil;
+class Vec<T> {
+  var array: Array<T> = nil;
   var length: int = 0;
 
-  fun get(idx: int) -> int {
+  fun get(idx: int) -> T {
     if idx < 0 || idx >= self.length {
       fatalError("index out of bounds for vector");
     }
@@ -188,7 +188,7 @@ class IntVec {
     return self.array[idx];
   }
 
-  fun set(idx: int, val: int) {
+  fun set(idx: int, val: T) {
     if idx < 0 || idx >= self.length {
       fatalError("index out of bounds for vector");
     }
@@ -196,7 +196,7 @@ class IntVec {
     self.array[idx] = val;
   }
 
-  fun push(val: int) {
+  fun push(val: T) {
     var newcap = self.capacity();
 
     if self.length == newcap {
@@ -206,7 +206,7 @@ class IntVec {
         newcap = newcap * 2;
       }
 
-      let newarray = Array::<int>(newcap, 0);
+      let newarray = Array::<T>(newcap);
 
       var i = 0;
 
@@ -222,7 +222,7 @@ class IntVec {
     self.length = self.length + 1;
   }
 
-  fun pop() -> int {
+  fun pop() -> T {
     if self.length == 0 {
       fatalError("no element left to pop");
     }
@@ -231,7 +231,7 @@ class IntVec {
     let temp = self.array[newlength];
     self.length = newlength;
 
-    return self.length;
+    return temp;
   }
 
   fun trimToLen() {
@@ -239,7 +239,7 @@ class IntVec {
       if self.length == 0 {
         self.array = nil;
       } else {
-        let newarray = Array::<int>(self.length, 0);
+        let newarray = Array::<T>(self.length);
 
         var i = 0;
 

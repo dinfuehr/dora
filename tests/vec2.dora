@@ -1,0 +1,14 @@
+//= output "321"
+
+fun main() {
+    let x = Vec::<Str>();
+    x.push(1.toString());
+    x.push(2.toString());
+    x.push(3.toString());
+
+    forceCollect();
+
+    print(x.pop());
+    print(x.pop());
+    print(x.pop());
+}

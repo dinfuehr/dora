@@ -1,5 +1,5 @@
 fun main() {
-    let vec = IntVec();
+    let vec = Vec::<int>();
     assert(vec.len() == 0);
     assert(vec.capacity() == 0);
 
