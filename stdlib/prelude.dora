@@ -72,6 +72,14 @@ internal class int {
       return -self;
     }
   }
+
+  static fun max_value() -> int {
+    return 2147483647;
+  }
+
+  static fun min_value() -> int {
+    return -2147483648;
+  }
 }
 
 internal class long {
@@ -103,6 +111,14 @@ internal class long {
   internal fun unaryPlus() -> long;
   internal fun unaryMinus() -> long;
   internal fun not() -> long;
+
+  static fun max_value() -> long {
+    return 9223372036854775807L;
+  }
+
+  static fun min_value() -> long {
+    return -9223372036854775808L;
+  }
 }
 
 internal class Str {
