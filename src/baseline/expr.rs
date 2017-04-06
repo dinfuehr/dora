@@ -344,28 +344,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
                 }
 
-                Intrinsic::LongArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int64, &e.object, &e.index, dest)
-                }
-
-                Intrinsic::StrArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Ptr, &e.object, &e.index, dest)
-                }
-
-                Intrinsic::CharArrayGet | Intrinsic::IntArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Int32, &e.object, &e.index, dest)
-                }
-
-                Intrinsic::BoolArrayGet | Intrinsic::ByteArrayGet | Intrinsic::StrGet => {
+                Intrinsic::StrGet => {
                     self.emit_array_get(e.pos, MachineMode::Int8, &e.object, &e.index, dest)
-                }
-
-                Intrinsic::FloatArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Float32, &e.object, &e.index, dest)
-                }
-
-                Intrinsic::DoubleArrayGet => {
-                    self.emit_array_get(e.pos, MachineMode::Float64, &e.object, &e.index, dest)
                 }
 
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -622,54 +602,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             dest)
                     }
 
-                    Intrinsic::BoolArraySet | Intrinsic::ByteArraySet | Intrinsic::StrSet => {
+                    Intrinsic::StrSet => {
                         self.emit_array_set(e.pos,
                                             MachineMode::Int8,
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs,
-                                            dest)
-                    }
-
-                    Intrinsic::CharArraySet | Intrinsic::IntArraySet => {
-                        self.emit_array_set(e.pos,
-                                            MachineMode::Int32,
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs,
-                                            dest)
-                    }
-
-                    Intrinsic::StrArraySet => {
-                        self.emit_array_set(e.pos,
-                                            MachineMode::Ptr,
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs,
-                                            dest)
-                    }
-
-                    Intrinsic::LongArraySet => {
-                        self.emit_array_set(e.pos,
-                                            MachineMode::Int64,
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs,
-                                            dest)
-                    }
-
-                    Intrinsic::FloatArraySet => {
-                        self.emit_array_set(e.pos,
-                                            MachineMode::Float32,
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs,
-                                            dest)
-                    }
-
-                    Intrinsic::DoubleArraySet => {
-                        self.emit_array_set(e.pos,
-                                            MachineMode::Float64,
                                             &array.object,
                                             &array.index,
                                             &e.rhs,
@@ -882,15 +817,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     fn emit_call(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
-                Intrinsic::GenericArrayLen |
-                Intrinsic::BoolArrayLen |
-                Intrinsic::ByteArrayLen |
-                Intrinsic::CharArrayLen |
-                Intrinsic::IntArrayLen |
-                Intrinsic::LongArrayLen |
-                Intrinsic::FloatArrayLen |
-                Intrinsic::DoubleArrayLen |
-                Intrinsic::StrArrayLen => self.emit_intrinsic_len(e, dest.reg()),
+                Intrinsic::GenericArrayLen => self.emit_intrinsic_len(e, dest.reg()),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
@@ -1005,10 +932,29 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 Intrinsic::DoubleIsNan => self.emit_intrinsic_is_nan(e, dest.reg(), intrinsic),
                 Intrinsic::DoubleSqrt => self.emit_intrinsic_sqrt(e, dest.freg(), intrinsic),
 
+                Intrinsic::DefaultValue => self.emit_intrinsic_default_value(e, dest),
+
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
         } else {
             self.emit_universal_call(e.id, e.pos, dest);
+        }
+    }
+
+    fn emit_intrinsic_default_value(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
+        let ty = self.src.ty(e.id);
+
+        match ty {
+            BuiltinType::Bool |
+            BuiltinType::Byte |
+            BuiltinType::Int |
+            BuiltinType::Long |
+            BuiltinType::Char =>
+                self.masm.load_int_const(ty.mode(), dest.reg(), 0),
+            BuiltinType::Float |
+            BuiltinType::Double =>
+                self.masm.load_float_const(ty.mode(), dest.freg(), 0.0),
+            _ => self.masm.load_nil(dest.reg()),
         }
     }
 

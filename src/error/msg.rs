@@ -16,7 +16,7 @@ pub enum Msg {
     UnknownMethod(String, String, Vec<String>),
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor(String, Vec<String>),
-    MethodExists(String, String, Vec<String>, Position),
+    MethodExists(String, String, Position),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
@@ -44,7 +44,6 @@ pub enum Msg {
     SelfTypeUnavailable,
     SuperUnavailable,
     SuperNeedsMethodCall,
-    MultipleCandidates(String, String, Vec<String>),
     ReferenceTypeExpected(String),
     ThrowNil,
     CatchOrFinallyExpected,
@@ -121,12 +120,9 @@ impl Msg {
                 let args = args.join(", ");
                 format!("no ctor with definition `{}({})`.", name, args)
             }
-            MethodExists(ref cls, ref name, ref args, pos) => {
-                let args = args.join(", ");
-
-                format!("method with definition `{}({})` already exists in class `{}` at line {}.",
+            MethodExists(ref cls, ref name, pos) => {
+                format!("method with name `{}` already exists in class `{}` at line {}.",
                         name,
-                        args,
                         cls,
                         pos)
             }
@@ -204,14 +200,6 @@ impl Msg {
                 "`super` only available in methods of classes with parent class".into()
             }
             SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
-            MultipleCandidates(ref cls, ref name, ref call_types) => {
-                let call_types = call_types.join(", ");
-
-                format!("multiple candidates for invocation `{}({})` in class `{}`.",
-                        name,
-                        call_types,
-                        cls)
-            }
             ReferenceTypeExpected(ref name) => format!("`{}` is not a reference type.", name),
             ThrowNil => "throwing `nil` is not allowed.".into(),
             CatchOrFinallyExpected => "`try` without `catch` or `finally`.".into(),

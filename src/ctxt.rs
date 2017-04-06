@@ -590,29 +590,7 @@ pub enum Intrinsic {
     GenericArrayGet,
     GenericArraySet,
 
-    LongArrayLen,
-    LongArrayGet,
-    LongArraySet,
-
-    IntArrayLen,
-    IntArrayGet,
-    IntArraySet,
-
-    CharArrayLen,
-    CharArrayGet,
-    CharArraySet,
-
-    BoolArrayLen,
-    BoolArrayGet,
-    BoolArraySet,
-
-    ByteArrayLen,
-    ByteArrayGet,
-    ByteArraySet,
-
-    StrArrayLen,
-    StrArrayGet,
-    StrArraySet,
+    DefaultValue,
 
     Assert,
     Shl,

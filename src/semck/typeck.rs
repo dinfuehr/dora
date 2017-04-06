@@ -396,6 +396,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 (return_type.is_none() || method.return_type == return_type.unwrap())
             });
 
+            assert!(candidates.len() <= 1);
+
             if candidates.len() == 1 {
                 let candidate = candidates[0];
                 let fct = self.ctxt.fcts[candidate].borrow();
@@ -411,15 +413,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 return Some((cls_id, candidate, fct.return_type));
 
-            } else if candidates.len() > 1 {
-                let object_type = object_type.name(self.ctxt);
-                let args = args.iter()
-                    .map(|a| a.name(self.ctxt))
-                    .collect::<Vec<String>>();
-                let name = self.ctxt.interner.str(name).to_string();
-                let msg = Msg::MultipleCandidates(object_type, name, args);
-                self.ctxt.diag.borrow_mut().report(pos, msg);
-                return None;
             }
         }
 
@@ -1358,26 +1351,27 @@ mod tests {
                  fun bar() {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), vec![], pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
 
         err("class Foo {
                  fun bar() {}
                  fun bar() -> int {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), vec![], pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
 
         err("class Foo {
                  fun bar(a: int) {}
                  fun bar(a: int) -> int {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), vec!["int".into()], pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
 
-        ok("class Foo {
+        err("class Foo {
                 fun bar(a: int) {}
                 fun bar(a: Str) {}
-            }");
+            }", pos(3, 17),
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 17)));
     }
 
     #[test]
@@ -1666,18 +1660,7 @@ mod tests {
     fn type_nil_as_method_argument() {
         ok("class Foo {
             fun f(a: Str) {}
-            fun f(a: int) {}
         } fun f() { Foo().f(nil); }");
-        err("class Foo {
-                fun f(a: Str) {}
-                fun f(a: Foo) {}
-            }
-
-            fun f() {
-                Foo().f(nil);
-            }",
-            pos(7, 22),
-            Msg::MultipleCandidates("Foo".into(), "f".into(), vec!["nil".into()]));
     }
 
     #[test]

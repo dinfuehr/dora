@@ -1,0 +1,31 @@
+fun main() {
+  let x = defaultValue::<bool>();
+  assert(x == false);
+
+  let x = defaultValue::<byte>();
+  assert(x == 0B);
+
+  let x = defaultValue::<char>();
+  assert(x == '\0');
+
+  let x = defaultValue::<int>();
+  assert(x == 0);
+
+  let x = defaultValue::<long>();
+  assert(x == 0L);
+
+  let x = defaultValue::<float>();
+  assert(x == 0.0F);
+
+  let x = defaultValue::<double>();
+  assert(x == 0.0);
+
+  let x = defaultValue::<Str>();
+  assert(x === nil);
+
+  let x = defaultValue::<Array<int> >();
+  assert(x === nil);
+
+  let x = defaultValue::<Array<float> >();
+  assert(x === nil);
+}

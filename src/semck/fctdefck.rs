@@ -162,17 +162,11 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
 
         let method = ctxt.fcts[method].borrow();
 
-        if method.initialized && method.name == fct.name && method.is_static == fct.is_static &&
-           method.params_with_self() == fct.params_with_self() {
+        if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
             let cls_name = ty.name(ctxt);
-            let param_names = method
-                .params_without_self()
-                .iter()
-                .map(|a| a.name(ctxt))
-                .collect::<Vec<String>>();
             let method_name = ctxt.interner.str(method.name).to_string();
 
-            let msg = Msg::MethodExists(cls_name, method_name, param_names, method.pos);
+            let msg = Msg::MethodExists(cls_name, method_name, method.pos);
             ctxt.diag.borrow_mut().report(fct.ast.pos, msg);
             return;
         }
@@ -268,7 +262,6 @@ mod tests {
         ok("class Foo {
                 static fun foo() {}
                 fun foo() {}
-                static fun foo(x: Foo) {}
             }");
     }
 

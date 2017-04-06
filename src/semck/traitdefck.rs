@@ -116,12 +116,11 @@ mod tests {
             Msg::UnknownType("Unknown".into()));
         err("trait Foo { fun foo(); fun foo() -> int; }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(1, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)));
 
-        ok("trait Foo { fun foo(); fun foo(a: int); }");
         err("trait Foo { fun foo(); fun foo(); }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(1, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)));
     }
 
     #[test]
@@ -131,6 +130,6 @@ mod tests {
             fun foo() -> Self;
         }",
             pos(3, 13),
-            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(2, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(2, 13)));
     }
 }

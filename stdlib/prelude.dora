@@ -229,6 +229,11 @@ class Vec<T> {
 
     let newlength = self.length - 1;
     let temp = self.array[newlength];
+
+    // set popped element to nil so that GC can collect object
+    // not necessary for primitive types
+    self.array[newlength] = defaultValue::<T>();
+
     self.length = newlength;
 
     return temp;
@@ -265,6 +270,8 @@ class Vec<T> {
     }
   }
 }
+
+internal fun defaultValue<T>() -> T;
 
 internal fun loadFunction(name: Str) -> long;
 internal fun call0(fct: long) -> long;

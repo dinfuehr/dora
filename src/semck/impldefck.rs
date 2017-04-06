@@ -145,7 +145,7 @@ mod tests {
                 fun foo() -> int { return 1; }
             }",
             pos(8, 17),
-            Msg::MethodExists("Foo".into(), "foo".into(), vec![], pos(7, 17)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(7, 17)));
     }
 
     #[test]
