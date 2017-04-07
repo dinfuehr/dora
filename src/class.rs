@@ -4,8 +4,8 @@ use std::convert::From;
 use std::ops::{Index, IndexMut};
 
 use ctxt::{Context, Fct, FctId, ImplId, TraitId};
-use interner::Name;
-use lexer::position::Position;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 use vtable::VTableBox;
 use ty::BuiltinType;
 use utils::GrowableVec;

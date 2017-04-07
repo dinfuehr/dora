@@ -1,8 +1,8 @@
-use ast;
-use ast::visit::{self, Visitor};
+use dora_parser::ast;
+use dora_parser::ast::visit::{self, Visitor};
 use ctxt::{Context, NodeMap, StructFieldData, StructId};
-use error::msg::Msg;
-use lexer::position::Position;
+use dora_parser::error::msg::Msg;
+use dora_parser::lexer::position::Position;
 use semck;
 use ty::BuiltinType;
 
@@ -72,7 +72,7 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

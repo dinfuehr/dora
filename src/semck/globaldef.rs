@@ -1,13 +1,13 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use ast::*;
-use ast::visit::*;
+use dora_parser::ast::*;
+use dora_parser::ast::visit::*;
+use dora_parser::error::msg::Msg;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 use class::{self, ClassId};
 use ctxt::*;
-use error::msg::Msg;
-use interner::Name;
-use lexer::position::Position;
 use sym::Sym::{self, SymClass, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
@@ -228,7 +228,7 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
 #[cfg(test)]
 mod tests {
     use semck::tests::*;
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
 
     #[test]
     fn test_struct() {

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use ast;
-use ast::visit::{self, Visitor};
+use dora_parser::ast;
+use dora_parser::ast::visit::{self, Visitor};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
-use error::msg::Msg;
-use lexer::position::Position;
+use dora_parser::error::msg::Msg;
+use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>, map_trait_defs: &NodeMap<TraitId>) {
@@ -92,7 +92,7 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

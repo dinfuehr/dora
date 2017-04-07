@@ -1,5 +1,5 @@
 use ctxt::Context;
-use interner::Name;
+use dora_parser::interner::Name;
 use baseline::fct::JitFct;
 
 #[cfg(target_os = "linux")]

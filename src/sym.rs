@@ -4,7 +4,7 @@ use self::Sym::*;
 
 use class::{ClassId, TypeParamId};
 use ctxt::*;
-use interner::Name;
+use dora_parser::interner::Name;
 
 #[derive(Debug)]
 pub struct SymTable {

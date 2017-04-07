@@ -1,6 +1,6 @@
-use ast::Elem::ElemGlobal;
-use ast::{File, Global};
-use ast::visit::Visitor;
+use dora_parser::ast::Elem::ElemGlobal;
+use dora_parser::ast::{File, Global};
+use dora_parser::ast::visit::Visitor;
 use ctxt::{Context, GlobalId, NodeMap};
 use semck;
 use ty::BuiltinType;
@@ -41,7 +41,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

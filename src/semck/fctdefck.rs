@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use ast::*;
-use ast::Stmt::*;
-use ast::visit::*;
+use dora_parser::ast::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::visit::*;
 use ctxt::{Context, Fct, FctId, FctParent, FctSrc};
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 use semck;
 use sym::Sym;
 use ty::BuiltinType;
@@ -244,7 +244,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

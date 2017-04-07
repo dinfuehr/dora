@@ -5,7 +5,7 @@ use baseline::fct::BailoutInfo;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::*;
 use ctxt::FctId;
-use lexer::position::Position;
+use dora_parser::lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::{ptr_width, fits_i32};
 use object::{Header, offset_of_array_data, offset_of_array_length};

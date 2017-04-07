@@ -1,9 +1,9 @@
 use ctxt::{Context, Fct, FctSrc};
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 
-use ast::*;
-use ast::Stmt::*;
-use ast::visit::*;
+use dora_parser::ast::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::visit::*;
 
 pub fn check<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
@@ -75,7 +75,7 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

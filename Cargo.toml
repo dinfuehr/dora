@@ -11,6 +11,7 @@ libc = "*"
 time = "*"
 winapi = "*"
 kernel32-sys = "*"
+dora-parser = { path = "lib/dora-parser" }
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

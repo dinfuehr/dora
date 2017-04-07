@@ -1,10 +1,10 @@
 use std::cmp::max;
 use std::collections::HashMap;
 
-use ast::*;
-use ast::Stmt::*;
-use ast::Expr::*;
-use ast::visit::*;
+use dora_parser::ast::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::visit::*;
 use cpu::*;
 use ctxt::{Arg, CallSite, Context, Fct, FctId, FctParent, FctSrc, NodeMap, Store, VarId};
 use mem;

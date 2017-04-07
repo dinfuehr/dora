@@ -1,7 +1,7 @@
-use ast::{Stmt, Type};
-use ast::Type::{TypeBasic, TypeSelf};
+use dora_parser::ast::{Stmt, Type};
+use dora_parser::ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct, SymTypeParam};
 use ty::BuiltinType;
 
@@ -240,8 +240,8 @@ pub fn always_returns(s: &Stmt) -> bool {
 #[cfg(test)]
 mod tests {
     use ctxt::Context;
-    use error::msg::Msg;
-    use lexer::position::Position;
+    use dora_parser::error::msg::Msg;
+    use dora_parser::lexer::position::Position;
     use test;
 
     pub fn ok(code: &'static str) {

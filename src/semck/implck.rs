@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use ctxt::Context;
-use error::msg::Msg;
-use lexer::position::Position;
+use dora_parser::error::msg::Msg;
+use dora_parser::lexer::position::Position;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     for ximpl in &ctxt.impls {
@@ -71,7 +71,7 @@ fn report(ctxt: &Context, pos: Position, msg: Msg) {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

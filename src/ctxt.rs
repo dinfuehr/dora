@@ -6,17 +6,17 @@ use std::ptr;
 use std::sync::{Mutex, RwLock};
 
 use driver::cmd::Args;
-use error::diag::Diagnostic;
+use dora_parser::error::diag::Diagnostic;
 
-use ast;
+use dora_parser::ast;
 use baseline::fct::JitFct;
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
 use class::{Class, ClassId, FieldId};
 use gc::Gc;
-use interner::*;
-use lexer::position::Position;
+use dora_parser::interner::*;
+use dora_parser::lexer::position::Position;
 use safepoint::PollingPage;
 use stacktrace::DoraToNativeInfo;
 use sym::*;

@@ -1,17 +1,17 @@
 use std::mem;
 
-use ast::{self, Ast};
+use dora_parser::ast::{self, Ast};
 use ctxt::{Context, FctId};
 use driver::cmd;
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 
-use interner::Interner;
-use lexer::reader::Reader;
+use dora_parser::interner::Interner;
+use dora_parser::lexer::reader::Reader;
 use baseline;
-use lexer::position::Position;
+use dora_parser::lexer::position::Position;
 use os;
 
-use parser::Parser;
+use dora_parser::parser::Parser;
 use semck;
 use stacktrace::DoraToNativeInfo;
 use ty::BuiltinType;

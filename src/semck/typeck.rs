@@ -2,15 +2,15 @@ use std::{f32, f64};
 
 use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType};
 use class::ClassId;
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 
-use ast::*;
-use ast::Expr::*;
-use ast::Stmt::*;
-use ast::visit::Visitor;
-use interner::Name;
-use lexer::position::Position;
-use lexer::token::{FloatSuffix, IntSuffix};
+use dora_parser::ast::*;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::visit::Visitor;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
+use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use semck::specialize;
 use sym::Sym::SymClass;
 use ty::BuiltinType;
@@ -1271,7 +1271,7 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
     use test::parse_with_errors;
 

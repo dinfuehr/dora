@@ -1,10 +1,10 @@
 use ctxt::Context;
 use driver::cmd::Args;
-use ast::Ast;
-use interner::Interner;
-use lexer::reader::Reader;
+use dora_parser::ast::Ast;
+use dora_parser::interner::Interner;
+use dora_parser::lexer::reader::Reader;
 use os;
-use parser::Parser;
+use dora_parser::parser::Parser;
 use semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T

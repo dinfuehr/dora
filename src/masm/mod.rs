@@ -11,7 +11,7 @@ use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
 use ctxt::Context;
 use dseg::DSeg;
-use lexer::position::Position;
+use dora_parser::lexer::position::Position;
 use os::signal::Trap;
 use ty::MachineMode;
 

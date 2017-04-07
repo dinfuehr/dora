@@ -4,9 +4,9 @@ use std::slice;
 
 use capstone::{Engine, Error};
 
-use ast::*;
-use ast::Stmt::*;
-use ast::visit::*;
+use dora_parser::ast::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::visit::*;
 
 use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};

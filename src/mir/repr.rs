@@ -1,5 +1,5 @@
 use ctxt::FctId;
-use interner::Name;
+use dora_parser::interner::Name;
 
 pub struct Mir {
     pub name: Name,

@@ -1,4 +1,4 @@
-use ast::{Stmt, StmtBlockType, StmtReturnType};
+use dora_parser::ast::{Stmt, StmtBlockType, StmtReturnType};
 use ctxt::Fct;
 use mir::repr::{BasicBlockId, BasicBlock, Mir};
 

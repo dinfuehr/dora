@@ -1,12 +1,12 @@
 use ctxt::*;
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 
-use ast::*;
-use ast::Expr::*;
-use ast::Stmt::*;
-use ast::visit::*;
-use interner::Name;
-use lexer::position::Position;
+use dora_parser::ast::*;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::visit::*;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
 
 use sym::Sym;
 use sym::Sym::*;
@@ -359,7 +359,7 @@ fn str(ctxt: &Context, name: Name) -> String {
 
 #[cfg(test)]
 mod tests {
-    use error::msg::Msg;
+    use dora_parser::error::msg::Msg;
     use semck::tests::*;
 
     #[test]

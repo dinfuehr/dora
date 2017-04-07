@@ -5,7 +5,7 @@ use std::ptr;
 use baseline::stub::ensure_stub;
 use class::{Class, ClassId};
 use ctxt::{Context, Fct, StructId, StructData};
-use error::msg::Msg;
+use dora_parser::error::msg::Msg;
 use mem;
 use object::Header;
 use ty::BuiltinType;
@@ -386,8 +386,8 @@ fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 mod tests {
     use class::ClassId;
     use ctxt::Context;
-    use error::msg::Msg;
-    use interner::Name;
+    use dora_parser::error::msg::Msg;
+    use dora_parser::interner::Name;
     use object::Header;
     use mem;
     use semck::tests::{err, errors, ok, ok_with_test, pos};

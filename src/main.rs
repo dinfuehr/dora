@@ -12,6 +12,7 @@ extern crate docopt;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
+extern crate dora_parser;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
@@ -25,26 +26,21 @@ macro_rules! offset_of {
     }
 }
 
-mod ast;
 mod baseline;
 mod class;
 mod cpu;
 mod ctxt;
 mod driver;
 mod dseg;
-mod error;
 mod execstate;
 mod gc;
 mod handle;
-mod interner;
-mod lexer;
 mod masm;
 mod mem;
 mod mir;
 mod object;
 mod os;
 mod os_cpu;
-mod parser;
 mod semck;
 mod stacktrace;
 mod stdlib;

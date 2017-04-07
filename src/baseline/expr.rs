@@ -1,5 +1,5 @@
-use ast::*;
-use ast::Expr::*;
+use dora_parser::ast::*;
+use dora_parser::ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
                         should_emit_debug, TempOffsets};
 use baseline::fct::{CatchType, Comment};
@@ -11,8 +11,8 @@ use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_T
           REG_PARAMS};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
-use lexer::position::Position;
-use lexer::token::{FloatSuffix, IntSuffix};
+use dora_parser::lexer::position::Position;
+use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use masm::*;
 use mem;
 use object::{Header, Str};
