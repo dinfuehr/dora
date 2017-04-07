@@ -33,6 +33,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
     let mut map_impl_defs = NodeMap::new(); // get ImplId from ast node
     let mut map_global_defs = NodeMap::new(); // get GlobalId from ast node
+    let mut map_const_defs = NodeMap::new(); // get ConstId from ast node
 
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies
@@ -41,7 +42,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
                      &mut map_struct_defs,
                      &mut map_trait_defs,
                      &mut map_impl_defs,
-                     &mut map_global_defs);
+                     &mut map_global_defs,
+                     &mut map_const_defs);
     return_on_error!(ctxt);
 
     // define internal classes

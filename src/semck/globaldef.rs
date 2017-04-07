@@ -16,7 +16,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>,
                    map_struct_defs: &mut NodeMap<StructId>,
                    map_trait_defs: &mut NodeMap<TraitId>,
                    map_impl_defs: &mut NodeMap<ImplId>,
-                   map_global_defs: &mut NodeMap<GlobalId>) {
+                   map_global_defs: &mut NodeMap<GlobalId>,
+                   map_const_defs: &mut NodeMap<ConstId>) {
     let mut gdef = GlobalDef {
         ctxt: ctxt,
         map_cls_defs: map_cls_defs,
@@ -24,6 +25,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>,
         map_trait_defs: map_trait_defs,
         map_impl_defs: map_impl_defs,
         map_global_defs: map_global_defs,
+        map_const_defs: map_const_defs,
     };
 
     gdef.visit_ast(ctxt.ast);
@@ -36,6 +38,7 @@ struct GlobalDef<'x, 'ast: 'x> {
     map_trait_defs: &'x mut NodeMap<TraitId>,
     map_impl_defs: &'x mut NodeMap<ImplId>,
     map_global_defs: &'x mut NodeMap<GlobalId>,
+    map_const_defs: &'x mut NodeMap<ConstId>,
 }
 
 impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
@@ -90,6 +93,19 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.ctxt.impls.push(RefCell::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
+    }
+
+    fn visit_const(&mut self, c: &'ast Const) {
+        let id: ConstId = self.ctxt.consts.len().into();
+        let xconst = ConstData {
+            id: id,
+            pos: c.pos,
+            name: c.name,
+            ty: BuiltinType::Unit,
+        };
+
+        self.ctxt.consts.push(xconst);
+        self.map_const_defs.insert(c.id, id);
     }
 
     fn visit_class(&mut self, c: &'ast Class) {

@@ -37,6 +37,7 @@ pub struct Context<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
+    pub consts: GrowableVec<ConstData>, // stores all const definitions
     pub structs: GrowableVec<StructData>, // stores all struct definitions
     pub classes: GrowableVec<Class>, // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
@@ -59,6 +60,7 @@ impl<'ast> Context<'ast> {
 
         Context {
             args: args,
+            consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             classes: GrowableVec::new(),
             traits: Vec::new(),
@@ -946,6 +948,23 @@ pub struct CallSite<'ast> {
     pub args: Vec<Arg<'ast>>,
     pub super_call: bool,
     pub return_type: BuiltinType,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ConstId(usize);
+
+impl From<usize> for ConstId {
+    fn from(data: usize) -> ConstId {
+        ConstId(data)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ConstData {
+    pub id: ConstId,
+    pub pos: Position,
+    pub name: Name,
+    pub ty: BuiltinType,
 }
 
 #[derive(Copy, Clone, Debug)]
