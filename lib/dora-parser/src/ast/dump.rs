@@ -64,6 +64,7 @@ impl<'a> AstDumper<'a> {
                 ElemTrait(ref xtrait) => self.dump_trait(xtrait),
                 ElemImpl(ref ximpl) => self.dump_impl(ximpl),
                 ElemGlobal(ref global) => self.dump_global(global),
+                ElemConst(ref xconst) => self.dump_const(xconst),
             }
         }
     }
@@ -83,6 +84,19 @@ impl<'a> AstDumper<'a> {
             } else {
                 dump!(d, "<no expr given>");
             }
+        });
+    }
+
+    fn dump_const(&mut self, xconst: &Const) {
+        dump!(self,
+              "const {} @ {} {}",
+              self.str(xconst.name),
+              xconst.pos,
+              xconst.id);
+
+        self.indent(|d| {
+            d.dump_type(&xconst.data_type);
+            d.dump_expr(&xconst.expr);
         });
     }
 

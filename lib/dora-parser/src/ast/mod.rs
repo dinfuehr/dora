@@ -116,6 +116,7 @@ pub enum Elem {
     ElemTrait(Trait),
     ElemImpl(Impl),
     ElemGlobal(Global),
+    ElemConst(Const),
 }
 
 impl Elem {
@@ -127,6 +128,7 @@ impl Elem {
             &ElemTrait(ref t) => t.id,
             &ElemImpl(ref i) => i.id,
             &ElemGlobal(ref g) => g.id,
+            &ElemConst(ref c) => c.id,
         }
     }
 
@@ -171,6 +173,13 @@ impl Elem {
             _ => None,
         }
     }
+
+    pub fn to_const(&self) -> Option<&Const> {
+        match self {
+            &ElemConst(ref konst) => Some(konst),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -181,6 +190,15 @@ pub struct Global {
     pub reassignable: bool,
     pub data_type: Type,
     pub expr: Option<Box<Expr>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Const {
+    pub id: NodeId,
+    pub pos: Position,
+    pub name: Name,
+    pub data_type: Type,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]

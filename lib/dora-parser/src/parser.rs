@@ -114,11 +114,34 @@ impl<'a> Parser<'a> {
                 Ok(ElemGlobal(global))
             }
 
+            TokenKind::Const => {
+                self.ban_modifiers(&modifiers)?;
+                let xconst = self.parse_const()?;
+                Ok(ElemConst(xconst))
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 Err(MsgWithPos::new(self.token.position, msg))
             }
         }
+    }
+
+    fn parse_const(&mut self) -> Result<Const, MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Const)?.position;
+        let name = self.expect_identifier()?;
+        self.expect_token(TokenKind::Colon)?;
+        let ty = self.parse_type()?;
+        self.expect_token(TokenKind::Eq)?;
+        let expr = self.parse_expression()?;
+
+        Ok(Const {
+            id: self.generate_id(),
+            pos: pos,
+            name: name,
+            data_type: ty,
+            expr: expr,
+        })
     }
 
     fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
@@ -3339,5 +3362,13 @@ mod tests {
         let fct = prog.fct0();
 
         assert_eq!(1, fct.type_params.as_ref().unwrap().len());
+    }
+
+    #[test]
+    fn parse_const() {
+        let (stmt, interner) = parse("const x: int = 0;");
+        let xconst = expr.to_const().unwrap();
+
+        assert_eq!("x", *interner.str(xconst.name));
     }
 }

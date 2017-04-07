@@ -33,6 +33,10 @@ pub trait Visitor<'v>: Sized {
         walk_struct(self, s);
     }
 
+    fn visit_const(&mut self, c: &'v Const) {
+        walk_const(self, c);
+    }
+
     fn visit_struct_field(&mut self, f: &'v StructField) {
         walk_struct_field(self, f);
     }
@@ -89,6 +93,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemTrait(ref t) => v.visit_trait(t),
             ElemImpl(ref i) => v.visit_impl(i),
             ElemGlobal(ref g) => v.visit_global(g),
+            ElemConst(ref c) => v.visit_const(c),
         }
     }
 }
@@ -125,6 +130,11 @@ pub fn walk_class<'v, V: Visitor<'v>>(v: &mut V, c: &'v Class) {
     for m in &c.methods {
         v.visit_method(m);
     }
+}
+
+pub fn walk_const<'v, V: Visitor<'v>>(v: &mut V, c: &'v Const) {
+    v.visit_type(&c.data_type);
+    v.visit_expr_top(&c.expr);
 }
 
 pub fn walk_struct<'v, V: Visitor<'v>>(v: &mut V, s: &'v Struct) {
