@@ -8,7 +8,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use class::{self, ClassId};
 use ctxt::*;
-use sym::Sym::{self, SymClass, SymFct, SymGlobal, SymStruct, SymTrait};
+use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>,
@@ -106,6 +106,12 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.ctxt.consts.push(xconst);
         self.map_const_defs.insert(c.id, id);
+
+        let sym = SymConst(id);
+
+        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
+            report(self.ctxt, c.name, c.pos, sym);
+        }
     }
 
     fn visit_class(&mut self, c: &'ast Class) {
@@ -235,6 +241,7 @@ fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
         SymFct(_) => Msg::ShadowFunction(name),
         SymTrait(_) => Msg::ShadowTrait(name),
         SymGlobal(_) => Msg::ShadowGlobal(name),
+        SymConst(_) => Msg::ShadowConst(name),
         _ => unimplemented!(),
     };
 
@@ -272,5 +279,19 @@ mod tests {
         err("trait Foo {} fun Foo() {}",
             pos(1, 14),
             Msg::ShadowTrait("Foo".into()));
+    }
+
+    #[test]
+    fn test_const() {
+        ok("const foo: int = 0;");
+        err("const foo: int = 0; fun foo() {}",
+            pos(1, 21),
+            Msg::ShadowConst("foo".into()));
+        err("const foo: int = 0; class foo {}",
+            pos(1, 21),
+            Msg::ShadowConst("foo".into()));
+        err("const foo: int = 0; struct foo {}",
+            pos(1, 21),
+            Msg::ShadowConst("foo".into()));
     }
 }

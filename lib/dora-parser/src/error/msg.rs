@@ -26,6 +26,7 @@ pub enum Msg {
     ShadowTrait(String),
     ShadowField(String),
     ShadowGlobal(String),
+    ShadowConst(String),
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -138,6 +139,7 @@ impl Msg {
             ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
             ShadowField(ref name) => format!("field with name `{}` already exists.", name),
             ShadowGlobal(ref name) => format!("can not shadow global variable `{}`.", name),
+            ShadowConst(ref name) => format!("can not shadow const `{}`", name),
             VarNeedsTypeInfo(ref name) => {
                 format!("variable `{}` needs either type declaration or expression.",
                         name)

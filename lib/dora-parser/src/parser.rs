@@ -134,6 +134,7 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type()?;
         self.expect_token(TokenKind::Eq)?;
         let expr = self.parse_expression()?;
+        self.expect_semicolon()?;
 
         Ok(Const {
             id: self.generate_id(),
@@ -3366,8 +3367,8 @@ mod tests {
 
     #[test]
     fn parse_const() {
-        let (stmt, interner) = parse("const x: int = 0;");
-        let xconst = expr.to_const().unwrap();
+        let (prog, interner) = parse("const x: int = 0;");
+        let xconst = prog.const0();
 
         assert_eq!("x", *interner.str(xconst.name));
     }

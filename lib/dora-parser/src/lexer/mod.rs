@@ -65,6 +65,7 @@ impl Lexer {
         keywords.insert("pub", TokenKind::Pub);
         keywords.insert("static", TokenKind::Static);
         keywords.insert("spawn", TokenKind::Spawn);
+        keywords.insert("const", TokenKind::Const);
 
         Lexer {
             reader: reader,
@@ -855,12 +856,13 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Return, 1, 21);
         assert_tok(&mut reader, TokenKind::Nil, 1, 28);
 
-        let mut reader = Lexer::from_str("type struct enum alias trait");
+        let mut reader = Lexer::from_str("type struct enum alias trait const");
         assert_tok(&mut reader, TokenKind::Type, 1, 1);
         assert_tok(&mut reader, TokenKind::Struct, 1, 6);
         assert_tok(&mut reader, TokenKind::Enum, 1, 13);
         assert_tok(&mut reader, TokenKind::Alias, 1, 18);
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
+        assert_tok(&mut reader, TokenKind::Const, 1, 30);
 
         let mut reader = Lexer::from_str("pub static for in impl Self spawn");
         assert_tok(&mut reader, TokenKind::Pub, 1, 1);

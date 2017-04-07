@@ -91,6 +91,14 @@ impl Ast {
             .to_global()
             .unwrap()
     }
+
+    #[cfg(test)]
+    pub fn const0(&self) -> &Const {
+        self.files.last().unwrap().elements[0]
+            .to_const()
+            .unwrap()
+    }
+
 }
 
 #[derive(Clone, Debug)]

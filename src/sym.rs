@@ -87,6 +87,7 @@ pub enum Sym {
     SymTrait(TraitId),
     SymGlobal(GlobalId),
     SymTypeParam(TypeParamId),
+    SymConst(ConstId)
 }
 
 impl Sym {
@@ -184,6 +185,20 @@ impl Sym {
     pub fn to_type_param(&self) -> Option<TypeParamId> {
         match *self {
             SymTypeParam(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub fn is_const(&self) -> bool {
+        match *self {
+            SymConst(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_const(&self) -> Option<ConstId> {
+        match *self {
+            SymConst(id) => Some(id),
             _ => None,
         }
     }
