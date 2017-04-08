@@ -521,7 +521,39 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 unimplemented!();
             }
 
-            IdentType::Const(_) => unimplemented!(),
+            IdentType::Const(const_id) => {
+                self.emit_const(const_id, dest);
+            }
+        }
+    }
+
+    fn emit_const(&mut self, const_id: ConstId, dest: ExprStore) {
+        let xconst = self.ctxt.consts[const_id].borrow();
+        let ty = xconst.ty;
+
+        match ty {
+            BuiltinType::Bool => {
+                if xconst.value.to_bool() {
+                    self.masm.load_true(dest.reg());
+                } else {
+                    self.masm.load_false(dest.reg());
+                }
+            }
+
+            BuiltinType::Char => {
+                self.masm
+                    .load_int_const(MachineMode::Int32, dest.reg(), xconst.value.to_char() as i64);
+            }
+
+            BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => {
+                self.masm.load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
+            }
+
+            BuiltinType::Float | BuiltinType::Double => {
+                self.masm.load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
+            }
+
+            _ => unimplemented!(),
         }
     }
 

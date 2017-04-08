@@ -983,8 +983,38 @@ pub enum ConstValue {
     None,
     Bool(bool),
     Char(char),
-    Int(u64),
+    Int(i64),
     Float(f64),
+}
+
+impl ConstValue {
+    pub fn to_bool(&self) -> bool {
+        match self {
+            &ConstValue::Bool(b) => b,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_char(&self) -> char {
+        match self {
+            &ConstValue::Char(c) => c,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_int(&self) -> i64 {
+        match self {
+            &ConstValue::Int(i) => i,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_float(&self) -> f64 {
+        match self {
+            &ConstValue::Float(f) => f,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

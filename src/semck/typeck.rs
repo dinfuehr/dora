@@ -1242,7 +1242,7 @@ fn check_const<'ast>(ctxt: &Context<'ast>,
         &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
         &ExprLitInt(ref expr) => {
             let ty = check_lit_int(ctxt, expr, NodeId(0));
-            (ty, ConstValue::Int(expr.value))
+            (ty, ConstValue::Int(expr.value as i64))
         }
         &ExprLitFloat(ref expr) => {
             let ty = check_lit_float(ctxt, expr, NodeId(0));
