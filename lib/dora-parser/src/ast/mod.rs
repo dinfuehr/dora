@@ -1582,6 +1582,30 @@ impl Expr {
         }
     }
 
+    pub fn pos(&self) -> Position {
+        match *self {
+            Expr::ExprUn(ref val) => val.pos,
+            Expr::ExprBin(ref val) => val.pos,
+            Expr::ExprLitChar(ref val) => val.pos,
+            Expr::ExprLitInt(ref val) => val.pos,
+            Expr::ExprLitFloat(ref val) => val.pos,
+            Expr::ExprLitStr(ref val) => val.pos,
+            Expr::ExprLitBool(ref val) => val.pos,
+            Expr::ExprLitStruct(ref val) => val.pos,
+            Expr::ExprIdent(ref val) => val.pos,
+            Expr::ExprAssign(ref val) => val.pos,
+            Expr::ExprCall(ref val) => val.pos,
+            Expr::ExprDelegation(ref val) => val.pos,
+            Expr::ExprField(ref val) => val.pos,
+            Expr::ExprSelf(ref val) => val.pos,
+            Expr::ExprSuper(ref val) => val.pos,
+            Expr::ExprNil(ref val) => val.pos,
+            Expr::ExprArray(ref val) => val.pos,
+            Expr::ExprConv(ref val) => val.pos,
+            Expr::ExprTry(ref val) => val.pos,
+        }
+    }
+
     pub fn id(&self) -> NodeId {
         match *self {
             Expr::ExprUn(ref val) => val.id,

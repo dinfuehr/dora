@@ -5,6 +5,7 @@ use dora_parser::error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct, SymTypeParam};
 use ty::BuiltinType;
 
+mod constdefck;
 mod clsdefck;
 mod fctdefck;
 mod flowck;
@@ -55,6 +56,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     traitdefck::check(ctxt, &map_trait_defs);
     impldefck::check(ctxt, &map_impl_defs);
     globaldefck::check(ctxt, &map_global_defs);
+    constdefck::check(ctxt, &map_const_defs);
     return_on_error!(ctxt);
 
     // check names/identifiers of local variables

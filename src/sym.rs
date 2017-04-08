@@ -87,7 +87,7 @@ pub enum Sym {
     SymTrait(TraitId),
     SymGlobal(GlobalId),
     SymTypeParam(TypeParamId),
-    SymConst(ConstId)
+    SymConst(ConstId),
 }
 
 impl Sym {

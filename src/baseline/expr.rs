@@ -520,6 +520,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             IdentType::Struct(_) => {
                 unimplemented!();
             }
+
+            IdentType::Const(_) => unimplemented!(),
         }
     }
 
@@ -673,6 +675,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
             IdentType::Struct(_) => {
+                unimplemented!();
+            }
+
+            IdentType::Const(_) => {
                 unimplemented!();
             }
         }
@@ -945,15 +951,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let ty = self.src.ty(e.id);
 
         match ty {
-            BuiltinType::Bool |
-            BuiltinType::Byte |
-            BuiltinType::Int |
-            BuiltinType::Long |
-            BuiltinType::Char =>
-                self.masm.load_int_const(ty.mode(), dest.reg(), 0),
-            BuiltinType::Float |
-            BuiltinType::Double =>
-                self.masm.load_float_const(ty.mode(), dest.freg(), 0.0),
+            BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long |
+            BuiltinType::Char => self.masm.load_int_const(ty.mode(), dest.reg(), 0),
+            BuiltinType::Float | BuiltinType::Double => {
+                self.masm.load_float_const(ty.mode(), dest.freg(), 0.0)
+            }
             _ => self.masm.load_nil(dest.reg()),
         }
     }

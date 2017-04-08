@@ -37,7 +37,7 @@ pub struct Context<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub primitive_classes: PrimitiveClasses,
-    pub consts: GrowableVec<ConstData>, // stores all const definitions
+    pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
     pub structs: GrowableVec<StructData>, // stores all struct definitions
     pub classes: GrowableVec<Class>, // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
@@ -847,6 +847,7 @@ pub enum IdentType {
     Global(GlobalId),
     Field(ClassId, FieldId),
     Struct(StructId),
+    Const(ConstId),
 }
 
 impl IdentType {
@@ -959,12 +960,31 @@ impl From<usize> for ConstId {
     }
 }
 
+impl<'ast> Index<ConstId> for GrowableVec<ConstData<'ast>> {
+    type Output = RefCell<ConstData<'ast>>;
+
+    fn index(&self, index: ConstId) -> &RefCell<ConstData<'ast>> {
+        &self[index.0 as usize]
+    }
+}
+
 #[derive(Clone, Debug)]
-pub struct ConstData {
+pub struct ConstData<'ast> {
     pub id: ConstId,
     pub pos: Position,
     pub name: Name,
     pub ty: BuiltinType,
+    pub expr: &'ast ast::Expr,
+    pub value: ConstValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ConstValue {
+    None,
+    Bool(bool),
+    Char(char),
+    Int(u64),
+    Float(f64),
 }
 
 #[derive(Copy, Clone, Debug)]

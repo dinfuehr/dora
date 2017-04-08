@@ -102,6 +102,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: c.pos,
             name: c.name,
             ty: BuiltinType::Unit,
+            expr: &c.expr,
+            value: ConstValue::None,
         };
 
         self.ctxt.consts.push(xconst);

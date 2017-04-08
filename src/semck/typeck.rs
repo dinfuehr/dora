@@ -1,6 +1,7 @@
 use std::{f32, f64};
 
-use ctxt::{CallType, Context, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType};
+use ctxt::{CallType, ConstData, ConstValue, Context, ConvInfo, Fct, FctId, FctParent, FctSrc,
+           IdentType};
 use class::ClassId;
 use dora_parser::error::msg::Msg;
 
@@ -37,6 +38,13 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
         };
 
         typeck.check();
+    }
+
+    for xconst in ctxt.consts.iter() {
+        let mut xconst = xconst.borrow_mut();
+        let value = check_const(ctxt, &*xconst, xconst.expr);
+
+        xconst.value = value;
     }
 }
 
@@ -227,6 +235,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
+
+            IdentType::Const(const_id) => {
+                let xconst = self.ctxt.consts[const_id].borrow();
+
+                self.src.set_ty(e.id, xconst.ty);
+                self.expr_type = xconst.ty;
+            }
         }
     }
 
@@ -292,6 +307,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Struct(_) => {
+                        unimplemented!();
+                    }
+
+                    &IdentType::Const(_) => {
                         unimplemented!();
                     }
                 }
@@ -725,7 +744,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            let (specialized_cls_id, type_id) = specialize::specialize_class(self.ctxt, &*cls, types.clone());
+            let (specialized_cls_id, type_id) =
+                specialize::specialize_class(self.ctxt, &*cls, types.clone());
 
             cls_id = specialized_cls_id;
             ty = BuiltinType::Generic(type_id);
@@ -1128,66 +1148,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
-        let ty = match e.suffix {
-            IntSuffix::Byte => BuiltinType::Byte,
-            IntSuffix::Int => BuiltinType::Int,
-            IntSuffix::Long => BuiltinType::Long,
-        };
-
-        let val = e.value;
-        let negative = e.suffix != IntSuffix::Byte && self.negative_expr_id == e.id;
-
-        let max = match e.suffix {
-            IntSuffix::Byte => 256,
-            IntSuffix::Int => (1u64 << 31),
-            IntSuffix::Long => (1u64 << 63),
-        };
-
-        if (negative && val > max) || (!negative && val >= max) {
-            let ty = match e.suffix {
-                IntSuffix::Byte => "byte",
-                IntSuffix::Int => "int",
-                IntSuffix::Long => "long",
-            };
-
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::NumberOverflow(ty.into()));
-        }
+        let ty = check_lit_int(self.ctxt, e, self.negative_expr_id);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
 
     fn check_expr_lit_float(&mut self, e: &'ast ExprLitFloatType) {
-        let ty = match e.suffix {
-            FloatSuffix::Float => BuiltinType::Float,
-            FloatSuffix::Double => BuiltinType::Double,
-        };
-
-        let (min, max) = match e.suffix {
-            FloatSuffix::Float => (f32::MIN as f64, f32::MAX as f64),
-            FloatSuffix::Double => (f64::MIN, f64::MAX),
-        };
-
-        let value = if self.negative_expr_id == e.id {
-            -e.value
-        } else {
-            e.value
-        };
-
-        if value < min || value > max {
-            let ty = match e.suffix {
-                FloatSuffix::Float => "float",
-                FloatSuffix::Double => "double",
-            };
-
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::NumberOverflow(ty.into()));
-        }
+        let ty = check_lit_float(self.ctxt, e, self.negative_expr_id);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
@@ -1195,12 +1163,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
-    fn visit_global(&mut self, g: &'ast Global) {
-        if let Some(ref expr) = g.expr {
-            self.visit_expr(expr);
-        }
-    }
-
     fn visit_expr(&mut self, e: &'ast Expr) {
         match *e {
             ExprLitChar(ExprLitCharType { id, .. }) => {
@@ -1269,8 +1231,111 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
     true
 }
 
+fn check_const<'ast>(ctxt: &Context<'ast>,
+                     xconst: &ConstData<'ast>,
+                     expr: &'ast Expr)
+                     -> ConstValue {
+    let (ty, lit) = match expr {
+        &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
+        &ExprLitInt(ref expr) => {
+            let ty = check_lit_int(ctxt, expr, NodeId(0));
+            (ty, ConstValue::Int(expr.value))
+        }
+        &ExprLitFloat(ref expr) => {
+            let ty = check_lit_float(ctxt, expr, NodeId(0));
+            (ty, ConstValue::Float(expr.value))
+        }
+        &ExprLitBool(ref expr) => (BuiltinType::Bool, ConstValue::Bool(expr.value)),
+
+        _ => {
+            let msg = Msg::ConstValueExpected;
+            ctxt.diag.borrow_mut().report(expr.pos(), msg);
+            return ConstValue::None;
+        }
+    };
+
+    if !xconst.ty.allows(ctxt, ty) {
+        let name = ctxt.interner.str(xconst.name).to_string();
+        let const_ty = xconst.ty.name(ctxt);
+        let ty = ty.name(ctxt);
+        let msg = Msg::AssignType(name, const_ty, ty);
+        ctxt.diag.borrow_mut().report(expr.pos(), msg);
+    }
+
+    lit
+}
+
+fn check_lit_int<'ast>(ctxt: &Context<'ast>,
+                       e: &'ast ExprLitIntType,
+                       negative_expr_id: NodeId)
+                       -> BuiltinType {
+    let ty = match e.suffix {
+        IntSuffix::Byte => BuiltinType::Byte,
+        IntSuffix::Int => BuiltinType::Int,
+        IntSuffix::Long => BuiltinType::Long,
+    };
+
+    let val = e.value;
+    let negative = e.suffix != IntSuffix::Byte && negative_expr_id == e.id;
+
+    let max = match e.suffix {
+        IntSuffix::Byte => 256,
+        IntSuffix::Int => (1u64 << 31),
+        IntSuffix::Long => (1u64 << 63),
+    };
+
+    if (negative && val > max) || (!negative && val >= max) {
+        let ty = match e.suffix {
+            IntSuffix::Byte => "byte",
+            IntSuffix::Int => "int",
+            IntSuffix::Long => "long",
+        };
+
+        ctxt.diag
+            .borrow_mut()
+            .report(e.pos, Msg::NumberOverflow(ty.into()));
+    }
+
+    ty
+}
+
+fn check_lit_float<'ast>(ctxt: &Context<'ast>,
+                         e: &'ast ExprLitFloatType,
+                         negative_expr_id: NodeId)
+                         -> BuiltinType {
+    let ty = match e.suffix {
+        FloatSuffix::Float => BuiltinType::Float,
+        FloatSuffix::Double => BuiltinType::Double,
+    };
+
+    let (min, max) = match e.suffix {
+        FloatSuffix::Float => (f32::MIN as f64, f32::MAX as f64),
+        FloatSuffix::Double => (f64::MIN, f64::MAX),
+    };
+
+    let value = if negative_expr_id == e.id {
+        -e.value
+    } else {
+        e.value
+    };
+
+    if value < min || value > max {
+        let ty = match e.suffix {
+            FloatSuffix::Float => "float",
+            FloatSuffix::Double => "double",
+        };
+
+        ctxt.diag
+            .borrow_mut()
+            .report(e.pos, Msg::NumberOverflow(ty.into()));
+    }
+
+    ty
+}
+
 #[cfg(test)]
 mod tests {
+    use ctxt::ConstValue;
     use dora_parser::error::msg::Msg;
     use semck::tests::*;
     use test::parse_with_errors;
@@ -1370,7 +1435,8 @@ mod tests {
         err("class Foo {
                 fun bar(a: int) {}
                 fun bar(a: Str) {}
-            }", pos(3, 17),
+            }",
+            pos(3, 17),
             Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 17)));
     }
 
@@ -2180,6 +2246,37 @@ mod tests {
             Msg::WrongNumberTypeParams(1, 0));
         ok("fun f<T>() {} fun g() { f::<int>(); }");
         ok("fun f<T1, T2>() {} fun g() { f::<int, Str>(); }");
+    }
+
+    #[test]
+    fn test_const_check() {
+        err("const one: int = 1;
+            fun f() -> long { return one; }",
+            pos(2, 31), Msg::ReturnType("long".into(), "int".into()));
+
+        err("const one: int = 1;
+            fun f() { let x: Str = one; }",
+            pos(2, 23), Msg::AssignType("x".into(), "Str".into(), "int".into()));
+    }
+
+    #[test]
+    fn test_const() {
+        ok_with_test("  const yes: bool = true;
+                        const x: byte = 255B;
+                        const a: int = 100;
+                        const b: long = 200L;
+                        const c: char = 'A';
+                        const d: float = 3.0F;
+                        const e: double = 6.0;",
+                     |ctxt| {
+            assert_eq!(ConstValue::Bool(true), ctxt.consts[0].borrow().value);
+            assert_eq!(ConstValue::Int(255), ctxt.consts[1].borrow().value);
+            assert_eq!(ConstValue::Int(100), ctxt.consts[2].borrow().value);
+            assert_eq!(ConstValue::Int(200), ctxt.consts[3].borrow().value);
+            assert_eq!(ConstValue::Char('A'), ctxt.consts[4].borrow().value);
+            assert_eq!(ConstValue::Float(3.0), ctxt.consts[5].borrow().value);
+            assert_eq!(ConstValue::Float(6.0), ctxt.consts[6].borrow().value);
+        });
     }
 
     // #[test]

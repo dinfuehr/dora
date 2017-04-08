@@ -17,10 +17,14 @@ pub fn specialize_class(ctxt: &Context,
         return (id, type_id);
     }
 
-    cls.specializations.borrow_mut().insert(type_params.clone(), ClassId::max());
+    cls.specializations
+        .borrow_mut()
+        .insert(type_params.clone(), ClassId::max());
 
     let id = create_specialized_class(ctxt, cls, type_params.clone());
-    cls.specializations.borrow_mut().insert(type_params.clone(), id);
+    cls.specializations
+        .borrow_mut()
+        .insert(type_params.clone(), id);
 
     let type_id = ctxt.types
         .borrow_mut()
@@ -254,4 +258,3 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
         _ => ty,
     }
 }
-

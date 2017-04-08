@@ -37,6 +37,7 @@ pub enum Msg {
     AssignField(String, String, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
+    ConstValueExpected,
     OutsideLoop,
     NoReturnValue,
     MainNotFound,
@@ -192,6 +193,7 @@ impl Msg {
                         op,
                         rhs)
             }
+            ConstValueExpected => "constant value expected".into(),
             OutsideLoop => "statement only allowed inside loops".into(),
             NoReturnValue => "function does not return a value in all code paths".into(),
             MainNotFound => "no `main` function found in the program".into(),

@@ -207,6 +207,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 return;
             }
 
+            Some(SymConst(id)) => {
+                self.src
+                    .map_idents
+                    .insert(ident.id, IdentType::Const(id));
+                return;
+            }
+
             Some(_) => {
                 // do nothing
             }
@@ -467,5 +474,11 @@ mod tests {
         err("fun foo() { let x = Foo; }",
             pos(1, 21),
             Msg::UnknownIdentifier("Foo".into()));
+    }
+
+    #[test]
+    fn const_value() {
+        ok("const one: int = 1;
+            fun f() -> int { return one; }");
     }
 }
