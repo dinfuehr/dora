@@ -311,7 +311,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Const(_) => {
-                        unimplemented!();
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(e.pos, Msg::AssignmentToConst);
                     }
                 }
 
@@ -2252,11 +2255,13 @@ mod tests {
     fn test_const_check() {
         err("const one: int = 1;
             fun f() -> long { return one; }",
-            pos(2, 31), Msg::ReturnType("long".into(), "int".into()));
+            pos(2, 31),
+            Msg::ReturnType("long".into(), "int".into()));
 
         err("const one: int = 1;
             fun f() { let x: Str = one; }",
-            pos(2, 23), Msg::AssignType("x".into(), "Str".into(), "int".into()));
+            pos(2, 23),
+            Msg::AssignType("x".into(), "Str".into(), "int".into()));
     }
 
     #[test]
@@ -2277,6 +2282,14 @@ mod tests {
             assert_eq!(ConstValue::Float(3.0), ctxt.consts[5].borrow().value);
             assert_eq!(ConstValue::Float(6.0), ctxt.consts[6].borrow().value);
         });
+    }
+
+    #[test]
+    fn test_assignment_to_const() {
+        err("const one: int = 1;
+            fun f() { one = 2; }",
+            pos(2, 27),
+            Msg::AssignmentToConst);
     }
 
     // #[test]

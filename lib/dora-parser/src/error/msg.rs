@@ -96,6 +96,7 @@ pub enum Msg {
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     ClassExpected(String),
+    AssignmentToConst,
 }
 
 impl Msg {
@@ -268,8 +269,8 @@ impl Msg {
             ThrowingCallWithoutTry => {
                 "function or method call that is able to throw, needs `try`.".into()
             }
-            TypeParamsExpected => "type params expected".into(),
-            TypeParamNameNotUnique(ref name) => format!("type param `{}` name already used", name),
+            TypeParamsExpected => "type params expected.".into(),
+            TypeParamNameNotUnique(ref name) => format!("type param `{}` name already used.", name),
             StaticMethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
@@ -305,7 +306,8 @@ impl Msg {
             WrongNumberTypeParams(exp, actual) => {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
-            ClassExpected(ref name) => format!("`{}` is not a class", name),
+            ClassExpected(ref name) => format!("`{}` is not a class.", name),
+            AssignmentToConst => "cannot assign to const variable.".into(),
         }
     }
 }
