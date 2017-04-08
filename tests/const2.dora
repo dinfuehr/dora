@@ -1,0 +1,13 @@
+const i: int = -1;
+const l: long = -(-2L);
+const no: bool = false;
+const f: float = -3.0F;
+const d: double = -(-4.0);
+
+fun main() {
+    assert(i == -1);
+    assert(l == 2L);
+    assert(no == false);
+    assert(f == -3.0F);
+    assert(d == 4.0);
+}

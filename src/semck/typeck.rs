@@ -42,7 +42,16 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
     for xconst in ctxt.consts.iter() {
         let mut xconst = xconst.borrow_mut();
-        let value = check_const(ctxt, &*xconst, xconst.expr);
+
+        let (_, value) = {
+            let mut constck = ConstCheck {
+                ctxt: ctxt,
+                xconst: &*xconst,
+                negative_expr_id: NodeId(0),
+            };
+
+            constck.check_expr(xconst.expr)
+        };
 
         xconst.value = value;
     }
@@ -361,40 +370,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn lookup_method(&mut self,
-                     object_type: BuiltinType,
-                     name: Name,
-                     args: &[BuiltinType],
-                     return_type: Option<BuiltinType>)
-                     -> Option<(ClassId, FctId, BuiltinType)> {
-        let cls_id = match object_type {
-            BuiltinType::Class(cls_id) => Some(cls_id),
-            _ => self.ctxt.primitive_classes.find_class(object_type),
-        };
-
-        if let Some(cls_id) = cls_id {
-            let cls = self.ctxt.classes[cls_id].borrow();
-            let ctxt = self.ctxt;
-
-            let candidates = cls.find_methods_with(ctxt, name, |method| {
-                args_compatible(ctxt, &method.params_without_self(), args) &&
-                (return_type.is_none() || method.return_type == return_type.unwrap())
-            });
-
-            if candidates.len() == 1 {
-                let candidate = candidates[0];
-                let fct = self.ctxt.fcts[candidate].borrow();
-
-                return Some((fct.cls_id(), candidate, fct.return_type));
-
-            } else if candidates.len() > 1 {
-                return None;
-            }
-        }
-
-        None
-    }
-
     fn find_method(&mut self,
                    pos: Position,
                    object_type: BuiltinType,
@@ -480,7 +455,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [];
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.lookup_method(ty, name, &call_types, None) {
+            lookup_method(self.ctxt, ty, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
@@ -545,7 +520,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [rhs_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.lookup_method(lhs_type, name, &call_types, None) {
+            lookup_method(self.ctxt, lhs_type, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert_or_replace(e.id, call_type);
@@ -1151,14 +1126,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_lit_int(&mut self, e: &'ast ExprLitIntType) {
-        let ty = check_lit_int(self.ctxt, e, self.negative_expr_id);
+        let (ty, _) = check_lit_int(self.ctxt, e, self.negative_expr_id);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
 
     fn check_expr_lit_float(&mut self, e: &'ast ExprLitFloatType) {
-        let ty = check_lit_float(self.ctxt, e, self.negative_expr_id);
+        let (ty, _) = check_lit_float(self.ctxt, e, self.negative_expr_id);
 
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
@@ -1234,44 +1209,10 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
     true
 }
 
-fn check_const<'ast>(ctxt: &Context<'ast>,
-                     xconst: &ConstData<'ast>,
-                     expr: &'ast Expr)
-                     -> ConstValue {
-    let (ty, lit) = match expr {
-        &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
-        &ExprLitInt(ref expr) => {
-            let ty = check_lit_int(ctxt, expr, NodeId(0));
-            (ty, ConstValue::Int(expr.value as i64))
-        }
-        &ExprLitFloat(ref expr) => {
-            let ty = check_lit_float(ctxt, expr, NodeId(0));
-            (ty, ConstValue::Float(expr.value))
-        }
-        &ExprLitBool(ref expr) => (BuiltinType::Bool, ConstValue::Bool(expr.value)),
-
-        _ => {
-            let msg = Msg::ConstValueExpected;
-            ctxt.diag.borrow_mut().report(expr.pos(), msg);
-            return ConstValue::None;
-        }
-    };
-
-    if !xconst.ty.allows(ctxt, ty) {
-        let name = ctxt.interner.str(xconst.name).to_string();
-        let const_ty = xconst.ty.name(ctxt);
-        let ty = ty.name(ctxt);
-        let msg = Msg::AssignType(name, const_ty, ty);
-        ctxt.diag.borrow_mut().report(expr.pos(), msg);
-    }
-
-    lit
-}
-
 fn check_lit_int<'ast>(ctxt: &Context<'ast>,
                        e: &'ast ExprLitIntType,
                        negative_expr_id: NodeId)
-                       -> BuiltinType {
+                       -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
@@ -1299,13 +1240,19 @@ fn check_lit_int<'ast>(ctxt: &Context<'ast>,
             .report(e.pos, Msg::NumberOverflow(ty.into()));
     }
 
-    ty
+    let val = if negative {
+        (!val + 1) as i64
+    } else {
+        val as i64
+    };
+
+    (ty, val)
 }
 
 fn check_lit_float<'ast>(ctxt: &Context<'ast>,
                          e: &'ast ExprLitFloatType,
                          negative_expr_id: NodeId)
-                         -> BuiltinType {
+                         -> (BuiltinType, f64) {
     let ty = match e.suffix {
         FloatSuffix::Float => BuiltinType::Float,
         FloatSuffix::Double => BuiltinType::Double,
@@ -1333,7 +1280,97 @@ fn check_lit_float<'ast>(ctxt: &Context<'ast>,
             .report(e.pos, Msg::NumberOverflow(ty.into()));
     }
 
-    ty
+    (ty, value)
+}
+
+struct ConstCheck<'a, 'ast: 'a> {
+    ctxt: &'a Context<'ast>,
+    xconst: &'a ConstData<'ast>,
+    negative_expr_id: NodeId,
+}
+
+impl<'a, 'ast> ConstCheck<'a, 'ast> {
+    fn check_expr(&mut self, expr: &'ast Expr) -> (BuiltinType, ConstValue) {
+        let (ty, lit) = match expr {
+            &ExprLitChar(ref expr) => (BuiltinType::Char, ConstValue::Char(expr.value)),
+            &ExprLitInt(ref expr) => {
+                let (ty, val) = check_lit_int(self.ctxt, expr, self.negative_expr_id);
+                (ty, ConstValue::Int(val))
+            }
+            &ExprLitFloat(ref expr) => {
+                let (ty, val) = check_lit_float(self.ctxt, expr, self.negative_expr_id);
+                (ty, ConstValue::Float(val))
+            }
+            &ExprLitBool(ref expr) => (BuiltinType::Bool, ConstValue::Bool(expr.value)),
+
+            &ExprUn(ref expr) if expr.op == UnOp::Neg => {
+                if self.negative_expr_id != expr.id {
+                    self.negative_expr_id = expr.opnd.id();
+                }
+
+                let (ty, val) = self.check_expr(&expr.opnd);
+                let name = self.ctxt.interner.intern("unaryMinus");
+
+                if lookup_method(self.ctxt, ty, name, &[], Some(ty)).is_none() {
+                    let ty = ty.name(self.ctxt);
+                    let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
+
+                    self.ctxt.diag.borrow_mut().report(expr.pos, msg);
+                }
+
+                return (ty, val);
+            }
+
+            _ => {
+                let msg = Msg::ConstValueExpected;
+                self.ctxt.diag.borrow_mut().report(expr.pos(), msg);
+                return (BuiltinType::Unit, ConstValue::None);
+            }
+        };
+
+        if !self.xconst.ty.allows(self.ctxt, ty) {
+            let name = self.ctxt.interner.str(self.xconst.name).to_string();
+            let const_ty = self.xconst.ty.name(self.ctxt);
+            let ty = ty.name(self.ctxt);
+            let msg = Msg::AssignType(name, const_ty, ty);
+            self.ctxt.diag.borrow_mut().report(expr.pos(), msg);
+        }
+
+        (ty, lit)
+    }
+}
+
+fn lookup_method<'ast>(ctxt: &Context<'ast>,
+                    object_type: BuiltinType,
+                    name: Name,
+                    args: &[BuiltinType],
+                    return_type: Option<BuiltinType>)
+                    -> Option<(ClassId, FctId, BuiltinType)> {
+    let cls_id = match object_type {
+        BuiltinType::Class(cls_id) => Some(cls_id),
+        _ => ctxt.primitive_classes.find_class(object_type),
+    };
+
+    if let Some(cls_id) = cls_id {
+        let cls = ctxt.classes[cls_id].borrow();
+
+        let candidates = cls.find_methods_with(ctxt, name, |method| {
+            args_compatible(ctxt, &method.params_without_self(), args) &&
+            (return_type.is_none() || method.return_type == return_type.unwrap())
+        });
+
+        if candidates.len() == 1 {
+            let candidate = candidates[0];
+            let fct = ctxt.fcts[candidate].borrow();
+
+            return Some((fct.cls_id(), candidate, fct.return_type));
+
+        } else if candidates.len() > 1 {
+            return None;
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -2290,6 +2327,13 @@ mod tests {
             fun f() { one = 2; }",
             pos(2, 27),
             Msg::AssignmentToConst);
+    }
+
+    #[test]
+    fn test_unary_minus_byte() {
+        err("const m1: byte = -1B;", pos(1, 18), Msg::UnOpType("-".into(), "byte".into()));
+        ok("const m1: int = -1;");
+        ok("const m1: long = -1L;");
     }
 
     // #[test]
