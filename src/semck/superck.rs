@@ -208,7 +208,7 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
     let parent = cls.parent_class.unwrap();
     let parent = ctxt.classes[parent].borrow();
 
-    let super_method = parent.find_method(ctxt, fct.name, &fct.params_without_self());
+    let super_method = parent.find_method(ctxt, fct.name, false);
 
     if let Some(super_method) = super_method {
         let super_method = ctxt.fcts[super_method].borrow();
@@ -475,7 +475,7 @@ mod tests {
             Msg::SuperfluousOverride("f".into()));
         err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
             pos(1, 57),
-            Msg::SuperfluousOverride("f".into()));
+            Msg::MethodNotOverridable("f".into()));
     }
 
     #[test]
@@ -495,6 +495,17 @@ mod tests {
              class C: B { override fun f() {} }",
             pos(3, 36),
             Msg::MethodNotOverridable("f".into()));
+    }
+
+    #[test]
+    fn test_overload_method_in_super_class() {
+        errors("open class A { fun f() {} }
+            class B: A { fun f(a: int) {} }",
+            &[(pos(2, 26), Msg::MissingOverride("f".into())),
+              (pos(2, 26), Msg::MethodNotOverridable("f".into()))]);
+
+        ok("open class A { static fun f() {} }
+            class B: A { static fun f(a: int) {} }");
     }
 
     #[test]

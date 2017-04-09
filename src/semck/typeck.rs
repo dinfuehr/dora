@@ -387,7 +387,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.ctxt.classes[cls_id].borrow();
             let ctxt = self.ctxt;
 
-            let candidates = cls.find_methods_with(ctxt, name, |method| {
+            let candidates = cls.find_methods_with(ctxt, name, is_static, |method| {
                 args_compatible(ctxt, &method.params_without_self(), args) &&
                 method.is_static == is_static &&
                 (return_type.is_none() || method.return_type == return_type.unwrap())
@@ -455,7 +455,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [];
 
         if let Some((cls_id, fct_id, return_type)) =
-            lookup_method(self.ctxt, ty, name, &call_types, None) {
+            lookup_method(self.ctxt, ty, false, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
@@ -520,7 +520,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [rhs_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            lookup_method(self.ctxt, lhs_type, name, &call_types, None) {
+            lookup_method(self.ctxt, lhs_type, false, name, &call_types, None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert_or_replace(e.id, call_type);
@@ -1311,7 +1311,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                 let (ty, val) = self.check_expr(&expr.opnd);
                 let name = self.ctxt.interner.intern("unaryMinus");
 
-                if lookup_method(self.ctxt, ty, name, &[], Some(ty)).is_none() {
+                if lookup_method(self.ctxt, ty, false, name, &[], Some(ty)).is_none() {
                     let ty = ty.name(self.ctxt);
                     let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
 
@@ -1342,6 +1342,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
 
 fn lookup_method<'ast>(ctxt: &Context<'ast>,
                     object_type: BuiltinType,
+                    is_static: bool,
                     name: Name,
                     args: &[BuiltinType],
                     return_type: Option<BuiltinType>)
@@ -1354,7 +1355,7 @@ fn lookup_method<'ast>(ctxt: &Context<'ast>,
     if let Some(cls_id) = cls_id {
         let cls = ctxt.classes[cls_id].borrow();
 
-        let candidates = cls.find_methods_with(ctxt, name, |method| {
+        let candidates = cls.find_methods_with(ctxt, name, is_static, |method| {
             args_compatible(ctxt, &method.params_without_self(), args) &&
             (return_type.is_none() || method.return_type == return_type.unwrap())
         });

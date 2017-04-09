@@ -132,7 +132,7 @@ impl Class {
         }
     }
 
-    pub fn find_method(&self, ctxt: &Context, name: Name, args: &[BuiltinType]) -> Option<FctId> {
+    pub fn find_method(&self, ctxt: &Context, name: Name, is_static: bool) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
@@ -141,7 +141,7 @@ impl Class {
             for &method in &cls.methods {
                 let method = ctxt.fcts[method].borrow();
 
-                if method.name == name && method.params_without_self() == args {
+                if method.name == name && method.is_static == is_static {
                     return Some(method.id);
                 }
             }
@@ -155,7 +155,7 @@ impl Class {
         }
     }
 
-    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name, f: F) -> Vec<FctId>
+    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name, is_static: bool, f: F) -> Vec<FctId>
         where F: Fn(&Fct) -> bool
     {
         let mut classid = self.id;
@@ -168,7 +168,7 @@ impl Class {
             for &method in &cls.methods {
                 let method = ctxt.fcts[method].borrow();
 
-                if method.name == name && f(&*method) {
+                if method.name == name && method.is_static == is_static && f(&*method) {
                     if let Some(overrides) = method.overrides {
                         ignores.insert(overrides);
                     }
