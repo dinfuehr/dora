@@ -96,11 +96,13 @@ pub enum Msg {
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     ClassExpected(String),
+    ClassExpectedAsTypeParam,
     AssignmentToConst,
     BoundExpected,
     NoTypeParamsExpected,
     MultipleClassBounds,
     DuplicateTraitBound,
+    ClassBoundNotSatisfied(String),
 }
 
 impl Msg {
@@ -311,11 +313,15 @@ impl Msg {
                 format!("expected {} type parameters but got {}.", exp, actual)
             }
             ClassExpected(ref name) => format!("`{}` is not a class.", name),
+            ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
             AssignmentToConst => "cannot assign to const variable.".into(),
             BoundExpected => "class or trait bound expected".into(),
             NoTypeParamsExpected => "no type params allowed".into(),
             MultipleClassBounds => "multiple class bounds not allowed".into(),
             DuplicateTraitBound => "duplicate trait bound".into(),
+            ClassBoundNotSatisfied(ref name) => {
+                format!("not a subclass of `{}`.", name)
+            }
         }
     }
 }

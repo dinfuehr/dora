@@ -2339,6 +2339,25 @@ mod tests {
         ok("const m1: long = -1L;");
     }
 
+    #[test]
+    fn test_generic_bounds() {
+        ok("class Foo
+            class A<T: Foo>
+            fun f() -> A<Foo> { return nil; }");
+
+        ok("open class Foo
+            class Bar: Foo
+            class A<T: Foo>
+            fun f() -> A<Bar> { return nil; }");
+
+        err("class Foo
+            class Bar
+            class A<T: Foo>
+            fun f() -> A<Bar> { return nil; }",
+            pos(1, 1),
+            Msg::ClassBoundNotSatisfied("Foo".into()));
+    }
+
     // #[test]
     // fn test_global() {
     //     ok("let x: int = y+1;

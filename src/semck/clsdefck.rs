@@ -94,7 +94,9 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
-                                if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
+                                if !cls.type_params[type_param_id]
+                                        .trait_bounds
+                                        .insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
                                     self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                                 }
@@ -391,7 +393,9 @@ mod tests {
 
     #[test]
     fn test_generic_bound() {
-        err("class A<T: Foo>", pos(1, 12), Msg::UnknownType("Foo".into()));
+        err("class A<T: Foo>",
+            pos(1, 12),
+            Msg::UnknownType("Foo".into()));
         ok("class Foo class A<T: Foo>");
         ok("trait Foo {} class A<T: Foo>");
     }
@@ -399,12 +403,16 @@ mod tests {
     #[test]
     fn test_generic_multiple_class_bounds() {
         err("class Foo class Bar
-            class A<T: Foo + Bar>", pos(2, 21), Msg::MultipleClassBounds);
+            class A<T: Foo + Bar>",
+            pos(2, 21),
+            Msg::MultipleClassBounds);
     }
 
     #[test]
     fn test_duplicate_trait_bound() {
         err("trait Foo {}
-            class A<T: Foo + Foo>", pos(2, 21), Msg::DuplicateTraitBound);
+            class A<T: Foo + Foo>",
+            pos(2, 21),
+            Msg::DuplicateTraitBound);
     }
 }

@@ -2,6 +2,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
+use dora_parser::error::msg::Msg;
+use dora_parser::lexer::position::Position;
+
 use class::{self, ClassId};
 use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, Var};
 use ty::{BuiltinType, TypeId};
@@ -16,6 +19,8 @@ pub fn specialize_class(ctxt: &Context,
             .insert(BuiltinType::Class(cls.id), type_params);
         return (id, type_id);
     }
+
+    bounds_check(ctxt, cls, &type_params);
 
     cls.specializations
         .borrow_mut()
@@ -256,5 +261,39 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
         }
 
         _ => ty,
+    }
+}
+
+fn bounds_check<'ast>(ctxt: &Context<'ast>,
+                      cls: &class::Class,
+                      type_params: &[BuiltinType]) {
+    for (ind, tp) in cls.type_params.iter().enumerate() {
+        let ty = type_params[ind];
+
+        let cls_id = match ty {
+            BuiltinType::Class(cls_id) => Some(cls_id),
+            BuiltinType::TypeParam(_) => {
+                continue;
+            }
+            _ => ctxt.primitive_classes.find_class(ty),
+        };
+
+        if cls_id.is_none() {
+            ctxt.diag
+                .borrow_mut()
+                .report(Position::new(1, 1), Msg::ClassExpectedAsTypeParam);
+        }
+
+        if let Some(bound_id) = tp.class_bound {
+            let cls = ctxt.classes[cls_id.unwrap()].borrow();
+
+            if !cls.subclass_from(ctxt, bound_id) {
+                let bound = ctxt.classes[bound_id].borrow();
+                let name = ctxt.interner.str(bound.name).to_string();
+                ctxt.diag
+                    .borrow_mut()
+                    .report(bound.pos, Msg::ClassBoundNotSatisfied(name));
+            }
+        }
     }
 }
