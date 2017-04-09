@@ -501,8 +501,8 @@ mod tests {
     fn test_overload_method_in_super_class() {
         errors("open class A { fun f() {} }
             class B: A { fun f(a: int) {} }",
-            &[(pos(2, 26), Msg::MissingOverride("f".into())),
-              (pos(2, 26), Msg::MethodNotOverridable("f".into()))]);
+               &[(pos(2, 26), Msg::MissingOverride("f".into())),
+                 (pos(2, 26), Msg::MethodNotOverridable("f".into()))]);
 
         ok("open class A { static fun f() {} }
             class B: A { static fun f(a: int) {} }");

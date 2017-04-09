@@ -1341,12 +1341,12 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
 }
 
 fn lookup_method<'ast>(ctxt: &Context<'ast>,
-                    object_type: BuiltinType,
-                    is_static: bool,
-                    name: Name,
-                    args: &[BuiltinType],
-                    return_type: Option<BuiltinType>)
-                    -> Option<(ClassId, FctId, BuiltinType)> {
+                       object_type: BuiltinType,
+                       is_static: bool,
+                       name: Name,
+                       args: &[BuiltinType],
+                       return_type: Option<BuiltinType>)
+                       -> Option<(ClassId, FctId, BuiltinType)> {
     let cls_id = match object_type {
         BuiltinType::Class(cls_id) => Some(cls_id),
         _ => ctxt.primitive_classes.find_class(object_type),
@@ -2332,7 +2332,9 @@ mod tests {
 
     #[test]
     fn test_unary_minus_byte() {
-        err("const m1: byte = -1B;", pos(1, 18), Msg::UnOpType("-".into(), "byte".into()));
+        err("const m1: byte = -1B;",
+            pos(1, 18),
+            Msg::UnOpType("-".into(), "byte".into()));
         ok("const m1: int = -1;");
         ok("const m1: long = -1L;");
     }

@@ -542,15 +542,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             BuiltinType::Char => {
                 self.masm
-                    .load_int_const(MachineMode::Int32, dest.reg(), xconst.value.to_char() as i64);
+                    .load_int_const(MachineMode::Int32,
+                                    dest.reg(),
+                                    xconst.value.to_char() as i64);
             }
 
             BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => {
-                self.masm.load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
+                self.masm
+                    .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
 
             BuiltinType::Float | BuiltinType::Double => {
-                self.masm.load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
+                self.masm
+                    .load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
             }
 
             _ => unimplemented!(),

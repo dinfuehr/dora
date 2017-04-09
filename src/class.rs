@@ -155,7 +155,12 @@ impl Class {
         }
     }
 
-    pub fn find_methods_with<F>(&self, ctxt: &Context, name: Name, is_static: bool, f: F) -> Vec<FctId>
+    pub fn find_methods_with<F>(&self,
+                                ctxt: &Context,
+                                name: Name,
+                                is_static: bool,
+                                f: F)
+                                -> Vec<FctId>
         where F: Fn(&Fct) -> bool
     {
         let mut classid = self.id;
