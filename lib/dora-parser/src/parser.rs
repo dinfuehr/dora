@@ -332,9 +332,30 @@ impl<'a> Parser<'a> {
         let pos = self.token.position;
         let name = self.expect_identifier()?;
 
+        let bounds = if self.token.is(TokenKind::Colon) {
+            self.advance_token()?;
+
+            let mut bounds = Vec::new();
+
+            loop {
+                bounds.push(self.parse_type()?);
+
+                if self.token.is(TokenKind::Add) {
+                    self.advance_token()?;
+                } else {
+                    break;
+                }
+            }
+
+            bounds
+        } else {
+            Vec::new()
+        };
+
         Ok(TypeParam {
                name: name,
                pos: pos,
+               bounds: bounds,
            })
     }
 
@@ -3371,5 +3392,23 @@ mod tests {
         let xconst = prog.const0();
 
         assert_eq!("x", *interner.str(xconst.name));
+    }
+
+    #[test]
+    fn parse_generic_with_bound() {
+        let (prog, interner) = parse("class A<T: Foo>");
+        let cls = prog.cls0();
+
+        let type_param = &cls.type_params[0];
+        assert_eq!(2, type_param.bounds);
+    }
+
+    #[test]
+    fn parse_generic_with_multiple_bounds() {
+        let (prog, interner) = parse("class A<T: Foo + Bar>");
+        let cls = prog.cls0();
+
+        let type_param = &cls.type_params[0];
+        assert_eq!(2, type_param.bounds);
     }
 }

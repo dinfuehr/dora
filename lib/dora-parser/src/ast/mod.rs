@@ -413,6 +413,7 @@ pub struct Class {
 pub struct TypeParam {
     pub name: Name,
     pub pos: Position,
+    pub bounds: Vec<Type>,
 }
 
 #[derive(Clone, Debug)]
