@@ -99,6 +99,8 @@ pub enum Msg {
     AssignmentToConst,
     BoundExpected,
     NoTypeParamsExpected,
+    MultipleClassBounds,
+    DuplicateTraitBound,
 }
 
 impl Msg {
@@ -312,6 +314,8 @@ impl Msg {
             AssignmentToConst => "cannot assign to const variable.".into(),
             BoundExpected => "class or trait bound expected".into(),
             NoTypeParamsExpected => "no type params allowed".into(),
+            MultipleClassBounds => "multiple class bounds not allowed".into(),
+            DuplicateTraitBound => "duplicate trait bound".into(),
         }
     }
 }

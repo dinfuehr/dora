@@ -84,12 +84,20 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         let ty = semck::read_type(self.ctxt, bound);
 
                         match ty {
-                            Some(BuiltinType::Class(_)) => {
-
+                            Some(BuiltinType::Class(cls_id)) => {
+                                if let None = cls.type_params[type_param_id].class_bound {
+                                    cls.type_params[type_param_id].class_bound = Some(cls_id);
+                                } else {
+                                    let msg = Msg::MultipleClassBounds;
+                                    self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                }
                             }
 
-                            Some(BuiltinType::Trait(_)) => {
-
+                            Some(BuiltinType::Trait(trait_id)) => {
+                                if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
+                                    let msg = Msg::DuplicateTraitBound;
+                                    self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                }
                             }
 
                             None => {
@@ -386,5 +394,17 @@ mod tests {
         err("class A<T: Foo>", pos(1, 12), Msg::UnknownType("Foo".into()));
         ok("class Foo class A<T: Foo>");
         ok("trait Foo {} class A<T: Foo>");
+    }
+
+    #[test]
+    fn test_generic_multiple_class_bounds() {
+        err("class Foo class Bar
+            class A<T: Foo + Bar>", pos(2, 21), Msg::MultipleClassBounds);
+    }
+
+    #[test]
+    fn test_duplicate_trait_bound() {
+        err("trait Foo {}
+            class A<T: Foo + Foo>", pos(2, 21), Msg::DuplicateTraitBound);
     }
 }

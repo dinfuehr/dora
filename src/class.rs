@@ -62,7 +62,7 @@ pub struct Class {
     pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
 
-    pub type_params: Vec<Name>,
+    pub type_params: Vec<TypeParam>,
     pub is_generic: bool,
     pub specialization_for: Option<ClassId>,
     pub specialization_params: Vec<BuiltinType>,
@@ -93,7 +93,7 @@ impl Class {
         let params = if self.type_params.len() > 0 {
             self.type_params
                 .iter()
-                .map(|&n| ctxt.interner.str(n).to_string())
+                .map(|p| ctxt.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
 
@@ -278,5 +278,22 @@ impl Index<FieldId> for Vec<Field> {
 impl IndexMut<FieldId> for Vec<Field> {
     fn index_mut(&mut self, index: FieldId) -> &mut Field {
         &mut self[index.0]
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeParam {
+    pub name: Name,
+    pub class_bound: Option<ClassId>,
+    pub trait_bounds: HashSet<TraitId>,
+}
+
+impl TypeParam {
+    pub fn new(name: Name) -> TypeParam {
+        TypeParam {
+            name: name,
+            class_bound: None,
+            trait_bounds: HashSet::new(),
+        }
     }
 }

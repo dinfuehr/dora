@@ -25,9 +25,9 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
                 let cls = ctxt.classes[owner_class].borrow();
                 let mut type_param_id = 0;
 
-                for &name in &cls.type_params {
+                for param in &cls.type_params {
                     let sym = Sym::SymTypeParam(type_param_id.into());
-                    ctxt.sym.borrow_mut().insert(name, sym);
+                    ctxt.sym.borrow_mut().insert(param.name, sym);
                     type_param_id += 1;
                 }
 
