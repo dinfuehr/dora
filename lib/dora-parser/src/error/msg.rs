@@ -97,6 +97,8 @@ pub enum Msg {
     WrongNumberTypeParams(usize, usize),
     ClassExpected(String),
     AssignmentToConst,
+    BoundExpected,
+    NoTypeParamsExpected,
 }
 
 impl Msg {
@@ -308,6 +310,8 @@ impl Msg {
             }
             ClassExpected(ref name) => format!("`{}` is not a class.", name),
             AssignmentToConst => "cannot assign to const variable.".into(),
+            BoundExpected => "class or trait bound expected".into(),
+            NoTypeParamsExpected => "no type params allowed".into(),
         }
     }
 }

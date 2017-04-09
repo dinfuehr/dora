@@ -80,6 +80,29 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
                     params.push(BuiltinType::TypeParam(type_param_id.into()));
 
+                    for bound in &type_param.bounds {
+                        let ty = semck::read_type(self.ctxt, bound);
+
+                        match ty {
+                            Some(BuiltinType::Class(_)) => {
+
+                            }
+
+                            Some(BuiltinType::Trait(_)) => {
+
+                            }
+
+                            None => {
+                                // unknown type, error is already thrown
+                            }
+
+                            _ => {
+                                let msg = Msg::BoundExpected;
+                                self.ctxt.diag.borrow_mut().report(bound.pos(), msg);
+                            }
+                        }
+                    }
+
                     let sym = Sym::SymTypeParam(type_param_id.into());
                     self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
@@ -356,5 +379,12 @@ mod tests {
         ok("class A<T>(val: T)");
         ok("class A<T>(var val: T)");
         ok("class A<T>(let val: T)");
+    }
+
+    #[test]
+    fn test_generic_bound() {
+        err("class A<T: Foo>", pos(1, 12), Msg::UnknownType("Foo".into()));
+        ok("class Foo class A<T: Foo>");
+        ok("trait Foo {} class A<T: Foo>");
     }
 }

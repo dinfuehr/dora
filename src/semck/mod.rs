@@ -2,7 +2,7 @@ use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeSelf};
 use ctxt::{Context, NodeMap};
 use dora_parser::error::msg::Msg;
-use sym::Sym::{SymClass, SymStruct, SymTypeParam};
+use sym::Sym::{SymClass, SymStruct, SymTrait, SymTypeParam};
 use ty::BuiltinType;
 
 mod constdefck;
@@ -206,11 +206,25 @@ pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinTyp
                         return Some(ty);
                     }
 
+                    SymTrait(trait_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
+
+                        return Some(BuiltinType::Trait(trait_id));
+                    }
+
                     SymStruct(struct_id) => {
                         return Some(BuiltinType::Struct(struct_id));
                     }
 
                     SymTypeParam(type_param_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
+
                         return Some(BuiltinType::TypeParam(type_param_id));
                     }
 
