@@ -4,4 +4,7 @@ fun main() {
 
     assert(0xFFL == 255L);
     assert(0x10L == 16L);
+
+    assert(0xFFY == 255Y);
+    assert(0x10Y == 16Y);
 }

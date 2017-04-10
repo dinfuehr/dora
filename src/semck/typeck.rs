@@ -2318,7 +2318,7 @@ mod tests {
     #[test]
     fn test_const() {
         ok_with_test("  const yes: bool = true;
-                        const x: byte = 255B;
+                        const x: byte = 255Y;
                         const a: int = 100;
                         const b: long = 200L;
                         const c: char = 'A';
@@ -2345,7 +2345,7 @@ mod tests {
 
     #[test]
     fn test_unary_minus_byte() {
-        err("const m1: byte = -1B;",
+        err("const m1: byte = -1Y;",
             pos(1, 18),
             Msg::UnOpType("-".into(), "byte".into()));
         ok("const m1: int = -1;");

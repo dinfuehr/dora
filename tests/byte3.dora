@@ -2,15 +2,15 @@ fun main() {
     let ba = Array::<byte>();
     assert(ba.len() == 0);
 
-    let ba = Array::<byte>(10, 2B);
+    let ba = Array::<byte>(10, 2Y);
     assert(ba.len() == 10);
 
-    ba[0] = 10B;
-    ba[1] = 11B;
-    ba[2] = 12B;
+    ba[0] = 10Y;
+    ba[1] = 11Y;
+    ba[2] = 12Y;
 
-    assert(10B == ba[0]);
-    assert(11B == ba[1]);
-    assert(12B == ba[2]);
-    assert(2B == ba[9]);
+    assert(10Y == ba[0]);
+    assert(11Y == ba[1]);
+    assert(12Y == ba[2]);
+    assert(2Y == ba[9]);
 }

@@ -3,7 +3,7 @@ fun main() {
   assert(x == false);
 
   let x = defaultValue::<byte>();
-  assert(x == 0B);
+  assert(x == 0Y);
 
   let x = defaultValue::<char>();
   assert(x == '\0');

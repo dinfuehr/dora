@@ -461,19 +461,19 @@ impl Lexer {
                 IntSuffix::Long
             }
 
-            Some('B') => {
+            Some('Y') => {
                 self.read_char();
                 IntSuffix::Byte
             }
 
-            Some('D') => {
+            Some('D') if base == IntBase::Dec => {
                 self.read_char();
 
                 let ttype = TokenKind::LitFloat(value, FloatSuffix::Double);
                 return Ok(Token::new(ttype, pos));
             }
 
-            Some('F') => {
+            Some('F') if base == IntBase::Dec => {
                 self.read_char();
 
                 let ttype = TokenKind::LitFloat(value, FloatSuffix::Float);

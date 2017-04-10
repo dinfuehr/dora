@@ -310,7 +310,7 @@ fun native_string(val: Str) -> long {
     i = i + 1;
   }
 
-  set_uint8(ptr+len.toLong(), 0B);
+  set_uint8(ptr+len.toLong(), 0Y);
 
   return ptr;
 }

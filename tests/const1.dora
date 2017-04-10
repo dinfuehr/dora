@@ -1,7 +1,7 @@
 const i: int = 1;
 const l: long = 2L;
 const yes: bool = true;
-const zero: byte = 0B;
+const zero: byte = 0Y;
 const f: float = 3.0F;
 const d: double = 4.0;
 
@@ -9,7 +9,7 @@ fun main() {
     assert(i == 1);
     assert(l == 2L);
     assert(yes == true);
-    assert(zero == 0B);
+    assert(zero == 0Y);
     assert(f == 3.0F);
     assert(d == 4.0);
 }
