@@ -78,7 +78,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    params.push(BuiltinType::TypeParam(type_param_id.into()));
+                    params.push(BuiltinType::ClassTypeParam(cls.id, type_param_id.into()));
 
                     for bound in &type_param.bounds {
                         let ty = semck::read_type(self.ctxt, bound);
@@ -113,7 +113,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         }
                     }
 
-                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
                     self.ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
                 }

@@ -12,7 +12,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
-use semck::specialize;
+use semck::specialize::{self, SpecializeFor};
 use sym::Sym::SymClass;
 use ty::BuiltinType;
 
@@ -378,55 +378,24 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                    args: &[BuiltinType],
                    return_type: Option<BuiltinType>)
                    -> Option<(ClassId, FctId, BuiltinType)> {
-        let cls_id = match object_type.to_specialized(self.ctxt) {
-            BuiltinType::Class(cls_id) => Some(cls_id),
-            _ => self.ctxt.primitive_classes.find_class(object_type),
-        };
+        let result = lookup_method(self.ctxt, object_type, is_static, name, args, return_type);
 
-        if let Some(cls_id) = cls_id {
-            let cls = self.ctxt.classes[cls_id].borrow();
-            let ctxt = self.ctxt;
+        if result.is_none() {
+            let type_name = object_type.name(self.ctxt);
+            let name = self.ctxt.interner.str(name).to_string();
+            let param_names = args.iter()
+                .map(|a| a.name(self.ctxt))
+                .collect::<Vec<String>>();
+            let msg = if is_static {
+                Msg::UnknownStaticMethod(type_name, name, param_names)
+            } else {
+                Msg::UnknownMethod(type_name, name, param_names)
+            };
 
-            let candidates = cls.find_methods_with(ctxt, name, is_static, |method| {
-                args_compatible(ctxt, &method.params_without_self(), args) &&
-                method.is_static == is_static &&
-                (return_type.is_none() || method.return_type == return_type.unwrap())
-            });
-
-            assert!(candidates.len() <= 1);
-
-            if candidates.len() == 1 {
-                let candidate = candidates[0];
-                let fct = self.ctxt.fcts[candidate].borrow();
-
-                let cls_id = match fct.parent {
-                    FctParent::Class(cls_id) => cls_id,
-                    FctParent::Impl(impl_id) => {
-                        let ximpl = self.ctxt.impls[impl_id].borrow();
-                        ximpl.cls_id()
-                    }
-                    _ => unreachable!(),
-                };
-
-                return Some((cls_id, candidate, fct.return_type));
-
-            }
+            self.ctxt.diag.borrow_mut().report(pos, msg);
         }
 
-        let type_name = object_type.name(self.ctxt);
-        let name = self.ctxt.interner.str(name).to_string();
-        let param_names = args.iter()
-            .map(|a| a.name(self.ctxt))
-            .collect::<Vec<String>>();
-        let msg = if is_static {
-            Msg::UnknownStaticMethod(type_name, name, param_names)
-        } else {
-            Msg::UnknownMethod(type_name, name, param_names)
-        };
-
-        self.ctxt.diag.borrow_mut().report(pos, msg);
-
-        None
+        result
     }
 
     fn check_expr_un(&mut self, e: &'ast ExprUnType) {
@@ -693,7 +662,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let cls = self.ctxt.classes[cls_id].borrow();
 
                         if cls.specialization_for.is_some() {
-                            specialize::specialize_type(self.ctxt, ty, &cls.specialization_params)
+                            specialize::specialize_type(self.ctxt,
+                                                        ty,
+                                                        SpecializeFor::Class,
+                                                        &cls.specialization_params)
                         } else {
                             ty
                         }
@@ -703,6 +675,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         if self.fct.specialization_for.is_some() {
                             specialize::specialize_type(self.ctxt,
                                                         ty,
+                                                        SpecializeFor::Fct,
                                                         &self.fct.specialization_params)
                         } else {
                             ty
@@ -792,8 +765,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
-            callee_id =
-                specialize::specialize_fct(self.ctxt, FctParent::None, &mut *callee, &types);
+            callee_id = specialize::specialize_fct(self.ctxt,
+                                                   FctParent::None,
+                                                   &mut *callee,
+                                                   SpecializeFor::Fct,
+                                                   &types);
 
             self.src
                 .map_calls
@@ -1347,7 +1323,7 @@ fn lookup_method<'ast>(ctxt: &Context<'ast>,
                        args: &[BuiltinType],
                        return_type: Option<BuiltinType>)
                        -> Option<(ClassId, FctId, BuiltinType)> {
-    let cls_id = match object_type {
+    let cls_id = match object_type.to_specialized(ctxt) {
         BuiltinType::Class(cls_id) => Some(cls_id),
         _ => ctxt.primitive_classes.find_class(object_type),
     };
@@ -1355,19 +1331,26 @@ fn lookup_method<'ast>(ctxt: &Context<'ast>,
     if let Some(cls_id) = cls_id {
         let cls = ctxt.classes[cls_id].borrow();
 
-        let candidates = cls.find_methods_with(ctxt, name, is_static, |method| {
-            args_compatible(ctxt, &method.params_without_self(), args) &&
-            (return_type.is_none() || method.return_type == return_type.unwrap())
-        });
+        let candidates = cls.find_methods(ctxt, name, is_static);
 
         if candidates.len() == 1 {
             let candidate = candidates[0];
-            let fct = ctxt.fcts[candidate].borrow();
+            let method = ctxt.fcts[candidate].borrow();
 
-            return Some((fct.cls_id(), candidate, fct.return_type));
+            let cls_id = match method.parent {
+                FctParent::Class(cls_id) => cls_id,
+                FctParent::Impl(impl_id) => {
+                    let ximpl = ctxt.impls[impl_id].borrow();
+                    ximpl.cls_id()
+                }
 
-        } else if candidates.len() > 1 {
-            return None;
+                _ => unreachable!(),
+            };
+
+            if args_compatible(ctxt, &method.params_without_self(), args) &&
+               (return_type.is_none() || method.return_type == return_type.unwrap()) {
+                return Some((cls_id, candidate, method.return_type));
+            }
         }
     }
 
@@ -2340,7 +2323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generic_bounds() {
+    fn test_generic_class_bounds() {
         ok("class Foo
             class A<T: Foo>
             fun f() -> A<Foo> { return nil; }");
@@ -2355,24 +2338,62 @@ mod tests {
             class A<T: Foo>
             fun f() -> A<Bar> { return nil; }",
             pos(1, 1),
-            Msg::ClassBoundNotSatisfied("Foo".into()));
+            Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()));
     }
 
-    // #[test]
-    // fn test_global() {
-    //     ok("let x: int = y+1;
-    //         let y: int = z+1;
-    //         let z: int = 1;");
-    //     err("let x: int = false;", pos(1, 1), Msg::Unimplemented);
-    // }
+    #[test]
+    fn test_generic_trait_bounds() {
+        ok("trait Foo {}
+            class X
+            impl Foo for X {}
+            class A<T: Foo>
+            fun f() -> A<X> { return nil; }");
 
-    // #[test]
-    // fn test_global_in_function() {
-    //     ok("let x: int = 0;
-    //         fun getx() -> int { return x; }");
-    //     err("
-    //         let x: int = 0;
-    //         fun getx() -> bool { return x; }",
-    //         pos(1, 1), Msg::Unimplemented);
-    // }
+        err("trait Foo {}
+            class X
+            class A<T: Foo>
+            fun f() -> A<X> { return nil; }",
+            pos(1, 1),
+            Msg::TraitBoundNotSatisfied("X".into(), "Foo".into()));
+    }
+
+    #[test]
+    fn test_operator_on_generic_type() {
+        err("fun f<T>(a: T, b: T) { a + b; }",
+            pos(1, 26),
+            Msg::BinOpType("+".into(), "T".into(), "T".into()));
+    }
+
+    #[test]
+    fn test_find_class_method_precedence() {
+        // finding class method should have precedence over
+        // trait methods
+        ok("class A { fun foo() {} }
+            trait Foo { fun foo(); }
+            impl Foo for A { fun foo() {} }
+            fun test(a: A) { a.foo(); }");
+
+        err("class A { fun foo() {} }
+            trait Foo { fun foo(a: int); }
+            impl Foo for A { fun foo(a:  int) {} }
+            fun test(a: A) { a.foo(1); }",
+            pos(4, 31),
+            Msg::UnknownMethod("A".into(), "foo".into(), vec!["int".into()]));
+
+        ok("class A { static fun foo() {} }
+            trait Foo { fun foo(a: int); }
+            impl Foo for A { fun foo(a:  int) {} }
+            fun test(a: A) { a.foo(1); }");
+    }
+
+    /*#[test]
+    fn test_generic_trait_method_call() {
+        ok("trait Foo { fun one() -> int; }
+           class X
+           impl Foo for X { fun one() -> int { return 1; } }
+           class A<T: Foo>
+           fun f(a: A<X>) {
+             return a.one();
+           }");
+    }*/
 }

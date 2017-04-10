@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use class::{ClassId, TypeParamId};
-use ctxt::{Context, StructId, TraitId};
+use ctxt::{Context, FctId, StructId, TraitId};
 use mem;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -41,7 +41,8 @@ pub enum BuiltinType {
     Trait(TraitId),
 
     // some type variable
-    TypeParam(TypeParamId),
+    FctTypeParam(FctId, TypeParamId),
+    ClassTypeParam(ClassId, TypeParamId),
 
     // generic types can have multiple params
     // use TypeId to store params
@@ -87,7 +88,8 @@ impl BuiltinType {
 
     pub fn is_type_param(&self) -> bool {
         match self {
-            &BuiltinType::TypeParam(_) => true,
+            &BuiltinType::ClassTypeParam(_, _) => true,
+            &BuiltinType::FctTypeParam(_, _) => true,
             _ => false,
         }
     }
@@ -167,7 +169,18 @@ impl BuiltinType {
                 let name = ctxt.traits[tid].borrow().name;
                 ctxt.interner.str(name).to_string()
             }
-            BuiltinType::TypeParam(id) => format!("#{}", id.idx()),
+            BuiltinType::ClassTypeParam(cid, id) => {
+                let cls = ctxt.classes[cid].borrow();
+                ctxt.interner
+                    .str(cls.type_params[id.idx()].name)
+                    .to_string()
+            }
+
+            BuiltinType::FctTypeParam(fid, id) => {
+                let fct = ctxt.fcts[fid].borrow();
+                ctxt.interner.str(fct.type_params[id.idx()]).to_string()
+            }
+
             BuiltinType::Generic(id) => {
                 let generic = ctxt.types.borrow().get(id);
                 let base = generic.base.name(ctxt);
@@ -201,7 +214,10 @@ impl BuiltinType {
                 (other.is_generic() && self.allows(ctxt, other.to_specialized(ctxt)))
             }
             BuiltinType::Trait(_) => unimplemented!(),
-            BuiltinType::TypeParam(_) => *self == other,
+
+            BuiltinType::ClassTypeParam(_, _) => *self == other,
+            BuiltinType::FctTypeParam(_, _) => *self == other,
+
             BuiltinType::Generic(_) => {
                 *self == other || self.to_specialized(ctxt).allows(ctxt, other)
             }
@@ -228,7 +244,8 @@ impl BuiltinType {
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
-            BuiltinType::TypeParam(_) => panic!("no size for type variable."),
+            BuiltinType::ClassTypeParam(_, _) |
+            BuiltinType::FctTypeParam(_, _) => panic!("no size for type variable."),
             BuiltinType::Generic(_) => self.to_specialized(ctxt).size(ctxt),
         }
     }
@@ -249,7 +266,8 @@ impl BuiltinType {
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::TypeParam(_) => panic!("no alignment for type variable."),
+            BuiltinType::ClassTypeParam(_, _) |
+            BuiltinType::FctTypeParam(_, _) => panic!("no alignment for type variable."),
             BuiltinType::Generic(_) => self.to_specialized(ctxt).align(ctxt),
         }
     }
@@ -270,7 +288,8 @@ impl BuiltinType {
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
-            BuiltinType::TypeParam(_) => panic!("no machine mode for type variable."),
+            BuiltinType::ClassTypeParam(_, _) |
+            BuiltinType::FctTypeParam(_, _) => panic!("no machine mode for type variable."),
             BuiltinType::Generic(_) => MachineMode::Ptr,
         }
     }

@@ -86,7 +86,8 @@ pub enum Sym {
     SymStruct(StructId),
     SymTrait(TraitId),
     SymGlobal(GlobalId),
-    SymTypeParam(TypeParamId),
+    SymClassTypeParam(ClassId, TypeParamId),
+    SymFctTypeParam(FctId, TypeParamId),
     SymConst(ConstId),
 }
 
@@ -177,15 +178,9 @@ impl Sym {
 
     pub fn is_type_param(&self) -> bool {
         match *self {
-            SymTypeParam(_) => true,
+            SymClassTypeParam(_, _) => true,
+            SymFctTypeParam(_, _) => true,
             _ => false,
-        }
-    }
-
-    pub fn to_type_param(&self) -> Option<TypeParamId> {
-        match *self {
-            SymTypeParam(id) => Some(id),
-            _ => None,
         }
     }
 

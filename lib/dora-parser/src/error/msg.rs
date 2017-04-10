@@ -102,7 +102,8 @@ pub enum Msg {
     NoTypeParamsExpected,
     MultipleClassBounds,
     DuplicateTraitBound,
-    ClassBoundNotSatisfied(String),
+    ClassBoundNotSatisfied(String, String),
+    TraitBoundNotSatisfied(String, String),
 }
 
 impl Msg {
@@ -319,8 +320,11 @@ impl Msg {
             NoTypeParamsExpected => "no type params allowed".into(),
             MultipleClassBounds => "multiple class bounds not allowed".into(),
             DuplicateTraitBound => "duplicate trait bound".into(),
-            ClassBoundNotSatisfied(ref name) => {
-                format!("not a subclass of `{}`.", name)
+            ClassBoundNotSatisfied(ref name, ref xclass) => {
+                format!("type `{}` not a subclass of `{}`.", name, xclass)
+            }
+            TraitBoundNotSatisfied(ref name, ref xtrait) => {
+                format!("type `{}` does not implement trait `{}`.", name, xtrait)
             }
         }
     }

@@ -20,7 +20,7 @@ pub fn specialize_class(ctxt: &Context,
         return (id, type_id);
     }
 
-    bounds_check(ctxt, cls, &type_params);
+    bounds_check(ctxt, &cls.type_params, &type_params);
 
     cls.specializations
         .borrow_mut()
@@ -44,6 +44,7 @@ fn create_specialized_class(ctxt: &Context,
                             type_params: Vec<BuiltinType>)
                             -> ClassId {
     let id: ClassId = ctxt.classes.len().into();
+    let specialize_for = SpecializeFor::Class;
 
     let mut is_array = false;
     let mut is_object_array = false;
@@ -108,7 +109,11 @@ fn create_specialized_class(ctxt: &Context,
         .iter()
         .map(|&ctor_id| {
                  let ctor = ctxt.fcts[ctor_id].borrow();
-                 specialize_fct(ctxt, FctParent::Class(id), &*ctor, &type_params)
+                 specialize_fct(ctxt,
+                                FctParent::Class(id),
+                                &*ctor,
+                                specialize_for,
+                                &type_params)
              })
         .collect();
     ctxt.classes[id].borrow_mut().ctors = cloned_ctors;
@@ -117,7 +122,11 @@ fn create_specialized_class(ctxt: &Context,
         .iter()
         .map(|&method_id| {
                  let mtd = ctxt.fcts[method_id].borrow();
-                 specialize_fct(ctxt, FctParent::Class(id), &*mtd, &type_params)
+                 specialize_fct(ctxt,
+                                FctParent::Class(id),
+                                &*mtd,
+                                specialize_for,
+                                &type_params)
              })
         .collect();
     ctxt.classes[id].borrow_mut().methods = cloned_methods;
@@ -128,7 +137,7 @@ fn create_specialized_class(ctxt: &Context,
             class::Field {
                 id: field.id,
                 name: field.name,
-                ty: specialize_type(ctxt, field.ty, &type_params),
+                ty: specialize_type(ctxt, field.ty, specialize_for, &type_params),
                 offset: field.offset,
                 reassignable: field.reassignable,
             }
@@ -142,13 +151,14 @@ fn create_specialized_class(ctxt: &Context,
 pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
                             parent: FctParent,
                             fct: &Fct<'ast>,
+                            specialize_for: SpecializeFor,
                             type_params: &[BuiltinType])
                             -> FctId {
     let fct_id = ctxt.fcts.len().into();
 
     let mut param_types: Vec<_> = fct.param_types
         .iter()
-        .map(|&t| specialize_type(ctxt, t, &type_params))
+        .map(|&t| specialize_type(ctxt, t, specialize_for, &type_params))
         .collect();
 
     if fct.has_self() && fct.initialized {
@@ -171,7 +181,7 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
                     Var {
                         id: v.id,
                         name: v.name,
-                        ty: specialize_type(ctxt, v.ty, &type_params),
+                        ty: specialize_type(ctxt, v.ty, specialize_for, &type_params),
                         reassignable: v.reassignable,
                         node_id: v.node_id,
                     }
@@ -181,7 +191,7 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
             let mut cloned_map_tys = NodeMap::new();
 
             for (&id, &ty) in src.map_tys.iter() {
-                let ty = specialize_type(ctxt, ty, &type_params);
+                let ty = specialize_type(ctxt, ty, specialize_for, &type_params);
                 cloned_map_tys.insert(id, ty);
             }
 
@@ -219,7 +229,7 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
         internal_resolved: true,
         overrides: fct.overrides,
         param_types: param_types,
-        return_type: specialize_type(ctxt, fct.return_type, &type_params),
+        return_type: specialize_type(ctxt, fct.return_type, specialize_for, &type_params),
         ctor: fct.ctor,
 
         vtable_index: fct.vtable_index,
@@ -241,16 +251,32 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
 
 pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
                              ty: BuiltinType,
+                             specialize_for: SpecializeFor,
                              type_params: &[BuiltinType])
                              -> BuiltinType {
     match ty {
-        BuiltinType::TypeParam(id) => type_params[id.idx()],
+        BuiltinType::ClassTypeParam(_, id) => {
+            if specialize_for == SpecializeFor::Class {
+                type_params[id.idx()]
+            } else {
+                ty
+            }
+        }
+
+        BuiltinType::FctTypeParam(_, id) => {
+            if specialize_for == SpecializeFor::Fct {
+                type_params[id.idx()]
+            } else {
+                ty
+            }
+        }
+
         BuiltinType::Generic(type_id) => {
             let ty = ctxt.types.borrow().get(type_id);
 
             let params: Vec<_> = ty.params
                 .iter()
-                .map(|&t| specialize_type(ctxt, t, type_params))
+                .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
             let cls_id = ty.base.cls_id();
@@ -265,14 +291,17 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
 }
 
 fn bounds_check<'ast>(ctxt: &Context<'ast>,
-                      cls: &class::Class,
+                      def_type_params: &[class::TypeParam],
                       type_params: &[BuiltinType]) {
-    for (ind, tp) in cls.type_params.iter().enumerate() {
+    // TODO: check number of type params
+
+    for (ind, tp) in def_type_params.iter().enumerate() {
         let ty = type_params[ind];
 
         let cls_id = match ty {
             BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::TypeParam(_) => {
+            BuiltinType::ClassTypeParam(_, _) |
+            BuiltinType::FctTypeParam(_, _) => {
                 continue;
             }
             _ => ctxt.primitive_classes.find_class(ty),
@@ -289,11 +318,31 @@ fn bounds_check<'ast>(ctxt: &Context<'ast>,
 
             if !cls.subclass_from(ctxt, bound_id) {
                 let bound = ctxt.classes[bound_id].borrow();
-                let name = ctxt.interner.str(bound.name).to_string();
+                let name = ty.name(ctxt);
+                let cls_name = ctxt.interner.str(bound.name).to_string();
                 ctxt.diag
                     .borrow_mut()
-                    .report(bound.pos, Msg::ClassBoundNotSatisfied(name));
+                    .report(bound.pos, Msg::ClassBoundNotSatisfied(name, cls_name));
+            }
+        }
+
+        for &trait_bound in &tp.trait_bounds {
+            let cls = ctxt.classes[cls_id.unwrap()].borrow();
+
+            if !cls.traits.contains(&trait_bound) {
+                let bound = ctxt.traits[trait_bound].borrow();
+                let name = ty.name(ctxt);
+                let trait_name = ctxt.interner.str(bound.name).to_string();
+                ctxt.diag
+                    .borrow_mut()
+                    .report(bound.pos, Msg::TraitBoundNotSatisfied(name, trait_name));
             }
         }
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum SpecializeFor {
+    Fct,
+    Class,
 }

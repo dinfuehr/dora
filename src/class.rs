@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
-use ctxt::{Context, Fct, FctId, ImplId, TraitId};
+use ctxt::{Context, FctId, ImplId, TraitId};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use vtable::VTableBox;
@@ -155,14 +155,7 @@ impl Class {
         }
     }
 
-    pub fn find_methods_with<F>(&self,
-                                ctxt: &Context,
-                                name: Name,
-                                is_static: bool,
-                                f: F)
-                                -> Vec<FctId>
-        where F: Fn(&Fct) -> bool
-    {
+    pub fn find_methods(&self, ctxt: &Context, name: Name, is_static: bool) -> Vec<FctId> {
         let mut classid = self.id;
         let mut candidates = Vec::new();
         let mut ignores = HashSet::new();
@@ -173,31 +166,13 @@ impl Class {
             for &method in &cls.methods {
                 let method = ctxt.fcts[method].borrow();
 
-                if method.name == name && method.is_static == is_static && f(&*method) {
+                if method.name == name && method.is_static == is_static {
                     if let Some(overrides) = method.overrides {
                         ignores.insert(overrides);
                     }
 
                     if !ignores.contains(&method.id) {
-                        candidates.push(method.id);
-                    }
-                }
-            }
-
-            for &impl_id in &cls.impls {
-                let ximpl = ctxt.impls[impl_id].borrow();
-
-                for &method in &ximpl.methods {
-                    let method = ctxt.fcts[method].borrow();
-
-                    if method.name == name && f(&*method) {
-                        if let Some(overrides) = method.overrides {
-                            ignores.insert(overrides);
-                        }
-
-                        if !ignores.contains(&method.id) {
-                            candidates.push(method.id);
-                        }
+                        return vec![method.id];
                     }
                 }
             }
@@ -206,9 +181,36 @@ impl Class {
                 classid = parent_class;
 
             } else {
-                return candidates;
+                break;
             }
         }
+
+        classid = self.id;
+
+        loop {
+            let cls = ctxt.classes[classid].borrow();
+
+            for &impl_id in &cls.impls {
+                let ximpl = ctxt.impls[impl_id].borrow();
+
+                for &method in &ximpl.methods {
+                    let method = ctxt.fcts[method].borrow();
+
+                    if method.name == name && method.is_static == is_static {
+                        candidates.push(method.id);
+                    }
+                }
+            }
+
+            if let Some(parent_class) = cls.parent_class {
+                classid = parent_class;
+
+            } else {
+                break;
+            }
+        }
+
+        candidates
     }
 
     pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {

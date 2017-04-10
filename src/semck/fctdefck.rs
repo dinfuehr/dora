@@ -26,7 +26,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
-                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
                     ctxt.sym.borrow_mut().insert(param.name, sym);
                     type_param_id += 1;
                 }
@@ -68,7 +68,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 
                     fct.type_params.push(type_param.name);
 
-                    let sym = Sym::SymTypeParam(type_param_id.into());
+                    let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
                     ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
