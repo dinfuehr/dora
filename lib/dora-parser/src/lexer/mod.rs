@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use lexer::position::Position;
 use lexer::reader::Reader;
-use lexer::token::{FloatSuffix, IntSuffix, Token, TokenKind};
+use lexer::token::{FloatSuffix, IntSuffix, IntBase, Token, TokenKind};
 use error::msg::{Msg, MsgWithPos};
 
 pub mod map;
@@ -405,13 +405,37 @@ impl Lexer {
         let pos = self.reader.pos();
         let mut value = String::new();
 
-        self.read_digits(&mut value);
+        let base = if self.cur() == Some('0') {
+            let next = self.next();
 
-        if self.cur() == Some('.') && is_digit(self.next()) {
+            match next {
+                Some('x') => {
+                    self.read_char();
+                    self.read_char();
+
+                    IntBase::Hex
+                }
+
+                Some('b') => {
+                    self.read_char();
+                    self.read_char();
+
+                    IntBase::Bin
+                }
+
+                _ => IntBase::Dec
+            }
+        } else {
+            IntBase::Dec
+        };
+
+        self.read_digits(&mut value, base);
+
+        if base == IntBase::Dec && self.cur() == Some('.') && is_digit(self.next()) {
             self.read_char();
             value.push('.');
 
-            self.read_digits(&mut value);
+            self.read_digits(&mut value, IntBase::Dec);
 
             let suffix = match self.cur() {
                 Some('D') => {
@@ -459,12 +483,12 @@ impl Lexer {
             _ => IntSuffix::Int,
         };
 
-        let ttype = TokenKind::LitInt(value, suffix);
+        let ttype = TokenKind::LitInt(value, base, suffix);
         Ok(Token::new(ttype, pos))
     }
 
-    fn read_digits(&mut self, buffer: &mut String) {
-        while is_digit_or_underscore(self.cur()) {
+    fn read_digits(&mut self, buffer: &mut String, base: IntBase) {
+        while is_digit_or_underscore(self.cur(), base) {
             let ch = self.cur().unwrap();
             self.read_char();
             buffer.push(ch);
@@ -504,8 +528,8 @@ fn is_digit(ch: Option<char>) -> bool {
     ch.map(|ch| ch.is_digit(10)).unwrap_or(false)
 }
 
-fn is_digit_or_underscore(ch: Option<char>) -> bool {
-    ch.map(|ch| ch.is_digit(10) || ch == '_')
+fn is_digit_or_underscore(ch: Option<char>, base: IntBase) -> bool {
+    ch.map(|ch| ch.is_digit(base.num()) || ch == '_')
         .unwrap_or(false)
 }
 
@@ -703,6 +727,28 @@ mod tests {
                    TokenKind::LitFloat("4".into(), FloatSuffix::Double),
                    1,
                    18);
+    }
+
+    #[test]
+    fn test_hex_numbers() {
+        let mut reader = Lexer::from_str("0x1 0x2L 0xABCDEF 0xB1L");
+
+        assert_tok(&mut reader,
+                   TokenKind::LitInt("1".into(), IntBase::Hex, IntSuffix::Int),
+                   1,
+                   1);
+        assert_tok(&mut reader,
+                   TokenKind::LitInt("2".into(), IntBase::Hex, IntSuffix::Long),
+                   1,
+                   5);
+        assert_tok(&mut reader,
+                   TokenKind::LitInt("ABCDEF".into(), IntBase::Hex, IntSuffix::Int),
+                   1,
+                   10);
+        assert_tok(&mut reader,
+                   TokenKind::LitInt("B1".into(), IntBase::Hex, IntSuffix::Long),
+                   1,
+                   19);
     }
 
     #[test]

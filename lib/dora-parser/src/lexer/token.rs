@@ -7,7 +7,7 @@ use lexer::position::Position;
 pub enum TokenKind {
     String(String),
     LitChar(char),
-    LitInt(String, IntSuffix),
+    LitInt(String, IntBase, IntSuffix),
     LitFloat(String, FloatSuffix),
     Identifier(String),
     End,
@@ -111,7 +111,7 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             TokenKind::String(_) => "string",
-            TokenKind::LitInt(_, suffix) => {
+            TokenKind::LitInt(_, _, suffix) => {
                 match suffix {
                     IntSuffix::Byte => "byte number",
                     IntSuffix::Int => "int number",
@@ -266,7 +266,7 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::LitInt(ref val, suffix) => {
+            TokenKind::LitInt(ref val, _, suffix) => {
                 let suffix = match suffix {
                     IntSuffix::Byte => "B",
                     IntSuffix::Int => "",
@@ -287,5 +287,22 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum IntBase {
+    Bin,
+    Dec,
+    Hex
+}
+
+impl IntBase {
+    pub fn num(self) -> u32 {
+        match self {
+            IntBase::Bin => 2,
+            IntBase::Dec => 10,
+            IntBase::Hex => 16,
+        }
     }
 }

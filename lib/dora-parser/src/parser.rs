@@ -1184,7 +1184,7 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(_, _) => self.parse_lit_int(),
+            TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::String(_) => self.parse_string(),
             TokenKind::Identifier(_) => self.parse_identifier_or_call(opts),
@@ -1328,16 +1328,16 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
         let pos = tok.position;
 
-        if let TokenKind::LitInt(value, suffix) = tok.kind {
+        if let TokenKind::LitInt(value, base, suffix) = tok.kind {
             let filtered = value
                 .chars()
                 .filter(|&ch| ch != '_')
                 .collect::<String>();
-            let parsed = filtered.parse::<u64>();
+            let parsed = u64::from_str_radix(&filtered, base.num());
 
             match parsed {
                 Ok(num) => {
-                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, suffix);
+                    let expr = Expr::create_lit_int(self.generate_id(), pos, num, base, suffix);
                     Ok(Box::new(expr))
                 }
 

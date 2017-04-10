@@ -11,7 +11,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
+use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 use semck::specialize::{self, SpecializeFor};
 use sym::Sym::SymClass;
 use ty::BuiltinType;
@@ -1195,25 +1195,39 @@ fn check_lit_int<'ast>(ctxt: &Context<'ast>,
         IntSuffix::Long => BuiltinType::Long,
     };
 
+    let ty_name = match e.suffix {
+        IntSuffix::Byte => "byte",
+        IntSuffix::Int => "int",
+        IntSuffix::Long => "long",
+    };
+
     let val = e.value;
     let negative = e.suffix != IntSuffix::Byte && negative_expr_id == e.id;
 
-    let max = match e.suffix {
-        IntSuffix::Byte => 256,
-        IntSuffix::Int => (1u64 << 31),
-        IntSuffix::Long => (1u64 << 63),
-    };
-
-    if (negative && val > max) || (!negative && val >= max) {
-        let ty = match e.suffix {
-            IntSuffix::Byte => "byte",
-            IntSuffix::Int => "int",
-            IntSuffix::Long => "long",
+    if e.base == IntBase::Dec {
+        let max = match e.suffix {
+            IntSuffix::Byte => 256,
+            IntSuffix::Int => (1u64 << 31),
+            IntSuffix::Long => (1u64 << 63),
         };
 
-        ctxt.diag
-            .borrow_mut()
-            .report(e.pos, Msg::NumberOverflow(ty.into()));
+        if (negative && val > max) || (!negative && val >= max) {
+            ctxt.diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+        }
+    } else {
+        let max = match e.suffix {
+            IntSuffix::Byte => 256 as u64,
+            IntSuffix::Int => u32::max_value() as u64,
+            IntSuffix::Long => u64::max_value() as u64,
+        };
+
+        if val > max {
+            ctxt.diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+        }
     }
 
     let val = if negative {
@@ -2178,6 +2192,22 @@ mod tests {
             pos(1, 20),
             Msg::NumberOverflow("int".into()));
         ok("fun f() { let x = -2147483648; }");
+    }
+
+    #[test]
+    fn test_literal_hex_int_overflow() {
+        err("fun f() { let x = 0x1_FF_FF_FF_FF; }",
+            pos(1, 19),
+            Msg::NumberOverflow("int".into()));
+        ok("fun f() { let x: int = 0xFF_FF_FF_FF; }");
+    }
+
+    #[test]
+    fn test_literal_bin_int_overflow() {
+        err("fun f() { let x = 0b1_11111111_11111111_11111111_11111111; }",
+            pos(1, 19),
+            Msg::NumberOverflow("int".into()));
+        ok("fun f() { let x: int = 0b11111111_11111111_11111111_11111111; }");
     }
 
     #[test]
