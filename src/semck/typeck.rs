@@ -713,6 +713,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls = self.ctxt.classes[cls_id].borrow();
         let mut found = false;
 
+        if cls.is_abstract {
+            let msg = Msg::NewAbstractClass;
+            self.ctxt.diag.borrow_mut().report(e.pos, msg);
+        }
+
         for &ctor in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor].borrow();
 
@@ -2414,6 +2419,14 @@ mod tests {
             trait Foo { fun foo(a: int); }
             impl Foo for A { fun foo(a:  int) {} }
             fun test(a: A) { a.foo(1); }");
+    }
+
+    #[test]
+    fn test_invoke_abstract_class_ctor() {
+        err("abstract class A
+            fun test() -> A { return A(); }",
+            pos(2, 38),
+            Msg::NewAbstractClass);
     }
 
     /*#[test]

@@ -106,6 +106,7 @@ pub enum Msg {
     TraitBoundNotSatisfied(String, String),
     AbstractMethodNotInAbstractClass,
     AbstractMethodWithImplementation,
+    NewAbstractClass,
 }
 
 impl Msg {
@@ -332,6 +333,7 @@ impl Msg {
             AbstractMethodNotInAbstractClass => {
                 "abstract methods only allowed in abstract classes.".into()
             }
+            NewAbstractClass => "cannot create object of abstract class.".into()
         }
     }
 }

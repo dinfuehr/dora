@@ -13,9 +13,6 @@ use vtable::{DISPLAY_SIZE, VTableBox};
 
 pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     cycle_detection(ctxt);
-    if ctxt.diag.borrow().has_errors() {
-        return;
-    }
 
     if ctxt.diag.borrow().has_errors() {
         return;
