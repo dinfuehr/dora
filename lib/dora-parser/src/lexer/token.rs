@@ -60,6 +60,7 @@ pub enum TokenKind {
     Underscore,
 
     // Modifiers
+    Abstract,
     Open,
     Override,
 
@@ -179,6 +180,7 @@ impl TokenKind {
             TokenKind::Underscore => "_",
 
             // Modifiers
+            TokenKind::Abstract => "abstract",
             TokenKind::Open => "open",
             TokenKind::Override => "override",
 
@@ -294,7 +296,7 @@ impl fmt::Display for Token {
 pub enum IntBase {
     Bin,
     Dec,
-    Hex
+    Hex,
 }
 
 impl IntBase {

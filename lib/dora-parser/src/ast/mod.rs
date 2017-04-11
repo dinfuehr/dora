@@ -98,7 +98,6 @@ impl Ast {
             .to_const()
             .unwrap()
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -400,6 +399,7 @@ pub struct Class {
     pub pos: Position,
     pub parent_class: Option<ParentClass>,
     pub has_open: bool,
+    pub is_abstract: bool,
     pub internal: bool,
     pub primary_ctor: bool,
 
@@ -464,6 +464,7 @@ pub struct Function {
     pub has_final: bool,
     pub is_pub: bool,
     pub is_static: bool,
+    pub is_abstract: bool,
     pub internal: bool,
     pub ctor: CtorType,
 
@@ -544,6 +545,7 @@ pub struct ModifierElement {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Modifier {
+    Abstract,
     Override,
     Open,
     Final,
@@ -555,6 +557,7 @@ pub enum Modifier {
 impl Modifier {
     pub fn name(&self) -> &'static str {
         match *self {
+            Modifier::Abstract => "abstract",
             Modifier::Open => "open",
             Modifier::Override => "override",
             Modifier::Final => "final",
@@ -1215,7 +1218,12 @@ impl Expr {
                           })
     }
 
-    pub fn create_lit_int(id: NodeId, pos: Position, value: u64, base: IntBase, suffix: IntSuffix) -> Expr {
+    pub fn create_lit_int(id: NodeId,
+                          pos: Position,
+                          value: u64,
+                          base: IntBase,
+                          suffix: IntSuffix)
+                          -> Expr {
         Expr::ExprLitInt(ExprLitIntType {
                              id: id,
                              pos: pos,

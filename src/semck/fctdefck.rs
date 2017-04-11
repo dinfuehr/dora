@@ -14,6 +14,8 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
 
+        check_abstract(ctxt, &*fct);
+
         if !(fct.is_src() || fct.kind.is_definition()) {
             continue;
         }
@@ -154,6 +156,25 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     }
 }
 
+fn check_abstract<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>) {
+    if !fct.is_abstract {
+        return;
+    }
+
+    let cls_id = fct.cls_id();
+    let cls = ctxt.classes[cls_id].borrow();
+
+    if !fct.kind.is_definition() {
+        let msg = Msg::AbstractMethodWithImplementation;
+        ctxt.diag.borrow_mut().report(fct.pos, msg);
+    }
+
+    if !cls.is_abstract {
+        let msg = Msg::AbstractMethodNotInAbstractClass;
+        ctxt.diag.borrow_mut().report(fct.pos, msg);
+    }
+}
+
 fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
@@ -278,5 +299,17 @@ mod tests {
     #[test]
     fn fct_with_type_param_in_annotation() {
         ok("fun f<T>(val: T) {}");
+    }
+
+    #[test]
+    fn abstract_method_in_non_abstract_class() {
+        err("class A { abstract fun foo(); }",
+            pos(1, 20), Msg::AbstractMethodNotInAbstractClass);
+    }
+
+    #[test]
+    fn abstract_method_with_implementation() {
+        err("abstract class A { abstract fun foo() {} }",
+            pos(1, 29), Msg::AbstractMethodWithImplementation);
     }
 }

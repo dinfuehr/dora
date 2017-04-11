@@ -85,7 +85,8 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Class => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Internal])?;
+                self.restrict_modifiers(&modifiers,
+                                        &[Modifier::Abstract, Modifier::Open, Modifier::Internal])?;
                 let class = self.parse_class(&modifiers)?;
                 Ok(ElemClass(class))
             }
@@ -137,12 +138,12 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Const {
-            id: self.generate_id(),
-            pos: pos,
-            name: name,
-            data_type: ty,
-            expr: expr,
-        })
+               id: self.generate_id(),
+               pos: pos,
+               name: name,
+               data_type: ty,
+               expr: expr,
+           })
     }
 
     fn parse_impl(&mut self) -> Result<Impl, MsgWithPos> {
@@ -263,6 +264,7 @@ impl<'a> Parser<'a> {
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, MsgWithPos> {
         let has_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
+        let is_abstract = modifiers.contains(Modifier::Abstract);
 
         let pos = self.expect_token(TokenKind::Class)?.position;
         let ident = self.expect_identifier()?;
@@ -274,6 +276,7 @@ impl<'a> Parser<'a> {
             pos: pos,
             has_open: has_open,
             internal: internal,
+            is_abstract: is_abstract,
             primary_ctor: false,
             parent_class: None,
             ctors: Vec::new(),
@@ -458,7 +461,8 @@ impl<'a> Parser<'a> {
 
             match self.token.kind {
                 TokenKind::Fun => {
-                    let mods = &[Modifier::Internal,
+                    let mods = &[Modifier::Abstract,
+                                 Modifier::Internal,
                                  Modifier::Open,
                                  Modifier::Override,
                                  Modifier::Final,
@@ -501,6 +505,7 @@ impl<'a> Parser<'a> {
 
         loop {
             let modifier = match self.token.kind {
+                TokenKind::Abstract => Modifier::Abstract,
                 TokenKind::Open => Modifier::Open,
                 TokenKind::Override => Modifier::Override,
                 TokenKind::Final => Modifier::Final,
@@ -569,6 +574,7 @@ impl<'a> Parser<'a> {
                has_final: false,
                is_pub: true,
                is_static: false,
+               is_abstract: false,
                internal: modifiers.contains(Modifier::Internal),
                ctor: CtorType::Secondary,
                params: params,
@@ -666,6 +672,7 @@ impl<'a> Parser<'a> {
                is_pub: modifiers.contains(Modifier::Pub),
                is_static: modifiers.contains(Modifier::Static),
                internal: modifiers.contains(Modifier::Internal),
+               is_abstract: modifiers.contains(Modifier::Abstract),
                ctor: CtorType::None,
                params: params,
                throws: throws,
@@ -1508,6 +1515,7 @@ impl<'a> Parser<'a> {
             has_final: false,
             is_pub: true,
             is_static: false,
+            is_abstract: false,
             internal: false,
             ctor: CtorType::Primary,
             params: params,
@@ -1791,10 +1799,7 @@ mod tests {
     #[test]
     fn parse_field_negated() {
         let (expr, _) = parse_expr("-obj.field");
-        assert!(expr.to_un()
-                    .unwrap()
-                    .opnd
-                    .is_field());
+        assert!(expr.to_un().unwrap().opnd.is_field());
     }
 
     #[test]
@@ -1877,16 +1882,8 @@ mod tests {
 
         let mul = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul.op);
-        assert_eq!(6,
-                   mul.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(3,
-                   mul.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(6, mul.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, mul.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1898,22 +1895,10 @@ mod tests {
 
         let mul2 = mul1.lhs.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul2.op);
-        assert_eq!(6,
-                   mul2.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(3,
-                   mul2.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(6, mul2.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, mul2.rhs.to_lit_int().unwrap().value);
 
-        assert_eq!(4,
-                   mul1.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(4, mul1.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1922,16 +1907,8 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Div, div.op);
-        assert_eq!(4,
-                   div.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(5,
-                   div.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(4, div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(5, div.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1940,16 +1917,8 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mod, div.op);
-        assert_eq!(2,
-                   div.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(15,
-                   div.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(2, div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(15, div.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1958,16 +1927,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Add, add.op);
-        assert_eq!(2,
-                   add.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(3,
-                   add.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(2, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1975,23 +1936,11 @@ mod tests {
         let (expr, _) = parse_expr("1+2+3");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(3,
-                   add.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
 
         let lhs = add.lhs.to_bin().unwrap();
-        assert_eq!(1,
-                   lhs.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   lhs.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, lhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, lhs.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -1999,23 +1948,11 @@ mod tests {
         let (expr, _) = parse_expr("1+(2+3)");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(1,
-                   add.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
 
         let rhs = add.rhs.to_bin().unwrap();
-        assert_eq!(2,
-                   rhs.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(3,
-                   rhs.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(2, rhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(3, rhs.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2024,16 +1961,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
-        assert_eq!(1,
-                   add.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   add.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2042,16 +1971,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Or, add.op);
-        assert_eq!(1,
-                   add.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   add.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2060,16 +1981,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::And, add.op);
-        assert_eq!(1,
-                   add.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   add.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2078,16 +1991,8 @@ mod tests {
 
         let or = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitOr, or.op);
-        assert_eq!(1,
-                   or.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   or.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, or.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, or.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2096,16 +2001,8 @@ mod tests {
 
         let and = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitAnd, and.op);
-        assert_eq!(1,
-                   and.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   and.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, and.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, and.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2114,16 +2011,8 @@ mod tests {
 
         let xor = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitXor, xor.op);
-        assert_eq!(1,
-                   xor.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   xor.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, xor.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, xor.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2132,16 +2021,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2150,16 +2031,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2168,16 +2041,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2186,16 +2051,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2204,16 +2061,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2222,16 +2071,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2240,16 +2081,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2258,16 +2091,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
-        assert_eq!(1,
-                   cmp.lhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
-        assert_eq!(2,
-                   cmp.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2276,11 +2101,7 @@ mod tests {
 
         let assign = expr.to_assign().unwrap();
         assert!(assign.lhs.is_ident());
-        assert_eq!(4,
-                   assign.rhs
-                       .to_lit_int()
-                       .unwrap()
-                       .value);
+        assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2358,16 +2179,8 @@ mod tests {
         assert_eq!("a", *interner1.str(p1.name));
         assert_eq!("a", *interner2.str(p2.name));
 
-        assert_eq!("int",
-                   *interner1.str(p1.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
-        assert_eq!("int",
-                   *interner2.str(p2.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
+        assert_eq!("int", *interner1.str(p1.data_type.to_basic().unwrap().name));
+        assert_eq!("int", *interner2.str(p2.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -2390,26 +2203,14 @@ mod tests {
         assert_eq!("b", *interner2.str(p2b.name));
 
         assert_eq!("int",
-                   *interner1.str(p1a.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
+                   *interner1.str(p1a.data_type.to_basic().unwrap().name));
         assert_eq!("int",
-                   *interner2.str(p2a.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
+                   *interner2.str(p2a.data_type.to_basic().unwrap().name));
 
         assert_eq!("str",
-                   *interner1.str(p1b.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
+                   *interner1.str(p1b.data_type.to_basic().unwrap().name));
         assert_eq!("str",
-                   *interner2.str(p2b.data_type
-                                      .to_basic()
-                                      .unwrap()
-                                      .name));
+                   *interner2.str(p2b.data_type.to_basic().unwrap().name));
     }
 
     #[test]
@@ -2419,10 +2220,7 @@ mod tests {
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_none());
-        assert!(var.expr
-                    .as_ref()
-                    .unwrap()
-                    .is_lit_int());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
@@ -2432,10 +2230,7 @@ mod tests {
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_none());
-        assert!(var.expr
-                    .as_ref()
-                    .unwrap()
-                    .is_lit_int());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
@@ -2445,10 +2240,7 @@ mod tests {
 
         assert_eq!(false, var.reassignable);
         assert!(var.data_type.is_some());
-        assert!(var.expr
-                    .as_ref()
-                    .unwrap()
-                    .is_lit_int());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
@@ -2458,10 +2250,7 @@ mod tests {
 
         assert_eq!(true, var.reassignable);
         assert!(var.data_type.is_some());
-        assert!(var.expr
-                    .as_ref()
-                    .unwrap()
-                    .is_lit_int());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
 
     #[test]
@@ -2566,11 +2355,7 @@ mod tests {
         let stmt = parse_stmt("loop { 1; }");
         let block = &stmt.to_loop().unwrap().block;
 
-        assert_eq!(1,
-                   block.to_block()
-                       .unwrap()
-                       .stmts
-                       .len());
+        assert_eq!(1, block.to_block().unwrap().stmts.len());
     }
 
     #[test]
@@ -2737,13 +2522,41 @@ mod tests {
     }
 
     #[test]
+    fn parse_abstract_method() {
+        let (prog, _) = parse("class Foo {
+            abstract fun zero();
+            fun foo();
+        }");
+
+        let cls = prog.cls0();
+        assert_eq!(0, cls.fields.len());
+        assert_eq!(2, cls.methods.len());
+
+        let mtd1 = &cls.methods[0];
+        assert_eq!(true, mtd1.is_abstract);
+
+        let mtd2 = &cls.methods[1];
+        assert_eq!(false, mtd2.is_abstract);
+    }
+
+    #[test]
     fn parse_class() {
         let (prog, interner) = parse("class Foo");
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(false, class.has_open);
+        assert_eq!(false, class.is_abstract);
         assert_eq!(Position::new(1, 1), class.pos);
+        assert_eq!("Foo", *interner.str(class.name));
+    }
+
+    #[test]
+    fn parse_class_abstract() {
+        let (prog, interner) = parse("abstract class Foo");
+        let class = prog.cls0();
+
+        assert_eq!(true, class.is_abstract);
         assert_eq!("Foo", *interner.str(class.name));
     }
 
@@ -2807,10 +2620,8 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!("Bar",
-                   interner.str(class.parent_class
-                                    .as_ref()
-                                    .unwrap()
-                                    .name)
+                   interner
+                       .str(class.parent_class.as_ref().unwrap().name)
                        .to_string());
     }
 
@@ -2844,16 +2655,8 @@ mod tests {
     fn parse_array_index() {
         let (expr, interner) = parse_expr("a[b]");
         let expr = expr.to_array().unwrap();
-        assert_eq!("a",
-                   *interner.str(expr.object
-                                     .to_ident()
-                                     .unwrap()
-                                     .name));
-        assert_eq!("b",
-                   *interner.str(expr.index
-                                     .to_ident()
-                                     .unwrap()
-                                     .name));
+        assert_eq!("a", *interner.str(expr.object.to_ident().unwrap().name));
+        assert_eq!("b", *interner.str(expr.index.to_ident().unwrap().name));
     }
 
     #[test]
@@ -3326,29 +3129,17 @@ mod tests {
         let (expr, _) = parse_expr("Array::<int>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(1,
-                   ident.type_params
-                       .as_ref()
-                       .unwrap()
-                       .len());
+        assert_eq!(1, ident.type_params.as_ref().unwrap().len());
 
         let (expr, _) = parse_expr("Foo::<int, long>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(2,
-                   ident.type_params
-                       .as_ref()
-                       .unwrap()
-                       .len());
+        assert_eq!(2, ident.type_params.as_ref().unwrap().len());
 
         let (expr, _) = parse_expr("Bar::<>()");
         let ident = expr.to_call().unwrap();
 
-        assert_eq!(0,
-                   ident.type_params
-                       .as_ref()
-                       .unwrap()
-                       .len());
+        assert_eq!(0, ident.type_params.as_ref().unwrap().len());
 
         let (expr, _) = parse_expr("Vec()");
         let ident = expr.to_call().unwrap();
@@ -3396,19 +3187,19 @@ mod tests {
 
     #[test]
     fn parse_generic_with_bound() {
-        let (prog, interner) = parse("class A<T: Foo>");
+        let (prog, _) = parse("class A<T: Foo>");
         let cls = prog.cls0();
 
-        let type_param = &cls.type_params[0];
-        assert_eq!(2, type_param.bounds);
+        let type_param = &cls.type_params.as_ref().unwrap()[0];
+        assert_eq!(1, type_param.bounds.len());
     }
 
     #[test]
     fn parse_generic_with_multiple_bounds() {
-        let (prog, interner) = parse("class A<T: Foo + Bar>");
+        let (prog, _) = parse("class A<T: Foo + Bar>");
         let cls = prog.cls0();
 
-        let type_param = &cls.type_params[0];
-        assert_eq!(2, type_param.bounds);
+        let type_param = &cls.type_params.as_ref().unwrap()[0];
+        assert_eq!(2, type_param.bounds.len());
     }
 }

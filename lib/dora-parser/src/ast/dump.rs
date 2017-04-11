@@ -95,9 +95,9 @@ impl<'a> AstDumper<'a> {
               xconst.id);
 
         self.indent(|d| {
-            d.dump_type(&xconst.data_type);
-            d.dump_expr(&xconst.expr);
-        });
+                        d.dump_type(&xconst.data_type);
+                        d.dump_expr(&xconst.expr);
+                    });
     }
 
     fn dump_impl(&mut self, ximpl: &Impl) {

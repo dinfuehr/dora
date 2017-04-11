@@ -401,6 +401,7 @@ pub struct Fct<'ast> {
     pub has_final: bool,
     pub is_static: bool,
     pub is_pub: bool,
+    pub is_abstract: bool,
     pub internal: bool,
     pub internal_resolved: bool,
     pub overrides: Option<FctId>,

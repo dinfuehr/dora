@@ -49,6 +49,7 @@ pub struct Class {
     pub ty: BuiltinType,
     pub parent_class: Option<ClassId>,
     pub has_open: bool,
+    pub is_abstract: bool,
     pub internal: bool,
     pub internal_resolved: bool,
     pub primary_ctor: bool,

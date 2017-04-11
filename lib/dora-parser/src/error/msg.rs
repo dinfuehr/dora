@@ -104,6 +104,8 @@ pub enum Msg {
     DuplicateTraitBound,
     ClassBoundNotSatisfied(String, String),
     TraitBoundNotSatisfied(String, String),
+    AbstractMethodNotInAbstractClass,
+    AbstractMethodWithImplementation,
 }
 
 impl Msg {
@@ -325,6 +327,10 @@ impl Msg {
             }
             TraitBoundNotSatisfied(ref name, ref xtrait) => {
                 format!("type `{}` does not implement trait `{}`.", name, xtrait)
+            }
+            AbstractMethodWithImplementation => "abstract methods cannot be implemented.".into(),
+            AbstractMethodNotInAbstractClass => {
+                "abstract methods only allowed in abstract classes.".into()
             }
         }
     }
