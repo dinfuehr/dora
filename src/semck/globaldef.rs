@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ptr;
 
 use dora_parser::ast::*;
 use dora_parser::ast::visit::*;
@@ -69,6 +70,9 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: g.pos,
             name: g.name,
             ty: BuiltinType::Unit,
+            getter: None,
+            address_init: ptr::null(),
+            address_value: ptr::null(),
         };
 
         self.ctxt.globals.push(global);

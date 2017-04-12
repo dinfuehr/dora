@@ -333,7 +333,7 @@ impl Msg {
             AbstractMethodNotInAbstractClass => {
                 "abstract methods only allowed in abstract classes.".into()
             }
-            NewAbstractClass => "cannot create object of abstract class.".into()
+            NewAbstractClass => "cannot create object of abstract class.".into(),
         }
     }
 }

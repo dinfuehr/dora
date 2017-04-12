@@ -11,7 +11,7 @@ use baseline;
 use dora_parser::lexer::position::Position;
 use os;
 
-use dora_parser::parser::Parser;
+use dora_parser::parser::{Parser, NodeIdGenerator};
 use semck;
 use stacktrace::DoraToNativeInfo;
 use ty::BuiltinType;
@@ -25,10 +25,16 @@ pub fn start() -> i32 {
     }
 
     let mut interner = Interner::new();
+    let id_generator = NodeIdGenerator::new();
     let mut ast = Ast::new();
 
-    if let Err(code) = parse_file("stdlib/prelude.dora", &mut ast, &mut interner)
-        .and_then(|_| parse_file(&args.arg_file, &mut ast, &mut interner)) {
+    if let Err(code) = parse_file("stdlib/prelude.dora",
+                                  &id_generator,
+                                  &mut ast,
+                                  &mut interner)
+               .and_then(|_| {
+                             parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
+                         }) {
         return code;
     }
 
@@ -81,7 +87,11 @@ pub fn start() -> i32 {
     }
 }
 
-fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<(), i32> {
+fn parse_file(filename: &str,
+              id_generator: &NodeIdGenerator,
+              ast: &mut Ast,
+              interner: &mut Interner)
+              -> Result<(), i32> {
     let reader = match Reader::from_file(filename) {
         Err(_) => {
             println!("unable to read file `{}`", filename);
@@ -91,7 +101,7 @@ fn parse_file(filename: &str, ast: &mut Ast, interner: &mut Interner) -> Result<
         Ok(reader) => reader,
     };
 
-    if let Err(error) = Parser::new(reader, ast, interner).parse() {
+    if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
         println!("{}", error);
         println!("1 error found.");
         return Err(1);

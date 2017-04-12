@@ -304,12 +304,14 @@ mod tests {
     #[test]
     fn abstract_method_in_non_abstract_class() {
         err("class A { abstract fun foo(); }",
-            pos(1, 20), Msg::AbstractMethodNotInAbstractClass);
+            pos(1, 20),
+            Msg::AbstractMethodNotInAbstractClass);
     }
 
     #[test]
     fn abstract_method_with_implementation() {
         err("abstract class A { abstract fun foo() {} }",
-            pos(1, 29), Msg::AbstractMethodWithImplementation);
+            pos(1, 29),
+            Msg::AbstractMethodWithImplementation);
     }
 }

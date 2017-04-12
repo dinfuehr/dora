@@ -4,7 +4,7 @@ use dora_parser::ast::Ast;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
 use os;
-use dora_parser::parser::Parser;
+use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
@@ -26,19 +26,20 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
 {
     os::mem::init_page_size();
 
+    let id_generator = NodeIdGenerator::new();
     let mut interner = Interner::new();
     let mut ast = Ast::new();
     let args: Args = Default::default();
 
     {
         let reader = Reader::from_file("stdlib/prelude.dora").unwrap();
-        let mut parser = Parser::new(reader, &mut ast, &mut interner);
+        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         parser.parse().unwrap()
     }
 
     {
         let reader = Reader::from_string(code);
-        let mut parser = Parser::new(reader, &mut ast, &mut interner);
+        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         parser.parse().unwrap()
     }
 

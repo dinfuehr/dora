@@ -181,6 +181,9 @@ pub struct GlobalData<'ast> {
     pub pos: Position,
     pub ty: BuiltinType,
     pub name: Name,
+    pub getter: Option<FctId>,
+    pub address_init: *const u8,
+    pub address_value: *const u8,
 }
 
 impl<'ast> Index<GlobalId> for GrowableVec<GlobalData<'ast>> {
