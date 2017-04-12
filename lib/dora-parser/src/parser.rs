@@ -3,7 +3,7 @@ use std::mem;
 
 use ast::*;
 use ast::Elem::*;
-use builder::Builder;
+use builder::{Builder, BuilderFct};
 use error::msg::*;
 
 use interner::*;
@@ -1511,35 +1511,20 @@ impl<'a> Parser<'a> {
             .chain(field_assignments.into_iter())
             .collect();
 
-        let params = ctor_params
-            .iter()
-            .enumerate()
-            .map(|(idx, field)| {
-                     builder.build_param(idx as u32, field.name, field.data_type.clone())
-                 })
-            .collect();
-
         let block = builder.build_block(assignments);
 
-        Function {
-            id: self.generate_id(),
-            pos: Position::new(1, 1),
-            name: cls.name,
-            method: true,
-            has_open: false,
-            has_override: false,
-            has_final: false,
-            is_pub: true,
-            is_static: false,
-            is_abstract: false,
-            internal: false,
-            ctor: CtorType::Primary,
-            params: params,
-            throws: false,
-            return_type: None,
-            block: Some(block),
-            type_params: None,
+        let mut fct = BuilderFct::new(self.id_generator, cls.name);
+
+        for field in &ctor_params {
+            fct.add_param(field.name, field.data_type.clone());
         }
+
+        fct.is_method(true)
+           .is_public(true)
+           .ctor(CtorType::Primary)
+           .block(block);
+
+        fct.build()
     }
 }
 

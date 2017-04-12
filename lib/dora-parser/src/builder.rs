@@ -93,8 +93,12 @@ impl<'a> Builder<'a> {
 pub struct BuilderFct<'a> {
     id_generator: &'a NodeIdGenerator,
     name: Name,
+    is_method: bool,
+    is_public: bool,
+    ctor: CtorType,
     return_type: Option<Type>,
     params: Vec<Param>,
+    block: Option<Box<Stmt>>,
 }
 
 impl<'a> BuilderFct<'a> {
@@ -102,16 +106,21 @@ impl<'a> BuilderFct<'a> {
         BuilderFct {
             id_generator: id_generator,
             name: name,
+            is_method: false,
+            is_public: false,
+            ctor: CtorType::None,
             return_type: None,
             params: Vec::new(),
+            block: None,
         }
     }
 
-    pub fn return_type(&mut self, ty: Type) {
+    pub fn return_type(&mut self, ty: Type) -> &mut BuilderFct<'a> {
         self.return_type = Some(ty);
+        self
     }
 
-    pub fn add_param(&mut self, name: Name, ty: Type) {
+    pub fn add_param(&mut self, name: Name, ty: Type) -> &mut BuilderFct<'a> {
         let id = self.id_generator.next();
 
         let param = Param {
@@ -124,5 +133,48 @@ impl<'a> BuilderFct<'a> {
         };
 
         self.params.push(param);
+        self
+    }
+
+    pub fn is_method(&mut self, value: bool) -> &mut BuilderFct<'a> {
+        self.is_method = value;
+        self
+    }
+
+    pub fn is_public(&mut self, value: bool) -> &mut BuilderFct<'a> {
+        self.is_public = value;
+        self
+    }
+
+    pub fn ctor(&mut self, ctor: CtorType) -> &mut BuilderFct<'a> {
+        self.ctor = ctor;
+        self
+    }
+
+    pub fn block(&mut self, stmt: Box<Stmt>) -> &mut BuilderFct<'a> {
+        self.block = Some(stmt);
+        self
+    }
+
+    pub fn build(self) -> Function {
+        Function {
+            id: self.id_generator.next(),
+            pos: Position::new(1, 1),
+            name: self.name,
+            method: self.is_method,
+            has_open: false,
+            has_override: false,
+            has_final: false,
+            is_pub: self.is_public,
+            is_static: false,
+            is_abstract: false,
+            internal: false,
+            ctor: self.ctor,
+            params: self.params,
+            throws: false,
+            return_type: self.return_type,
+            block: self.block,
+            type_params: None,
+        }
     }
 }
