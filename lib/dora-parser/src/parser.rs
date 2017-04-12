@@ -1514,7 +1514,9 @@ impl<'a> Parser<'a> {
         let params = ctor_params
             .iter()
             .enumerate()
-            .map(|(idx, field)| builder.build_param(idx as u32, field.name, field.data_type.clone()))
+            .map(|(idx, field)| {
+                     builder.build_param(idx as u32, field.name, field.data_type.clone())
+                 })
             .collect();
 
         let block = builder.build_block(assignments);

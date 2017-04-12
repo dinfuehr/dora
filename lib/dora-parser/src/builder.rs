@@ -11,9 +11,7 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     pub fn new(id_generator: &'a NodeIdGenerator) -> Builder<'a> {
-        Builder {
-            id_generator: id_generator,
-        }
+        Builder { id_generator: id_generator }
     }
 
     pub fn build_block(&self, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
@@ -89,5 +87,42 @@ impl<'a> Builder<'a> {
             pos: Position::new(1, 1),
             data_type: ty,
         }
+    }
+}
+
+pub struct BuilderFct<'a> {
+    id_generator: &'a NodeIdGenerator,
+    name: Name,
+    return_type: Option<Type>,
+    params: Vec<Param>,
+}
+
+impl<'a> BuilderFct<'a> {
+    pub fn new(id_generator: &'a NodeIdGenerator, name: Name) -> BuilderFct<'a> {
+        BuilderFct {
+            id_generator: id_generator,
+            name: name,
+            return_type: None,
+            params: Vec::new(),
+        }
+    }
+
+    pub fn return_type(&mut self, ty: Type) {
+        self.return_type = Some(ty);
+    }
+
+    pub fn add_param(&mut self, name: Name, ty: Type) {
+        let id = self.id_generator.next();
+
+        let param = Param {
+            id: id,
+            idx: self.params.len() as u32,
+            name: name,
+            reassignable: false,
+            pos: Position::new(1, 1),
+            data_type: ty,
+        };
+
+        self.params.push(param);
     }
 }
