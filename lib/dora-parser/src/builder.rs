@@ -14,14 +14,12 @@ impl<'a> Builder<'a> {
         Builder { id_generator: id_generator }
     }
 
-    pub fn build_block(&self, stmts: Vec<Box<Stmt>>) -> Box<Stmt> {
-        let id = self.id_generator.next();
+    pub fn build_block(&self) -> BuilderBlock<'a> {
+        BuilderBlock::new(self.id_generator)
+    }
 
-        Box::new(Stmt::StmtBlock(StmtBlockType {
-                                     id: id,
-                                     pos: Position::new(1, 1),
-                                     stmts: stmts,
-                                 }))
+    pub fn build_fct(&self, name: Name) -> BuilderFct<'a> {
+        BuilderFct::new(self.id_generator, name)
     }
 
     pub fn build_this(&self) -> Box<Expr> {
@@ -64,16 +62,6 @@ impl<'a> Builder<'a> {
                                      name: name,
                                      type_params: None,
                                  }))
-    }
-
-    pub fn build_stmt_expr(&self, expr: Box<Expr>) -> Box<Stmt> {
-        let id = self.id_generator.next();
-
-        Box::new(Stmt::StmtExpr(StmtExprType {
-                                    id: id,
-                                    pos: Position::new(1, 1),
-                                    expr: expr,
-                                }))
     }
 
     pub fn build_param(&self, idx: u32, name: Name, ty: Type) -> Param {
@@ -176,5 +164,56 @@ impl<'a> BuilderFct<'a> {
             block: self.block,
             type_params: None,
         }
+    }
+}
+
+pub struct BuilderBlock<'a> {
+    id_generator: &'a NodeIdGenerator,
+    stmts: Vec<Box<Stmt>>,
+}
+
+impl<'a> BuilderBlock<'a> {
+    pub fn new(id_generator: &'a NodeIdGenerator) -> BuilderBlock<'a> {
+        BuilderBlock {
+            id_generator: id_generator,
+            stmts: Vec::new(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.stmts.len()
+    }
+
+    pub fn add_stmts(&mut self, mut stmts: Vec<Box<Stmt>>) -> &mut BuilderBlock<'a> {
+        self.stmts.append(&mut stmts);
+        self
+    }
+
+    pub fn add_stmt(&mut self, stmt: Box<Stmt>) -> &mut BuilderBlock<'a> {
+        self.stmts.push(stmt);
+        self
+    }
+
+    pub fn add_expr(&mut self, expr: Box<Expr>) -> &mut BuilderBlock<'a> {
+        let id = self.id_generator.next();
+
+        let stmt = Box::new(Stmt::StmtExpr(StmtExprType {
+                                    id: id,
+                                    pos: Position::new(1, 1),
+                                    expr: expr,
+                                }));
+
+        self.stmts.push(stmt);
+        self
+    }
+
+    pub fn build(self) -> Box<Stmt> {
+        let id = self.id_generator.next();
+
+        Box::new(Stmt::StmtBlock(StmtBlockType {
+                                     id: id,
+                                     pos: Position::new(1, 1),
+                                     stmts: self.stmts,
+                                 }))
     }
 }

@@ -3,7 +3,7 @@ use std::mem;
 
 use ast::*;
 use ast::Elem::*;
-use builder::{Builder, BuilderFct};
+use builder::Builder;
 use error::msg::*;
 
 use interner::*;
@@ -62,8 +62,7 @@ impl<'a> Parser<'a> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
-            let el = self.parse_top_level_element()?;
-            elements.push(el);
+            self.parse_top_level_element(&mut elements)?;
         }
 
         self.ast
@@ -82,58 +81,59 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_top_level_element(&mut self) -> Result<Elem, MsgWithPos> {
+    fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
         let modifiers = self.parse_modifiers()?;
 
         match self.token.kind {
             TokenKind::Fun => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Internal])?;
                 let fct = self.parse_function(&modifiers)?;
-                Ok(ElemFunction(fct))
+                elements.push(ElemFunction(fct));
             }
 
             TokenKind::Class => {
                 self.restrict_modifiers(&modifiers,
                                         &[Modifier::Abstract, Modifier::Open, Modifier::Internal])?;
                 let class = self.parse_class(&modifiers)?;
-                Ok(ElemClass(class))
+                elements.push(ElemClass(class));
             }
 
             TokenKind::Struct => {
                 self.ban_modifiers(&modifiers)?;
                 let struc = self.parse_struct()?;
-                Ok(ElemStruct(struc))
+                elements.push(ElemStruct(struc))
             }
 
             TokenKind::Trait => {
                 self.ban_modifiers(&modifiers)?;
                 let xtrait = self.parse_trait()?;
-                Ok(ElemTrait(xtrait))
+                elements.push(ElemTrait(xtrait));
             }
 
             TokenKind::Impl => {
                 self.ban_modifiers(&modifiers)?;
                 let ximpl = self.parse_impl()?;
-                Ok(ElemImpl(ximpl))
+                elements.push(ElemImpl(ximpl));
             }
 
             TokenKind::Let | TokenKind::Var => {
                 self.ban_modifiers(&modifiers)?;
-                let global = self.parse_global()?;
-                Ok(ElemGlobal(global))
+                self.parse_global(elements)?;
             }
 
             TokenKind::Const => {
                 self.ban_modifiers(&modifiers)?;
                 let xconst = self.parse_const()?;
-                Ok(ElemConst(xconst))
+                elements.push(ElemConst(xconst));
             }
 
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
-                Err(MsgWithPos::new(self.token.position, msg))
+                return Err(MsgWithPos::new(self.token.position, msg))
             }
         }
+
+        Ok(())
     }
 
     fn parse_const(&mut self) -> Result<Const, MsgWithPos> {
@@ -183,7 +183,7 @@ impl<'a> Parser<'a> {
            })
     }
 
-    fn parse_global(&mut self) -> Result<Global, MsgWithPos> {
+    fn parse_global(&mut self, elements: &mut Vec<Elem>) -> Result<(), MsgWithPos> {
         let pos = self.token.position;
         let reassignable = self.token.is(TokenKind::Var);
 
@@ -203,14 +203,20 @@ impl<'a> Parser<'a> {
 
         self.expect_semicolon()?;
 
-        Ok(Global {
-               id: self.generate_id(),
-               name: name,
-               pos: pos,
-               data_type: data_type,
-               reassignable: reassignable,
-               expr: expr,
-           })
+        let builder = Builder::new(self.id_generator);
+
+        let global = Global {
+            id: self.generate_id(),
+            name: name,
+            pos: pos,
+            data_type: data_type,
+            reassignable: reassignable,
+            expr: expr,
+        };
+
+        elements.push(ElemGlobal(global));
+
+        Ok(())
     }
 
     fn parse_trait(&mut self) -> Result<Trait, MsgWithPos> {
@@ -374,7 +380,7 @@ impl<'a> Parser<'a> {
         let builder = Builder::new(self.id_generator);
 
         for ctor in &mut cls.ctors {
-            let mut inits = Vec::new();
+            let mut block = builder.build_block();
 
             for field in &cls.fields {
                 if let Some(ref expr) = field.expr {
@@ -382,16 +388,14 @@ impl<'a> Parser<'a> {
                     let lhs = builder.build_field(this, field.name);
                     let ass = builder.build_assign(lhs, expr.clone());
 
-                    inits.push(builder.build_stmt_expr(ass));
+                    block.add_expr(ass);
                 }
             }
 
-            if inits.len() > 0 && ctor.block.is_some() {
-                let block = mem::replace(&mut ctor.block, None);
-                inits.push(block.unwrap());
-
-                let block = builder.build_block(inits);
-                ctor.block = Some(block);
+            if block.len() > 0 && ctor.block.is_some() {
+                let old_block = mem::replace(&mut ctor.block, None);
+                block.add_stmt(old_block.unwrap());
+                ctor.block = Some(block.build());
             }
         }
     }
@@ -570,8 +574,10 @@ impl<'a> Parser<'a> {
                                                delegation.ty,
                                                delegation.args);
 
-            let stmt = builder.build_stmt_expr(Box::new(expr));
-            block = Some(builder.build_block(vec![stmt, block.unwrap()]));
+            let mut bblock = builder.build_block();
+            bblock.add_expr(Box::new(expr));
+            bblock.add_stmt(block.unwrap());
+            block = Some(bblock.build());
         }
 
         Ok(Function {
@@ -1468,52 +1474,35 @@ impl<'a> Parser<'a> {
                              ctor_params: Vec<PrimaryCtorParam>)
                              -> Function {
         let builder = Builder::new(self.id_generator);
+        let mut block = builder.build_block();
 
-        let delegation = if let Some(ref parent_class) = cls.parent_class {
+        if let Some(ref parent_class) = cls.parent_class {
             let expr = Expr::create_delegation(self.generate_id(),
                                                parent_class.pos,
                                                DelegationType::Super,
                                                parent_class.params.clone());
 
-            vec![builder.build_stmt_expr(Box::new(expr))]
-        } else {
-            Vec::new()
-        };
+            block.add_expr(Box::new(expr));
+        }
 
-        let param_assignments: Vec<Box<Stmt>> = ctor_params
-            .iter()
-            .filter(|param| param.field)
-            .map(|param| {
-                     let this = builder.build_this();
-                     let lhs = builder.build_field(this, param.name);
-                     let rhs = builder.build_ident(param.name);
-                     let ass = builder.build_assign(lhs, rhs);
+        for param in ctor_params.iter().filter(|param| param.field) {
+             let this = builder.build_this();
+             let lhs = builder.build_field(this, param.name);
+             let rhs = builder.build_ident(param.name);
+             let ass = builder.build_assign(lhs, rhs);
 
-                     builder.build_stmt_expr(ass)
-                 })
-            .collect();
+             block.add_expr(ass);
+        }
 
-        let field_assignments: Vec<Box<Stmt>> = cls.fields
-            .iter()
-            .filter(|field| field.expr.is_some())
-            .map(|field| {
-                     let this = builder.build_this();
-                     let lhs = builder.build_field(this, field.name);
-                     let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
+        for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
+             let this = builder.build_this();
+             let lhs = builder.build_field(this, field.name);
+             let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
 
-                     builder.build_stmt_expr(ass)
-                 })
-            .collect();
+             block.add_expr(ass);
+        }
 
-        let assignments = delegation
-            .into_iter()
-            .chain(param_assignments.into_iter())
-            .chain(field_assignments.into_iter())
-            .collect();
-
-        let block = builder.build_block(assignments);
-
-        let mut fct = BuilderFct::new(self.id_generator, cls.name);
+        let mut fct = builder.build_fct(cls.name);
 
         for field in &ctor_params {
             fct.add_param(field.name, field.data_type.clone());
@@ -1522,7 +1511,7 @@ impl<'a> Parser<'a> {
         fct.is_method(true)
            .is_public(true)
            .ctor(CtorType::Primary)
-           .block(block);
+           .block(block.build());
 
         fct.build()
     }
