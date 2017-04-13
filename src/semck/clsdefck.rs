@@ -241,7 +241,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             return_type: BuiltinType::Unit,
             parent: FctParent::Class(self.cls_id.unwrap()),
             has_override: f.has_override,
-            has_open: f.has_open,
+
+            // abstract for methods also means that method is open to
+            // override
+            has_open: f.has_open || f.is_abstract,
             has_final: f.has_final,
             is_pub: f.is_pub,
             is_static: f.is_static,

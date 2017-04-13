@@ -5,6 +5,7 @@ use dora_parser::error::msg::Msg;
 use sym::Sym::{SymClass, SymStruct, SymTrait, SymClassTypeParam, SymFctTypeParam};
 use ty::BuiltinType;
 
+mod abstractck;
 mod constdefck;
 mod clsdefck;
 mod fctdefck;
@@ -94,6 +95,8 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // add size of super classes to field offsets
     superck::check(ctxt);
 
+    abstractck::check(ctxt);
+
     // check for internal functions or classes
     internalck(ctxt);
     return_on_error!(ctxt);
@@ -120,6 +123,10 @@ fn specialize_types<'ast>(ctxt: &Context<'ast>) {
 fn internalck<'ast>(ctxt: &Context<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
+
+        if fct.in_class() {
+            continue;
+        }
 
         if fct.internal && !fct.internal_resolved {
             ctxt.diag
@@ -152,7 +159,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
                     .report(method.pos, Msg::UnresolvedInternal);
             }
 
-            if method.kind.is_definition() {
+            if method.kind.is_definition() && !method.is_abstract {
                 ctxt.diag
                     .borrow_mut()
                     .report(method.pos, Msg::MissingFctBody);
