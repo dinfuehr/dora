@@ -107,6 +107,7 @@ pub enum Msg {
     AbstractMethodNotInAbstractClass,
     AbstractMethodWithImplementation,
     NewAbstractClass,
+    MissingAbstractOverride(String, String),
 }
 
 impl Msg {
@@ -334,6 +335,9 @@ impl Msg {
                 "abstract methods only allowed in abstract classes.".into()
             }
             NewAbstractClass => "cannot create object of abstract class.".into(),
+            MissingAbstractOverride(ref cls, ref name) => {
+                format!("missing override of abstract method `{}` in class `{}`.", cls, name)
+            }
         }
     }
 }

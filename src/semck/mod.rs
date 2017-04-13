@@ -94,6 +94,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 
     // add size of super classes to field offsets
     superck::check(ctxt);
+    return_on_error!(ctxt);
 
     abstractck::check(ctxt);
 

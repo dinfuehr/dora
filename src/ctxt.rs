@@ -392,6 +392,15 @@ pub enum FctParent {
     None,
 }
 
+impl FctParent {
+    pub fn cls_id(&self) -> ClassId {
+        match self {
+            &FctParent::Class(id) => id,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
