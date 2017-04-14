@@ -345,10 +345,8 @@ class File(let name: Str) {
 
 class Exception(msg: Str)
 
-open class Thread {
+open abstract class Thread {
   internal fun start();
 
-  open fun run() {
-    fatalError("run() not implemented");
-  }
+  abstract fun run();
 }
