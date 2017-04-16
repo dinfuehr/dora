@@ -1,4 +1,4 @@
-//= output "x = 0\ny = 0\nz = 0\n"
+//= output "x = 1\ny = 2\nz = 3\n"
 
 var x: int;
 var y: int;
@@ -7,6 +7,7 @@ var z: int;
 fun main() {
     init_globals();
     assert_globals();
+    dump_globals();
 }
 
 fun init_globals() {
@@ -19,4 +20,10 @@ fun assert_globals() {
     assert(x == 1);
     assert(y == 2);
     assert(z == 3);
+}
+
+fun dump_globals() {
+    println("x = " + x.toString());
+    println("y = " + y.toString());
+    println("z = " + z.toString());
 }
