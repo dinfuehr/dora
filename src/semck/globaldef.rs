@@ -70,6 +70,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: g.pos,
             name: g.name,
             ty: BuiltinType::Unit,
+            reassignable: g.reassignable,
             getter: None,
             address_init: ptr::null(),
             address_value: ptr::null(),

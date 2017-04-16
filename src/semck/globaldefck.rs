@@ -1,6 +1,7 @@
 use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{File, Global};
 use dora_parser::ast::visit::Visitor;
+use dora_parser::error::msg::Msg;
 use ctxt::{Context, GlobalId, NodeMap};
 use semck;
 use ty::BuiltinType;
@@ -36,6 +37,10 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
 
         let ty = semck::read_type(self.ctxt, &g.data_type).unwrap_or(BuiltinType::Unit);
         self.ctxt.globals[global_id].borrow_mut().ty = ty;
+
+        if g.expr.is_some() {
+            self.ctxt.diag.borrow_mut().report(g.pos, Msg::GlobalInitializerNotSupported);
+        }
     }
 }
 
@@ -45,9 +50,15 @@ mod tests {
     use semck::tests::*;
 
     #[test]
-    fn check_global_type() {
-        ok("let a: int = 0; var b: char = 'x';");
-        err("var x: Foo = nil;",
+    fn check_initializer() {
+        err("let a: int = 0;",
+            pos(1, 1),
+            Msg::GlobalInitializerNotSupported);
+    }
+
+    #[test]
+    fn check_type() {
+        err("var x: Foo;",
             pos(1, 8),
             Msg::UnknownType("Foo".into()));
     }

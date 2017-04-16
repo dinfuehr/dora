@@ -180,6 +180,7 @@ pub struct GlobalData<'ast> {
     pub ast: &'ast ast::Global,
     pub pos: Position,
     pub ty: BuiltinType,
+    pub reassignable: bool,
     pub name: Name,
     pub getter: Option<FctId>,
     pub address_init: *const u8,

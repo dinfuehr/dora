@@ -510,7 +510,17 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 codegen::var_load(self.masm, self.src, self.jit_info, varid, dest)
             }
 
-            IdentType::Global(_) => unimplemented!(),
+            IdentType::Global(gid) => {
+                let glob = self.ctxt.globals[gid].borrow();
+
+                let disp = self.masm.add_addr(glob.address_value);
+                let pos = self.masm.pos() as i32;
+
+                self.masm.emit_comment(Comment::LoadGlobal(gid));
+                self.masm.load_constpool(REG_TMP1, disp + pos);
+
+                self.masm.load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
+            }
 
             IdentType::Field(cls, field) => {
                 self.emit_self(REG_RESULT);
@@ -669,7 +679,25 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 codegen::var_store(&mut self.masm, self.src, self.jit_info, dest, varid);
             }
 
-            IdentType::Global(_) => unimplemented!(),
+            IdentType::Global(gid) => {
+                let glob = self.ctxt.globals[gid].borrow();
+
+                let disp = self.masm.add_addr(glob.address_value);
+                let pos = self.masm.pos() as i32;
+
+                let reg = if ExprStore::Reg(REG_TMP1) == dest {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
+
+                self.masm.emit_comment(Comment::StoreGlobal(gid));
+                self.masm.load_constpool(reg, disp + pos);
+
+                self.emit_expr(&e.rhs, dest);
+
+                self.masm.store_mem(glob.ty.mode(), Mem::Base(reg, 0), dest);
+            }
 
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.classes[clsid].borrow();
@@ -715,7 +743,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
             IdentType::Const(_) => {
-                unimplemented!();
+                unreachable!();
             }
         }
     }

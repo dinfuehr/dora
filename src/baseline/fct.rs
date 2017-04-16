@@ -4,7 +4,7 @@ use std::ptr;
 
 use class::{ClassId, FieldId};
 use cpu::flush_icache;
-use ctxt::{Context, FctId, FctSrc, VarId};
+use ctxt::{Context, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 
@@ -188,6 +188,8 @@ pub enum Comment {
     StoreVar(VarId),
     LoadVar(VarId),
     LoadSelf(VarId),
+    LoadGlobal(GlobalId),
+    StoreGlobal(GlobalId),
     ReadPollingPage,
 }
 
@@ -293,6 +295,20 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let name = self.ctxt.interner.str(var.name);
 
                 write!(f, "load var {}", name)
+            }
+
+            &Comment::StoreGlobal(gid) => {
+                let glob = self.ctxt.globals[gid].borrow();
+                let name = self.ctxt.interner.str(glob.name);
+
+                write!(f, "store global {}", name)
+            }
+
+            &Comment::LoadGlobal(gid) => {
+                let glob = &self.ctxt.globals[gid].borrow();
+                let name = self.ctxt.interner.str(glob.name);
+
+                write!(f, "load global {}", name)
             }
 
             &Comment::LoadSelf(_) => write!(f, "load self"),

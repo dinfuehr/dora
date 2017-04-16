@@ -109,6 +109,7 @@ pub enum Msg {
     NewAbstractClass,
     MissingAbstractOverride(String, String),
     ModifierNotAllowedForStaticMethod(String),
+    GlobalInitializerNotSupported,
 }
 
 impl Msg {
@@ -341,6 +342,9 @@ impl Msg {
             }
             ModifierNotAllowedForStaticMethod(ref modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)
+            }
+            GlobalInitializerNotSupported => {
+                "global variables do no support initial assignment for now.".into()
             }
         }
     }

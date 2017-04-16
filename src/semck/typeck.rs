@@ -303,7 +303,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         }
                     }
 
-                    &IdentType::Global(_) => unimplemented!(),
+                    &IdentType::Global(gid) => {
+                        if !self.ctxt.globals[gid].borrow().reassignable {
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
+                        }
+                    }
 
                     &IdentType::Field(clsid, fieldid) => {
                         if !self.fct.ctor.is() &&
@@ -2427,6 +2434,19 @@ mod tests {
             fun test() -> A { return A(); }",
             pos(2, 38),
             Msg::NewAbstractClass);
+    }
+
+    #[test]
+    fn test_global_get() {
+        ok("var x: int; fun foo() -> int { return x; }");
+    }
+
+    #[test]
+    fn test_global_set() {
+        ok("var x: int; fun foo(a: int) { x = a; }");
+        err("let x: int; fun foo(a: int) { x = a; }",
+            pos(1, 33),
+            Msg::LetReassigned);
     }
 
     /*#[test]
