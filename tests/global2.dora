@@ -1,0 +1,22 @@
+//= output "x = 0\ny = 0\nz = 0\n"
+
+var x: int;
+var y: int;
+var z: int;
+
+fun main() {
+    init_globals();
+    assert_globals();
+}
+
+fun init_globals() {
+    x = 1;
+    y = 2;
+    z = 3;
+}
+
+fun assert_globals() {
+    assert(x == 1);
+    assert(y == 2);
+    assert(z == 3);
+}

@@ -1,7 +1,8 @@
+use ctxt::{Context, NodeMap};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeSelf};
-use ctxt::{Context, NodeMap};
 use dora_parser::error::msg::Msg;
+use mem;
 use sym::Sym::{SymClass, SymStruct, SymTrait, SymClassTypeParam, SymFctTypeParam};
 use ty::BuiltinType;
 
@@ -101,6 +102,9 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     // check for internal functions or classes
     internalck(ctxt);
     return_on_error!(ctxt);
+
+    // initialize addresses for global variables
+    init_global_addresses(ctxt);
 }
 
 fn specialize_types<'ast>(ctxt: &Context<'ast>) {
@@ -166,6 +170,30 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
                     .report(method.pos, Msg::MissingFctBody);
             }
         }
+    }
+}
+
+fn init_global_addresses<'ast>(ctxt: &Context<'ast>) {
+    let mut size = 0;
+    let mut offsets = Vec::with_capacity(ctxt.globals.len());
+
+    for glob in ctxt.globals.iter() {
+        let glob = glob.borrow();
+
+        let ty_size = glob.ty.size(ctxt);
+        let ty_align = glob.ty.align(ctxt);
+
+        offsets.push(mem::align_i32(size, ty_align));
+        size += ty_size;
+    }
+
+    let ptr = ctxt.gc.alloc_perm(size as usize);
+
+    for (ind, glob) in ctxt.globals.iter().enumerate() {
+        let mut glob = glob.borrow_mut();
+        let offset = offsets[ind];
+
+        glob.address_value = unsafe { ptr.offset(offset as isize) };
     }
 }
 

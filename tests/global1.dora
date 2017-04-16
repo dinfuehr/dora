@@ -1,0 +1,11 @@
+//= output "x = 0\ny = 0\nz = 0\n"
+
+var x: int;
+var y: int;
+var z: int;
+
+fun main() {
+    println("x = " + x.toString());
+    println("y = " + y.toString());
+    println("z = " + z.toString());
+}
