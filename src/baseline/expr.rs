@@ -682,19 +682,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             IdentType::Global(gid) => {
                 let glob = self.ctxt.globals[gid].borrow();
 
-                let disp = self.masm.add_addr(glob.address_value);
-                let pos = self.masm.pos() as i32;
-
                 let reg = if ExprStore::Reg(REG_TMP1) == dest {
                     REG_TMP2
                 } else {
                     REG_TMP1
                 };
 
+                self.emit_expr(&e.rhs, dest);
+
+                let disp = self.masm.add_addr(glob.address_value);
+                let pos = self.masm.pos() as i32;
+
                 self.masm.emit_comment(Comment::StoreGlobal(gid));
                 self.masm.load_constpool(reg, disp + pos);
-
-                self.emit_expr(&e.rhs, dest);
 
                 self.masm.store_mem(glob.ty.mode(), Mem::Base(reg, 0), dest);
             }

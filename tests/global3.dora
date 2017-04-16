@@ -1,0 +1,16 @@
+var a: A;
+
+fun main() {
+    assert(a === nil);
+    forceCollect();
+    assert(a === nil);
+    a = A(10);
+    forceCollect();
+    assert(a.val == 10);
+}
+
+fun create() -> A {
+    return A(10);
+}
+
+class A(let val: int)

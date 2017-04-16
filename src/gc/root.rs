@@ -28,6 +28,16 @@ pub fn get_rootset(ctxt: &Context) -> Vec<IndirectObj> {
         fp = unsafe { *(fp as *const usize) };
     }
 
+    for glob in ctxt.globals.iter() {
+        let glob = glob.borrow();
+
+        if !glob.ty.reference_type() {
+            continue;
+        }
+
+        rootset.push((glob.address_value as usize).into());
+    }
+
     rootset
 }
 
