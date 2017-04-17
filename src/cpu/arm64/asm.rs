@@ -703,6 +703,10 @@ fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) ->
     rn.asm() << 5 | rd.asm()
 }
 
+pub fn fsqrt(ty: u32, rd: FReg, rn: FReg) -> u32 {
+    cls_fp_dataproc1(0, 0, ty, 0b000011, rn, rd)
+}
+
 pub fn fcvt_sd(rd: FReg, rn: FReg) -> u32 {
     cls_fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd)
 }
@@ -1575,6 +1579,14 @@ mod tests {
         assert_eq!(0x9e380047, fcvtzs(1, 0, R7, F2)); // x7, s2
         assert_eq!(0x1e780020, fcvtzs(0, 1, R0, F1)); // w0, d1
         assert_eq!(0x1e380047, fcvtzs(0, 0, R7, F2)); // w7, s2
+    }
+
+    #[test]
+    fn test_fsqrt() {
+        assert_eq!(0x1e21c020, fsqrt(0, F0, F1)); // fsqrt s0, s1
+        assert_eq!(0x1e61c020, fsqrt(1, F0, F1)); // fsqrt d0, d1
+        assert_eq!(0x1e21c149, fsqrt(0, F9, F10)); // fsqrt s9, s10
+        assert_eq!(0x1e61c149, fsqrt(1, F9, F10)); // fsqrt d9, d10
     }
 
     fn asm(op1: u32, op2: u32) {

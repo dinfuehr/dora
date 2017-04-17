@@ -1,5 +1,6 @@
 use baseline::expr::ExprStore;
 use baseline::fct::BailoutInfo;
+use baseline::fct::GcPoint;
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use cpu::asm;
@@ -7,7 +8,7 @@ use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
 use ctxt::FctId;
-use lexer::position::Position;
+use dora_parser::lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
 use object::{offset_of_array_data, offset_of_array_length};
@@ -27,12 +28,17 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog(&mut self, stacksize: i32) {
+    pub fn epilog(&mut self, stacksize: i32, polling_page: *const u8) {
         if stacksize > 0 {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
             self.emit_u32(asm::add_extreg(1, REG_SP, REG_SP, *scratch, Extend::UXTX, 0));
         }
+
+        self.check_polling_page(polling_page);
+
+        let gcpoint = GcPoint::new();
+        self.emit_gcpoint(gcpoint);
 
         self.emit_u32(asm::add_extreg(1, REG_SP, REG_FP, REG_ZERO, Extend::UXTX, 0));
         self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
@@ -404,6 +410,10 @@ impl MacroAssembler {
         self.emit_u32(asm::fneg(dbl, dest, src));
     }
 
+    pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        unreachable!();
+    }
+
     pub fn float_cmp(&mut self,
                      mode: MachineMode,
                      dest: Reg,
@@ -458,11 +468,18 @@ impl MacroAssembler {
         self.load_mem(mode, dest.into(), Mem::Base(*scratch, 0));
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg, temp: Reg) {
+    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
+        assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
+
+        unreachable!();
+    }
+
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+        let scratch = self.get_scratch();
         self.load_mem(MachineMode::Int32,
-                      temp.into(),
+                      (*scratch).into(),
                       Mem::Base(array, offset_of_array_length()));
-        self.cmp_reg(MachineMode::Int32, index, temp);
+        self.cmp_reg(MachineMode::Int32, index, *scratch);
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
@@ -555,6 +572,8 @@ impl MacroAssembler {
 
                 self.emit_u32(inst);
             }
+
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
@@ -640,6 +659,8 @@ impl MacroAssembler {
 
                 self.emit_u32(inst);
             }
+
+            Mem::Offset(_, _, _) => unimplemented!(),
         }
     }
 
@@ -792,6 +813,16 @@ impl MacroAssembler {
             let mut slice = &mut self.data[jmp.at..];
             slice.write_u32::<LittleEndian>(insn).unwrap();
         }
+    }
+
+    pub fn check_polling_page(&mut self, page: *const u8) {
+        let disp = self.dseg.add_addr_reuse(page);
+        let pos = self.pos() as i32;
+
+        let scratch = self.get_scratch();
+        self.load_constpool(*scratch, disp + pos);
+
+        unreachable!();
     }
 }
 
