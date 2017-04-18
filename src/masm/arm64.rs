@@ -846,7 +846,7 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
         self.load_constpool(*scratch, disp + pos);
 
-        unreachable!();
+        self.emit_u32(asm::ldrx_imm(REG_ZERO, *scratch, 0));
     }
 }
 

@@ -356,7 +356,7 @@ fn cls_ldst_regimm(size: u32, v: u32, opc: u32, imm12: u32, rn: Reg, rt: Reg) ->
     assert!(fits_u2(opc));
     assert!(fits_u12(imm12));
     assert!(rn.is_gpr());
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
 
     0b111001u32 << 24 | size << 30 | v << 26 | opc << 22 | imm12 << 10 | rn.asm() << 5 | rt.asm()
 }
@@ -1610,8 +1610,13 @@ mod tests {
 
     #[test]
     fn test_and_imm() {
-        asm(0x12000020, and_imm(0, R0, R1, 1)); // and w0, w1, #1
-        asm(0x92400020, and_imm(1, R0, R1, 1)); // and x0, x1, #1
+        assert_eq!(0x12000020, and_imm(0, R0, R1, 1)); // and w0, w1, #1
+        assert_eq!(0x92400020, and_imm(1, R0, R1, 1)); // and x0, x1, #1
+    }
+
+    #[test]
+    fn test_ldr_into_zero_register() {
+        assert_eq!(0xf940003f, ldrx_imm(REG_ZERO, R1, 0));
     }
 
     fn asm(op1: u32, op2: u32) {
