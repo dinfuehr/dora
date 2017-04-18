@@ -625,6 +625,11 @@ pub fn ubfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
     cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd)
 }
 
+pub fn lsl_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
+    let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
+    ubfm(sf, rd, rn, (val-shift) & mask, val-1-shift)
+}
+
 pub fn uxtb(rd: Reg, rn: Reg) -> u32 {
     ubfm(0, rd, rn, 0, 7)
 }
@@ -648,6 +653,12 @@ fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Re
 
     sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 |
     (imms & 0x3F) << 10 | rn.asm() << 5 | rd.asm()
+}
+
+pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: i32) -> u32 {
+    let n = if sf == 0 { 0 } else { 1 };
+    let (immr, imms) = (0, 0);
+    cls_logical_imm(sf, 0b00, n, immr, imms, rn, rd)
 }
 
 fn cls_logical_imm(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Reg) -> u32 {
@@ -1587,6 +1598,20 @@ mod tests {
         assert_eq!(0x1e61c020, fsqrt(1, F0, F1)); // fsqrt d0, d1
         assert_eq!(0x1e21c149, fsqrt(0, F9, F10)); // fsqrt s9, s10
         assert_eq!(0x1e61c149, fsqrt(1, F9, F10)); // fsqrt d9, d10
+    }
+
+    #[test]
+    fn test_lsl_imm() {
+        assert_eq!(0xd37ff820, lsl_imm(1, R0, R1, 1)); // lsl x0, x1, #1
+        assert_eq!(0x531f7820, lsl_imm(0, R0, R1, 1)); // lsl w0, w1, #1
+        assert_eq!(0xd37ef462, lsl_imm(1, R2, R3, 2)); // lsl x2, x3, #2
+        assert_eq!(0x531e7462, lsl_imm(0, R2, R3, 2)); // lsl w2, w3, #2
+    }
+
+    #[test]
+    fn test_and_imm() {
+        asm(0x12000020, and_imm(0, R0, R1, 1)); // and w0, w1, #1
+        asm(0x92400020, and_imm(1, R0, R1, 1)); // and x0, x1, #1
     }
 
     fn asm(op1: u32, op2: u32) {

@@ -438,12 +438,14 @@ impl MacroAssembler {
     pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        let size = Header::size() + ptr_width();
+        let size = Header::size() + ptr_width() +
+            if element_size != ptr_width() { ptr_width()-1 } else { 0 };
+
         asm::lea(self, dest, Mem::Offset(length, element_size, size));
 
-        // round size to multiple of 8
-        asm::lea(self, dest, Mem::Base(dest, 7));
-        asm::emit_andq_imm_reg(self, -8, dest);
+        if element_size != ptr_width() {
+            asm::emit_andq_imm_reg(self, -ptr_width(), dest);
+        }
     }
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {

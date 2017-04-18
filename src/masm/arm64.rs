@@ -11,7 +11,7 @@ use ctxt::FctId;
 use dora_parser::lexer::position::Position;
 use masm::{MacroAssembler, Label};
 use mem::ptr_width;
-use object::{offset_of_array_data, offset_of_array_length};
+use object::{Header, offset_of_array_data, offset_of_array_length};
 use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
@@ -411,7 +411,13 @@ impl MacroAssembler {
     }
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        unreachable!();
+        let dbl = match mode {
+            MachineMode::Float32 => 0,
+            MachineMode::Float64 => 1,
+            _ => unimplemented!(),
+        };
+
+        self.emit_u32(asm::fsqrt(dbl, dest, src));
     }
 
     pub fn float_cmp(&mut self,
@@ -471,7 +477,25 @@ impl MacroAssembler {
     pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        unreachable!();
+        let size = Header::size() + ptr_width() +
+            if element_size != ptr_width() { ptr_width()-1 } else { 0 };
+
+        if element_size != 1 {
+            let shift = match element_size {
+                2 => 1,
+                4 => 2,
+                8 => 3,
+                _ => unreachable!(),
+            };
+
+            self.emit_u32(asm::lsl_imm(1, dest, length, shift));
+        }
+
+        self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
+
+        if element_size != ptr_width() {
+            self.emit_u32(asm::and_imm(1, dest, dest, -ptr_width()));
+        }
     }
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
