@@ -494,7 +494,7 @@ impl MacroAssembler {
         self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
 
         if element_size != ptr_width() {
-            self.emit_u32(asm::and_imm(1, dest, dest, -ptr_width()));
+            self.emit_u32(asm::and_imm(1, dest, dest, -ptr_width() as u64));
         }
     }
 

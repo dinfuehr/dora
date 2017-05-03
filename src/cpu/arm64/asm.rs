@@ -486,7 +486,8 @@ pub fn movk(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
 fn cls_move_wide_imm(sf: u32, opc: u32, hw: u32, imm16: u32, rd: Reg) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
-    assert!(fits_bit(hw));
+    assert!(fits_u2(hw));
+    if sf == 0 { assert!(fits_bit(hw)); }
     assert!(fits_u16(imm16));
     assert!(rd.is_gpr());
 
@@ -655,10 +656,10 @@ fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Re
     (imms & 0x3F) << 10 | rn.asm() << 5 | rd.asm()
 }
 
-pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: i32) -> u32 {
-    let n = if sf == 0 { 0 } else { 1 };
-    let (immr, imms) = (0, 0);
-    cls_logical_imm(sf, 0b00, n, immr, imms, rn, rd)
+pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
+    let reg_size = if sf == 1 { 64 } else { 32 };
+    let n_immr_imms = encode_logical_imm(imm, reg_size).unwrap();
+    cls_logical_imm(sf, 0b00, n_immr_imms, rn, rd)
 }
 
 fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
@@ -670,7 +671,7 @@ fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
     }
 
     // determine element size, use smallest possible element size
-    let mut size = reg_size;
+    let mut size: u32 = reg_size;
 
     while size > 2 {
         size /= 2;
@@ -684,7 +685,7 @@ fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
     }
 
     // truncate immediate to element size
-    let mask = (1 << size) - 1;
+    let mask = !0u64 >> (64 - size);
     imm &= mask;
 
     let rotation;
@@ -731,19 +732,17 @@ fn is_shifted_mask(imm: u64) -> bool {
 }
 
 fn is_mask(imm: u64) -> bool {
-    imm != 0 && (imm + 1) & imm == 0
+    imm != 0 && imm.wrapping_add(1) & imm == 0
 }
 
-fn cls_logical_imm(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Reg) -> u32 {
+fn cls_logical_imm(sf: u32, opc: u32, n_immr_imms: u32, rn: Reg, rd: Reg) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
-    assert!(fits_bit(n));
-    assert!(fits_u6(immr));
-    assert!(fits_u6(imms));
+    assert!(fits_u13(n_immr_imms));
     assert!(rn.is_gpr());
     assert!(rd.is_gpr());
 
-    sf << 31 | opc << 29 | 0b100100u32 << 23 | n << 22 | immr << 16 | imms << 10 | rn.asm() << 5 |
+    sf << 31 | opc << 29 | 0b100100u32 << 23 | n_immr_imms << 10 | rn.asm() << 5 |
     rd.asm()
 }
 
@@ -1034,6 +1033,10 @@ fn fits_u6(imm: u32) -> bool {
 
 fn fits_u7(imm: u32) -> bool {
     imm < 128
+}
+
+fn fits_u13(imm: u32) -> bool {
+    imm < 8192
 }
 
 fn fits_u8(imm: u32) -> bool {
@@ -1584,6 +1587,7 @@ mod tests {
         assert_eq!(0, shift_movz(1));
         assert_eq!(0, shift_movz(0xFFFF));
         assert_eq!(1, shift_movz(0x10000));
+        assert_eq!(2, shift_movz(0x100000000));
     }
 
     #[test]
@@ -1592,6 +1596,7 @@ mod tests {
         assert_eq!(0, shift_movn(0));
         assert_eq!(0, shift_movn(1));
         assert_eq!(1, shift_movn(0xFFFF));
+        assert_eq!(2, shift_movn(0xFFFFFFFF));
     }
 
     #[test]
@@ -1685,6 +1690,8 @@ mod tests {
     fn test_and_imm() {
         assert_eq!(0x12000020, and_imm(0, R0, R1, 1)); // and w0, w1, #1
         assert_eq!(0x92400020, and_imm(1, R0, R1, 1)); // and x0, x1, #1
+        assert_eq!(0x1201f062, and_imm(0, R2, R3, 0xaaaaaaaa)); // and w2, w3, #aaaaaaaa
+        assert_eq!(0x9201f062, and_imm(1, R2, R3, 0xaaaaaaaaaaaaaaaa)); // and x2, x3, #aaaaaaaaaaaaaaaa
     }
 
     #[test]
@@ -1699,6 +1706,7 @@ mod tests {
         assert_eq!(true, is_shifted_mask(7));
         assert_eq!(true, is_shifted_mask(3));
         assert_eq!(true, is_shifted_mask(1));
+        assert_eq!(true, is_shifted_mask(!0));
 
         assert_eq!(false, is_shifted_mask(0));
         assert_eq!(false, is_shifted_mask(9));
@@ -1710,8 +1718,11 @@ mod tests {
         assert_eq!(true, is_mask(7));
         assert_eq!(true, is_mask(3));
         assert_eq!(true, is_mask(1));
+
         assert_eq!(false, is_mask(0));
         assert_eq!(false, is_mask(8));
+
+        assert_eq!(true, is_mask(!0));
     }
 
     #[test]
