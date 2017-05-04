@@ -1,0 +1,169 @@
+class Function {
+  // all instructions in this function in random order
+  let insns: Vec<Insn> = Vec::<Insn>();
+
+  // entry block
+  var begin: BeginInsn;
+
+  // stores all blocks in random order
+  let begins: Vec<BeginInsn> = Vec::<BeginInsn>();
+
+  fun addInsn(insn: Insn) {
+    self.insns.push(insn);
+  }
+
+  fun removeInsn(insn: Insn) {
+    // self.insns.removeItem(insn);
+  }
+
+  fun addBlock(block: BeginInsn) {
+    self.addInsn(block);
+    self.begins.push(block);
+  }
+
+  fun removeBlock(block: BeginInsn) {
+    self.removeInsn(block);
+    // self.begins.removeItem(block);
+  }
+}
+
+open abstract class Value {
+  let users: Vec<Value> = Vec::<Value>();
+  var ty: int;
+
+  fun getUserCount() -> int {
+    return self.users.len();
+  }
+
+  fun getUser(idx: int) -> Value {
+    return self.users[idx];
+  }
+
+  fun appendUser(user: Value) {
+    self.users.push(user);
+  }
+
+  fun removeUser(user: Value) {
+    // self.users.removeItem(user);
+  }
+
+  fun getType() -> int {
+    return self.ty;
+  }
+
+  fun setType(ty: int) {
+    self.ty = ty;
+  }
+}
+
+open abstract class Insn: Value {
+  let deps: Vec<Insn> = Vec::<Insn>();
+  let reverseDeps: Vec<Insn> = Vec::<Insn>();
+  var fct: Function;
+  var begin: BeginInsn;
+
+  fun getDepCount() -> int {
+    return self.deps.len();
+  }
+
+  fun getDep(idx: int) -> Insn {
+    return self.deps[idx];
+  }
+
+  fun getReverseDepCount() -> int {
+    return self.reverseDeps.len();
+  }
+
+  fun getReverseDep(idx: int) -> Insn {
+    return self.reverseDeps[idx];
+  }
+
+  fun appendDep(insn: Insn) {
+    self.deps.push(insn);
+    insn.reverseDeps.push(self);
+  }
+
+  fun removeDep(insn: Insn) {
+    // self.deps.removeItem(insn);
+    // insn.reverseDeps.removeItem(insn);
+  }
+}
+
+class BeginInsn: Insn {
+  var end: EndInsn;
+  var preds: Array<BeginInsn>;
+
+  fun getPredeccesorCount() -> int {
+    if self.preds === nil {
+      return 0;
+    }
+
+    if self.preds[1] !== nil {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+
+  fun getPredeccesor(idx: int) -> BeginInsn {
+    return self.preds[idx];
+  }
+
+  fun getSuccessorCount() -> int {
+    return self.end.getSuccessorCount();
+  }
+
+  fun getSuccessor(idx: int) -> BeginInsn {
+    return self.end.getSuccessor(idx);
+  }
+}
+
+open abstract class EndInsn: Insn {
+  abstract fun getSuccessorCount() -> int;
+  abstract fun getSuccessor(idx: int) -> BeginInsn;
+}
+
+class ReturnInsn: EndInsn {
+  var value: Insn;
+
+  override fun getSuccessorCount() -> int { return 0; }
+  override fun getSuccessor(idx: int) -> BeginInsn {
+    unreachable();
+    return nil;
+  }
+}
+
+class GotoInsn: EndInsn {
+  var dest: BeginInsn;
+
+  override fun getSuccessorCount() -> int { return 1; }
+  override fun getSuccessor(idx: int) -> BeginInsn {
+    if idx == 0 {
+      return self.dest;
+    } else {
+      unreachable();
+      return nil;
+    }
+  }
+}
+
+class IfInsn: EndInsn {
+  var then_insn: BeginInsn;
+  var else_insn: BeginInsn;
+
+  override fun getSuccessorCount() -> int { return 2; }
+  override fun getSuccessor(idx: int) -> BeginInsn {
+    if idx == 0 {
+      return self.then_insn;
+    } else if idx == 1 {
+      return self.else_insn;
+    } else {
+      unreachable();
+      return nil;
+    }
+  }
+}
+
+fun main() {
+  println("Hello World!");
+}

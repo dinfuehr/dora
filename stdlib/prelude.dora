@@ -1,6 +1,9 @@
 internal fun fatalError(msg: Str);
 internal fun abort();
 internal fun exit(status: int);
+fun unreachable() {
+  fatalError("unreachable code");
+}
 
 internal fun print(text: Str);
 internal fun println(text: Str);
