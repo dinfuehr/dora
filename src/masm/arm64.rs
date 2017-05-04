@@ -489,6 +489,8 @@ impl MacroAssembler {
             };
 
             self.emit_u32(asm::lsl_imm(1, dest, length, shift));
+        } else {
+            self.copy_reg(MachineMode::Ptr, dest, length);
         }
 
         self.emit_u32(asm::add_imm(1, dest, dest, size as u32, 0));
