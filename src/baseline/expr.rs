@@ -451,12 +451,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
-        self.masm
-            .emit_comment(Comment::LoadField(clsid, fieldid));
-        self.masm.emit_nil_check();
-        self.masm.emit_lineno_if_missing(pos.line as i32);
-        self.masm
-            .load_mem(field.ty.mode(), dest, Mem::Base(src, field.offset));
+        self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
+        self.masm.load_field(field.ty.mode(), dest, src,
+                             field.offset,
+                             pos.line as i32);
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
@@ -722,14 +720,12 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
-                self.masm
-                    .emit_comment(Comment::StoreField(clsid, fieldid));
-                self.masm.emit_lineno(e.pos.line as i32);
-                self.masm.emit_nil_check();
-                self.masm
-                    .store_mem(field.ty.mode(),
-                               Mem::Base(REG_TMP1, field.offset),
-                               REG_RESULT.into());
+                self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
+                self.masm.store_field(field.ty.mode(),
+                                      REG_TMP1,
+                                      field.offset,
+                                      REG_RESULT.into(),
+                                      e.pos.line as i32);
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest.reg() {

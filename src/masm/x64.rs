@@ -464,6 +464,12 @@ impl MacroAssembler {
         asm::emit_movl_imm_reg(self, 0, dest);
     }
 
+    pub fn load_field(&mut self, mode: MachineMode, dest: ExprStore, base: Reg, offset: i32, line: i32) {
+        self.emit_nil_check();
+        self.emit_lineno_if_missing(line);
+        self.load_mem(mode, dest, Mem::Base(base, offset));
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
@@ -508,6 +514,12 @@ impl MacroAssembler {
 
             Mem::Offset(_, _, _) => unimplemented!(),
         }
+    }
+
+    pub fn store_field(&mut self, mode: MachineMode, base: Reg, offset: i32, src: ExprStore, line: i32) {
+        self.emit_nil_check();
+        self.emit_lineno_if_missing(line);
+        self.store_mem(mode, Mem::Base(base, offset), src);
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
