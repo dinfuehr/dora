@@ -309,7 +309,7 @@ fn cls_ldst_regoffset(size: u32,
     assert!(fits_u2(size));
     assert!(fits_bit(v));
     assert!(fits_u2(opc));
-    assert!(rm.is_gpr());
+    assert!(rm.is_gpr_or_zero());
     assert!(fits_bit(s));
     assert!(rn.is_gpr_or_sp());
     assert!(fits_u5(rt));

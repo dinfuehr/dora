@@ -75,11 +75,8 @@ impl MacroAssembler {
         // since REG_RESULT (x0) is also the first parameter
         let scratch = self.get_scratch();
 
-        self.emit_lineno(line);
-        self.emit_nil_check();
-
         // scratch = [obj] (load vtable)
-        self.load_mem(MachineMode::Ptr, scratch.reg().into(), Mem::Base(obj, 0));
+        self.load_base(MachineMode::Ptr, scratch.reg().into(), obj, 0, Some(line));
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
@@ -516,6 +513,11 @@ impl MacroAssembler {
         self.emit_u32(movz(1, dest, 0, 0));
     }
 
+
+    pub fn load_field(&mut self, mode: MachineMode, dest: ExprStore, base: Reg, offset: i32, line: i32) {
+        self.load_base(mode, dest, base, offset, Some(line));
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
         match mem {
             Mem::Local(offset) => {
@@ -545,29 +547,7 @@ impl MacroAssembler {
             }
 
             Mem::Base(base, disp) => {
-                let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-
-                let inst = match mode {
-                    MachineMode::Int8 => {
-                        asm::ldrb_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Int32 => {
-                        asm::ldrw_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
-                        asm::ldrx_ind(dest.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Float32 => {
-                        asm::ldrs_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Float64 => {
-                        asm::ldrd_ind(dest.freg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                };
-
-                self.emit_u32(inst);
+                self.load_base(mode, dest, base, disp, None);
             }
 
             Mem::Index(base, index, scale, disp) => {
@@ -603,6 +583,85 @@ impl MacroAssembler {
         }
     }
 
+    fn load_base(&mut self, mode: MachineMode, dest: ExprStore, base: Reg,
+                 disp: i32, check_nil: Option<i32>) {
+        let scratch = self.get_scratch();
+        let reg = if disp == 0 {
+            REG_ZERO
+        } else {
+            self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
+            *scratch
+        };
+
+        let inst = match mode {
+            MachineMode::Int8 => {
+                asm::ldrb_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Int32 => {
+                asm::ldrw_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Int64 |
+            MachineMode::Ptr => {
+                asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Float32 => {
+                asm::ldrs_ind(dest.freg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Float64 => {
+                asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0)
+            }
+        };
+
+        if let Some(line) = check_nil {
+            self.emit_nil_check();
+            self.emit_lineno_if_missing(line);
+        }
+
+        self.emit_u32(inst);
+    }
+
+    pub fn store_field(&mut self, mode: MachineMode, base: Reg, disp: i32,
+                       src: ExprStore, line: i32) {
+        self.store_base(mode, base, disp, src, Some(line));
+    }
+
+    fn store_base(&mut self, mode: MachineMode, base: Reg, disp: i32,
+                  src: ExprStore, check_nil: Option<i32>) {
+        let scratch = self.get_scratch();
+        let reg = if disp == 0 {
+            REG_ZERO
+        } else {
+            self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
+            *scratch
+        };
+
+        let inst = match mode {
+            MachineMode::Int8 => {
+                asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Int32 => {
+                asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Int64 |
+            MachineMode::Ptr => {
+                asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Float32 => {
+                asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0)
+            }
+            MachineMode::Float64 => {
+                asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0)
+            }
+        };
+
+        if let Some(line) = check_nil {
+            self.emit_nil_check();
+            self.emit_lineno_if_missing(line);
+        }
+
+        self.emit_u32(inst);
+    }
+
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
         match mem {
             Mem::Local(offset) => {
@@ -632,29 +691,7 @@ impl MacroAssembler {
             }
 
             Mem::Base(base, disp) => {
-                let scratch = self.get_scratch();
-                self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
-
-                let inst = match mode {
-                    MachineMode::Int8 => {
-                        asm::strb_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Int32 => {
-                        asm::strw_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
-                        asm::strx_ind(src.reg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Float32 => {
-                        asm::strs_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                    MachineMode::Float64 => {
-                        asm::strd_ind(src.freg(), base, *scratch, LdStExtend::LSL, 0)
-                    }
-                };
-
-                self.emit_u32(inst);
+                self.store_base(mode, base, disp, src, None);
             }
 
             Mem::Index(base, index, scale, disp) => {
