@@ -69,6 +69,8 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     native_fct(ctxt, "argv", stdlib::argv as *const u8);
     native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
 
+    native_fct(ctxt, "call", stdlib::call as *const u8);
+
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);
     native_fct(ctxt, "call1", stdlib::call1 as *const u8);

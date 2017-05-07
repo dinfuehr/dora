@@ -12,6 +12,8 @@ internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 
+internal fun call(fct: Str);
+
 internal class bool {
   internal fun toInt() -> int;
   internal fun toString() -> Str;

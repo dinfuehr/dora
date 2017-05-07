@@ -99,6 +99,19 @@ pub extern "C" fn println(val: Handle<Str>) {
     println!("");
 }
 
+pub extern "C" fn call(fct: Handle<Str>) {
+    print!("call fct ");
+
+    unsafe {
+        let buf = CStr::from_ptr(fct.data() as *const c_char);
+        io::stdout().write(buf.to_bytes()).unwrap();
+    };
+
+    println!();
+
+    process::exit(1);
+}
+
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
         libc::strcmp(lhs.data() as *const libc::c_char,
