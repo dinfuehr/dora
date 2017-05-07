@@ -10,8 +10,11 @@ use std::slice;
 use std::str;
 use std::thread;
 
+use baseline;
 use ctxt::get_ctxt;
 use object::{Handle, Obj, Str};
+
+use sym::Sym::SymFct;
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
@@ -100,16 +103,32 @@ pub extern "C" fn println(val: Handle<Str>) {
 }
 
 pub extern "C" fn call(fct: Handle<Str>) {
-    print!("call fct ");
+    let fct_name = {
+        let buf = unsafe {
+            CStr::from_ptr(fct.data() as *const c_char)
+        };
 
-    unsafe {
-        let buf = CStr::from_ptr(fct.data() as *const c_char);
-        io::stdout().write(buf.to_bytes()).unwrap();
+        buf.to_str().expect("cannot decode as utf-8.")
     };
 
-    println!();
+    let ctxt = get_ctxt();
+    let name = ctxt.interner.intern(fct_name);
 
-    process::exit(1);
+    let sym = ctxt.sym.borrow().get(name);
+
+    match sym {
+        Some(SymFct(fct_id)) => {
+            let fct_ptr = baseline::generate(ctxt, fct_id);
+            let fct: extern "C" fn() = unsafe { mem::transmute(fct_ptr) };
+            fct();
+        }
+
+        _ => {
+            writeln!(&mut io::stderr(), "fct `{}` not found.", fct_name)
+                .expect("could not print to stderr");
+            process::exit(1);
+        }
+    }
 }
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {

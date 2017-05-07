@@ -1,0 +1,9 @@
+//= output "Hello World!\n"
+
+fun main() {
+    call("foo");
+}
+
+fun foo() {
+    println("Hello World!");
+}
