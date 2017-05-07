@@ -1,0 +1,9 @@
+//= error
+
+fun main() {
+    call("foo");
+}
+
+fun foo(a: int) {
+    println(a.toString());
+}

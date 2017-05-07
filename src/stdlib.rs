@@ -118,6 +118,16 @@ pub extern "C" fn call(fct: Handle<Str>) {
 
     match sym {
         Some(SymFct(fct_id)) => {
+            {
+                let fct = ctxt.fcts[fct_id].borrow();
+
+                if !fct.param_types.is_empty() {
+                    writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
+                        .expect("could not print to stderr");
+                    process::exit(1);
+                }
+            }
+
             let fct_ptr = baseline::generate(ctxt, fct_id);
             let fct: extern "C" fn() = unsafe { mem::transmute(fct_ptr) };
             fct();
