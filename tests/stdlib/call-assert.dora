@@ -1,0 +1,10 @@
+//= error assert
+//= output "assert failed\n  0: main():5\n  1: foo():9\n"
+
+fun main() {
+    call("foo");
+}
+
+fun foo() {
+    assert(false);
+}

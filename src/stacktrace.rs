@@ -84,6 +84,28 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
         fp = unsafe { *(fp as *const usize) };
     }
 
+    let mut sfi_ptr = *ctxt.sfi.borrow();
+
+    while !sfi_ptr.is_null() {
+        let sfi = unsafe { &*sfi_ptr };
+
+        let mut pc: usize = sfi.ra;
+        let mut fp: usize = sfi.fp;
+
+        while fp != 0 {
+            let cont = determine_stack_entry(&mut stacktrace, ctxt, pc);
+
+            if !cont {
+                break;
+            }
+
+            pc = unsafe { *((fp + 8) as *const usize) };
+            fp = unsafe { *(fp as *const usize) };
+        }
+
+        sfi_ptr = sfi.last
+    }
+
     return stacktrace;
 }
 
