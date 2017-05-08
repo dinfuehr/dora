@@ -487,7 +487,9 @@ fn cls_move_wide_imm(sf: u32, opc: u32, hw: u32, imm16: u32, rd: Reg) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
     assert!(fits_u2(hw));
-    if sf == 0 { assert!(fits_bit(hw)); }
+    if sf == 0 {
+        assert!(fits_bit(hw));
+    }
     assert!(fits_u16(imm16));
     assert!(rd.is_gpr());
 
@@ -628,7 +630,7 @@ pub fn ubfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
 
 pub fn lsl_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
     let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
-    ubfm(sf, rd, rn, (val-shift) & mask, val-1-shift)
+    ubfm(sf, rd, rn, (val - shift) & mask, val - 1 - shift)
 }
 
 pub fn uxtb(rd: Reg, rn: Reg) -> u32 {
@@ -665,8 +667,7 @@ pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
 fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
     assert!(reg_size == 32 || reg_size == 64);
 
-    if imm == 0 || imm == !0 ||
-        (reg_size != 64 && (imm >> reg_size != 0 || imm == !0u32 as u64)) {
+    if imm == 0 || imm == !0 || (reg_size != 64 && (imm >> reg_size != 0 || imm == !0u32 as u64)) {
         return None;
     }
 
@@ -697,7 +698,7 @@ fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
         rotation = (size - tz) & (size - 1);
         ones = (!(imm >> tz)).trailing_zeros();
 
-    // not all immediates are shifted masks: e.g. 1001
+        // not all immediates are shifted masks: e.g. 1001
     } else {
         // extend imm again to 64 bits: e.g. 1..1|1001
         imm |= !mask;
@@ -742,8 +743,7 @@ fn cls_logical_imm(sf: u32, opc: u32, n_immr_imms: u32, rn: Reg, rd: Reg) -> u32
     assert!(rn.is_gpr());
     assert!(rd.is_gpr());
 
-    sf << 31 | opc << 29 | 0b100100u32 << 23 | n_immr_imms << 10 | rn.asm() << 5 |
-    rd.asm()
+    sf << 31 | opc << 29 | 0b100100u32 << 23 | n_immr_imms << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn trap(trap: Trap) -> u32 {
@@ -1691,7 +1691,9 @@ mod tests {
         assert_eq!(0x12000020, and_imm(0, R0, R1, 1)); // and w0, w1, #1
         assert_eq!(0x92400020, and_imm(1, R0, R1, 1)); // and x0, x1, #1
         assert_eq!(0x1201f062, and_imm(0, R2, R3, 0xaaaaaaaa)); // and w2, w3, #aaaaaaaa
-        assert_eq!(0x9201f062, and_imm(1, R2, R3, 0xaaaaaaaaaaaaaaaa)); // and x2, x3, #aaaaaaaaaaaaaaaa
+
+        // and x2, x3, #aaaaaaaaaaaaaaaa
+        assert_eq!(0x9201f062, and_imm(1, R2, R3, 0xaaaaaaaaaaaaaaaa));
     }
 
     #[test]
@@ -1734,9 +1736,11 @@ mod tests {
         assert_eq!(None, encode_logical_imm((1 << 32) - 1, 32));
 
         assert_eq!(Some(0b0_000000_111100), encode_logical_imm(0x55555555, 32));
-        assert_eq!(Some(0b0_000000_111100), encode_logical_imm(0x5555555555555555, 64));
+        assert_eq!(Some(0b0_000000_111100),
+                   encode_logical_imm(0x5555555555555555, 64));
         assert_eq!(Some(0b0_000001_111100), encode_logical_imm(0xaaaaaaaa, 32));
-        assert_eq!(Some(0b0_000001_111100), encode_logical_imm(0xaaaaaaaaaaaaaaaa, 64));
+        assert_eq!(Some(0b0_000001_111100),
+                   encode_logical_imm(0xaaaaaaaaaaaaaaaa, 64));
         assert_eq!(Some(0b0_000000_111000), encode_logical_imm(0x11111111, 32));
         assert_eq!(Some(0b0_000001_111000), encode_logical_imm(0x88888888, 32));
         assert_eq!(Some(0b0_000001_111001), encode_logical_imm(0x99999999, 32));

@@ -451,10 +451,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let cls = self.ctxt.classes[clsid].borrow();
         let field = &cls.fields[fieldid];
 
-        self.masm.emit_comment(Comment::LoadField(clsid, fieldid));
-        self.masm.load_field(field.ty.mode(), dest, src,
-                             field.offset,
-                             pos.line as i32);
+        self.masm
+            .emit_comment(Comment::LoadField(clsid, fieldid));
+        self.masm
+            .load_field(field.ty.mode(), dest, src, field.offset, pos.line as i32);
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
@@ -517,7 +517,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.emit_comment(Comment::LoadGlobal(gid));
                 self.masm.load_constpool(REG_TMP1, disp + pos);
 
-                self.masm.load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
+                self.masm
+                    .load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
             }
 
             IdentType::Field(cls, field) => {
@@ -694,7 +695,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm.emit_comment(Comment::StoreGlobal(gid));
                 self.masm.load_constpool(reg, disp + pos);
 
-                self.masm.store_mem(glob.ty.mode(), Mem::Base(reg, 0), dest);
+                self.masm
+                    .store_mem(glob.ty.mode(), Mem::Base(reg, 0), dest);
             }
 
             IdentType::Field(clsid, fieldid) => {
@@ -720,12 +722,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
-                self.masm.emit_comment(Comment::StoreField(clsid, fieldid));
-                self.masm.store_field(field.ty.mode(),
-                                      REG_TMP1,
-                                      field.offset,
-                                      REG_RESULT.into(),
-                                      e.pos.line as i32);
+                self.masm
+                    .emit_comment(Comment::StoreField(clsid, fieldid));
+                self.masm
+                    .store_field(field.ty.mode(),
+                                 REG_TMP1,
+                                 field.offset,
+                                 REG_RESULT.into(),
+                                 e.pos.line as i32);
                 self.free_temp_for_node(temp, temp_offset);
 
                 if REG_RESULT != dest.reg() {

@@ -36,7 +36,10 @@ fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &Context) 
     }
 }
 
-fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>, ctxt: &Context, sfi: *const DoraToNativeInfo) -> *const DoraToNativeInfo {
+fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
+                            ctxt: &Context,
+                            sfi: *const DoraToNativeInfo)
+                            -> *const DoraToNativeInfo {
     let sfi = unsafe { &*sfi };
 
     let mut pc: usize = sfi.ra;

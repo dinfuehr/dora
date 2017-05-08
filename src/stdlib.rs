@@ -104,9 +104,7 @@ pub extern "C" fn println(val: Handle<Str>) {
 
 pub extern "C" fn call(fct: Handle<Str>) {
     let fct_name = {
-        let buf = unsafe {
-            CStr::from_ptr(fct.data() as *const c_char)
-        };
+        let buf = unsafe { CStr::from_ptr(fct.data() as *const c_char) };
 
         buf.to_str().expect("cannot decode as utf-8.")
     };

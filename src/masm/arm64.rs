@@ -475,7 +475,11 @@ impl MacroAssembler {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
         let size = Header::size() + ptr_width() +
-            if element_size != ptr_width() { ptr_width()-1 } else { 0 };
+                   if element_size != ptr_width() {
+                       ptr_width() - 1
+                   } else {
+                       0
+                   };
 
         if element_size != 1 {
             let shift = match element_size {
@@ -514,7 +518,12 @@ impl MacroAssembler {
     }
 
 
-    pub fn load_field(&mut self, mode: MachineMode, dest: ExprStore, base: Reg, offset: i32, line: i32) {
+    pub fn load_field(&mut self,
+                      mode: MachineMode,
+                      dest: ExprStore,
+                      base: Reg,
+                      offset: i32,
+                      line: i32) {
         self.load_base(mode, dest, base, offset, Some(line));
     }
 
@@ -583,8 +592,12 @@ impl MacroAssembler {
         }
     }
 
-    fn load_base(&mut self, mode: MachineMode, dest: ExprStore, base: Reg,
-                 disp: i32, check_nil: Option<i32>) {
+    fn load_base(&mut self,
+                 mode: MachineMode,
+                 dest: ExprStore,
+                 base: Reg,
+                 disp: i32,
+                 check_nil: Option<i32>) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
             REG_ZERO
@@ -594,22 +607,12 @@ impl MacroAssembler {
         };
 
         let inst = match mode {
-            MachineMode::Int8 => {
-                asm::ldrb_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Int32 => {
-                asm::ldrw_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
-            }
+            MachineMode::Int8 => asm::ldrb_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Int32 => asm::ldrw_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int64 |
-            MachineMode::Ptr => {
-                asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Float32 => {
-                asm::ldrs_ind(dest.freg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Float64 => {
-                asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0)
-            }
+            MachineMode::Ptr => asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Float32 => asm::ldrs_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Float64 => asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
         };
 
         if let Some(line) = check_nil {
@@ -620,13 +623,21 @@ impl MacroAssembler {
         self.emit_u32(inst);
     }
 
-    pub fn store_field(&mut self, mode: MachineMode, base: Reg, disp: i32,
-                       src: ExprStore, line: i32) {
+    pub fn store_field(&mut self,
+                       mode: MachineMode,
+                       base: Reg,
+                       disp: i32,
+                       src: ExprStore,
+                       line: i32) {
         self.store_base(mode, base, disp, src, Some(line));
     }
 
-    fn store_base(&mut self, mode: MachineMode, base: Reg, disp: i32,
-                  src: ExprStore, check_nil: Option<i32>) {
+    fn store_base(&mut self,
+                  mode: MachineMode,
+                  base: Reg,
+                  disp: i32,
+                  src: ExprStore,
+                  check_nil: Option<i32>) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
             REG_ZERO
@@ -636,22 +647,12 @@ impl MacroAssembler {
         };
 
         let inst = match mode {
-            MachineMode::Int8 => {
-                asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Int32 => {
-                asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
-            }
+            MachineMode::Int8 => asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Int32 => asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int64 |
-            MachineMode::Ptr => {
-                asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Float32 => {
-                asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0)
-            }
-            MachineMode::Float64 => {
-                asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0)
-            }
+            MachineMode::Ptr => asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Float32 => asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
         };
 
         if let Some(line) = check_nil {
