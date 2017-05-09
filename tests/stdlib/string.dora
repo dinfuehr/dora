@@ -1,0 +1,80 @@
+fun main() {
+    test_multiple_ascii_chars();
+
+    test_1byte();
+    test_2bytes();
+    test_3bytes();
+    test_4bytes();
+}
+
+fun test_multiple_ascii_chars() {
+    let bytes = Array::<byte>(3);
+    bytes[0] = 'a'.toInt().toByte();
+    bytes[1] = 'b'.toInt().toByte();
+    bytes[2] = 'c'.toInt().toByte();
+
+    let val = String(bytes);
+    let it = val.chars();
+
+    assert(it.hasNext() == true);
+    assert(it.next() == 'a');
+    assert(it.hasNext() == true);
+    assert(it.next() == 'b');
+    assert(it.hasNext() == true);
+    assert(it.next() == 'c');
+    assert(it.hasNext() == false);
+}
+
+fun test_1byte() {
+    let bytes = Array::<byte>(1);
+    bytes[0] = 0x24Y;
+
+    let val = String(bytes);
+    let it = val.chars();
+
+    assert(it.hasNext() == true);
+    assert(it.next() == 0x24.toChar());
+    assert(it.hasNext() == false);
+}
+
+fun test_2bytes() {
+    let bytes = Array::<byte>(2);
+    bytes[0] = 0xC2Y;
+    bytes[1] = 0xA2Y;
+
+    let val = String(bytes);
+    let it = val.chars();
+
+    assert(it.hasNext() == true);
+    assert(it.next() == 0xA2.toChar());
+    assert(it.hasNext() == false);
+}
+
+fun test_3bytes() {
+    let bytes = Array::<byte>(3);
+    bytes[0] = 0xE2Y;
+    bytes[1] = 0x82Y;
+    bytes[2] = 0xACY;
+
+    let val = String(bytes);
+    let it = val.chars();
+
+    assert(it.hasNext() == true);
+    assert(it.next() == 0x20AC.toChar());
+    assert(it.hasNext() == false);
+}
+
+fun test_4bytes() {
+    let bytes = Array::<byte>(4);
+    bytes[0] = 0xF0Y;
+    bytes[1] = 0x90Y;
+    bytes[2] = 0x8DY;
+    bytes[3] = 0x88Y;
+
+    let val = String(bytes);
+    let it = val.chars();
+
+    assert(it.hasNext() == true);
+    assert(it.next() == 0x10348.toChar());
+    assert(it.hasNext() == false);
+}

@@ -108,3 +108,74 @@ class Vec<T> {
     }
   }
 }
+
+class String(let data: Array<byte>) {
+    fun bytes() -> int {
+        return self.data.len();
+    }
+
+    fun equals(val: String) -> bool {
+        var i = 0;
+
+        if self.data.len() != val.data.len() {
+            return false;
+        }
+
+        while i < self.data.len() {
+            if self.data[i] != val.data[i] {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    fun chars() -> StringIterator {
+        return StringIterator(self.data, 0);
+    }
+}
+
+class StringIterator(let value: Array<byte>, var ind: int) {
+    fun hasNext() -> bool {
+        return ind < self.value.len();
+    }
+
+    fun next() -> char {
+        var ch = self.value[self.ind];
+
+        if ch <= 0x7FY {
+            self.ind = self.ind + 1;
+            return ch.toInt().toChar();
+        }
+
+        if ch <= 0xBFY {
+            fatalError("unexpected continuation byte");
+        }
+
+        if ch <= 0xDFY {
+            let cp = (ch.toInt() & 0x1F) << 6 | (self.value[self.ind + 1].toInt() & 0x3F);
+            self.ind = self.ind + 2;
+            return cp.toChar();
+        }
+
+        if ch <= 0xEFY {
+            let cp = (ch.toInt() & 0xF) << 12 |
+                 (self.value[self.ind + 1].toInt() & 0x3F) << 6 |
+                 (self.value[self.ind + 2].toInt() & 0x3F);
+            self.ind = self.ind + 3;
+            return cp.toChar();
+        }
+
+        if ch <= 0xF7Y {
+            let cp = (ch.toInt() & 0x3) << 18 |
+                 (self.value[self.ind + 1].toInt() & 0x3F) << 12 |
+                 (self.value[self.ind + 2].toInt() & 0x3F) << 6 |
+                 (self.value[self.ind + 3].toInt() & 0x3F);
+            self.ind = self.ind + 4;
+            return cp.toChar();
+        }
+
+        fatalError("invalid utf8: " + ch.toInt().toString());
+        return '\0';
+    }
+}

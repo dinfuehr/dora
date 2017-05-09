@@ -5,6 +5,10 @@ fun unreachable() {
   fatalError("unreachable code");
 }
 
+fun unimplemented() {
+  fatalError("not yet implemented");
+}
+
 internal fun print(text: Str);
 internal fun println(text: Str);
 internal fun assert(val: bool);
