@@ -110,8 +110,12 @@ class Vec<T> {
 }
 
 class String(let data: Array<byte>) {
-    fun bytes() -> int {
+    fun len() -> int {
         return self.data.len();
+    }
+
+    fun isEmpty() -> bool {
+        return self.data.len() == 0;
     }
 
     fun equals(val: String) -> bool {
