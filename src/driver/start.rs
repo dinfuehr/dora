@@ -32,6 +32,8 @@ pub fn start() -> i32 {
                                   &id_generator,
                                   &mut ast,
                                   &mut interner)
+               .and_then(|_| { parse_file("stdlib/io.dora", &id_generator, &mut ast, &mut interner) })
+               .and_then(|_| { parse_file("stdlib/utils.dora", &id_generator, &mut ast, &mut interner) })
                .and_then(|_| {
                              parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
                          }) {

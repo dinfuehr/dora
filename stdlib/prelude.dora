@@ -197,117 +197,6 @@ internal class Array<T> {
   internal fun set(idx: int, val: T);
 }
 
-class Vec<T> {
-  var array: Array<T> = nil;
-  var length: int = 0;
-
-  fun get(idx: int) -> T {
-    if idx < 0 || idx >= self.length {
-      fatalError("index out of bounds for vector");
-    }
-
-    return self.array[idx];
-  }
-
-  fun set(idx: int, val: T) {
-    if idx < 0 || idx >= self.length {
-      fatalError("index out of bounds for vector");
-    }
-
-    self.array[idx] = val;
-  }
-
-  fun push(val: T) {
-    var newcap = self.capacity();
-
-    if self.length == newcap {
-      if newcap == 0 {
-        newcap = 4;
-      } else {
-        newcap = newcap * 2;
-      }
-
-      let newarray = Array::<T>(newcap);
-
-      var i = 0;
-
-      while i < self.length {
-        newarray[i] = self.array[i];
-        i = i + 1;
-      }
-
-      self.array = newarray;
-    }
-
-    self.array[self.length] = val;
-    self.length = self.length + 1;
-  }
-
-  fun pop() -> T {
-    if self.length == 0 {
-      fatalError("no element left to pop");
-    }
-
-    let newlength = self.length - 1;
-    let temp = self.array[newlength];
-
-    // set popped element to nil so that GC can collect object
-    // not necessary for primitive types
-    self.array[newlength] = defaultValue::<T>();
-
-    self.length = newlength;
-
-    return temp;
-  }
-
-  fun trimToLen() {
-    if self.length != self.capacity() {
-      if self.length == 0 {
-        self.array = nil;
-      } else {
-        let newarray = Array::<T>(self.length);
-
-        var i = 0;
-
-        while i < self.length {
-          newarray[i] = self.array[i];
-          i = i + 1;
-        }
-
-        self.array = newarray;
-      }
-    }
-  }
-
-  fun removeAt(var ind: int) -> T {
-    assert(ind < self.length);
-    let temp = self[ind];
-    let len = self.length;
-
-    while ind < len - 1 {
-      self[ind] = self[ind+1];
-      ind = ind + 1;
-    }
-
-    self[ind] = defaultValue::<T>();
-    self.length = ind;
-
-    return temp;
-  }
-
-  fun len() -> int {
-    return self.length;
-  }
-
-  fun capacity() -> int {
-    if self.array === nil {
-      return 0;
-    } else {
-      return self.array.len();
-    }
-  }
-}
-
 internal fun defaultValue<T>() -> T;
 
 internal fun loadFunction(name: Str) -> long;
@@ -349,19 +238,6 @@ fun getppid() -> int {
 fun sleep(seconds: int) {
   let fct = loadFunction("sleep");
   call1(fct, seconds.toLong());
-}
-
-class File(let name: Str) {
-  fun delete() throws {
-    let ptr = native_string(self.name);
-    let fct = loadFunction("unlink");
-    let res = call1(fct, ptr);
-    native_free(ptr);
-
-    if res != 0L {
-      throw Exception("could not delete file");
-    }
-  }
 }
 
 class Exception(msg: Str)
