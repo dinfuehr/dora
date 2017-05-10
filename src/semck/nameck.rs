@@ -256,6 +256,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         if call.path.len() > 1 {
+            for arg in &call.args {
+                self.visit_expr(arg);
+            }
+
             return;
         }
 

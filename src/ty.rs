@@ -132,10 +132,10 @@ impl BuiltinType {
     }
 
     pub fn subclass_from(&self, ctxt: &Context, ty: BuiltinType) -> bool {
-        if !self.reference_type() {
+        if !self.is_cls() {
             return false;
         }
-        if !ty.reference_type() {
+        if !ty.is_cls() {
             return false;
         }
 

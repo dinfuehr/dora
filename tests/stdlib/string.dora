@@ -5,6 +5,8 @@ fun main() {
     test_2bytes();
     test_3bytes();
     test_4bytes();
+
+    test_invalid();
 }
 
 fun test_multiple_ascii_chars() {
@@ -13,8 +15,8 @@ fun test_multiple_ascii_chars() {
     bytes[1] = 'b'.toInt().toByte();
     bytes[2] = 'c'.toInt().toByte();
 
-    let val = String(bytes);
-    let it = val.chars();
+    let val = try! String::fromBytes(bytes);
+    let it = val.codePoints();
 
     assert(it.hasNext() == true);
     assert(it.next() == 'a');
@@ -29,8 +31,8 @@ fun test_1byte() {
     let bytes = Array::<byte>(1);
     bytes[0] = 0x24Y;
 
-    let val = String(bytes);
-    let it = val.chars();
+    let val = try! String::fromBytes(bytes);
+    let it = val.codePoints();
 
     assert(it.hasNext() == true);
     assert(it.next() == 0x24.toChar());
@@ -42,8 +44,8 @@ fun test_2bytes() {
     bytes[0] = 0xC2Y;
     bytes[1] = 0xA2Y;
 
-    let val = String(bytes);
-    let it = val.chars();
+    let val = try! String::fromBytes(bytes);
+    let it = val.codePoints();
 
     assert(it.hasNext() == true);
     assert(it.next() == 0xA2.toChar());
@@ -56,8 +58,8 @@ fun test_3bytes() {
     bytes[1] = 0x82Y;
     bytes[2] = 0xACY;
 
-    let val = String(bytes);
-    let it = val.chars();
+    let val = try! String::fromBytes(bytes);
+    let it = val.codePoints();
 
     assert(it.hasNext() == true);
     assert(it.next() == 0x20AC.toChar());
@@ -71,10 +73,22 @@ fun test_4bytes() {
     bytes[2] = 0x8DY;
     bytes[3] = 0x88Y;
 
-    let val = String(bytes);
-    let it = val.chars();
+    let val = try! String::fromBytes(bytes);
+    let it = val.codePoints();
 
     assert(it.hasNext() == true);
     assert(it.next() == 0x10348.toChar());
     assert(it.hasNext() == false);
+}
+
+fun test_invalid() {
+    let bytes = Array::<byte>(1);
+    bytes[0] = 0x80Y;
+
+    do {
+        try String::fromBytes(bytes);
+        assert(false);
+    } catch x: Str {
+        assert(true);
+    }
 }
