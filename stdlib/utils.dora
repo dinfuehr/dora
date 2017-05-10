@@ -122,11 +122,12 @@ class String(let data: Array<byte>) {
         return String(data);
     }
 
-    static fun fromBytes(val: Array<byte>) throws -> String {
-        let data = Array::<byte>(val.len());
-        var i = 0;
+    static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> String {
+        let data = Array::<byte>(len);
+        var i = offset;
+        var end = offset + len;
 
-        while i < val.len() {
+        while i < end {
             data[i] = val[i];
             i = i + 1;
         }
@@ -137,6 +138,10 @@ class String(let data: Array<byte>) {
 
 
         return String(data);
+    }
+
+    static fun fromBytes(val: Array<byte>) throws -> String {
+        return try String::fromBytesPart(val, 0, val.len());
     }
 
     fun len() -> int {
@@ -158,6 +163,8 @@ class String(let data: Array<byte>) {
             if self.data[i] != val.data[i] {
                 return false;
             }
+
+            i = i + 1;
         }
 
         return true;
@@ -237,32 +244,6 @@ class StringCodePointIterator(let value: Array<byte>, var ind: int) {
         return ind < self.value.len();
     }
 
-    fun len() -> int {
-        var i = 0;
-
-        while self.hasNext() {
-            i = i + 1;
-            self.next();
-        }
-
-        return i;
-    }
-
-    fun take(elements: int) -> StringCodePointIterator {
-        var i = 0;
-
-        while i < elements && self.hasNext() {
-            self.next();
-            i = i + 1;
-        }
-
-        if i < elements {
-            fatalError("iterator doesn't have that many elements");
-        }
-
-        return self;
-    }
-
     fun next() -> char {
         var ch = self.value[self.ind];
 
@@ -301,9 +282,24 @@ class StringCodePointIterator(let value: Array<byte>, var ind: int) {
         fatalError("invalid utf8: " + ch.toInt().toString());
         return '\0';
     }
+
+    fun len() -> int {
+        var i = 0;
+
+        while self.hasNext() {
+            i = i + 1;
+            self.next();
+        }
+
+        return i;
+    }
 }
 
 class StringBuf(var buf: Array<byte>, var length: int) {
+    init(): self(Array::<byte>(0), 0) {
+
+    }
+
     fun len() -> int {
         return self.length;
     }
@@ -312,23 +308,59 @@ class StringBuf(var buf: Array<byte>, var length: int) {
         return self.buf.len();
     }
 
-    // reserve at least `elements` bytes
+    // reserve `elements` bytes
     // (capacity - length >= elements)
     fun reserve(elements: int) {
+        if self.capacity() - self.len() >= elements {
+            return;
+        }
 
+        let newcap = self.newCapacity(elements);
+        let newbuf = Array::<byte>(newcap);
+        var i = 0;
+
+        while i < self.buf.len() {
+            newbuf[i] = self.buf[i];
+            i = i + 1;
+        }
+
+        self.buf = newbuf;
+    }
+
+    fun newCapacity(reserve: int) -> int {
+        var len = self.length;
+
+        if len == 0 {
+            len = 4;
+        }
+
+        let c1 = (len + reserve + 7) & !8;
+        let c2 = len * 2;
+
+        if c1 > c2 {
+            return c1;
+        } else if c2 - c1 > 32 {
+            return c1;
+        } else {
+            return c2;
+        }
     }
 
     fun appendChar(ch: char) -> StringBuf {
-        // TODO
+        let chLen = ch.lenUtf8();
+        self.reserve(chLen);
+        ch.encodeUtf8(self.buf, self.length);
+        self.length = self.length + chLen;
         return self;
     }
 
-    fun appendStr(value: String) -> StringBuf {
+    fun appendString(value: String) -> StringBuf {
         self.reserve(value.len());
         var i = 0;
 
         while i < value.len() {
             self.buf[self.length + i] = value.data[i];
+            i = i + 1;
         }
 
         self.length = self.length + value.len();
@@ -337,6 +369,6 @@ class StringBuf(var buf: Array<byte>, var length: int) {
     }
 
     fun toString() -> String {
-        return try! String::fromBytes(self.buf);
+        return try! String::fromBytesPart(self.buf, 0, self.len());
     }
 }

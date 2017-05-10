@@ -1,0 +1,12 @@
+fun main() {
+    let buf = StringBuf();
+    buf.appendChar('a');
+    buf.appendChar('b');
+    buf.appendChar('c');
+    assert(buf.len() == 3);
+    assert(buf.toString() == String::from("abc"));
+
+    buf.appendString(String::from("foo123"));
+    assert(buf.len() == 9);
+    assert(buf.toString() == String::from("abcfoo123"));
+}
