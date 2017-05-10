@@ -718,7 +718,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm
                     .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
-                self.emit_expr(&e.rhs, REG_RESULT.into());
+                let reg = if field.ty.mode().is_float() {
+                    FREG_RESULT.into()
+                } else {
+                    REG_RESULT.into()
+                };
+
+                self.emit_expr(&e.rhs, reg);
                 self.masm
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
@@ -728,14 +734,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     .store_field(field.ty.mode(),
                                  REG_TMP1,
                                  field.offset,
-                                 REG_RESULT.into(),
+                                 reg,
                                  e.pos.line as i32);
                 self.free_temp_for_node(temp, temp_offset);
 
-                if REG_RESULT != dest.reg() {
-                    self.masm
-                        .copy_reg(field.ty.mode(), dest.reg(), REG_RESULT);
-                }
+                self.copy_result_to(field.ty, dest);
             }
 
             IdentType::Struct(_) => {
@@ -1679,6 +1682,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.masm.emit_gcpoint(gcpoint);
 
+        self.copy_result_to(ty, dest);
+    }
+
+    fn copy_result_to(&mut self, ty: BuiltinType, dest: ExprStore) {
         match dest {
             ExprStore::FReg(dest) => {
                 if FREG_RESULT != dest {
