@@ -438,6 +438,18 @@ impl Lexer {
 
             self.read_digits(&mut value, IntBase::Dec);
 
+            if self.cur() == Some('e') || self.cur() == Some('E') {
+                value.push(self.cur().unwrap());
+                self.read_char();
+
+                if self.cur() == Some('+') || self.cur() == Some('-') {
+                    value.push(self.cur().unwrap());
+                    self.read_char();
+                }
+
+                self.read_digits(&mut value, IntBase::Dec);
+            }
+
             let suffix = match self.cur() {
                 Some('D') => {
                     self.read_char();
@@ -728,6 +740,27 @@ mod tests {
                    TokenKind::LitFloat("4".into(), FloatSuffix::Double),
                    1,
                    18);
+    }
+
+    #[test]
+    fn test_float_scientific_notation() {
+        let mut reader = Lexer::from_str("1.0e1 1.0E1 1.0e+1 1.0e-1");
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.0e1".into(), FloatSuffix::Double),
+                   1,
+                   1);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.0E1".into(), FloatSuffix::Double),
+                   1,
+                   7);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.0e+1".into(), FloatSuffix::Double),
+                   1,
+                   13);
+        assert_tok(&mut reader,
+                   TokenKind::LitFloat("1.0e-1".into(), FloatSuffix::Double),
+                   1,
+                   20);
     }
 
     #[test]
