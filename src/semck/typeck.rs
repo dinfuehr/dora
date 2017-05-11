@@ -1020,15 +1020,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let e_type = self.expr_type;
             self.src.set_ty(e.id, e_type);
 
-            let fct_id = self.src.map_calls.get(call.id).unwrap().fct_id();
-            let throws = self.ctxt.fcts[fct_id].borrow().throws;
+            if let Some(call_type) = self.src.map_calls.get(call.id) {
+                let fct_id = call_type.fct_id();
+                let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
-            if !throws {
-                self.ctxt
-                    .diag
-                    .borrow_mut()
-                    .report(e.pos, Msg::TryCallNonThrowing);
+                if !throws {
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::TryCallNonThrowing);
+                }
             }
+
 
             match e.mode {
                 TryMode::Normal => {}

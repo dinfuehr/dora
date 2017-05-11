@@ -293,6 +293,10 @@ class StringCodePointIterator(let value: Array<byte>, var ind: int) {
 
         return i;
     }
+
+    fun toString() -> String {
+        return try! String::fromBytesPart(self.value, self.ind, self.value.len() - self.ind);
+    }
 }
 
 class StringBuf(var buf: Array<byte>, var length: int) {
