@@ -23,7 +23,6 @@ class NBodySystem {
         bodies[2] = Body::saturn();
         bodies[3] = Body::uranus();
         bodies[4] = Body::neptune();
-        bodies[1] = Body::jupiter();
 
         var px = 0.0;
         var py = 0.0;
@@ -33,13 +32,13 @@ class NBodySystem {
 
         while i < bodies.len() {
             px = px + bodies[i].vx * bodies[i].mass;
-            py = px + bodies[i].vy * bodies[i].mass;
+            py = py + bodies[i].vy * bodies[i].mass;
             pz = pz + bodies[i].vz * bodies[i].mass;
 
             i = i + 1;
         }
 
-        bodies[0].offsetMomentum(px,py,pz);
+        bodies[0].offsetMomentum(px, py, pz);
     }
 
     fun advance(dt: double) {
@@ -65,10 +64,10 @@ class NBodySystem {
                 bodies[j].vx = bodies[j].vx + dx * iBody.mass * mag;
                 bodies[j].vy = bodies[j].vy + dy * iBody.mass * mag;
                 bodies[j].vz = bodies[j].vz + dz * iBody.mass * mag;
-                
+
                 j = j + 1;
             }
-            
+
             i = i + 1;
         }
 
