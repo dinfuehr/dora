@@ -3,8 +3,8 @@ class X {
     var mb : int;
 
     init(a: int, b: int) {
-        ma = a;
-        mb = b;
+        self.ma = a;
+        self.mb = b;
     }
 }
 

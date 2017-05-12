@@ -241,7 +241,7 @@ fun isValidUtf8(data: Array<byte>) -> bool {
 
 class StringCodePointIterator(let value: Array<byte>, var ind: int) {
     fun hasNext() -> bool {
-        return ind < self.value.len();
+        return self.ind < self.value.len();
     }
 
     fun next() -> char {

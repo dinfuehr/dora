@@ -10,6 +10,6 @@ class X {
     var y : int;
 
     init(py: int) {
-        y = py;
+        self.y = py;
     }
 }

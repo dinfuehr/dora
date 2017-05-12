@@ -8,6 +8,6 @@ class X(something: int) {
   let x: int = something;
 
   init() : self(1) {
-    x = 2;
+    self.x = 2;
   }
 }

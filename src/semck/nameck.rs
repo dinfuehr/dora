@@ -214,26 +214,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 return;
             }
 
-            Some(_) => {
+            None | Some(_) => {
                 // do nothing
-            }
-
-            None => {
-                // don't expand <var> to self.<var> in primary ctors
-                // otherwise `let b: int = b;` would be possible
-                if !self.fct.ctor.is_primary() {
-                    if let FctParent::Class(clsid) = self.fct.parent {
-                        let cls = self.ctxt.classes[clsid].borrow();
-
-                        for field in &cls.fields {
-                            if field.name == ident.name {
-                                let ident_type = IdentType::Field(clsid, field.id);
-                                self.src.map_idents.insert(ident.id, ident_type);
-                                return;
-                            }
-                        }
-                    }
-                }
             }
         }
 

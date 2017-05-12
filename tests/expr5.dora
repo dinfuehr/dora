@@ -5,21 +5,21 @@ fun main() {
 class Bar(var a: int) {
   fun exec() {
     Foo(self.f()).a = self.g();
-    assert(a == 100);
+    assert(self.a == 100);
   }
 
   fun f() -> int {
-    assert(a == 1);
-    a = 10;
+    assert(self.a == 1);
+    self.a = 10;
 
-    return a;
+    return self.a;
   }
 
   fun g() -> int {
-    assert(a == 10);
-    a = 100;
+    assert(self.a == 10);
+    self.a = 100;
 
-    return a;
+    return self.a;
   }
 }
 

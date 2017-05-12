@@ -1433,14 +1433,10 @@ mod tests {
 
     #[test]
     fn type_object_field_without_self() {
-        ok("class Foo(let a: int) { fun f() -> int { return a; } }");
-        ok("class Foo(var a: int) { fun set(x: int) { a = x; } }");
-        err("class Foo(let a: int) { fun set(x: int) { a = x; } }",
-            pos(1, 45),
-            Msg::LetReassigned);
-        err("class Foo(let a: int) { fun set(x: int) { b = x; } }",
-            pos(1, 43),
-            Msg::UnknownIdentifier("b".into()));
+        err("class Foo(let a: int) { fun f() -> int { return a; } }",
+            pos(1, 49), Msg::UnknownIdentifier("a".into()));
+        err("class Foo(var a: int) { fun set(x: int) { a = x; } }",
+            pos(1, 43), Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]

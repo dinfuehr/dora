@@ -11,7 +11,7 @@ fun main() {
 
 class Foo(var a: int) {
   fun a1() -> int { return self.a; }
-  fun a2() -> int { return a; }
+  fun a2() -> int { return self.a; }
 
-  fun setA(_a: int) { a = _a; }
+  fun setA(a: int) { self.a = a; }
 }

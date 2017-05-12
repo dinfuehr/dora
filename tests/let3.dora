@@ -1,4 +1,4 @@
-//= error at 9:7
+//= error at 9:12
 
 fun main() {
   let x = X(1);
@@ -6,6 +6,6 @@ fun main() {
 
 class X(let a: int) {
   fun set(b: int) {
-    a = b;
+    self.a = b;
   }
 }

@@ -11,12 +11,12 @@ class X {
     var mb: int;
     
     init(a: int, b: int) {
-        ma = a;
-        mb = b;
+        self.ma = a;
+        self.mb = b;
     }
 
     init() {
-        ma = 3;
-        mb = 1;
+        self.ma = 3;
+        self.mb = 1;
     }
 }
