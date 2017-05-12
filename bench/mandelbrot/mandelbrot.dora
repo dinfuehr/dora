@@ -1,0 +1,104 @@
+fun main() {
+    Mandelbrot(argv(0).parseInt()).compute();
+}
+
+const BUFFER_SIZE: int = 8192;
+
+class Mandelbrot(let size: int) {
+    let fac: double = 2.0 / size.toDouble();
+    var shift: int;
+    let buf: Array<byte> = Array::<byte>(BUFFER_SIZE);
+    var bufLen: int;
+
+    init(size: int): self(size) {
+        if size % 8 == 0 {
+            shift = 0;
+        } else {
+            shift = (8 - size % 8);
+        }
+    }
+    
+    fun compute() {
+        var y = 0;
+
+        println("P4");
+        let s = size.toString();
+        println(s + " " + s);
+
+        while y < self.size {
+            self.computeRow(y);
+            y = y + 1;
+        }
+
+        write(self.buf, 0, self.bufLen);
+    }
+
+    fun computeRow(y: int) {
+        var bits = 0;
+        let Ci = (y.toDouble() * self.fac - 1.0);
+        let bufLocal = buf;
+
+        var x = 0;
+
+        while x < self.size {
+            var Zr = 0.0;
+            var Zi = 0.0;
+            var Cr = (x.toDouble() * self.fac - 1.5);
+
+            var i = 50;
+
+            var ZrN = 0.0;
+            var ZiN = 0.0;
+
+            Zi = 2.0 * Zr * Zi + Ci;
+            Zr = ZrN - ZiN + Cr;
+            ZiN = Zi * Zi;
+            ZrN = Zr * Zr;
+
+            i = i - 1;
+
+            while !(ZiN + ZrN > 4.0) && i > 0 {
+                Zi = 2.0 * Zr * Zi + Ci;
+                Zr = ZrN - ZiN + Cr;
+                ZiN = Zi * Zi;
+                ZrN = Zr * Zr;
+
+                i = i - 1;
+            }
+
+            bits = bits << 1;
+
+            if i == 0 {
+                bits = bits + 1;
+            }
+
+            if x % 8 == 7 {
+                bufLocal[bufLen] = bits.toByte();
+                bufLen = bufLen + 1;
+
+                if bufLen == BUFFER_SIZE {
+                    write(bufLocal, 0, BUFFER_SIZE);
+                    bufLen = 0;
+                }
+
+                bits = 0;
+            }
+
+            x = x + 1;
+        }
+
+        if shift != 0 {
+            bits = bits << shift;
+            bufLocal[bufLen] = bits.toByte();
+            bufLen = bufLen + 1;
+
+            if bufLen == BUFFER_SIZE {
+                write(bufLocal, 0, BUFFER_SIZE);
+            }
+        }
+    }
+}
+
+fun write(buf: Array<byte>, offset: int, len: int) {
+    unimplemented();
+}
