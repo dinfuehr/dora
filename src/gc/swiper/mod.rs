@@ -20,7 +20,7 @@ impl Swiper {
             no_regions: no_regions,
             region_size_bits: 20,
             region_size: 1024 * 1024,
-            regions: vec![RegionStatus::Free, no_regions]
+            regions: vec![RegionStatus::Free; no_regions]
         }
     }
 }
@@ -35,6 +35,7 @@ impl Collector for Swiper {
     }
 }
 
+#[derive(Copy, Clone)]
 enum RegionStatus {
     Young,
     Old,
