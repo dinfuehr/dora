@@ -1,3 +1,5 @@
+use std::cmp;
+
 use ctxt::Context;
 use driver::cmd::Args;
 use gc::Collector;
@@ -14,7 +16,7 @@ impl Swiper {
         let heap_size = args.flag_heap_size
             .map(|s| *s)
             .unwrap_or(32 * 1024 * 1024);
-        let no_regions = heap_size / (1024 * 1024);
+        let no_regions = cmp::min(heap_size / (1024 * 1024), 4);
 
         Swiper {
             no_regions: no_regions,
