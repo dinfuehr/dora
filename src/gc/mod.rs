@@ -12,6 +12,7 @@ pub mod chunk;
 pub mod copy;
 pub mod root;
 pub mod space;
+pub mod swiper;
 pub mod zero;
 
 const INITIAL_SIZE: usize = 64 * 1024;
