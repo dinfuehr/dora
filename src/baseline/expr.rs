@@ -123,7 +123,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ExprLitStruct(_) => unimplemented!(),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
-            ExprAssign(ref expr) => self.emit_assign(expr, dest),
+            ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(ref expr) => self.emit_bin(expr, dest),
             ExprCall(ref expr) => self.emit_call(expr, dest),
             ExprDelegation(ref expr) => self.emit_delegation(expr, dest),
@@ -633,20 +633,19 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         }
     }
 
-    fn emit_assign(&mut self, e: &'ast ExprAssignType, dest: ExprStore) {
+    fn emit_assign(&mut self, e: &'ast ExprAssignType) {
         if e.lhs.is_array() {
             let array = e.lhs.to_array().unwrap();
 
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
-                        let ty = self.src.ty(e.id).to_specialized(self.ctxt);
+                        let ty = self.src.ty(e.rhs.id()).to_specialized(self.ctxt);
                         self.emit_array_set(e.pos,
                                             ty.mode(),
                                             &array.object,
                                             &array.index,
-                                            &e.rhs,
-                                            dest)
+                                            &e.rhs)
                     }
 
                     Intrinsic::StrSet => {
@@ -654,15 +653,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                             MachineMode::Int8,
                                             &array.object,
                                             &array.index,
-                                            &e.rhs,
-                                            dest)
+                                            &e.rhs)
                     }
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
 
             } else {
-                self.emit_universal_call(e.id, e.pos, dest);
+                self.emit_universal_call(e.id, e.pos, REG_RESULT.into());
             }
 
             return;
@@ -672,6 +670,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         match ident_type {
             IdentType::Var(varid) => {
+                let dest = result_reg(self.src.vars[varid].ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
@@ -680,28 +679,23 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
             IdentType::Global(gid) => {
                 let glob = self.ctxt.globals[gid].borrow();
-
-                let reg = if ExprStore::Reg(REG_TMP1) == dest {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
-
+                let dest = result_reg(glob.ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
                 let disp = self.masm.add_addr(glob.address_value);
                 let pos = self.masm.pos() as i32;
 
                 self.masm.emit_comment(Comment::StoreGlobal(gid));
-                self.masm.load_constpool(reg, disp + pos);
+                self.masm.load_constpool(REG_TMP1, disp + pos);
 
                 self.masm
-                    .store_mem(glob.ty.mode(), Mem::Base(reg, 0), dest);
+                    .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), dest);
             }
 
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
+                let dest = result_reg(field.ty.mode());
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
                     self.emit_expr(&expr_field.object, REG_RESULT.into());
@@ -718,12 +712,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.masm
                     .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
-                let reg = if field.ty.mode().is_float() {
-                    FREG_RESULT.into()
-                } else {
-                    REG_RESULT.into()
-                };
-
+                let reg = result_reg(field.ty.mode());
                 self.emit_expr(&e.rhs, reg);
                 self.masm
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
@@ -737,8 +726,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                                  reg,
                                  e.pos.line as i32);
                 self.free_temp_for_node(temp, temp_offset);
-
-                self.copy_result_to(field.ty, dest);
             }
 
             IdentType::Struct(_) => {
@@ -1044,8 +1031,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                       mode: MachineMode,
                       object: &'ast Expr,
                       index: &'ast Expr,
-                      rhs: &'ast Expr,
-                      dest: ExprStore) {
+                      rhs: &'ast Expr) {
         self.emit_expr(object, REG_RESULT.into());
         let offset_object = self.reserve_temp_for_node(object);
         self.masm
@@ -1060,11 +1046,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                        Mem::Local(offset_index),
                        REG_RESULT.into());
 
-        let res = if dest.is_reg() {
-            REG_RESULT.into()
-        } else {
-            FREG_RESULT.into()
-        };
+        let res = result_reg(mode);
 
         self.emit_expr(rhs, res);
         let offset_value = self.reserve_temp_for_node(rhs);
@@ -1090,10 +1072,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);
         self.free_temp_for_node(rhs, offset_value);
-
-        if dest != res {
-            self.masm.copy(mode, dest, res);
-        }
     }
 
     fn emit_array_get(&mut self,
@@ -1118,11 +1096,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
 
-        let res = if dest.is_reg() {
-            REG_RESULT.into()
-        } else {
-            FREG_RESULT.into()
-        };
+        let res = result_reg(mode);
 
         self.masm
             .load_array_elem(mode, res, REG_RESULT, REG_TMP1);
@@ -1699,6 +1673,14 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 }
             }
         }
+    }
+}
+
+fn result_reg(mode: MachineMode) -> ExprStore {
+    if mode.is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
     }
 }
 

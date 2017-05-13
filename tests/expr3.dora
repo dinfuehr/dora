@@ -1,8 +1,0 @@
-fun main() {
-  var a = 1;
-
-  assert((Foo(a=10).x = a) == 10);
-  assert(a == 10);
-}
-
-class Foo(var x: int)

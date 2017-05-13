@@ -275,14 +275,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.find_method(e.pos, object_type, false, name, &args, ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
                 self.src.map_calls.insert_or_replace(e.id, call_type);
-
-                let index_type = self.ctxt.fcts[fct_id].borrow().params_without_self()[1];
-
-                self.src.set_ty(e.id, index_type);
-                self.expr_type = index_type;
-            } else {
-                self.src.set_ty(e.id, BuiltinType::Unit);
-                self.expr_type = BuiltinType::Unit;
             }
 
         } else if e.lhs.is_field() || e.lhs.is_ident() {
@@ -292,7 +284,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.visit_expr(&e.rhs);
             let rhs_type = self.expr_type;
 
-            let assign_type = if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
+            if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
                 match ident_type {
                     &IdentType::Var(varid) => {
                         if !self.src.vars[varid].reassignable {
@@ -358,23 +350,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
-
-                lhs_type
-            } else {
-                rhs_type
-            };
-
-            self.src.set_ty(e.id, assign_type);
-            self.expr_type = assign_type;
+            }
 
         } else {
             self.ctxt
                 .diag
                 .borrow_mut()
                 .report(e.pos, Msg::LvalueExpected);
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
         }
+
+        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn find_method(&mut self,
@@ -1788,15 +1774,13 @@ mod tests {
 
     #[test]
     fn type_array_assign() {
-        ok("fun f(a: Array<int>) -> int { return a[3] = 4; }");
+        err("fun f(a: Array<int>) -> int { return a[3] = 4; }",
+            pos(1, 31), Msg::ReturnType("int".into(), "()".into()));
         err("fun f(a: Array<int>) { a[3] = \"b\"; }",
             pos(1, 29),
             Msg::UnknownMethod("Array<int>".into(),
                                "set".into(),
                                vec!["int".into(), "Str".into()]));
-        err("fun f(a: Array<int>) -> Str { return a[3] = 4; }",
-            pos(1, 31),
-            Msg::ReturnType("Str".into(), "int".into()));
     }
 
     #[test]
