@@ -1,14 +1,23 @@
 use std::cmp;
+use std::ptr;
 
 use ctxt::Context;
 use driver::cmd::Args;
+use gc::arena;
 use gc::Collector;
+use gc::swiper::card::CardTable;
+
+pub mod young;
+pub mod old;
+pub mod card;
+
+const YOUNG_RATIO: u32 = 5;
 
 pub struct Swiper {
-    no_regions: usize,
-    region_size_bits: usize,
-    region_size: usize,
-    regions: Vec<RegionStatus>,
+    heap_start: *const u8,
+    heap_end: *const u8,
+    heap_size: usize,
+    card_table: CardTable,
 }
 
 impl Swiper {
@@ -16,13 +25,14 @@ impl Swiper {
         let heap_size = args.flag_heap_size
             .map(|s| *s)
             .unwrap_or(32 * 1024 * 1024);
-        let no_regions = cmp::min(heap_size / (1024 * 1024), 4);
+
+        let ptr = arena::reserve(heap_size).expect("could not reserve memory");
 
         Swiper {
-            no_regions: no_regions,
-            region_size_bits: 20,
-            region_size: 1024 * 1024,
-            regions: vec![RegionStatus::Free; no_regions]
+            heap_start: ptr,
+            heap_end: unsafe { ptr.offset(heap_size as isize) },
+            heap_size: heap_size,
+            card_table: CardTable::new(heap_size),
         }
     }
 }
@@ -35,12 +45,4 @@ impl Collector for Swiper {
     fn collect(&self, ctxt: &Context) {
         unimplemented!();
     }
-}
-
-#[derive(Copy, Clone)]
-enum RegionStatus {
-    Young,
-    Old,
-    Huge,
-    Free,
 }

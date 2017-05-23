@@ -18,15 +18,8 @@ impl ZeroCollector {
             .map(|s| *s)
             .unwrap_or(32 * 1024 * 1024);
 
-        let ptr = arena::reserve(heap_size);
-
-        if ptr.is_null() {
-            panic!("could not reserve memory");
-        }
-
-        if !arena::commit(ptr, heap_size) {
-            panic!("could not commit memory");
-        }
+        let ptr = arena::reserve(heap_size).expect("could not reserve memory");
+        arena::commit(ptr, heap_size).expect("could not commit memory");
 
         ZeroCollector {
             start: ptr,

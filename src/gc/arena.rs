@@ -15,7 +15,7 @@ impl Arena {
         // let pages = size >> os::page_size_bits();
 
         Arena {
-            start: reserve(size),
+            start: reserve(size).unwrap(),
             size: size,
             pages: Vec::with_capacity(0),
         }
@@ -39,7 +39,7 @@ impl Arena {
     }
 }
 
-pub fn reserve(size: usize) -> *mut u8 {
+pub fn reserve(size: usize) -> Option<*mut u8> {
     use libc;
 
     let ptr = unsafe {
@@ -52,34 +52,46 @@ pub fn reserve(size: usize) -> *mut u8 {
     };
 
     if ptr == libc::MAP_FAILED {
-        ptr::null_mut()
+        None
     } else {
-        ptr as *mut u8
+        Some(ptr as *mut u8)
     }
 }
 
-pub fn commit(ptr: *const u8, size: usize) -> bool {
+pub fn commit(ptr: *const u8, size: usize) -> Result<(), ()> {
     use libc;
 
-    unsafe {
+    let val = unsafe {
         libc::mmap(ptr as *mut libc::c_void,
                    size,
                    libc::PROT_READ | libc::PROT_WRITE,
                    libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
                    -1,
-                   0) != libc::MAP_FAILED
+                   0)
+    };
+
+    if val != libc::MAP_FAILED {
+        Ok(())
+    } else {
+        Err(())
     }
 }
 
-pub fn uncommit(ptr: *const u8, size: usize) -> bool {
+pub fn uncommit(ptr: *const u8, size: usize) -> Result<(), ()> {
     use libc;
 
-    unsafe {
+    let val = unsafe {
         libc::mmap(ptr as *mut libc::c_void,
                    size,
                    libc::PROT_NONE,
                    libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
                    -1,
-                   0) != libc::MAP_FAILED
+                   0)
+    };
+
+    if val != libc::MAP_FAILED {
+        Ok(())
+    } else {
+        Err(())
     }
 }
