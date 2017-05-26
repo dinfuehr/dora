@@ -1,4 +1,8 @@
 use std::ptr;
+use std::sync::atomic::{AtomicPtr, Ordering};
+
+use ctxt::Context;
+use gc::Collector;
 
 struct YoungGen {
     total: Region,
@@ -16,6 +20,18 @@ impl YoungGen {
             from: Chunk::new(young_start, half_address),
             to: Chunk::new(half_address,  young_end),
         }
+    }
+}
+
+impl Collector for YoungGen {
+    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+        unimplemented!();
+
+        ptr::null()
+    }
+
+    fn collect(&self, ctxt: &Context) {
+        unimplemented!();
     }
 }
 
@@ -39,6 +55,7 @@ impl Region {
 
 struct Chunk {
     start: *const u8,
+    next: AtomicPtr<u8>,
     uncommitted: *const u8,
     end: *const u8,
 }
@@ -47,6 +64,7 @@ impl Chunk {
     fn new(start: *const u8, end: *const u8) -> Chunk {
         Chunk {
             start: start,
+            next: AtomicPtr::new(start as *mut u8),
             uncommitted: start,
             end: end,
         }
@@ -55,6 +73,7 @@ impl Chunk {
     fn empty() -> Chunk {
         Chunk {
             start: ptr::null(),
+            next: AtomicPtr::new(ptr::null_mut()),
             uncommitted: ptr::null(),
             end: ptr::null(),
         }
