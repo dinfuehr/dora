@@ -1,3 +1,10 @@
 #!/bin/sh
 
+set -e
+
+pushd lib/dora-parser
+cargo build
+cargo test
+popd
+
 cargo build && cargo test && ruby tester.rb $@
