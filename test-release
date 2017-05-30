@@ -2,9 +2,9 @@
 
 set -e
 
-pushd lib/dora-parser
+cd lib/dora-parser
 cargo build --release
 cargo test --release
-popd
+cd ../..
 
 cargo build --release && cargo test --release && ruby tester.rb --release $@
