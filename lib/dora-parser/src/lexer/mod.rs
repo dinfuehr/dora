@@ -58,6 +58,7 @@ impl Lexer {
         keywords.insert("abstract", TokenKind::Abstract);
         keywords.insert("open", TokenKind::Open);
         keywords.insert("override", TokenKind::Override);
+        keywords.insert("defer", TokenKind::Defer);
         keywords.insert("final", TokenKind::Final);
         keywords.insert("is", TokenKind::Is);
         keywords.insert("as", TokenKind::As);
@@ -953,10 +954,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::CapitalThis, 1, 24);
         assert_tok(&mut reader, TokenKind::Spawn, 1, 29);
 
-        let mut reader = Lexer::from_str("abstract open override");
+        let mut reader = Lexer::from_str("abstract open override defer");
         assert_tok(&mut reader, TokenKind::Abstract, 1, 1);
         assert_tok(&mut reader, TokenKind::Open, 1, 10);
         assert_tok(&mut reader, TokenKind::Override, 1, 15);
+        assert_tok(&mut reader, TokenKind::Defer, 1, 24);
     }
 
     #[test]
