@@ -58,6 +58,7 @@ pub enum TokenKind {
     Const,
 
     Underscore,
+    Defer,
 
     // Modifiers
     Abstract,
@@ -178,6 +179,7 @@ impl TokenKind {
             TokenKind::Const => "const",
 
             TokenKind::Underscore => "_",
+            TokenKind::Defer => "defer",
 
             // Modifiers
             TokenKind::Abstract => "abstract",
