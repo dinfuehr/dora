@@ -579,6 +579,7 @@ pub enum Stmt {
     StmtContinue(StmtContinueType),
     StmtReturn(StmtReturnType),
     StmtThrow(StmtThrowType),
+    StmtDefer(StmtDeferType),
     StmtDo(StmtDoType),
     StmtSpawn(StmtSpawnType),
 }
@@ -673,6 +674,14 @@ impl Stmt {
                         })
     }
 
+    pub fn create_defer(id: NodeId, pos: Position, expr: Box<Expr>) -> Stmt {
+        Stmt::StmtDefer(StmtDeferType {
+                            id: id,
+                            pos: pos,
+                            expr: expr,
+                        })
+    }
+
     pub fn create_do(id: NodeId,
                      pos: Position,
                      do_block: Box<Stmt>,
@@ -708,6 +717,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.id,
             Stmt::StmtReturn(ref stmt) => stmt.id,
             Stmt::StmtThrow(ref stmt) => stmt.id,
+            Stmt::StmtDefer(ref stmt) => stmt.id,
             Stmt::StmtDo(ref stmt) => stmt.id,
             Stmt::StmtSpawn(ref stmt) => stmt.id,
         }
@@ -725,6 +735,7 @@ impl Stmt {
             Stmt::StmtContinue(ref stmt) => stmt.pos,
             Stmt::StmtReturn(ref stmt) => stmt.pos,
             Stmt::StmtThrow(ref stmt) => stmt.pos,
+            Stmt::StmtDefer(ref stmt) => stmt.pos,
             Stmt::StmtDo(ref stmt) => stmt.pos,
             Stmt::StmtSpawn(ref stmt) => stmt.pos,
         }
@@ -740,6 +751,20 @@ impl Stmt {
     pub fn is_throw(&self) -> bool {
         match *self {
             Stmt::StmtThrow(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_defer(&self) -> Option<&StmtDeferType> {
+        match *self {
+            Stmt::StmtDefer(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_defer(&self) -> bool {
+        match *self {
+            Stmt::StmtDefer(_) => true,
             _ => false,
         }
     }
@@ -970,6 +995,13 @@ pub struct StmtContinueType {
 
 #[derive(Clone, Debug)]
 pub struct StmtThrowType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StmtDeferType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,

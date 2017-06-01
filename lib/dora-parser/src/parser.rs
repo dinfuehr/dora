@@ -849,6 +849,7 @@ impl<'a> Parser<'a> {
             TokenKind::Return => self.parse_return(),
             TokenKind::Else => Err(MsgWithPos::new(self.token.position, Msg::MisplacedElse)),
             TokenKind::Throw => self.parse_throw(),
+            TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
             TokenKind::Spawn => self.parse_spawn(),
             _ => self.parse_expression_statement(),
@@ -871,6 +872,15 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
 
         Ok(Box::new(Stmt::create_throw(self.generate_id(), pos, expr)))
+    }
+
+    fn parse_defer(&mut self) -> StmtResult {
+        let pos = self.expect_token(TokenKind::Defer)?.position;
+        let expr = self.parse_expression()?;
+
+        self.expect_semicolon()?;
+
+        Ok(Box::new(Stmt::create_defer(self.generate_id(), pos, expr)))
     }
 
     fn parse_do(&mut self) -> StmtResult {
@@ -2615,6 +2625,14 @@ mod tests {
         let throw = stmt.to_throw().unwrap();
 
         assert!(throw.expr.is_lit_int());
+    }
+
+    #[test]
+    fn parse_defer() {
+        let stmt = parse_stmt("defer foo();");
+        let defer = stmt.to_defer().unwrap();
+
+        assert!(defer.expr.is_call());
     }
 
     #[test]

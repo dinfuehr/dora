@@ -239,6 +239,10 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             v.visit_expr_top(&value.expr);
         }
 
+        StmtDefer(ref value) => {
+            v.visit_expr_top(&value.expr);
+        }
+
         StmtDo(ref value) => {
             v.visit_stmt(&value.do_block);
 

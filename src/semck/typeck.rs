@@ -1160,6 +1160,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtSpawn(_) => unimplemented!(),
+            StmtDefer(_) => unimplemented!(),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // for the rest of the statements, no special handling is necessary
