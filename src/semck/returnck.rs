@@ -82,6 +82,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtExpr(ref stmt) => Err(stmt.pos),
         StmtSpawn(ref stmt) => Err(stmt.pos),
         StmtThrow(_) => Ok(()),
+        StmtDefer(_) => unimplemented!(),
         StmtDo(ref stmt) => do_returns_value(stmt),
     }
 }

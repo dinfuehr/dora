@@ -642,6 +642,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
+            StmtDefer(_) => unimplemented!(),
             StmtDo(ref stmt) => self.emit_stmt_do(stmt),
             StmtSpawn(_) => unimplemented!(),
         }

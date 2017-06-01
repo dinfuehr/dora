@@ -249,6 +249,7 @@ impl<'a> AstDumper<'a> {
             StmtWhile(ref stmt) => self.dump_stmt_while(stmt),
             StmtLoop(ref stmt) => self.dump_stmt_loop(stmt),
             StmtThrow(ref stmt) => self.dump_stmt_throw(stmt),
+            StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
             StmtSpawn(ref stmt) => self.dump_stmt_spawn(stmt),
         }
@@ -355,6 +356,11 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt_spawn(&mut self, stmt: &StmtSpawnType) {
         dump!(self, "spawn @ {} {}", stmt.pos, stmt.id);
+        self.indent(|d| d.dump_expr(&stmt.expr));
+    }
+
+    fn dump_stmt_defer(&mut self, stmt: &StmtDeferType) {
+        dump!(self, "defer @ {} {}", stmt.pos, stmt.id);
         self.indent(|d| d.dump_expr(&stmt.expr));
     }
 
