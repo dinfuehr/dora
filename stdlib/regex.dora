@@ -1,0 +1,110 @@
+open class Regex
+
+// a | b
+class Choice(let lhs: Regex, let rhs: Regex): Regex
+
+// a b
+class Sequence(let lhs: Regex, let rhs: Regex): Regex
+
+// empty regex
+class Blank: Regex
+
+// a*
+class Repetition(let opnd: Regex): Regex
+
+// match char
+class Primitive(let ch: char): Regex
+
+class RegexParser(let pattern: String) {
+    let it: StringCodePointIterator = pattern.codePoints();
+    var look: char;
+    let eof: char = (-1).toChar();
+
+    fun parse() throws -> Regex {
+        return try self.parseLevel0();
+    }
+
+    fun parseLevel0() throws -> Regex {
+        let regex = try self.parseLevel1();
+
+        if self.more() && self.peek() == '|' {
+            try self.consumeChar('|');
+            let rhs = try self.parseLevel0();
+            return Choice(regex, rhs);
+        } else {
+            return regex;
+        }
+    }
+
+    fun parseLevel1() throws -> Regex {
+        var factor: Regex = Blank();
+
+        while self.more() && self.peek() != ')' && self.peek() != '|' {
+            let nextFactor = try self.parseLevel2();
+            factor = Sequence(factor, nextFactor);
+        }
+
+        return factor;
+    }
+
+    fun parseLevel2() throws -> Regex {
+        var regex = try self.parseLevel3();
+
+        while self.more() && self.peek() == '*' {
+            try self.consumeChar('*');
+            regex = Repetition(regex);
+        }
+
+        return regex;
+    }
+
+    fun parseLevel3() throws -> Regex {
+        let ch = self.peek();
+
+        if ch == '(' {
+            try self.consumeChar('(');
+            let regex = try self.parseLevel0();
+            try self.consumeChar(')');
+            return regex;
+
+        } else if ch == '\\' {
+            try self.consumeChar('\\');
+            let esc = self.consume();
+            return Primitive(esc);
+
+        } else {
+            return Primitive(self.consume());
+
+        }
+    }
+
+    fun consumeChar(ch: char) throws {
+        if self.look != ch {
+            throw RegexError("expected " + ch.toString() + " but got " + self.look.toString());
+        }
+
+        self.consume();
+    }
+
+    fun consume() -> char {
+        let old = self.look;
+
+        if self.it.hasNext() {
+            self.look = self.it.next();
+        } else {
+            self.look = self.eof;
+        }
+
+        return old;
+    }
+
+    fun more() -> bool {
+        return self.it.hasNext();
+    }
+
+    fun peek() -> char {
+        return self.look;
+    }
+}
+
+class RegexError(let val: Str)
