@@ -1,26 +1,49 @@
-open class Regex
+abstract open class Regex {
+    abstract fun debug() -> Str;
+}
 
 // a | b
-class Choice(let lhs: Regex, let rhs: Regex): Regex
+class Choice(let lhs: Regex, let rhs: Regex): Regex {
+    override fun debug() -> Str {
+        return "Choice(" + self.lhs.debug() + ", " + self.rhs.debug() + ")";
+    }
+}
 
 // a b
-class Sequence(let lhs: Regex, let rhs: Regex): Regex
+class Sequence(let lhs: Regex, let rhs: Regex): Regex {
+    override fun debug() -> Str {
+        return "Seq(" + self.lhs.debug() + ", " + self.rhs.debug() + ")";
+    }
+}
 
 // empty regex
-class Blank: Regex
+class Blank: Regex {
+    override fun debug() -> Str {
+        return "Blank()";
+    }
+}
 
 // a*
-class Repetition(let opnd: Regex): Regex
+class Repetition(let opnd: Regex): Regex {
+    override fun debug() -> Str {
+        return "Repetition(" + self.opnd.debug() + ")";
+    }
+}
 
 // match char
-class Primitive(let ch: char): Regex
+class Primitive(let ch: char): Regex {
+    override fun debug() -> Str {
+        return self.ch.toString();
+    }
+}
 
 class RegexParser(let pattern: String) {
     let it: StringCodePointIterator = pattern.codePoints();
     var look: char;
-    let eof: char = (-1).toChar();
+    var eof: bool = false;
 
     fun parse() throws -> Regex {
+        self.consume();
         return try self.parseLevel0();
     }
 
@@ -89,22 +112,35 @@ class RegexParser(let pattern: String) {
     fun consume() -> char {
         let old = self.look;
 
+        if self.eof {
+            fatalError("consume() used although already at end of file");
+        }
+
         if self.it.hasNext() {
             self.look = self.it.next();
         } else {
-            self.look = self.eof;
+            self.eof = true;
         }
 
         return old;
     }
 
     fun more() -> bool {
-        return self.it.hasNext();
+        return !self.eof;
     }
 
     fun peek() -> char {
+        if self.eof {
+            fatalError("peek() used although already at end of file");
+        }
+
         return self.look;
     }
 }
 
 class RegexError(let val: Str)
+
+fun main() {
+    let regex = try! RegexParser(String::from("abc")).parse();
+    println(regex.debug());
+}
