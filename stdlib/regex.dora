@@ -1,11 +1,21 @@
 abstract open class Regex {
     abstract fun debug() -> Str;
+    abstract fun equals(rhs: Regex) -> bool;
 }
 
 // a | b
 class Choice(let lhs: Regex, let rhs: Regex): Regex {
     override fun debug() -> Str {
         return "Choice(" + self.lhs.debug() + ", " + self.rhs.debug() + ")";
+    }
+
+    override fun equals(rhs: Regex) -> bool {
+        if !(rhs is Choice) {
+            return false;
+        }
+
+        let rhs = rhs as Choice;
+        return self.lhs == rhs.lhs && self.rhs == rhs.rhs;
     }
 }
 
@@ -14,12 +24,25 @@ class Sequence(let lhs: Regex, let rhs: Regex): Regex {
     override fun debug() -> Str {
         return "Seq(" + self.lhs.debug() + ", " + self.rhs.debug() + ")";
     }
+
+    override fun equals(rhs: Regex) -> bool {
+        if !(rhs is Sequence) {
+            return false;
+        }
+
+        let rhs = rhs as Sequence;
+        return self.lhs == rhs.lhs && self.rhs == rhs.rhs;
+    }
 }
 
 // empty regex
 class Blank: Regex {
     override fun debug() -> Str {
         return "Blank()";
+    }
+
+    override fun equals(rhs: Regex) -> bool {
+        return rhs is Blank;
     }
 }
 
@@ -28,12 +51,30 @@ class Repetition(let opnd: Regex): Regex {
     override fun debug() -> Str {
         return "Repetition(" + self.opnd.debug() + ")";
     }
+
+    override fun equals(rhs: Regex) -> bool {
+        if !(rhs is Repetition) {
+            return false;
+        }
+
+        let rhs = rhs as Repetition;
+        return self.opnd == rhs.opnd;
+    }
 }
 
 // match char
 class Primitive(let ch: char): Regex {
     override fun debug() -> Str {
         return self.ch.toString();
+    }
+
+    override fun equals(rhs: Regex) -> bool {
+        if !(rhs is Primitive) {
+            return false;
+        }
+
+        let rhs = rhs as Primitive;
+        return self.ch == rhs.ch;
     }
 }
 
@@ -141,6 +182,6 @@ class RegexParser(let pattern: String) {
 class RegexError(let val: Str)
 
 fun main() {
-    let regex = try! RegexParser(String::from("abc")).parse();
+    let regex = try! RegexParser(String::from("a|b|c")).parse();
     println(regex.debug());
 }

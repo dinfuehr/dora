@@ -1,0 +1,12 @@
+fun main() {
+    assert(test(B(10)));
+    assert(!test(B(0)));
+}
+
+fun test(a: A) -> bool {
+    let a = a as B;
+    return a.x != 0;
+}
+
+open class A
+class B(let x: int): A

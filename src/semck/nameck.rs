@@ -122,6 +122,10 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             node_id: var.id,
         };
 
+        if let Some(ref expr) = var.expr {
+            self.visit_expr(expr);
+        }
+
         // variables are not allowed to replace types, other variables
         // and functions can be replaced
         match self.add_var(var_ctxt, |sym| !sym.is_class()) {
@@ -133,10 +137,6 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 let name = str(self.ctxt, var.name);
                 report(self.ctxt, var.pos, Msg::ShadowClass(name));
             }
-        }
-
-        if let Some(ref expr) = var.expr {
-            self.visit_expr(expr);
         }
     }
 
