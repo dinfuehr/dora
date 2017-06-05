@@ -124,12 +124,14 @@ class String(let data: Array<byte>) {
 
     static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> String {
         let data = Array::<byte>(len);
-        var i = offset;
-        var end = offset + len;
+        var src_idx = offset;
+        var dest_idx = 0;
+        let end = offset + len;
 
-        while i < end {
-            data[i] = val[i];
-            i = i + 1;
+        while src_idx < end {
+            data[dest_idx] = val[src_idx];
+            src_idx = src_idx + 1;
+            dest_idx = dest_idx + 1;
         }
 
         if !isValidUtf8(data) {

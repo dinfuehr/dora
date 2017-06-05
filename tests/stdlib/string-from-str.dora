@@ -5,8 +5,11 @@ fun main() {
     let it = val.codePoints();
 
     assert(it.next() == 'a');
+    assert(it.toString() == String::from("bc"));
     assert(it.next() == 'b');
+    assert(it.toString() == String::from("c"));
     assert(it.next() == 'c');
+    assert(it.toString() == String::from(""));
     assert(it.hasNext() == false);
 
     let val = String::from("üß");
