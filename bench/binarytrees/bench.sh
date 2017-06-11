@@ -4,14 +4,13 @@ set -e
 
 echo "java" 1>&2
 javac binarytrees.java
-for i in $(seq 1 $RUNS); do time java binarytrees 20; done
+for i in $(seq 1 $RUNS); do time java -Xmx128M binarytrees 20; done
 
 echo
 echo "dora" 1>&2
 pushd ../..
 cargo build --release
-for i in $(seq 1 $RUNS); do time target/release/dora bench/binarytrees/binarytrees.dora 20; done
-for i in $(seq 1 $RUNS); do time target/release/dora --gc-copy --gc-copy-size=512m bench/binarytrees/binarytrees.dora 20; done
+for i in $(seq 1 $RUNS); do time target/release/dora --heap-size=330M bench/binarytrees/binarytrees.dora 20; done
 popd
 
 echo
