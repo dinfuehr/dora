@@ -83,3 +83,23 @@ trait Collector {
     fn alloc(&self, ctxt: &Context, size: usize) -> *const u8;
     fn collect(&self, ctxt: &Context);
 }
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct Address(usize);
+
+impl Address {
+    #[inline(always)]
+    fn offset(self, offset: usize) -> Address {
+        Address(self.0 + offset)
+    }
+
+    #[inline(always)]
+    pub fn from_ptr<T>(ptr: *const T) -> Address {
+        Address(ptr as usize)
+    }
+
+    #[inline(always)]
+    pub fn null() -> Address {
+        Address(0)
+    }
+}
