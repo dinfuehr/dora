@@ -12,7 +12,7 @@ use ctxt::*;
 use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>,
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>,
                    map_cls_defs: &mut NodeMap<ClassId>,
                    map_struct_defs: &mut NodeMap<StructId>,
                    map_trait_defs: &mut NodeMap<TraitId>,
@@ -33,7 +33,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>,
 }
 
 struct GlobalDef<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     map_cls_defs: &'x mut NodeMap<ClassId>,
     map_struct_defs: &'x mut NodeMap<StructId>,
     map_trait_defs: &'x mut NodeMap<TraitId>,
@@ -241,7 +241,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, name: Name, pos: Position, sym: Sym) {
+fn report(ctxt: &SemContext, name: Name, pos: Position, sym: Sym) {
     let name = ctxt.interner.str(name).to_string();
 
     let msg = match sym {

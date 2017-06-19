@@ -1,7 +1,7 @@
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-use ctxt::Context;
+use ctxt::SemContext;
 use gc::Collector;
 
 struct YoungGen {
@@ -24,13 +24,13 @@ impl YoungGen {
 }
 
 impl Collector for YoungGen {
-    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         unimplemented!();
 
         ptr::null()
     }
 
-    fn collect(&self, ctxt: &Context) {
+    fn collect(&self, ctxt: &SemContext) {
         unimplemented!();
     }
 }

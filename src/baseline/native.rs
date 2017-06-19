@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use baseline::fct::JitFct;
 use cpu::{FREG_PARAMS, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{Context, get_ctxt};
+use ctxt::{SemContext, get_ctxt};
 use masm::MacroAssembler;
 use mem;
 use stacktrace::DoraToNativeInfo;
@@ -35,7 +35,7 @@ pub struct InternalFct<'a> {
     pub return_type: BuiltinType,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: InternalFct, dbg: bool) -> JitFct {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFct {
     let ngen = NativeGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -47,7 +47,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>, fct: InternalFct, dbg: bo
 }
 
 struct NativeGen<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     masm: MacroAssembler,
 
     fct: InternalFct<'a>,

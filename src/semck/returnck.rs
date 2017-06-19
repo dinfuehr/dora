@@ -1,4 +1,4 @@
-use ctxt::{Context, Fct, FctSrc};
+use ctxt::{SemContext, Fct, FctSrc};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::*;
@@ -7,7 +7,7 @@ use dora_parser::ast::visit::*;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &Context<'ast>) {
+pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
@@ -31,7 +31,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 }
 
 struct ReturnCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,

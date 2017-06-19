@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::ptr;
 
-use ctxt::Context;
+use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::{arena, Collector};
 
@@ -30,7 +30,7 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc(&self, _: &Context, size: usize) -> *const u8 {
+    fn alloc(&self, _: &SemContext, size: usize) -> *const u8 {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 
@@ -53,7 +53,7 @@ impl Collector for ZeroCollector {
         old
     }
 
-    fn collect(&self, _: &Context) {
+    fn collect(&self, _: &SemContext) {
         // do nothing
     }
 }

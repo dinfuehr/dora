@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 
 use class::ClassId;
-use ctxt::{Context, get_ctxt};
+use ctxt::{SemContext, get_ctxt};
 use gc::root::IndirectObj;
 use mem;
 use vtable::VTable;
@@ -202,7 +202,7 @@ impl Str {
     }
 
     /// allocates string from buffer in permanent space
-    pub fn from_buffer_in_perm(ctxt: &Context, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer_in_perm(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_perm(ctxt, buf.len());
         handle.length = buf.len();
 
@@ -220,7 +220,7 @@ impl Str {
     }
 
     /// allocates string from buffer in permanent space
-    pub fn from_buffer(ctxt: &Context, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_heap(ctxt, buf.len());
         handle.length = buf.len();
 
@@ -237,7 +237,7 @@ impl Str {
         handle
     }
 
-    pub fn concat(ctxt: &Context, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
+    pub fn concat(ctxt: &SemContext, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
         let mut handle = str_alloc_heap(ctxt, len);
 
@@ -256,18 +256,18 @@ impl Str {
     }
 }
 
-fn str_alloc_heap(ctxt: &Context, len: usize) -> Handle<Str> {
+fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
     str_alloc(ctxt,
               len,
               |ctxt, size| ctxt.gc.alloc(ctxt, size) as *const u8)
 }
 
-fn str_alloc_perm(ctxt: &Context, len: usize) -> Handle<Str> {
+fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
     str_alloc(ctxt, len, |ctxt, size| ctxt.gc.alloc_perm(size))
 }
 
-fn str_alloc<F>(ctxt: &Context, len: usize, alloc: F) -> Handle<Str>
-    where F: FnOnce(&Context, usize) -> *const u8
+fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
+    where F: FnOnce(&SemContext, usize) -> *const u8
 {
     let size = Header::size() as usize     // Object header
                 + mem::ptr_width() as usize // length field
@@ -321,7 +321,7 @@ impl<T> Array<T>
             + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc(ctxt: &Context, len: usize, elem: T, clsid: ClassId) -> Handle<Array<T>> {
+    pub fn alloc(ctxt: &SemContext, len: usize, elem: T, clsid: ClassId) -> Handle<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content

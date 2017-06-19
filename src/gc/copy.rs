@@ -2,7 +2,7 @@ use std::mem::swap;
 use std::ptr;
 use std::sync::Mutex;
 
-use ctxt::Context;
+use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
@@ -40,7 +40,7 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         let mut spaces = self.spaces.lock().unwrap();
         let mut spaces = &mut *spaces;
 
@@ -61,7 +61,7 @@ impl Collector for CopyCollector {
         ptr
     }
 
-    fn collect(&self, ctxt: &Context) {
+    fn collect(&self, ctxt: &SemContext) {
         let mut spaces = self.spaces.lock().unwrap();
         let mut spaces = &mut *spaces;
 
@@ -136,7 +136,7 @@ impl Drop for SemiSpace {
     }
 }
 
-pub fn minor_collect(ctxt: &Context,
+pub fn minor_collect(ctxt: &SemContext,
                      from_space: &mut SemiSpace,
                      to_space: &mut SemiSpace,
                      rootset: Vec<IndirectObj>) {

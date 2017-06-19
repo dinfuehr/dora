@@ -6,11 +6,11 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
 use cpu::*;
-use ctxt::{Arg, CallSite, Context, Fct, FctId, FctParent, FctSrc, NodeMap, Store, VarId};
+use ctxt::{Arg, CallSite, SemContext, Fct, FctId, FctParent, FctSrc, NodeMap, Store, VarId};
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a Context<'ast>,
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>,
                               fct: &Fct<'ast>,
                               src: &'a FctSrc,
                               jit_info: &'a mut JitInfo<'ast>) {
@@ -86,7 +86,7 @@ impl<'ast> JitInfo<'ast> {
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a FctSrc,
     ast: &'ast Function,

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use baseline::map::CodeData;
-use ctxt::Context;
+use ctxt::SemContext;
 use masm::MacroAssembler;
 use os::signal::Trap;
 
@@ -11,7 +11,7 @@ pub struct Stub {
 }
 
 impl Stub {
-    pub fn new(ctxt: &Context) -> Stub {
+    pub fn new(ctxt: &SemContext) -> Stub {
         let mut masm = MacroAssembler::new();
         masm.trap(Trap::COMPILER);
         let jit_fct = masm.jit(ctxt, 0);
@@ -40,7 +40,7 @@ impl fmt::Debug for Stub {
     }
 }
 
-pub fn ensure_stub<'ast>(ctxt: &Context<'ast>) -> *const u8 {
+pub fn ensure_stub<'ast>(ctxt: &SemContext<'ast>) -> *const u8 {
     let mut compile_stub = ctxt.compile_stub.borrow_mut();
 
     if let Some(ref stub) = *compile_stub {

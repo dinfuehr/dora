@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use class::{ClassId, TypeParamId};
-use ctxt::{Context, FctId, StructId, TraitId};
+use ctxt::{SemContext, FctId, StructId, TraitId};
 use mem;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -108,7 +108,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn to_specialized(&self, ctxt: &Context) -> BuiltinType {
+    pub fn to_specialized(&self, ctxt: &SemContext) -> BuiltinType {
         match self {
             &BuiltinType::Generic(id) => {
                 let cls_id = ctxt.types.borrow().get_cls_id(id);
@@ -131,7 +131,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn subclass_from(&self, ctxt: &Context, ty: BuiltinType) -> bool {
+    pub fn subclass_from(&self, ctxt: &SemContext, ty: BuiltinType) -> bool {
         if !self.is_cls() {
             return false;
         }
@@ -144,7 +144,7 @@ impl BuiltinType {
         cls.subclass_from(ctxt, ty.cls_id())
     }
 
-    pub fn name(&self, ctxt: &Context) -> String {
+    pub fn name(&self, ctxt: &SemContext) -> String {
         match *self {
             BuiltinType::Unit => "()".into(),
             BuiltinType::Byte => "byte".into(),
@@ -196,7 +196,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn allows(&self, ctxt: &Context, other: BuiltinType) -> bool {
+    pub fn allows(&self, ctxt: &SemContext, other: BuiltinType) -> bool {
         match *self {
             BuiltinType::Unit |
             BuiltinType::Bool |
@@ -228,7 +228,7 @@ impl BuiltinType {
         if self.is_nil() { other } else { *self }
     }
 
-    pub fn size(&self, ctxt: &Context) -> i32 {
+    pub fn size(&self, ctxt: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -250,7 +250,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn align(&self, ctxt: &Context) -> i32 {
+    pub fn align(&self, ctxt: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,

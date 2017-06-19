@@ -3,13 +3,13 @@ use std::collections::HashMap;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap};
+use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_impl_defs: &NodeMap<ImplId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_impl_defs: &NodeMap<ImplId>) {
     let mut clsck = ImplCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -21,7 +21,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_impl_defs: &NodeMap<ImplId>) {
 }
 
 struct ImplCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     ast: &'ast ast::Ast,
     map_impl_defs: &'x NodeMap<ImplId>,
 
@@ -113,7 +113,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

@@ -4,14 +4,14 @@ use std::ptr;
 
 use baseline::stub::ensure_stub;
 use class::{Class, ClassId};
-use ctxt::{Context, Fct, StructId, StructData};
+use ctxt::{SemContext, Fct, StructId, StructData};
 use dora_parser::error::msg::Msg;
 use mem;
 use object::Header;
 use ty::BuiltinType;
 use vtable::{DISPLAY_SIZE, VTableBox};
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     cycle_detection(ctxt);
 
     if ctxt.diag.borrow().has_errors() {
@@ -25,7 +25,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     create_displays(ctxt);
 }
 
-fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
+fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
@@ -50,7 +50,7 @@ fn cycle_detection<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn determine_struct_sizes<'ast>(ctxt: &Context<'ast>) {
+fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
     let mut path = Vec::new();
     let mut sizes = HashMap::new();
 
@@ -60,7 +60,7 @@ fn determine_struct_sizes<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
+fn determine_struct_size<'ast>(ctxt: &SemContext<'ast>,
                                path: &mut Vec<StructId>,
                                sizes: &mut HashMap<StructId, (i32, i32)>,
                                struc: &mut StructData)
@@ -109,7 +109,7 @@ fn determine_struct_size<'ast>(ctxt: &Context<'ast>,
     (size, align)
 }
 
-fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
+fn determine_class_sizes<'ast>(ctxt: &SemContext<'ast>) {
     let mut sizes = HashMap::new();
 
     for cls in ctxt.classes.iter() {
@@ -123,7 +123,7 @@ fn determine_class_sizes<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn determine_class_size<'ast>(ctxt: &Context<'ast>,
+fn determine_class_size<'ast>(ctxt: &SemContext<'ast>,
                               cls: &mut Class,
                               sizes: &mut HashMap<ClassId, (i32, i32)>)
                               -> (i32, i32) {
@@ -168,7 +168,7 @@ fn determine_class_size<'ast>(ctxt: &Context<'ast>,
     (cls.size, size_without_padding)
 }
 
-pub fn check_override<'ast>(ctxt: &Context<'ast>) {
+pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
@@ -179,7 +179,7 @@ pub fn check_override<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
+fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<'ast>) {
     // catch: class A { open fun f() } (A is not derivable)
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
@@ -251,14 +251,14 @@ fn check_fct_modifier<'ast>(ctxt: &Context<'ast>, cls: &Class, fct: &mut Fct<'as
     }
 }
 
-fn create_vtables<'ast>(ctxt: &Context<'ast>) {
+fn create_vtables<'ast>(ctxt: &SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
         ensure_super_vtables(ctxt, &mut *cls);
     }
 }
 
-fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
+fn ensure_super_vtables<'ast>(ctxt: &SemContext<'ast>, cls: &mut Class) {
     if cls.vtable.is_some() {
         return;
     }
@@ -304,7 +304,7 @@ fn ensure_super_vtables<'ast>(ctxt: &Context<'ast>, cls: &mut Class) {
     cls.vtable = Some(VTableBox::new(classptr, &vtable_entries));
 }
 
-fn create_displays<'ast>(ctxt: &Context<'ast>) {
+fn create_displays<'ast>(ctxt: &SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
         let mut cls = cls.borrow_mut();
 
@@ -312,7 +312,7 @@ fn create_displays<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn ensure_display<'ast>(ctxt: &Context<'ast>, cls: &mut Class) -> usize {
+fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls: &mut Class) -> usize {
     let vtable = cls.vtable.as_mut().unwrap();
 
     // if subtype_display[0] is set, vtable was already initialized
@@ -382,7 +382,7 @@ fn index_twice<T>(array: &mut [T], a: usize, b: usize) -> (&mut T, &mut T) {
 #[cfg(test)]
 mod tests {
     use class::ClassId;
-    use ctxt::Context;
+    use ctxt::SemContext;
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
     use object::Header;
@@ -422,7 +422,7 @@ mod tests {
         });
     }
 
-    fn class_size_name(ctxt: &Context, name: &'static str) -> i32 {
+    fn class_size_name(ctxt: &SemContext, name: &'static str) -> i32 {
         let name = ctxt.interner.intern(name);
         let cid = ctxt.sym.borrow().get_class(name).unwrap();
         let cls = ctxt.classes[cid].borrow();
@@ -732,7 +732,7 @@ mod tests {
                      });
     }
 
-    fn assert_name<'a, 'ast>(ctxt: &'a Context<'ast>, a: Name, b: &'static str) {
+    fn assert_name<'a, 'ast>(ctxt: &'a SemContext<'ast>, a: Name, b: &'static str) {
         let bname = ctxt.interner.intern(b);
 
         println!("{} {}", ctxt.interner.str(a), b);
@@ -755,7 +755,7 @@ mod tests {
         }
     }
 
-    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a Context<'ast>, name: &'static str, fct: F) -> R
+    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a SemContext<'ast>, name: &'static str, fct: F) -> R
         where F: FnOnce(&VTable) -> R
     {
         let cid = cls_by_name(ctxt, name);
@@ -765,7 +765,7 @@ mod tests {
         fct(vtable)
     }
 
-    fn cls_by_name<'a, 'ast>(ctxt: &'a Context<'ast>, name: &'static str) -> ClassId {
+    fn cls_by_name<'a, 'ast>(ctxt: &'a SemContext<'ast>, name: &'static str) -> ClassId {
         let name = ctxt.interner.intern(name);
         ctxt.sym
             .borrow()
@@ -773,7 +773,7 @@ mod tests {
             .expect("class not found")
     }
 
-    fn check_class<'ast>(ctxt: &Context<'ast>,
+    fn check_class<'ast>(ctxt: &SemContext<'ast>,
                          name: &'static str,
                          size: i32,
                          parent: Option<&'static str>) {
@@ -789,7 +789,7 @@ mod tests {
         assert_eq!(Header::size() + size, cls.size);
     }
 
-    fn check_field<'ast>(ctxt: &Context<'ast>,
+    fn check_field<'ast>(ctxt: &SemContext<'ast>,
                          cls_name: &'static str,
                          field_name: &'static str,
                          offset: i32) {

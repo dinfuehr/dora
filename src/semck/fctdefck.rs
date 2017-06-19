@@ -3,13 +3,13 @@ use std::collections::HashSet;
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
-use ctxt::{Context, Fct, FctId, FctParent, FctSrc};
+use ctxt::{SemContext, Fct, FctId, FctParent, FctSrc};
 use dora_parser::error::msg::Msg;
 use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -158,7 +158,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn check_abstract<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>) {
+fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
     if !fct.is_abstract {
         return;
     }
@@ -177,7 +177,7 @@ fn check_abstract<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_static<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>) {
+fn check_static<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
     if !fct.is_static {
         return;
     }
@@ -199,7 +199,7 @@ fn check_static<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>) {
     }
 }
 
-fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
+fn check_against_methods(ctxt: &SemContext, ty: BuiltinType, fct: &Fct, methods: &[FctId]) {
     for &method in methods {
         if method == fct.id {
             continue;
@@ -219,7 +219,7 @@ fn check_against_methods(ctxt: &Context, ty: BuiltinType, fct: &Fct, methods: &[
 }
 
 struct FctDefCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
     current_type: BuiltinType,

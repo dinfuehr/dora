@@ -1,6 +1,6 @@
 use std::{f32, f64};
 
-use ctxt::{CallType, ConstData, ConstValue, Context, ConvInfo, Fct, FctId, FctParent, FctSrc,
+use ctxt::{CallType, ConstData, ConstValue, SemContext, ConvInfo, Fct, FctId, FctParent, FctSrc,
            IdentType};
 use class::ClassId;
 use dora_parser::error::msg::Msg;
@@ -16,7 +16,7 @@ use semck::specialize::{self, SpecializeFor};
 use sym::Sym::SymClass;
 use ty::BuiltinType;
 
-pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
+pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
@@ -58,7 +58,7 @@ pub fn check<'a, 'ast>(ctxt: &Context<'ast>) {
 }
 
 struct TypeCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -1173,7 +1173,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     }
 }
 
-fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
+fn args_compatible(ctxt: &SemContext, def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
     if def.len() != expr.len() {
         return false;
     }
@@ -1187,7 +1187,7 @@ fn args_compatible(ctxt: &Context, def: &[BuiltinType], expr: &[BuiltinType]) ->
     true
 }
 
-fn check_lit_int<'ast>(ctxt: &Context<'ast>,
+fn check_lit_int<'ast>(ctxt: &SemContext<'ast>,
                        e: &'ast ExprLitIntType,
                        negative_expr_id: NodeId)
                        -> (BuiltinType, i64) {
@@ -1241,7 +1241,7 @@ fn check_lit_int<'ast>(ctxt: &Context<'ast>,
     (ty, val)
 }
 
-fn check_lit_float<'ast>(ctxt: &Context<'ast>,
+fn check_lit_float<'ast>(ctxt: &SemContext<'ast>,
                          e: &'ast ExprLitFloatType,
                          negative_expr_id: NodeId)
                          -> (BuiltinType, f64) {
@@ -1276,7 +1276,7 @@ fn check_lit_float<'ast>(ctxt: &Context<'ast>,
 }
 
 struct ConstCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     xconst: &'a ConstData<'ast>,
     negative_expr_id: NodeId,
 }
@@ -1332,7 +1332,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
     }
 }
 
-fn lookup_method<'ast>(ctxt: &Context<'ast>,
+fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                        object_type: BuiltinType,
                        is_static: bool,
                        name: Name,

@@ -3,7 +3,7 @@ use std::ptr;
 use baseline::fct::CatchType;
 use baseline::map::CodeData;
 use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
-use ctxt::{Context, FctKind, FctId, get_ctxt};
+use ctxt::{SemContext, FctKind, FctId, get_ctxt};
 use object::{Handle, Obj};
 use execstate::ExecState;
 
@@ -28,7 +28,7 @@ impl Stacktrace {
                   });
     }
 
-    pub fn dump(&self, ctxt: &Context) {
+    pub fn dump(&self, ctxt: &SemContext) {
         for (ind, elem) in self.elems.iter().rev().enumerate() {
             let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
             print!("  {}: {}:", ind, name);
@@ -67,7 +67,7 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
+pub fn get_stacktrace(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
     determine_stack_entry(&mut stacktrace, ctxt, es.pc);
 
@@ -109,7 +109,7 @@ pub fn get_stacktrace(ctxt: &Context, es: &ExecState) -> Stacktrace {
     return stacktrace;
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &Context, pc: usize) -> bool {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 

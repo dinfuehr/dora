@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use ctxt::Context;
+use ctxt::SemContext;
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     for ximpl in &ctxt.impls {
         let ximpl = ximpl.borrow();
         let xtrait = ctxt.traits[ximpl.trait_id()].borrow();
@@ -65,7 +65,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
 }
 
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

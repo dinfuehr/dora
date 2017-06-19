@@ -1,4 +1,4 @@
-use ctxt::{Context, NodeMap};
+use ctxt::{SemContext, NodeMap};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeSelf};
 use dora_parser::error::msg::Msg;
@@ -30,7 +30,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -107,7 +107,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>) {
     init_global_addresses(ctxt);
 }
 
-fn specialize_types<'ast>(ctxt: &Context<'ast>) {
+fn specialize_types<'ast>(ctxt: &SemContext<'ast>) {
     use semck::specialize::specialize_class;
     let mut ind = 0;
 
@@ -125,7 +125,7 @@ fn specialize_types<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn internalck<'ast>(ctxt: &Context<'ast>) {
+fn internalck<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
@@ -173,7 +173,7 @@ fn internalck<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-fn init_global_addresses<'ast>(ctxt: &Context<'ast>) {
+fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
     let mut size = 0;
     let mut offsets = Vec::with_capacity(ctxt.globals.len());
 
@@ -197,7 +197,7 @@ fn init_global_addresses<'ast>(ctxt: &Context<'ast>) {
     }
 }
 
-pub fn read_type<'ast>(ctxt: &Context<'ast>, t: &'ast Type) -> Option<BuiltinType> {
+pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<BuiltinType> {
     match *t {
         TypeSelf(_) => {
             return Some(BuiltinType::This);
@@ -302,7 +302,7 @@ pub fn always_returns(s: &Stmt) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use ctxt::Context;
+    use ctxt::SemContext;
     use dora_parser::error::msg::Msg;
     use dora_parser::lexer::position::Position;
     use test;
@@ -323,7 +323,7 @@ mod tests {
     }
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
-        where F: FnOnce(&Context) -> R
+        where F: FnOnce(&SemContext) -> R
     {
         test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.borrow();

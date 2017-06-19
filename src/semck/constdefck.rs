@@ -1,12 +1,12 @@
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
-use ctxt::{ConstId, Context, NodeMap};
+use ctxt::{ConstId, SemContext, NodeMap};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_const_defs: &NodeMap<ConstId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_const_defs: &NodeMap<ConstId>) {
     let mut clsck = ConstCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -18,7 +18,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_const_defs: &NodeMap<ConstId>) 
 }
 
 struct ConstCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     ast: &'ast ast::Ast,
     map_const_defs: &'x NodeMap<ConstId>,
 
@@ -40,7 +40,7 @@ impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

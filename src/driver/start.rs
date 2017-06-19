@@ -1,7 +1,7 @@
 use std::mem;
 
 use dora_parser::ast::{self, Ast};
-use ctxt::{Context, FctId};
+use ctxt::{SemContext, FctId};
 use driver::cmd;
 use dora_parser::error::msg::Msg;
 
@@ -44,7 +44,7 @@ pub fn start() -> i32 {
         ast::dump::dump(&ast, &interner);
     }
 
-    let mut ctxt = Context::new(args, &ast, interner);
+    let mut ctxt = SemContext::new(args, &ast, interner);
 
     semck::check(&mut ctxt);
 
@@ -112,7 +112,7 @@ fn parse_file(filename: &str,
     Ok(())
 }
 
-fn find_main<'ast>(ctxt: &Context<'ast>) -> Option<FctId> {
+fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,

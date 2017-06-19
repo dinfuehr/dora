@@ -70,7 +70,7 @@ impl From<FReg> for ExprStore {
 }
 
 pub struct ExprGen<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -84,7 +84,7 @@ pub struct ExprGen<'a, 'ast: 'a> {
 impl<'a, 'ast> ExprGen<'a, 'ast>
     where 'ast: 'a
 {
-    pub fn new(ctxt: &'a Context<'ast>,
+    pub fn new(ctxt: &'a SemContext<'ast>,
                fct: &'a Fct<'ast>,
                src: &'a mut FctSrc,
                ast: &'ast Function,
@@ -1684,7 +1684,7 @@ fn result_reg(mode: MachineMode) -> ExprStore {
     }
 }
 
-fn check_for_nil(ctxt: &Context, ty: BuiltinType) -> bool {
+fn check_for_nil(ctxt: &SemContext, ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Unit => false,
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
@@ -1700,7 +1700,7 @@ fn check_for_nil(ctxt: &Context, ty: BuiltinType) -> bool {
     }
 }
 
-fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
+fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 
@@ -1725,7 +1725,7 @@ fn ensure_native_stub(ctxt: &Context, fct_id: FctId, internal_fct: InternalFct) 
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc, ctxt: &Context) -> *const u8 {
+fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc, ctxt: &SemContext) -> *const u8 {
     let jit_fct = src.jit_fct.read().unwrap();
 
     if let Some(ref jit) = *jit_fct {

@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap};
+use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap};
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -12,7 +12,7 @@ use semck;
 use sym::Sym;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &NodeMap<ClassId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_cls_defs: &NodeMap<ClassId>) {
     let mut clsck = ClsCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -24,7 +24,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_cls_defs: &NodeMap<ClassId>) {
 }
 
 struct ClsCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     ast: &'ast ast::Ast,
     map_cls_defs: &'x NodeMap<ClassId>,
 
@@ -272,7 +272,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

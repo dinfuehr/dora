@@ -13,7 +13,7 @@ use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use cpu::{FREG_PARAMS, FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
-use ctxt::{Context, Fct, FctId, FctSrc, VarId};
+use ctxt::{SemContext, Fct, FctId, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
@@ -22,7 +22,7 @@ use os::signal::Trap;
 use semck::always_returns;
 use ty::{BuiltinType, MachineMode};
 
-pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
+pub fn generate<'ast>(ctxt: &SemContext<'ast>, id: FctId) -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.borrow_mut();
@@ -30,7 +30,7 @@ pub fn generate<'ast>(ctxt: &Context<'ast>, id: FctId) -> *const u8 {
     generate_fct(ctxt, &fct, &mut src)
 }
 
-pub fn generate_fct<'ast>(ctxt: &Context<'ast>, fct: &Fct<'ast>, src: &mut FctSrc) -> *const u8 {
+pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut FctSrc) -> *const u8 {
     {
         let src_jit_fct = src.jit_fct.read().unwrap();
 
@@ -93,7 +93,7 @@ fn get_engine() -> Result<Engine, Error> {
     Engine::new(Arch::Arm64, MODE_ARM)
 }
 
-pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
+pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                       fct: &Fct<'ast>,
                       jit_fct: &JitFct,
                       fct_src: Option<&FctSrc>,
@@ -178,7 +178,7 @@ pub fn dump_asm<'ast>(ctxt: &Context<'ast>,
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
     masm: MacroAssembler,
@@ -778,7 +778,7 @@ pub enum Next {
     Return,
 }
 
-pub fn should_emit_debug(ctxt: &Context, fct: &Fct) -> bool {
+pub fn should_emit_debug(ctxt: &SemContext, fct: &Fct) -> bool {
     if let Some(ref dbg_names) = ctxt.args.flag_emit_debug {
         fct_pattern_match(ctxt, fct, dbg_names)
     } else {
@@ -786,7 +786,7 @@ pub fn should_emit_debug(ctxt: &Context, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_asm(ctxt: &Context, fct: &Fct) -> bool {
+pub fn should_emit_asm(ctxt: &SemContext, fct: &Fct) -> bool {
     if let Some(ref dbg_names) = ctxt.args.flag_emit_asm {
         fct_pattern_match(ctxt, fct, dbg_names)
     } else {
@@ -794,7 +794,7 @@ pub fn should_emit_asm(ctxt: &Context, fct: &Fct) -> bool {
     }
 }
 
-fn fct_pattern_match(ctxt: &Context, fct: &Fct, pattern: &str) -> bool {
+fn fct_pattern_match(ctxt: &SemContext, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }

@@ -1,11 +1,11 @@
 use std::convert::From;
 
 use baseline::map::CodeData;
-use ctxt::{Context, FctKind};
+use ctxt::{SemContext, FctKind};
 use object::Obj;
 use stacktrace::DoraToNativeInfo;
 
-pub fn get_rootset(ctxt: &Context) -> Vec<IndirectObj> {
+pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
     let mut rootset = Vec::new();
 
     determine_rootset_from_stack(&mut rootset, ctxt);
@@ -14,7 +14,7 @@ pub fn get_rootset(ctxt: &Context) -> Vec<IndirectObj> {
     rootset
 }
 
-fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &Context) {
+fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
     for glob in ctxt.globals.iter() {
         let glob = glob.borrow();
 
@@ -26,7 +26,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &Context
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &Context) {
+fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
     assert!(!ctxt.sfi.borrow().is_null());
 
     let mut sfi = *ctxt.sfi.borrow();
@@ -37,7 +37,7 @@ fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &Context) 
 }
 
 fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
-                            ctxt: &Context,
+                            ctxt: &SemContext,
                             sfi: *const DoraToNativeInfo)
                             -> *const DoraToNativeInfo {
     let sfi = unsafe { &*sfi };
@@ -57,7 +57,7 @@ fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
     sfi.last
 }
 
-fn determine_rootset(rootset: &mut Vec<IndirectObj>, ctxt: &Context, fp: usize, pc: usize) -> bool {
+fn determine_rootset(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 

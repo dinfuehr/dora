@@ -6,7 +6,7 @@ use baseline;
 use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
-use ctxt::{Context, CTXT, FctId, get_ctxt};
+use ctxt::{SemContext, CTXT, FctId, get_ctxt};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
@@ -17,9 +17,9 @@ use stacktrace::{handle_exception, get_stacktrace};
 use winapi::winnt::EXCEPTION_POINTERS;
 
 #[cfg(target_family = "unix")]
-pub fn register_signals(ctxt: &Context) {
+pub fn register_signals(ctxt: &SemContext) {
     unsafe {
-        let ptr = ctxt as *const Context as *const u8;
+        let ptr = ctxt as *const SemContext as *const u8;
         CTXT = Some(ptr);
 
         let mut sa: libc::sigaction = std::mem::uninitialized();
@@ -43,7 +43,7 @@ pub fn register_signals(ctxt: &Context) {
 }
 
 #[cfg(target_family = "windows")]
-pub fn register_signals(ctxt: &Context) {
+pub fn register_signals(ctxt: &SemContext) {
     use kernel32::AddVectoredExceptionHandler;
 
     unsafe {
@@ -193,7 +193,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     }
 }
 
-fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
+fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
 
     if let Some(CodeData::Fct(fid)) = code_map.get(pc as *const u8) {
@@ -212,11 +212,11 @@ fn detect_nil_check(ctxt: &Context, pc: usize) -> bool {
     }
 }
 
-fn detect_polling_page_check(ctxt: &Context, signo: libc::c_int, addr: *const u8) -> bool {
+fn detect_polling_page_check(ctxt: &SemContext, signo: libc::c_int, addr: *const u8) -> bool {
     signo == libc::SIGSEGV && ctxt.polling_page.addr() == addr
 }
 
-fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
+fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
     // get return address from top of stack
     let ra = cpu::ra_from_execstate(es);
 
@@ -257,7 +257,7 @@ fn compile_request(ctxt: &Context, es: &mut ExecState, ucontext: *const u8) {
     write_execstate(es, ucontext as *mut u8);
 }
 
-fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, vtable_index: u32) {
+fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
     let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
@@ -282,7 +282,7 @@ fn patch_vtable_call(ctxt: &Context, es: &mut ExecState, vtable_index: u32) {
     es.pc = fct_ptr as usize;
 }
 
-pub fn patch_fct_call(ctxt: &Context, es: &mut ExecState, ra: usize, fct_id: FctId, disp: i32) {
+pub fn patch_fct_call(ctxt: &SemContext, es: &mut ExecState, ra: usize, fct_id: FctId, disp: i32) {
     let fct_ptr = baseline::generate(ctxt, fct_id);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 

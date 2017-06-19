@@ -4,7 +4,7 @@ use std::ptr;
 
 use class::{ClassId, FieldId};
 use cpu::flush_icache;
-use ctxt::{Context, FctId, FctSrc, GlobalId, VarId};
+use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 
@@ -28,7 +28,7 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn from_buffer(ctxt: &Context,
+    pub fn from_buffer(ctxt: &SemContext,
                        dseg: &DSeg,
                        buffer: &[u8],
                        bailouts: Bailouts,
@@ -205,7 +205,7 @@ impl Comment {
 pub struct CommentFormat<'a, 'ast: 'a> {
     pub comment: &'a Comment,
     pub fct_src: Option<&'a FctSrc>,
-    pub ctxt: &'a Context<'ast>,
+    pub ctxt: &'a SemContext<'ast>,
 }
 
 impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {

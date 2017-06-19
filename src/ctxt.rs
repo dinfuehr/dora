@@ -26,11 +26,11 @@ use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
 
-pub fn get_ctxt() -> &'static Context<'static> {
-    unsafe { &*(CTXT.unwrap() as *const Context) }
+pub fn get_ctxt() -> &'static SemContext<'static> {
+    unsafe { &*(CTXT.unwrap() as *const SemContext) }
 }
 
-pub struct Context<'ast> {
+pub struct SemContext<'ast> {
     pub args: Args,
     pub interner: Interner,
     pub ast: &'ast ast::Ast,
@@ -53,12 +53,12 @@ pub struct Context<'ast> {
     pub types: RefCell<Types>,
 }
 
-impl<'ast> Context<'ast> {
-    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Context<'ast> {
+impl<'ast> SemContext<'ast> {
+    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> SemContext<'ast> {
         let empty_class_id: ClassId = 0.into();
         let gc = Gc::new(&args);
 
-        Context {
+        SemContext {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -250,7 +250,7 @@ pub struct TraitData {
 
 impl TraitData {
     pub fn find_method(&self,
-                       ctxt: &Context,
+                       ctxt: &SemContext,
                        is_static: bool,
                        name: Name,
                        replace: Option<BuiltinType>,
@@ -467,7 +467,7 @@ impl<'ast> Fct<'ast> {
         }
     }
 
-    pub fn full_name(&self, ctxt: &Context) -> String {
+    pub fn full_name(&self, ctxt: &SemContext) -> String {
         let mut repr = String::new();
 
         if let FctParent::Class(class_id) = self.parent {

@@ -6,10 +6,10 @@ use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 
 use class::{self, ClassId};
-use ctxt::{Context, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, Var};
+use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, Var};
 use ty::{BuiltinType, TypeId};
 
-pub fn specialize_class(ctxt: &Context,
+pub fn specialize_class(ctxt: &SemContext,
                         cls: &class::Class,
                         type_params: Vec<BuiltinType>)
                         -> (ClassId, TypeId) {
@@ -39,7 +39,7 @@ pub fn specialize_class(ctxt: &Context,
     (id, type_id)
 }
 
-fn create_specialized_class(ctxt: &Context,
+fn create_specialized_class(ctxt: &SemContext,
                             cls: &class::Class,
                             type_params: Vec<BuiltinType>)
                             -> ClassId {
@@ -149,7 +149,7 @@ fn create_specialized_class(ctxt: &Context,
     id
 }
 
-pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
+pub fn specialize_fct<'ast>(ctxt: &SemContext<'ast>,
                             parent: FctParent,
                             fct: &Fct<'ast>,
                             specialize_for: SpecializeFor,
@@ -251,7 +251,7 @@ pub fn specialize_fct<'ast>(ctxt: &Context<'ast>,
     fct_id
 }
 
-pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
+pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
                              ty: BuiltinType,
                              specialize_for: SpecializeFor,
                              type_params: &[BuiltinType])
@@ -292,7 +292,7 @@ pub fn specialize_type<'ast>(ctxt: &Context<'ast>,
     }
 }
 
-fn bounds_check<'ast>(ctxt: &Context<'ast>,
+fn bounds_check<'ast>(ctxt: &SemContext<'ast>,
                       def_type_params: &[class::TypeParam],
                       type_params: &[BuiltinType]) {
     // TODO: check number of type params

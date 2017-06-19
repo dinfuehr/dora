@@ -12,7 +12,7 @@ use sym::Sym;
 use sym::Sym::*;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &Context<'ast>) {
+pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
         let fct = fct.borrow();
 
@@ -36,7 +36,7 @@ pub fn check<'ast>(ctxt: &Context<'ast>) {
 }
 
 struct NameCheck<'a, 'ast: 'a> {
-    ctxt: &'a Context<'ast>,
+    ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -342,11 +342,11 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 
-fn str(ctxt: &Context, name: Name) -> String {
+fn str(ctxt: &SemContext, name: Name) -> String {
     ctxt.interner.str(name).to_string()
 }
 

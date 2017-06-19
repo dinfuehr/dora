@@ -1,12 +1,12 @@
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{Context, NodeMap, StructFieldData, StructId};
+use ctxt::{SemContext, NodeMap, StructFieldData, StructId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_struct_defs: &NodeMap<StructId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_struct_defs: &NodeMap<StructId>) {
     let mut clsck = StructCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -18,7 +18,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_struct_defs: &NodeMap<StructId>
 }
 
 struct StructCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     ast: &'ast ast::Ast,
     map_struct_defs: &'x NodeMap<StructId>,
 
@@ -66,7 +66,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

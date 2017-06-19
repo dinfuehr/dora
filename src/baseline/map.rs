@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::{Context, FctId};
+use ctxt::{SemContext, FctId};
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeData>,
@@ -12,7 +12,7 @@ impl CodeMap {
         CodeMap { tree: BTreeMap::new() }
     }
 
-    pub fn dump(&self, ctxt: &Context) {
+    pub fn dump(&self, ctxt: &SemContext) {
         println!("CodeMap {{");
 
         for (key, data) in &self.tree {

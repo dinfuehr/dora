@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{Context, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
+use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut Context<'ast>, map_trait_defs: &NodeMap<TraitId>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, map_trait_defs: &NodeMap<TraitId>) {
     let mut clsck = TraitCheck {
         ctxt: ctxt,
         ast: ctxt.ast,
@@ -19,7 +19,7 @@ pub fn check<'ast>(ctxt: &mut Context<'ast>, map_trait_defs: &NodeMap<TraitId>) 
 }
 
 struct TraitCheck<'x, 'ast: 'x> {
-    ctxt: &'x mut Context<'ast>,
+    ctxt: &'x mut SemContext<'ast>,
     ast: &'ast ast::Ast,
     map_trait_defs: &'x NodeMap<TraitId>,
 
@@ -87,7 +87,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
     }
 }
 
-fn report(ctxt: &Context, pos: Position, msg: Msg) {
+fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
 

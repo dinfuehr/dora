@@ -1,9 +1,9 @@
-use ctxt::Context;
+use ctxt::SemContext;
 use dora_parser::interner::Name;
 use baseline::fct::JitFct;
 
 #[cfg(target_os = "linux")]
-pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {
+pub fn register_with_perf(jit_fct: &JitFct, ctxt: &SemContext, name: Name) {
     use libc;
     use std::fs::OpenOptions;
     use std::io::prelude::*;
@@ -26,6 +26,6 @@ pub fn register_with_perf(jit_fct: &JitFct, ctxt: &Context, name: Name) {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn register_with_perf(_: &JitFct, _: &Context, _: Name) {
+pub fn register_with_perf(_: &JitFct, _: &SemContext, _: Name) {
     // nothing to do
 }

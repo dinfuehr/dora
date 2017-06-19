@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
-use ctxt::{Context, FctId, ImplId, TraitId};
+use ctxt::{SemContext, FctId, ImplId, TraitId};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use vtable::VTableBox;
@@ -88,7 +88,7 @@ impl Class {
         self.is_generic
     }
 
-    pub fn long_name(&self, ctxt: &Context) -> String {
+    pub fn long_name(&self, ctxt: &SemContext) -> String {
         let name = ctxt.interner.str(self.name);
 
         let params = if self.type_params.len() > 0 {
@@ -112,7 +112,7 @@ impl Class {
         format!("{}<{}>", name, params)
     }
 
-    pub fn find_field(&self, ctxt: &Context, name: Name) -> Option<(ClassId, FieldId)> {
+    pub fn find_field(&self, ctxt: &SemContext, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
         loop {
@@ -133,7 +133,7 @@ impl Class {
         }
     }
 
-    pub fn find_method(&self, ctxt: &Context, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, ctxt: &SemContext, name: Name, is_static: bool) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
@@ -156,7 +156,7 @@ impl Class {
         }
     }
 
-    pub fn find_methods(&self, ctxt: &Context, name: Name, is_static: bool) -> Vec<FctId> {
+    pub fn find_methods(&self, ctxt: &SemContext, name: Name, is_static: bool) -> Vec<FctId> {
         let mut classid = self.id;
         let mut candidates = Vec::new();
         let mut ignores = HashSet::new();
@@ -214,7 +214,7 @@ impl Class {
         candidates
     }
 
-    pub fn subclass_from(&self, ctxt: &Context, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, ctxt: &SemContext, super_id: ClassId) -> bool {
         let mut cls_id = self.id;
 
         loop {

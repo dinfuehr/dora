@@ -9,7 +9,7 @@ use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandl
 use baseline::codegen::CondCode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
-use ctxt::Context;
+use ctxt::SemContext;
 use dseg::DSeg;
 use dora_parser::lexer::position::Position;
 use os::signal::Trap;
@@ -60,7 +60,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(mut self, ctxt: &Context, stacksize: i32) -> JitFct {
+    pub fn jit(mut self, ctxt: &SemContext, stacksize: i32) -> JitFct {
         // align data such that code starts at address that is
         // aligned to 16
         self.dseg.align(16);

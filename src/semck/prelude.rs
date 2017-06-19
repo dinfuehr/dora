@@ -1,9 +1,9 @@
 use class::ClassId;
-use ctxt::{Context, FctKind, Intrinsic};
+use ctxt::{SemContext, FctKind, Intrinsic};
 use stdlib;
 use ty::BuiltinType;
 
-pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
+pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     let size = BuiltinType::Bool.size(ctxt);
     ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", Some(BuiltinType::Bool), size);
 
@@ -31,7 +31,7 @@ pub fn internal_classes<'ast>(ctxt: &mut Context<'ast>) {
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
 }
 
-fn internal_class<'ast>(ctxt: &mut Context<'ast>,
+fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
                         name: &str,
                         ty: Option<BuiltinType>,
                         size: i32)
@@ -57,7 +57,7 @@ fn internal_class<'ast>(ctxt: &mut Context<'ast>,
     }
 }
 
-pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
+pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_fct(ctxt, "fatalError", stdlib::fatal_error as *const u8);
     native_fct(ctxt, "abort", stdlib::abort as *const u8);
     native_fct(ctxt, "exit", stdlib::exit as *const u8);
@@ -235,18 +235,18 @@ pub fn internal_functions<'ast>(ctxt: &mut Context<'ast>) {
     }
 }
 
-fn native_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
 }
 
-fn intrinsic_method<'ast>(ctxt: &mut Context<'ast>,
+fn intrinsic_method<'ast>(ctxt: &mut SemContext<'ast>,
                           clsid: ClassId,
                           name: &str,
                           intrinsic: Intrinsic) {
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
+fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
     let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 
@@ -261,15 +261,15 @@ fn internal_method<'ast>(ctxt: &mut Context<'ast>, clsid: ClassId, name: &str, k
     }
 }
 
-fn native_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, fctptr: *const u8) {
+fn native_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, fctptr: *const u8) {
     internal_fct(ctxt, name, FctKind::Native(fctptr));
 }
 
-fn intrinsic_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, intrinsic: Intrinsic) {
+fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intrinsic) {
     internal_fct(ctxt, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_fct<'ast>(ctxt: &mut Context<'ast>, name: &str, kind: FctKind) {
+fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.borrow().get_fct(name);
 

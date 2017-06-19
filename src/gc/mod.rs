@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use ctxt::Context;
+use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::swiper::Swiper;
@@ -70,18 +70,18 @@ impl Gc {
         self.perm_space.lock().unwrap().alloc(size)
     }
 
-    pub fn alloc(&self, ctxt: &Context, size: usize) -> *const u8 {
+    pub fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         self.collector.alloc(ctxt, size)
     }
 
-    pub fn collect(&self, ctxt: &Context) {
+    pub fn collect(&self, ctxt: &SemContext) {
         self.collector.collect(ctxt);
     }
 }
 
 trait Collector {
-    fn alloc(&self, ctxt: &Context, size: usize) -> *const u8;
-    fn collect(&self, ctxt: &Context);
+    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8;
+    fn collect(&self, ctxt: &SemContext);
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
