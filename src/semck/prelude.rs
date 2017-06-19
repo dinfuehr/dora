@@ -173,8 +173,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_method(ctxt, clsid, "plus", stdlib::strcat as *const u8);
 
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
-    intrinsic_method(ctxt, clsid, "get", Intrinsic::StrGet);
-    intrinsic_method(ctxt, clsid, "set", Intrinsic::StrSet);
+    intrinsic_method(ctxt, clsid, "getByte", Intrinsic::StrGet);
 
     let clsid = ctxt.primitive_classes.float_class;
     native_method(ctxt,

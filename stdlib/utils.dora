@@ -115,7 +115,7 @@ class String(let data: Array<byte>) {
         var i = 0;
 
         while i < val.len() {
-            data[i] = val[i].toInt().toByte();
+            data[i] = val.getByte(i);
             i = i + 1;
         }
 
