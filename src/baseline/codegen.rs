@@ -311,22 +311,18 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         }
 
         if len > 0 {
-            let mut ind = len - 1;
-            while {
+            let mut ind = 0;
+            while ind < len {
                 let lbl = self.masm.create_label();
                 self.lbl_return = Some(lbl);
 
-                let finally = self.active_finallys[ind];
+                let finally = self.active_finallys[len-1-ind];
                 self.visit_stmt(finally);
 
                 self.masm.bind_label(lbl);
 
-                if ind > 0 {
-                    ind -= 1;
-                }
-
-                ind > 0
-            } {}
+                ind += 1;
+            }
 
             if s.expr.is_some() {
                 let mode = self.fct.return_type.mode();
