@@ -41,6 +41,15 @@ pub fn dump_expr<'a>(expr: &'a Expr, interner: &'a Interner) {
     dumper.dump_expr(expr);
 }
 
+pub fn dump_stmt<'a>(stmt: &'a Stmt, interner: &'a Interner) {
+    let mut dumper = AstDumper {
+        interner: interner,
+        indent: 0,
+    };
+
+    dumper.dump_stmt(stmt);
+}
+
 struct AstDumper<'a> {
     interner: &'a Interner,
     indent: u32,

@@ -54,7 +54,9 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut Fc
 
             lbl_break: None,
             lbl_continue: None,
-            lbl_finally: None,
+
+            active_finallys: Vec::new(),
+            lbl_return: None,
         }
         .generate();
 
@@ -188,7 +190,9 @@ pub struct CodeGen<'a, 'ast: 'a> {
 
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
-    lbl_finally: Option<Label>,
+
+    lbl_return: Option<Label>,
+    active_finallys: Vec<&'ast Stmt>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -288,10 +292,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
+        let len = self.active_finallys.len();
+
         if let Some(ref expr) = s.expr {
             self.emit_expr(expr);
 
-            if self.lbl_finally.is_some() {
+            if len > 0 {
                 let mode = self.fct.return_type.mode();
                 let offset = self.jit_info.eh_return_value.unwrap();
                 self.masm
@@ -299,30 +305,40 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             }
         }
 
-        self.emit_return();
-    }
-
-    fn emit_return_with_value(&mut self) {
-        if !self.fct.return_type.is_unit() {
-            let mode = self.fct.return_type.mode();
-            let offset = self.jit_info.eh_return_value.unwrap();
-            self.masm
-                .load_mem(mode, register_for_mode(mode), Mem::Local(offset));
+        if let Some(lbl_return) = self.lbl_return {
+            self.masm.jump(lbl_return);
+            return;
         }
 
-        self.emit_return();
-    }
+        if len > 0 {
+            let mut ind = len - 1;
+            while {
+                let lbl = self.masm.create_label();
+                self.lbl_return = Some(lbl);
 
-    fn emit_return(&mut self) {
-        // finally block is currently active, plain return is not allowed, finally block
-        // needs to be executed
-        if let Some(lbl_finally) = self.lbl_finally {
-            self.masm.jump(lbl_finally);
+                let finally = self.active_finallys[ind];
+                self.visit_stmt(finally);
 
-            // if no finally-block currently active just exit from the current function
-        } else {
-            self.emit_epilog();
+                self.masm.bind_label(lbl);
+
+                if ind > 0 {
+                    ind -= 1;
+                }
+
+                ind > 0
+            } {}
+
+            if s.expr.is_some() {
+                let mode = self.fct.return_type.mode();
+                let offset = self.jit_info.eh_return_value.unwrap();
+                self.masm
+                    .load_mem(mode, register_for_mode(mode), Mem::Local(offset));
+            }
+
+            self.lbl_return = None;
         }
+
+        self.emit_epilog();
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -484,8 +500,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
         let lbl_after = self.masm.create_label();
 
-        let try_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
-        let catch_spans = self.emit_do_catch_blocks(s, try_span, lbl_after);
+        let do_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
+        let catch_spans = self.emit_do_catch_blocks(s, do_span, lbl_after);
         let finally_start = self.emit_do_finally_block(s);
 
         self.masm.bind_label(lbl_after);
@@ -493,7 +509,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
             self.masm
-                .emit_exception_handler(try_span, finally_start, Some(offset), CatchType::Any);
+                .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
                 self.masm
@@ -541,29 +557,24 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                          stmt: &'ast Stmt,
                          lbl_after: Label)
                          -> (usize, usize) {
-        let saved_lbl_finally = self.lbl_finally;
-        let lbl_finally = self.masm.create_label();
-
-        // if finally block given then use label as current finally
-        // otherwise lbl_finally is just used at label after all catch blocks
         if s.finally_block.is_some() {
-            self.lbl_finally = Some(lbl_finally);
+            let finally = &*s.finally_block.as_ref().unwrap().block;
+            self.active_finallys.push(finally);
         }
 
         let start = self.masm.pos();
         self.visit_stmt(stmt);
         let end = self.masm.pos();
 
-        self.masm.bind_label(lbl_finally);
-        self.lbl_finally = saved_lbl_finally;
-
-        if let Some(ref finally_block) = s.finally_block {
-            self.visit_stmt(&finally_block.block);
+        if s.finally_block.is_some() {
+            self.active_finallys.pop();
         }
 
-        if always_returns(stmt) {
-            self.emit_return_with_value();
-        } else {
+        if !always_returns(stmt) {
+            if let Some(ref finally_block) = s.finally_block {
+                self.visit_stmt(&finally_block.block);
+            }
+
             self.masm.jump(lbl_after);
         }
 
