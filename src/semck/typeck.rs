@@ -203,6 +203,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_stmt_defer(&mut self, s: &'ast StmtDeferType) {
+        self.visit_expr(&s.expr);
+
+        if !s.expr.is_call() {
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::FctCallExpected);
+        }
+    }
+
+
     fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
         self.visit_stmt(&s.do_block);
 
@@ -1160,7 +1172,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
             StmtSpawn(_) => unimplemented!(),
-            StmtDefer(_) => unimplemented!(),
+            StmtDefer(ref stmt) => self.check_stmt_defer(stmt),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
 
             // for the rest of the statements, no special handling is necessary
@@ -1792,6 +1804,20 @@ mod tests {
             pos(1, 11),
             Msg::ReferenceTypeExpected("int".into()));
         err("fun f() { throw nil; }", pos(1, 11), Msg::ThrowNil);
+    }
+
+    #[test]
+    fn type_defer() {
+        ok("fun foo() { }
+            fun f() { defer foo(); }") ;
+
+        err("fun foo(a: int) {} fun f() { defer foo();}",
+            pos(1,36),
+            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec![]));
+
+        err("fun f() { defer 1; }",
+            pos(1,11),
+            Msg::FctCallExpected);
     }
 
     #[test]
