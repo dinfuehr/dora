@@ -80,6 +80,7 @@ pub enum Msg {
     MisplacedModifier(String),
     InvalidEscapeSequence(char),
     MissingFctBody,
+    FctCallExpected,
     ThisOrSuperExpected(String),
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
@@ -268,6 +269,7 @@ impl Msg {
             UnclosedChar => "unclosed char.".into(),
             IoError => "error reading from file.".into(),
             MissingFctBody => "missing function body.".into(),
+            FctCallExpected => format!("function call expected"),
             ThisOrSuperExpected(ref val) => format!("`self` or `super` expected but got {}.", val),
             NoSuperDelegationWithPrimaryCtor(ref name) => {
                 format!("no `super` delegation allowed for ctor in class {}, because class has \
