@@ -12,7 +12,7 @@ use std::thread;
 
 use baseline;
 use ctxt::get_ctxt;
-use object::{Handle, Obj, Str};
+use object::{ByteArray, Handle, Obj, Str};
 
 use sym::Sym::SymFct;
 
@@ -152,6 +152,24 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
     let ctxt = get_ctxt();
 
     val.dup(ctxt)
+}
+
+pub extern "C" fn str_from_bytes(val: Handle<ByteArray>) -> Handle<Str> {
+    let ctxt = get_ctxt();
+
+    let len = val.len();
+    let data = val.data();
+
+    unsafe {
+        let slice = slice::from_raw_parts(data, len);
+
+        if let Ok(_) = str::from_utf8(slice) {
+            Str::from_buffer(ctxt, slice)
+
+        } else {
+            Handle::null()
+        }
+    }
 }
 
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
