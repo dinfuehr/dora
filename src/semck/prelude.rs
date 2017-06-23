@@ -162,7 +162,6 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     let clsid = ctxt.primitive_classes.bool_class;
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::BoolToInt);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::BoolToLong);
-    native_method(ctxt, clsid, "toString", stdlib::bool_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::BoolNot);
 

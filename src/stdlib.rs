@@ -44,13 +44,6 @@ pub extern "C" fn long_to_string(val: i64) -> Handle<Str> {
     Str::from_buffer(ctxt, buffer.as_bytes())
 }
 
-pub extern "C" fn bool_to_string(val: bool) -> Handle<Str> {
-    let val = if val { "true" } else { "false" };
-    let ctxt = get_ctxt();
-
-    Str::from_buffer(ctxt, val.as_bytes())
-}
-
 pub extern "C" fn float_to_string(val: f32) -> Handle<Str> {
     let buffer = val.to_string();
     let ctxt = get_ctxt();
@@ -63,10 +56,6 @@ pub extern "C" fn double_to_string(val: f64) -> Handle<Str> {
     let ctxt = get_ctxt();
 
     Str::from_buffer(ctxt, buffer.as_bytes())
-}
-
-pub extern "C" fn bool_to_int(val: bool) -> i32 {
-    if val { 1 } else { 0 }
 }
 
 pub extern "C" fn print(val: Handle<Str>) {

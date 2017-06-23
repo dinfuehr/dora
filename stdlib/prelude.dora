@@ -20,7 +20,13 @@ internal fun call(fct: Str);
 
 internal class bool {
   internal fun toInt() -> int;
-  internal fun toString() -> Str;
+  fun toString() -> Str {
+    if self {
+      return "true";
+    } else {
+      return "false";
+    }
+  }
 
   internal fun equals(rhs: bool) -> bool;
   internal fun not() -> bool;
