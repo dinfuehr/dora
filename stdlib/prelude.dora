@@ -179,6 +179,7 @@ internal class Str {
   internal fun plus(rhs: Str) -> Str;
 
   internal fun getByte(idx: int) -> byte;
+  internal fun clone() -> Str;
 }
 
 internal class float {

@@ -1,0 +1,11 @@
+//= output "abc\n"
+
+fun main() {
+    let x = "abc";
+    let y = x.clone();
+
+    assert(x == y);
+    assert(x !== y);
+
+    println(y);
+}

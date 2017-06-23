@@ -254,6 +254,21 @@ impl Str {
 
         handle
     }
+
+    // duplicate string into a new object
+    pub fn dup(&self, ctxt: &SemContext) -> Handle<Str> {
+        let len = self.len();
+        let mut handle = str_alloc_heap(ctxt, len);
+
+        unsafe {
+            handle.length = len;
+
+            ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
+            *(handle.data().offset(len as isize) as *mut u8) = 0;
+        }
+
+        handle
+    }
 }
 
 fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {

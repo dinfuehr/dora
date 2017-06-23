@@ -148,6 +148,12 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     Str::concat(ctxt, lhs, rhs)
 }
 
+pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
+    let ctxt = get_ctxt();
+
+    val.dup(ctxt)
+}
+
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     let ctxt = get_ctxt();
     ctxt.gc.alloc(ctxt, size) as *mut Obj
