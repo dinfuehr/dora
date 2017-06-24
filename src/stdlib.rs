@@ -1,5 +1,6 @@
 use libc;
 
+use std;
 use std::ffi::CStr;
 use std::io::{self, Write};
 use std::mem;
@@ -154,13 +155,18 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
     val.dup(ctxt)
 }
 
-pub extern "C" fn str_from_bytes(val: Handle<ByteArray>) -> Handle<Str> {
+pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Handle<Str> {
     let ctxt = get_ctxt();
+    let total_len = val.len();
 
-    let len = val.len();
-    let data = val.data();
+    if offset > total_len {
+        return Handle::null();
+    }
+
+    let len = std::cmp::min(total_len - offset, len);
 
     unsafe {
+        let data = val.data().offset(offset as isize);
         let slice = slice::from_raw_parts(data, len);
 
         if let Ok(_) = str::from_utf8(slice) {

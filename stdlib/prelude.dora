@@ -181,15 +181,30 @@ internal class Str {
   internal fun getByte(idx: int) -> byte;
   internal fun clone() -> Str;
 
-  internal static fun fromBytesOrNull(val: Array<byte>) -> Str;
-  static fun fromBytes(val: Array<byte>) throws -> Str {
-    let str = Str::fromBytesOrNull(val);
+  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> Str;
+
+  static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> Str {
+    let str = Str::fromBytesPartOrNull(val, offset, len);
 
     if str === nil {
       throw "invalid utf-8 encoding.";
     }
 
     return str;
+  }
+
+  static fun fromBytes(val: Array<byte>) throws -> Str {
+    let str = Str::fromBytesPartOrNull(val, 0, val.len());
+
+    if str === nil {
+      throw "invalid utf-8 encoding.";
+    }
+
+    return str;
+  }
+
+  fun isEmpty() -> bool {
+      return self.len() == 0;
   }
 }
 
