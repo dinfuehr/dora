@@ -171,7 +171,26 @@ internal class long {
 }
 
 internal class Str {
-  internal fun equals(rhs: Str) -> bool;
+  fun equals(rhs: Str) -> bool {
+    var i = 0;
+
+    if self.len() != rhs.len() {
+        return false;
+    }
+
+    let len = self.len();
+
+    while i < len {
+        if self.getByte(i) != rhs.getByte(i) {
+            return false;
+        }
+
+        i = i + 1;
+    }
+
+    return true;
+  }
+
   internal fun compareTo(rhs: Str) -> int;
 
   internal fun len() -> int;

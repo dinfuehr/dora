@@ -166,7 +166,6 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "not", Intrinsic::BoolNot);
 
     let clsid = ctxt.primitive_classes.str_class;
-    native_method(ctxt, clsid, "equals", stdlib::streq as *const u8);
     native_method(ctxt, clsid, "compareTo", stdlib::strcmp as *const u8);
     native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
     native_method(ctxt, clsid, "plus", stdlib::strcat as *const u8);

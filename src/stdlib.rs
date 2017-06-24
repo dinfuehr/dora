@@ -136,13 +136,6 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     }
 }
 
-pub extern "C" fn streq(lhs: Handle<Str>, rhs: Handle<Str>) -> bool {
-    unsafe {
-        libc::strcmp(lhs.data() as *const libc::c_char,
-                     rhs.data() as *const libc::c_char) == 0
-    }
-}
-
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     let ctxt = get_ctxt();
 
