@@ -1,0 +1,19 @@
+//= output "iwe"
+
+fun main() {
+    do {
+        while true {
+            do {
+                print("i");
+                continue;
+                print("nope");
+            } finally {
+                print("w");
+                return;
+            }
+        }
+        print("a");
+    } finally {
+        print("e");
+    }
+}

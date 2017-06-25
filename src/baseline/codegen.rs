@@ -56,6 +56,7 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut Fc
             lbl_continue: None,
 
             active_finallys: Vec::new(),
+            active_upper: None,
             active_loop: None,
             lbl_return: None,
         }
@@ -192,9 +193,27 @@ pub struct CodeGen<'a, 'ast: 'a> {
     lbl_break: Option<Label>,
     lbl_continue: Option<Label>,
 
-    lbl_return: Option<Label>,
-    active_loop: Option<usize>,
+    // stores all active finally blocks
     active_finallys: Vec<&'ast Stmt>,
+
+    // label to jump instead of emitting epilog for return
+    // needed for return's in finally blocks
+    // return in finally needs to execute to next finally block and not
+    // leave the current function
+    lbl_return: Option<Label>,
+
+    // length of active_finallys in last loop
+    // default: 0
+    // break/continue need to emit finally blocks up to the last loop
+    // see tests/finally/break-while.dora
+    active_loop: Option<usize>,
+
+    // upper length of active_finallys in emitting finally-blocks for break/continue
+    // default: active_finallys.len()
+    // break/continue needs to execute finally-blocks in loop, return in these blocks
+    // would dump all active_finally-entries from the loop but we need an upper bound.
+    // see emit_finallys_within_loop and tests/finally/continue-return.dora
+    active_upper: Option<usize>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -294,7 +313,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
-        let len = self.active_finallys.len();
+        let len = self.active_upper.unwrap_or(self.active_finallys.len());
 
         if let Some(ref expr) = s.expr {
             self.emit_expr(expr);
@@ -457,7 +476,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_finallys_within_loop(&mut self) {
-        let finallys_len = self.active_finallys.len();
+        let finallys_len = self.active_upper.unwrap_or(self.active_finallys.len());
         let start = self.active_loop.unwrap_or(0);
 
         if finallys_len == 0 || start >= finallys_len {
@@ -467,17 +486,19 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let mut ind = 0;
         let end = finallys_len - start;
 
+        let saved_active_upper = self.active_upper;
+
         while ind < end {
-            let lbl = self.masm.create_label();
-            self.lbl_return = Some(lbl);
+            let idx = finallys_len-1-ind;
+            self.active_upper = Some(idx);
 
-            let finally = self.active_finallys[finallys_len-1-ind];
+            let finally = self.active_finallys[idx];
             self.visit_stmt(finally);
-
-            self.masm.bind_label(lbl);
 
             ind += 1;
         }
+
+        self.active_upper = saved_active_upper;
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {
