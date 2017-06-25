@@ -1,0 +1,12 @@
+//= output "f"
+
+fun main() {
+    while true {
+        do {
+            break;
+            print("nope");
+        } finally {
+            print("f");
+        }
+    }
+}

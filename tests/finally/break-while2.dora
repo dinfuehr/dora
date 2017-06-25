@@ -1,0 +1,16 @@
+//= output "fg"
+
+fun main() {
+    while true {
+        do {
+            do {
+                break;
+                print("nope");
+            } finally {
+                print("f");
+            }
+        } finally {
+            print("g");
+        }
+    }
+}

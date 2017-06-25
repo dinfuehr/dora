@@ -56,6 +56,7 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut Fc
             lbl_continue: None,
 
             active_finallys: Vec::new(),
+            active_loop: None,
             lbl_return: None,
         }
         .generate();
@@ -192,6 +193,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     lbl_continue: Option<Label>,
 
     lbl_return: Option<Label>,
+    active_loop: Option<usize>,
     active_finallys: Vec<&'ast Stmt>,
 }
 
@@ -341,6 +343,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
 
+        let saved_active_loop = self.active_loop;
+
+        self.active_loop = Some(self.active_finallys.len());
         self.masm.bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
@@ -363,11 +368,16 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         });
 
         self.masm.bind_label(lbl_end);
+        self.active_loop = saved_active_loop;
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
+
+        let saved_active_loop = self.active_loop;
+
+        self.active_loop = Some(self.active_finallys.len());
         self.masm.bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -378,6 +388,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         });
 
         self.masm.bind_label(lbl_end);
+        self.active_loop = saved_active_loop;
     }
 
     fn emit_safepoint(&mut self) {
@@ -430,11 +441,43 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
+        // emit finallys between loop and break
+        self.emit_finallys_within_loop();
+
+        // now jump out of loop
         self.masm.jump(self.lbl_break.unwrap());
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
+        // emit finallys between loop and continue
+        self.emit_finallys_within_loop();
+
+        // now jump to start of loop
         self.masm.jump(self.lbl_continue.unwrap());
+    }
+
+    fn emit_finallys_within_loop(&mut self) {
+        let finallys_len = self.active_finallys.len();
+        let start = self.active_loop.unwrap_or(0);
+
+        if finallys_len == 0 || start >= finallys_len {
+            return;
+        }
+
+        let mut ind = 0;
+        let end = finallys_len - start;
+
+        while ind < end {
+            let lbl = self.masm.create_label();
+            self.lbl_return = Some(lbl);
+
+            let finally = self.active_finallys[finallys_len-1-ind];
+            self.visit_stmt(finally);
+
+            self.masm.bind_label(lbl);
+
+            ind += 1;
+        }
     }
 
     fn emit_stmt_expr(&mut self, s: &'ast StmtExprType) {

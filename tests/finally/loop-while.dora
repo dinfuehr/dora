@@ -1,0 +1,21 @@
+//= output "fghi"
+
+fun main() {
+    do {
+        loop {
+            do {
+                do {
+                    break;
+                    print("nope");
+                } finally {
+                    print("f");
+                }
+            } finally {
+                print("g");
+            }
+        }
+        print("h");
+    } finally {
+        print("i");
+    }
+}
