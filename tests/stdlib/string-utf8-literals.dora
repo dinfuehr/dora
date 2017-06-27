@@ -1,18 +1,18 @@
 fun main() {
-    let val = String::from("abc");
+    let val = "abc";
     assert(val.len() == 3);
     assert(val.codePoints().len() == 3);
     let it = val.codePoints();
 
     assert(it.next() == 'a');
-    assert(it.toString() == String::from("bc"));
+    assert(it.toString() == "bc");
     assert(it.next() == 'b');
-    assert(it.toString() == String::from("c"));
+    assert(it.toString() == "c");
     assert(it.next() == 'c');
-    assert(it.toString() == String::from(""));
+    assert(it.toString() == "");
     assert(it.hasNext() == false);
 
-    let val = String::from("üß");
+    let val = "üß";
     assert(val.len() == 4);
     assert(val.codePoints().len() == 2);
     let it = val.codePoints();

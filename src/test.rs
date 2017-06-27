@@ -38,6 +38,12 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
     }
 
     {
+        let reader = Reader::from_file("stdlib/str.dora").unwrap();
+        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
+        parser.parse().unwrap()
+    }
+
+    {
         let reader = Reader::from_string(code);
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         parser.parse().unwrap()

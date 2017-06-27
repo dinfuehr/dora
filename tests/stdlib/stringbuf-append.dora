@@ -4,9 +4,9 @@ fun main() {
     buf.appendChar('b');
     buf.appendChar('c');
     assert(buf.len() == 3);
-    assert(buf.toString() == String::from("abc"));
+    assert(buf.toString() == "abc");
 
-    buf.appendString(String::from("foo123"));
+    buf.appendString("foo123");
     assert(buf.len() == 9);
-    assert(buf.toString() == String::from("abcfoo123"));
+    assert(buf.toString() == "abcfoo123");
 }

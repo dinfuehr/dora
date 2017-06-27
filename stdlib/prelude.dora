@@ -170,63 +170,6 @@ internal class long {
   }
 }
 
-internal class Str {
-  fun equals(rhs: Str) -> bool {
-    var i = 0;
-
-    if self.len() != rhs.len() {
-        return false;
-    }
-
-    let len = self.len();
-
-    while i < len {
-        if self.getByte(i) != rhs.getByte(i) {
-            return false;
-        }
-
-        i = i + 1;
-    }
-
-    return true;
-  }
-
-  internal fun compareTo(rhs: Str) -> int;
-
-  internal fun len() -> int;
-  internal fun parseInt() -> int;
-  internal fun plus(rhs: Str) -> Str;
-
-  internal fun getByte(idx: int) -> byte;
-  internal fun clone() -> Str;
-
-  internal static fun fromBytesPartOrNull(val: Array<byte>, offset: int, len: int) -> Str;
-
-  static fun fromBytesPart(val: Array<byte>, offset: int, len: int) throws -> Str {
-    let str = Str::fromBytesPartOrNull(val, offset, len);
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
-    }
-
-    return str;
-  }
-
-  static fun fromBytes(val: Array<byte>) throws -> Str {
-    let str = Str::fromBytesPartOrNull(val, 0, val.len());
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
-    }
-
-    return str;
-  }
-
-  fun isEmpty() -> bool {
-      return self.len() == 0;
-  }
-}
-
 internal class float {
   internal fun toInt() -> int;
   internal fun toLong() -> long;
@@ -336,3 +279,4 @@ open abstract class Thread {
 
   abstract fun run();
 }
+
