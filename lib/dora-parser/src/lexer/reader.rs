@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Error};
+use std::io::{self, Read, Error};
 
 use lexer::position::Position;
 
@@ -17,45 +17,24 @@ pub struct Reader {
 }
 
 impl Reader {
+    pub fn from_input() -> Result<Reader, Error> {
+        let mut src = String::new();
+        io::stdin().read_to_string(&mut src)?;
+
+        Ok(common_init("<<stdin>>".into(), src))
+    }
+
     pub fn from_file(filename: &str) -> Result<Reader, Error> {
         let mut src = String::new();
 
         let mut file = File::open(filename)?;
         file.read_to_string(&mut src)?;
 
-        let mut reader = Reader {
-            filename: filename.to_string(),
-            src: src,
-            pos: 0,
-            next_pos: 0,
-
-            cur: Some('\n'),
-            line: 0,
-            col: 0,
-            tabwidth: 4,
-        };
-
-        reader.advance();
-
-        Ok(reader)
+        Ok(common_init(filename.into(), src))
     }
 
     pub fn from_string(src: &str) -> Reader {
-        let mut reader = Reader {
-            filename: "<<code>>".into(),
-            src: src.into(),
-            pos: 0,
-            next_pos: 0,
-
-            cur: Some('\n'),
-            line: 0,
-            col: 0,
-            tabwidth: 4,
-        };
-
-        reader.advance();
-
-        reader
+        common_init("<<code>>".into(), src.into())
     }
 
     pub fn set_tabwidth(&mut self, width: usize) {
@@ -120,6 +99,25 @@ impl Reader {
         }
     }
 }
+
+fn common_init(name: String, src: String) -> Reader {
+    let mut reader = Reader {
+        filename: name,
+        src: src,
+        pos: 0,
+        next_pos: 0,
+
+        cur: Some('\n'),
+        line: 0,
+        col: 0,
+        tabwidth: 4,
+    };
+
+    reader.advance();
+
+    reader
+}
+
 
 #[cfg(test)]
 mod tests {

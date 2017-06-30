@@ -61,14 +61,8 @@ internal class Str {
     return str;
   }
 
-  static fun fromStr(val: Str) throws -> Str {
-    let str = Str::fromStrPartOrNull(val, 0, val.len());
-
-    if str === nil {
-      throw "invalid utf-8 encoding.";
-    }
-
-    return str;
+  static fun fromStr(val: Str) -> Str {
+    return val.clone();
   }
 
   fun isEmpty() -> bool {

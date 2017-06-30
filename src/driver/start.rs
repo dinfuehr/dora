@@ -95,13 +95,24 @@ fn parse_file(filename: &str,
               ast: &mut Ast,
               interner: &mut Interner)
               -> Result<(), i32> {
-    let reader = match Reader::from_file(filename) {
-        Err(_) => {
-            println!("unable to read file `{}`", filename);
-            return Err(1);
-        }
+    let reader = if filename == "-" {
+        match Reader::from_input() {
+            Err(_) => {
+                println!("unable to read from stdin.");
+                return Err(1);
+            }
 
-        Ok(reader) => reader,
+            Ok(reader) => reader,
+        }
+    } else {
+        match Reader::from_file(filename) {
+            Err(_) => {
+                println!("unable to read file `{}`", filename);
+                return Err(1);
+            }
+
+            Ok(reader) => reader,
+        }
     };
 
     if let Err(error) = Parser::new(reader, id_generator, ast, interner).parse() {
