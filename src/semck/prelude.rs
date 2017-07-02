@@ -173,8 +173,14 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
     intrinsic_method(ctxt, clsid, "getByte", Intrinsic::StrGet);
     native_method(ctxt, clsid, "clone", stdlib::str_clone as *const u8);
-    native_method(ctxt, clsid, "fromBytesPartOrNull", stdlib::str_from_bytes as *const u8);
-    native_method(ctxt, clsid, "fromStrPartOrNull", stdlib::str_from_bytes as *const u8);
+    native_method(ctxt,
+                  clsid,
+                  "fromBytesPartOrNull",
+                  stdlib::str_from_bytes as *const u8);
+    native_method(ctxt,
+                  clsid,
+                  "fromStrPartOrNull",
+                  stdlib::str_from_bytes as *const u8);
 
     let clsid = ctxt.primitive_classes.float_class;
     native_method(ctxt,
@@ -235,7 +241,10 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+fn native_method<'ast>(ctxt: &mut SemContext<'ast>,
+                       clsid: ClassId,
+                       name: &str,
+                       fctptr: *const u8) {
     internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
 }
 

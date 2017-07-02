@@ -755,7 +755,10 @@ mod tests {
         }
     }
 
-    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a SemContext<'ast>, name: &'static str, fct: F) -> R
+    fn vtable_by_name<'a, 'ast: 'a, F, R>(ctxt: &'a SemContext<'ast>,
+                                          name: &'static str,
+                                          fct: F)
+                                          -> R
         where F: FnOnce(&VTable) -> R
     {
         let cid = cls_by_name(ctxt, name);

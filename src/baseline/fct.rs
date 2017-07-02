@@ -100,6 +100,10 @@ impl JitFct {
         self.fct_start
     }
 
+    pub fn fct_end(&self) -> *const u8 {
+        (self.fct_start as usize + self.fct_len) as *const u8
+    }
+
     pub fn fct_len(&self) -> usize {
         self.fct_len
     }

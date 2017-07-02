@@ -1433,9 +1433,11 @@ mod tests {
     #[test]
     fn type_object_field_without_self() {
         err("class Foo(let a: int) { fun f() -> int { return a; } }",
-            pos(1, 49), Msg::UnknownIdentifier("a".into()));
+            pos(1, 49),
+            Msg::UnknownIdentifier("a".into()));
         err("class Foo(var a: int) { fun set(x: int) { a = x; } }",
-            pos(1, 43), Msg::UnknownIdentifier("a".into()));
+            pos(1, 43),
+            Msg::UnknownIdentifier("a".into()));
     }
 
     #[test]
@@ -1788,7 +1790,8 @@ mod tests {
     #[test]
     fn type_array_assign() {
         err("fun f(a: Array<int>) -> int { return a[3] = 4; }",
-            pos(1, 31), Msg::ReturnType("int".into(), "()".into()));
+            pos(1, 31),
+            Msg::ReturnType("int".into(), "()".into()));
         err("fun f(a: Array<int>) { a[3] = \"b\"; }",
             pos(1, 29),
             Msg::UnknownMethod("Array<int>".into(),
@@ -1809,15 +1812,13 @@ mod tests {
     #[test]
     fn type_defer() {
         ok("fun foo() { }
-            fun f() { defer foo(); }") ;
+            fun f() { defer foo(); }");
 
         err("fun foo(a: int) {} fun f() { defer foo();}",
-            pos(1,36),
+            pos(1, 36),
             Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec![]));
 
-        err("fun f() { defer 1; }",
-            pos(1,11),
-            Msg::FctCallExpected);
+        err("fun f() { defer 1; }", pos(1, 11), Msg::FctCallExpected);
     }
 
     #[test]

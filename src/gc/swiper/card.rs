@@ -7,8 +7,6 @@ pub struct CardTable {
 
 impl CardTable {
     pub fn new(heap_size: usize) -> CardTable {
-        CardTable {
-            tbl: vec![0; heap_size / CARD_SIZE],
-        }
+        CardTable { tbl: vec![0; heap_size / CARD_SIZE] }
     }
 }

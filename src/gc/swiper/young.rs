@@ -18,7 +18,7 @@ impl YoungGen {
         YoungGen {
             total: Region::new(young_start, young_end),
             from: Chunk::new(young_start, half_address),
-            to: Chunk::new(half_address,  young_end),
+            to: Chunk::new(half_address, young_end),
         }
     }
 }

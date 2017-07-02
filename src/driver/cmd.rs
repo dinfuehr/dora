@@ -20,6 +20,7 @@ Options:
     --version               Shows version
     --emit-ast              Emits AST to stdout
     --emit-asm=<fct>        Emits assembly code to stdout
+    --emit-asm-file         Emits assembly code into file dora-<pid>.asm
     --emit-stubs            Emits generated stubs
     --emit-debug=<fct>      Emits debug instruction at beginning of functions
     --omit-bounds-check     Omit array index out of bounds checks
@@ -40,6 +41,7 @@ pub struct Args {
     pub arg_file: String,
     pub flag_emit_ast: bool,
     pub flag_emit_asm: Option<String>,
+    pub flag_emit_asm_file: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
@@ -60,6 +62,7 @@ impl Default for Args {
             arg_file: "".into(),
             flag_emit_ast: false,
             flag_emit_asm: None,
+            flag_emit_asm_file: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
             flag_enable_perf: false,

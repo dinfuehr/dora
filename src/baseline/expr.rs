@@ -641,11 +641,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let ty = self.src.ty(e.rhs.id()).to_specialized(self.ctxt);
-                        self.emit_array_set(e.pos,
-                                            ty.mode(),
-                                            &array.object,
-                                            &array.index,
-                                            &e.rhs)
+                        self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs)
                     }
 
                     Intrinsic::StrSet => {

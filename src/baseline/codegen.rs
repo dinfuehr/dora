@@ -1,5 +1,9 @@
+use libc;
+
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::io::{self, BufWriter, Write};
+use std::fs::OpenOptions;
 use std::slice;
 
 use capstone::{Engine, Error};
@@ -116,23 +120,39 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
         panic!("capstone: syntax couldn't be set");
     }
 
+    let mut w: Box<Write> = if ctxt.args.flag_emit_asm_file {
+        let pid = unsafe { libc::getpid() };
+        let name = format!("code-{}.asm", pid);
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&name)
+            .expect("couldn't append to asm file");
+
+        Box::new(BufWriter::new(file))
+    } else {
+        Box::new(io::stdout())
+    };
+
     let start_addr = jit_fct.fct_ptr() as u64;
+    let end_addr = jit_fct.fct_end() as u64;
+
     let instrs = engine
         .disasm(buf, start_addr, jit_fct.fct_len())
         .expect("could not disassemble code");
 
     let name = fct.full_name(ctxt);
 
-    println!("fn {} {:#x}", &name, start_addr);
+    writeln!(&mut w, "fun {} {:#x} {:#x}", &name, start_addr, end_addr);
 
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
-            println!("  var `{}`: type {}", name, var.ty.name(ctxt));
+            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(ctxt));
         }
 
         if fct_src.vars.len() > 0 {
-            println!();
+            writeln!(&mut w);
         }
     }
 
@@ -140,19 +160,19 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
         let addr = (instr.addr - start_addr) as i32;
 
         if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
-            print!("\t\t  ; gc point = (");
+            writeln!(&mut w, "\t\t  ; gc point = (");
             let mut first = true;
 
             for &offset in &gc_point.offsets {
                 if !first {
-                    print!(", ");
+                    write!(&mut w, ", ");
                 }
 
-                print!("{}", offset);
+                write!(&mut w, "{}", offset);
                 first = false;
             }
 
-            println!(")");
+            writeln!(&mut w, ")");
         }
 
         if let Some(comments) = jit_fct.get_comment(addr) {
@@ -168,17 +188,18 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                     fct_src: fct_src,
                 };
 
-                println!("\t\t  ; {}", cfmt);
+                writeln!(&mut w, "\t\t  ; {}", cfmt);
             }
         }
 
-        println!("  {:#06x}: {}\t\t{}",
+        writeln!(&mut w,
+                 "  {:#06x}: {}\t\t{}",
                  instr.addr,
                  instr.mnemonic,
                  instr.op_str);
     }
 
-    println!("");
+    writeln!(&mut w, "");
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
@@ -337,7 +358,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 let lbl = self.masm.create_label();
                 self.lbl_return = Some(lbl);
 
-                let finally = self.active_finallys[len-1-ind];
+                let finally = self.active_finallys[len - 1 - ind];
                 self.visit_stmt(finally);
 
                 self.masm.bind_label(lbl);
@@ -489,7 +510,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         let saved_active_upper = self.active_upper;
 
         while ind < end {
-            let idx = finallys_len-1-ind;
+            let idx = finallys_len - 1 - ind;
             self.active_upper = Some(idx);
 
             let finally = self.active_finallys[idx];
