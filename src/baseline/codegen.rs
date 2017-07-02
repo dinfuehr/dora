@@ -178,7 +178,7 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
         if let Some(comments) = jit_fct.get_comment(addr) {
             for comment in comments {
                 if comment.is_newline() {
-                    println!();
+                    writeln!(&mut w);
                     continue;
                 }
 
@@ -199,7 +199,7 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                  instr.op_str);
     }
 
-    writeln!(&mut w, "");
+    writeln!(&mut w);
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
