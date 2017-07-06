@@ -58,6 +58,20 @@ pub fn start() -> i32 {
     // register signal handler
     os::register_signals(&ctxt);
 
+    if ctxt.args.cmd_test {
+        run_tests(&ctxt)
+    } else {
+        run_main(&ctxt)
+    }
+}
+
+fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
+    println!("can't run tests right now");
+
+    1
+}
+
+fn run_main<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     let main = find_main(&ctxt);
 
     if ctxt.diag.borrow().has_errors() {

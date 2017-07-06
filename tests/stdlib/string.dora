@@ -35,7 +35,7 @@ fun test_1byte() {
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x24.toChar());
+    assert(it.next() == try! 0x24.toChar());
     assert(it.hasNext() == false);
 }
 
@@ -48,7 +48,7 @@ fun test_2bytes() {
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0xA2.toChar());
+    assert(it.next() == try! 0xA2.toChar());
     assert(it.hasNext() == false);
 }
 
@@ -62,7 +62,7 @@ fun test_3bytes() {
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x20AC.toChar());
+    assert(it.next() == try! 0x20AC.toChar());
     assert(it.hasNext() == false);
 }
 
@@ -77,7 +77,7 @@ fun test_4bytes() {
     let it = val.codePoints();
 
     assert(it.hasNext() == true);
-    assert(it.next() == 0x10348.toChar());
+    assert(it.next() == try! 0x10348.toChar());
     assert(it.hasNext() == false);
 }
 
