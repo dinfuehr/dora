@@ -86,7 +86,14 @@ internal class char {
 
 internal class int {
   internal fun toByte() -> byte;
-  internal fun toChar() -> char;
+  fun toChar() throws -> char {
+    if self >= 0 && self <= 0x10FFFF && (self < 0xD800 || self > 0xDFFF) {
+      return self.toCharUnchecked();
+    } else {
+      throw "invalid code point";
+    }
+  }
+  internal fun toCharUnchecked() -> char;
   internal fun toLong() -> long;
   internal fun toString() -> Str;
 
@@ -133,7 +140,14 @@ internal class int {
 
 internal class long {
   internal fun toByte() -> byte;
-  internal fun toChar() -> char;
+  fun toChar() throws -> char {
+    if self >= 0L && self <= 0x10FFFFL && (self < 0xD800L || self > 0xDFFFL) {
+      return self.toCharUnchecked();
+    } else {
+      throw "invalid code point";
+    }
+  }
+  internal fun toCharUnchecked() -> char;
   internal fun toInt() -> int;
   internal fun toString() -> Str;
 
