@@ -94,6 +94,11 @@ impl Address {
     }
 
     #[inline(always)]
+    fn to_usize(self) -> usize {
+        self.0
+    }
+
+    #[inline(always)]
     pub fn from_ptr<T>(ptr: *const T) -> Address {
         Address(ptr as usize)
     }

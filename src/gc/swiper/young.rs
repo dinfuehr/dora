@@ -1,7 +1,8 @@
 use std::ptr;
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::SemContext;
+use gc::Address;
 use gc::Collector;
 
 struct YoungGen {
@@ -11,9 +12,9 @@ struct YoungGen {
 }
 
 impl YoungGen {
-    fn new(young_start: *const u8, young_end: *const u8) -> YoungGen {
-        let half_size = (young_end as usize - young_start as usize) / 2;
-        let half_address = unsafe { young_start.offset(half_size as isize) };
+    fn new(young_start: Address, young_end: Address) -> YoungGen {
+        let half_size = (young_end.to_usize() - young_start.to_usize()) / 2;
+        let half_address = young_start.offset(half_size);
 
         YoungGen {
             total: Region::new(young_start, young_end),
@@ -36,12 +37,12 @@ impl Collector for YoungGen {
 }
 
 struct Region {
-    start: *const u8,
-    end: *const u8,
+    start: Address,
+    end: Address,
 }
 
 impl Region {
-    fn new(start: *const u8, end: *const u8) -> Region {
+    fn new(start: Address, end: Address) -> Region {
         Region {
             start: start,
             end: end,
@@ -49,22 +50,22 @@ impl Region {
     }
 
     fn size(&self) -> usize {
-        self.end as usize - self.start as usize
+        self.end.to_usize() - self.start.to_usize()
     }
 }
 
 struct Chunk {
-    start: *const u8,
-    next: AtomicPtr<u8>,
-    uncommitted: *const u8,
-    end: *const u8,
+    start: Address,
+    next: AtomicUsize,
+    uncommitted: Address,
+    end: Address,
 }
 
 impl Chunk {
-    fn new(start: *const u8, end: *const u8) -> Chunk {
+    fn new(start: Address, end: Address) -> Chunk {
         Chunk {
             start: start,
-            next: AtomicPtr::new(start as *mut u8),
+            next: AtomicUsize::new(start.to_usize()),
             uncommitted: start,
             end: end,
         }
@@ -72,18 +73,18 @@ impl Chunk {
 
     fn empty() -> Chunk {
         Chunk {
-            start: ptr::null(),
-            next: AtomicPtr::new(ptr::null_mut()),
-            uncommitted: ptr::null(),
-            end: ptr::null(),
+            start: Address::null(),
+            next: AtomicUsize::new(0),
+            uncommitted: Address::null(),
+            end: Address::null(),
         }
     }
 
     fn committed_size(&self) -> usize {
-        self.uncommitted as usize - self.start as usize
+        self.uncommitted.to_usize() - self.start.to_usize()
     }
 
     fn uncommitted_size(&self) -> usize {
-        self.end as usize - self.uncommitted as usize
+        self.end.to_usize() - self.uncommitted.to_usize()
     }
 }
