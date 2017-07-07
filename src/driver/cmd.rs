@@ -12,8 +12,8 @@ pub fn parse() -> Args {
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
-Usage: dora [options] <file> [--] [<argument>...]
-       dora test [options] <file>
+Usage: dora test [options] <file>
+       dora [options] <file> [--] [<argument>...]
        dora (--version | --help)
 
 Options:

@@ -1,7 +1,7 @@
 use std::mem;
 
 use dora_parser::ast::{self, Ast};
-use ctxt::{SemContext, FctId};
+use ctxt::{SemContext, Fct, FctId};
 use driver::cmd;
 use dora_parser::error::msg::Msg;
 
@@ -66,9 +66,31 @@ pub fn start() -> i32 {
 }
 
 fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
-    println!("can't run tests right now");
+    let mut tests = 0;
+
+    for fct in ctxt.fcts.iter() {
+        let fct = fct.borrow();
+
+        if !is_test_fct(ctxt, &*fct) {
+            continue;
+        }
+
+        tests += 1;
+        println!("run {}", ctxt.interner.str(fct.name));
+    }
+
+    println!("{} tests executed.", tests);
 
     1
+}
+
+fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
+    if !fct.parent.is_none() {
+        return false;
+    }
+
+    let fct_name = ctxt.interner.str(fct.name);
+    fct_name.starts_with("test")
 }
 
 fn run_main<'ast>(ctxt: &SemContext<'ast>) -> i32 {

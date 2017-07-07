@@ -394,6 +394,13 @@ pub enum FctParent {
 }
 
 impl FctParent {
+    pub fn is_none(&self) -> bool {
+        match self {
+            &FctParent::None => true,
+            _ => false,
+        }
+    }
+
     pub fn cls_id(&self) -> ClassId {
         match self {
             &FctParent::Class(id) => id,
