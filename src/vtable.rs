@@ -1,4 +1,6 @@
-use alloc::heap;
+use alloc::heap::{Heap, Layout};
+use alloc::allocator::Alloc;
+
 use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
@@ -21,8 +23,11 @@ impl VTableBox {
             table: [0],
         };
 
+        let mut heap: Heap = Default::default();
+
         unsafe {
-            let ptr = heap::allocate(size, align_of::<VTable>()) as *mut VTable;
+            let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
+            let ptr = heap.alloc(lay).expect("could not allocate") as *mut VTable;
             ptr::write(ptr, vtable);
 
             ptr::copy(entries.as_ptr(), &mut (&mut *ptr).table[0], entries.len());
@@ -60,9 +65,10 @@ impl Drop for VTableBox {
             let len = (&*self.0).table_length;
             ptr::drop_in_place(self.0);
 
-            heap::deallocate(self.0 as *mut u8,
-                             VTable::size_of(len),
-                             align_of::<VTable>());
+            let mut heap: Heap = Default::default();
+            let lay = Layout::from_size_align(VTable::size_of(len), align_of::<VTable>()).unwrap();
+
+            heap.dealloc(self.0 as *mut u8, lay);
         }
     }
 }
@@ -136,18 +142,23 @@ impl VTable {
         let size = num * size_of::<*const VTable>();
         let align = align_of::<*const VTable>();
 
+        let mut heap: Heap = Default::default();
+        let lay = Layout::from_size_align(size, align).unwrap();
+
         unsafe {
-            self.subtype_overflow = heap::allocate(size, align) as *const _;
+            self.subtype_overflow = heap.alloc(lay).expect("could not allocate") as *const _;
         }
     }
 
     pub fn deallocate_overflow(&mut self, num: usize) {
         assert!(!self.subtype_overflow.is_null());
+        let mut heap: Heap = Default::default();
+        let lay = Layout::from_size_align(num * size_of::<*const VTable>(),
+                                          align_of::<*const VTable>())
+                .unwrap();
 
         unsafe {
-            heap::deallocate(self.subtype_overflow as *const u8 as *mut _,
-                             num * size_of::<*const VTable>(),
-                             align_of::<*const VTable>());
+            heap.dealloc(self.subtype_overflow as *const u8 as *mut _, lay);
         }
     }
 }
