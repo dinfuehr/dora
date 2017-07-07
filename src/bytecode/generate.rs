@@ -77,7 +77,11 @@ struct Param(Name, BytecodeType);
 struct Var(Name, BytecodeType);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum OpndWidth { Small, Wide, ExtraWide }
+pub enum OpndWidth {
+    Small,
+    Wide,
+    ExtraWide,
+}
 
 trait HasWidth {
     fn width(self) -> OpndWidth;
@@ -124,8 +128,10 @@ fn width(val: u32) -> OpndWidth {
 pub enum BytecodeType {
     Bool,
     Char,
-    Int8, Int32, Int64,
-    Float32, Float64,
+    Int8,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
     Ptr,
 }
-

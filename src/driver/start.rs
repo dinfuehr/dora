@@ -58,43 +58,11 @@ pub fn start() -> i32 {
     // register signal handler
     os::register_signals(&ctxt);
 
-    if ctxt.args.cmd_test {
-        run_tests(&ctxt)
+    let main = if ctxt.args.cmd_test {
+        None
     } else {
-        run_main(&ctxt)
-    }
-}
-
-fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
-    let mut tests = 0;
-
-    for fct in ctxt.fcts.iter() {
-        let fct = fct.borrow();
-
-        if !is_test_fct(ctxt, &*fct) {
-            continue;
-        }
-
-        tests += 1;
-        println!("run {}", ctxt.interner.str(fct.name));
-    }
-
-    println!("{} tests executed.", tests);
-
-    1
-}
-
-fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
-    if !fct.parent.is_none() {
-        return false;
-    }
-
-    let fct_name = ctxt.interner.str(fct.name);
-    fct_name.starts_with("test")
-}
-
-fn run_main<'ast>(ctxt: &SemContext<'ast>) -> i32 {
-    let main = find_main(&ctxt);
+        find_main(&ctxt)
+    };
 
     if ctxt.diag.borrow().has_errors() {
         ctxt.diag.borrow().dump();
@@ -109,8 +77,67 @@ fn run_main<'ast>(ctxt: &SemContext<'ast>) -> i32 {
         return 1;
     }
 
-    let main = main.unwrap();
+    if ctxt.args.cmd_test {
+        run_tests(&ctxt)
+    } else {
+        run_main(&ctxt, main.unwrap())
+    }
+}
 
+fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
+    let mut tests = 0;
+    let mut passed = 0;
+
+    for fct in ctxt.fcts.iter() {
+        let fct = fct.borrow();
+
+        if !is_test_fct(ctxt, &*fct) {
+            continue;
+        }
+
+        tests += 1;
+
+        print!("test {} ... ", ctxt.interner.str(fct.name));
+
+        if run_test(ctxt, fct.id) {
+            passed += 1;
+            println!("ok");
+        } else {
+            println!("failed");
+        }
+    }
+
+    println!("{} tests executed; {} passed; {} failed.",
+             tests,
+             passed,
+             tests - passed);
+
+    1
+}
+
+fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
+    let fct_ptr = {
+        let mut sfi = DoraToNativeInfo::new();
+
+        ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, fct))
+    };
+
+    let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
+    let res = fct();
+
+    true
+}
+
+fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
+    if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 0 {
+        return false;
+    }
+
+    let fct_name = ctxt.interner.str(fct.name);
+    fct_name.starts_with("test")
+}
+
+fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     let fct_ptr = {
         let mut sfi = DoraToNativeInfo::new();
 

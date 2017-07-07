@@ -58,22 +58,37 @@ impl Header {
 
 #[test]
 fn test_age() {
-    let hdr = Header { vtable: ptr::null_mut(), info: 3 << 1 };
+    let hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 3 << 1,
+    };
     assert_eq!(3, hdr.age());
 
-    let hdr = Header { vtable: ptr::null_mut(), info: 15 << 1 };
+    let hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 15 << 1,
+    };
     assert_eq!(15, hdr.age());
 
-    let hdr = Header { vtable: ptr::null_mut(), info: 0 };
+    let hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 0,
+    };
     assert_eq!(0, hdr.age());
 
-    let hdr = Header { vtable: ptr::null_mut(), info: 0xFFFF };
+    let hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 0xFFFF,
+    };
     assert_eq!(15, hdr.age());
 }
 
 #[test]
 fn test_set_age() {
-    let mut hdr = Header { vtable: ptr::null_mut(), info: 0 };
+    let mut hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 0,
+    };
 
     hdr.set_age(15);
     assert_eq!(15, hdr.age());
@@ -88,7 +103,10 @@ fn test_set_age() {
 #[test]
 #[should_panic]
 fn test_set_age_over_15() {
-    let mut hdr = Header { vtable: ptr::null_mut(), info: 0 };
+    let mut hdr = Header {
+        vtable: ptr::null_mut(),
+        info: 0,
+    };
     hdr.set_age(16);
 }
 
