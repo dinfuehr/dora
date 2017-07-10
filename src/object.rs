@@ -438,3 +438,14 @@ pub type LongArray = Array<i64>;
 pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
+
+pub fn alloc(ctxt: &SemContext, clsid: ClassId) -> Handle<Obj> {
+    let cls = ctxt.classes[clsid].borrow();
+
+    let ptr = ctxt.gc.alloc(ctxt, cls.size as usize) as usize;
+    let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+    let mut handle: Handle<Obj> = ptr.into();
+    handle.header_mut().vtable = vtable as *mut VTable;
+
+    handle
+}

@@ -31,14 +31,8 @@ pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
     let mut ast = Ast::new();
     let args: Args = Default::default();
 
-    {
-        let reader = Reader::from_file("stdlib/prelude.dora").unwrap();
-        let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
-        parser.parse().unwrap()
-    }
-
-    {
-        let reader = Reader::from_file("stdlib/str.dora").unwrap();
+    for file in &["stdlib/prelude.dora", "stdlib/str.dora", "stdlib/test.dora"] {
+        let reader = Reader::from_file(file).unwrap();
         let mut parser = Parser::new(reader, &id_generator, &mut ast, &mut interner);
         parser.parse().unwrap()
     }

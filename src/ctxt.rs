@@ -78,6 +78,8 @@ impl<'ast> SemContext<'ast> {
                 str_class: empty_class_id,
 
                 generic_array: empty_class_id,
+
+                testing_class: empty_class_id,
             },
             gc: gc,
             ast: ast,
@@ -359,6 +361,8 @@ pub struct PrimitiveClasses {
     pub str_class: ClassId,
 
     pub generic_array: ClassId,
+
+    pub testing_class: ClassId,
 }
 
 impl PrimitiveClasses {

@@ -29,6 +29,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None, 0);
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
+    ctxt.primitive_classes.testing_class = internal_class(ctxt, "Testing", None, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,

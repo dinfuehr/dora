@@ -9,6 +9,7 @@ use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
 use baseline;
 use dora_parser::lexer::position::Position;
+use object::{self, Handle, Obj};
 use os;
 
 use dora_parser::parser::{Parser, NodeIdGenerator};
@@ -40,6 +41,9 @@ pub fn start() -> i32 {
                          })
                .and_then(|_| {
                              parse_file("stdlib/utils.dora", &id_generator, &mut ast, &mut interner)
+                         })
+               .and_then(|_| {
+                             parse_file("stdlib/test.dora", &id_generator, &mut ast, &mut interner)
                          })
                .and_then(|_| {
                              parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
@@ -122,8 +126,11 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
         ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, fct))
     };
 
-    let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
-    let res = fct();
+    let testing_class = ctxt.primitive_classes.testing_class;
+    let testing = object::alloc(ctxt, testing_class);
+
+    let fct: extern "C" fn(Handle<Obj>) -> i32 = unsafe { mem::transmute(fct_ptr) };
+    let res = fct(testing);
 
     true
 }
