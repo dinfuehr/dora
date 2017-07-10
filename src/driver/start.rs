@@ -9,7 +9,7 @@ use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
 use baseline;
 use dora_parser::lexer::position::Position;
-use object::{self, Handle, Obj};
+use object::{self, Handle, Testing};
 use os;
 
 use dora_parser::parser::{Parser, NodeIdGenerator};
@@ -116,7 +116,8 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
              passed,
              tests - passed);
 
-    1
+    // if all tests passed exit with 0, otherwise 1
+    if tests == passed { 0 } else { 1 }
 }
 
 fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
@@ -127,19 +128,27 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     };
 
     let testing_class = ctxt.primitive_classes.testing_class;
-    let testing = object::alloc(ctxt, testing_class);
+    let testing = object::alloc(ctxt, testing_class).cast();
 
-    let fct: extern "C" fn(Handle<Obj>) -> i32 = unsafe { mem::transmute(fct_ptr) };
+    let fct: extern "C" fn(Handle<Testing>) -> i32 = unsafe { mem::transmute(fct_ptr) };
     let res = fct(testing);
 
-    true
+    !testing.has_failed()
 }
 
 fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
-    if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 0 {
+    // tests need to be standalone functions, with no return type and a single parameter
+    if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
     }
 
+    // parameter needs to be of type Testing
+    let testing_cls = BuiltinType::Class(ctxt.primitive_classes.testing_class);
+    if fct.param_types[0] != testing_cls {
+        return false;
+    }
+
+    // the functions name needs to start with `test`
     let fct_name = ctxt.interner.str(fct.name);
     fct_name.starts_with("test")
 }

@@ -11,6 +11,7 @@ use gc::root::IndirectObj;
 use mem;
 use vtable::VTable;
 
+#[repr(C)]
 pub struct Header {
     // ptr to class
     vtable: *mut VTable,
@@ -111,6 +112,7 @@ fn test_set_age_over_15() {
 }
 
 // is used to reference any object
+#[repr(C)]
 pub struct Obj {
     header: Header,
     data: u8,
@@ -185,6 +187,7 @@ impl Obj {
     }
 }
 
+#[repr(C)]
 pub struct Handle<T> {
     ptr: *const T,
 }
@@ -194,6 +197,10 @@ unsafe impl<T> Send for Handle<T> {}
 impl<T> Handle<T> {
     pub fn null() -> Handle<T> {
         Handle { ptr: ptr::null() }
+    }
+
+    pub fn cast<R>(&self) -> Handle<R> {
+        Handle { ptr: self.ptr as *const R }
     }
 
     pub fn raw(&self) -> *const T {
@@ -230,6 +237,19 @@ impl<T> Into<Handle<T>> for usize {
     }
 }
 
+#[repr(C)]
+pub struct Testing {
+    header: Header,
+    failed: bool,
+}
+
+impl Testing {
+    pub fn has_failed(&self) -> bool {
+        self.failed
+    }
+}
+
+#[repr(C)]
 pub struct Str {
     header: Header,
     length: usize,
@@ -364,6 +384,7 @@ fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
     handle
 }
 
+#[repr(C)]
 pub struct Array<T: Copy> {
     header: Header,
     length: usize,
