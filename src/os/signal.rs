@@ -247,9 +247,9 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
             .clone()
     };
 
-    let mut sfi = cpu::sfi_from_execution_state(es);
+    let mut dtn = cpu::dtn_from_execution_state(es);
 
-    ctxt.use_sfi(&mut sfi, || match bailout {
+    ctxt.use_dtn(&mut dtn, || match bailout {
         BailoutInfo::Compile(fct_id, disp) => patch_fct_call(ctxt, es, ra, fct_id, disp),
         BailoutInfo::VirtCompile(vtable_index) => patch_vtable_call(ctxt, es, vtable_index),
     });

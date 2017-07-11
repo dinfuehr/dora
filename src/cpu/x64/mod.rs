@@ -15,7 +15,7 @@ pub mod asm;
 pub mod param;
 pub mod reg;
 
-pub fn sfi_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
+pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
     let ra = unsafe { *(es.sp as *const usize) };
 
     DoraToNativeInfo {

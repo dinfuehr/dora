@@ -30,6 +30,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None, 0);
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
     ctxt.primitive_classes.testing_class = internal_class(ctxt, "Testing", None, 0);
+    ctxt.primitive_classes.exception_class = internal_class(ctxt, "Exception", None, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
@@ -71,6 +72,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
 
     native_fct(ctxt, "call", stdlib::call as *const u8);
+    native_fct(ctxt, "throwFromNative", stdlib::throw_native as *const u8);
 
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);

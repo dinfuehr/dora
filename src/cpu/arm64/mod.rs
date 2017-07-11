@@ -13,7 +13,7 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-pub fn sfi_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
+pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
     let ra = es.regs[REG_LR.asm() as usize];
 
     DoraToNativeInfo {

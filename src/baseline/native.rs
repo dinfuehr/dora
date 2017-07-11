@@ -3,9 +3,10 @@ use std::mem::size_of;
 
 use baseline::fct::JitFct;
 use cpu::{FREG_PARAMS, Mem, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{SemContext, get_ctxt};
+use ctxt::{SemContext, exception_get_and_clear, get_ctxt};
 use masm::MacroAssembler;
 use mem;
+use os::signal::Trap;
 use stacktrace::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
@@ -68,7 +69,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         let offset_return = 0;
         let offset_args = offset_return + if save_return { 8 } else { 0 };
-        // let offset_sfi = offset_args + self.args * 8;
+        // let offset_dtn = offset_args + self.args * 8;
 
         if self.dbg {
             self.masm.debug();
@@ -95,6 +96,8 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
         self.masm
             .direct_call_without_info(finish_native_call as *const u8);
 
+        let lbl_exception = self.masm.test_if_not_nil(REG_RESULT);
+
         if save_return {
             self.masm
                 .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_SP, 0));
@@ -102,6 +105,9 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm
             .epilog(framesize, self.ctxt.polling_page.addr());
+
+        self.masm.bind_label(lbl_exception);
+        self.masm.trap(Trap::THROW);
 
         self.masm.jit(self.ctxt, framesize)
     }
@@ -171,20 +177,23 @@ fn start_native_call(fp: *const u8) {
         let dora_ra = *(fp.offset(8) as *const usize);
         let dora_fp = *(fp as *const usize);
 
-        let sfi_size = size_of::<DoraToNativeInfo>() as isize;
-        let sfi: *mut DoraToNativeInfo = fp.offset(-sfi_size) as *mut DoraToNativeInfo;
-        let sfi: &mut DoraToNativeInfo = &mut *sfi;
+        let dtn_size = size_of::<DoraToNativeInfo>() as isize;
+        let dtn: *mut DoraToNativeInfo = fp.offset(-dtn_size) as *mut DoraToNativeInfo;
+        let dtn: &mut DoraToNativeInfo = &mut *dtn;
 
-        sfi.sp = 0;
-        sfi.fp = dora_fp;
-        sfi.ra = dora_ra;
-        sfi.xpc = sfi.ra - 1;
+        dtn.sp = 0;
+        dtn.fp = dora_fp;
+        dtn.ra = dora_ra;
+        dtn.xpc = dtn.ra - 1;
 
         let ctxt = get_ctxt();
-        ctxt.push_sfi(sfi);
+        ctxt.push_dtn(dtn);
     }
 }
 
-fn finish_native_call() {
-    get_ctxt().pop_sfi();
+fn finish_native_call() -> *const u8 {
+    let ctxt = get_ctxt();
+    ctxt.pop_dtn();
+
+    exception_get_and_clear()
 }

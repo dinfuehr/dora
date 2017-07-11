@@ -1,0 +1,8 @@
+fun main() {
+  do {
+    throwFromNative(false);
+    assert(true);
+  } catch e: Exception {
+    assert(false);
+  }
+}

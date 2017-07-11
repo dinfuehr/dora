@@ -122,9 +122,9 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
 
 fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     let fct_ptr = {
-        let mut sfi = DoraToNativeInfo::new();
+        let mut dtn = DoraToNativeInfo::new();
 
-        ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, fct))
+        ctxt.use_dtn(&mut dtn, || baseline::generate(&ctxt, fct))
     };
 
     let testing_class = ctxt.primitive_classes.testing_class;
@@ -155,9 +155,9 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
 
 fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     let fct_ptr = {
-        let mut sfi = DoraToNativeInfo::new();
+        let mut dtn = DoraToNativeInfo::new();
 
-        ctxt.use_sfi(&mut sfi, || baseline::generate(&ctxt, main))
+        ctxt.use_dtn(&mut dtn, || baseline::generate(&ctxt, main))
     };
 
     let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };

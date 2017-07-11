@@ -27,23 +27,23 @@ fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &SemCont
 }
 
 fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
-    assert!(!ctxt.sfi.borrow().is_null());
+    assert!(!ctxt.dtn.borrow().is_null());
 
-    let mut sfi = *ctxt.sfi.borrow();
+    let mut dtn = *ctxt.dtn.borrow();
 
-    while !sfi.is_null() {
-        sfi = from_dora_to_native_info(rootset, ctxt, sfi);
+    while !dtn.is_null() {
+        dtn = from_dora_to_native_info(rootset, ctxt, dtn);
     }
 }
 
 fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
                             ctxt: &SemContext,
-                            sfi: *const DoraToNativeInfo)
+                            dtn: *const DoraToNativeInfo)
                             -> *const DoraToNativeInfo {
-    let sfi = unsafe { &*sfi };
+    let dtn = unsafe { &*dtn };
 
-    let mut pc: usize = sfi.ra;
-    let mut fp: usize = sfi.fp;
+    let mut pc: usize = dtn.ra;
+    let mut fp: usize = dtn.fp;
 
     while fp != 0 {
         if !determine_rootset(rootset, ctxt, fp, pc) {
@@ -54,7 +54,7 @@ fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
         fp = unsafe { *(fp as *const usize) };
     }
 
-    sfi.last
+    dtn.last
 }
 
 fn determine_rootset(rootset: &mut Vec<IndirectObj>,

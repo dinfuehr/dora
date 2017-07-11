@@ -125,6 +125,15 @@ impl MacroAssembler {
         lbl
     }
 
+    pub fn test_if_not_nil(&mut self, reg: Reg) -> Label {
+        self.cmp_zero(MachineMode::Ptr, reg);
+
+        let lbl = self.create_label();
+        self.jump_if(CondCode::NotEqual, lbl);
+
+        lbl
+    }
+
     pub fn emit_lineno(&mut self, lineno: i32) {
         let pos = self.pos() as i32;
         self.linenos.insert(pos, lineno);

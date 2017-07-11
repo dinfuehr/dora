@@ -12,8 +12,8 @@ use std::str;
 use std::thread;
 
 use baseline;
-use ctxt::get_ctxt;
-use object::{ByteArray, Handle, Obj, Str};
+use ctxt::{exception_set, get_ctxt};
+use object::{alloc, ByteArray, Handle, Obj, Str};
 
 use sym::Sym::SymFct;
 
@@ -90,6 +90,16 @@ pub extern "C" fn exit(status: i32) {
 pub extern "C" fn println(val: Handle<Str>) {
     print(val);
     println!("");
+}
+
+pub extern "C" fn throw_native(val: bool) {
+    if val {
+        let ctxt = get_ctxt();
+        let exception_class = ctxt.primitive_classes.exception_class;
+        let obj = alloc(ctxt, exception_class);
+
+        exception_set(obj.raw() as *const u8);
+    }
 }
 
 pub extern "C" fn call(fct: Handle<Str>) {
@@ -276,8 +286,8 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
         };
 
         let fct_ptr = {
-            let mut sfi = DoraToNativeInfo::new();
-            ctxt.use_sfi(&mut sfi, || baseline::generate(ctxt, main))
+            let mut dtn = DoraToNativeInfo::new();
+            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main))
         };
 
         let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };

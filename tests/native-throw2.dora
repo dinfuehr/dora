@@ -1,0 +1,12 @@
+//= ignore
+//= "caught\n"
+
+fun main() {
+  do {
+    throwFromNative(true);
+    assert(false);
+  } catch e: Exception {
+    println("caught");
+    assert(true);
+  }
+}

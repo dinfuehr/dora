@@ -25,6 +25,25 @@ use ty::{BuiltinType, Types};
 use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
+pub static mut exception_object: *const u8 = 0 as *const u8;
+
+pub fn exception_get_and_clear() -> *const u8 {
+    unsafe {
+        let val = exception_object;
+
+        if val.is_null() {
+            exception_object = ptr::null();
+        }
+
+        val
+    }
+}
+
+pub fn exception_set(val: *const u8) {
+    unsafe {
+        exception_object = val;
+    }
+}
 
 pub fn get_ctxt() -> &'static SemContext<'static> {
     unsafe { &*(CTXT.unwrap() as *const SemContext) }
@@ -46,7 +65,7 @@ pub struct SemContext<'ast> {
     pub code_map: Mutex<CodeMap>, // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc, // garbage collector
-    pub sfi: RefCell<*const DoraToNativeInfo>,
+    pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
     pub polling_page: PollingPage,
@@ -80,6 +99,7 @@ impl<'ast> SemContext<'ast> {
                 generic_array: empty_class_id,
 
                 testing_class: empty_class_id,
+                exception_class: empty_class_id,
             },
             gc: gc,
             ast: ast,
@@ -87,7 +107,7 @@ impl<'ast> SemContext<'ast> {
             sym: RefCell::new(SymTable::new()),
             fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            sfi: RefCell::new(ptr::null()),
+            dtn: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
             compile_stub: RefCell::new(None),
             polling_page: PollingPage::new(),
@@ -95,35 +115,35 @@ impl<'ast> SemContext<'ast> {
         }
     }
 
-    pub fn use_sfi<F, R>(&self, sfi: &mut DoraToNativeInfo, fct: F) -> R
+    pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
         where F: FnOnce() -> R
     {
-        sfi.last = *self.sfi.borrow();
+        dtn.last = *self.dtn.borrow();
 
-        *self.sfi.borrow_mut() = sfi as *const DoraToNativeInfo;
+        *self.dtn.borrow_mut() = dtn as *const DoraToNativeInfo;
 
         let ret = fct();
 
-        *self.sfi.borrow_mut() = sfi.last;
+        *self.dtn.borrow_mut() = dtn.last;
 
         ret
     }
 
-    pub fn push_sfi(&self, sfi: &mut DoraToNativeInfo) {
-        let last = *self.sfi.borrow();
+    pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
+        let last = *self.dtn.borrow();
 
-        sfi.last = last;
+        dtn.last = last;
 
-        *self.sfi.borrow_mut() = sfi as *const DoraToNativeInfo;
+        *self.dtn.borrow_mut() = dtn as *const DoraToNativeInfo;
     }
 
-    pub fn pop_sfi(&self) {
-        let current_sfi = *self.sfi.borrow();
-        assert!(!current_sfi.is_null());
-        let sfi = unsafe { &*current_sfi };
+    pub fn pop_dtn(&self) {
+        let current_dtn = *self.dtn.borrow();
+        assert!(!current_dtn.is_null());
+        let dtn = unsafe { &*current_dtn };
 
-        let last_sfi = sfi.last as *const DoraToNativeInfo;
-        *self.sfi.borrow_mut() = last_sfi;
+        let last_dtn = dtn.last as *const DoraToNativeInfo;
+        *self.dtn.borrow_mut() = last_dtn;
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
@@ -363,6 +383,7 @@ pub struct PrimitiveClasses {
     pub generic_array: ClassId,
 
     pub testing_class: ClassId,
+    pub exception_class: ClassId,
 }
 
 impl PrimitiveClasses {
