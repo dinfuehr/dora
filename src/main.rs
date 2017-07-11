@@ -1,6 +1,5 @@
 #![feature(asm)]
 #![feature(alloc)]
-#![feature(heap_api)]
 #![feature(box_syntax)]
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]

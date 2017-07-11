@@ -1,6 +1,6 @@
 use std::cmp;
 
-use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+use byteorder::{LittleEndian, WriteBytesExt};
 
 use bytecode::opcodes::*;
 use dora_parser::interner::Name;

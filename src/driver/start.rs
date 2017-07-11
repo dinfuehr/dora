@@ -131,7 +131,9 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     let testing = object::alloc(ctxt, testing_class).cast();
 
     let fct: extern "C" fn(Handle<Testing>) -> i32 = unsafe { mem::transmute(fct_ptr) };
-    let res = fct(testing);
+
+    // execute test
+    fct(testing);
 
     !testing.has_failed()
 }

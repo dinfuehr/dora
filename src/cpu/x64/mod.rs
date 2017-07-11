@@ -1,7 +1,6 @@
 use std::ptr;
 
 use baseline::fct::ExHandler;
-use cpu::*;
 use execstate::ExecState;
 use mem;
 use object::{Handle, Obj};

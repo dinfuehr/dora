@@ -691,7 +691,6 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             IdentType::Field(clsid, fieldid) => {
                 let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
-                let dest = result_reg(field.ty.mode());
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
                     self.emit_expr(&expr_field.object, REG_RESULT.into());

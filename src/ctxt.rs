@@ -25,14 +25,14 @@ use ty::{BuiltinType, Types};
 use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
-pub static mut exception_object: *const u8 = 0 as *const u8;
+pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
 pub fn exception_get_and_clear() -> *const u8 {
     unsafe {
-        let val = exception_object;
+        let val = EXCEPTION_OBJECT;
 
         if !val.is_null() {
-            exception_object = ptr::null();
+            EXCEPTION_OBJECT = ptr::null();
         }
 
         val
@@ -41,7 +41,7 @@ pub fn exception_get_and_clear() -> *const u8 {
 
 pub fn exception_set(val: *const u8) {
     unsafe {
-        exception_object = val;
+        EXCEPTION_OBJECT = val;
     }
 }
 

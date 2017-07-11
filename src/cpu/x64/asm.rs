@@ -1109,7 +1109,6 @@ mod tests {
     use super::*;
 
     use baseline::codegen::CondCode;
-    use cpu::*;
     use masm::MacroAssembler;
     use ty::MachineMode;
 

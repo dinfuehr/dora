@@ -143,16 +143,16 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
 
     let name = fct.full_name(ctxt);
 
-    writeln!(&mut w, "fun {} {:#x} {:#x}", &name, start_addr, end_addr);
+    writeln!(&mut w, "fun {} {:#x} {:#x}", &name, start_addr, end_addr).unwrap();
 
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
             let name = ctxt.interner.str(var.name);
-            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(ctxt));
+            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(ctxt)).unwrap();
         }
 
         if fct_src.vars.len() > 0 {
-            writeln!(&mut w);
+            writeln!(&mut w).unwrap();
         }
     }
 
@@ -160,25 +160,25 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
         let addr = (instr.addr - start_addr) as i32;
 
         if let Some(gc_point) = jit_fct.gcpoint_for_offset(addr) {
-            write!(&mut w, "\t\t  ; gc point = (");
+            write!(&mut w, "\t\t  ; gc point = (").unwrap();
             let mut first = true;
 
             for &offset in &gc_point.offsets {
                 if !first {
-                    write!(&mut w, ", ");
+                    write!(&mut w, ", ").unwrap();
                 }
 
-                write!(&mut w, "{}", offset);
+                write!(&mut w, "{}", offset).unwrap();
                 first = false;
             }
 
-            writeln!(&mut w, ")");
+            writeln!(&mut w, ")").unwrap();
         }
 
         if let Some(comments) = jit_fct.get_comment(addr) {
             for comment in comments {
                 if comment.is_newline() {
-                    writeln!(&mut w);
+                    writeln!(&mut w).unwrap();
                     continue;
                 }
 
@@ -188,7 +188,7 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                     fct_src: fct_src,
                 };
 
-                writeln!(&mut w, "\t\t  ; {}", cfmt);
+                writeln!(&mut w, "\t\t  ; {}", cfmt).unwrap();
             }
         }
 
@@ -196,10 +196,10 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                  "  {:#06x}: {}\t\t{}",
                  instr.addr,
                  instr.mnemonic,
-                 instr.op_str);
+                 instr.op_str).unwrap();
     }
 
-    writeln!(&mut w);
+    writeln!(&mut w).unwrap();
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {

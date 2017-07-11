@@ -1,5 +1,4 @@
-use std::ptr;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 
 use ctxt::SemContext;
 use gc::Address;
@@ -25,13 +24,11 @@ impl YoungGen {
 }
 
 impl Collector for YoungGen {
-    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
-        unimplemented!();
-
-        ptr::null()
+    fn alloc(&self, _: &SemContext, _: usize) -> *const u8 {
+        unimplemented!()
     }
 
-    fn collect(&self, ctxt: &SemContext) {
+    fn collect(&self, _: &SemContext) {
         unimplemented!();
     }
 }

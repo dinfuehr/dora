@@ -1,6 +1,3 @@
-use std::cmp;
-use std::ptr;
-
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
@@ -56,11 +53,11 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+    fn alloc(&self, _: &SemContext, _: usize) -> *const u8 {
         unimplemented!()
     }
 
-    fn collect(&self, ctxt: &SemContext) {
+    fn collect(&self, _: &SemContext) {
         unimplemented!();
     }
 }
