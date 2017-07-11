@@ -31,7 +31,7 @@ pub fn exception_get_and_clear() -> *const u8 {
     unsafe {
         let val = exception_object;
 
-        if val.is_null() {
+        if !val.is_null() {
             exception_object = ptr::null();
         }
 

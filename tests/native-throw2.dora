@@ -1,5 +1,4 @@
-//= ignore
-//= "caught\n"
+//= "caught\nafter\nend\n"
 
 fun main() {
   do {
@@ -9,4 +8,8 @@ fun main() {
     println("caught");
     assert(true);
   }
+
+  println("after");
+  throwFromNative(false);
+  println("end");
 }
