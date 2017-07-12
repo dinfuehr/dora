@@ -282,7 +282,7 @@ impl Str {
     pub fn size(&self) -> usize {
         Header::size() as usize         // Object header
             + mem::ptr_width() as usize // length field
-            + self.len() + 1 // string content
+            + self.len()                // string content
     }
 
     /// allocates string from buffer in permanent space
@@ -295,9 +295,6 @@ impl Str {
 
             // copy buffer content into Str
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
-
-            // string should end with 0 for C compatibility
-            *(data.offset(buf.len() as isize)) = 0;
         }
 
         handle
@@ -368,9 +365,9 @@ fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
 fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
     where F: FnOnce(&SemContext, usize) -> *const u8
 {
-    let size = Header::size() as usize     // Object header
+    let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
-                + len + 1; // string content
+                + len;                      // string content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(ctxt, size) as usize;
