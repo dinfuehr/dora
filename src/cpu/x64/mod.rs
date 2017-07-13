@@ -5,7 +5,7 @@ use execstate::ExecState;
 use mem;
 use object::{Handle, Obj};
 use os::signal::Trap;
-use stacktrace::DoraToNativeInfo;
+use exception::DoraToNativeInfo;
 
 pub use self::param::*;
 pub use self::reg::*;

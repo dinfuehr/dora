@@ -1,20 +1,20 @@
 use std::mem;
 
+use baseline;
+use ctxt::{exception_get_and_clear, SemContext, Fct, FctId};
 use dora_parser::ast::{self, Ast};
-use ctxt::{SemContext, Fct, FctId};
-use driver::cmd;
 use dora_parser::error::msg::Msg;
 
 use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
-use baseline;
 use dora_parser::lexer::position::Position;
+use driver::cmd;
+use exception::DoraToNativeInfo;
 use object::{self, Handle, Testing};
 use os;
 
 use dora_parser::parser::{Parser, NodeIdGenerator};
 use semck;
-use stacktrace::DoraToNativeInfo;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -135,7 +135,10 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     // execute test
     fct(testing);
 
-    !testing.has_failed()
+    // see if test failed with exception
+    let exception = exception_get_and_clear();
+
+    exception.is_null() && !testing.has_failed()
 }
 
 fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {

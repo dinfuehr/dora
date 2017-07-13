@@ -7,11 +7,11 @@ use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
 use ctxt::{SemContext, CTXT, FctId, get_ctxt};
+use exception::{handle_exception, get_stacktrace};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
 use safepoint;
-use stacktrace::{handle_exception, get_stacktrace};
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;

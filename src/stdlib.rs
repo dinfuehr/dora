@@ -273,7 +273,7 @@ pub extern "C" fn native_free(addr: *const u8) {
 
 pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use baseline;
-    use stacktrace::DoraToNativeInfo;
+    use exception::DoraToNativeInfo;
 
     thread::spawn(move || {
         let ctxt = get_ctxt();

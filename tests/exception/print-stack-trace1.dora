@@ -1,0 +1,6 @@
+//= output "Exception\n"
+
+fun main() {
+  let e = Exception();
+  e.printStackTrace();
+}

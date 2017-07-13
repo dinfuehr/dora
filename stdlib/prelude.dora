@@ -287,7 +287,48 @@ fun sleep(seconds: int) {
   call1(fct, seconds.toLong());
 }
 
-class Exception(msg: Str)
+class Exception {
+  var msg: Str;
+  var elements: Array<StackTraceElement> = nil;
+
+  init(msg: Str) {
+    self.retrieveStackTrace();
+    self.msg = msg;
+  }
+
+  init() {
+    self.retrieveStackTrace();
+  }
+
+  fun printStackTrace() {
+    print("Exception");
+
+    if self.msg !== nil {
+      println(": " + self.msg);
+    } else {
+      println("");
+    }
+
+    if self.elements === nil {
+      return;
+    }
+
+    var i = 0;
+
+    while i < self.elements.len() {
+      println("at " + self.elements[i].toString());
+      i = i + 1;
+    }
+  }
+
+  fun retrieveStackTrace() {}
+}
+
+class StackTraceElement(let className: Str, let name: Str, let line: int) {
+  fun toString() -> Str {
+    return self.name + ":" + self.line.toString();
+  }
+}
 
 open abstract class Thread {
   internal fun start();

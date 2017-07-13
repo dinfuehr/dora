@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::ptr;
 
-use stacktrace::DoraToNativeInfo;
+use exception::DoraToNativeInfo;
 
 thread_local! {
     pub static THREAD: RefCell<ThreadLocalData> = RefCell::new(ThreadLocalData::new());

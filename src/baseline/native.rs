@@ -7,7 +7,7 @@ use ctxt::{SemContext, exception_get_and_clear, get_ctxt};
 use masm::MacroAssembler;
 use mem;
 use os::signal::Trap;
-use stacktrace::DoraToNativeInfo;
+use exception::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeFcts {

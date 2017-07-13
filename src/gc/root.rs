@@ -3,7 +3,7 @@ use std::convert::From;
 use baseline::map::CodeData;
 use ctxt::{SemContext, FctKind};
 use object::Obj;
-use stacktrace::DoraToNativeInfo;
+use exception::DoraToNativeInfo;
 
 pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
     let mut rootset = Vec::new();

@@ -14,11 +14,11 @@ use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
 use class::{Class, ClassId, FieldId};
+use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use safepoint::PollingPage;
-use stacktrace::DoraToNativeInfo;
 use sym::*;
 use sym::Sym::*;
 use ty::{BuiltinType, Types};
@@ -26,6 +26,12 @@ use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
+
+pub fn has_exception() -> bool {
+    unsafe {
+        !EXCEPTION_OBJECT.is_null()
+    }
+}
 
 pub fn exception_get_and_clear() -> *const u8 {
     unsafe {
