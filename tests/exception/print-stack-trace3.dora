@@ -1,0 +1,14 @@
+//= output "Exception: bar\n0: b() -> Exception: 13\n1: a() -> Exception: 9\n2: main(): 4\n"
+
+fun main() {
+  let e = a();
+  e.printStackTrace();
+}
+
+fun a() -> Exception {
+  return b();
+}
+
+fun b() -> Exception {
+  return Exception("bar");
+}

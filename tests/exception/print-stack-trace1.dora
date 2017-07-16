@@ -1,4 +1,4 @@
-//= output "Exception\n"
+//= output "Exception\n0: main(): 4\n"
 
 fun main() {
   let e = Exception();

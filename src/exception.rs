@@ -4,7 +4,7 @@ use baseline::fct::CatchType;
 use baseline::map::CodeData;
 use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
 use ctxt::{SemContext, FctKind, FctId, get_ctxt};
-use object::{Handle, Obj};
+use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
 
 pub struct Stacktrace {
@@ -67,15 +67,41 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn get_stacktrace(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
+pub fn stacktrace_from_es(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
-    determine_stack_entry(&mut stacktrace, ctxt, es.pc);
+    let fp = fp_from_execstate(es);
+    frames_from_pc(&mut stacktrace, ctxt, es.pc, fp);
+    frames_from_dtns(&mut stacktrace, ctxt);
+    return stacktrace;
+}
 
-    let mut fp = fp_from_execstate(es);
+pub fn stacktrace_from_last_dtn(ctxt: &SemContext) -> Stacktrace {
+    let mut stacktrace = Stacktrace::new();
+    frames_from_dtns(&mut stacktrace, ctxt);
+    return stacktrace;
+}
+
+fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
+    let mut dtn_ptr = *ctxt.dtn.borrow();
+
+    while !dtn_ptr.is_null() {
+        let dtn = unsafe { &*dtn_ptr };
+
+        let pc: usize = dtn.ra;
+        let fp: usize = dtn.fp;
+
+        frames_from_pc(stacktrace, ctxt, pc, fp);
+
+        dtn_ptr = dtn.last
+    }
+}
+
+fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize, mut fp: usize) {
+    determine_stack_entry(stacktrace, ctxt, pc);
 
     while fp != 0 {
         let ra = unsafe { *((fp + 8) as *const usize) };
-        let cont = determine_stack_entry(&mut stacktrace, ctxt, ra);
+        let cont = determine_stack_entry(stacktrace, ctxt, ra);
 
         if !cont {
             break;
@@ -83,30 +109,6 @@ pub fn get_stacktrace(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
 
         fp = unsafe { *(fp as *const usize) };
     }
-
-    let mut dtn_ptr = *ctxt.dtn.borrow();
-
-    while !dtn_ptr.is_null() {
-        let dtn = unsafe { &*dtn_ptr };
-
-        let mut pc: usize = dtn.ra;
-        let mut fp: usize = dtn.fp;
-
-        while fp != 0 {
-            let cont = determine_stack_entry(&mut stacktrace, ctxt, pc);
-
-            if !cont {
-                break;
-            }
-
-            pc = unsafe { *((fp + 8) as *const usize) };
-            fp = unsafe { *(fp as *const usize) };
-        }
-
-        dtn_ptr = dtn.last
-    }
-
-    return stacktrace;
 }
 
 fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize) -> bool {
@@ -226,4 +228,43 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     }
 
     HandlerFound::No
+}
+
+pub extern "C" fn retrieve_stack_trace(mut obj: Handle<Exception>) {
+    let ctxt = get_ctxt();
+    let stacktrace = stacktrace_from_last_dtn(ctxt);
+
+    let len = stacktrace.len()-1;
+    let cls_id = ctxt.primitive_classes.int_array;
+    let mut array: Handle<IntArray> = Array::alloc(ctxt, len*2, 0, cls_id);
+    let mut i = 0;
+
+    // ignore first element of stack trace (ctor of Exception)
+    for elem in stacktrace.elems.iter().skip(1) {
+        array.set_at(i, elem.lineno);
+        array.set_at(i+1, elem.fct_id.0 as i32);
+
+        i += 2;
+    }
+
+    obj.backtrace = array;
+}
+
+pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<StackTraceElement> {
+    let ctxt = get_ctxt();
+    let array = obj.backtrace;
+
+    let ind = ind as usize * 2;
+
+    let lineno = array.get_at(ind);
+    let fct_id = array.get_at(ind+1);
+    let cls_id = ctxt.primitive_classes.stack_trace_element_class;
+
+    let mut obj: Handle<StackTraceElement> = alloc(ctxt, cls_id).cast();
+    obj.line = lineno;
+
+    let name = ctxt.fcts[FctId(fct_id as usize)].borrow().full_name(ctxt);
+    obj.name = Str::from_buffer(ctxt, name.as_bytes());
+
+    obj
 }

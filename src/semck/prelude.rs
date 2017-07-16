@@ -1,5 +1,7 @@
 use class::ClassId;
 use ctxt::{SemContext, FctKind, Intrinsic};
+use exception;
+use semck::specialize;
 use stdlib;
 use ty::BuiltinType;
 
@@ -30,7 +32,9 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None, 0);
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
     ctxt.primitive_classes.testing_class = internal_class(ctxt, "Testing", None, 0);
+
     ctxt.primitive_classes.exception_class = internal_class(ctxt, "Exception", None, 0);
+    ctxt.primitive_classes.stack_trace_element_class = internal_class(ctxt, "StackTraceElement", None, 0);
 }
 
 fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
@@ -57,6 +61,13 @@ fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
     } else {
         panic!("class {} not found!", name);
     }
+}
+
+pub fn specialized_classes<'ast>(ctxt: &mut SemContext<'ast>) {
+    let cls_id = ctxt.primitive_classes.generic_array;
+    let cls = ctxt.classes[cls_id].borrow();
+    let (cls_id, _) = specialize::specialize_class(ctxt, &*cls, vec![BuiltinType::Int]);
+    ctxt.primitive_classes.int_array = cls_id;
 }
 
 pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
@@ -235,6 +246,10 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
+
+    let clsid = ctxt.primitive_classes.exception_class;
+    native_method(ctxt, clsid, "retrieveStackTrace", exception::retrieve_stack_trace as *const u8);
+    native_method(ctxt, clsid, "getStackTraceElement", exception::stack_element as *const u8);
 
     let iname = ctxt.interner.intern("Thread");
     let clsid = ctxt.sym.borrow().get_class(iname);

@@ -412,6 +412,16 @@ impl<T> Array<T>
         &self.data as *const u8 as *mut T
     }
 
+    pub fn get_at(&self, idx: usize) -> T {
+        unsafe { *self.data().offset(idx as isize) }
+    }
+
+    pub fn set_at(&mut self, idx: usize, val: T) {
+        unsafe {
+            *self.data_mut().offset(idx as isize) = val;
+        }
+    }
+
     pub fn size(&self) -> usize {
         Header::size() as usize         // Object header
             + mem::ptr_width() as usize // length field
@@ -459,11 +469,25 @@ pub type StrArray = Array<Handle<Str>>;
 
 pub fn alloc(ctxt: &SemContext, clsid: ClassId) -> Handle<Obj> {
     let cls = ctxt.classes[clsid].borrow();
+    let size = mem::align_usize(cls.size as usize, mem::ptr_width() as usize);
 
-    let ptr = ctxt.gc.alloc(ctxt, cls.size as usize) as usize;
+    let ptr = ctxt.gc.alloc(ctxt, size) as usize;
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Obj> = ptr.into();
     handle.header_mut().vtable = vtable as *mut VTable;
 
     handle
+}
+
+pub struct Exception {
+    pub header: Header,
+    pub msg: Handle<Str>,
+    pub backtrace: Handle<IntArray>,
+    pub elements: Handle<Obj>,
+}
+
+pub struct StackTraceElement {
+    pub header: Header,
+    pub name: Handle<Str>,
+    pub line: i32,
 }

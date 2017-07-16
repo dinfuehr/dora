@@ -105,6 +105,8 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
     // initialize addresses for global variables
     init_global_addresses(ctxt);
+
+    prelude::specialized_classes(ctxt);
 }
 
 fn specialize_types<'ast>(ctxt: &SemContext<'ast>) {

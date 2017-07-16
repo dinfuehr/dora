@@ -7,7 +7,7 @@ use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
 use ctxt::{SemContext, CTXT, FctId, get_ctxt};
-use exception::{handle_exception, get_stacktrace};
+use exception::{handle_exception, stacktrace_from_es};
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
@@ -85,7 +85,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::DIV0 => {
                 println!("division by 0");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(101);
@@ -94,7 +94,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::ASSERT => {
                 println!("assert failed");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(101);
@@ -103,7 +103,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::INDEX_OUT_OF_BOUNDS => {
                 println!("array index out of bounds");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(102);
@@ -112,7 +112,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::NIL => {
                 println!("nil check failed");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(103);
@@ -134,7 +134,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::CAST => {
                 println!("cast failed");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(105);
@@ -143,7 +143,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::UNEXPECTED => {
                 println!("unexpected exception");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(106);
@@ -152,7 +152,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
             Trap::OOM => {
                 println!("out of memory");
-                let stacktrace = get_stacktrace(ctxt, &es);
+                let stacktrace = stacktrace_from_es(ctxt, &es);
                 stacktrace.dump(ctxt);
                 unsafe {
                     libc::_exit(107);
@@ -163,7 +163,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         // is this is a failed nil check?
     } else if detect_nil_check(ctxt, es.pc) {
         println!("nil check failed");
-        let stacktrace = get_stacktrace(ctxt, &es);
+        let stacktrace = stacktrace_from_es(ctxt, &es);
         stacktrace.dump(ctxt);
         unsafe {
             libc::_exit(103);
