@@ -1,15 +1,16 @@
-//= "caught\nafter\nend\n"
+//= "caught\nException\n0: main(): 5\nafter\nend\n"
 
 fun main() {
   do {
-    throwFromNative(true);
+    try throwFromNative(true);
     assert(false);
   } catch e: Exception {
     println("caught");
+    e.printStackTrace();
     assert(true);
   }
 
   println("after");
-  throwFromNative(false);
+  try! throwFromNative(false);
   println("end");
 }

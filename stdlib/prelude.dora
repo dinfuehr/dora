@@ -17,7 +17,7 @@ internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
 
 internal fun call(fct: Str);
-internal fun throwFromNative(val: bool);
+internal fun throwFromNative(val: bool) throws;
 
 internal class bool {
   internal fun toInt() -> int;

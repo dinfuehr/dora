@@ -282,7 +282,7 @@ impl Str {
     pub fn size(&self) -> usize {
         Header::size() as usize         // Object header
             + mem::ptr_width() as usize // length field
-            + self.len()                // string content
+            + self.len() // string content
     }
 
     /// allocates string from buffer in permanent space
@@ -367,7 +367,7 @@ fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
 {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
-                + len;                      // string content
+                + len; // string content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(ctxt, size) as usize;

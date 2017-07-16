@@ -1,6 +1,6 @@
 fun main() {
   do {
-    throwFromNative(false);
+    try throwFromNative(false);
     assert(true);
   } catch e: Exception {
     assert(false);

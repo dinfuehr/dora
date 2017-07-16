@@ -28,9 +28,7 @@ pub static mut CTXT: Option<*const u8> = None;
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
 pub fn has_exception() -> bool {
-    unsafe {
-        !EXCEPTION_OBJECT.is_null()
-    }
+    unsafe { !EXCEPTION_OBJECT.is_null() }
 }
 
 pub fn exception_get_and_clear() -> *const u8 {

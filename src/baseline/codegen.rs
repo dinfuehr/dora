@@ -196,7 +196,8 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
                  "  {:#06x}: {}\t\t{}",
                  instr.addr,
                  instr.mnemonic,
-                 instr.op_str).unwrap();
+                 instr.op_str)
+                .unwrap();
     }
 
     writeln!(&mut w).unwrap();

@@ -13,7 +13,8 @@ use std::thread;
 
 use baseline;
 use ctxt::{exception_set, get_ctxt};
-use object::{alloc, ByteArray, Handle, Obj, Str};
+use exception::alloc_exception;
+use object::{ByteArray, Handle, Obj, Str};
 
 use sym::Sym::SymFct;
 
@@ -95,8 +96,7 @@ pub extern "C" fn println(val: Handle<Str>) {
 pub extern "C" fn throw_native(val: bool) {
     if val {
         let ctxt = get_ctxt();
-        let exception_class = ctxt.primitive_classes.exception_class;
-        let obj = alloc(ctxt, exception_class);
+        let obj = alloc_exception(ctxt, Handle::null());
 
         exception_set(obj.raw() as *const u8);
     }
