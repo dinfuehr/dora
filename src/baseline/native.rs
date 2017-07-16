@@ -170,22 +170,16 @@ fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: 
     }
 }
 
-fn start_native_call(fp: *const u8, native_pc: usize) {
+fn start_native_call(fp: *const u8, pc: usize) {
     unsafe {
         // fp is framepointer of native stub
-
-        // get framepointer of dora function and return address into dora
-        let dora_ra = *(fp.offset(8) as *const usize);
 
         let dtn_size = size_of::<DoraToNativeInfo>() as isize;
         let dtn: *mut DoraToNativeInfo = fp.offset(-dtn_size) as *mut DoraToNativeInfo;
         let dtn: &mut DoraToNativeInfo = &mut *dtn;
 
-        dtn.sp = 0;
-        dtn.ra = dora_ra;
-        dtn.xpc = dtn.ra - 1;
-        dtn.native_fp = fp as usize;
-        dtn.native_pc = native_pc;
+        dtn.fp = fp as usize;
+        dtn.pc = pc;
 
         let ctxt = get_ctxt();
         ctxt.push_dtn(dtn);

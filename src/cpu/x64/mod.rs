@@ -2,7 +2,6 @@ use std::ptr;
 
 use baseline::fct::ExHandler;
 use execstate::ExecState;
-use mem;
 use object::{Handle, Obj};
 use os::signal::Trap;
 use exception::DoraToNativeInfo;
@@ -19,11 +18,8 @@ pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
 
     DoraToNativeInfo {
         last: ptr::null(),
-        native_fp: es.regs[RBP.int() as usize],
-        native_pc: 0,
-        sp: es.sp + mem::ptr_width() as usize,
-        ra: ra,
-        xpc: ra - 1,
+        fp: es.regs[RBP.int() as usize],
+        pc: ra,
     }
 }
 

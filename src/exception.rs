@@ -48,31 +48,22 @@ struct StackElem {
 }
 
 pub struct DoraToNativeInfo {
+    // pointer to previous DTN-Info
     pub last: *const DoraToNativeInfo,
-    pub sp: usize,
-
-    // exact return address into last dora function
-    pub ra: usize,
-
-    // one byte before return address into last dora function
-    pub xpc: usize,
 
     // frame pointer of native stub
-    pub native_fp: usize,
+    pub fp: usize,
 
     // some program counter into native stub
-    pub native_pc: usize,
+    pub pc: usize,
 }
 
 impl DoraToNativeInfo {
     pub fn new() -> DoraToNativeInfo {
         DoraToNativeInfo {
             last: ptr::null(),
-            sp: 0,
-            native_fp: 0,
-            native_pc: 0,
-            ra: 0,
-            xpc: 0,
+            fp: 0,
+            pc: 0,
         }
     }
 }
@@ -97,8 +88,8 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };
 
-        let pc: usize = dtn.native_pc;
-        let fp: usize = dtn.native_fp;
+        let pc: usize = dtn.pc;
+        let fp: usize = dtn.fp;
 
         frames_from_pc(stacktrace, ctxt, pc, fp);
 

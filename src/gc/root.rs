@@ -42,8 +42,8 @@ fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
                             -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
 
-    let mut pc: usize = dtn.native_pc;
-    let mut fp: usize = dtn.native_fp;
+    let mut pc: usize = dtn.pc;
+    let mut fp: usize = dtn.fp;
 
     while fp != 0 {
         if !determine_rootset(rootset, ctxt, fp, pc) {
