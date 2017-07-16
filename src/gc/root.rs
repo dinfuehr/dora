@@ -42,8 +42,8 @@ fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
                             -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
 
-    let mut pc: usize = dtn.ra;
-    let mut fp: usize = dtn.fp;
+    let mut pc: usize = dtn.native_pc;
+    let mut fp: usize = dtn.native_fp;
 
     while fp != 0 {
         if !determine_rootset(rootset, ctxt, fp, pc) {
@@ -72,21 +72,29 @@ fn determine_rootset(rootset: &mut Vec<IndirectObj>,
     if let CodeData::Fct(fct_id) = data.unwrap() {
         let fct = ctxt.fcts[fct_id].borrow();
 
-        if let FctKind::Source(ref src) = fct.kind {
-            let src = src.borrow();
-            let jit_fct = src.jit_fct.read().unwrap();
-            let jit_fct = jit_fct.as_ref().expect("no jit information");
-            let offset = pc - (jit_fct.fct_ptr() as usize);
-            let gcpoint = jit_fct
-                .gcpoint_for_offset(offset as i32)
-                .expect("no gcpoint");
+        match fct.kind {
+            FctKind::Source(ref src) => {
+                let src = src.borrow();
+                let jit_fct = src.jit_fct.read().unwrap();
+                let jit_fct = jit_fct.as_ref().expect("no jit information");
+                let offset = pc - (jit_fct.fct_ptr() as usize);
+                let gcpoint = jit_fct
+                    .gcpoint_for_offset(offset as i32)
+                    .expect("no gcpoint");
 
-            for &offset in &gcpoint.offsets {
-                let addr = (fp as isize + offset as isize) as usize;
-                rootset.push(addr.into());
+                for &offset in &gcpoint.offsets {
+                    let addr = (fp as isize + offset as isize) as usize;
+                    rootset.push(addr.into());
+                }
             }
-        } else {
-            panic!("should be FctKind::Source");
+
+            FctKind::Native(_) => {
+                // native stub, doesn't keep anything alive
+            }
+
+            _ => {
+                panic!("fct kind neither source or native");
+            }
         }
 
         true

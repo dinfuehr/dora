@@ -19,7 +19,8 @@ pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
 
     DoraToNativeInfo {
         last: ptr::null(),
-        fp: es.regs[RBP.int() as usize],
+        native_fp: es.regs[RBP.int() as usize],
+        native_pc: 0,
         sp: es.sp + mem::ptr_width() as usize,
         ra: ra,
         xpc: ra - 1,

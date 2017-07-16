@@ -591,6 +591,10 @@ impl MacroAssembler {
         asm::emit_mov_reg_reg(self, x64, src, dest);
     }
 
+    pub fn copy_pc(&mut self, dest: Reg) {
+        asm::lea(self, dest, Mem::Base(RIP, 0));
+    }
+
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => asm::movss(self, dest, src),

@@ -29,9 +29,9 @@ impl Stacktrace {
     }
 
     pub fn dump(&self, ctxt: &SemContext) {
-        for (ind, elem) in self.elems.iter().rev().enumerate() {
+        for (ind, elem) in self.elems.iter().enumerate() {
             let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
-            print!("  {}: {}:", ind, name);
+            print!("{}: {}: ", ind, name);
 
             if elem.lineno == 0 {
                 println!("?");
@@ -50,9 +50,18 @@ struct StackElem {
 pub struct DoraToNativeInfo {
     pub last: *const DoraToNativeInfo,
     pub sp: usize,
-    pub fp: usize,
+
+    // exact return address into last dora function
     pub ra: usize,
+
+    // one byte before return address into last dora function
     pub xpc: usize,
+
+    // frame pointer of native stub
+    pub native_fp: usize,
+
+    // some program counter into native stub
+    pub native_pc: usize,
 }
 
 impl DoraToNativeInfo {
@@ -60,7 +69,8 @@ impl DoraToNativeInfo {
         DoraToNativeInfo {
             last: ptr::null(),
             sp: 0,
-            fp: 0,
+            native_fp: 0,
+            native_pc: 0,
             ra: 0,
             xpc: 0,
         }
@@ -87,8 +97,8 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };
 
-        let pc: usize = dtn.ra;
-        let fp: usize = dtn.fp;
+        let pc: usize = dtn.native_pc;
+        let fp: usize = dtn.native_fp;
 
         frames_from_pc(stacktrace, ctxt, pc, fp);
 
@@ -97,14 +107,15 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
 }
 
 fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize, mut fp: usize) {
-    determine_stack_entry(stacktrace, ctxt, pc);
+    if !determine_stack_entry(stacktrace, ctxt, pc) {
+        return;
+    }
 
     while fp != 0 {
         let ra = unsafe { *((fp + 8) as *const usize) };
-        let cont = determine_stack_entry(stacktrace, ctxt, ra);
 
-        if !cont {
-            break;
+        if !determine_stack_entry(stacktrace, ctxt, ra) {
+            return;
         }
 
         fp = unsafe { *(fp as *const usize) };
@@ -120,17 +131,28 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
     }
 
     if let CodeData::Fct(fct_id) = data.unwrap() {
-        let mut lineno = 0;
+        let lineno;
         let fct = ctxt.fcts[fct_id].borrow();
-        if let FctKind::Source(ref src) = fct.kind {
-            let src = src.borrow();
-            let jit_fct = src.jit_fct.read().unwrap();
-            let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
-            let offset = pc - (jit_fct.fct_ptr() as usize);
-            lineno = jit_fct.lineno_for_offset(offset as i32);
 
-            if lineno == 0 {
-                panic!("lineno not found for program point");
+        match fct.kind {
+            FctKind::Source(ref src) => {
+                let src = src.borrow();
+                let jit_fct = src.jit_fct.read().unwrap();
+                let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
+                let offset = pc - (jit_fct.fct_ptr() as usize);
+                lineno = jit_fct.lineno_for_offset(offset as i32);
+
+                if lineno == 0 {
+                    panic!("lineno not found for program point");
+                }
+            }
+
+            FctKind::Native(_) => {
+                lineno = fct.ast.pos.line as i32;
+            }
+
+            _ => {
+                panic!("fct kind neither source nor native");
             }
         }
 
@@ -138,8 +160,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
 
         true
     } else {
-        // only continue if we still haven't reached jitted functions
-        stacktrace.len() == 0
+        false
     }
 }
 
@@ -269,7 +290,7 @@ pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception>
 fn set_exception_backtrace(ctxt: &SemContext, mut obj: Handle<Exception>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(ctxt);
 
-    let skip = if via_retrieve { 1 } else { 0 };
+    let skip = if via_retrieve { 2 } else { 0 };
     let len = stacktrace.len() - skip;
 
     let cls_id = ctxt.primitive_classes.int_array;

@@ -1708,6 +1708,14 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
 
         let jit_fct = native::generate(ctxt, internal_fct, dbg);
 
+        {
+            use baseline::map::CodeData;
+
+            let mut code_map = ctxt.code_map.lock().unwrap();
+            let cdata = CodeData::Fct(fct_id);
+            code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
+        }
+
         if should_emit_asm(ctxt, &*fct) {
             dump_asm(ctxt,
                      &*fct,

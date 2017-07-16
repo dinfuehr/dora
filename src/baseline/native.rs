@@ -81,6 +81,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 
         self.masm
             .copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
+        self.masm.copy_pc(REG_PARAMS[1]);
         self.masm
             .direct_call_without_info(start_native_call as *const u8);
 
@@ -169,22 +170,22 @@ fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: 
     }
 }
 
-fn start_native_call(fp: *const u8) {
+fn start_native_call(fp: *const u8, native_pc: usize) {
     unsafe {
         // fp is framepointer of native stub
 
         // get framepointer of dora function and return address into dora
         let dora_ra = *(fp.offset(8) as *const usize);
-        let dora_fp = *(fp as *const usize);
 
         let dtn_size = size_of::<DoraToNativeInfo>() as isize;
         let dtn: *mut DoraToNativeInfo = fp.offset(-dtn_size) as *mut DoraToNativeInfo;
         let dtn: &mut DoraToNativeInfo = &mut *dtn;
 
         dtn.sp = 0;
-        dtn.fp = dora_fp;
         dtn.ra = dora_ra;
         dtn.xpc = dtn.ra - 1;
+        dtn.native_fp = fp as usize;
+        dtn.native_pc = native_pc;
 
         let ctxt = get_ctxt();
         ctxt.push_dtn(dtn);
