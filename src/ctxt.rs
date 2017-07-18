@@ -18,6 +18,7 @@ use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
+use handle::HandleMemory;
 use safepoint::PollingPage;
 use sym::*;
 use sym::Sym::*;
@@ -74,6 +75,7 @@ pub struct SemContext<'ast> {
     pub compile_stub: RefCell<Option<Stub>>,
     pub polling_page: PollingPage,
     pub types: RefCell<Types>,
+    pub handles: HandleMemory,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -118,6 +120,7 @@ impl<'ast> SemContext<'ast> {
             compile_stub: RefCell::new(None),
             polling_page: PollingPage::new(),
             types: RefCell::new(Types::new()),
+            handles: HandleMemory::new(),
         }
     }
 

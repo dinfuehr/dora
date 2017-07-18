@@ -182,12 +182,16 @@ fn start_native_call(fp: *const u8, pc: usize) {
         dtn.pc = pc;
 
         let ctxt = get_ctxt();
+
         ctxt.push_dtn(dtn);
+        ctxt.handles.push_border();
     }
 }
 
 fn finish_native_call() -> *const u8 {
     let ctxt = get_ctxt();
+
+    ctxt.handles.pop_border();
     ctxt.pop_dtn();
 
     exception_get_and_clear()

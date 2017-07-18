@@ -1,18 +1,19 @@
-use std::ptr;
+use std::cell::{Cell, RefCell};
 
-use gc::root::IndirectObj;
-use object::Obj;
+use object::{Handle, Obj};
 
 pub const HANDLE_SIZE: usize = 256;
 
 pub struct HandleMemory {
     /// all buffers, Box is important since HandleBuffer
     /// is a big struct that needs to get moved/copied on resizes
-    buffers: Vec<Box<HandleBuffer>>,
-    borders: Vec<BorderData>,
+    buffers: RefCell<Vec<Box<HandleBuffer>>>,
 
-    // next free position in buffer
-    free: usize,
+    // store addresses of inserted borders
+    borders: RefCell<Vec<BorderData>>,
+
+    // index of next free position in buffer
+    free: Cell<usize>,
 }
 
 impl HandleMemory {
@@ -20,38 +21,56 @@ impl HandleMemory {
         let buffer = box HandleBuffer::new();
 
         HandleMemory {
-            buffers: vec![buffer],
-            borders: Vec::new(),
-            free: 0,
+            buffers: RefCell::new(vec![buffer]),
+            borders: RefCell::new(Vec::new()),
+            free: Cell::new(0),
         }
     }
 
-    pub fn push(&mut self, obj: *mut Obj) -> IndirectObj {
-        if self.free >= HANDLE_SIZE {
+    pub fn root(&self, obj: Handle<Obj>) -> Rooted<Obj> {
+        if self.free.get() >= HANDLE_SIZE {
             self.push_buffer();
-            self.free = 0;
+            self.free.set(0);
         }
 
-        let buffer = self.buffers.last_mut().unwrap();
-        let elem = &mut buffer.elements[self.free];
+        let mut buffers = self.buffers.borrow_mut();
+        let buffer = buffers.last_mut().unwrap();
+        let elem = &mut buffer.elements[self.free.get()];
 
         *elem = obj;
 
-        (elem as *mut _ as usize).into()
+        Rooted(elem)
     }
 
-    fn push_buffer(&mut self) {
-        self.buffers.push(box HandleBuffer::new());
+    fn push_buffer(&self) {
+        self.buffers.borrow_mut().push(box HandleBuffer::new());
+    }
+
+    pub fn push_border(&self) {
+        let buffer = self.buffers.borrow().len();
+        let element = self.free.get();
+
+        self.borders.borrow_mut().push(BorderData {
+            buffer: buffer,
+            element: element,
+        });
+    }
+
+    pub fn pop_border(&self) {
+        let border = self.borders.borrow_mut().pop().expect("no border left");
+
+        self.buffers.borrow_mut().truncate(border.buffer);
+        self.free.set(border.element);
     }
 }
 
 struct HandleBuffer {
-    elements: [*mut Obj; HANDLE_SIZE],
+    elements: [Handle<Obj>; HANDLE_SIZE],
 }
 
 impl HandleBuffer {
     fn new() -> HandleBuffer {
-        HandleBuffer { elements: [ptr::null_mut(); HANDLE_SIZE] }
+        HandleBuffer { elements: [Handle::null(); HANDLE_SIZE] }
     }
 }
 
@@ -60,4 +79,11 @@ struct BorderData {
     element: usize,
 }
 
-struct HandleBorder(usize);
+#[derive(Copy, Clone)]
+pub struct Rooted<T>(*mut Handle<T>);
+
+impl<T> Rooted<T> {
+    pub fn direct(self) -> Handle<T> {
+        unsafe { *self.0 }
+    }
+}
