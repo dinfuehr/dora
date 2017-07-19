@@ -10,8 +10,15 @@ pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
 
     determine_rootset_from_stack(&mut rootset, ctxt);
     determine_rootset_from_globals(&mut rootset, ctxt);
+    determine_rootset_from_handles(&mut rootset, ctxt);
 
     rootset
+}
+
+fn determine_rootset_from_handles(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
+    for rooted in ctxt.handles.iter() {
+        rootset.push((rooted.raw() as usize).into());
+    }
 }
 
 fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
