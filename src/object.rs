@@ -8,6 +8,7 @@ use std::slice;
 use class::ClassId;
 use ctxt::{SemContext, get_ctxt};
 use gc::root::IndirectObj;
+use handle::Rooted;
 use mem;
 use vtable::VTable;
 
@@ -315,9 +316,9 @@ impl Str {
         handle
     }
 
-    pub fn concat(ctxt: &SemContext, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
+    pub fn concat(ctxt: &SemContext, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = str_alloc_heap(ctxt, len);
+        let mut handle = ctxt.handles.root(str_alloc_heap(ctxt, len));
 
         unsafe {
             handle.length = len;

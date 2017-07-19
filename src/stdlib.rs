@@ -151,7 +151,7 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     let lhs = ctxt.handles.root(lhs);
     let rhs = ctxt.handles.root(rhs);
 
-    Str::concat(ctxt, lhs.direct(), rhs.direct())
+    Str::concat(ctxt, lhs, rhs).direct()
 }
 
 pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
