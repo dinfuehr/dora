@@ -36,7 +36,10 @@ impl HandleMemory {
 
         let mut buffers = self.buffers.borrow_mut();
         let buffer = buffers.last_mut().unwrap();
-        let elem = &mut buffer.elements[self.free.get()];
+
+        let idx = self.free.get();
+        let elem = &mut buffer.elements[idx];
+        self.free.set(idx+1);
 
         *elem = obj;
 
