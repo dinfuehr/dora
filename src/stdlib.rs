@@ -148,8 +148,10 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
 
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     let ctxt = get_ctxt();
+    let lhs = ctxt.handles.root(lhs);
+    let rhs = ctxt.handles.root(rhs);
 
-    Str::concat(ctxt, lhs, rhs)
+    Str::concat(ctxt, lhs.direct(), rhs.direct())
 }
 
 pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {

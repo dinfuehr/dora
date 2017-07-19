@@ -28,7 +28,7 @@ impl HandleMemory {
         }
     }
 
-    pub fn root(&self, obj: Handle<Obj>) -> Rooted<Obj> {
+    pub fn root<T>(&self, obj: Handle<T>) -> Rooted<T> {
         if self.free.get() >= HANDLE_SIZE {
             self.push_buffer();
             self.free.set(0);
@@ -41,9 +41,9 @@ impl HandleMemory {
         let elem = &mut buffer.elements[idx];
         self.free.set(idx+1);
 
-        *elem = obj;
+        *elem = obj.cast::<Obj>();
 
-        Rooted(elem)
+        Rooted(elem as *mut Handle<Obj> as *mut Handle<T>)
     }
 
     fn push_buffer(&self) {

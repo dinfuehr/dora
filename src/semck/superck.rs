@@ -26,8 +26,6 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
-    let object_cls = ctxt.primitive_classes.object_class;
-
     for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
