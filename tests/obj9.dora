@@ -1,0 +1,12 @@
+fun main() {
+    t(A());
+    t(B());
+    t(C());
+    t("abc");
+}
+
+fun t(o: Object) {}
+
+class A
+open class B
+class C: B
