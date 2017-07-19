@@ -95,7 +95,6 @@ struct BorderData {
     element: usize,
 }
 
-#[derive(Copy, Clone)]
 pub struct Rooted<T>(*mut Handle<T>);
 
 impl<T> Rooted<T> {
@@ -107,7 +106,7 @@ impl<T> Rooted<T> {
         self.0
     }
 
-    pub fn cast<R>(&self) -> Rooted<R> {
+    pub fn cast<R>(self) -> Rooted<R> {
         Rooted(self.0 as *mut Handle<R>)
     }
 }
@@ -123,6 +122,15 @@ impl<T> Deref for Rooted<T> {
 impl<T> DerefMut for Rooted<T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *self.0 }.deref_mut()
+    }
+}
+
+// known limitation of #[derive(Copy, Clone)]
+// traits need to be implemented manually
+impl<T> Copy for Rooted<T> {}
+impl<T> Clone for Rooted<T> {
+    fn clone(&self) -> Rooted<T> {
+        *self
     }
 }
 
