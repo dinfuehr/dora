@@ -310,9 +310,6 @@ impl Str {
 
             // copy buffer content into Str
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
-
-            // string should end with 0 for C compatibility
-            *(data.offset(buf.len() as isize)) = 0;
         }
 
         handle
@@ -329,8 +326,6 @@ impl Str {
             ptr::copy_nonoverlapping(rhs.data(),
                                      handle.data().offset(lhs.len() as isize) as *mut u8,
                                      rhs.len());
-
-            *(handle.data().offset(len as isize) as *mut u8) = 0;
         }
 
         handle
@@ -345,7 +340,6 @@ impl Str {
             handle.length = len;
 
             ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
-            *(handle.data().offset(len as isize) as *mut u8) = 0;
         }
 
         handle
