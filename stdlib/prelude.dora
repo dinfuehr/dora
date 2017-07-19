@@ -227,6 +227,8 @@ internal class double {
   internal fun sqrt() -> double;
 }
 
+class Object
+
 internal class Array<T> {
   init() {}
   init(len: int) {}

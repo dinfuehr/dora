@@ -158,6 +158,14 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         .report(parent_class.pos, msg);
                 }
             };
+        } else {
+            let object_cls = self.ctxt.primitive_classes.object_class;
+            let cls_id = self.cls_id.unwrap();
+
+            if cls_id != object_cls {
+                let mut cls = self.ctxt.classes[cls_id].borrow_mut();
+                cls.parent_class = Some(object_cls);
+            }
         }
 
         self.cls_id = None;

@@ -26,6 +26,8 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
+    let object_cls = ctxt.primitive_classes.object_class;
+
     for cls in ctxt.classes.iter() {
         let cls = cls.borrow();
 
@@ -436,7 +438,7 @@ mod tests {
             open class B: A { var b1: int; var b2: int; }
             class C: B { var c: Str; }",
                      |ctxt| {
-            check_class(ctxt, "A", mem::ptr_width(), None);
+            check_class(ctxt, "A", mem::ptr_width(), Some("Object"));
             check_field(ctxt, "A", "a", Header::size());
             check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
             check_field(ctxt, "B", "b1", Header::size() + 4);
@@ -541,8 +543,8 @@ mod tests {
     #[test]
     fn test_depth() {
         ok_with_test("class A { } class B { }", |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 0);
-            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 0);
+            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 1);
+            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 1);
         });
     }
 
@@ -551,41 +553,44 @@ mod tests {
         ok_with_test("open class A { } open class B: A { }
                       class C: B { }",
                      |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 0);
-            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 1);
-            assert_eq!(vtable_by_name(ctxt, "C", |f| f.subtype_depth), 2);
+            assert_eq!(vtable_by_name(ctxt, "A", |f| f.subtype_depth), 1);
+            assert_eq!(vtable_by_name(ctxt, "B", |f| f.subtype_depth), 2);
+            assert_eq!(vtable_by_name(ctxt, "C", |f| f.subtype_depth), 3);
 
             {
                 let vtable = vtable_by_name(ctxt, "C", |vtable| {
-                    assert!(vtable.subtype_display[3].is_null());
+                    assert!(vtable.subtype_display[4].is_null());
                     vtable as *const _
                 });
 
                 assert_name(ctxt, vtable_name(vtable), "C");
-                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
-                assert_name(ctxt, vtable_display_name(vtable, 1), "B");
-                assert_name(ctxt, vtable_display_name(vtable, 2), "C");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
+                assert_name(ctxt, vtable_display_name(vtable, 1), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 2), "B");
+                assert_name(ctxt, vtable_display_name(vtable, 3), "C");
             }
 
             {
                 let vtable = vtable_by_name(ctxt, "B", |vtable| {
-                    assert!(vtable.subtype_display[2].is_null());
+                    assert!(vtable.subtype_display[3].is_null());
                     vtable as *const _
                 });
 
                 assert_name(ctxt, vtable_name(vtable), "B");
-                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
-                assert_name(ctxt, vtable_display_name(vtable, 1), "B");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
+                assert_name(ctxt, vtable_display_name(vtable, 1), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 2), "B");
             }
 
             {
                 let vtable = vtable_by_name(ctxt, "A", |vtable| {
-                    assert!(vtable.subtype_display[1].is_null());
+                    assert!(vtable.subtype_display[2].is_null());
                     vtable as *const _
                 });
 
                 assert_name(ctxt, vtable_name(vtable), "A");
-                assert_name(ctxt, vtable_display_name(vtable, 0), "A");
+                assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
+                assert_name(ctxt, vtable_display_name(vtable, 1), "A");
             }
         });
     }
@@ -603,49 +608,53 @@ mod tests {
                         open class L9: L8 { }
                         class L10: L9 { }",
                      |ctxt| {
-            assert_eq!(vtable_by_name(ctxt, "L1", |f| f.subtype_depth), 0);
-            assert_eq!(vtable_by_name(ctxt, "L2", |f| f.subtype_depth), 1);
-            assert_eq!(vtable_by_name(ctxt, "L3", |f| f.subtype_depth), 2);
-            assert_eq!(vtable_by_name(ctxt, "L4", |f| f.subtype_depth), 3);
-            assert_eq!(vtable_by_name(ctxt, "L5", |f| f.subtype_depth), 4);
-            assert_eq!(vtable_by_name(ctxt, "L6", |f| f.subtype_depth), 5);
-            assert_eq!(vtable_by_name(ctxt, "L7", |f| f.subtype_depth), 6);
+            assert_eq!(vtable_by_name(ctxt, "Object", |f| f.subtype_depth), 0);
+            assert_eq!(vtable_by_name(ctxt, "L1", |f| f.subtype_depth), 1);
+            assert_eq!(vtable_by_name(ctxt, "L2", |f| f.subtype_depth), 2);
+            assert_eq!(vtable_by_name(ctxt, "L3", |f| f.subtype_depth), 3);
+            assert_eq!(vtable_by_name(ctxt, "L4", |f| f.subtype_depth), 4);
+            assert_eq!(vtable_by_name(ctxt, "L5", |f| f.subtype_depth), 5);
+            assert_eq!(vtable_by_name(ctxt, "L6", |f| f.subtype_depth), 6);
+            assert_eq!(vtable_by_name(ctxt, "L7", |f| f.subtype_depth), 7);
 
             let vtable = vtable_by_name(ctxt, "L7", |vtable| {
                 assert!(!vtable.subtype_overflow.is_null());
-                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+                assert_eq!(vtable_by_name(ctxt, "L6", |v| v as *const _),
                            vtable.get_subtype_overflow(0));
+                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+                           vtable.get_subtype_overflow(1));
 
                 vtable as *const _
             });
 
-            assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
-            assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
-            assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
-            assert_name(ctxt, vtable_display_name(vtable, 3), "L4");
-            assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
-            assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
+            assert_name(ctxt, vtable_display_name(vtable, 1), "L1");
+            assert_name(ctxt, vtable_display_name(vtable, 2), "L2");
+            assert_name(ctxt, vtable_display_name(vtable, 3), "L3");
+            assert_name(ctxt, vtable_display_name(vtable, 4), "L4");
+            assert_name(ctxt, vtable_display_name(vtable, 5), "L5");
 
             let vtable = vtable_by_name(ctxt, "L10", |vtable| {
                 assert!(!vtable.subtype_overflow.is_null());
-                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
+                assert_eq!(vtable_by_name(ctxt, "L6", |v| v as *const _),
                            vtable.get_subtype_overflow(0));
-                assert_eq!(vtable_by_name(ctxt, "L8", |v| v as *const _),
+                assert_eq!(vtable_by_name(ctxt, "L7", |v| v as *const _),
                            vtable.get_subtype_overflow(1));
-                assert_eq!(vtable_by_name(ctxt, "L9", |v| v as *const _),
+                assert_eq!(vtable_by_name(ctxt, "L8", |v| v as *const _),
                            vtable.get_subtype_overflow(2));
-                assert_eq!(vtable_by_name(ctxt, "L10", |v| v as *const _),
+                assert_eq!(vtable_by_name(ctxt, "L9", |v| v as *const _),
                            vtable.get_subtype_overflow(3));
+                assert_eq!(vtable_by_name(ctxt, "L10", |v| v as *const _),
+                           vtable.get_subtype_overflow(4));
 
                 vtable as *const _
             });
 
-            assert_name(ctxt, vtable_display_name(vtable, 0), "L1");
-            assert_name(ctxt, vtable_display_name(vtable, 1), "L2");
-            assert_name(ctxt, vtable_display_name(vtable, 2), "L3");
-            assert_name(ctxt, vtable_display_name(vtable, 3), "L4");
-            assert_name(ctxt, vtable_display_name(vtable, 4), "L5");
-            assert_name(ctxt, vtable_display_name(vtable, 5), "L6");
+            assert_name(ctxt, vtable_display_name(vtable, 0), "Object");
+            assert_name(ctxt, vtable_display_name(vtable, 1), "L1");
+            assert_name(ctxt, vtable_display_name(vtable, 2), "L2");
+            assert_name(ctxt, vtable_display_name(vtable, 3), "L3");
+            assert_name(ctxt, vtable_display_name(vtable, 4), "L4");
+            assert_name(ctxt, vtable_display_name(vtable, 5), "L5");
         });
     }
 
