@@ -1,0 +1,16 @@
+//= output "10\n10\n"
+
+fun main() {
+    let a = A(10);
+    let x = a.test();
+    println(a.a.toString());
+    println(x.toString());
+    assert(x == 10);
+}
+
+class A(let a: int) {
+    fun test() -> int {
+        forceCollect();
+        return self.a;
+    }
+}

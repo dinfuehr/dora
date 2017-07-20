@@ -1,0 +1,11 @@
+fun main() {
+    let y = test(A(10));
+    assert(y == 10);
+}
+
+class A(let x: int)
+
+fun test(a: A) -> int {
+    forceCollect();
+    return a.x;
+}

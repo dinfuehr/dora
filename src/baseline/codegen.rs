@@ -288,6 +288,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             let offset = self.jit_info.offset(var.id);
             self.masm.store_mem(mode, Mem::Local(offset), dest);
 
+            self.scopes.add_var(var.id, offset);
+
             if mode.is_float() {
                 freg_idx += 1;
             } else {
@@ -297,7 +299,13 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
-            let is_float = self.src.vars[varid].ty.mode().is_float();
+            let ty = self.src.vars[varid].ty;
+            let is_float = ty.mode().is_float();
+
+            if ty.reference_type() {
+                let offset = self.jit_info.offset(varid);
+                self.scopes.add_var(varid, offset);
+            }
 
             if is_float && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
