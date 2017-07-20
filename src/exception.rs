@@ -4,7 +4,6 @@ use baseline::fct::CatchType;
 use baseline::map::CodeData;
 use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
 use ctxt::{SemContext, FctKind, FctId, get_ctxt};
-use handle::Rooted;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
 
@@ -250,6 +249,7 @@ pub extern "C" fn retrieve_stack_trace(obj: Handle<Exception>) {
 
 pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<StackTraceElement> {
     let ctxt = get_ctxt();
+    let obj = ctxt.handles.root(obj);
     let array = obj.backtrace;
 
     let ind = ind as usize * 2;
@@ -258,35 +258,39 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     let fct_id = array.get_at(ind + 1);
     let cls_id = ctxt.primitive_classes.stack_trace_element_class;
 
-    let mut obj: Rooted<StackTraceElement> = ctxt.handles.root(alloc(ctxt, cls_id)).cast();
-    obj.line = lineno;
+    let ste: Handle<StackTraceElement> = alloc(ctxt, cls_id).cast();
+    let mut ste = ctxt.handles.root(ste);
+    ste.line = lineno;
 
     let name = ctxt.fcts[FctId(fct_id as usize)]
         .borrow()
         .full_name(ctxt);
-    obj.name = Str::from_buffer(ctxt, name.as_bytes());
+    ste.name = Str::from_buffer(ctxt, name.as_bytes());
 
-    obj.direct()
+    ste.direct()
 }
 
 pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception> {
     let cls_id = ctxt.primitive_classes.exception_class;
-    let mut obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
+    let obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
+    let mut obj = ctxt.handles.root(obj);
 
     obj.msg = msg;
-    set_exception_backtrace(ctxt, obj, false);
+    set_exception_backtrace(ctxt, obj.direct(), false);
 
-    obj
+    obj.direct()
 }
 
-fn set_exception_backtrace(ctxt: &SemContext, mut obj: Handle<Exception>, via_retrieve: bool) {
+fn set_exception_backtrace(ctxt: &SemContext, obj: Handle<Exception>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(ctxt);
+    let mut obj = ctxt.handles.root(obj);
 
     let skip = if via_retrieve { 2 } else { 0 };
     let len = stacktrace.len() - skip;
 
     let cls_id = ctxt.primitive_classes.int_array;
-    let mut array: Handle<IntArray> = Array::alloc(ctxt, len * 2, 0, cls_id);
+    let array: Handle<IntArray> = Array::alloc(ctxt, len * 2, 0, cls_id);
+    let mut array = ctxt.handles.root(array);
     let mut i = 0;
 
     // ignore first element of stack trace (ctor of Exception)
@@ -297,5 +301,5 @@ fn set_exception_backtrace(ctxt: &SemContext, mut obj: Handle<Exception>, via_re
         i += 2;
     }
 
-    obj.backtrace = array;
+    obj.backtrace = array.direct();
 }

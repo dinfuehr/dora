@@ -97,8 +97,9 @@ pub extern "C" fn throw_native(val: bool) {
     if val {
         let ctxt = get_ctxt();
         let obj = alloc_exception(ctxt, Handle::null());
+        let obj = ctxt.handles.root(obj);
 
-        exception_set(obj.raw() as *const u8);
+        exception_set(obj.direct().raw() as *const u8);
     }
 }
 
