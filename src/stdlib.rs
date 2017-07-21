@@ -1,13 +1,11 @@
 use libc;
 
-use std;
 use std::ffi::CStr;
 use std::io::{self, Write};
 use std::mem;
 use std::os::raw::c_char;
 use std::process;
 use std::ptr;
-use std::slice;
 use std::str;
 use std::thread;
 
@@ -163,26 +161,10 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
 
 pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Handle<Str> {
     let ctxt = get_ctxt();
+    let val: Handle<Str> = val.cast();
     let val = ctxt.handles.root(val);
-    let total_len = val.len();
 
-    if offset > total_len {
-        return Handle::null();
-    }
-
-    let len = std::cmp::min(total_len - offset, len);
-
-    let slice = unsafe {
-        let data = val.data().offset(offset as isize);
-        slice::from_raw_parts(data, len)
-    };
-
-    if let Ok(_) = str::from_utf8(slice) {
-        Str::from_buffer(ctxt, slice)
-
-    } else {
-        Handle::null()
-    }
+    Str::from_str(ctxt, val, offset, len)
 }
 
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
@@ -224,7 +206,7 @@ pub extern "C" fn argv(ind: i32) -> Handle<Str> {
 }
 
 pub extern "C" fn str_parse_int(val: Handle<Str>) -> i32 {
-    let slice = unsafe { slice::from_raw_parts(val.data(), val.len()) };
+    let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i32>().unwrap_or(0)

@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
+use std::str;
 
 use class::ClassId;
 use ctxt::{SemContext, get_ctxt};
@@ -274,8 +275,12 @@ impl Str {
         &self.data as *const u8
     }
 
+    pub fn content(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.data(), self.len()) }
+    }
+
     pub fn to_cstring(&self) -> CString {
-        let view = unsafe { slice::from_raw_parts(self.data(), self.len()) };
+        let view = self.content();
 
         CString::new(view).unwrap()
     }
@@ -314,6 +319,39 @@ impl Str {
         }
 
         handle
+    }
+
+    pub fn from_str(ctxt: &SemContext, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
+        let total_len = val.len();
+
+        if offset > total_len {
+            return Handle::null();
+        }
+
+        let len = std::cmp::min(total_len - offset, len);
+
+        let slice = unsafe {
+            let data = val.data().offset(offset as isize);
+            slice::from_raw_parts(data, len)
+        };
+
+        if let Ok(_) = str::from_utf8(slice) {
+            let mut handle = str_alloc_heap(ctxt, len);
+            handle.length = len;
+
+            unsafe {
+                let dest = handle.data() as *mut u8;
+                let src = val.data().offset(offset as isize);
+
+                // copy buffer content into Str
+                ptr::copy_nonoverlapping(src, dest, len);
+            }
+
+            handle
+
+        } else {
+            Handle::null()
+        }
     }
 
     pub fn concat(ctxt: &SemContext, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
