@@ -301,7 +301,7 @@ impl Str {
         handle
     }
 
-    /// allocates string from buffer in permanent space
+    /// allocates string from buffer in heap
     pub fn from_buffer(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_heap(ctxt, buf.len());
         handle.length = buf.len();

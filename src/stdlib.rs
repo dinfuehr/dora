@@ -163,6 +163,7 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
 
 pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Handle<Str> {
     let ctxt = get_ctxt();
+    let val = ctxt.handles.root(val);
     let total_len = val.len();
 
     if offset > total_len {
@@ -171,16 +172,16 @@ pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usi
 
     let len = std::cmp::min(total_len - offset, len);
 
-    unsafe {
+    let slice = unsafe {
         let data = val.data().offset(offset as isize);
-        let slice = slice::from_raw_parts(data, len);
+        slice::from_raw_parts(data, len)
+    };
 
-        if let Ok(_) = str::from_utf8(slice) {
-            Str::from_buffer(ctxt, slice)
+    if let Ok(_) = str::from_utf8(slice) {
+        Str::from_buffer(ctxt, slice)
 
-        } else {
-            Handle::null()
-        }
+    } else {
+        Handle::null()
     }
 }
 
