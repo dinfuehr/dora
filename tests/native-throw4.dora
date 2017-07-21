@@ -1,0 +1,9 @@
+//= error exception
+
+fun main() {
+    do {
+        throwFromNativeButNotThrows(true);
+    } catch e: Exception {
+        assert(false);
+    }
+}

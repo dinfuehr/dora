@@ -18,6 +18,7 @@ internal fun forceCollect();
 
 internal fun call(fct: Str);
 internal fun throwFromNative(val: bool) throws;
+internal fun throwFromNativeButNotThrows(val: bool);
 
 internal class bool {
   internal fun toInt() -> int;

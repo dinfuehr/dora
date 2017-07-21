@@ -86,6 +86,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
 
     native_fct(ctxt, "call", stdlib::call as *const u8);
     native_fct(ctxt, "throwFromNative", stdlib::throw_native as *const u8);
+    native_fct(ctxt, "throwFromNativeButNotThrows", stdlib::throw_native as *const u8);
 
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);

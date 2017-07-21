@@ -204,38 +204,48 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     if let CodeData::Fct(fct_id) = data.unwrap() {
         let fct = ctxt.fcts[fct_id].borrow();
 
-        if let FctKind::Source(ref src) = fct.kind {
-            let src = src.borrow();
-            let jit_fct = src.jit_fct.read().unwrap();
-            let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
+        match fct.kind {
+            FctKind::Source(ref src) => {
+                let src = src.borrow();
+                let jit_fct = src.jit_fct.read().unwrap();
+                let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
 
-            let cls_id = exception.header().vtbl().class().id;
+                let cls_id = exception.header().vtbl().class().id;
 
-            for entry in &jit_fct.exception_handlers {
-                // println!("entry = {:x} to {:x} for {:?}",
-                //          entry.try_start, entry.try_end, entry.catch_type);
+                for entry in &jit_fct.exception_handlers {
+                    // println!("entry = {:x} to {:x} for {:?}",
+                    //          entry.try_start, entry.try_end, entry.catch_type);
 
-                if entry.try_start < pc && pc <= entry.try_end &&
-                   (entry.catch_type == CatchType::Any ||
-                    entry.catch_type == CatchType::Class(cls_id)) {
-                    let stacksize = jit_fct.framesize as usize;
-                    resume_with_handler(es, entry, fp, exception, stacksize);
+                    if entry.try_start < pc && pc <= entry.try_end &&
+                    (entry.catch_type == CatchType::Any ||
+                        entry.catch_type == CatchType::Class(cls_id)) {
+                        let stacksize = jit_fct.framesize as usize;
+                        resume_with_handler(es, entry, fp, exception, stacksize);
 
-                    return HandlerFound::Yes;
+                        return HandlerFound::Yes;
 
-                } else if pc > entry.try_end {
-                    // exception handlers are sorted, no more possible handlers
-                    // in this function
+                    } else if pc > entry.try_end {
+                        // exception handlers are sorted, no more possible handlers
+                        // in this function
 
-                    return HandlerFound::No;
+                        return HandlerFound::No;
+                    }
                 }
             }
 
-            // exception can only bubble up in stacktrace if current function
-            // is allowed to throw exceptions
-            if !fct.ast.throws {
-                return HandlerFound::Stop;
+            FctKind::Native(_) => {
+                // native fct stub doesn't have exception handlers
             }
+
+            _ => {
+                panic!("fct kind neither source nor native");
+            }
+        }
+
+        // exception can only bubble up in stacktrace if current function
+        // is allowed to throw exceptions
+        if !fct.ast.throws {
+            return HandlerFound::Stop;
         }
     }
 
