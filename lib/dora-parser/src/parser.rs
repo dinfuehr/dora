@@ -830,7 +830,14 @@ impl<'a> Parser<'a> {
                         Ok(Box::new(ty))
                     })?;
 
-                Ok(Type::create_tuple(self.generate_id(), token.position, subtypes))
+                if self.token.is(TokenKind::Arrow) {
+                    self.advance_token()?;
+                    let ret = Box::new(self.parse_type()?);
+
+                    Ok(Type::create_fct(self.generate_id(), token.position, subtypes, ret))
+                } else {
+                    Ok(Type::create_tuple(self.generate_id(), token.position, subtypes))
+                }
             }
 
             _ => Err(MsgWithPos::new(self.token.position, Msg::ExpectedType(self.token.name()))),
@@ -2389,6 +2396,36 @@ mod tests {
         assert_eq!("Foo", *interner.str(basic.name));
         assert_eq!("A", *interner.str(basic.params[0].to_basic().unwrap().name));
         assert_eq!("B", *interner.str(basic.params[1].to_basic().unwrap().name));
+    }
+
+    #[test]
+    fn parse_type_fct_no_params() {
+        let (ty, interner) = parse_type("() -> ()");
+        let fct = ty.to_fct().unwrap();
+
+        assert_eq!(0, fct.params.len());
+        assert!(fct.ret.is_unit());
+    }
+
+    #[test]
+    fn parse_type_fct_one_param() {
+        let (ty, interner) = parse_type("(A) -> B");
+        let fct = ty.to_fct().unwrap();
+
+        assert_eq!(1, fct.params.len());
+        assert_eq!("A", *interner.str(fct.params[0].to_basic().unwrap().name));
+        assert_eq!("B", *interner.str(fct.ret.to_basic().unwrap().name));
+    }
+
+    #[test]
+    fn parse_type_fct_two_params() {
+        let (ty, interner) = parse_type("(A, B) -> C");
+        let fct = ty.to_fct().unwrap();
+
+        assert_eq!(2, fct.params.len());
+        assert_eq!("A", *interner.str(fct.params[0].to_basic().unwrap().name));
+        assert_eq!("B", *interner.str(fct.params[1].to_basic().unwrap().name));
+        assert_eq!("C", *interner.str(fct.ret.to_basic().unwrap().name));
     }
 
     #[test]

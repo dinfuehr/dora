@@ -341,6 +341,21 @@ impl Type {
         }
     }
 
+    pub fn to_fct(&self) -> Option<&TypeFctType> {
+        match *self {
+            Type::TypeFct(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn is_unit(&self) -> bool {
+        match self {
+            &Type::TypeTuple(ref val) if val.subtypes.len() == 0 => true,
+            _ => false,
+        }
+    }
+
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             Type::TypeSelf(_) => "Self".into(),
