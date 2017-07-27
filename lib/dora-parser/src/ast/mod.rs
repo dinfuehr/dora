@@ -220,6 +220,7 @@ pub enum Type {
     TypeTuple(TypeTupleType),
     TypePtr(TypePtrType),
     TypeArray(TypeArrayType),
+    TypeFct(TypeFctType),
 }
 
 #[derive(Clone, Debug)]
@@ -233,6 +234,14 @@ pub struct TypeTupleType {
     pub id: NodeId,
     pub pos: Position,
     pub subtypes: Vec<Box<Type>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeFctType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub params: Vec<Box<Type>>,
+    pub ret: Box<Type>,
 }
 
 #[derive(Clone, Debug)]
@@ -287,6 +296,15 @@ impl Type {
                         })
     }
 
+    pub fn create_fct(id: NodeId, pos: Position, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
+        Type::TypeFct(TypeFctType {
+                            id: id,
+                            pos: pos,
+                            params: params,
+                            ret: ret,
+                        })
+    }
+
     pub fn create_tuple(id: NodeId, pos: Position, subtypes: Vec<Box<Type>>) -> Type {
         Type::TypeTuple(TypeTupleType {
                             id: id,
@@ -337,6 +355,16 @@ impl Type {
                 format!("({})", types.join(", "))
             }
 
+            Type::TypeFct(ref val) => {
+                let types: Vec<String> = val.params
+                    .iter()
+                    .map(|t| t.to_string(interner))
+                    .collect();
+                let ret = val.ret.to_string(interner);
+
+                format!("({}) -> {}", types.join(", "), ret)
+            }
+
             Type::TypePtr(ref val) => format!("*{}", val.subtype.to_string(interner)),
 
             Type::TypeArray(ref val) => format!("[{}]", val.subtype.to_string(interner)),
@@ -348,6 +376,7 @@ impl Type {
             Type::TypeSelf(ref val) => val.pos,
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
+            Type::TypeFct(ref val) => val.pos,
             Type::TypePtr(ref val) => val.pos,
             Type::TypeArray(ref val) => val.pos,
         }
@@ -358,6 +387,7 @@ impl Type {
             Type::TypeSelf(ref val) => val.id,
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
+            Type::TypeFct(ref val) => val.id,
             Type::TypePtr(ref val) => val.id,
             Type::TypeArray(ref val) => val.id,
         }
