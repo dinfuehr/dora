@@ -335,6 +335,10 @@ pub fn walk_expr<'v, V: Visitor<'v>>(v: &mut V, e: &'v Expr) {
             }
         }
 
+        ExprLambda(ref value) => {
+            v.visit_stmt(&value.block);
+        }
+
         ExprSuper(_) => {}
         ExprSelf(_) => {}
         ExprLitChar(_) => {}

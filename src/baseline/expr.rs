@@ -134,6 +134,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             ExprArray(ref expr) => self.emit_array(expr, dest),
             ExprConv(ref expr) => self.emit_conv(expr, dest.reg()),
             ExprTry(ref expr) => self.emit_try(expr, dest),
+            ExprLambda(_) => unimplemented!(),
         }
     }
 

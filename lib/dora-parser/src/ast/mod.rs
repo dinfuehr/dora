@@ -1216,6 +1216,7 @@ pub enum Expr {
     ExprArray(ExprArrayType),
     ExprConv(ExprConvType),
     ExprTry(ExprTryType),
+    ExprLambda(ExprLambdaType),
 }
 
 impl Expr {
@@ -1403,6 +1404,15 @@ impl Expr {
                             pos: pos,
                             object: object,
                             name: name,
+                        })
+    }
+
+    pub fn create_lambda(id: NodeId, pos: Position, ret: Option<Box<Type>>, block: Box<Stmt>) -> Expr {
+        Expr::ExprLambda(ExprLambdaType {
+                            id: id,
+                            pos: pos,
+                            ret: ret,
+                            block: block,
                         })
     }
 
@@ -1658,6 +1668,20 @@ impl Expr {
         }
     }
 
+    pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
+        match *self {
+            Expr::ExprLambda(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_lambda(&self) -> bool {
+        match self {
+            &Expr::ExprLambda(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn pos(&self) -> Position {
         match *self {
             Expr::ExprUn(ref val) => val.pos,
@@ -1679,6 +1703,7 @@ impl Expr {
             Expr::ExprArray(ref val) => val.pos,
             Expr::ExprConv(ref val) => val.pos,
             Expr::ExprTry(ref val) => val.pos,
+            Expr::ExprLambda(ref val) => val.pos,
         }
     }
 
@@ -1703,6 +1728,7 @@ impl Expr {
             Expr::ExprArray(ref val) => val.id,
             Expr::ExprConv(ref val) => val.id,
             Expr::ExprTry(ref val) => val.id,
+            Expr::ExprLambda(ref val) => val.id,
         }
     }
 }
@@ -1904,6 +1930,15 @@ pub struct ExprIdentType {
 
     pub name: Name,
     pub type_params: Option<Vec<Type>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprLambdaType {
+    pub id: NodeId,
+    pub pos: Position,
+    pub ret: Option<Box<Type>>,
+
+    pub block: Box<Stmt>,
 }
 
 #[derive(Clone, Debug)]

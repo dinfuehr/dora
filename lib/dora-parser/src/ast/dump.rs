@@ -412,6 +412,7 @@ impl<'a> AstDumper<'a> {
             ExprNil(ref nil) => self.dump_expr_nil(nil),
             ExprConv(ref expr) => self.dump_expr_conv(expr),
             ExprTry(ref expr) => self.dump_expr_try(expr),
+            ExprLambda(ref expr) => self.dump_expr_lambda(expr),
         }
     }
 
@@ -508,6 +509,11 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.object));
         dump!(self, "[] @ {} {}", expr.pos, expr.id);
         self.indent(|d| d.dump_expr(&expr.index));
+    }
+
+    fn dump_expr_lambda(&mut self, expr: &ExprLambdaType) {
+        dump!(self, "lambda @ {} {}", expr.pos, expr.id);
+        self.indent(|d| d.dump_stmt(&expr.block));
     }
 
     fn dump_expr_field(&mut self, field: &ExprFieldType) {
