@@ -198,10 +198,10 @@ impl<'a> BuilderBlock<'a> {
         let id = self.id_generator.next();
 
         let stmt = Box::new(Stmt::StmtExpr(StmtExprType {
-                                    id: id,
-                                    pos: Position::new(1, 1),
-                                    expr: expr,
-                                }));
+                                               id: id,
+                                               pos: Position::new(1, 1),
+                                               expr: expr,
+                                           }));
 
         self.stmts.push(stmt);
         self

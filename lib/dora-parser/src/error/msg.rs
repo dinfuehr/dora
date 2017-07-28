@@ -340,7 +340,9 @@ impl Msg {
             }
             NewAbstractClass => "cannot create object of abstract class.".into(),
             MissingAbstractOverride(ref cls, ref name) => {
-                format!("missing override of abstract method `{}` in class `{}`.", cls, name)
+                format!("missing override of abstract method `{}` in class `{}`.",
+                        cls,
+                        name)
             }
             ModifierNotAllowedForStaticMethod(ref modifier) => {
                 format!("modifier `{}` not allowed for static method.", modifier)

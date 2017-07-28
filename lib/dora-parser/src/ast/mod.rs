@@ -298,11 +298,11 @@ impl Type {
 
     pub fn create_fct(id: NodeId, pos: Position, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
         Type::TypeFct(TypeFctType {
-                            id: id,
-                            pos: pos,
-                            params: params,
-                            ret: ret,
-                        })
+                          id: id,
+                          pos: pos,
+                          params: params,
+                          ret: ret,
+                      })
     }
 
     pub fn create_tuple(id: NodeId, pos: Position, subtypes: Vec<Box<Type>>) -> Type {
@@ -1407,13 +1407,19 @@ impl Expr {
                         })
     }
 
-    pub fn create_lambda(id: NodeId, pos: Position, ret: Option<Box<Type>>, block: Box<Stmt>) -> Expr {
+    pub fn create_lambda(id: NodeId,
+                         pos: Position,
+                         params: Vec<Param>,
+                         ret: Option<Box<Type>>,
+                         block: Box<Stmt>)
+                         -> Expr {
         Expr::ExprLambda(ExprLambdaType {
-                            id: id,
-                            pos: pos,
-                            ret: ret,
-                            block: block,
-                        })
+                             id: id,
+                             pos: pos,
+                             params: params,
+                             ret: ret,
+                             block: block,
+                         })
     }
 
     pub fn to_un(&self) -> Option<&ExprUnType> {
@@ -1936,8 +1942,9 @@ pub struct ExprIdentType {
 pub struct ExprLambdaType {
     pub id: NodeId,
     pub pos: Position,
-    pub ret: Option<Box<Type>>,
 
+    pub params: Vec<Param>,
+    pub ret: Option<Box<Type>>,
     pub block: Box<Stmt>,
 }
 

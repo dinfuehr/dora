@@ -129,7 +129,7 @@ impl<'a> Parser<'a> {
 
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
-                return Err(MsgWithPos::new(self.token.position, msg))
+                return Err(MsgWithPos::new(self.token.position, msg));
             }
         }
 
@@ -1456,12 +1456,17 @@ impl<'a> Parser<'a> {
     fn parse_lambda(&mut self) -> ExprResult {
         let tok = self.advance_token()?;
 
-        if tok.kind == TokenKind::Or {
+        let params = if tok.kind == TokenKind::Or {
             // nothing to do
+            Vec::new()
 
         } else {
-            unimplemented!();
-        }
+            self.param_idx = 0;
+            self.parse_comma_list(TokenKind::BitOr, |p| {
+                    p.param_idx += 1;
+                    p.parse_function_param()
+                })?
+        };
 
         let ret = if self.token.is(TokenKind::Arrow) {
             self.advance_token()?;
@@ -1473,7 +1478,7 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block()?;
 
-        Ok(Box::new(Expr::create_lambda(self.generate_id(), tok.position, ret, block)))
+        Ok(Box::new(Expr::create_lambda(self.generate_id(), tok.position, params, ret, block)))
     }
 
     fn expect_identifier(&mut self) -> Result<Name, MsgWithPos> {
@@ -1527,20 +1532,20 @@ impl<'a> Parser<'a> {
         }
 
         for param in ctor_params.iter().filter(|param| param.field) {
-             let this = builder.build_this();
-             let lhs = builder.build_field(this, param.name);
-             let rhs = builder.build_ident(param.name);
-             let ass = builder.build_assign(lhs, rhs);
+            let this = builder.build_this();
+            let lhs = builder.build_field(this, param.name);
+            let rhs = builder.build_ident(param.name);
+            let ass = builder.build_assign(lhs, rhs);
 
-             block.add_expr(ass);
+            block.add_expr(ass);
         }
 
         for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
-             let this = builder.build_this();
-             let lhs = builder.build_field(this, field.name);
-             let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
+            let this = builder.build_this();
+            let lhs = builder.build_field(this, field.name);
+            let ass = builder.build_assign(lhs, field.expr.as_ref().unwrap().clone());
 
-             block.add_expr(ass);
+            block.add_expr(ass);
         }
 
         let mut fct = builder.build_fct(cls.name);
@@ -1550,9 +1555,9 @@ impl<'a> Parser<'a> {
         }
 
         fct.is_method(true)
-           .is_public(true)
-           .ctor(CtorType::Primary)
-           .block(block.build());
+            .is_public(true)
+            .ctor(CtorType::Primary)
+            .block(block.build());
 
         fct.build()
     }
@@ -3236,5 +3241,46 @@ mod tests {
         let basic = ret.to_basic().unwrap();
 
         assert_eq!("A", *interner.str(basic.name));
+    }
+
+    #[test]
+    fn parse_lambda_with_one_param() {
+        let (expr, interner) = parse_expr("|a: A| -> B {}");
+        let lambda = expr.to_lambda().unwrap();
+
+        assert_eq!(1, lambda.params.len());
+
+        let param = &lambda.params[0];
+        assert_eq!("a", *interner.str(param.name));
+        let basic = param.data_type.to_basic().unwrap();
+        assert_eq!("A", *interner.str(basic.name));
+
+        let ret = lambda.ret.as_ref().unwrap();
+        let basic = ret.to_basic().unwrap();
+
+        assert_eq!("B", *interner.str(basic.name));
+    }
+
+    #[test]
+    fn parse_lambda_with_two_params() {
+        let (expr, interner) = parse_expr("|a: A, b: B| -> C {}");
+        let lambda = expr.to_lambda().unwrap();
+
+        assert_eq!(2, lambda.params.len());
+
+        let param = &lambda.params[0];
+        assert_eq!("a", *interner.str(param.name));
+        let basic = param.data_type.to_basic().unwrap();
+        assert_eq!("A", *interner.str(basic.name));
+
+        let param = &lambda.params[1];
+        assert_eq!("b", *interner.str(param.name));
+        let basic = param.data_type.to_basic().unwrap();
+        assert_eq!("B", *interner.str(basic.name));
+
+        let ret = lambda.ret.as_ref().unwrap();
+        let basic = ret.to_basic().unwrap();
+
+        assert_eq!("C", *interner.str(basic.name));
     }
 }
