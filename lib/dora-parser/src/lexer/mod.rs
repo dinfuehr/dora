@@ -23,51 +23,7 @@ impl Lexer {
     }
 
     pub fn new(reader: Reader) -> Lexer {
-        let mut keywords = HashMap::new();
-        keywords.insert("class", TokenKind::Class);
-        keywords.insert("self", TokenKind::This);
-        keywords.insert("Self", TokenKind::CapitalThis);
-        keywords.insert("super", TokenKind::Super);
-        keywords.insert("fun", TokenKind::Fun);
-        keywords.insert("let", TokenKind::Let);
-        keywords.insert("var", TokenKind::Var);
-        keywords.insert("while", TokenKind::While);
-        keywords.insert("if", TokenKind::If);
-        keywords.insert("else", TokenKind::Else);
-        keywords.insert("for", TokenKind::For);
-        keywords.insert("in", TokenKind::In);
-        keywords.insert("impl", TokenKind::Impl);
-        keywords.insert("loop", TokenKind::Loop);
-        keywords.insert("break", TokenKind::Break);
-        keywords.insert("continue", TokenKind::Continue);
-        keywords.insert("return", TokenKind::Return);
-        keywords.insert("true", TokenKind::True);
-        keywords.insert("false", TokenKind::False);
-        keywords.insert("nil", TokenKind::Nil);
-        keywords.insert("enum", TokenKind::Enum);
-        keywords.insert("type", TokenKind::Type);
-        keywords.insert("alias", TokenKind::Alias);
-        keywords.insert("struct", TokenKind::Struct);
-        keywords.insert("trait", TokenKind::Trait);
-        keywords.insert("throws", TokenKind::Throws);
-        keywords.insert("throw", TokenKind::Throw);
-        keywords.insert("try", TokenKind::Try);
-        keywords.insert("do", TokenKind::Do);
-        keywords.insert("catch", TokenKind::Catch);
-        keywords.insert("finally", TokenKind::Finally);
-        keywords.insert("abstract", TokenKind::Abstract);
-        keywords.insert("open", TokenKind::Open);
-        keywords.insert("override", TokenKind::Override);
-        keywords.insert("defer", TokenKind::Defer);
-        keywords.insert("final", TokenKind::Final);
-        keywords.insert("is", TokenKind::Is);
-        keywords.insert("as", TokenKind::As);
-        keywords.insert("internal", TokenKind::Internal);
-        keywords.insert("init", TokenKind::Init);
-        keywords.insert("pub", TokenKind::Pub);
-        keywords.insert("static", TokenKind::Static);
-        keywords.insert("spawn", TokenKind::Spawn);
-        keywords.insert("const", TokenKind::Const);
+        let keywords = keywords_in_map();
 
         Lexer {
             reader: reader,
@@ -577,6 +533,57 @@ fn is_identifier_start(ch: Option<char>) -> bool {
 
 fn is_identifier(ch: Option<char>) -> bool {
     is_identifier_start(ch) || is_digit(ch)
+}
+
+fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
+    let mut keywords = HashMap::new();
+
+    keywords.insert("class", TokenKind::Class);
+    keywords.insert("self", TokenKind::This);
+    keywords.insert("Self", TokenKind::CapitalThis);
+    keywords.insert("super", TokenKind::Super);
+    keywords.insert("fun", TokenKind::Fun);
+    keywords.insert("let", TokenKind::Let);
+    keywords.insert("var", TokenKind::Var);
+    keywords.insert("while", TokenKind::While);
+    keywords.insert("if", TokenKind::If);
+    keywords.insert("else", TokenKind::Else);
+    keywords.insert("for", TokenKind::For);
+    keywords.insert("in", TokenKind::In);
+    keywords.insert("impl", TokenKind::Impl);
+    keywords.insert("loop", TokenKind::Loop);
+    keywords.insert("break", TokenKind::Break);
+    keywords.insert("continue", TokenKind::Continue);
+    keywords.insert("return", TokenKind::Return);
+    keywords.insert("true", TokenKind::True);
+    keywords.insert("false", TokenKind::False);
+    keywords.insert("nil", TokenKind::Nil);
+    keywords.insert("enum", TokenKind::Enum);
+    keywords.insert("type", TokenKind::Type);
+    keywords.insert("alias", TokenKind::Alias);
+    keywords.insert("struct", TokenKind::Struct);
+    keywords.insert("trait", TokenKind::Trait);
+    keywords.insert("throws", TokenKind::Throws);
+    keywords.insert("throw", TokenKind::Throw);
+    keywords.insert("try", TokenKind::Try);
+    keywords.insert("do", TokenKind::Do);
+    keywords.insert("catch", TokenKind::Catch);
+    keywords.insert("finally", TokenKind::Finally);
+    keywords.insert("abstract", TokenKind::Abstract);
+    keywords.insert("open", TokenKind::Open);
+    keywords.insert("override", TokenKind::Override);
+    keywords.insert("defer", TokenKind::Defer);
+    keywords.insert("final", TokenKind::Final);
+    keywords.insert("is", TokenKind::Is);
+    keywords.insert("as", TokenKind::As);
+    keywords.insert("internal", TokenKind::Internal);
+    keywords.insert("init", TokenKind::Init);
+    keywords.insert("pub", TokenKind::Pub);
+    keywords.insert("static", TokenKind::Static);
+    keywords.insert("spawn", TokenKind::Spawn);
+    keywords.insert("const", TokenKind::Const);
+
+    keywords
 }
 
 #[cfg(test)]
