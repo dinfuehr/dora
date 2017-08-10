@@ -1061,6 +1061,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_expr_lambda(&mut self, _: &'ast ExprLambdaType) {
+        // do nothing for now
+    }
+
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
         self.visit_expr(&e.object);
         let object_type = self.expr_type;
@@ -1161,7 +1165,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprArray(ref expr) => self.check_expr_array(expr),
             ExprConv(ref expr) => self.check_expr_conv(expr),
             ExprTry(ref expr) => self.check_expr_try(expr),
-            ExprLambda(_) => unimplemented!(),
+            ExprLambda(ref expr) => self.check_expr_lambda(expr),
         }
     }
 

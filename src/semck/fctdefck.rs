@@ -366,4 +366,18 @@ mod tests {
             pos(1, 33),
             Msg::ModifierNotAllowedForStaticMethod("final".into()));
     }
+
+    #[test]
+    fn lambdas() {
+        ok("fun f() { || {}; }");
+        ok("fun f() { |a: int| {}; }");
+        ok("fun f() { || -> int { return 2; }; }");
+
+        err("fun f() { || -> Foo { }; }",
+            pos(1, 17),
+            Msg::UnknownType("Foo".into()));
+        err("fun f() { |a: Foo| { }; }",
+            pos(1, 15),
+            Msg::UnknownType("Foo".into()));
+    }
 }
