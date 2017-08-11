@@ -47,6 +47,9 @@ pub enum BuiltinType {
     // generic types can have multiple params
     // use TypeId to store params
     Generic(TypeId),
+
+    // some lambda
+    Lambda(LambdaId),
 }
 
 impl BuiltinType {
@@ -193,6 +196,19 @@ impl BuiltinType {
 
                 format!("{}<{}>", base, params)
             }
+
+            BuiltinType::Lambda(id) => {
+                let lambda = ctxt.lambda_types.borrow().get(id);
+                let params = lambda
+                    .params
+                    .iter()
+                    .map(|ty| ty.name(ctxt))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let ret = lambda.ret.name(ctxt);
+
+                format!("({}) -> {}", params, ret)
+            }
         }
     }
 
@@ -221,6 +237,13 @@ impl BuiltinType {
             BuiltinType::Generic(_) => {
                 *self == other || self.to_specialized(ctxt).allows(ctxt, other)
             }
+
+            BuiltinType::Lambda(_) => {
+                // for now expect the exact same params and return types
+                // possible improvement: allow super classes for params,
+                //                             sub class for return type
+                *self == other
+            }
         }
     }
 
@@ -241,6 +264,7 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
             BuiltinType::Class(_) |
+            BuiltinType::Lambda(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
@@ -263,6 +287,7 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
             BuiltinType::Class(_) |
+            BuiltinType::Lambda(_) |
             BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
             BuiltinType::Trait(_) => mem::ptr_width(),
@@ -285,6 +310,7 @@ impl BuiltinType {
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
             BuiltinType::Class(_) |
+            BuiltinType::Lambda(_) |
             BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
@@ -397,6 +423,66 @@ impl From<usize> for TypeId {
     fn from(val: usize) -> TypeId {
         TypeId(val)
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct LambdaId(usize);
+
+impl From<usize> for LambdaId {
+    fn from(val: usize) -> LambdaId {
+        LambdaId(val)
+    }
+}
+
+pub struct LambdaTypes {
+    types: HashMap<Rc<LambdaType>, LambdaId>,
+    values: Vec<Rc<LambdaType>>,
+    next_lambda_id: usize,
+}
+
+impl LambdaTypes {
+    pub fn new() -> LambdaTypes {
+        LambdaTypes {
+            types: HashMap::new(),
+            values: Vec::new(),
+            next_lambda_id: 0,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    pub fn insert(&mut self, params: Vec<BuiltinType>, ret: BuiltinType) -> LambdaId {
+        let ty = LambdaType {
+            params: params,
+            ret: ret,
+        };
+
+        if let Some(&val) = self.types.get(&ty) {
+            return val;
+        }
+
+        let id = LambdaId(self.next_lambda_id);
+        let ty = Rc::new(ty);
+        self.types.insert(ty.clone(), id);
+
+        self.values.push(ty);
+
+        self.next_lambda_id += 1;
+
+        id
+    }
+
+    pub fn get(&self, id: LambdaId) -> Rc<LambdaType> {
+        self.values[id.0].clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct LambdaType {
+    params: Vec<BuiltinType>,
+    ret: BuiltinType,
 }
 
 #[cfg(test)]

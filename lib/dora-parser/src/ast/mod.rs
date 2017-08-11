@@ -220,7 +220,7 @@ pub enum Type {
     TypeTuple(TypeTupleType),
     TypePtr(TypePtrType),
     TypeArray(TypeArrayType),
-    TypeFct(TypeFctType),
+    TypeLambda(TypeLambdaType),
 }
 
 #[derive(Clone, Debug)]
@@ -237,7 +237,7 @@ pub struct TypeTupleType {
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeFctType {
+pub struct TypeLambdaType {
     pub id: NodeId,
     pub pos: Position,
     pub params: Vec<Box<Type>>,
@@ -297,7 +297,7 @@ impl Type {
     }
 
     pub fn create_fct(id: NodeId, pos: Position, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
-        Type::TypeFct(TypeFctType {
+        Type::TypeLambda(TypeLambdaType {
                           id: id,
                           pos: pos,
                           params: params,
@@ -341,9 +341,9 @@ impl Type {
         }
     }
 
-    pub fn to_fct(&self) -> Option<&TypeFctType> {
+    pub fn to_fct(&self) -> Option<&TypeLambdaType> {
         match *self {
-            Type::TypeFct(ref val) => Some(val),
+            Type::TypeLambda(ref val) => Some(val),
             _ => None,
         }
     }
@@ -370,7 +370,7 @@ impl Type {
                 format!("({})", types.join(", "))
             }
 
-            Type::TypeFct(ref val) => {
+            Type::TypeLambda(ref val) => {
                 let types: Vec<String> = val.params
                     .iter()
                     .map(|t| t.to_string(interner))
@@ -391,7 +391,7 @@ impl Type {
             Type::TypeSelf(ref val) => val.pos,
             Type::TypeBasic(ref val) => val.pos,
             Type::TypeTuple(ref val) => val.pos,
-            Type::TypeFct(ref val) => val.pos,
+            Type::TypeLambda(ref val) => val.pos,
             Type::TypePtr(ref val) => val.pos,
             Type::TypeArray(ref val) => val.pos,
         }
@@ -402,7 +402,7 @@ impl Type {
             Type::TypeSelf(ref val) => val.id,
             Type::TypeBasic(ref val) => val.id,
             Type::TypeTuple(ref val) => val.id,
-            Type::TypeFct(ref val) => val.id,
+            Type::TypeLambda(ref val) => val.id,
             Type::TypePtr(ref val) => val.id,
             Type::TypeArray(ref val) => val.id,
         }

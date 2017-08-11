@@ -1,6 +1,6 @@
 use ctxt::{SemContext, NodeMap};
 use dora_parser::ast::{Stmt, Type};
-use dora_parser::ast::Type::{TypeBasic, TypeSelf};
+use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::error::msg::Msg;
 use mem;
 use sym::Sym::{SymClass, SymStruct, SymTrait, SymClassTypeParam, SymFctTypeParam};
@@ -287,6 +287,33 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                 let msg = Msg::UnknownType(name);
                 ctxt.diag.borrow_mut().report(basic.pos, msg);
             }
+        }
+
+        TypeTuple(ref tuple) if tuple.subtypes.len() == 0 => {
+            return Some(BuiltinType::Unit);
+        }
+
+        TypeLambda(ref lambda) => {
+            let mut params = vec![];
+
+            for param in &lambda.params {
+                if let Some(p) = read_type(ctxt, param) {
+                    params.push(p);
+                } else {
+                    return None;
+                }
+            }
+
+            let ret = if let Some(ret) = read_type(ctxt, &lambda.ret) {
+                ret
+            } else {
+                return None;
+            };
+
+            let ty = ctxt.lambda_types.borrow_mut().insert(params, ret);
+            let ty = BuiltinType::Lambda(ty);
+
+            return Some(ty);
         }
 
         _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos()),

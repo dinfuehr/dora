@@ -179,7 +179,7 @@ pub fn walk_type<'v, V: Visitor<'v>>(v: &mut V, t: &'v Type) {
             }
         }
 
-        TypeFct(ref fct) => {
+        TypeLambda(ref fct) => {
             for ty in &fct.params {
                 v.visit_type(ty);
             }

@@ -1693,6 +1693,7 @@ fn check_for_nil(ctxt: &SemContext, ty: BuiltinType) -> bool {
         BuiltinType::ClassTypeParam(_, _) => unreachable!(),
         BuiltinType::FctTypeParam(_, _) => unreachable!(),
         BuiltinType::Generic(_) => check_for_nil(ctxt, ty.to_specialized(ctxt)),
+        BuiltinType::Lambda(_) => true,
     }
 }
 

@@ -22,7 +22,7 @@ use handle::HandleMemory;
 use safepoint::PollingPage;
 use sym::*;
 use sym::Sym::*;
-use ty::{BuiltinType, Types};
+use ty::{BuiltinType, LambdaTypes, Types};
 use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
@@ -75,6 +75,7 @@ pub struct SemContext<'ast> {
     pub compile_stub: RefCell<Option<Stub>>,
     pub polling_page: PollingPage,
     pub types: RefCell<Types>,
+    pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
 }
 
@@ -121,6 +122,7 @@ impl<'ast> SemContext<'ast> {
             compile_stub: RefCell::new(None),
             polling_page: PollingPage::new(),
             types: RefCell::new(Types::new()),
+            lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
         }
     }

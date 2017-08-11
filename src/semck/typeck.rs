@@ -1061,8 +1061,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_lambda(&mut self, _: &'ast ExprLambdaType) {
-        // do nothing for now
+    fn check_expr_lambda(&mut self, e: &'ast ExprLambdaType) {
+        let ret = if let Some(ref ty) = e.ret {
+            self.src.ty(ty.id())
+        } else {
+            BuiltinType::Unit
+        };
+
+        let params = e.params.iter().map(|p| self.src.ty(p.data_type.id())).collect::<Vec<_>>();
+
+        let ty = self.ctxt.lambda_types.borrow_mut().insert(params, ret);
+        let ty = BuiltinType::Lambda(ty);
+
+        self.expr_type = ty;
+        self.src.set_ty(e.id, ty);
     }
 
     fn check_expr_conv(&mut self, e: &'ast ExprConvType) {
@@ -2463,6 +2475,14 @@ mod tests {
         err("let x: int; fun foo(a: int) { x = a; }",
             pos(1, 33),
             Msg::LetReassigned);
+    }
+
+    #[test]
+    fn lambda_assignment() {
+        ok("fun f() { let x = || {}; }");
+        ok("fun f() { let x = || -> int { return 2; }; }");
+        ok("fun f() { let x: () -> () = || {}; }");
+        ok("fun f() { let x: () -> int = || -> int { return 2; }; }");
     }
 
     /*#[test]
