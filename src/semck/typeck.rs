@@ -2482,7 +2482,11 @@ mod tests {
         ok("fun f() { let x = || {}; }");
         ok("fun f() { let x = || -> int { return 2; }; }");
         ok("fun f() { let x: () -> () = || {}; }");
+        ok("fun f() { let x: () -> () = || -> () {}; }");
         ok("fun f() { let x: () -> int = || -> int { return 2; }; }");
+        err("fun f() { let x: () -> int = || {}; }",
+            pos(1, 11),
+            Msg::AssignType("x".into(), "() -> int".into(), "() -> ()".into()));
     }
 
     /*#[test]
