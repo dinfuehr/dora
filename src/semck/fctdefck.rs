@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
-use ctxt::{SemContext, Fct, FctId, FctParent, FctSrc};
+use ctxt::{self, SemContext, Fct, FctId, FctParent, FctSrc};
 use dora_parser::error::msg::Msg;
 use semck;
 use sym::Sym;
@@ -70,7 +70,11 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                         ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    fct.type_params.push(type_param.name);
+                    fct.type_params.push(ctxt::TypeParam {
+                        name: type_param.name,
+                        cls_bound: None,
+                        trait_bounds: Vec::new(),
+                    });
 
                     let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
                     ctxt.sym.borrow_mut().insert(type_param.name, sym);

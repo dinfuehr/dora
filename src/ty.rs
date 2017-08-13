@@ -181,7 +181,7 @@ impl BuiltinType {
 
             BuiltinType::FctTypeParam(fid, id) => {
                 let fct = ctxt.fcts[fid].borrow();
-                ctxt.interner.str(fct.type_params[id.idx()]).to_string()
+                ctxt.interner.str(fct.type_params[id.idx()].name).to_string()
             }
 
             BuiltinType::Generic(id) => {

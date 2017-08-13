@@ -450,6 +450,13 @@ impl FctParent {
 }
 
 #[derive(Debug)]
+pub struct TypeParam {
+    pub name: Name,
+    pub cls_bound: Option<BuiltinType>,
+    pub trait_bounds: Vec<TraitId>,
+}
+
+#[derive(Debug)]
 pub struct Fct<'ast> {
     pub id: FctId,
     pub ast: &'ast ast::Function,
@@ -473,7 +480,7 @@ pub struct Fct<'ast> {
     pub initialized: bool,
     pub throws: bool,
 
-    pub type_params: Vec<Name>,
+    pub type_params: Vec<TypeParam>,
     pub specialization_for: Option<FctId>,
     pub specialization_params: Vec<BuiltinType>,
     pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
@@ -535,7 +542,7 @@ impl<'ast> Fct<'ast> {
 
             repr.push_str(&self.type_params
                                .iter()
-                               .map(|&n| ctxt.interner.str(n).to_string())
+                               .map(|n| ctxt.interner.str(n.name).to_string())
                                .collect::<Vec<_>>()
                                .join(", "));
             repr.push_str(">");
