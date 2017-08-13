@@ -1,5 +1,6 @@
 use std::{f32, f64};
 
+use ctxt;
 use ctxt::{CallType, ConstData, ConstValue, SemContext, ConvInfo, Fct, FctId, FctParent, FctSrc,
            IdentType};
 use class::ClassId;
@@ -887,7 +888,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                  })
             .collect();
 
-        if let Some((cls_id, fct_id, return_type)) =
+        if object_type.is_type_param() {
+            self.check_generic_method_call(e, in_try, object_type, &call_types);
+
+        } else if let Some((cls_id, fct_id, return_type)) =
             self.find_method(e.pos, object_type, false, e.path.name(), &call_types, None) {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, call_type);
@@ -921,6 +925,62 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.ctxt.diag.borrow_mut().report(pos, msg);
 
         BuiltinType::Unit
+    }
+
+    fn check_generic_method_call(&mut self,
+                                 e: &'ast ExprCallType,
+                                 in_try: bool,
+                                 obj: BuiltinType,
+                                 args: &[BuiltinType]) {
+        match obj {
+            BuiltinType::FctTypeParam(_, tpid) => {
+                let tp = &self.fct.type_params[tpid.idx()];
+                self.check_generic_method_call_for_type_param(e, in_try, obj, args, tp);
+            }
+
+            BuiltinType::ClassTypeParam(cls_id, tpid) => {
+                let cls = self.ctxt.classes[cls_id].borrow();
+                let tp = &cls.type_params[tpid.idx()];
+                self.check_generic_method_call_for_type_param(e, in_try, obj, args, tp);
+            }
+
+            _ => unreachable!(),
+        }
+    }
+
+    fn check_generic_method_call_for_type_param(&mut self,
+                                                e: &'ast ExprCallType,
+                                                in_try: bool,
+                                                obj: BuiltinType,
+                                                args: &[BuiltinType],
+                                                tp: &ctxt::TypeParam) {
+        for &trait_id in &tp.trait_bounds {
+            let trai = self.ctxt.traits[trait_id].borrow();
+
+            if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
+                let call_type = CallType::Fct(fid);
+                self.src.map_calls.insert(e.id, call_type);
+
+                let fct = self.ctxt.fcts[fid].borrow();
+                let return_type = fct.return_type;
+
+                self.src.set_ty(e.id, return_type);
+                self.expr_type = return_type;
+                return;
+            }
+        }
+
+        let type_name = obj.name(self.ctxt);
+        let name = self.ctxt.interner.str(e.path.name()).to_string();
+        let param_names = args.iter()
+            .map(|a| a.name(self.ctxt))
+            .collect::<Vec<String>>();
+        let msg = Msg::UnknownMethod(type_name, name, param_names);
+
+        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+        self.src.set_ty(e.id, BuiltinType::Unit);
+        self.expr_type = BuiltinType::Unit;
     }
 
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
@@ -1068,7 +1128,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BuiltinType::Unit
         };
 
-        let params = e.params.iter().map(|p| self.src.ty(p.data_type.id())).collect::<Vec<_>>();
+        let params = e.params
+            .iter()
+            .map(|p| self.src.ty(p.data_type.id()))
+            .collect::<Vec<_>>();
 
         let ty = self.ctxt.lambda_types.borrow_mut().insert(params, ret);
         let ty = BuiltinType::Lambda(ty);
@@ -2487,6 +2550,12 @@ mod tests {
         err("fun f() { let x: () -> int = || {}; }",
             pos(1, 11),
             Msg::AssignType("x".into(), "() -> int".into(), "() -> ()".into()));
+    }
+
+    #[test]
+    fn generic_trait_method_call() {
+        ok("trait Foo { fun bar(); }
+            fun f<T: Foo>(t: T) { t.bar(); }");
     }
 
     /*#[test]

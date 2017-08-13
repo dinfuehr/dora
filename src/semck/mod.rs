@@ -258,9 +258,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                         let name = ty.name(ctxt);
                                         let trait_name = ctxt.interner.str(bound.name).to_string();
                                         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                        ctxt.diag
-                                            .borrow_mut()
-                                            .report(bound.pos, msg);
+                                        ctxt.diag.borrow_mut().report(bound.pos, msg);
                                     }
                                 }
                             }

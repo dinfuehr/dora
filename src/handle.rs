@@ -39,7 +39,7 @@ impl HandleMemory {
 
         let idx = self.free.get();
         let elem = &mut buffer.elements[idx];
-        self.free.set(idx+1);
+        self.free.set(idx + 1);
 
         *elem = obj.cast::<Obj>();
 
@@ -54,14 +54,19 @@ impl HandleMemory {
         let buffer = self.buffers.borrow().len();
         let element = self.free.get();
 
-        self.borders.borrow_mut().push(BorderData {
-            buffer: buffer,
-            element: element,
-        });
+        self.borders
+            .borrow_mut()
+            .push(BorderData {
+                      buffer: buffer,
+                      element: element,
+                  });
     }
 
     pub fn pop_border(&self) {
-        let border = self.borders.borrow_mut().pop().expect("no border left");
+        let border = self.borders
+            .borrow_mut()
+            .pop()
+            .expect("no border left");
 
         self.buffers.borrow_mut().truncate(border.buffer);
         self.free.set(border.element);

@@ -70,7 +70,41 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                         ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    fct.type_params.push(ctxt::TypeParam::new(type_param.name));
+                    fct.type_params
+                        .push(ctxt::TypeParam::new(type_param.name));
+
+                    for bound in &type_param.bounds {
+                        let ty = semck::read_type(ctxt, bound);
+
+                        match ty {
+                            Some(BuiltinType::Class(cls_id)) => {
+                                if let None = fct.type_params[type_param_id].class_bound {
+                                    fct.type_params[type_param_id].class_bound = Some(cls_id);
+                                } else {
+                                    let msg = Msg::MultipleClassBounds;
+                                    ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                }
+                            }
+
+                            Some(BuiltinType::Trait(trait_id)) => {
+                                if !fct.type_params[type_param_id]
+                                        .trait_bounds
+                                        .insert(trait_id) {
+                                    let msg = Msg::DuplicateTraitBound;
+                                    ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                }
+                            }
+
+                            None => {
+                                // unknown type, error is already thrown
+                            }
+
+                            _ => {
+                                let msg = Msg::BoundExpected;
+                                ctxt.diag.borrow_mut().report(bound.pos(), msg);
+                            }
+                        }
+                    }
 
                     let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
                     ctxt.sym.borrow_mut().insert(type_param.name, sym);
@@ -379,5 +413,21 @@ mod tests {
         err("fun f() { |a: Foo| { }; }",
             pos(1, 15),
             Msg::UnknownType("Foo".into()));
+    }
+
+    #[test]
+    fn generic_bounds() {
+        err("fun f<T: Foo>() {}",
+            pos(1, 10),
+            Msg::UnknownType("Foo".into()));
+        ok("class Foo fun f<T: Foo>() {}");
+        ok("trait Foo {} fun f<T: Foo>() {}");
+
+        err("class A class B
+            fun f<T: A + B>() {  }",
+            pos(2, 19), Msg::MultipleClassBounds);
+        err("trait Foo {}
+            fun f<T: Foo + Foo>() {  }",
+            pos(2, 19), Msg::DuplicateTraitBound);
     }
 }
