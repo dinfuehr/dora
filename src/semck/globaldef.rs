@@ -7,7 +7,8 @@ use dora_parser::ast::visit::*;
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use class::{self, ClassId, TypeParam};
+use class::{self, ClassId};
+use ctxt;
 use ctxt::*;
 use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
@@ -159,7 +160,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         if let Some(ref type_params) = c.type_params {
             for param in type_params {
-                cls.type_params.push(TypeParam::new(param.name));
+                cls.type_params.push(ctxt::TypeParam::new(param.name));
             }
 
             if cls.type_params.len() > 0 {

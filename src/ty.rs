@@ -104,10 +104,17 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls_id(&self) -> ClassId {
+    pub fn cls_id(&self, ctxt: &SemContext) -> Option<ClassId> {
         match *self {
-            BuiltinType::Class(cls_id) => cls_id,
-            _ => panic!(),
+            BuiltinType::Class(cls_id) => Some(cls_id),
+            BuiltinType::Bool => Some(ctxt.primitive_classes.bool_class),
+            BuiltinType::Byte => Some(ctxt.primitive_classes.byte_class),
+            BuiltinType::Char => Some(ctxt.primitive_classes.char_class),
+            BuiltinType::Int => Some(ctxt.primitive_classes.int_class),
+            BuiltinType::Long => Some(ctxt.primitive_classes.long_class),
+            BuiltinType::Float => Some(ctxt.primitive_classes.float_class),
+            BuiltinType::Double => Some(ctxt.primitive_classes.double_class),
+            _ => None,
         }
     }
 
@@ -142,9 +149,9 @@ impl BuiltinType {
             return false;
         }
 
-        let cls_id = self.cls_id();
+        let cls_id = self.cls_id(ctxt).unwrap();
         let cls = ctxt.classes[cls_id].borrow();
-        cls.subclass_from(ctxt, ty.cls_id())
+        cls.subclass_from(ctxt, ty.cls_id(ctxt).unwrap())
     }
 
     pub fn name(&self, ctxt: &SemContext) -> String {

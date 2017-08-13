@@ -1115,7 +1115,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map_convs
             .insert(e.id,
                     ConvInfo {
-                        cls_id: check_type.cls_id(),
+                        cls_id: check_type.cls_id(self.ctxt).unwrap(),
                         valid: valid,
                     });
 
@@ -2407,7 +2407,7 @@ mod tests {
             class Bar
             class A<T: Foo>
             fun f() -> A<Bar> { return nil; }",
-            pos(1, 1),
+            pos(4, 24),
             Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()));
     }
 

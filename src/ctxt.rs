@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::sync::{Mutex, RwLock};
@@ -452,8 +453,18 @@ impl FctParent {
 #[derive(Debug)]
 pub struct TypeParam {
     pub name: Name,
-    pub cls_bound: Option<BuiltinType>,
-    pub trait_bounds: Vec<TraitId>,
+    pub class_bound: Option<ClassId>,
+    pub trait_bounds: HashSet<TraitId>,
+}
+
+impl TypeParam {
+    pub fn new(name: Name) -> TypeParam {
+        TypeParam {
+            name: name,
+            class_bound: None,
+            trait_bounds: HashSet::new(),
+        }
+    }
 }
 
 #[derive(Debug)]

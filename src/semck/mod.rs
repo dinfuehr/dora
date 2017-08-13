@@ -117,7 +117,7 @@ fn specialize_types<'ast>(ctxt: &SemContext<'ast>) {
         if ctxt.types.borrow().get_cls_id(ind.into()).is_none() {
             let ty = ctxt.types.borrow().get(ind.into());
 
-            let cls_id = ty.base.cls_id();
+            let cls_id = ty.base.cls_id(ctxt).unwrap();
             let cls = ctxt.classes[cls_id].borrow();
 
             specialize_class(ctxt, &*cls, ty.params.clone());
@@ -231,6 +231,40 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                 return None;
                             }
 
+                            for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
+                                if let Some(cls_id) = tp.class_bound {
+                                    let cls = BuiltinType::Class(cls_id);
+
+                                    if !ty.subclass_from(ctxt, cls) {
+                                        let name = ty.name(ctxt);
+                                        let cls = cls.name(ctxt);
+
+                                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                    }
+                                }
+
+                                let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
+                                    cls_id
+                                } else {
+                                    continue;
+                                };
+
+                                let cls = ctxt.classes[cls_id].borrow();
+
+                                for &trait_bound in &tp.trait_bounds {
+                                    if !cls.traits.contains(&trait_bound) {
+                                        let bound = ctxt.traits[trait_bound].borrow();
+                                        let name = ty.name(ctxt);
+                                        let trait_name = ctxt.interner.str(bound.name).to_string();
+                                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                                        ctxt.diag
+                                            .borrow_mut()
+                                            .report(bound.pos, msg);
+                                    }
+                                }
+                            }
+
                             let cls_type = BuiltinType::Class(cls.id);
                             let type_id = ctxt.types.borrow_mut().insert(cls_type, type_params);
                             BuiltinType::Generic(type_id)
@@ -254,6 +288,11 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     }
 
                     SymStruct(struct_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
+
                         return Some(BuiltinType::Struct(struct_id));
                     }
 

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
 
-use ctxt::{SemContext, FctId, ImplId, TraitId};
+use ctxt::{SemContext, FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use vtable::VTableBox;
@@ -281,22 +281,5 @@ impl Index<FieldId> for Vec<Field> {
 impl IndexMut<FieldId> for Vec<Field> {
     fn index_mut(&mut self, index: FieldId) -> &mut Field {
         &mut self[index.0]
-    }
-}
-
-#[derive(Debug)]
-pub struct TypeParam {
-    pub name: Name,
-    pub class_bound: Option<ClassId>,
-    pub trait_bounds: HashSet<TraitId>,
-}
-
-impl TypeParam {
-    pub fn new(name: Name) -> TypeParam {
-        TypeParam {
-            name: name,
-            class_bound: None,
-            trait_bounds: HashSet::new(),
-        }
     }
 }

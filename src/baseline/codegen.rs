@@ -632,7 +632,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             let ty = self.src
                 .ty(catch.data_type.id())
                 .to_specialized(self.ctxt);
-            let catch_type = CatchType::Class(ty.cls_id());
+            let catch_type = CatchType::Class(ty.cls_id(self.ctxt).unwrap());
             self.masm
                 .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 

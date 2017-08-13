@@ -152,7 +152,9 @@ impl Obj {
             return mem::align_usize(value, mem::ptr_width() as usize);
         }
 
-        if ty.cls_id() == get_ctxt().primitive_classes.str_class {
+        let ctxt = get_ctxt();
+
+        if ty.cls_id(ctxt).unwrap() == ctxt.primitive_classes.str_class {
             let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
             mem::align_usize(handle.size(), mem::ptr_width() as usize)
         } else {

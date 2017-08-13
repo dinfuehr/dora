@@ -70,11 +70,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                         ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    fct.type_params.push(ctxt::TypeParam {
-                        name: type_param.name,
-                        cls_bound: None,
-                        trait_bounds: Vec::new(),
-                    });
+                    fct.type_params.push(ctxt::TypeParam::new(type_param.name));
 
                     let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
                     ctxt.sym.borrow_mut().insert(type_param.name, sym);
