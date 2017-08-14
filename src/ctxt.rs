@@ -83,6 +83,7 @@ pub struct SemContext<'ast> {
 impl<'ast> SemContext<'ast> {
     pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> SemContext<'ast> {
         let empty_class_id: ClassId = 0.into();
+        let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
         SemContext {
@@ -111,6 +112,9 @@ impl<'ast> SemContext<'ast> {
                 testing_class: empty_class_id,
                 exception_class: empty_class_id,
                 stack_trace_element_class: empty_class_id,
+
+                equals_trait: empty_trait_id,
+                comparable_trait: empty_trait_id,
             },
             gc: gc,
             ast: ast,
@@ -400,6 +404,9 @@ pub struct PrimitiveClasses {
     pub testing_class: ClassId,
     pub exception_class: ClassId,
     pub stack_trace_element_class: ClassId,
+
+    pub equals_trait: TraitId,
+    pub comparable_trait: TraitId,
 }
 
 impl PrimitiveClasses {

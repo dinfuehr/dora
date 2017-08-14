@@ -252,9 +252,7 @@ trait Equals {
 }
 
 impl Equals for int {
-  fun equals(other: int) -> bool {
-    return self == other;
-  }
+  internal fun equals(other: int) -> bool;
 }
 
 trait Comparable {
@@ -262,9 +260,7 @@ trait Comparable {
 }
 
 impl Comparable for int {
-  fun compareTo(other: int) -> int {
-    return self - other;
-  }
+  internal fun compareTo(other: int) -> int;
 }
 
 fun bubbleSort<T: Comparable>(array: Array<T>) {

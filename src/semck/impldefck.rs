@@ -70,11 +70,15 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             return;
         }
 
-        if f.block.is_none() {
+        if f.block.is_none() && !f.internal {
             report(self.ctxt, f.pos, Msg::MissingFctBody);
         }
 
-        let kind = FctKind::Source(RefCell::new(FctSrc::new()));
+        let kind = if f.internal {
+            FctKind::Definition
+        } else {
+            FctKind::Source(RefCell::new(FctSrc::new()))
+        };
 
         let fct = Fct {
             id: FctId(0),

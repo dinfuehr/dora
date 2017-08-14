@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::{SemContext, FctKind, Intrinsic};
+use ctxt::{SemContext, FctKind, Intrinsic, TraitId};
 use exception;
 use semck::specialize;
 use stdlib;
@@ -37,6 +37,9 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.primitive_classes.exception_class = internal_class(ctxt, "Exception", None, 0);
     ctxt.primitive_classes.stack_trace_element_class =
         internal_class(ctxt, "StackTraceElement", None, 0);
+
+    ctxt.primitive_classes.comparable_trait = find_trait(ctxt, "Comparable");
+    ctxt.primitive_classes.equals_trait = find_trait(ctxt, "Equals");
 }
 
 fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
@@ -62,6 +65,17 @@ fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
         clsid
     } else {
         panic!("class {} not found!", name);
+    }
+}
+
+fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
+    let iname = ctxt.interner.intern(name);
+    let tid = ctxt.sym.borrow().get_trait(iname);
+
+    if let Some(tid) = tid {
+        tid
+    } else {
+        panic!("trait {} not found!", name);
     }
 }
 
@@ -147,6 +161,12 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryPlus", Intrinsic::IntPlus);
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::IntNeg);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::IntNot);
+
+    let trait_id = ctxt.primitive_classes.equals_trait;
+    intrinsic_impl(ctxt, clsid, trait_id, "equals", Intrinsic::IntEq);
+
+    let trait_id = ctxt.primitive_classes.comparable_trait;
+    intrinsic_impl(ctxt, clsid, trait_id, "compareTo", Intrinsic::IntCmp);
 
     let clsid = ctxt.primitive_classes.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
@@ -317,6 +337,39 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
         if fct.internal {
             fct.kind = kind;
             fct.internal_resolved = true;
+        }
+    }
+}
+
+fn intrinsic_impl<'ast>(ctxt: &mut SemContext<'ast>,
+                        clsid: ClassId,
+                        tid: TraitId,
+                        name: &str,
+                        intrinsic: Intrinsic) {
+    internal_impl(ctxt, clsid, tid, name, FctKind::Builtin(intrinsic));
+}
+
+fn internal_impl<'ast>(ctxt: &mut SemContext<'ast>,
+                       clsid: ClassId,
+                       tid: TraitId,
+                       name: &str,
+                       kind: FctKind) {
+    let name = ctxt.interner.intern(name);
+    let cls = ctxt.classes[clsid].borrow();
+
+    for &iid in &cls.impls {
+        let i = ctxt.impls[iid].borrow();
+
+        if Some(tid) == i.trait_id {
+            for &fid in &i.methods {
+                let mut fct = ctxt.fcts[fid].borrow_mut();
+
+                if fct.internal && fct.name == name {
+                    fct.kind = kind;
+                    fct.internal_resolved = true;
+                    return;
+                }
+            }
         }
     }
 }

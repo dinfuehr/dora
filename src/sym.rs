@@ -52,6 +52,10 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_struct())
     }
 
+    pub fn get_trait(&self, name: Name) -> Option<TraitId> {
+        self.get(name).and_then(|n| n.to_trait())
+    }
+
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }

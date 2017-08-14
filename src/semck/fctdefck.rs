@@ -425,9 +425,11 @@ mod tests {
 
         err("class A class B
             fun f<T: A + B>() {  }",
-            pos(2, 19), Msg::MultipleClassBounds);
+            pos(2, 19),
+            Msg::MultipleClassBounds);
         err("trait Foo {}
             fun f<T: Foo + Foo>() {  }",
-            pos(2, 19), Msg::DuplicateTraitBound);
+            pos(2, 19),
+            Msg::DuplicateTraitBound);
     }
 }

@@ -166,7 +166,7 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_modifiers()?;
-            let mods = &[Modifier::Static];
+            let mods = &[Modifier::Static, Modifier::Internal];
             self.restrict_modifiers(&modifiers, mods)?;
 
             methods.push(self.parse_function(&modifiers)?);
