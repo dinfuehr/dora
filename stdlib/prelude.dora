@@ -247,6 +247,16 @@ internal class Array<T> {
   internal fun set(idx: int, val: T);
 }
 
+trait Equals {
+  fun equals(other: Self) -> bool;
+}
+
+impl Equals for int {
+  fun equals(other: int) -> bool {
+    return self == other;
+  }
+}
+
 trait Comparable {
   fun compareTo(other: Self) -> int;
 }
