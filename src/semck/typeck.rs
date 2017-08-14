@@ -964,6 +964,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fct = self.ctxt.fcts[fid].borrow();
                 let return_type = fct.return_type;
 
+                if fct.throws && !in_try {
+                    let msg = Msg::ThrowingCallWithoutTry;
+                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                }
+
+
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
                 return;
@@ -2556,6 +2562,32 @@ mod tests {
     fn generic_trait_method_call() {
         ok("trait Foo { fun bar(); }
             fun f<T: Foo>(t: T) { t.bar(); }");
+        ok("trait Foo { fun bar(); }
+            class A<T: Foo>(let t: T) {
+                fun baz() { self.t.bar(); }
+            }");
+
+        err("trait Foo { fun bar() throws; }
+            fun f<T: Foo>(t: T) { t.bar(); }",
+            pos(2, 36),
+            Msg::ThrowingCallWithoutTry);
+        err("trait Foo { fun bar() throws; }
+            class A<T: Foo>(let t: T) {
+                fun baz() { self.t.bar(); }
+            }",
+            pos(3, 35),
+            Msg::ThrowingCallWithoutTry);
+
+        err("trait Foo { fun bar(); }
+            fun f<T: Foo>(t: T) { try t.bar(); }",
+            pos(2, 35),
+            Msg::TryCallNonThrowing);
+        err("trait Foo { fun bar(); }
+            class A<T: Foo>(let t: T) {
+                fun baz() { try self.t.bar(); }
+            }",
+            pos(3, 29),
+            Msg::TryCallNonThrowing);
     }
 
     /*#[test]
