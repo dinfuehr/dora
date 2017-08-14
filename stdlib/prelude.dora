@@ -247,6 +247,40 @@ internal class Array<T> {
   internal fun set(idx: int, val: T);
 }
 
+trait Comparable {
+  fun compareTo(other: Self) -> int;
+}
+
+impl Comparable for int {
+  fun compareTo(other: int) -> int {
+    return self - other;
+  }
+}
+
+fun bubbleSort<T: Comparable>(array: Array<T>) {
+  let len = array.len();
+  var swapped = true;
+
+  while swapped {
+    swapped = false;
+
+    var i = 1;
+
+    while i < len {
+      if array[i-1].compareTo(array[i]) > 0 {
+        let temp = array[i-1];
+        array[i-1] = array[i];
+        array[i] = temp;
+
+        swapped = true;
+      }
+
+      i = i + 1;
+    }
+  }
+
+}
+
 internal fun defaultValue<T>() -> T;
 
 internal fun loadFunction(name: Str) -> long;

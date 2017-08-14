@@ -1101,7 +1101,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) =
             self.find_method(e.pos, object_type, false, name, &args, None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            self.src.map_calls.insert(e.id, call_type);
+            self.src.map_calls.insert_or_replace(e.id, call_type);
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
