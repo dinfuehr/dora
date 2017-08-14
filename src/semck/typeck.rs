@@ -776,6 +776,39 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
+
+            for (tp, ty) in callee.type_params.iter().zip(types.iter()) {
+                if let Some(cls_id) = tp.class_bound {
+                    let cls = BuiltinType::Class(cls_id);
+
+                    if !ty.subclass_from(self.ctxt, cls) {
+                        let name = ty.name(self.ctxt);
+                        let cls = cls.name(self.ctxt);
+
+                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    }
+                }
+
+                let cls_id = if let Some(cls_id) = ty.cls_id(self.ctxt) {
+                    cls_id
+                } else {
+                    continue;
+                };
+
+                let cls = self.ctxt.classes[cls_id].borrow();
+
+                for &trait_bound in &tp.trait_bounds {
+                    if !cls.traits.contains(&trait_bound) {
+                        let bound = self.ctxt.traits[trait_bound].borrow();
+                        let name = ty.name(self.ctxt);
+                        let trait_name = self.ctxt.interner.str(bound.name).to_string();
+                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    }
+                }
+            }
+
             callee_id = specialize::specialize_fct(self.ctxt,
                                                    FctParent::None,
                                                    &mut *callee,
@@ -2478,6 +2511,12 @@ mod tests {
             fun f() -> A<Bar> { return nil; }",
             pos(4, 24),
             Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()));
+
+        err("class Foo
+            fun f<T: Foo>() {}
+            fun t() { f::<int>(); }",
+            pos(3, 23),
+            Msg::ClassBoundNotSatisfied("int".into(), "Foo".into()));
     }
 
     #[test]
@@ -2494,6 +2533,12 @@ mod tests {
             fun f() -> A<X> { return nil; }",
             pos(1, 1),
             Msg::TraitBoundNotSatisfied("X".into(), "Foo".into()));
+
+        err("trait Foo {}
+            fun f<T: Foo>() {}
+            fun t() { f::<int>(); }",
+            pos(3, 23),
+            Msg::TraitBoundNotSatisfied("int".into(), "Foo".into()));
     }
 
     #[test]
