@@ -1,0 +1,21 @@
+//= output "hello\n"
+
+trait Foo {
+    fun bar();
+}
+
+fun foo<T: Foo>(t: T) {
+    t.bar();
+}
+
+class X
+
+impl Foo for X {
+    fun bar() {
+        println("hello");
+    }
+}
+
+fun main() {
+    foo::<X>(X());
+}

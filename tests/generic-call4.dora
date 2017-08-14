@@ -1,0 +1,24 @@
+//= output "world\n"
+
+trait Foo {
+    fun bar() -> int;
+}
+
+class A<T: Foo>(let t: T) {
+    fun bar() -> int {
+        return self.t.bar();
+    }
+}
+
+class X
+
+impl Foo for X {
+    fun bar() -> int {
+        println("world");
+        return 2;
+    }
+}
+
+fun main() {
+    assert(2 == A::<X>(X()).bar());
+}

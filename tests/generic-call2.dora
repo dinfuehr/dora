@@ -1,0 +1,23 @@
+//= output "world\n"
+
+trait Foo {
+    fun bar() -> int;
+}
+
+fun foo<T: Foo>(t: T) -> int {
+    return t.bar();
+}
+
+class X
+
+impl Foo for X {
+    fun bar() -> int {
+        println("world");
+
+        return 4;
+    }
+}
+
+fun main() {
+    assert(4 == foo::<X>(X()));
+}
