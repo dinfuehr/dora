@@ -1,0 +1,56 @@
+//= ignore
+
+fun main() {
+    let m = SlowMap::<int, Str>();
+    assert(m.insert(1, "hello"));
+    assert(m.insert(2, "world"));
+
+    assert(m.get(1) == "hello");
+    assert(m.get(2) == "world");
+    assert(m.get(3) === nil);
+
+    assert(!m.insert(2, "test"));
+    assert(m.get(2) == "test");
+}
+
+class SlowMap<K, V> {
+    var entries: Vec<SlowMapEntry> = Vec::<SlowMapEntry>();
+
+    fun insert(key: K, val: V) -> bool {
+        var i = 0;
+        var len = self.entries.len();
+
+        while i < len {
+            let entry = self.entries[i];
+
+            if entry.key.equals(key) {
+                entry.value = val;
+                return false;
+            }
+
+            i = i + 1;
+        }
+
+        self.entries.push(SlowMapEntry(key, val));
+        return true;
+    }
+
+    fun get(key: K) -> V {
+        var i = 0;
+        var len = self.entries.len();
+
+        while i < len {
+            let entry = self.entries[i];
+
+            if entry.key.equals(key) {
+                return entry.value;
+            }
+
+            i = i + 1;
+        }
+
+        return nil;
+    }
+}
+
+class SlowMapEntry<K, V>(let key: K, let value: V)

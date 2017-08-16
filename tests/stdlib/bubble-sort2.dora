@@ -1,0 +1,16 @@
+fun main() {
+    let x = Array::<int>(5);
+    x[0] = 5;
+    x[1] = 1;
+    x[2] = 4;
+    x[3] = 2;
+    x[4] = 8;
+
+    bubbleSort::<int>(x);
+
+    assert(x[0] == 1);
+    assert(x[1] == 2);
+    assert(x[2] == 4);
+    assert(x[3] == 5);
+    assert(x[4] == 8);
+}
