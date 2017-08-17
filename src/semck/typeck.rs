@@ -13,7 +13,6 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use semck::specialize::{self, SpecializeFor};
 use sym::Sym::SymClass;
 use ty::BuiltinType;
 
@@ -653,7 +652,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_ctor(&mut self,
                             e: &'ast ExprCallType,
-                            mut cls_id: ClassId,
+                            cls_id: ClassId,
                             call_types: Vec<BuiltinType>) {
         let mut ty = BuiltinType::Class(cls_id);
 
@@ -662,34 +661,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             for type_param in type_params {
                 let ty = self.src.ty(type_param.id());
-
-                let ty = match self.fct.parent {
-                    FctParent::Class(cls_id) => {
-                        let cls = self.ctxt.classes[cls_id].borrow();
-
-                        if cls.specialization_for.is_some() {
-                            specialize::specialize_type(self.ctxt,
-                                                        ty,
-                                                        SpecializeFor::Class,
-                                                        &cls.specialization_params)
-                        } else {
-                            ty
-                        }
-                    }
-
-                    FctParent::None => {
-                        if self.fct.specialization_for.is_some() {
-                            specialize::specialize_type(self.ctxt,
-                                                        ty,
-                                                        SpecializeFor::Fct,
-                                                        &self.fct.specialization_params)
-                        } else {
-                            ty
-                        }
-                    }
-
-                    _ => ty,
-                };
 
                 types.push(ty);
             }
@@ -701,10 +672,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            let (specialized_cls_id, type_id) =
-                specialize::specialize_class(self.ctxt, &*cls, types.clone());
-
-            cls_id = specialized_cls_id;
+            let type_id = self.ctxt
+                .types
+                .borrow_mut()
+                .insert(BuiltinType::Class(cls_id), types);
             ty = BuiltinType::Generic(type_id);
 
         } else {
@@ -718,6 +689,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let cls = self.ctxt.classes[cls_id].borrow();
         let mut found = false;
+        let type_params = match ty {
+            BuiltinType::Generic(tid) => {
+                let t = self.ctxt.types.borrow().get(tid);
+                t.params.clone()
+            }
+
+            _ => Vec::new(),
+        };
 
         if cls.is_abstract {
             let msg = Msg::NewAbstractClass;
@@ -727,7 +706,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &ctor in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor].borrow();
 
-            if args_compatible(self.ctxt, &ctor.params_without_self(), &call_types) {
+            if args_compatible(self.ctxt,
+                               &ctor.params_without_self(),
+                               &call_types,
+                               &type_params) {
                 let call_type = CallType::CtorNew(cls_id, ctor.id);
                 self.src.map_calls.replace(e.id, call_type);
 
@@ -752,7 +734,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_call_fct(&mut self,
                            e: &'ast ExprCallType,
-                           mut callee_id: FctId,
+                           callee_id: FctId,
                            call_types: Vec<BuiltinType>) {
         let callee_type_params_len = if self.fct.id == callee_id {
             self.fct.type_params.len()
@@ -762,7 +744,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             callee.type_params.len()
         };
 
-        if let Some(ref type_params) = e.type_params {
+        let type_params = if let Some(ref type_params) = e.type_params {
             let mut types = Vec::new();
 
             for type_param in type_params {
@@ -775,7 +757,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
 
-            let mut callee = self.ctxt.fcts[callee_id].borrow_mut();
+            let callee = self.ctxt.fcts[callee_id].borrow_mut();
 
             for (tp, ty) in callee.type_params.iter().zip(types.iter()) {
                 if let Some(cls_id) = tp.class_bound {
@@ -809,28 +791,31 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
 
-            callee_id = specialize::specialize_fct(self.ctxt,
-                                                   FctParent::None,
-                                                   &mut *callee,
-                                                   SpecializeFor::Fct,
-                                                   &types);
-
             self.src
                 .map_calls
                 .insert_or_replace(e.id, CallType::Fct(callee_id));
+
+            types
+
         } else {
             if callee_type_params_len > 0 {
                 let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
-        }
+
+            Vec::new()
+        };
 
         let callee = self.ctxt.fcts[callee_id].borrow();
+        let ret = replace_fct_type_param(self.ctxt, callee.return_type, &type_params);
 
-        self.src.set_ty(e.id, callee.return_type);
-        self.expr_type = callee.return_type;
+        self.src.set_ty(e.id, ret);
+        self.expr_type = ret;
 
-        if !args_compatible(self.ctxt, &callee.params_without_self(), &call_types) {
+        if !args_compatible(self.ctxt,
+                            &callee.params_without_self(),
+                            &call_types,
+                            &type_params) {
             let callee_name = self.ctxt.interner.str(callee.name).to_string();
             let callee_params = callee
                 .params_without_self()
@@ -882,11 +867,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         let cls = self.ctxt.classes[cls_id].borrow();
+        let type_params = Vec::new();
 
         for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor_id].borrow();
 
-            if args_compatible(self.ctxt, &ctor.params_without_self(), &arg_types) {
+            if args_compatible(self.ctxt,
+                               &ctor.params_without_self(),
+                               &arg_types,
+                               &type_params) {
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);
@@ -1025,9 +1014,24 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_field(&mut self, e: &'ast ExprFieldType) {
         self.visit_expr(&e.object);
 
-        let ty = self.expr_type.to_specialized(self.ctxt);
+        let ty = self.expr_type;
 
-        if let BuiltinType::Class(cls_id) = ty {
+        let cls_id = match ty {
+            BuiltinType::Class(cls_id) => Some(cls_id),
+            BuiltinType::Generic(type_id) => {
+                Some(self.ctxt
+                         .types
+                         .borrow()
+                         .get(type_id)
+                         .base
+                         .cls_id(self.ctxt)
+                         .unwrap())
+            }
+
+            _ => None,
+        };
+
+        if let Some(cls_id) = cls_id {
             let cls = self.ctxt.classes[cls_id].borrow();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
@@ -1036,8 +1040,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &cls.fields[field_id];
-                self.src.set_ty(e.id, field.ty);
-                self.expr_type = field.ty;
+                let fty = replace_type_param(self.ctxt, field.ty, ty);
+
+                self.src.set_ty(e.id, fty);
+                self.expr_type = fty;
                 return;
             }
         }
@@ -1304,12 +1310,22 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     }
 }
 
-fn args_compatible(ctxt: &SemContext, def: &[BuiltinType], expr: &[BuiltinType]) -> bool {
+fn args_compatible(ctxt: &SemContext,
+                   def: &[BuiltinType],
+                   expr: &[BuiltinType],
+                   type_params: &[BuiltinType])
+                   -> bool {
     if def.len() != expr.len() {
         return false;
     }
 
-    for (ind, arg) in def.iter().enumerate() {
+    for (ind, &arg) in def.iter().enumerate() {
+        let arg = match arg {
+            BuiltinType::ClassTypeParam(_, tpid) => type_params[tpid.idx()],
+            BuiltinType::FctTypeParam(_, tpid) => type_params[tpid.idx()],
+            _ => arg,
+        };
+
         if !arg.allows(ctxt, expr[ind]) {
             return false;
         }
@@ -1470,12 +1486,20 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                        args: &[BuiltinType],
                        return_type: Option<BuiltinType>)
                        -> Option<(ClassId, FctId, BuiltinType)> {
-    let cls_id = match object_type.to_specialized(ctxt) {
-        BuiltinType::Class(cls_id) => Some(cls_id),
-        _ => ctxt.primitive_classes.find_class(object_type),
+    let values: Option<(ClassId, Vec<BuiltinType>)> = match object_type {
+        BuiltinType::Class(cls_id) => Some((cls_id, Vec::new())),
+        BuiltinType::Generic(type_id) => {
+            let ty = ctxt.types.borrow().get(type_id);
+            Some((ty.base.cls_id(ctxt).unwrap(), ty.params.clone()))
+        }
+        _ => {
+            ctxt.primitive_classes
+                .find_class(object_type)
+                .map(|c| (c, Vec::new()))
+        }
     };
 
-    if let Some(cls_id) = cls_id {
+    if let Some((cls_id, ref type_params)) = values {
         let cls = ctxt.classes[cls_id].borrow();
 
         let candidates = cls.find_methods(ctxt, name, is_static);
@@ -1494,14 +1518,70 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                 _ => unreachable!(),
             };
 
-            if args_compatible(ctxt, &method.params_without_self(), args) &&
-               (return_type.is_none() || method.return_type == return_type.unwrap()) {
-                return Some((cls_id, candidate, method.return_type));
+            if args_compatible(ctxt, &method.params_without_self(), args, type_params) {
+                let cmp_type = replace_type_param(ctxt, method.return_type, object_type);
+
+                if return_type.is_none() || return_type.unwrap() == cmp_type {
+                    return Some((cls_id, candidate, cmp_type));
+                }
             }
         }
     }
 
     None
+}
+
+fn replace_type_param(ctxt: &SemContext, ty: BuiltinType, cls: BuiltinType) -> BuiltinType {
+    if !cls.is_generic() {
+        return ty;
+    }
+
+    match ty {
+        BuiltinType::ClassTypeParam(_, tpid) => {
+            if let BuiltinType::Generic(type_id) = cls {
+                let t = ctxt.types.borrow().get(type_id);
+                t.params[tpid.idx()]
+            } else {
+                unreachable!()
+            }
+        }
+
+        BuiltinType::Generic(type_id) => {
+            let t = ctxt.types.borrow().get(type_id);
+
+            let base = replace_type_param(ctxt, t.base, cls);
+            let params = t.params.iter().map(|&p| replace_type_param(ctxt, p, cls)).collect();
+
+            let type_id = ctxt.types.borrow_mut().insert(base, params);
+            BuiltinType::Generic(type_id)
+        }
+
+        BuiltinType::Lambda(_) => unimplemented!(),
+
+        _ => ty,
+    }
+}
+
+fn replace_fct_type_param(ctxt: &SemContext, ty: BuiltinType, tp: &[BuiltinType]) -> BuiltinType {
+    match ty {
+        BuiltinType::FctTypeParam(_, tpid) => {
+            tp[tpid.idx()]
+        }
+
+        BuiltinType::Generic(type_id) => {
+            let t = ctxt.types.borrow().get(type_id);
+
+            let base = replace_fct_type_param(ctxt, t.base, tp);
+            let params = t.params.iter().map(|&p| replace_fct_type_param(ctxt, p, tp)).collect();
+
+            let type_id = ctxt.types.borrow_mut().insert(base, params);
+            BuiltinType::Generic(type_id)
+        }
+
+        BuiltinType::Lambda(_) => unimplemented!(),
+
+        _ => ty,
+    }
 }
 
 #[cfg(test)]

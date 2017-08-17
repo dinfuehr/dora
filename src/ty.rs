@@ -235,8 +235,7 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
             BuiltinType::Class(_) => {
-                *self == other || other.is_nil() || other.subclass_from(ctxt, *self) ||
-                (other.is_generic() && self.allows(ctxt, other.to_specialized(ctxt)))
+                *self == other || other.is_nil() || other.subclass_from(ctxt, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
 
@@ -244,7 +243,7 @@ impl BuiltinType {
             BuiltinType::FctTypeParam(_, _) => *self == other,
 
             BuiltinType::Generic(_) => {
-                *self == other || self.to_specialized(ctxt).allows(ctxt, other)
+                *self == other || other.is_nil()
             }
 
             BuiltinType::Lambda(_) => {
@@ -279,7 +278,7 @@ impl BuiltinType {
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) |
             BuiltinType::FctTypeParam(_, _) => panic!("no size for type variable."),
-            BuiltinType::Generic(_) => self.to_specialized(ctxt).size(ctxt),
+            BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
 
@@ -302,7 +301,7 @@ impl BuiltinType {
             BuiltinType::Trait(_) => mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) |
             BuiltinType::FctTypeParam(_, _) => panic!("no alignment for type variable."),
-            BuiltinType::Generic(_) => self.to_specialized(ctxt).align(ctxt),
+            BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
 

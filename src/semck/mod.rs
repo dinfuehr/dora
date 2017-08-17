@@ -81,7 +81,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     // define internal functions
     prelude::internal_functions(ctxt);
 
-    specialize_types(ctxt);
+    // specialize_types(ctxt);
 
     // check types of expressions in functions
     typeck::check(ctxt);
