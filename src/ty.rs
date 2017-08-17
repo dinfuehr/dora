@@ -242,9 +242,7 @@ impl BuiltinType {
             BuiltinType::ClassTypeParam(_, _) => *self == other,
             BuiltinType::FctTypeParam(_, _) => *self == other,
 
-            BuiltinType::Generic(_) => {
-                *self == other || other.is_nil()
-            }
+            BuiltinType::Generic(_) => *self == other || other.is_nil(),
 
             BuiltinType::Lambda(_) => {
                 // for now expect the exact same params and return types

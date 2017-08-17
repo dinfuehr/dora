@@ -81,6 +81,11 @@ pub fn start() -> i32 {
         return 1;
     }
 
+    // if --check given, stop after type/semantic check
+    if ctxt.args.flag_check {
+        return 0;
+    }
+
     if ctxt.args.cmd_test {
         run_tests(&ctxt)
     } else {

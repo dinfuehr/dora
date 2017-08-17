@@ -25,6 +25,7 @@ Options:
     --emit-stubs            Emits generated stubs
     --emit-debug=<fct>      Emits debug instruction at beginning of functions
     --omit-bounds-check     Omit array index out of bounds checks
+    --check                 Only type check given program
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
                             Allowed values: intel, att
     --enable-perf           Enable dump for perf
@@ -55,6 +56,7 @@ pub struct Args {
     pub flag_gc_stats: bool,
     pub flag_gc: Option<CollectorName>,
     pub flag_heap_size: Option<MemSize>,
+    pub flag_check: bool,
 
     pub cmd_test: bool,
 }
@@ -79,6 +81,7 @@ impl Default for Args {
             flag_gc_stats: false,
             flag_gc: None,
             flag_heap_size: None,
+            flag_check: false,
 
             cmd_test: false,
         }

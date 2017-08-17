@@ -709,7 +709,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if args_compatible(self.ctxt,
                                &ctor.params_without_self(),
                                &call_types,
-                               &type_params) {
+                               &type_params,
+                               &[]) {
                 let call_type = CallType::CtorNew(cls_id, ctor.id);
                 self.src.map_calls.replace(e.id, call_type);
 
@@ -807,7 +808,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         let callee = self.ctxt.fcts[callee_id].borrow();
-        let ret = replace_fct_type_param(self.ctxt, callee.return_type, &type_params);
+        let ret = replace_type_param(self.ctxt, callee.return_type, &[], &type_params);
 
         self.src.set_ty(e.id, ret);
         self.expr_type = ret;
@@ -815,6 +816,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if !args_compatible(self.ctxt,
                             &callee.params_without_self(),
                             &call_types,
+                            &[],
                             &type_params) {
             let callee_name = self.ctxt.interner.str(callee.name).to_string();
             let callee_params = callee
@@ -875,7 +877,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if args_compatible(self.ctxt,
                                &ctor.params_without_self(),
                                &arg_types,
-                               &type_params) {
+                               &type_params,
+                               &[]) {
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id);
@@ -912,9 +915,20 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if object_type.is_type_param() {
             self.check_generic_method_call(e, in_try, object_type, &call_types);
+            return;
+        }
 
-        } else if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, false, e.path.name(), &call_types, None) {
+        let mut lookup = MethodLookup::new(self.ctxt)
+            .method(object_type)
+            .pos(e.pos)
+            .name(e.path.name())
+            .args(&call_types);
+
+        if lookup.find() {
+            let cls_id = lookup.found_cls_id().unwrap();
+            let fct_id = lookup.found_fct_id().unwrap();
+            let return_type = lookup.found_ret().unwrap();
+
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert_or_replace(e.id, call_type);
             self.src.set_ty(e.id, return_type);
@@ -1040,7 +1054,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &cls.fields[field_id];
-                let fty = replace_type_param(self.ctxt, field.ty, ty);
+                let class_type_params = match ty {
+                    BuiltinType::Generic(type_id) => {
+                        let t = self.ctxt.types.borrow().get(type_id);
+                        t.params.clone()
+                    }
+                    _ => Vec::new(),
+                };
+                let fty = replace_type_param(self.ctxt, field.ty, &class_type_params, &[]);
 
                 self.src.set_ty(e.id, fty);
                 self.expr_type = fty;
@@ -1313,7 +1334,8 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
 fn args_compatible(ctxt: &SemContext,
                    def: &[BuiltinType],
                    expr: &[BuiltinType],
-                   type_params: &[BuiltinType])
+                   cls_tps: &[BuiltinType],
+                   fct_tps: &[BuiltinType])
                    -> bool {
     if def.len() != expr.len() {
         return false;
@@ -1321,8 +1343,8 @@ fn args_compatible(ctxt: &SemContext,
 
     for (ind, &arg) in def.iter().enumerate() {
         let arg = match arg {
-            BuiltinType::ClassTypeParam(_, tpid) => type_params[tpid.idx()],
-            BuiltinType::FctTypeParam(_, tpid) => type_params[tpid.idx()],
+            BuiltinType::ClassTypeParam(_, tpid) => cls_tps[tpid.idx()],
+            BuiltinType::FctTypeParam(_, tpid) => fct_tps[tpid.idx()],
             _ => arg,
         };
 
@@ -1479,6 +1501,334 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
     }
 }
 
+#[derive(Copy, Clone)]
+enum LookupKind {
+    Fct,
+    Method(BuiltinType),
+    Static(ClassId),
+}
+
+struct MethodLookup<'a, 'ast: 'a> {
+    ctxt: &'a SemContext<'ast>,
+    kind: Option<LookupKind>,
+    name: Option<Name>,
+    args: Option<&'a [BuiltinType]>,
+    cls_tps: Option<&'a [BuiltinType]>,
+    fct_tps: Option<&'a [BuiltinType]>,
+    ret: Option<BuiltinType>,
+    pos: Option<Position>,
+
+    found_fct_id: Option<FctId>,
+    found_cls_id: Option<ClassId>,
+    found_ret: Option<BuiltinType>,
+}
+
+impl<'a, 'ast> MethodLookup<'a, 'ast> {
+    fn new(ctxt: &'a SemContext<'ast>) -> MethodLookup<'a, 'ast> {
+        MethodLookup {
+            ctxt: ctxt,
+            kind: None,
+            name: None,
+            args: None,
+            cls_tps: None,
+            fct_tps: None,
+            ret: None,
+            pos: None,
+
+            found_fct_id: None,
+            found_cls_id: None,
+            found_ret: None,
+        }
+    }
+
+    fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Method(obj));
+        self
+    }
+
+    fn static_method(mut self, cls_id: ClassId) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Static(cls_id));
+        self
+    }
+
+    fn fct(mut self) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Fct);
+        self
+    }
+
+    fn args(mut self, args: &'a [BuiltinType]) -> MethodLookup<'a, 'ast> {
+        self.args = Some(args);
+        self
+    }
+
+    fn pos(mut self, pos: Position) -> MethodLookup<'a, 'ast> {
+        self.pos = Some(pos);
+        self
+    }
+
+    fn cls_type_params(mut self, cls_tps: &'a [BuiltinType]) -> MethodLookup<'a, 'ast> {
+        self.cls_tps = Some(cls_tps);
+        self
+    }
+
+    fn fct_type_params(mut self, fct_tps: &'a [BuiltinType]) -> MethodLookup<'a, 'ast> {
+        self.fct_tps = Some(fct_tps);
+        self
+    }
+
+    fn name(mut self, name: Name) -> MethodLookup<'a, 'ast> {
+        self.name = Some(name);
+        self
+    }
+
+    fn return_type(mut self, ret: BuiltinType) -> MethodLookup<'a, 'ast> {
+        self.ret = Some(ret);
+        self
+    }
+
+    fn find(&mut self) -> bool {
+        let kind = self.kind.expect("kind not set");
+        let name = self.name.expect("name not set");
+        let args = self.args.expect("args not set");
+
+        let fct_id = match kind {
+            LookupKind::Fct => {
+                assert!(self.cls_tps.is_none());
+                self.find_fct(name)
+            }
+
+            LookupKind::Method(obj) => {
+                if obj == BuiltinType::Nil {
+                    None
+
+                } else {
+                    let cls_id = match obj {
+                        BuiltinType::Generic(type_id) => {
+                            let ty = self.ctxt.types.borrow().get(type_id);
+                            ty.base
+                                .cls_id(self.ctxt)
+                                .expect("cls_id not found for generic object")
+                        }
+
+                        _ => {
+                            obj.cls_id(self.ctxt)
+                                .expect("cls_id not found for object")
+                        }
+                    };
+
+                    self.find_method(cls_id, name, false)
+                }
+            }
+
+            LookupKind::Static(cls_id) => {
+                assert!(self.cls_tps.is_none());
+                self.find_method(cls_id, name, true)
+            }
+        };
+
+        self.found_fct_id = fct_id;
+
+        let fct_id = if let Some(fct_id) = fct_id {
+            fct_id
+        } else {
+            let name = self.ctxt.interner.str(name).to_string();
+            let param_names = args.iter()
+                .map(|a| a.name(self.ctxt))
+                .collect::<Vec<String>>();
+
+            let msg = match kind {
+                LookupKind::Fct => Msg::Unimplemented,
+                LookupKind::Method(obj) => {
+                    let type_name = obj.name(self.ctxt);
+                    Msg::UnknownMethod(type_name, name, param_names)
+                }
+
+                LookupKind::Static(cls_id) => {
+                    let type_name = BuiltinType::Class(cls_id).name(self.ctxt);
+                    Msg::UnknownStaticMethod(type_name, name, param_names)
+                }
+            };
+
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
+            return false;
+        };
+
+        let fct = self.ctxt.fcts[fct_id].borrow();
+
+        let cls_id = match fct.parent {
+            FctParent::Class(cls_id) => Some(cls_id),
+            FctParent::Impl(impl_id) => {
+                let ximpl = self.ctxt.impls[impl_id].borrow();
+                Some(ximpl.cls_id())
+            }
+            _ => None,
+        };
+
+        self.found_cls_id = cls_id;
+
+        let cls_tps: Vec<_> = if let Some(cls_tps) = self.cls_tps {
+            cls_tps.to_vec()
+
+        } else if let LookupKind::Method(obj) = kind {
+            match obj {
+                BuiltinType::Generic(type_id) => {
+                    let ty = self.ctxt.types.borrow().get(type_id);
+                    ty.params.clone()
+                }
+
+                _ => Vec::new(),
+            }
+
+        } else {
+            Vec::new()
+        };
+
+        if !self.check_cls_tps(&cls_tps) {
+            return false;
+        }
+
+        let fct_tps = if let Some(fct_tps) = self.fct_tps {
+            if !self.check_fct_tps(fct_tps) {
+                return false;
+            }
+
+            fct_tps
+        } else {
+            &[]
+        };
+
+        if !args_compatible(self.ctxt,
+                            &fct.params_without_self(),
+                            args,
+                            &cls_tps,
+                            fct_tps) {
+            let fct_name = self.ctxt.interner.str(fct.name).to_string();
+            let fct_params = fct.params_without_self()
+                .iter()
+                .map(|a| a.name(self.ctxt))
+                .collect::<Vec<_>>();
+            let call_types = args.iter()
+                .map(|a| a.name(self.ctxt))
+                .collect::<Vec<_>>();
+            let msg = Msg::ParamTypesIncompatible(fct_name, fct_params, call_types);
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
+            return false;
+        }
+
+        let cmp_type = replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps);
+
+        if self.ret.is_none() || self.ret.unwrap() == cmp_type {
+            self.found_ret = Some(cmp_type);
+            true
+
+        } else {
+            false
+        }
+    }
+
+    fn find_fct(&self, _: Name) -> Option<FctId> {
+        unimplemented!()
+    }
+
+    fn find_method(&self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
+        let cls = self.ctxt.classes[cls_id].borrow();
+
+        let candidates = cls.find_methods(self.ctxt, name, is_static);
+
+        if candidates.len() == 1 {
+            Some(candidates[0])
+        } else {
+            None
+        }
+    }
+
+    fn check_cls_tps(&self, tps: &[BuiltinType]) -> bool {
+        let cls_id = self.found_cls_id.expect("found_cls_id not set");
+        let cls = self.ctxt.classes[cls_id].borrow();
+
+        self.check_tps(cls.type_params.as_slice(), tps)
+    }
+
+    fn check_fct_tps(&self, tps: &[BuiltinType]) -> bool {
+        let fct_id = self.found_fct_id.expect("found_fct_id not set");
+        let fct = self.ctxt.fcts[fct_id].borrow();
+
+        self.check_tps(fct.type_params.as_slice(), tps)
+    }
+
+    fn check_tps(&self, specified_tps: &[ctxt::TypeParam], tps: &[BuiltinType]) -> bool {
+        if specified_tps.len() != tps.len() {
+            let msg = Msg::WrongNumberTypeParams(specified_tps.len(), tps.len());
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
+            return false;
+        }
+
+        let mut succeeded = true;
+
+        for (tp, ty) in specified_tps.iter().zip(tps.iter()) {
+            if let Some(cls_id) = tp.class_bound {
+                let cls = BuiltinType::Class(cls_id);
+
+                if !ty.subclass_from(self.ctxt, cls) {
+                    let name = ty.name(self.ctxt);
+                    let cls = cls.name(self.ctxt);
+
+                    let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(self.pos.expect("pos not set"), msg);
+                    succeeded = false;
+                }
+            }
+
+            let cls_id = ty.cls_id(self.ctxt);
+            let cls = if let Some(cls_id) = cls_id {
+                Some(self.ctxt.classes[cls_id].borrow())
+            } else {
+                None
+            };
+
+            for &trait_bound in &tp.trait_bounds {
+                if cls.is_none() || !cls.as_ref().unwrap().traits.contains(&trait_bound) {
+                    let bound = self.ctxt.traits[trait_bound].borrow();
+                    let name = ty.name(self.ctxt);
+                    let trait_name = self.ctxt.interner.str(bound.name).to_string();
+                    let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(self.pos.expect("pos not set"), msg);
+                    succeeded = false;
+                }
+            }
+        }
+
+        succeeded
+    }
+
+    fn found_fct_id(&self) -> Option<FctId> {
+        self.found_fct_id
+    }
+
+    fn found_cls_id(&self) -> Option<ClassId> {
+        self.found_cls_id
+    }
+
+    fn found_ret(&self) -> Option<BuiltinType> {
+        self.found_ret
+    }
+}
+
 fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                        object_type: BuiltinType,
                        is_static: bool,
@@ -1488,7 +1838,7 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                        -> Option<(ClassId, FctId, BuiltinType)> {
     let values: Option<(ClassId, Vec<BuiltinType>)> = match object_type {
         BuiltinType::Class(cls_id) => Some((cls_id, Vec::new())),
-        BuiltinType::Generic(type_id) => {
+        BuiltinType::Generic(type_id) if !is_static => {
             let ty = ctxt.types.borrow().get(type_id);
             Some((ty.base.cls_id(ctxt).unwrap(), ty.params.clone()))
         }
@@ -1499,7 +1849,7 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
         }
     };
 
-    if let Some((cls_id, ref type_params)) = values {
+    if let Some((cls_id, ref cls_type_params)) = values {
         let cls = ctxt.classes[cls_id].borrow();
 
         let candidates = cls.find_methods(ctxt, name, is_static);
@@ -1518,8 +1868,12 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                 _ => unreachable!(),
             };
 
-            if args_compatible(ctxt, &method.params_without_self(), args, type_params) {
-                let cmp_type = replace_type_param(ctxt, method.return_type, object_type);
+            if args_compatible(ctxt,
+                               &method.params_without_self(),
+                               args,
+                               cls_type_params,
+                               &[]) {
+                let cmp_type = replace_type_param(ctxt, method.return_type, cls_type_params, &[]);
 
                 if return_type.is_none() || return_type.unwrap() == cmp_type {
                     return Some((cls_id, candidate, cmp_type));
@@ -1531,48 +1885,27 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
     None
 }
 
-fn replace_type_param(ctxt: &SemContext, ty: BuiltinType, cls: BuiltinType) -> BuiltinType {
-    if !cls.is_generic() {
+fn replace_type_param(ctxt: &SemContext,
+                      ty: BuiltinType,
+                      cls_tp: &[BuiltinType],
+                      fct_tp: &[BuiltinType])
+                      -> BuiltinType {
+    if cls_tp.len() == 0 && fct_tp.len() == 0 {
         return ty;
     }
 
     match ty {
-        BuiltinType::ClassTypeParam(_, tpid) => {
-            if let BuiltinType::Generic(type_id) = cls {
-                let t = ctxt.types.borrow().get(type_id);
-                t.params[tpid.idx()]
-            } else {
-                unreachable!()
-            }
-        }
+        BuiltinType::ClassTypeParam(_, tpid) => cls_tp[tpid.idx()],
+        BuiltinType::FctTypeParam(_, tpid) => fct_tp[tpid.idx()],
 
         BuiltinType::Generic(type_id) => {
             let t = ctxt.types.borrow().get(type_id);
 
-            let base = replace_type_param(ctxt, t.base, cls);
-            let params = t.params.iter().map(|&p| replace_type_param(ctxt, p, cls)).collect();
-
-            let type_id = ctxt.types.borrow_mut().insert(base, params);
-            BuiltinType::Generic(type_id)
-        }
-
-        BuiltinType::Lambda(_) => unimplemented!(),
-
-        _ => ty,
-    }
-}
-
-fn replace_fct_type_param(ctxt: &SemContext, ty: BuiltinType, tp: &[BuiltinType]) -> BuiltinType {
-    match ty {
-        BuiltinType::FctTypeParam(_, tpid) => {
-            tp[tpid.idx()]
-        }
-
-        BuiltinType::Generic(type_id) => {
-            let t = ctxt.types.borrow().get(type_id);
-
-            let base = replace_fct_type_param(ctxt, t.base, tp);
-            let params = t.params.iter().map(|&p| replace_fct_type_param(ctxt, p, tp)).collect();
+            let base = replace_type_param(ctxt, t.base, cls_tp, fct_tp);
+            let params = t.params
+                .iter()
+                .map(|&p| replace_type_param(ctxt, p, cls_tp, fct_tp))
+                .collect();
 
             let type_id = ctxt.types.borrow_mut().insert(base, params);
             BuiltinType::Generic(type_id)
@@ -1722,7 +2055,7 @@ mod tests {
 
              fun f(x: Foo) { x.bar(); }",
             pos(5, 31),
-            Msg::UnknownMethod("Foo".into(), "bar".into(), Vec::new()));
+            Msg::ParamTypesIncompatible("bar".into(), vec!["int".into()], Vec::new()));
 
         err("class Foo { }
               fun f(x: Foo) { x.bar(1); }",
@@ -2642,7 +2975,7 @@ mod tests {
             impl Foo for A { fun foo(a:  int) {} }
             fun test(a: A) { a.foo(1); }",
             pos(4, 31),
-            Msg::UnknownMethod("A".into(), "foo".into(), vec!["int".into()]));
+            Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["int".into()]));
 
         ok("class A { static fun foo() {} }
             trait Foo { fun foo(a: int); }
