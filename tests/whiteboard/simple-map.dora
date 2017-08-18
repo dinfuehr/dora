@@ -13,7 +13,7 @@ fun main() {
     assert(m.get(2) == "test");
 }
 
-class SlowMap<K, V> {
+class SlowMap<K: Equals, V> {
     var entries: Vec<SlowMapEntry<K, V> > = Vec::<SlowMapEntry<K, V> >();
 
     fun insert(key: K, val: V) -> bool {
@@ -49,8 +49,8 @@ class SlowMap<K, V> {
             i = i + 1;
         }
 
-        return nil;
+        return defaultValue::<V>();
     }
 }
 
-class SlowMapEntry<K, V>(let key: K, let value: V)
+class SlowMapEntry<K, V>(let key: K, var value: V)
