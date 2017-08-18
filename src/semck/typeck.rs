@@ -676,6 +676,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if cls.type_params.len() != types.len() {
                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), types.len());
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+                let ty = BuiltinType::Unit;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+                return;
             }
 
             let type_id = self.ctxt
@@ -690,6 +695,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if cls.type_params.len() > 0 {
                 let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), 0);
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
+
+                let ty = BuiltinType::Unit;
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
+                return;
             }
         }
 
@@ -3053,6 +3063,14 @@ mod tests {
             }",
             pos(3, 29),
             Msg::TryCallNonThrowing);
+    }
+
+    #[test]
+    fn test_generic_ctor_without_type_params() {
+        err("class Foo<A, B>()
+            fun test() { Foo(); }",
+            pos(2, 26),
+            Msg::WrongNumberTypeParams(2, 0));
     }
 
     /*#[test]
