@@ -384,7 +384,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                    fct_type_params: &[BuiltinType],
                    return_type: Option<BuiltinType>)
                    -> Option<(ClassId, FctId, BuiltinType)> {
-        let result = lookup_method(self.ctxt, object_type, is_static, name, args, fct_type_params, return_type);
+        let result = lookup_method(self.ctxt,
+                                   object_type,
+                                   is_static,
+                                   name,
+                                   args,
+                                   fct_type_params,
+                                   return_type);
 
         if result.is_none() {
             let type_name = object_type.name(self.ctxt);
@@ -607,7 +613,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .collect();
 
         let type_params = if let Some(ref type_params) = e.type_params {
-            type_params.iter().map(|p| self.src.ty(p.id())).collect()
+            type_params
+                .iter()
+                .map(|p| self.src.ty(p.id()))
+                .collect()
         } else {
             Vec::new()
         };
@@ -1357,18 +1366,78 @@ fn args_compatible(ctxt: &SemContext,
     }
 
     for (ind, &arg) in def.iter().enumerate() {
-        let arg = match arg {
-            BuiltinType::ClassTypeParam(_, tpid) => cls_tps[tpid.idx()],
-            BuiltinType::FctTypeParam(_, tpid) => fct_tps[tpid.idx()],
-            _ => arg,
-        };
-
-        if !arg.allows(ctxt, expr[ind]) {
+        if !arg_allows(ctxt, arg, expr[ind], cls_tps, fct_tps) {
             return false;
         }
     }
 
     true
+}
+
+fn arg_allows(ctxt: &SemContext,
+              def: BuiltinType,
+              arg: BuiltinType,
+              cls_tps: &[BuiltinType],
+              fct_tps: &[BuiltinType])
+              -> bool {
+    match def {
+        BuiltinType::Unit |
+        BuiltinType::Bool |
+        BuiltinType::Byte |
+        BuiltinType::Char |
+        BuiltinType::Struct(_) |
+        BuiltinType::Int |
+        BuiltinType::Long |
+        BuiltinType::Float |
+        BuiltinType::Double => def == arg,
+        BuiltinType::Nil => panic!("nil should not occur in fct definition."),
+        BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
+        BuiltinType::This => panic!("this should not occur in fct definition."),
+        BuiltinType::Class(_) => def == arg || arg.is_nil() || arg.subclass_from(ctxt, def),
+        BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
+
+        BuiltinType::ClassTypeParam(_, tpid) => {
+            def == arg || arg_allows(ctxt, cls_tps[tpid.idx()], arg, cls_tps, fct_tps)
+        }
+        BuiltinType::FctTypeParam(_, tpid) => {
+            def == arg || arg_allows(ctxt, fct_tps[tpid.idx()], arg, cls_tps, fct_tps)
+        }
+
+        BuiltinType::Generic(type_id) => {
+            if def == arg || arg.is_nil() {
+                return true;
+            }
+
+            let t = ctxt.types.borrow().get(type_id);
+            let other_id = match arg {
+                BuiltinType::Generic(other_id) => other_id,
+                _ => {
+                    return false;
+                }
+            };
+
+            let o = ctxt.types.borrow().get(other_id);
+
+            if t.base != o.base || t.params.len() != o.params.len() {
+                return false;
+            }
+
+            for (&tp, &op) in t.params.iter().zip(&o.params) {
+                if !arg_allows(ctxt, tp, op, cls_tps, fct_tps) {
+                    return false;
+                }
+            }
+
+            true
+        }
+
+        BuiltinType::Lambda(_) => {
+            // for now expect the exact same params and return types
+            // possible improvement: allow super classes for params,
+            //                             sub class for return type
+            def == arg
+        }
+    }
 }
 
 fn check_lit_int<'ast>(ctxt: &SemContext<'ast>,
@@ -1889,7 +1958,8 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                                args,
                                cls_type_params,
                                fct_tps) {
-                let cmp_type = replace_type_param(ctxt, method.return_type, cls_type_params, fct_tps);
+                let cmp_type =
+                    replace_type_param(ctxt, method.return_type, cls_type_params, fct_tps);
 
                 if return_type.is_none() || return_type.unwrap() == cmp_type {
                     return Some((cls_id, candidate, cmp_type));
