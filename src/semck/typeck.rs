@@ -582,10 +582,21 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
-        if e.object.is_some() {
-            self.check_method_call(e, in_try);
-            return;
-        }
+        let object_type = if e.object.is_some() {
+            let object = e.object.as_ref().unwrap();
+
+            let object_type = if object.is_super() {
+                self.super_type(e.pos)
+
+            } else {
+                self.visit_expr(object);
+                self.expr_type
+            };
+
+            Some(object_type)
+        } else {
+            None
+        };
 
         let call_types: Vec<BuiltinType> = e.args
             .iter()
@@ -601,15 +612,58 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Vec::new()
         };
 
+        if let Some(object_type) = object_type {
+            if object_type.is_type_param() {
+                self.check_generic_method_call(e, in_try, object_type, &call_types);
+                return;
+            }
+
+            let mut lookup = MethodLookup::new(self.ctxt)
+                .method(object_type)
+                .pos(e.pos)
+                .name(e.path.name())
+                .args(&call_types);
+
+            if lookup.find() {
+                let cls_id = lookup.found_cls_id().unwrap();
+                let fct_id = lookup.found_fct_id().unwrap();
+                let return_type = lookup.found_ret().unwrap();
+
+                let call_type = CallType::Method(cls_id, fct_id);
+                self.src.map_calls.insert_or_replace(e.id, call_type);
+                self.src.set_ty(e.id, return_type);
+                self.expr_type = return_type;
+
+                if !in_try {
+                    let throws = self.ctxt.fcts[fct_id].borrow().throws;
+
+                    if throws {
+                        let msg = Msg::ThrowingCallWithoutTry;
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    }
+                }
+            } else {
+                self.src.set_ty(e.id, BuiltinType::Unit);
+                self.expr_type = BuiltinType::Unit;
+            }
+
+            return;
+        }
+
         let call_type = if e.path.len() > 1 {
             match self.ctxt.sym.borrow().get(e.path[0]) {
                 Some(SymClass(cls_id)) => {
-                    let cls = self.ctxt.classes[cls_id].borrow();
-
                     assert_eq!(2, e.path.len());
 
-                    if let Some((_, fct_id, _)) =
-                        self.find_method(e.pos, cls.ty, true, e.path[1], &call_types, &type_params, None) {
+                    let mut lookup = MethodLookup::new(self.ctxt)
+                        .pos(e.pos)
+                        .static_method(cls_id)
+                        .name(e.path[1])
+                        .args(&call_types)
+                        .fct_type_params(&type_params);
+
+                    if lookup.find() {
+                        let fct_id = lookup.found_fct_id().unwrap();
                         let call_type = CallType::Fct(fct_id);
                         self.src.map_calls.insert(e.id, call_type);
 
@@ -907,61 +961,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let arg_types = arg_types.iter().map(|t| t.name(self.ctxt)).collect();
         let msg = Msg::UnknownCtor(name, arg_types);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
-    }
-
-    fn check_method_call(&mut self, e: &'ast ExprCallType, in_try: bool) {
-        let object = e.object.as_ref().unwrap();
-
-        let object_type = if object.is_super() {
-            self.super_type(e.pos)
-
-        } else {
-            self.visit_expr(object);
-
-            self.expr_type
-        };
-
-        let call_types: Vec<BuiltinType> = e.args
-            .iter()
-            .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
-            .collect();
-
-        if object_type.is_type_param() {
-            self.check_generic_method_call(e, in_try, object_type, &call_types);
-            return;
-        }
-
-        let mut lookup = MethodLookup::new(self.ctxt)
-            .method(object_type)
-            .pos(e.pos)
-            .name(e.path.name())
-            .args(&call_types);
-
-        if lookup.find() {
-            let cls_id = lookup.found_cls_id().unwrap();
-            let fct_id = lookup.found_fct_id().unwrap();
-            let return_type = lookup.found_ret().unwrap();
-
-            let call_type = CallType::Method(cls_id, fct_id);
-            self.src.map_calls.insert_or_replace(e.id, call_type);
-            self.src.set_ty(e.id, return_type);
-            self.expr_type = return_type;
-
-            if !in_try {
-                let throws = self.ctxt.fcts[fct_id].borrow().throws;
-
-                if throws {
-                    let msg = Msg::ThrowingCallWithoutTry;
-                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
-                }
-            }
-        } else {
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
-        }
     }
 
     fn super_type(&self, pos: Position) -> BuiltinType {
