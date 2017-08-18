@@ -5,7 +5,7 @@ tests = 0
 ignored = 0
 
 def ignore(file)
-  IO.open(file).lines.each do |line|
+  File.open(file).each_line do |line|
     return true if line.start_with?("//= error")
     return true if line.start_with?("//= file")
   end
@@ -15,7 +15,8 @@ end
 
 for file in Dir["tests/**/*.dora"]
   if ignore(file)
-    ignore += 1
+    puts "ignore #{file}"
+    ignored += 1
     next
   end
 
