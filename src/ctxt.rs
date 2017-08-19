@@ -457,7 +457,7 @@ impl FctParent {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
     pub class_bound: Option<ClassId>,

@@ -1,8 +1,9 @@
 use std::{f32, f64};
+use std::collections::HashSet;
 
 use ctxt;
 use ctxt::{CallType, ConstData, ConstValue, SemContext, ConvInfo, Fct, FctId, FctParent, FctSrc,
-           IdentType};
+           IdentType, TraitId};
 use class::ClassId;
 use dora_parser::error::msg::Msg;
 
@@ -1833,17 +1834,21 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn check_cls_tps(&self, tps: &[BuiltinType]) -> bool {
-        let cls_id = self.found_cls_id.expect("found_cls_id not set");
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls_tps = {
+            let cls_id = self.found_cls_id.expect("found_cls_id not set");
+            self.ctxt.classes[cls_id].borrow().type_params.to_vec()
+        };
 
-        self.check_tps(cls.type_params.as_slice(), tps)
+        self.check_tps(&cls_tps, tps)
     }
 
     fn check_fct_tps(&self, tps: &[BuiltinType]) -> bool {
-        let fct_id = self.found_fct_id.expect("found_fct_id not set");
-        let fct = self.ctxt.fcts[fct_id].borrow();
+        let fct_tps = {
+            let fct_id = self.found_fct_id.expect("found_fct_id not set");
+            self.ctxt.fcts[fct_id].borrow().type_params.to_vec()
+        };
 
-        self.check_tps(fct.type_params.as_slice(), tps)
+        self.check_tps(&fct_tps, tps)
     }
 
     fn check_tps(&self, specified_tps: &[ctxt::TypeParam], tps: &[BuiltinType]) -> bool {
@@ -1858,46 +1863,117 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let mut succeeded = true;
 
-        for (tp, ty) in specified_tps.iter().zip(tps.iter()) {
-            if let Some(cls_id) = tp.class_bound {
-                let cls = BuiltinType::Class(cls_id);
+        for (tp, &ty) in specified_tps.iter().zip(tps.iter()) {
+            if ty.is_type_param() {
+                let ok = match ty {
+                    BuiltinType::ClassTypeParam(cls_id, tpid) => {
+                        let cls = self.ctxt.classes[cls_id].borrow();
+                        self.check_tp_against_tp(tp, &cls.type_params[tpid.idx()], ty)
+                    }
 
-                if !ty.subclass_from(self.ctxt, cls) {
-                    let name = ty.name(self.ctxt);
-                    let cls = cls.name(self.ctxt);
+                    BuiltinType::FctTypeParam(fct_id, tpid) => {
+                        let fct = self.ctxt.fcts[fct_id].borrow();
+                        self.check_tp_against_tp(tp, &fct.type_params[tpid.idx()], ty)
+                    }
 
-                    let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(self.pos.expect("pos not set"), msg);
+                    _ => unreachable!(),
+                };
+
+                if !ok {
                     succeeded = false;
                 }
-            }
 
-            let cls_id = ty.cls_id(self.ctxt);
-            let cls = if let Some(cls_id) = cls_id {
-                Some(self.ctxt.classes[cls_id].borrow())
-            } else {
-                None
-            };
-
-            for &trait_bound in &tp.trait_bounds {
-                if cls.is_none() || !cls.as_ref().unwrap().traits.contains(&trait_bound) {
-                    let bound = self.ctxt.traits[trait_bound].borrow();
-                    let name = ty.name(self.ctxt);
-                    let trait_name = self.ctxt.interner.str(bound.name).to_string();
-                    let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(self.pos.expect("pos not set"), msg);
-                    succeeded = false;
-                }
+            } else if !self.check_tp(tp, ty) {
+                succeeded = false;
             }
         }
 
         succeeded
+    }
+
+    fn check_tp(&self, tp: &ctxt::TypeParam, ty: BuiltinType) -> bool {
+        let mut succeeded = true;
+
+        if let Some(cls_id) = tp.class_bound {
+            let cls = BuiltinType::Class(cls_id);
+            if !ty.subclass_from(self.ctxt, cls) {
+                self.fail_cls_bound(cls_id, ty);
+                succeeded = false;
+            }
+        }
+
+        let cls_id = match ty {
+            BuiltinType::Generic(type_id) => {
+                let t = self.ctxt.types.borrow().get(type_id);
+                t.base.cls_id(self.ctxt).unwrap()
+            }
+
+            _ => ty.cls_id(self.ctxt).unwrap(),
+        };
+
+        let cls = self.ctxt.classes[cls_id].borrow();
+
+        for &trait_bound in &tp.trait_bounds {
+            if cls.traits.contains(&trait_bound) {
+                self.fail_trait_bound(trait_bound, ty);
+                succeeded = false;
+            }
+        }
+
+        succeeded
+    }
+
+    fn check_tp_against_tp(&self,
+                           tp: &ctxt::TypeParam,
+                           arg: &ctxt::TypeParam,
+                           arg_ty: BuiltinType)
+                           -> bool {
+        let mut succeeded = true;
+
+        if let Some(cls_id) = tp.class_bound {
+            if tp.class_bound != arg.class_bound {
+                self.fail_cls_bound(cls_id, arg_ty);
+                succeeded = false;
+            }
+        }
+
+        if tp.trait_bounds.len() == 0 {
+            return succeeded;
+        }
+
+        let traits_set = arg.trait_bounds.iter().collect::<HashSet<_>>();
+
+        for &trait_bound in &tp.trait_bounds {
+            if !traits_set.contains(&trait_bound) {
+                self.fail_trait_bound(trait_bound, arg_ty);
+                succeeded = false;
+            }
+        }
+
+        succeeded
+    }
+
+    fn fail_cls_bound(&self, cls_id: ClassId, ty: BuiltinType) {
+        let name = ty.name(self.ctxt);
+        let cls = BuiltinType::Class(cls_id);
+        let cls = cls.name(self.ctxt);
+
+        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(self.pos.expect("pos not set"), msg);
+    }
+
+    fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
+        let bound = self.ctxt.traits[trait_id].borrow();
+        let name = ty.name(self.ctxt);
+        let trait_name = self.ctxt.interner.str(bound.name).to_string();
+        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(self.pos.expect("pos not set"), msg);
     }
 
     fn found_fct_id(&self) -> Option<FctId> {
@@ -3142,14 +3218,22 @@ mod tests {
             Msg::WrongNumberTypeParams(2, 0));
     }
 
-    /*#[test]
-    fn test_generic_trait_method_call() {
-        ok("trait Foo { fun one() -> int; }
-           class X
-           impl Foo for X { fun one() -> int { return 1; } }
-           class A<T: Foo>
-           fun f(a: A<X>) {
-             return a.one();
-           }");
-    }*/
+    // #[test]
+    // fn test_generic_argument_with_trait_bound() {
+    //     err("fun f<X: Comparable>(x: X) {}
+    //         fun g<T>(t: T) { f::<T>(t); }",
+    //         pos(1, 1),
+    //         Msg::Unimplemented);
+    // }
+
+    // #[test]
+    // fn test_generic_trait_method_call() {
+    //     ok("trait Foo { fun one() -> int; }
+    //        class X
+    //        impl Foo for X { fun one() -> int { return 1; } }
+    //        class A<T: Foo>
+    //        fun f(a: A<X>) {
+    //          return a.one();
+    //        }");
+    // }
 }
