@@ -704,7 +704,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             CallType::Fct(callee_id) => {
-                self.check_expr_call_fct(e, callee_id, call_types);
+                self.check_expr_call_fct(e, callee_id, call_types, type_params);
             }
 
             _ => panic!("invocation of method"),
@@ -816,101 +816,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_call_fct(&mut self,
                            e: &'ast ExprCallType,
                            callee_id: FctId,
-                           call_types: Vec<BuiltinType>) {
-        let callee_type_params_len = if self.fct.id == callee_id {
-            self.fct.type_params.len()
-        } else {
-            let callee = self.ctxt.fcts[callee_id].borrow();
+                           call_types: Vec<BuiltinType>,
+                           type_params: Vec<BuiltinType>) {
+        let mut lookup = MethodLookup::new(self.ctxt)
+            .pos(e.pos)
+            .callee(callee_id)
+            .args(&call_types)
+            .fct_type_params(&type_params);
 
-            callee.type_params.len()
+        let ty = if lookup.find() {
+            lookup.found_ret().unwrap()
+        } else {
+            BuiltinType::Unit
         };
 
-        let type_params = if let Some(ref type_params) = e.type_params {
-            let mut types = Vec::new();
-
-            for type_param in type_params {
-                let ty = self.src.ty(type_param.id());
-                types.push(ty);
-            }
-
-            if callee_type_params_len != types.len() {
-                let msg = Msg::WrongNumberTypeParams(callee_type_params_len, types.len());
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            }
-
-            let callee = self.ctxt.fcts[callee_id].borrow_mut();
-
-            for (tp, ty) in callee.type_params.iter().zip(types.iter()) {
-                if let Some(cls_id) = tp.class_bound {
-                    let cls = BuiltinType::Class(cls_id);
-
-                    if !ty.subclass_from(self.ctxt, cls) {
-                        let name = ty.name(self.ctxt);
-                        let cls = cls.name(self.ctxt);
-
-                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
-                    }
-                }
-
-                let cls_id = if let Some(cls_id) = ty.cls_id(self.ctxt) {
-                    cls_id
-                } else {
-                    continue;
-                };
-
-                let cls = self.ctxt.classes[cls_id].borrow();
-
-                for &trait_bound in &tp.trait_bounds {
-                    if !cls.traits.contains(&trait_bound) {
-                        let bound = self.ctxt.traits[trait_bound].borrow();
-                        let name = ty.name(self.ctxt);
-                        let trait_name = self.ctxt.interner.str(bound.name).to_string();
-                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
-                    }
-                }
-            }
-
-            self.src
-                .map_calls
-                .insert_or_replace(e.id, CallType::Fct(callee_id));
-
-            types
-
-        } else {
-            if callee_type_params_len > 0 {
-                let msg = Msg::WrongNumberTypeParams(callee_type_params_len, 0);
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-            }
-
-            Vec::new()
-        };
-
-        let callee = self.ctxt.fcts[callee_id].borrow();
-        let ret = replace_type_param(self.ctxt, callee.return_type, &[], &type_params);
-
-        self.src.set_ty(e.id, ret);
-        self.expr_type = ret;
-
-        if !args_compatible(self.ctxt,
-                            &callee.params_without_self(),
-                            &call_types,
-                            &[],
-                            &type_params) {
-            let callee_name = self.ctxt.interner.str(callee.name).to_string();
-            let callee_params = callee
-                .params_without_self()
-                .iter()
-                .map(|a| a.name(self.ctxt))
-                .collect::<Vec<_>>();
-            let call_types = call_types
-                .iter()
-                .map(|a| a.name(self.ctxt))
-                .collect::<Vec<_>>();
-            let msg = Msg::ParamTypesIncompatible(callee_name, callee_params, call_types);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
+        self.src.set_ty(e.id, ty);
+        self.expr_type = ty;
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
@@ -1591,6 +1512,7 @@ enum LookupKind {
     Fct,
     Method(BuiltinType),
     Static(ClassId),
+    Callee(FctId),
 }
 
 struct MethodLookup<'a, 'ast: 'a> {
@@ -1624,6 +1546,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             found_cls_id: None,
             found_ret: None,
         }
+    }
+
+    fn callee(mut self, fct_id: FctId) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Callee(fct_id));
+        self
     }
 
     fn method(mut self, obj: BuiltinType) -> MethodLookup<'a, 'ast> {
@@ -1673,14 +1600,16 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn find(&mut self) -> bool {
         let kind = self.kind.expect("kind not set");
-        let name = self.name.expect("name not set");
         let args = self.args.expect("args not set");
 
         let fct_id = match kind {
             LookupKind::Fct => {
                 assert!(self.cls_tps.is_none());
+                let name = self.name.expect("name not set");
                 self.find_fct(name)
             }
+
+            LookupKind::Callee(fct_id) => Some(fct_id),
 
             LookupKind::Method(obj) => {
                 if obj == BuiltinType::Nil {
@@ -1701,12 +1630,14 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                         }
                     };
 
+                    let name = self.name.expect("name not set");
                     self.find_method(cls_id, name, false)
                 }
             }
 
             LookupKind::Static(cls_id) => {
                 assert!(self.cls_tps.is_none());
+                let name = self.name.expect("name not set");
                 self.find_method(cls_id, name, true)
             }
         };
@@ -1716,6 +1647,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
         } else {
+            let name = self.name.expect("name not set");
             let name = self.ctxt.interner.str(name).to_string();
             let param_names = args.iter()
                 .map(|a| a.name(self.ctxt))
@@ -1723,6 +1655,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             let msg = match kind {
                 LookupKind::Fct => Msg::Unimplemented,
+                LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(obj) => {
                     let type_name = obj.name(self.ctxt);
                     Msg::UnknownMethod(type_name, name, param_names)
@@ -1771,7 +1704,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             Vec::new()
         };
 
-        if !self.check_cls_tps(&cls_tps) {
+        if cls_id.is_some() && !self.check_cls_tps(&cls_tps) {
             return false;
         }
 
@@ -1914,7 +1847,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls = self.ctxt.classes[cls_id].borrow();
 
         for &trait_bound in &tp.trait_bounds {
-            if cls.traits.contains(&trait_bound) {
+            if !cls.traits.contains(&trait_bound) {
                 self.fail_trait_bound(trait_bound, ty);
                 succeeded = false;
             }
@@ -3218,13 +3151,13 @@ mod tests {
             Msg::WrongNumberTypeParams(2, 0));
     }
 
-    // #[test]
-    // fn test_generic_argument_with_trait_bound() {
-    //     err("fun f<X: Comparable>(x: X) {}
-    //         fun g<T>(t: T) { f::<T>(t); }",
-    //         pos(1, 1),
-    //         Msg::Unimplemented);
-    // }
+    #[test]
+    fn test_generic_argument_with_trait_bound() {
+        err("fun f<X: Comparable>(x: X) {}
+            fun g<T>(t: T) { f::<T>(t); }",
+            pos(2, 30),
+            Msg::TraitBoundNotSatisfied("T".into(), "Comparable".into()));
+    }
 
     // #[test]
     // fn test_generic_trait_method_call() {
