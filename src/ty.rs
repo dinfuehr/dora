@@ -195,7 +195,9 @@ impl BuiltinType {
 
             BuiltinType::Generic(id) => {
                 let generic = ctxt.types.borrow().get(id);
-                let base = generic.base.name(ctxt);
+                let cls_id = generic.cls_id;
+                let cls = ctxt.classes[cls_id].borrow();
+                let base = ctxt.interner.str(cls.name);
                 let params = generic
                     .params
                     .iter()
@@ -379,11 +381,9 @@ impl Types {
         self.values.len()
     }
 
-    pub fn insert(&mut self, ty: BuiltinType, params: Vec<BuiltinType>) -> TypeId {
-        assert!(ty.is_cls());
-
+    pub fn insert(&mut self, cls_id: ClassId, params: Vec<BuiltinType>) -> TypeId {
         let ty = TypeWithParams {
-            base: ty,
+            cls_id: cls_id,
             params: params,
         };
 
@@ -418,7 +418,7 @@ impl Types {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeWithParams {
-    pub base: BuiltinType,
+    pub cls_id: ClassId,
     pub params: Vec<BuiltinType>,
 }
 

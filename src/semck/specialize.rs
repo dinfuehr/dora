@@ -13,7 +13,7 @@ pub fn specialize_class(ctxt: &SemContext,
     if let Some(&id) = cls.specializations.borrow().get(&type_params) {
         let type_id = ctxt.types
             .borrow_mut()
-            .insert(BuiltinType::Class(cls.id), type_params);
+            .insert(cls.id, type_params);
         return (id, type_id);
     }
 
@@ -28,7 +28,7 @@ pub fn specialize_class(ctxt: &SemContext,
 
     let type_id = ctxt.types
         .borrow_mut()
-        .insert(BuiltinType::Class(cls.id), type_params);
+        .insert(cls.id, type_params);
     ctxt.types.borrow().set_cls_id(type_id, id);
 
     (id, type_id)
@@ -49,7 +49,7 @@ fn create_specialized_class(ctxt: &SemContext,
         BuiltinType::Generic(type_id) => {
             let ty = ctxt.types.borrow().get(type_id);
 
-            if ty.base.cls_id(ctxt).unwrap() == ctxt.primitive_classes.generic_array {
+            if ty.cls_id == ctxt.primitive_classes.generic_array {
                 is_array = true;
 
                 let type_param = type_params[0].to_specialized(ctxt);
@@ -276,7 +276,7 @@ pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
                 .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
-            let cls_id = ty.base.cls_id(ctxt).unwrap();
+            let cls_id = ty.cls_id;
             let cls = ctxt.classes[cls_id].borrow();
 
             let (_, type_id) = specialize_class(ctxt, &*cls, params.clone());

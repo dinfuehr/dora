@@ -117,7 +117,7 @@ fn specialize_types<'ast>(ctxt: &SemContext<'ast>) {
         if ctxt.types.borrow().get_cls_id(ind.into()).is_none() {
             let ty = ctxt.types.borrow().get(ind.into());
 
-            let cls_id = ty.base.cls_id(ctxt).unwrap();
+            let cls_id = ty.cls_id;
             let cls = ctxt.classes[cls_id].borrow();
 
             specialize_class(ctxt, &*cls, ty.params.clone());
@@ -263,8 +263,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                 }
                             }
 
-                            let cls_type = BuiltinType::Class(cls.id);
-                            let type_id = ctxt.types.borrow_mut().insert(cls_type, type_params);
+                            let type_id = ctxt.types.borrow_mut().insert(cls.id, type_params);
                             BuiltinType::Generic(type_id)
 
                         } else {

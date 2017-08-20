@@ -908,9 +908,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                          .types
                          .borrow()
                          .get(type_id)
-                         .base
-                         .cls_id(self.ctxt)
-                         .unwrap())
+                         .cls_id)
             }
 
             _ => None,
@@ -1265,7 +1263,7 @@ fn arg_allows(ctxt: &SemContext,
 
             let o = ctxt.types.borrow().get(other_id);
 
-            if t.base != o.base || t.params.len() != o.params.len() {
+            if t.cls_id != o.cls_id || t.params.len() != o.params.len() {
                 return false;
             }
 
@@ -1550,9 +1548,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     let cls_id = match obj {
                         BuiltinType::Generic(type_id) => {
                             let ty = self.ctxt.types.borrow().get(type_id);
-                            ty.base
-                                .cls_id(self.ctxt)
-                                .expect("cls_id not found for generic object")
+                            ty.cls_id
                         }
 
                         _ => {
@@ -1694,7 +1690,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     let type_id = self.ctxt
                         .types
                         .borrow_mut()
-                        .insert(BuiltinType::Class(cls_id), cls_tps);
+                        .insert(cls_id, cls_tps);
                     BuiltinType::Generic(type_id)
                 } else {
                     BuiltinType::Class(cls_id)
@@ -1822,7 +1818,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls_id = match ty {
             BuiltinType::Generic(type_id) => {
                 let t = self.ctxt.types.borrow().get(type_id);
-                t.base.cls_id(self.ctxt).unwrap()
+                t.cls_id
             }
 
             _ => ty.cls_id(self.ctxt).unwrap(),
@@ -1918,7 +1914,7 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
         BuiltinType::Class(cls_id) => Some((cls_id, Vec::new())),
         BuiltinType::Generic(type_id) if !is_static => {
             let ty = ctxt.types.borrow().get(type_id);
-            Some((ty.base.cls_id(ctxt).unwrap(), ty.params.clone()))
+            Some((ty.cls_id, ty.params.clone()))
         }
         _ => {
             ctxt.primitive_classes
@@ -1980,13 +1976,12 @@ fn replace_type_param(ctxt: &SemContext,
         BuiltinType::Generic(type_id) => {
             let t = ctxt.types.borrow().get(type_id);
 
-            let base = replace_type_param(ctxt, t.base, cls_tp, fct_tp);
             let params = t.params
                 .iter()
                 .map(|&p| replace_type_param(ctxt, p, cls_tp, fct_tp))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(base, params);
+            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, params);
             BuiltinType::Generic(type_id)
         }
 
