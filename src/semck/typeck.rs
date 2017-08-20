@@ -700,11 +700,49 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         match call_type {
             CallType::CtorNew(cls_id, _) => {
-                self.check_expr_call_ctor(e, cls_id, call_types);
+                let mut lookup = MethodLookup::new(self.ctxt)
+                    .pos(e.pos)
+                    .ctor(cls_id)
+                    .args(&call_types)
+                    .cls_type_params(&type_params);
+
+                let ty = if lookup.find() {
+                    let fct_id = lookup.found_fct_id().unwrap();
+                    let cls_id = lookup.found_cls_id().unwrap();
+                    let cls = self.ctxt.classes[cls_id].borrow();
+
+                    let call_type = CallType::CtorNew(cls_id, fct_id);
+                    self.src.map_calls.replace(e.id, call_type);
+
+                    if cls.is_abstract {
+                        let msg = Msg::NewAbstractClass;
+                        self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                    }
+
+                    lookup.found_ret().unwrap()
+                } else {
+                    BuiltinType::Unit
+                };
+
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
             }
 
             CallType::Fct(callee_id) => {
-                self.check_expr_call_fct(e, callee_id, call_types, type_params);
+                let mut lookup = MethodLookup::new(self.ctxt)
+                    .pos(e.pos)
+                    .callee(callee_id)
+                    .args(&call_types)
+                    .fct_type_params(&type_params);
+
+                let ty = if lookup.find() {
+                    lookup.found_ret().unwrap()
+                } else {
+                    BuiltinType::Unit
+                };
+
+                self.src.set_ty(e.id, ty);
+                self.expr_type = ty;
             }
 
             _ => panic!("invocation of method"),
@@ -719,119 +757,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(e.pos, msg);
             }
         }
-    }
-
-    fn check_expr_call_ctor(&mut self,
-                            e: &'ast ExprCallType,
-                            cls_id: ClassId,
-                            call_types: Vec<BuiltinType>) {
-        let mut ty = BuiltinType::Class(cls_id);
-
-        if let Some(ref type_params) = e.type_params {
-            let mut types = Vec::new();
-
-            for type_param in type_params {
-                let ty = self.src.ty(type_param.id());
-                types.push(ty);
-            }
-
-            let cls = self.ctxt.classes[cls_id].borrow();
-
-            if cls.type_params.len() != types.len() {
-                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), types.len());
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-
-                let ty = BuiltinType::Unit;
-                self.src.set_ty(e.id, ty);
-                self.expr_type = ty;
-                return;
-            }
-
-            let type_id = self.ctxt
-                .types
-                .borrow_mut()
-                .insert(BuiltinType::Class(cls_id), types);
-            ty = BuiltinType::Generic(type_id);
-
-        } else {
-            let cls = self.ctxt.classes[cls_id].borrow();
-
-            if cls.type_params.len() > 0 {
-                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(), 0);
-                self.ctxt.diag.borrow_mut().report(e.pos, msg);
-
-                let ty = BuiltinType::Unit;
-                self.src.set_ty(e.id, ty);
-                self.expr_type = ty;
-                return;
-            }
-        }
-
-        let cls = self.ctxt.classes[cls_id].borrow();
-        let mut found = false;
-        let type_params = match ty {
-            BuiltinType::Generic(tid) => {
-                let t = self.ctxt.types.borrow().get(tid);
-                t.params.clone()
-            }
-
-            _ => Vec::new(),
-        };
-
-        if cls.is_abstract {
-            let msg = Msg::NewAbstractClass;
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
-
-        for &ctor in &cls.ctors {
-            let ctor = self.ctxt.fcts[ctor].borrow();
-
-            if args_compatible(self.ctxt,
-                               &ctor.params_without_self(),
-                               &call_types,
-                               &type_params,
-                               &[]) {
-                let call_type = CallType::CtorNew(cls_id, ctor.id);
-                self.src.map_calls.replace(e.id, call_type);
-
-                found = true;
-                break;
-            }
-        }
-
-        if !found {
-            let call_types = call_types
-                .iter()
-                .map(|a| a.name(self.ctxt))
-                .collect::<Vec<_>>();
-            let name = self.ctxt.interner.str(cls.name).to_string();
-            let msg = Msg::UnknownCtor(name, call_types);
-            self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        }
-
-        self.src.set_ty(e.id, ty);
-        self.expr_type = ty;
-    }
-
-    fn check_expr_call_fct(&mut self,
-                           e: &'ast ExprCallType,
-                           callee_id: FctId,
-                           call_types: Vec<BuiltinType>,
-                           type_params: Vec<BuiltinType>) {
-        let mut lookup = MethodLookup::new(self.ctxt)
-            .pos(e.pos)
-            .callee(callee_id)
-            .args(&call_types)
-            .fct_type_params(&type_params);
-
-        let ty = if lookup.find() {
-            lookup.found_ret().unwrap()
-        } else {
-            BuiltinType::Unit
-        };
-
-        self.src.set_ty(e.id, ty);
-        self.expr_type = ty;
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
@@ -1513,6 +1438,7 @@ enum LookupKind {
     Method(BuiltinType),
     Static(ClassId),
     Callee(FctId),
+    Ctor(ClassId),
 }
 
 struct MethodLookup<'a, 'ast: 'a> {
@@ -1546,6 +1472,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             found_cls_id: None,
             found_ret: None,
         }
+    }
+
+    fn ctor(mut self, cls_id: ClassId) -> MethodLookup<'a, 'ast> {
+        self.kind = Some(LookupKind::Ctor(cls_id));
+        self
     }
 
     fn callee(mut self, fct_id: FctId) -> MethodLookup<'a, 'ast> {
@@ -1640,6 +1571,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 let name = self.name.expect("name not set");
                 self.find_method(cls_id, name, true)
             }
+
+            LookupKind::Ctor(cls_id) => {
+                assert!(self.cls_tps.is_some());
+                self.find_ctor(cls_id)
+            }
         };
 
         self.found_fct_id = fct_id;
@@ -1647,7 +1583,14 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
         } else {
-            let name = self.name.expect("name not set");
+            let name = match kind {
+                LookupKind::Ctor(cls_id) => {
+                    let cls = self.ctxt.classes[cls_id].borrow();
+                    cls.name
+                }
+                _ => self.name.expect("name not set")
+            };
+
             let name = self.ctxt.interner.str(name).to_string();
             let param_names = args.iter()
                 .map(|a| a.name(self.ctxt))
@@ -1664,6 +1607,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 LookupKind::Static(cls_id) => {
                     let type_name = BuiltinType::Class(cls_id).name(self.ctxt);
                     Msg::UnknownStaticMethod(type_name, name, param_names)
+                }
+
+                LookupKind::Ctor(cls_id) => {
+                    let cls = self.ctxt.classes[cls_id].borrow();
+                    let name = self.ctxt.interner.str(cls.name).to_string();
+                    Msg::UnknownCtor(name, param_names)
                 }
             };
 
@@ -1739,7 +1688,21 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return false;
         }
 
-        let cmp_type = replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps);
+        let cmp_type = match kind {
+            LookupKind::Ctor(cls_id) => {
+                if cls_tps.len() > 0 {
+                    let type_id = self.ctxt
+                        .types
+                        .borrow_mut()
+                        .insert(BuiltinType::Class(cls_id), cls_tps);
+                    BuiltinType::Generic(type_id)
+                } else {
+                    BuiltinType::Class(cls_id)
+                }
+            }
+
+            _ => replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps)
+        };
 
         if self.ret.is_none() || self.ret.unwrap() == cmp_type {
             self.found_ret = Some(cmp_type);
@@ -1752,6 +1715,27 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn find_fct(&self, _: Name) -> Option<FctId> {
         unimplemented!()
+    }
+
+    fn find_ctor(&self, cls_id: ClassId) -> Option<FctId> {
+        let cls = self.ctxt.classes[cls_id].borrow();
+
+        let type_params = self.cls_tps.unwrap();
+        let args = self.args.unwrap();
+
+        for &ctor_id in &cls.ctors {
+            let ctor = self.ctxt.fcts[ctor_id].borrow();
+
+            if args_compatible(self.ctxt,
+                               &ctor.params_without_self(),
+                               &args,
+                               &type_params,
+                               &[]) {
+                return Some(ctor_id);
+            }
+        }
+
+        None
     }
 
     fn find_method(&self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
