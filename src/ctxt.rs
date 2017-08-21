@@ -499,10 +499,6 @@ pub struct Fct<'ast> {
     pub throws: bool,
 
     pub type_params: Vec<TypeParam>,
-    pub specialization_for: Option<FctId>,
-    pub specialization_params: Vec<BuiltinType>,
-    pub specializations: HashMap<Vec<BuiltinType>, ClassId>,
-
     pub kind: FctKind,
 }
 
@@ -565,14 +561,6 @@ impl<'ast> Fct<'ast> {
                                .join(", "));
             repr.push_str(">");
 
-        } else if self.specialization_params.len() > 0 {
-            repr.push_str("<");
-            repr.push_str(&self.specialization_params
-                               .iter()
-                               .map(|&ty| ty.name(ctxt))
-                               .collect::<Vec<_>>()
-                               .join(", "));
-            repr.push_str(">");
         }
 
         repr.push_str("(");
@@ -808,7 +796,7 @@ pub struct FctSrc {
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub jit_fct: RwLock<Option<JitFct>>, // compile function
-    pub jit_fct_id: Option<JitFctId>,
+    pub specializations: RwLock<HashMap<Vec<BuiltinType>, JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -825,7 +813,7 @@ impl Clone for FctSrc {
             vars: self.vars.clone(),
             always_returns: self.always_returns,
             jit_fct: RwLock::new(None),
-            jit_fct_id: None,
+            specializations: RwLock::new(HashMap::new()),
         }
     }
 }
@@ -843,7 +831,7 @@ impl FctSrc {
             vars: Vec::new(),
             always_returns: false,
             jit_fct: RwLock::new(None),
-            jit_fct_id: None,
+            specializations: RwLock::new(HashMap::new()),
         }
     }
 

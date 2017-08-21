@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
@@ -216,10 +216,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             initialized: false,
 
             type_params: Vec::new(),
-            specialization_for: None,
-            specialization_params: Vec::new(),
-            specializations: HashMap::new(),
-
             kind: kind,
         };
 
@@ -266,10 +262,6 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             initialized: false,
 
             type_params: Vec::new(),
-            specialization_for: None,
-            specialization_params: Vec::new(),
-            specializations: HashMap::new(),
-
             kind: kind,
         };
 

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
@@ -73,10 +71,6 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
             initialized: false,
 
             type_params: Vec::new(),
-            specialization_for: None,
-            specialization_params: Vec::new(),
-            specializations: HashMap::new(),
-
             kind: FctKind::Definition,
         };
 

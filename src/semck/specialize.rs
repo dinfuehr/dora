@@ -201,7 +201,7 @@ pub fn specialize_fct<'ast>(ctxt: &SemContext<'ast>,
 
                                              always_returns: src.always_returns,
                                              jit_fct: RwLock::new(None),
-                                             jit_fct_id: None,
+                                             specializations: RwLock::new(HashMap::new()),
                                              vars: cloned_vars,
                                          }))
         }
@@ -235,10 +235,6 @@ pub fn specialize_fct<'ast>(ctxt: &SemContext<'ast>,
         throws: fct.throws,
 
         type_params: Vec::new(),
-        specialization_for: Some(fct.id),
-        specialization_params: type_params.to_owned(),
-        specializations: HashMap::new(),
-
         kind: cloned_kind,
     };
 

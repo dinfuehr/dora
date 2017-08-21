@@ -283,3 +283,15 @@ impl IndexMut<FieldId> for Vec<Field> {
         &mut self[index.0]
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct ClassDefId(usize);
+
+#[derive(Debug)]
+pub struct ClassDef {
+    pub id: ClassDefId,
+    pub fields: Vec<i32>,
+    pub size: i32,
+    pub vtable: VTableBox,
+    pub ref_fields: Vec<i32>,
+}
