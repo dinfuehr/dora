@@ -201,6 +201,7 @@ pub fn specialize_fct<'ast>(ctxt: &SemContext<'ast>,
 
                                              always_returns: src.always_returns,
                                              jit_fct: RwLock::new(None),
+                                             jit_fct_id: None,
                                              vars: cloned_vars,
                                          }))
         }

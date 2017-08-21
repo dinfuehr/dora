@@ -8,6 +8,15 @@ use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 
+#[derive(Copy, Clone, Debug)]
+pub struct JitFctId(usize);
+
+impl JitFctId {
+    fn idx(self) -> usize {
+        self.0
+    }
+}
+
 pub struct JitFct {
     code_start: *const u8,
     code_end: *const u8,

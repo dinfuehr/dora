@@ -10,7 +10,7 @@ use driver::cmd::Args;
 use dora_parser::error::diag::Diagnostic;
 
 use dora_parser::ast;
-use baseline::fct::JitFct;
+use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
@@ -808,6 +808,7 @@ pub struct FctSrc {
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
     pub jit_fct: RwLock<Option<JitFct>>, // compile function
+    pub jit_fct_id: Option<JitFctId>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -824,6 +825,7 @@ impl Clone for FctSrc {
             vars: self.vars.clone(),
             always_returns: self.always_returns,
             jit_fct: RwLock::new(None),
+            jit_fct_id: None,
         }
     }
 }
@@ -841,6 +843,7 @@ impl FctSrc {
             vars: Vec::new(),
             always_returns: false,
             jit_fct: RwLock::new(None),
+            jit_fct_id: None,
         }
     }
 
