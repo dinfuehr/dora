@@ -290,6 +290,8 @@ pub struct ClassDefId(usize);
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
+    pub cls_id: ClassId,
+    pub type_params: Vec<BuiltinType>,
     pub fields: Vec<i32>,
     pub size: i32,
     pub vtable: VTableBox,

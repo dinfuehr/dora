@@ -118,6 +118,22 @@ impl BuiltinType {
         }
     }
 
+    pub fn contains_type_param(&self, ctxt: &SemContext) -> bool {
+        match self {
+            &BuiltinType::ClassTypeParam(_, _) => true,
+            &BuiltinType::FctTypeParam(_, _) => true,
+
+            &BuiltinType::Generic(type_id) => {
+                let t = ctxt.types.borrow().get(type_id);
+                t.params.iter().any(|t| t.contains_type_param(ctxt))
+            }
+
+            &BuiltinType::Lambda(_) => unimplemented!(),
+
+            _ => false,
+        }
+    }
+
     pub fn to_specialized(&self, ctxt: &SemContext) -> BuiltinType {
         match self {
             &BuiltinType::Generic(id) => {
