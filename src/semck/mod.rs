@@ -81,8 +81,6 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     // define internal functions
     prelude::internal_functions(ctxt);
 
-    // specialize_types(ctxt);
-
     // check types of expressions in functions
     typeck::check(ctxt);
     return_on_error!(ctxt);
@@ -105,26 +103,6 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
     // initialize addresses for global variables
     init_global_addresses(ctxt);
-
-    prelude::specialized_classes(ctxt);
-}
-
-fn specialize_types<'ast>(ctxt: &SemContext<'ast>) {
-    use semck::specialize::specialize_class;
-    let mut ind = 0;
-
-    while ind < ctxt.types.borrow().len() {
-        if ctxt.types.borrow().get_cls_id(ind.into()).is_none() {
-            let ty = ctxt.types.borrow().get(ind.into());
-
-            let cls_id = ty.cls_id;
-            let cls = ctxt.classes[cls_id].borrow();
-
-            specialize_class(ctxt, &*cls, ty.params.clone());
-        }
-
-        ind += 1;
-    }
 }
 
 fn internalck<'ast>(ctxt: &SemContext<'ast>) {

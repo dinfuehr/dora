@@ -1,7 +1,6 @@
 use class::ClassId;
 use ctxt::{SemContext, FctKind, Intrinsic, TraitId};
 use exception;
-use semck::specialize;
 use stdlib;
 use ty::BuiltinType;
 
@@ -77,13 +76,6 @@ fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
     } else {
         panic!("trait {} not found!", name);
     }
-}
-
-pub fn specialized_classes<'ast>(ctxt: &mut SemContext<'ast>) {
-    let cls_id = ctxt.primitive_classes.generic_array;
-    let cls = ctxt.classes[cls_id].borrow();
-    let (cls_id, _) = specialize::specialize_class(ctxt, &*cls, vec![BuiltinType::Int]);
-    ctxt.primitive_classes.int_array = cls_id;
 }
 
 pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
