@@ -309,6 +309,9 @@ fn create_specialized_class_def(ctxt: &SemContext,
                                 -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
+    let old = cls.def_specializations.borrow_mut().insert(type_params.to_vec(), id);
+    assert!(old.is_none());
+
     ctxt.class_defs
         .push(ClassDef {
                   id: id,
