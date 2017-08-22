@@ -4,7 +4,7 @@ use std::ptr;
 use std::sync::RwLock;
 
 use baseline::stub::ensure_stub;
-use class::{self, ClassDef, ClassDefId, ClassId};
+use class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
 use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, Var};
 use mem;
 use object::Header;
@@ -318,7 +318,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
                   cls_id: cls.id,
                   type_params: type_params.to_vec(),
                   parent_id: None,
-                  size: 0,
+                  size: ClassSize::Fixed(0),
                   fields: Vec::new(),
                   ref_fields: Vec::new(),
                   vtable: None,
@@ -337,7 +337,10 @@ fn create_specialized_class_def(ctxt: &SemContext,
 
         fields = cls_def.fields.clone();
         ref_fields = cls_def.ref_fields.clone();
-        size = cls_def.size;
+        size = match cls_def.size {
+            ClassSize::Fixed(size) => size,
+            _ => unreachable!(),
+        };
         parent_id = Some(id);
 
         let vtable = sup.vtable.as_ref().unwrap();
@@ -395,7 +398,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
     let vtable = VTableBox::new(clsptr, &vtable_entries);
 
     let mut cls_def = ctxt.class_defs[id].borrow_mut();
-    cls_def.size = size;
+    cls_def.size = ClassSize::Fixed(size);
     cls_def.fields = fields;
     cls_def.ref_fields = ref_fields;
     cls_def.vtable = Some(vtable);

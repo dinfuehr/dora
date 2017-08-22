@@ -303,6 +303,13 @@ impl Index<ClassDefId> for GrowableVec<ClassDef> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum ClassSize {
+    Fixed(i32),
+    Array(i32),
+    Str
+}
+
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
@@ -310,7 +317,7 @@ pub struct ClassDef {
     pub type_params: Vec<BuiltinType>,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<i32>,
-    pub size: i32,
+    pub size: ClassSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
 }
