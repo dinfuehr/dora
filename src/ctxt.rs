@@ -14,7 +14,7 @@ use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
-use class::{Class, ClassId, FieldId};
+use class::{Class, ClassDef, ClassId, FieldId};
 use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
@@ -64,7 +64,8 @@ pub struct SemContext<'ast> {
     pub primitive_classes: PrimitiveClasses,
     pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
     pub structs: GrowableVec<StructData>, // stores all struct definitions
-    pub classes: GrowableVec<Class>, // stores all class definitions
+    pub classes: GrowableVec<Class>, // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>, // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
     pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
@@ -91,6 +92,7 @@ impl<'ast> SemContext<'ast> {
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
             classes: GrowableVec::new(),
+            class_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVec::new(),

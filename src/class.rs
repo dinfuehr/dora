@@ -69,6 +69,8 @@ pub struct Class {
     pub specialization_params: Vec<BuiltinType>,
     pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassId>>,
 
+    pub def_specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
+
     // true if this class is specialization of generic Array class
     pub is_array: bool,
 
@@ -287,13 +289,28 @@ impl IndexMut<FieldId> for Vec<Field> {
 #[derive(Copy, Clone, Debug)]
 pub struct ClassDefId(usize);
 
+impl From<usize> for ClassDefId {
+    fn from(data: usize) -> ClassDefId {
+        ClassDefId(data)
+    }
+}
+
+impl Index<ClassDefId> for GrowableVec<ClassDef> {
+    type Output = RefCell<ClassDef>;
+
+    fn index(&self, index: ClassDefId) -> &RefCell<ClassDef> {
+        &self[index.0]
+    }
+}
+
 #[derive(Debug)]
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: ClassId,
     pub type_params: Vec<BuiltinType>,
+    pub parent_id: Option<ClassDefId>,
     pub fields: Vec<i32>,
     pub size: i32,
-    pub vtable: VTableBox,
     pub ref_fields: Vec<i32>,
+    pub vtable: Option<VTableBox>,
 }

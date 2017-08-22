@@ -903,13 +903,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let cls_id = match ty {
             BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::Generic(type_id) => {
-                Some(self.ctxt
-                         .types
-                         .borrow()
-                         .get(type_id)
-                         .cls_id)
-            }
+            BuiltinType::Generic(type_id) => Some(self.ctxt.types.borrow().get(type_id).cls_id),
 
             _ => None,
         };
@@ -1584,7 +1578,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     let cls = self.ctxt.classes[cls_id].borrow();
                     cls.name
                 }
-                _ => self.name.expect("name not set")
+                _ => self.name.expect("name not set"),
             };
 
             let name = self.ctxt.interner.str(name).to_string();
@@ -1687,17 +1681,14 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cmp_type = match kind {
             LookupKind::Ctor(cls_id) => {
                 if cls_tps.len() > 0 {
-                    let type_id = self.ctxt
-                        .types
-                        .borrow_mut()
-                        .insert(cls_id, cls_tps);
+                    let type_id = self.ctxt.types.borrow_mut().insert(cls_id, cls_tps);
                     BuiltinType::Generic(type_id)
                 } else {
                     BuiltinType::Class(cls_id)
                 }
             }
 
-            _ => replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps)
+            _ => replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps),
         };
 
         if self.ret.is_none() || self.ret.unwrap() == cmp_type {
