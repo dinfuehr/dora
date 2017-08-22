@@ -65,8 +65,6 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
     pub is_generic: bool,
-    pub specialization_for: Option<ClassId>,
-    pub specialization_params: Vec<BuiltinType>,
     pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassId>>,
 
     pub def_specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
@@ -97,13 +95,6 @@ impl Class {
             self.type_params
                 .iter()
                 .map(|p| ctxt.interner.str(p.name).to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-
-        } else if self.specialization_params.len() > 0 {
-            self.specialization_params
-                .iter()
-                .map(|&ty| ty.name(ctxt))
                 .collect::<Vec<_>>()
                 .join(", ")
 
