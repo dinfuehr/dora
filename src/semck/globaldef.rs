@@ -146,8 +146,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             impls: Vec::new(),
 
             type_params: Vec::new(),
-            is_generic: false,
-            specializations: RefCell::new(HashMap::new()),
             def_specializations: RefCell::new(HashMap::new()),
 
             is_array: false,
@@ -160,10 +158,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         if let Some(ref type_params) = c.type_params {
             for param in type_params {
                 cls.type_params.push(ctxt::TypeParam::new(param.name));
-            }
-
-            if cls.type_params.len() > 0 {
-                cls.is_generic = true;
             }
         }
 

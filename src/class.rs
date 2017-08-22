@@ -64,8 +64,6 @@ pub struct Class {
     pub impls: Vec<ImplId>,
 
     pub type_params: Vec<TypeParam>,
-    pub is_generic: bool,
-    pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassId>>,
 
     pub def_specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
 
@@ -85,7 +83,7 @@ pub struct Class {
 
 impl Class {
     pub fn is_generic(&self) -> bool {
-        self.is_generic
+        self.type_params.len() > 0
     }
 
     pub fn long_name(&self, ctxt: &SemContext) -> String {
