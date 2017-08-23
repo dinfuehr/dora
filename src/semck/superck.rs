@@ -5,7 +5,6 @@ use class::{Class, ClassId};
 use ctxt::{SemContext, Fct, StructId, StructData};
 use dora_parser::error::msg::Msg;
 use mem;
-use object::Header;
 use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
@@ -16,7 +15,6 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 
     determine_struct_sizes(ctxt);
-    determine_class_sizes(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
@@ -101,65 +99,6 @@ fn determine_struct_size<'ast>(ctxt: &SemContext<'ast>,
     path.pop();
 
     (size, align)
-}
-
-fn determine_class_sizes<'ast>(ctxt: &SemContext<'ast>) {
-    let mut sizes = HashMap::new();
-
-    for cls in ctxt.classes.iter() {
-        let mut cls = cls.borrow_mut();
-
-        // internal classes like Array should have size 0, since
-        // their "real" size is dynamic and not static
-        if !cls.internal && !cls.is_generic() {
-            determine_class_size(ctxt, &mut *cls, &mut sizes);
-        }
-    }
-}
-
-fn determine_class_size<'ast>(ctxt: &SemContext<'ast>,
-                              cls: &mut Class,
-                              sizes: &mut HashMap<ClassId, (i32, i32)>)
-                              -> (i32, i32) {
-    if let Some(&(size, size_without_padding)) = sizes.get(&cls.id) {
-        return (size, size_without_padding);
-    }
-
-    let mut size = if let Some(parent) = cls.parent_class {
-        let mut parent_cls = ctxt.classes[parent].borrow_mut();
-        let (_, size_without_padding) = determine_class_size(ctxt, &mut *parent_cls, sizes);
-
-        cls.ref_fields = parent_cls.ref_fields.to_vec();
-
-        size_without_padding
-
-    } else {
-        Header::size()
-    };
-
-    let mut align = mem::ptr_width();
-
-    for f in &mut cls.fields {
-        let field_size = f.ty.size(ctxt);
-        let field_align = f.ty.align(ctxt);
-
-        let offset = mem::align_i32(size, field_align);
-
-        f.offset = offset;
-
-        size = offset + field_size;
-        align = max(align, field_align);
-
-        if f.ty.reference_type() {
-            cls.ref_fields.push(f.offset);
-        }
-    }
-
-    let size_without_padding = size;
-    cls.size = mem::align_i32(size, align);
-    sizes.insert(cls.id, (cls.size, size_without_padding));
-
-    (cls.size, size_without_padding)
 }
 
 pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
@@ -251,28 +190,27 @@ mod tests {
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
     use object::Header;
-    use mem;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
 
-    #[test]
-    fn test_class_size() {
-        assert_eq!(Header::size(), class_size("class Foo"));
-        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: int)"));
-        assert_eq!(Header::size() + 8, class_size("class Foo(let a: long)"));
-        assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: bool)"));
-        assert_eq!(Header::size() + mem::ptr_width(),
-                   class_size("class Foo(let a: Str)"));
-    }
+    // #[test]
+    // fn test_class_size() {
+    //     assert_eq!(Header::size(), class_size("class Foo"));
+    //     assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: int)"));
+    //     assert_eq!(Header::size() + 8, class_size("class Foo(let a: long)"));
+    //     assert_eq!(Header::size() + mem::ptr_width(), class_size("class Foo(let a: bool)"));
+    //     assert_eq!(Header::size() + mem::ptr_width(),
+    //                class_size("class Foo(let a: Str)"));
+    // }
 
-    fn class_size(code: &'static str) -> i32 {
-        ok_with_test(code, |ctxt| {
-            let name = ctxt.interner.intern("Foo");
-            let cid = ctxt.sym.borrow().get_class(name).unwrap();
-            let cls = ctxt.classes[cid].borrow();
+    // fn class_size(code: &'static str) -> i32 {
+    //     ok_with_test(code, |ctxt| {
+    //         let name = ctxt.interner.intern("Foo");
+    //         let cid = ctxt.sym.borrow().get_class(name).unwrap();
+    //         let cls = ctxt.classes[cid].borrow();
 
-            cls.size
-        })
-    }
+    //         cls.size
+    //     })
+    // }
 
     #[test]
     fn test_internal_class_size() {
@@ -294,28 +232,28 @@ mod tests {
         cls.size
     }
 
-    #[test]
-    fn test_super_size() {
-        ok_with_test("open class A { var a: int; }
-            open class B: A { var b1: int; var b2: int; }
-            class C: B { var c: Str; }",
-                     |ctxt| {
-            check_class(ctxt, "A", mem::ptr_width(), Some("Object"));
-            check_field(ctxt, "A", "a", Header::size());
-            check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
-            check_field(ctxt, "B", "b1", Header::size() + 4);
-            check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
+    // #[test]
+    // fn test_super_size() {
+    //     ok_with_test("open class A { var a: int; }
+    //         open class B: A { var b1: int; var b2: int; }
+    //         class C: B { var c: Str; }",
+    //                  |ctxt| {
+    //         check_class(ctxt, "A", mem::ptr_width(), Some("Object"));
+    //         check_field(ctxt, "A", "a", Header::size());
+    //         check_class(ctxt, "B", 2 * mem::ptr_width(), Some("A"));
+    //         check_field(ctxt, "B", "b1", Header::size() + 4);
+    //         check_field(ctxt, "B", "b2", Header::size() + 2 * 4);
 
-            // if pointer size is 32-bit, we need 4 words, on
-            // 64-bit systems we need 3 words
-            let words = if mem::ptr_width() == 4 { 4 } else { 3 };
-            check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
+    //         // if pointer size is 32-bit, we need 4 words, on
+    //         // 64-bit systems we need 3 words
+    //         let words = if mem::ptr_width() == 4 { 4 } else { 3 };
+    //         check_class(ctxt, "C", words * mem::ptr_width(), Some("B"));
 
-            // if pointer size is 32-bit, we do not need padding
-            let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4 };
-            check_field(ctxt, "C", "c", Header::size() + offset);
-        });
-    }
+    //         // if pointer size is 32-bit, we do not need padding
+    //         let offset = if mem::ptr_width() == 4 { 3 * 4 } else { 4 * 4 };
+    //         check_field(ctxt, "C", "c", Header::size() + offset);
+    //     });
+    // }
 
     #[test]
     fn test_cycle() {

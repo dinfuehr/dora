@@ -65,20 +65,11 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub def_specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
+    pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
 
-    // true if this class is specialization of generic Array class
+    // true if this class is the generic Array class
     pub is_array: bool,
-
-    // true if `is_array` is true and element type is some reference type
-    pub is_object_array: bool,
-
-    // size of single element in array
-    pub element_size: i32,
-
-    /// contains offset of all reference fields in this class.
-    /// In contrast to `fields` it also stores fields of super classes.
-    pub ref_fields: Vec<i32>,
+    pub is_str: bool,
 }
 
 impl Class {

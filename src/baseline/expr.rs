@@ -1577,8 +1577,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         } else {
             self.masm
                 .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
+
+            // TODO: replace 0 with element class size
             self.masm
-                .determine_array_size(REG_PARAMS[0], REG_TMP1, cls.element_size);
+                .determine_array_size(REG_PARAMS[0], REG_TMP1, 0);
         }
 
         let internal_fct = InternalFct {

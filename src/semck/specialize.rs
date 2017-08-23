@@ -57,7 +57,7 @@ pub fn specialize_class_def(ctxt: &SemContext,
                             cls: &class::Class,
                             type_params: &[BuiltinType])
                             -> ClassDefId {
-    if let Some(&id) = cls.def_specializations.borrow().get(type_params) {
+    if let Some(&id) = cls.specializations.borrow().get(type_params) {
         return id;
     }
 
@@ -70,7 +70,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
                                 -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
-    let old = cls.def_specializations.borrow_mut().insert(type_params.to_vec(), id);
+    let old = cls.specializations.borrow_mut().insert(type_params.to_vec(), id);
     assert!(old.is_none());
 
     ctxt.class_defs
@@ -91,47 +91,59 @@ fn create_specialized_class_def(ctxt: &SemContext,
     let mut vtable_entries = Vec::new();
     let parent_id;
 
-    if let Some(super_id) = cls.parent_class {
+    if cls.is_array || cls.is_str {
+        fields = Vec::new();
+        ref_fields = Vec::new();
+        size = 0;
+
+        let super_id = cls.parent_class.expect("Array & Str should have super class");
         let sup = ctxt.classes[super_id].borrow();
         let id = specialize_class_def(ctxt, &*sup, &[]);
-        let cls_def = ctxt.class_defs[id].borrow();
-
-        fields = cls_def.fields.clone();
-        ref_fields = cls_def.ref_fields.clone();
-        size = match cls_def.size {
-            ClassSize::Fixed(size) => size,
-            _ => unreachable!(),
-        };
         parent_id = Some(id);
 
-        let vtable = sup.vtable.as_ref().unwrap();
-        vtable_entries.extend_from_slice(vtable.table());
-
     } else {
-        fields = Vec::with_capacity(cls.fields.len());
-        ref_fields = Vec::new();
-        size = Header::size();
-        parent_id = None;
-    };
+        if let Some(super_id) = cls.parent_class {
+            let sup = ctxt.classes[super_id].borrow();
+            let id = specialize_class_def(ctxt, &*sup, &[]);
+            let cls_def = ctxt.class_defs[id].borrow();
 
-    for f in &cls.fields {
-        let ty = specialize_type(ctxt, f.ty, SpecializeFor::Class, &type_params);
-        debug_assert!(!ty.contains_type_param(ctxt));
+            fields = cls_def.fields.clone();
+            ref_fields = cls_def.ref_fields.clone();
+            size = match cls_def.size {
+                ClassSize::Fixed(size) => size,
+                _ => unreachable!(),
+            };
+            parent_id = Some(id);
 
-        let field_size = f.ty.size(ctxt);
-        let field_align = f.ty.align(ctxt);
+            let vtable = sup.vtable.as_ref().unwrap();
+            vtable_entries.extend_from_slice(vtable.table());
 
-        let offset = mem::align_i32(size, field_align);
-        fields.push(offset);
+        } else {
+            fields = Vec::with_capacity(cls.fields.len());
+            ref_fields = Vec::new();
+            size = Header::size();
+            parent_id = None;
+        };
 
-        size = offset + field_size;
+        for f in &cls.fields {
+            let ty = specialize_type(ctxt, f.ty, SpecializeFor::Class, &type_params);
+            debug_assert!(!ty.contains_type_param(ctxt));
 
-        if ty.reference_type() {
-            ref_fields.push(offset);
+            let field_size = f.ty.size(ctxt);
+            let field_align = f.ty.align(ctxt);
+
+            let offset = mem::align_i32(size, field_align);
+            fields.push(offset);
+
+            size = offset + field_size;
+
+            if ty.reference_type() {
+                ref_fields.push(offset);
+            }
         }
-    }
 
-    size = mem::align_i32(size, mem::ptr_width());
+        size = mem::align_i32(size, mem::ptr_width());
+    }
 
     for &mid in &cls.methods {
         let mut fct = ctxt.fcts[mid].borrow_mut();

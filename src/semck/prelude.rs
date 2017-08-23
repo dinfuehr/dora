@@ -30,7 +30,11 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.primitive_classes.object_class = internal_class(ctxt, "Object", None, 0);
     ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None, 0);
+    ctxt.classes[ctxt.primitive_classes.str_class].borrow_mut().is_str = true;
+
     ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None, 0);
+    ctxt.classes[ctxt.primitive_classes.str_class].borrow_mut().is_array = true;
+
     ctxt.primitive_classes.testing_class = internal_class(ctxt, "Testing", None, 0);
 
     ctxt.primitive_classes.exception_class = internal_class(ctxt, "Exception", None, 0);

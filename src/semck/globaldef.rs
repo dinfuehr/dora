@@ -146,13 +146,10 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             impls: Vec::new(),
 
             type_params: Vec::new(),
-            def_specializations: RefCell::new(HashMap::new()),
+            specializations: RefCell::new(HashMap::new()),
 
             is_array: false,
-            is_object_array: false,
-            element_size: 0,
-
-            ref_fields: Vec::new(),
+            is_str: false,
         };
 
         if let Some(ref type_params) = c.type_params {
