@@ -1563,11 +1563,11 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         self.masm.emit_comment(Comment::Alloc(cls_id));
 
         let cls = self.ctxt.classes[cls_id].borrow();
+        let cls_size = cls.ty.size(self.ctxt);
 
-
-        if cls.size > 0 {
+        if cls_size > 0 {
             self.masm
-                .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls.size as i64);
+                .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls_size as i64);
 
         } else if fct.params_without_self().len() == 0 {
             let size = (Header::size() + mem::ptr_width()) as i64;
@@ -1608,7 +1608,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), REG_TMP1.into());
 
         // store length in object
-        if cls.size == 0 && fct.params_without_self().len() > 0 {
+        if cls_size == 0 && fct.params_without_self().len() > 0 {
             self.masm
                 .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
             self.masm

@@ -189,7 +189,6 @@ mod tests {
     use ctxt::SemContext;
     use dora_parser::error::msg::Msg;
     use dora_parser::interner::Name;
-    use object::Header;
     use semck::tests::{err, errors, ok, ok_with_test, pos};
 
     // #[test]
@@ -212,25 +211,25 @@ mod tests {
     //     })
     // }
 
-    #[test]
-    fn test_internal_class_size() {
-        ok_with_test("", |ctxt| {
-            assert_eq!(0, class_size_name(ctxt, "Array"));
-            assert_eq!(0, class_size_name(ctxt, "Str"));
-            assert_eq!(1, class_size_name(ctxt, "bool"));
-            assert_eq!(4, class_size_name(ctxt, "int"));
-            assert_eq!(1, class_size_name(ctxt, "byte"));
-            assert_eq!(8, class_size_name(ctxt, "long"));
-        });
-    }
+    // #[test]
+    // fn test_internal_class_size() {
+    //     ok_with_test("", |ctxt| {
+    //         assert_eq!(0, class_size_name(ctxt, "Array"));
+    //         assert_eq!(0, class_size_name(ctxt, "Str"));
+    //         assert_eq!(1, class_size_name(ctxt, "bool"));
+    //         assert_eq!(4, class_size_name(ctxt, "int"));
+    //         assert_eq!(1, class_size_name(ctxt, "byte"));
+    //         assert_eq!(8, class_size_name(ctxt, "long"));
+    //     });
+    // }
 
-    fn class_size_name(ctxt: &SemContext, name: &'static str) -> i32 {
-        let name = ctxt.interner.intern(name);
-        let cid = ctxt.sym.borrow().get_class(name).unwrap();
-        let cls = ctxt.classes[cid].borrow();
+    // fn class_size_name(ctxt: &SemContext, name: &'static str) -> i32 {
+    //     let name = ctxt.interner.intern(name);
+    //     let cid = ctxt.sym.borrow().get_class(name).unwrap();
+    //     let cls = ctxt.classes[cid].borrow();
 
-        cls.size
-    }
+    //     cls.size
+    // }
 
     // #[test]
     // fn test_super_size() {
@@ -585,38 +584,38 @@ mod tests {
     //         .expect("class not found")
     // }
 
-    fn check_class<'ast>(ctxt: &SemContext<'ast>,
-                         name: &'static str,
-                         size: i32,
-                         parent: Option<&'static str>) {
-        let name = ctxt.interner.intern(name);
-        let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
+    // fn check_class<'ast>(ctxt: &SemContext<'ast>,
+    //                      name: &'static str,
+    //                      size: i32,
+    //                      parent: Option<&'static str>) {
+    //     let name = ctxt.interner.intern(name);
+    //     let cls_id = ctxt.sym.borrow().get_class(name).unwrap();
 
-        let parent_id = parent
-            .map(|name| ctxt.interner.intern(name))
-            .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
+    //     let parent_id = parent
+    //         .map(|name| ctxt.interner.intern(name))
+    //         .map(|name| ctxt.sym.borrow().get_class(name).unwrap());
 
-        let cls = ctxt.classes[cls_id].borrow();
-        assert_eq!(parent_id, cls.parent_class);
-        assert_eq!(Header::size() + size, cls.size);
-    }
+    //     let cls = ctxt.classes[cls_id].borrow();
+    //     assert_eq!(parent_id, cls.parent_class);
+    //     assert_eq!(Header::size() + size, cls.size);
+    // }
 
-    fn check_field<'ast>(ctxt: &SemContext<'ast>,
-                         cls_name: &'static str,
-                         field_name: &'static str,
-                         offset: i32) {
-        let cls_name = ctxt.interner.intern(cls_name);
-        let field_name = ctxt.interner.intern(field_name);
-        let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
-        let cls = ctxt.classes[cls_id].borrow();
+    // fn check_field<'ast>(ctxt: &SemContext<'ast>,
+    //                      cls_name: &'static str,
+    //                      field_name: &'static str,
+    //                      offset: i32) {
+    //     let cls_name = ctxt.interner.intern(cls_name);
+    //     let field_name = ctxt.interner.intern(field_name);
+    //     let cls_id = ctxt.sym.borrow().get_class(cls_name).unwrap();
+    //     let cls = ctxt.classes[cls_id].borrow();
 
-        for field in &cls.fields {
-            if field_name == field.name {
-                assert_eq!(offset, field.offset);
-                return;
-            }
-        }
+    //     for field in &cls.fields {
+    //         if field_name == field.name {
+    //             assert_eq!(offset, field.offset);
+    //             return;
+    //         }
+    //     }
 
-        unreachable!();
-    }
+    //     unreachable!();
+    // }
 }

@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use class::{ClassSize, ClassId};
+use class::{ClassSize, ClassDefId, ClassId};
 use ctxt::SemContext;
 use gc::root::IndirectObj;
 use handle::Rooted;
@@ -503,12 +503,18 @@ pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
 
-pub fn alloc(ctxt: &SemContext, clsid: ClassId) -> Handle<Obj> {
-    let cls = ctxt.classes[clsid].borrow();
-    let size = mem::align_usize(cls.size as usize, mem::ptr_width() as usize);
+pub fn alloc(ctxt: &SemContext, clsid: ClassDefId) -> Handle<Obj> {
+    let cls_def = ctxt.class_defs[clsid].borrow();
+
+    let size = match cls_def.size {
+        ClassSize::Fixed(size) => size as usize,
+        _ => panic!("alloc only supports fix-sized types"),
+    };
+
+    let size = mem::align_usize(size, mem::ptr_width() as usize);
 
     let ptr = ctxt.gc.alloc(ctxt, size) as usize;
-    let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+    let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
     let mut handle: Handle<Obj> = ptr.into();
     handle.header_mut().vtable = vtable as *mut VTable;
 

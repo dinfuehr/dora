@@ -57,7 +57,6 @@ pub struct Class {
     pub ctors: Vec<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,
-    pub size: i32,
     pub vtable: Option<VTableBox>,
 
     pub traits: Vec<TraitId>,

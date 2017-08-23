@@ -1,7 +1,7 @@
 use std::ptr;
 
 use baseline::stub::ensure_stub;
-use class::{self, ClassDef, ClassDefId, ClassSize};
+use class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
 use ctxt::SemContext;
 use mem;
 use object::Header;
@@ -51,6 +51,12 @@ pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
 pub enum SpecializeFor {
     Fct,
     Class,
+}
+
+pub fn specialize_class_def_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
+    let cls = ctxt.classes[cls_id].borrow();
+
+    specialize_class_def(ctxt, &*cls, &[])
 }
 
 pub fn specialize_class_def(ctxt: &SemContext,

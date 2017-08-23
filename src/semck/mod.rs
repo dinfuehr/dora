@@ -19,7 +19,7 @@ mod nameck;
 mod prelude;
 mod typeck;
 mod returnck;
-mod specialize;
+pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;

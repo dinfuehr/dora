@@ -15,6 +15,7 @@ use os;
 
 use dora_parser::parser::{Parser, NodeIdGenerator};
 use semck;
+use semck::specialize::specialize_class_def_id;
 use ty::BuiltinType;
 
 pub fn start() -> i32 {
@@ -133,6 +134,7 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     };
 
     let testing_class = ctxt.primitive_classes.testing_class;
+    let testing_class = specialize_class_def_id(ctxt, testing_class);
     let testing = object::alloc(ctxt, testing_class).cast();
 
     let fct: extern "C" fn(Handle<Testing>) -> i32 = unsafe { mem::transmute(fct_ptr) };

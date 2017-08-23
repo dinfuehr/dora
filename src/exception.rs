@@ -6,6 +6,7 @@ use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
 use ctxt::{SemContext, FctKind, FctId, get_ctxt};
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
+use semck::specialize::specialize_class_def_id;
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,
@@ -267,8 +268,9 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
     let cls_id = ctxt.primitive_classes.stack_trace_element_class;
+    let cls_def_id = specialize_class_def_id(ctxt, cls_id);
 
-    let ste: Handle<StackTraceElement> = alloc(ctxt, cls_id).cast();
+    let ste: Handle<StackTraceElement> = alloc(ctxt, cls_def_id).cast();
     let mut ste = ctxt.handles.root(ste);
     ste.line = lineno;
 
@@ -282,7 +284,8 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
 pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception> {
     let cls_id = ctxt.primitive_classes.exception_class;
-    let obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
+    let cls_def_id = specialize_class_def_id(ctxt, cls_id);
+    let obj: Handle<Exception> = alloc(ctxt, cls_def_id).cast();
     let mut obj = ctxt.handles.root(obj);
 
     obj.msg = msg;

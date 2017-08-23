@@ -139,7 +139,6 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ctors: Vec::new(),
             fields: Vec::new(),
             methods: Vec::new(),
-            size: 0,
             vtable: None,
 
             traits: Vec::new(),
