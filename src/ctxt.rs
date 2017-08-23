@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -14,13 +14,14 @@ use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
-use class::{Class, ClassDef, ClassId, FieldId};
+use class::{Class, ClassDef, ClassDefId, ClassId, FieldId};
 use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use handle::HandleMemory;
 use safepoint::PollingPage;
+use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use sym::*;
 use sym::Sym::*;
 use ty::{BuiltinType, LambdaTypes, Types};
@@ -117,6 +118,9 @@ impl<'ast> SemContext<'ast> {
 
                 equals_trait: empty_trait_id,
                 comparable_trait: empty_trait_id,
+
+                int_array_def: Cell::new(None),
+                str_class_def: Cell::new(None),
             },
             gc: gc,
             ast: ast,
@@ -409,9 +413,36 @@ pub struct PrimitiveClasses {
 
     pub equals_trait: TraitId,
     pub comparable_trait: TraitId,
+
+    int_array_def: Cell<Option<ClassDefId>>,
+    str_class_def: Cell<Option<ClassDefId>>,
 }
 
 impl PrimitiveClasses {
+    pub fn int_array(&self, ctxt: &SemContext) -> ClassDefId {
+        let cls_id = self.int_array_def.get();
+
+        if let Some(cls_id) = cls_id {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id_params(ctxt, self.array_class, &[BuiltinType::Int]);
+            self.int_array_def.set(Some(cls_id));
+            cls_id
+        }
+    }
+
+    pub fn str(&self, ctxt: &SemContext) -> ClassDefId {
+        let cls_id = self.str_class_def.get();
+
+        if let Some(cls_id) = cls_id {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(ctxt, self.str_class);
+            self.str_class_def.set(Some(cls_id));
+            cls_id
+        }
+    }
+
     pub fn find_class(&self, ty: BuiltinType) -> Option<ClassId> {
         match ty {
             BuiltinType::Bool => Some(self.bool_class),
