@@ -139,13 +139,9 @@ impl Obj {
         match cls.size {
             ClassSize::Fixed(size) => size as usize,
 
-            ClassSize::ObjArray => {
-                determine_array_size(self, mem::ptr_width())
-            }
+            ClassSize::ObjArray => determine_array_size(self, mem::ptr_width()),
 
-            ClassSize::Array(element_size) => {
-                determine_array_size(self, element_size)
-            }
+            ClassSize::Array(element_size) => determine_array_size(self, element_size),
 
             ClassSize::Str => {
                 let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };

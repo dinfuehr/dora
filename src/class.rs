@@ -287,7 +287,7 @@ pub enum ClassSize {
     Fixed(i32),
     Array(i32),
     ObjArray,
-    Str
+    Str,
 }
 
 #[derive(Debug)]

@@ -53,30 +53,39 @@ pub enum SpecializeFor {
     Class,
 }
 
-pub fn specialize_class_def_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
+pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
-
-    specialize_class_def(ctxt, &*cls, &[])
+    specialize_class(ctxt, &*cls, &[])
 }
 
-pub fn specialize_class_def(ctxt: &SemContext,
-                            cls: &class::Class,
-                            type_params: &[BuiltinType])
-                            -> ClassDefId {
+pub fn specialize_class_id_params(ctxt: &SemContext,
+                                  cls_id: ClassId,
+                                  type_params: &[BuiltinType])
+                                  -> ClassDefId {
+    let cls = ctxt.classes[cls_id].borrow();
+    specialize_class(ctxt, &*cls, type_params)
+}
+
+pub fn specialize_class(ctxt: &SemContext,
+                        cls: &class::Class,
+                        type_params: &[BuiltinType])
+                        -> ClassDefId {
     if let Some(&id) = cls.specializations.borrow().get(type_params) {
         return id;
     }
 
-    create_specialized_class_def(ctxt, cls, type_params)
+    create_specialized_class(ctxt, cls, type_params)
 }
 
-fn create_specialized_class_def(ctxt: &SemContext,
-                                cls: &class::Class,
-                                type_params: &[BuiltinType])
-                                -> ClassDefId {
+fn create_specialized_class(ctxt: &SemContext,
+                            cls: &class::Class,
+                            type_params: &[BuiltinType])
+                            -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
-    let old = cls.specializations.borrow_mut().insert(type_params.to_vec(), id);
+    let old = cls.specializations
+        .borrow_mut()
+        .insert(type_params.to_vec(), id);
     assert!(old.is_none());
 
     ctxt.class_defs
@@ -109,17 +118,16 @@ fn create_specialized_class_def(ctxt: &SemContext,
             ClassSize::Str
         };
 
-        let super_id = cls.parent_class.expect("Array & Str should have super class");
-        let sup = ctxt.classes[super_id].borrow();
-        let id = specialize_class_def(ctxt, &*sup, &[]);
+        let super_id = cls.parent_class
+            .expect("Array & Str should have super class");
+        let id = specialize_class_id(ctxt, super_id);
         parent_id = Some(id);
 
     } else {
         let mut csize;
 
         if let Some(super_id) = cls.parent_class {
-            let sup = ctxt.classes[super_id].borrow();
-            let id = specialize_class_def(ctxt, &*sup, &[]);
+            let id = specialize_class_id(ctxt, super_id);
             let cls_def = ctxt.class_defs[id].borrow();
 
             fields = cls_def.fields.clone();
@@ -130,7 +138,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
             };
             parent_id = Some(id);
 
-            let vtable = sup.vtable.as_ref().unwrap();
+            let vtable = cls_def.vtable.as_ref().unwrap();
             vtable_entries.extend_from_slice(vtable.table());
 
         } else {
