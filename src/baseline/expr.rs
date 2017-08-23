@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
-use class::{ClassId, FieldId};
+use class::{ClassId, ClassSize, FieldId};
 use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
           REG_PARAMS};
 use ctxt::*;
@@ -17,6 +17,7 @@ use masm::*;
 use mem;
 use object::{Header, Str};
 use os::signal::Trap;
+use semck::specialize::specialize_class_id;
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
@@ -218,7 +219,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         } else {
             let cls_id = conv.cls_id;
-            let cls = self.ctxt.classes[cls_id].borrow();
+            let cls_id = specialize_class_id(self.ctxt, cls_id);
+            let cls = self.ctxt.class_defs[cls_id].borrow();
+
             let vtable: &VTable = cls.vtable.as_ref().unwrap();
 
             let offset = if e.is {
@@ -1481,7 +1484,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             if idx == 0 {
                 if let Some(cls_id) = temps[idx].2 {
                     let reg = REG_PARAMS[reg_idx];
-                    self.emit_allocation(pos, &*fct, &temps, cls_id, offset, reg);
+                    self.emit_allocation(pos, &temps, cls_id, offset, reg);
 
                     reg_idx += 1;
                     idx += 1;
@@ -1554,33 +1557,52 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_allocation(&mut self,
                        pos: Position,
-                       fct: &Fct<'ast>,
                        temps: &[(BuiltinType, i32, Option<ClassId>)],
                        cls_id: ClassId,
                        offset: i32,
                        dest: Reg) {
+        let cls_id = specialize_class_id(self.ctxt, cls_id);
+        let cls = self.ctxt.class_defs[cls_id].borrow();
+        let mut store_length = false;
+
         // allocate storage for object
         self.masm.emit_comment(Comment::Alloc(cls_id));
 
-        let cls = self.ctxt.classes[cls_id].borrow();
-        let cls_size = cls.ty.size(self.ctxt);
+        match cls.size {
+            ClassSize::Fixed(size) => {
+                self.masm
+                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
+            }
 
-        if cls_size > 0 {
-            self.masm
-                .load_int_const(MachineMode::Int32, REG_PARAMS[0], cls_size as i64);
+            ClassSize::Array(esize) => {
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-        } else if fct.params_without_self().len() == 0 {
-            let size = (Header::size() + mem::ptr_width()) as i64;
-            self.masm
-                .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, esize);
 
-        } else {
-            self.masm
-                .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
+                store_length = true;
+            }
 
-            // TODO: replace 0 with element class size
-            self.masm
-                .determine_array_size(REG_PARAMS[0], REG_TMP1, 0);
+            ClassSize::ObjArray => {
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
+
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width());
+
+                store_length = true;
+            }
+
+            ClassSize::Str => {
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
+
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, 1);
+
+                store_length = true;
+            }
         }
 
         let internal_fct = InternalFct {
@@ -1608,7 +1630,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), REG_TMP1.into());
 
         // store length in object
-        if cls_size == 0 && fct.params_without_self().len() > 0 {
+        if store_length {
             self.masm
                 .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
             self.masm

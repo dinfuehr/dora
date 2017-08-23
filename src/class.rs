@@ -57,7 +57,6 @@ pub struct Class {
     pub ctors: Vec<FctId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctId>,
-    pub vtable: Option<VTableBox>,
 
     pub traits: Vec<TraitId>,
     pub impls: Vec<ImplId>,
@@ -300,4 +299,24 @@ pub struct ClassDef {
     pub size: ClassSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
+}
+
+impl ClassDef {
+    pub fn name(&self, ctxt: &SemContext) -> String {
+        let cls = ctxt.classes[self.cls_id].borrow();
+        let name = ctxt.interner.str(cls.name);
+
+        let params = if self.type_params.len() > 0 {
+            self.type_params
+                .iter()
+                .map(|p| p.name(ctxt))
+                .collect::<Vec<_>>()
+                .join(", ")
+
+        } else {
+            return name.to_string();
+        };
+
+        format!("{}<{}>", name, params)
+    }
 }

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
 
-use class::{ClassDef, ClassId, FieldId};
+use class::{ClassDef, ClassDefId, ClassId, FieldId};
 use cpu::flush_icache;
 use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
@@ -189,8 +189,8 @@ impl Comments {
 pub enum Comment {
     Lit(&'static str),
     LoadString(Handle<Str>),
-    Alloc(ClassId),
-    StoreVTable(ClassId),
+    Alloc(ClassDefId),
+    StoreVTable(ClassDefId),
     CallSuper(FctId),
     CallVirtual(FctId),
     CallDirect(FctId),
@@ -226,19 +226,13 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
         match self.comment {
             &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
-            &Comment::Alloc(clsid) => {
-                let cls = self.ctxt.classes[clsid].borrow();
-                let name = cls.name;
-                let name = self.ctxt.interner.str(name);
-
+            &Comment::Alloc(cls_def_id) => {
+                let name = self.ctxt.class_defs[cls_def_id].borrow().name(self.ctxt);
                 write!(f, "allocate object of class {}", &name)
             }
 
-            &Comment::StoreVTable(clsid) => {
-                let cls = self.ctxt.classes[clsid].borrow();
-                let name = cls.name;
-                let name = self.ctxt.interner.str(name);
-
+            &Comment::StoreVTable(cls_def_id) => {
+                let name = self.ctxt.class_defs[cls_def_id].borrow().name(self.ctxt);
                 write!(f, "store vtable ptr for class {} in object", &name)
             }
 

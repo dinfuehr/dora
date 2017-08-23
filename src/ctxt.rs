@@ -121,6 +121,8 @@ impl<'ast> SemContext<'ast> {
 
                 int_array_def: Cell::new(None),
                 str_class_def: Cell::new(None),
+                ste_class_def: Cell::new(None),
+                ex_class_def: Cell::new(None),
             },
             gc: gc,
             ast: ast,
@@ -416,6 +418,8 @@ pub struct PrimitiveClasses {
 
     int_array_def: Cell<Option<ClassDefId>>,
     str_class_def: Cell<Option<ClassDefId>>,
+    ste_class_def: Cell<Option<ClassDefId>>,
+    ex_class_def: Cell<Option<ClassDefId>>,
 }
 
 impl PrimitiveClasses {
@@ -439,6 +443,30 @@ impl PrimitiveClasses {
         } else {
             let cls_id = specialize_class_id(ctxt, self.str_class);
             self.str_class_def.set(Some(cls_id));
+            cls_id
+        }
+    }
+
+    pub fn stack_trace_element(&self, ctxt: &SemContext) -> ClassDefId {
+        let cls_id = self.ste_class_def.get();
+
+        if let Some(cls_id) = cls_id {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(ctxt, self.stack_trace_element_class);
+            self.ste_class_def.set(Some(cls_id));
+            cls_id
+        }
+    }
+
+    pub fn exception(&self, ctxt: &SemContext) -> ClassDefId {
+        let cls_id = self.ex_class_def.get();
+
+        if let Some(cls_id) = cls_id {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(ctxt, self.exception_class);
+            self.ex_class_def.set(Some(cls_id));
             cls_id
         }
     }

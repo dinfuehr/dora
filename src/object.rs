@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use class::{ClassSize, ClassDefId, ClassId};
+use class::{ClassSize, ClassDefId};
 use ctxt::SemContext;
 use gc::root::IndirectObj;
 use handle::Rooted;
@@ -404,8 +404,8 @@ fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(ctxt, size) as usize;
 
-    let clsid = ctxt.primitive_classes.str_class;
-    let cls = ctxt.classes[clsid].borrow();
+    let clsid = ctxt.primitive_classes.str(ctxt);
+    let cls = ctxt.class_defs[clsid].borrow();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Str> = ptr.into();
     handle.header_mut().vtable = vtable as *mut VTable;
@@ -460,13 +460,13 @@ impl<T> Array<T>
             + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc(ctxt: &SemContext, len: usize, elem: T, clsid: ClassId) -> Handle<Array<T>> {
+    pub fn alloc(ctxt: &SemContext, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
         let ptr = ctxt.gc.alloc(ctxt, size) as usize;
-        let cls = ctxt.classes[clsid].borrow();
+        let cls = ctxt.class_defs[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
         handle.header_mut().vtable = vtable as *mut VTable;
