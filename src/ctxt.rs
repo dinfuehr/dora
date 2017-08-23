@@ -62,7 +62,7 @@ pub struct SemContext<'ast> {
     pub ast: &'ast ast::Ast,
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
-    pub primitive_classes: PrimitiveClasses,
+    pub vips: KnownElements,
     pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
     pub structs: GrowableVec<StructData>, // stores all struct definitions
     pub classes: GrowableVec<Class>, // stores all class source definitions
@@ -98,7 +98,7 @@ impl<'ast> SemContext<'ast> {
             impls: Vec::new(),
             globals: GrowableVec::new(),
             interner: interner,
-            primitive_classes: PrimitiveClasses {
+            vips: KnownElements {
                 bool_class: empty_class_id,
                 byte_class: empty_class_id,
                 char_class: empty_class_id,
@@ -394,7 +394,7 @@ pub struct StructFieldData {
 }
 
 #[derive(Debug)]
-pub struct PrimitiveClasses {
+pub struct KnownElements {
     pub bool_class: ClassId,
     pub byte_class: ClassId,
     pub char_class: ClassId,
@@ -419,7 +419,7 @@ pub struct PrimitiveClasses {
     ex_class_def: Cell<Option<ClassDefId>>,
 }
 
-impl PrimitiveClasses {
+impl KnownElements {
     pub fn int_array(&self, ctxt: &SemContext) -> ClassDefId {
         let cls_id = self.int_array_def.get();
 

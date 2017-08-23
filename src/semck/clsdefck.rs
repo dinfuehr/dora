@@ -159,7 +159,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                 }
             };
         } else {
-            let object_cls = self.ctxt.primitive_classes.object_class;
+            let object_cls = self.ctxt.vips.object_class;
             let cls_id = self.cls_id.unwrap();
 
             if cls_id != object_cls {

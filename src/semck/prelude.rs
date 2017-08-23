@@ -5,34 +5,34 @@ use stdlib;
 use ty::BuiltinType;
 
 pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
-    ctxt.primitive_classes.bool_class = internal_class(ctxt, "bool", Some(BuiltinType::Bool));
-    ctxt.primitive_classes.byte_class = internal_class(ctxt, "byte", Some(BuiltinType::Byte));
-    ctxt.primitive_classes.char_class = internal_class(ctxt, "char", Some(BuiltinType::Char));
-    ctxt.primitive_classes.int_class = internal_class(ctxt, "int", Some(BuiltinType::Int));
-    ctxt.primitive_classes.long_class = internal_class(ctxt, "long", Some(BuiltinType::Long));
+    ctxt.vips.bool_class = internal_class(ctxt, "bool", Some(BuiltinType::Bool));
+    ctxt.vips.byte_class = internal_class(ctxt, "byte", Some(BuiltinType::Byte));
+    ctxt.vips.char_class = internal_class(ctxt, "char", Some(BuiltinType::Char));
+    ctxt.vips.int_class = internal_class(ctxt, "int", Some(BuiltinType::Int));
+    ctxt.vips.long_class = internal_class(ctxt, "long", Some(BuiltinType::Long));
 
-    ctxt.primitive_classes.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float));
-    ctxt.primitive_classes.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double));
+    ctxt.vips.float_class = internal_class(ctxt, "float", Some(BuiltinType::Float));
+    ctxt.vips.double_class = internal_class(ctxt, "double", Some(BuiltinType::Double));
 
-    ctxt.primitive_classes.object_class = internal_class(ctxt, "Object", None);
-    ctxt.primitive_classes.str_class = internal_class(ctxt, "Str", None);
-    ctxt.classes[ctxt.primitive_classes.str_class]
+    ctxt.vips.object_class = internal_class(ctxt, "Object", None);
+    ctxt.vips.str_class = internal_class(ctxt, "Str", None);
+    ctxt.classes[ctxt.vips.str_class]
         .borrow_mut()
         .is_str = true;
 
-    ctxt.primitive_classes.array_class = internal_class(ctxt, "Array", None);
-    ctxt.classes[ctxt.primitive_classes.array_class]
+    ctxt.vips.array_class = internal_class(ctxt, "Array", None);
+    ctxt.classes[ctxt.vips.array_class]
         .borrow_mut()
         .is_array = true;
 
-    ctxt.primitive_classes.testing_class = internal_class(ctxt, "Testing", None);
+    ctxt.vips.testing_class = internal_class(ctxt, "Testing", None);
 
-    ctxt.primitive_classes.exception_class = internal_class(ctxt, "Exception", None);
-    ctxt.primitive_classes.stack_trace_element_class =
+    ctxt.vips.exception_class = internal_class(ctxt, "Exception", None);
+    ctxt.vips.stack_trace_element_class =
         internal_class(ctxt, "StackTraceElement", None);
 
-    ctxt.primitive_classes.comparable_trait = find_trait(ctxt, "Comparable");
-    ctxt.primitive_classes.equals_trait = find_trait(ctxt, "Equals");
+    ctxt.vips.comparable_trait = find_trait(ctxt, "Comparable");
+    ctxt.vips.equals_trait = find_trait(ctxt, "Equals");
 }
 
 fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
@@ -99,7 +99,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_fct(ctxt, "set_uint8", Intrinsic::SetUint8);
     intrinsic_fct(ctxt, "defaultValue", Intrinsic::DefaultValue);
 
-    let clsid = ctxt.primitive_classes.byte_class;
+    let clsid = ctxt.vips.byte_class;
     native_method(ctxt, clsid, "toString", stdlib::byte_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::ByteToLong);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::ByteToInt);
@@ -108,7 +108,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::ByteCmp);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::ByteNot);
 
-    let clsid = ctxt.primitive_classes.char_class;
+    let clsid = ctxt.vips.char_class;
     native_method(ctxt, clsid, "toString", stdlib::char_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::CharToLong);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::CharToInt);
@@ -116,7 +116,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::CharEq);
     intrinsic_method(ctxt, clsid, "compareTo", Intrinsic::CharCmp);
 
-    let clsid = ctxt.primitive_classes.int_class;
+    let clsid = ctxt.vips.int_class;
     intrinsic_method(ctxt, clsid, "toByte", Intrinsic::IntToByte);
     intrinsic_method(ctxt, clsid, "toCharUnchecked", Intrinsic::IntToChar);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::IntToLong);
@@ -146,13 +146,13 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::IntNeg);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::IntNot);
 
-    let trait_id = ctxt.primitive_classes.equals_trait;
+    let trait_id = ctxt.vips.equals_trait;
     intrinsic_impl(ctxt, clsid, trait_id, "equals", Intrinsic::IntEq);
 
-    let trait_id = ctxt.primitive_classes.comparable_trait;
+    let trait_id = ctxt.vips.comparable_trait;
     intrinsic_impl(ctxt, clsid, trait_id, "compareTo", Intrinsic::IntCmp);
 
-    let clsid = ctxt.primitive_classes.long_class;
+    let clsid = ctxt.vips.long_class;
     native_method(ctxt, clsid, "toString", stdlib::long_to_string as *const u8);
     intrinsic_method(ctxt, clsid, "toCharUnchecked", Intrinsic::LongToChar);
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::LongToInt);
@@ -182,13 +182,13 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "unaryMinus", Intrinsic::LongNeg);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::LongNot);
 
-    let clsid = ctxt.primitive_classes.bool_class;
+    let clsid = ctxt.vips.bool_class;
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::BoolToInt);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::BoolToLong);
     intrinsic_method(ctxt, clsid, "equals", Intrinsic::BoolEq);
     intrinsic_method(ctxt, clsid, "not", Intrinsic::BoolNot);
 
-    let clsid = ctxt.primitive_classes.str_class;
+    let clsid = ctxt.vips.str_class;
     native_method(ctxt, clsid, "compareTo", stdlib::strcmp as *const u8);
     native_method(ctxt, clsid, "parseInt", stdlib::str_parse_int as *const u8);
     native_method(ctxt, clsid, "plus", stdlib::strcat as *const u8);
@@ -205,7 +205,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
                   "fromStrPartOrNull",
                   stdlib::str_from_bytes as *const u8);
 
-    let clsid = ctxt.primitive_classes.float_class;
+    let clsid = ctxt.vips.float_class;
     native_method(ctxt,
                   clsid,
                   "toString",
@@ -228,7 +228,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::FloatIsNan);
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::FloatSqrt);
 
-    let clsid = ctxt.primitive_classes.double_class;
+    let clsid = ctxt.vips.double_class;
     native_method(ctxt,
                   clsid,
                   "toString",
@@ -251,12 +251,12 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::DoubleIsNan);
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
 
-    let clsid = ctxt.primitive_classes.array_class;
+    let clsid = ctxt.vips.array_class;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
 
-    let clsid = ctxt.primitive_classes.exception_class;
+    let clsid = ctxt.vips.exception_class;
     native_method(ctxt,
                   clsid,
                   "retrieveStackTrace",

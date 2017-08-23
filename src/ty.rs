@@ -107,13 +107,13 @@ impl BuiltinType {
     pub fn cls_id(&self, ctxt: &SemContext) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::Bool => Some(ctxt.primitive_classes.bool_class),
-            BuiltinType::Byte => Some(ctxt.primitive_classes.byte_class),
-            BuiltinType::Char => Some(ctxt.primitive_classes.char_class),
-            BuiltinType::Int => Some(ctxt.primitive_classes.int_class),
-            BuiltinType::Long => Some(ctxt.primitive_classes.long_class),
-            BuiltinType::Float => Some(ctxt.primitive_classes.float_class),
-            BuiltinType::Double => Some(ctxt.primitive_classes.double_class),
+            BuiltinType::Bool => Some(ctxt.vips.bool_class),
+            BuiltinType::Byte => Some(ctxt.vips.byte_class),
+            BuiltinType::Char => Some(ctxt.vips.char_class),
+            BuiltinType::Int => Some(ctxt.vips.int_class),
+            BuiltinType::Long => Some(ctxt.vips.long_class),
+            BuiltinType::Float => Some(ctxt.vips.float_class),
+            BuiltinType::Double => Some(ctxt.vips.double_class),
             _ => None,
         }
     }

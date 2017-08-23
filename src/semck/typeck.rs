@@ -1147,7 +1147,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
-                let str_ty = BuiltinType::Class(self.ctxt.primitive_classes.str_class);
+                let str_ty = BuiltinType::Class(self.ctxt.vips.str_class);
                 self.src.set_ty(id, str_ty);
                 self.expr_type = str_ty;
             }
@@ -1908,7 +1908,7 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
             Some((ty.cls_id, ty.params.clone()))
         }
         _ => {
-            ctxt.primitive_classes
+            ctxt.vips
                 .find_class(object_type)
                 .map(|c| (c, Vec::new()))
         }

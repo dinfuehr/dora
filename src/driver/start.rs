@@ -133,7 +133,7 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
         ctxt.use_dtn(&mut dtn, || baseline::generate(&ctxt, fct))
     };
 
-    let testing_class = ctxt.primitive_classes.testing_class;
+    let testing_class = ctxt.vips.testing_class;
     let testing_class = specialize_class_id(ctxt, testing_class);
     let testing = object::alloc(ctxt, testing_class).cast();
 
@@ -155,7 +155,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
     }
 
     // parameter needs to be of type Testing
-    let testing_cls = BuiltinType::Class(ctxt.primitive_classes.testing_class);
+    let testing_cls = BuiltinType::Class(ctxt.vips.testing_class);
     if fct.param_types[0] != testing_cls {
         return false;
     }

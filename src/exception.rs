@@ -267,7 +267,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
-    let cls_id = ctxt.primitive_classes.stack_trace_element_class;
+    let cls_id = ctxt.vips.stack_trace_element_class;
     let cls_def_id = specialize_class_id(ctxt, cls_id);
 
     let ste: Handle<StackTraceElement> = alloc(ctxt, cls_def_id).cast();
@@ -283,7 +283,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 }
 
 pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception> {
-    let cls_id = ctxt.primitive_classes.exception(ctxt);
+    let cls_id = ctxt.vips.exception(ctxt);
     let obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
     let mut obj = ctxt.handles.root(obj);
 
@@ -300,7 +300,7 @@ fn set_exception_backtrace(ctxt: &SemContext, obj: Handle<Exception>, via_retrie
     let skip = if via_retrieve { 2 } else { 0 };
     let len = stacktrace.len() - skip;
 
-    let cls_id = ctxt.primitive_classes.int_array(ctxt);
+    let cls_id = ctxt.vips.int_array(ctxt);
     let array: Handle<IntArray> = Array::alloc(ctxt, len * 2, 0, cls_id);
     let mut array = ctxt.handles.root(array);
     let mut i = 0;

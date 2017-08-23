@@ -404,7 +404,7 @@ fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(ctxt, size) as usize;
 
-    let clsid = ctxt.primitive_classes.str(ctxt);
+    let clsid = ctxt.vips.str(ctxt);
     let cls = ctxt.class_defs[clsid].borrow();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Str> = ptr.into();
