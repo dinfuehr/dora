@@ -110,7 +110,6 @@ impl<'ast> SemContext<'ast> {
                 str_class: empty_class_id,
 
                 array_class: empty_class_id,
-                int_array: empty_class_id,
 
                 testing_class: empty_class_id,
                 exception_class: empty_class_id,
@@ -405,9 +404,7 @@ pub struct PrimitiveClasses {
     pub double_class: ClassId,
     pub object_class: ClassId,
     pub str_class: ClassId,
-
     pub array_class: ClassId,
-    pub int_array: ClassId,
 
     pub testing_class: ClassId,
     pub exception_class: ClassId,
