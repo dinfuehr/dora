@@ -6,8 +6,8 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use class::ClassId;
-use ctxt::{SemContext, get_ctxt};
+use class::{ClassSize, ClassId};
+use ctxt::SemContext;
 use gc::root::IndirectObj;
 use handle::Rooted;
 use mem;
@@ -135,30 +135,22 @@ impl Obj {
 
     pub fn size(&self) -> usize {
         let cls = self.header().vtbl().class();
-        let size = cls.size;
 
-        if size > 0 {
-            return size as usize;
-        }
+        match cls.size {
+            ClassSize::Fixed(size) => size as usize,
 
-        let ty = cls.ty;
+            ClassSize::ObjArray => {
+                determine_array_size(self, mem::ptr_width())
+            }
 
-        if cls.is_array {
-            let handle: Handle<ByteArray> = Handle { ptr: self as *const Obj as *const ByteArray };
+            ClassSize::Array(element_size) => {
+                determine_array_size(self, element_size)
+            }
 
-            let value = Header::size() as usize + mem::ptr_width() as usize +
-                        cls.element_size as usize * handle.len() as usize;
-
-            return mem::align_usize(value, mem::ptr_width() as usize);
-        }
-
-        let ctxt = get_ctxt();
-
-        if ty.cls_id(ctxt).unwrap() == ctxt.primitive_classes.str_class {
-            let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
-            mem::align_usize(handle.size(), mem::ptr_width() as usize)
-        } else {
-            panic!("size unknown");
+            ClassSize::Str => {
+                let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
+                mem::align_usize(handle.size(), mem::ptr_width() as usize)
+            }
         }
     }
 
@@ -168,7 +160,7 @@ impl Obj {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
 
-        if cls.is_object_array {
+        if let ClassSize::ObjArray = cls.size {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
@@ -189,6 +181,15 @@ impl Obj {
             f(obj.into());
         }
     }
+}
+
+fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
+    let handle: Handle<ByteArray> = Handle { ptr: obj as *const Obj as *const ByteArray };
+
+    let value = Header::size() as usize + mem::ptr_width() as usize +
+                element_size as usize * handle.len() as usize;
+
+    mem::align_usize(value, mem::ptr_width() as usize)
 }
 
 #[repr(C)]

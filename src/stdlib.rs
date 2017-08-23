@@ -265,7 +265,8 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
         let ctxt = get_ctxt();
 
         let main = {
-            let cls = obj.header().vtbl().class();
+            let cls_id = obj.header().vtbl().class().cls_id;
+            let cls = ctxt.classes[cls_id].borrow();
             let name = ctxt.interner.intern("run");
             cls.find_method(ctxt, name, false)
                 .expect("run() method not found")

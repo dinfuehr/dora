@@ -296,6 +296,7 @@ impl Index<ClassDefId> for GrowableVec<ClassDef> {
 pub enum ClassSize {
     Fixed(i32),
     Array(i32),
+    ObjArray,
     Str
 }
 

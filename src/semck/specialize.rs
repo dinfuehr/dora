@@ -155,15 +155,15 @@ fn create_specialized_class_def(ctxt: &SemContext,
         }
     }
 
-    let clsptr = cls as *const class::Class as *mut class::Class;
-    let vtable = VTableBox::new(clsptr, &vtable_entries);
-
     let mut cls_def = ctxt.class_defs[id].borrow_mut();
     cls_def.size = ClassSize::Fixed(size);
     cls_def.fields = fields;
     cls_def.ref_fields = ref_fields;
-    cls_def.vtable = Some(vtable);
     cls_def.parent_id = parent_id;
+
+    let clsptr = (&*cls_def) as *const class::ClassDef as *mut class::ClassDef;
+    let vtable = VTableBox::new(clsptr, &vtable_entries);
+    cls_def.vtable = Some(vtable);
 
     ensure_display(ctxt, &mut cls_def);
 

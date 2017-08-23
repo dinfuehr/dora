@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
 
-use class::{ClassId, FieldId};
+use class::{ClassDef, ClassId, FieldId};
 use cpu::flush_icache;
 use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
@@ -366,7 +366,7 @@ pub struct ExHandler {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CatchType {
     Any,
-    Class(ClassId),
+    Class(*const ClassDef),
 }
 
 #[derive(Debug)]

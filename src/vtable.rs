@@ -5,14 +5,14 @@ use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
-use class::Class;
+use class::ClassDef;
 
 pub const DISPLAY_SIZE: usize = 6;
 
 pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
-    pub fn new(classptr: *mut Class, entries: &[usize]) -> VTableBox {
+    pub fn new(classptr: *mut ClassDef, entries: &[usize]) -> VTableBox {
         let size = VTable::size_of(entries.len());
         let vtable = VTable {
             classptr: classptr,
@@ -75,7 +75,7 @@ impl Drop for VTableBox {
 
 #[derive(Debug)]
 pub struct VTable {
-    pub classptr: *mut Class,
+    pub classptr: *mut ClassDef,
     pub subtype_depth: i32,
     pub subtype_display: [*const VTable; DISPLAY_SIZE],
     pub subtype_overflow: *const *const VTable,
@@ -88,11 +88,11 @@ impl VTable {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn classptr(&self) -> *mut Class {
+    pub fn classptr(&self) -> *mut ClassDef {
         self.classptr
     }
 
-    pub fn class(&self) -> &mut Class {
+    pub fn class(&self) -> &mut ClassDef {
         unsafe { &mut *self.classptr }
     }
 

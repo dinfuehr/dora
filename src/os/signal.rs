@@ -261,7 +261,7 @@ fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
     let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
-    let cls_id = vtable.class().id;
+    let cls_id = vtable.class().cls_id;
     let cls = ctxt.classes[cls_id].borrow();
 
     let mut fct_ptr = null();

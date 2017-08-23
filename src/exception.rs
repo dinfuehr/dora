@@ -210,7 +210,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                 let jit_fct = src.jit_fct.read().unwrap();
                 let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
 
-                let cls_id = exception.header().vtbl().class().id;
+                let clsptr = exception.header().vtbl().classptr();
 
                 for entry in &jit_fct.exception_handlers {
                     // println!("entry = {:x} to {:x} for {:?}",
@@ -218,7 +218,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
 
                     if entry.try_start < pc && pc <= entry.try_end &&
                        (entry.catch_type == CatchType::Any ||
-                        entry.catch_type == CatchType::Class(cls_id)) {
+                        entry.catch_type == CatchType::Class(clsptr)) {
                         let stacksize = jit_fct.framesize as usize;
                         resume_with_handler(es, entry, fp, exception, stacksize);
 
