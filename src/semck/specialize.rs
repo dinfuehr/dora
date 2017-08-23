@@ -110,10 +110,12 @@ fn create_specialized_class(ctxt: &SemContext,
         fields = Vec::new();
         ref_fields = Vec::new();
 
-        size = if cls.is_array && type_params[0].reference_type() {
-            ClassSize::ObjArray
-        } else if cls.is_array {
-            ClassSize::Array(type_params[0].size(ctxt))
+        size = if cls.is_array {
+            if type_params[0].reference_type() {
+                ClassSize::ObjArray
+            } else {
+                ClassSize::Array(type_params[0].size(ctxt))
+            }
         } else {
             ClassSize::Str
         };

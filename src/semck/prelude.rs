@@ -20,8 +20,8 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
         .borrow_mut()
         .is_str = true;
 
-    ctxt.primitive_classes.generic_array = internal_class(ctxt, "Array", None);
-    ctxt.classes[ctxt.primitive_classes.str_class]
+    ctxt.primitive_classes.array_class = internal_class(ctxt, "Array", None);
+    ctxt.classes[ctxt.primitive_classes.array_class]
         .borrow_mut()
         .is_array = true;
 
@@ -251,7 +251,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "isNan", Intrinsic::DoubleIsNan);
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::DoubleSqrt);
 
-    let clsid = ctxt.primitive_classes.generic_array;
+    let clsid = ctxt.primitive_classes.array_class;
     intrinsic_method(ctxt, clsid, "len", Intrinsic::GenericArrayLen);
     intrinsic_method(ctxt, clsid, "get", Intrinsic::GenericArrayGet);
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
