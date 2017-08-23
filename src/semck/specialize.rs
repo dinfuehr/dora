@@ -87,14 +87,21 @@ fn create_specialized_class_def(ctxt: &SemContext,
 
     let mut fields;
     let mut ref_fields;
-    let mut size;
+    let size;
     let mut vtable_entries = Vec::new();
     let parent_id;
 
     if cls.is_array || cls.is_str {
         fields = Vec::new();
         ref_fields = Vec::new();
-        size = 0;
+
+        size = if cls.is_array && type_params[0].reference_type() {
+            ClassSize::ObjArray
+        } else if cls.is_array {
+            ClassSize::Array(type_params[0].size(ctxt))
+        } else {
+            ClassSize::Str
+        };
 
         let super_id = cls.parent_class.expect("Array & Str should have super class");
         let sup = ctxt.classes[super_id].borrow();
@@ -102,6 +109,8 @@ fn create_specialized_class_def(ctxt: &SemContext,
         parent_id = Some(id);
 
     } else {
+        let mut csize;
+
         if let Some(super_id) = cls.parent_class {
             let sup = ctxt.classes[super_id].borrow();
             let id = specialize_class_def(ctxt, &*sup, &[]);
@@ -109,7 +118,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
 
             fields = cls_def.fields.clone();
             ref_fields = cls_def.ref_fields.clone();
-            size = match cls_def.size {
+            csize = match cls_def.size {
                 ClassSize::Fixed(size) => size,
                 _ => unreachable!(),
             };
@@ -121,7 +130,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
         } else {
             fields = Vec::with_capacity(cls.fields.len());
             ref_fields = Vec::new();
-            size = Header::size();
+            csize = Header::size();
             parent_id = None;
         };
 
@@ -132,17 +141,17 @@ fn create_specialized_class_def(ctxt: &SemContext,
             let field_size = f.ty.size(ctxt);
             let field_align = f.ty.align(ctxt);
 
-            let offset = mem::align_i32(size, field_align);
+            let offset = mem::align_i32(csize, field_align);
             fields.push(offset);
 
-            size = offset + field_size;
+            csize = offset + field_size;
 
             if ty.reference_type() {
                 ref_fields.push(offset);
             }
         }
 
-        size = mem::align_i32(size, mem::ptr_width());
+        size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
     for &mid in &cls.methods {
@@ -168,7 +177,7 @@ fn create_specialized_class_def(ctxt: &SemContext,
     }
 
     let mut cls_def = ctxt.class_defs[id].borrow_mut();
-    cls_def.size = ClassSize::Fixed(size);
+    cls_def.size = size;
     cls_def.fields = fields;
     cls_def.ref_fields = ref_fields;
     cls_def.parent_id = parent_id;
