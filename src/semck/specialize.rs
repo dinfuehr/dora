@@ -66,6 +66,19 @@ pub fn specialize_class_id_params(ctxt: &SemContext,
     specialize_class(ctxt, &*cls, type_params)
 }
 
+pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
+    match ty {
+        BuiltinType::Class(cls_id) => specialize_class_id(ctxt, cls_id),
+        BuiltinType::Generic(type_id) => {
+            let t = ctxt.types.borrow().get(type_id);
+
+            specialize_class_id_params(ctxt, t.cls_id, &t.params)
+        }
+
+        _ => unreachable!(),
+    }
+}
+
 pub fn specialize_class(ctxt: &SemContext,
                         cls: &class::Class,
                         type_params: &[BuiltinType])
@@ -154,8 +167,8 @@ fn create_specialized_class(ctxt: &SemContext,
             let ty = specialize_type(ctxt, f.ty, SpecializeFor::Class, &type_params);
             debug_assert!(!ty.contains_type_param(ctxt));
 
-            let field_size = f.ty.size(ctxt);
-            let field_align = f.ty.align(ctxt);
+            let field_size = ty.size(ctxt);
+            let field_align = ty.align(ctxt);
 
             let offset = mem::align_i32(csize, field_align);
             fields.push(offset);

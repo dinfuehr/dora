@@ -299,13 +299,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .collect::<Vec<_>>();
 
         if call_type.is_ctor() {
-            args.insert(0, Arg::Selfie(call_type.cls_id(), 0));
+            let ty = self.ty(expr.id);
+            args.insert(0, Arg::Selfie(ty, 0));
         } else if call_type.is_method() {
             let object = expr.object.as_ref().unwrap();
             self.visit_expr(object);
             args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
         } else if call_type.is_ctor_new() {
-            args.insert(0, Arg::SelfieNew(call_type.cls_id(), 0));
+            let ty = self.ty(expr.id);
+            args.insert(0, Arg::SelfieNew(ty, 0));
         }
 
         self.universal_call(expr.id, args, None, None);
@@ -318,7 +320,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .collect::<Vec<_>>();
 
         let cls_id = *self.src.map_cls.get(expr.id).unwrap();
-        args.insert(0, Arg::Selfie(cls_id, 0));
+        args.insert(0, Arg::Selfie(BuiltinType::Class(cls_id), 0));
 
         self.universal_call(expr.id, args, None, None);
     }
@@ -346,9 +348,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                Arg::Selfie(cls_id, _) |
-                Arg::SelfieNew(cls_id, _) => {
-                    if self.ctxt.classes[cls_id].borrow().ty.is_float() {
+                Arg::Selfie(ty, _) |
+                Arg::SelfieNew(ty, _) => {
+                    if ty.is_float() {
                         freg_args += 1;
                     } else {
                         reg_args += 1;

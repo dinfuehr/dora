@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
-use class::{ClassId, ClassSize, FieldId};
+use class::{ClassDefId, ClassId, ClassSize, FieldId};
 use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
           REG_PARAMS};
 use ctxt::*;
@@ -17,7 +17,7 @@ use masm::*;
 use mem;
 use object::{Header, Str};
 use os::signal::Trap;
-use semck::specialize::specialize_class_id;
+use semck::specialize::{specialize_class_id, specialize_class_ty};
 use stdlib;
 use ty::{BuiltinType, MachineMode};
 use vtable::{DISPLAY_SIZE, VTable};
@@ -1429,7 +1429,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
         let csite = self.jit_info.map_csites.get(id).unwrap().clone();
-        let mut temps: Vec<(BuiltinType, i32, Option<ClassId>)> = Vec::new();
+        let mut temps: Vec<(BuiltinType, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;
         let fct = self.ctxt.fcts[fid].borrow();
@@ -1457,9 +1457,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.emit_self(dest.reg());
                 }
 
-                Arg::SelfieNew(cls_id, _) => {
+                Arg::SelfieNew(ty, _) => {
+                    let cls_id = specialize_class_ty(self.ctxt, ty);
                     let offset = self.reserve_temp_for_arg(arg);
-                    temps.push((arg.ty(), offset, Some(cls_id)));
+                    temps.push((ty, offset, Some(cls_id)));
                     continue;
                 }
             }
@@ -1557,11 +1558,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
     fn emit_allocation(&mut self,
                        pos: Position,
-                       temps: &[(BuiltinType, i32, Option<ClassId>)],
-                       cls_id: ClassId,
+                       temps: &[(BuiltinType, i32, Option<ClassDefId>)],
+                       cls_id: ClassDefId,
                        offset: i32,
                        dest: Reg) {
-        let cls_id = specialize_class_id(self.ctxt, cls_id);
         let cls = self.ctxt.class_defs[cls_id].borrow();
         let mut store_length = false;
 

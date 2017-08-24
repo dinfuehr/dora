@@ -1157,8 +1157,8 @@ impl ConstValue {
 #[derive(Copy, Clone, Debug)]
 pub enum Arg<'ast> {
     Expr(&'ast ast::Expr, BuiltinType, i32),
-    SelfieNew(ClassId, i32),
-    Selfie(ClassId, i32),
+    SelfieNew(BuiltinType, i32),
+    Selfie(BuiltinType, i32),
 }
 
 impl<'ast> Arg<'ast> {
@@ -1173,8 +1173,8 @@ impl<'ast> Arg<'ast> {
     pub fn ty(&self) -> BuiltinType {
         match *self {
             Arg::Expr(_, ty, _) => ty,
-            Arg::Selfie(cid, _) => BuiltinType::Class(cid),
-            Arg::SelfieNew(cid, _) => BuiltinType::Class(cid),
+            Arg::Selfie(ty, _) => ty,
+            Arg::SelfieNew(ty, _) => ty,
         }
     }
 }
