@@ -259,7 +259,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 }
 
                 SymClass(cls_id) => {
-                    let call_type = CallType::CtorNew(cls_id, FctId(0));
+                    let call_type = CallType::CtorNew(cls_id, FctId(0), Vec::new());
                     self.src.map_calls.insert(call.id, Rc::new(call_type));
                     found = true;
                 }

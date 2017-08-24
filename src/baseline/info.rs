@@ -6,7 +6,8 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
 use cpu::*;
-use ctxt::{Arg, CallSite, SemContext, Fct, FctId, FctParent, FctSrc, NodeMap, Store, VarId};
+use ctxt::{Arg, CallSite, CallType, SemContext, Fct, FctId, FctParent, FctSrc, NodeMap, Store,
+           VarId};
 use mem;
 use ty::BuiltinType;
 
@@ -398,7 +399,21 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         cls.ty
 
                     } else {
-                        fct.params_with_self()[ind]
+                        let ty = fct.params_with_self()[ind];
+                        let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+                        match *call_type {
+                            CallType::Fct(_, ref type_params) => {
+                                specialize_type(self.ctxt, ty, &[], type_params)
+                            }
+
+                            CallType::Ctor(_, _, ref type_params) |
+                            CallType::CtorNew(_, _, ref type_params) => {
+                                specialize_type(self.ctxt, ty, type_params, &[])
+                            }
+
+                            _ => ty,
+                        }
                     }
                 }
 
@@ -563,6 +578,35 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             _ => ty,
         }
+    }
+}
+
+fn specialize_type(ctxt: &SemContext,
+                   ty: BuiltinType,
+                   cls_type_params: &[BuiltinType],
+                   fct_type_params: &[BuiltinType])
+                   -> BuiltinType {
+    match ty {
+        BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
+
+        BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
+
+        BuiltinType::Generic(type_id) => {
+            let ty = ctxt.types.borrow().get(type_id);
+
+            let params: Vec<_> = ty.params
+                .iter()
+                .map(|&t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
+                .collect();
+
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params);
+
+            BuiltinType::Generic(type_id)
+        }
+
+        BuiltinType::Lambda(_) => unimplemented!(),
+
+        _ => ty,
     }
 }
 

@@ -288,7 +288,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             if let Some((cls_id, fct_id, _)) =
                 self.find_method(e.pos, object_type, false, name, &args, &[], ret_type) {
                 let call_type = CallType::Method(cls_id, fct_id);
-                self.src.map_calls.insert_or_replace(e.id, Rc::new(call_type));
+                self.src
+                    .map_calls
+                    .insert_or_replace(e.id, Rc::new(call_type));
             }
 
         } else if e.lhs.is_field() || e.lhs.is_ident() {
@@ -506,7 +508,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             lookup_method(self.ctxt, lhs_type, false, name, &call_types, &[], None) {
 
             let call_type = CallType::Method(cls_id, fct_id);
-            self.src.map_calls.insert_or_replace(e.id, Rc::new(call_type));
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -641,7 +645,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let return_type = lookup.found_ret().unwrap();
 
                 let call_type = CallType::Method(cls_id, fct_id);
-                self.src.map_calls.insert_or_replace(e.id, Rc::new(call_type));
+                self.src
+                    .map_calls
+                    .insert_or_replace(e.id, Rc::new(call_type));
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
 
@@ -700,7 +706,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         };
 
         match *call_type {
-            CallType::CtorNew(cls_id, _) => {
+            CallType::CtorNew(cls_id, _, _) => {
                 let mut lookup = MethodLookup::new(self.ctxt)
                     .pos(e.pos)
                     .ctor(cls_id)
@@ -712,7 +718,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let cls_id = lookup.found_cls_id().unwrap();
                     let cls = self.ctxt.classes[cls_id].borrow();
 
-                    let call_type = CallType::CtorNew(cls_id, fct_id);
+                    let call_type = CallType::CtorNew(cls_id, fct_id, type_params.to_vec());
                     self.src.map_calls.replace(e.id, Rc::new(call_type));
 
                     if cls.is_abstract {
@@ -808,7 +814,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                                &[]) {
                 self.src.map_cls.insert(e.id, cls.id);
 
-                let call_type = CallType::Ctor(cls.id, ctor.id);
+                let call_type = CallType::Ctor(cls.id, ctor.id, type_params.to_vec());
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
                 return;
             }
@@ -992,7 +998,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if let Some((cls_id, fct_id, return_type)) =
             self.find_method(e.pos, object_type, false, name, &args, &[], None) {
             let call_type = CallType::Method(cls_id, fct_id);
-            self.src.map_calls.insert_or_replace(e.id, Rc::new(call_type));
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;

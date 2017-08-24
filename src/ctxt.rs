@@ -1034,21 +1034,21 @@ impl IdentType {
 pub enum CallType {
     Fct(FctId, Vec<BuiltinType>),
     Method(ClassId, FctId),
-    CtorNew(ClassId, FctId),
-    Ctor(ClassId, FctId),
+    CtorNew(ClassId, FctId, Vec<BuiltinType>),
+    Ctor(ClassId, FctId, Vec<BuiltinType>),
 }
 
 impl CallType {
     pub fn is_ctor_new(&self) -> bool {
         match *self {
-            CallType::CtorNew(_, _) => true,
+            CallType::CtorNew(_, _, _) => true,
             _ => false,
         }
     }
 
     pub fn is_ctor(&self) -> bool {
         match *self {
-            CallType::Ctor(_, _) => true,
+            CallType::Ctor(_, _, _) => true,
             _ => false,
         }
     }
@@ -1063,8 +1063,8 @@ impl CallType {
     pub fn cls_id(&self) -> ClassId {
         match *self {
             CallType::Method(clsid, _) => clsid,
-            CallType::CtorNew(clsid, _) => clsid,
-            CallType::Ctor(clsid, _) => clsid,
+            CallType::CtorNew(clsid, _, _) => clsid,
+            CallType::Ctor(clsid, _, _) => clsid,
             _ => panic!(),
         }
     }
@@ -1074,8 +1074,8 @@ impl CallType {
 
             CallType::Fct(fctid, _) => fctid,
             CallType::Method(_, fctid) => fctid,
-            CallType::CtorNew(_, fctid) => fctid,
-            CallType::Ctor(_, fctid) => fctid,
+            CallType::CtorNew(_, fctid, _) => fctid,
+            CallType::Ctor(_, fctid, _) => fctid,
         }
     }
 }
