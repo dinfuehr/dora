@@ -491,7 +491,7 @@ impl From<usize> for FctId {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FctParent {
     Class(ClassId),
     Trait(TraitId),

@@ -474,8 +474,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.visit_expr(&expr.lhs);
         self.visit_expr(&expr.rhs);
 
-        let lhs_ty = self.src.ty(expr.lhs.id());
-        let rhs_ty = self.src.ty(expr.rhs.id());
+        let lhs_ty = self.ty(expr.lhs.id());
+        let rhs_ty = self.ty(expr.rhs.id());
 
         if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
             self.reserve_temp_for_node_with_type(expr.lhs.id(), BuiltinType::Ptr);
@@ -496,7 +496,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn expr_un(&mut self, expr: &'ast ExprUnType) {
         self.visit_expr(&expr.opnd);
-        let opnd = self.src.ty(expr.opnd.id());
+        let opnd = self.ty(expr.opnd.id());
 
         if self.is_intrinsic(expr.id) {
             // no temporaries needed
@@ -510,7 +510,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
-        let ty = self.src.ty(expr.id());
+        let ty = self.ty(expr.id());
         self.reserve_temp_for_node_with_type(expr.id(), ty)
     }
 
@@ -527,6 +527,40 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
 
         self.cur_tempsize
+    }
+
+    fn ty(&self, id: NodeId) -> BuiltinType {
+        let ty = self.src.ty(id);
+        self.specialize_type(ty)
+    }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        match ty {
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                debug_assert!(self.fct.parent == FctParent::Class(cls_id));
+                self.cls_type_params[id.idx()]
+            }
+
+            BuiltinType::FctTypeParam(fct_id, id) => {
+                debug_assert!(self.fct.id == fct_id);
+                self.fct_type_params[id.idx()]
+            }
+
+            BuiltinType::Generic(type_id) => {
+                let ty = self.ctxt.types.borrow().get(type_id);
+
+                let params: Vec<_> = ty.params
+                    .iter()
+                    .map(|&t| self.specialize_type(t))
+                    .collect();
+
+                let type_id = self.ctxt.types.borrow_mut().insert(ty.cls_id, params);
+
+                BuiltinType::Generic(type_id)
+            }
+
+            _ => ty,
+        }
     }
 }
 
@@ -550,7 +584,7 @@ mod tests {
             let mut src = src.borrow_mut();
             let mut jit_info = JitInfo::new();
 
-            generate(ctxt, &fct, &mut src, &mut jit_info);
+            generate(ctxt, &fct, &mut src, &mut jit_info, &[], &[]);
 
             f(&src, &jit_info);
         });
