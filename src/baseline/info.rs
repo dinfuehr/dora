@@ -229,6 +229,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn reserve_stack_for_node(&mut self, id: VarId) {
         let ty = self.src.vars[id].ty;
+        let ty = self.specialize_type(ty);
         let offset = self.reserve_stack_for_type(ty);
 
         self.jit_info.map_var_offsets.insert(id, offset);

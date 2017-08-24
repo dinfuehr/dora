@@ -1,7 +1,7 @@
 use std::ptr;
 
 use baseline::stub::ensure_stub;
-use class::{self, ClassDef, ClassDefId, ClassId, ClassSize};
+use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef};
 use ctxt::SemContext;
 use mem;
 use object::Header;
@@ -171,7 +171,10 @@ fn create_specialized_class(ctxt: &SemContext,
             let field_align = ty.align(ctxt);
 
             let offset = mem::align_i32(csize, field_align);
-            fields.push(offset);
+            fields.push(FieldDef {
+                offset: offset,
+                ty: ty,
+            });
 
             csize = offset + field_size;
 

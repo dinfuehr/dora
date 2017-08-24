@@ -981,7 +981,7 @@ impl Store {
 pub enum IdentType {
     Var(VarId),
     Global(GlobalId),
-    Field(ClassId, FieldId),
+    Field(BuiltinType, FieldId),
     Struct(StructId),
     Const(ConstId),
 }
@@ -990,13 +990,6 @@ impl IdentType {
     pub fn var_id(&self) -> VarId {
         match *self {
             IdentType::Var(varid) => varid,
-            _ => panic!(),
-        }
-    }
-
-    pub fn cls_id(&self) -> ClassId {
-        match *self {
-            IdentType::Field(clsid, _) => clsid,
             _ => panic!(),
         }
     }
@@ -1019,13 +1012,6 @@ impl IdentType {
         match *self {
             IdentType::Field(_, _) => true,
             _ => false,
-        }
-    }
-
-    pub fn field_id(&self) -> FieldId {
-        match *self {
-            IdentType::Field(_, fieldid) => fieldid,
-            _ => panic!(),
         }
     }
 }

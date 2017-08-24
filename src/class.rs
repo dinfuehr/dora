@@ -235,6 +235,12 @@ impl From<usize> for TypeParamId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldId(usize);
 
+impl FieldId {
+    pub fn idx(self) -> usize {
+        self.0
+    }
+}
+
 impl From<usize> for FieldId {
     fn from(data: usize) -> FieldId {
         FieldId(data)
@@ -295,7 +301,7 @@ pub struct ClassDef {
     pub cls_id: ClassId,
     pub type_params: Vec<BuiltinType>,
     pub parent_id: Option<ClassDefId>,
-    pub fields: Vec<i32>,
+    pub fields: Vec<FieldDef>,
     pub size: ClassSize,
     pub ref_fields: Vec<i32>,
     pub vtable: Option<VTableBox>,
@@ -319,4 +325,10 @@ impl ClassDef {
 
         format!("{}<{}>", name, params)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldDef {
+    pub offset: i32,
+    pub ty: BuiltinType,
 }

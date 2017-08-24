@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
-use class::{ClassDefId, ClassId, ClassSize, FieldId};
+use class::{ClassDefId, ClassSize, FieldId};
 use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
           REG_PARAMS};
 use ctxt::*;
@@ -433,30 +433,31 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
     }
 
     fn emit_field(&mut self, expr: &'ast ExprFieldType, dest: ExprStore) {
-        let (cls, field) = {
+        let (ty, field) = {
             let ident_type = self.src.map_idents.get(expr.id).unwrap();
 
             match ident_type {
-                &IdentType::Field(cls, field) => (cls, field),
+                &IdentType::Field(ty, field) => (ty, field),
                 _ => unreachable!(),
             }
         };
 
         self.emit_expr(&expr.object, REG_RESULT.into());
-        self.emit_field_access(expr.pos, cls, field, REG_RESULT, dest);
+        self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest);
     }
 
     fn emit_field_access(&mut self,
                          pos: Position,
-                         clsid: ClassId,
+                         ty: BuiltinType,
                          fieldid: FieldId,
                          src: Reg,
                          dest: ExprStore) {
-        let cls = self.ctxt.classes[clsid].borrow();
-        let field = &cls.fields[fieldid];
+        let cls_id = specialize_class_ty(self.ctxt, ty);
+        let cls = self.ctxt.class_defs[cls_id].borrow();
+        let field = &cls.fields[fieldid.idx()];
 
         self.masm
-            .emit_comment(Comment::LoadField(clsid, fieldid));
+            .emit_comment(Comment::LoadField(cls_id, fieldid));
         self.masm
             .load_field(field.ty.mode(), dest, src, field.offset, pos.line as i32);
     }
@@ -692,9 +693,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), dest);
             }
 
-            IdentType::Field(clsid, fieldid) => {
-                let cls = self.ctxt.classes[clsid].borrow();
-                let field = &cls.fields[fieldid];
+            IdentType::Field(ty, fieldid) => {
+                let cls_id = specialize_class_ty(self.ctxt, ty);
+                let cls = self.ctxt.class_defs[cls_id].borrow();
+                let field = &cls.fields[fieldid.idx()];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
                     self.emit_expr(&expr_field.object, REG_RESULT.into());
@@ -717,7 +719,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
                 self.masm
-                    .emit_comment(Comment::StoreField(clsid, fieldid));
+                    .emit_comment(Comment::StoreField(cls_id, fieldid));
                 self.masm
                     .store_field(field.ty.mode(),
                                  REG_TMP1,

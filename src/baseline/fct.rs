@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
 
-use class::{ClassDef, ClassDefId, ClassId, FieldId};
+use class::{ClassDef, ClassDefId, FieldId};
 use cpu::flush_icache;
 use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
@@ -196,8 +196,8 @@ pub enum Comment {
     CallDirect(FctId),
     StoreParam(VarId),
     Newline,
-    StoreField(ClassId, FieldId),
-    LoadField(ClassId, FieldId),
+    StoreField(ClassDefId, FieldId),
+    LoadField(ClassDefId, FieldId),
     StoreVar(VarId),
     LoadVar(VarId),
     LoadSelf(VarId),
@@ -267,10 +267,10 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Newline => write!(f, ""),
 
             &Comment::StoreField(clsid, fid) => {
-                let cls = self.ctxt.classes[clsid].borrow();
-                let cname = cls.name;
-                let cname = self.ctxt.interner.str(cname);
+                let cls_def = self.ctxt.class_defs[clsid].borrow();
+                let cname = cls_def.name(self.ctxt);
 
+                let cls = self.ctxt.classes[cls_def.cls_id].borrow();
                 let field = &cls.fields[fid];
                 let fname = field.name;
                 let fname = self.ctxt.interner.str(fname);
@@ -279,10 +279,10 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::LoadField(clsid, fid) => {
-                let cls = self.ctxt.classes[clsid].borrow();
-                let cname = cls.name;
-                let cname = self.ctxt.interner.str(cname);
+                let cls_def = self.ctxt.class_defs[clsid].borrow();
+                let cname = cls_def.name(self.ctxt);
 
+                let cls = self.ctxt.classes[cls_def.cls_id].borrow();
                 let field = &cls.fields[fid];
                 let fname = field.name;
                 let fname = self.ctxt.interner.str(fname);

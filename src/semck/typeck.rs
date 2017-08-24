@@ -245,7 +245,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = ty;
             }
 
-            IdentType::Field(clsid, fieldid) => {
+            IdentType::Field(ty, fieldid) => {
+                let clsid = ty.cls_id(self.ctxt).unwrap();
                 let cls = self.ctxt.classes[clsid].borrow();
                 let field = &cls.fields[fieldid];
 
@@ -320,7 +321,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         }
                     }
 
-                    &IdentType::Field(clsid, fieldid) => {
+                    &IdentType::Field(ty, fieldid) => {
+                        let clsid = ty.cls_id(self.ctxt).unwrap();
+
                         if !self.fct.ctor.is() &&
                            !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable {
                             self.ctxt
@@ -920,7 +923,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
                 let cls = self.ctxt.classes[cls_id].borrow();
-                let ident_type = IdentType::Field(cls_id, field_id);
+                let ident_type = IdentType::Field(ty, field_id);
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &cls.fields[field_id];
