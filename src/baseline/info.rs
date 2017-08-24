@@ -559,6 +559,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 BuiltinType::Generic(type_id)
             }
 
+            BuiltinType::Lambda(_) => unimplemented!(),
+
             _ => ty,
         }
     }
