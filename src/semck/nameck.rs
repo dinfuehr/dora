@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use ctxt::*;
 use dora_parser::error::msg::Msg;
 
@@ -251,14 +253,14 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         if let Some(sym) = self.ctxt.sym.borrow().get(name) {
             match sym {
                 SymFct(fct_id) => {
-                    let call_type = CallType::Fct(fct_id);
-                    self.src.map_calls.insert(call.id, call_type);
+                    let call_type = CallType::Fct(fct_id, Vec::new());
+                    self.src.map_calls.insert(call.id, Rc::new(call_type));
                     found = true;
                 }
 
                 SymClass(cls_id) => {
                     let call_type = CallType::CtorNew(cls_id, FctId(0));
-                    self.src.map_calls.insert(call.id, call_type);
+                    self.src.map_calls.insert(call.id, Rc::new(call_type));
                     found = true;
                 }
 

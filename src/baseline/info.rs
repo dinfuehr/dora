@@ -290,7 +290,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        let call_type = *self.src.map_calls.get(expr.id).unwrap();
+        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
         let mut args = expr.args
             .iter()

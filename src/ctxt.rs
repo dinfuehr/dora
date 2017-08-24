@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
 use std::ptr;
+use std::rc::Rc;
 use std::sync::{Mutex, RwLock};
 
 use driver::cmd::Args;
@@ -844,7 +845,7 @@ pub enum Intrinsic {
 
 #[derive(Debug)]
 pub struct FctSrc {
-    pub map_calls: NodeMap<CallType>, // maps function call to FctId
+    pub map_calls: NodeMap<Rc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
     pub map_vars: NodeMap<VarId>,
@@ -1029,9 +1030,9 @@ impl IdentType {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum CallType {
-    Fct(FctId),
+    Fct(FctId, Vec<BuiltinType>),
     Method(ClassId, FctId),
     CtorNew(ClassId, FctId),
     Ctor(ClassId, FctId),
@@ -1070,7 +1071,8 @@ impl CallType {
 
     pub fn fct_id(&self) -> FctId {
         match *self {
-            CallType::Fct(fctid) => fctid,
+
+            CallType::Fct(fctid, _) => fctid,
             CallType::Method(_, fctid) => fctid,
             CallType::CtorNew(_, fctid) => fctid,
             CallType::Ctor(_, fctid) => fctid,
