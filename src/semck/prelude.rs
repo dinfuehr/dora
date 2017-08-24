@@ -16,20 +16,15 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.vips.object_class = internal_class(ctxt, "Object", None);
     ctxt.vips.str_class = internal_class(ctxt, "Str", None);
-    ctxt.classes[ctxt.vips.str_class]
-        .borrow_mut()
-        .is_str = true;
+    ctxt.classes[ctxt.vips.str_class].borrow_mut().is_str = true;
 
     ctxt.vips.array_class = internal_class(ctxt, "Array", None);
-    ctxt.classes[ctxt.vips.array_class]
-        .borrow_mut()
-        .is_array = true;
+    ctxt.classes[ctxt.vips.array_class].borrow_mut().is_array = true;
 
     ctxt.vips.testing_class = internal_class(ctxt, "Testing", None);
 
     ctxt.vips.exception_class = internal_class(ctxt, "Exception", None);
-    ctxt.vips.stack_trace_element_class =
-        internal_class(ctxt, "StackTraceElement", None);
+    ctxt.vips.stack_trace_element_class = internal_class(ctxt, "StackTraceElement", None);
 
     ctxt.vips.comparable_trait = find_trait(ctxt, "Comparable");
     ctxt.vips.equals_trait = find_trait(ctxt, "Equals");

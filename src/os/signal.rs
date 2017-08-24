@@ -270,7 +270,7 @@ fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
         let fct = ctxt.fcts[fct_id].borrow();
 
         if Some(vtable_index) == fct.vtable_index {
-            fct_ptr = baseline::generate(ctxt, fct_id);
+            fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
             break;
         }
     }
@@ -283,7 +283,7 @@ fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
 }
 
 pub fn patch_fct_call(ctxt: &SemContext, es: &mut ExecState, ra: usize, fct_id: FctId, disp: i32) {
-    let fct_ptr = baseline::generate(ctxt, fct_id);
+    let fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // write function pointer

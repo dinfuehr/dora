@@ -27,15 +27,24 @@ use os::signal::Trap;
 use semck::always_returns;
 use ty::{BuiltinType, MachineMode};
 
-pub fn generate<'ast>(ctxt: &SemContext<'ast>, id: FctId) -> *const u8 {
+pub fn generate<'ast>(ctxt: &SemContext<'ast>,
+                      id: FctId,
+                      cls_type_params: &[BuiltinType],
+                      fct_type_params: &[BuiltinType])
+                      -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.borrow_mut();
 
-    generate_fct(ctxt, &fct, &mut src)
+    generate_fct(ctxt, &fct, &mut src, cls_type_params, fct_type_params)
 }
 
-pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut FctSrc) -> *const u8 {
+pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>,
+                          fct: &Fct<'ast>,
+                          src: &mut FctSrc,
+                          cls_type_params: &[BuiltinType],
+                          fct_type_params: &[BuiltinType])
+                          -> *const u8 {
     {
         let src_jit_fct = src.jit_fct.read().unwrap();
 
@@ -47,7 +56,12 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>, src: &mut Fc
     let ast = fct.ast;
 
     let mut jit_info = JitInfo::new();
-    info::generate(ctxt, fct, src, &mut jit_info);
+    info::generate(ctxt,
+                   fct,
+                   src,
+                   &mut jit_info,
+                   cls_type_params,
+                   fct_type_params);
     let jit_fct = CodeGen {
             ctxt: ctxt,
             fct: &fct,

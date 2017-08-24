@@ -125,7 +125,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
                 }
             }
 
-            let fct_ptr = baseline::generate(ctxt, fct_id);
+            let fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
             let fct: extern "C" fn() = unsafe { mem::transmute(fct_ptr) };
             fct();
         }
@@ -274,7 +274,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
-            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main))
+            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main, &[], &[]))
         };
 
         let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };

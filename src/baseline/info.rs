@@ -13,7 +13,9 @@ use ty::BuiltinType;
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>,
                               fct: &Fct<'ast>,
                               src: &'a FctSrc,
-                              jit_info: &'a mut JitInfo<'ast>) {
+                              jit_info: &'a mut JitInfo<'ast>,
+                              cls_type_params: &[BuiltinType],
+                              fct_type_params: &[BuiltinType]) {
     let start = if fct.has_self() { 1 } else { 0 };
 
     let mut ig = InfoGenerator {
@@ -35,6 +37,9 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>,
 
         param_reg_idx: start,
         param_freg_idx: 0,
+
+        cls_type_params: cls_type_params,
+        fct_type_params: fct_type_params,
     };
 
     ig.generate();
@@ -104,6 +109,9 @@ struct InfoGenerator<'a, 'ast: 'a> {
 
     param_reg_idx: usize,
     param_freg_idx: usize,
+
+    cls_type_params: &'a [BuiltinType],
+    fct_type_params: &'a [BuiltinType],
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
