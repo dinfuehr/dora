@@ -644,8 +644,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
             self.scopes.pop_scope();
 
-            let _ = self.src
-                .ty(catch.data_type.id());
+            let _ = self.src.ty(catch.data_type.id());
             // TODO: emit real class ptr
             let catch_type = CatchType::Class(ptr::null());
             self.masm

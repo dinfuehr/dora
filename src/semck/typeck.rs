@@ -686,7 +686,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if lookup.find() {
                         let fct_id = lookup.found_fct_id().unwrap();
-                        let call_type = Rc::new(CallType::Fct(fct_id, Rc::new(Vec::new()), type_params.clone()));
+                        let call_type = Rc::new(CallType::Fct(fct_id,
+                                                              Rc::new(Vec::new()),
+                                                              type_params.clone()));
                         self.src.map_calls.insert(e.id, call_type.clone());
 
                         call_type
@@ -1998,7 +2000,9 @@ fn replace_type_param(ctxt: &SemContext,
                 .map(|&p| replace_type_param(ctxt, p, cls_tp, fct_tp))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, Rc::new(params));
+            let type_id = ctxt.types
+                .borrow_mut()
+                .insert(t.cls_id, Rc::new(params));
             BuiltinType::Generic(type_id)
         }
 

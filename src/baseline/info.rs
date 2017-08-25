@@ -255,7 +255,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                             Arg::Expr(&expr.index, BuiltinType::Unit, 0)];
 
-            self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
+            self.universal_call(expr.id,
+                                args,
+                                None,
+                                Rc::new(Vec::new()),
+                                Rc::new(Vec::new()),
+                                None);
         }
     }
 
@@ -313,7 +318,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             args.insert(0, Arg::SelfieNew(ty, 0));
         }
 
-        self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
+        self.universal_call(expr.id,
+                            args,
+                            None,
+                            Rc::new(Vec::new()),
+                            Rc::new(Vec::new()),
+                            None);
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
@@ -325,7 +335,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls_id = *self.src.map_cls.get(expr.id).unwrap();
         args.insert(0, Arg::Selfie(BuiltinType::Class(cls_id), 0));
 
-        self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
+        self.universal_call(expr.id,
+                            args,
+                            None,
+                            Rc::new(Vec::new()),
+                            Rc::new(Vec::new()),
+                            None);
     }
 
     fn universal_call(&mut self,
@@ -489,7 +504,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                 Arg::Expr(&array.index, BuiltinType::Unit, 0),
                                 Arg::Expr(&e.rhs, BuiltinType::Unit, 0)];
 
-                self.universal_call(e.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
+                self.universal_call(e.id,
+                                    args,
+                                    None,
+                                    Rc::new(Vec::new()),
+                                    Rc::new(Vec::new()),
+                                    None);
             }
         }
     }
@@ -514,7 +534,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, Some(fid), Rc::new(Vec::new()), Rc::new(Vec::new()), Some(BuiltinType::Bool));
+            self.universal_call(expr.id,
+                                args,
+                                Some(fid),
+                                Rc::new(Vec::new()),
+                                Rc::new(Vec::new()),
+                                Some(BuiltinType::Bool));
         }
     }
 
@@ -529,7 +554,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, Some(fid), Rc::new(Vec::new()), Rc::new(Vec::new()), Some(BuiltinType::Bool));
+            self.universal_call(expr.id,
+                                args,
+                                Some(fid),
+                                Rc::new(Vec::new()),
+                                Rc::new(Vec::new()),
+                                Some(BuiltinType::Bool));
         }
     }
 
@@ -578,7 +608,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     .map(|&t| self.specialize_type(t))
                     .collect();
 
-                let type_id = self.ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
+                let type_id = self.ctxt
+                    .types
+                    .borrow_mut()
+                    .insert(ty.cls_id, Rc::new(params));
 
                 BuiltinType::Generic(type_id)
             }
@@ -608,7 +641,9 @@ fn specialize_type(ctxt: &SemContext,
                 .map(|&t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types
+                .borrow_mut()
+                .insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }

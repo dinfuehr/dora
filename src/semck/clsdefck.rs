@@ -119,7 +119,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let type_id = self.ctxt.types.borrow_mut().insert(cls.id, Rc::new(params));
+                let type_id = self.ctxt
+                    .types
+                    .borrow_mut()
+                    .insert(cls.id, Rc::new(params));
                 cls.ty = BuiltinType::Generic(type_id);
 
             } else {

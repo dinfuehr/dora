@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::GcPoint;
@@ -46,7 +48,10 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos));
+        self.emit_bailout_info(BailoutInfo::Compile(fct_id,
+                                                    disp + pos,
+                                                    Rc::new(Vec::new()),
+                                                    Rc::new(Vec::new())));
     }
 
     pub fn direct_call_without_info(&mut self, ptr: *const u8) {
@@ -76,7 +81,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, Rc::new(Vec::new())));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

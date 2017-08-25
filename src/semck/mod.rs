@@ -243,7 +243,9 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                 }
                             }
 
-                            let type_id = ctxt.types.borrow_mut().insert(cls.id, Rc::new(type_params));
+                            let type_id = ctxt.types
+                                .borrow_mut()
+                                .insert(cls.id, Rc::new(type_params));
                             BuiltinType::Generic(type_id)
 
                         } else {

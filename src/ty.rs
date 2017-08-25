@@ -106,9 +106,7 @@ impl BuiltinType {
     pub fn cls_id(&self, ctxt: &SemContext) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::Generic(type_id) => {
-                Some(ctxt.types.borrow().get(type_id).cls_id)
-            }
+            BuiltinType::Generic(type_id) => Some(ctxt.types.borrow().get(type_id).cls_id),
             BuiltinType::Bool => Some(ctxt.vips.bool_class),
             BuiltinType::Byte => Some(ctxt.vips.byte_class),
             BuiltinType::Char => Some(ctxt.vips.char_class),

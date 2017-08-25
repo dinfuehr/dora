@@ -12,6 +12,7 @@ use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
 use safepoint;
+use ty::BuiltinType;
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;
@@ -250,14 +251,21 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
     let mut dtn = cpu::dtn_from_execution_state(es);
 
     ctxt.use_dtn(&mut dtn, || match bailout {
-        BailoutInfo::Compile(fct_id, disp) => patch_fct_call(ctxt, es, ra, fct_id, disp),
-        BailoutInfo::VirtCompile(vtable_index) => patch_vtable_call(ctxt, es, vtable_index),
+        BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
+            patch_fct_call(ctxt, es, ra, fct_id, cls_tps, fct_tps, disp)
+        }
+        BailoutInfo::VirtCompile(vtable_index, ref fct_tps) => {
+            patch_vtable_call(ctxt, es, vtable_index, fct_tps)
+        }
     });
 
     write_execstate(es, ucontext as *mut u8);
 }
 
-fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
+fn patch_vtable_call(ctxt: &SemContext,
+                     es: &mut ExecState,
+                     vtable_index: u32,
+                     fct_tps: &[BuiltinType]) {
     let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
@@ -270,7 +278,7 @@ fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
         let fct = ctxt.fcts[fct_id].borrow();
 
         if Some(vtable_index) == fct.vtable_index {
-            fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
+            fct_ptr = baseline::generate(ctxt, fct_id, &[], fct_tps);
             break;
         }
     }
@@ -282,8 +290,14 @@ fn patch_vtable_call(ctxt: &SemContext, es: &mut ExecState, vtable_index: u32) {
     es.pc = fct_ptr as usize;
 }
 
-pub fn patch_fct_call(ctxt: &SemContext, es: &mut ExecState, ra: usize, fct_id: FctId, disp: i32) {
-    let fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
+pub fn patch_fct_call(ctxt: &SemContext,
+                      es: &mut ExecState,
+                      ra: usize,
+                      fct_id: FctId,
+                      cls_tps: &[BuiltinType],
+                      fct_tps: &[BuiltinType],
+                      disp: i32) {
+    let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // write function pointer

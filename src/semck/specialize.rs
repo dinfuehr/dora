@@ -39,7 +39,9 @@ pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
                 .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types
+                .borrow_mut()
+                .insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }
@@ -173,9 +175,9 @@ fn create_specialized_class(ctxt: &SemContext,
 
             let offset = mem::align_i32(csize, field_align);
             fields.push(FieldDef {
-                offset: offset,
-                ty: ty,
-            });
+                            offset: offset,
+                            ty: ty,
+                        });
 
             csize = offset + field_size;
 

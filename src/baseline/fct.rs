@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
 
-use class::{ClassDef, ClassDefId, FieldId};
+use class::{ClassDef, ClassDefId, FieldId, TypeArgs};
 use cpu::flush_icache;
 use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
@@ -384,6 +384,6 @@ impl Bailouts {
 
 #[derive(Clone, Debug)]
 pub enum BailoutInfo {
-    Compile(FctId, i32),
-    VirtCompile(u32),
+    Compile(FctId, i32, TypeArgs, TypeArgs),
+    VirtCompile(u32, TypeArgs),
 }
