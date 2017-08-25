@@ -922,6 +922,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let cls = self.ctxt.classes[cls_id].borrow();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
+                let ty = match ty {
+                    BuiltinType::Class(_) => BuiltinType::Class(cls_id),
+                    BuiltinType::Generic(type_id) => {
+                        let params = self.ctxt.types.borrow().get(type_id).params.clone();
+                        let type_id = self.ctxt.types.borrow_mut().insert(cls_id, params);
+
+                        BuiltinType::Generic(type_id)
+                    }
+
+                    _ => unreachable!(),
+                };
+
                 let cls = self.ctxt.classes[cls_id].borrow();
                 let ident_type = IdentType::Field(ty, field_id);
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
