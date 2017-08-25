@@ -6,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
-use class::{ClassDefId, ClassSize, FieldId};
+use class::{ClassDefId, ClassSize, FieldId, TypeArgs};
 use cpu::{FReg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, Mem, Reg, REG_RESULT, REG_TMP1, REG_TMP2,
           REG_PARAMS};
 use ctxt::*;
@@ -1533,7 +1533,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid);
             self.masm.emit_comment(Comment::CallSuper(fid));
-            self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
+            self.emit_direct_call_insn(fid,
+                                       ptr,
+                                       pos,
+                                       csite.return_type,
+                                       dest,
+                                       csite.cls_type_params,
+                                       csite.fct_type_params);
 
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
@@ -1543,7 +1549,13 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         } else {
             let ptr = self.ptr_for_fct_id(fid);
             self.masm.emit_comment(Comment::CallDirect(fid));
-            self.emit_direct_call_insn(fid, ptr, pos, csite.return_type, dest);
+            self.emit_direct_call_insn(fid,
+                                       ptr,
+                                       pos,
+                                       csite.return_type,
+                                       dest,
+                                       csite.cls_type_params,
+                                       csite.fct_type_params);
         }
 
         if csite.args.len() > 0 {
@@ -1658,8 +1670,10 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                              ptr: *const u8,
                              pos: Position,
                              ty: BuiltinType,
-                             dest: ExprStore) {
-        self.masm.direct_call(fid, ptr);
+                             dest: ExprStore,
+                             cls_tps: TypeArgs,
+                             fct_tps: TypeArgs) {
+        self.masm.direct_call(fid, ptr, cls_tps, fct_tps);
         self.emit_after_call_insns(pos, ty, dest);
     }
 

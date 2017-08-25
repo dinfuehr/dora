@@ -306,23 +306,45 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        if call_type.is_ctor() {
-            let ty = self.ty(expr.id);
-            args.insert(0, Arg::Selfie(ty, 0));
-        } else if call_type.is_method() {
-            let object = expr.object.as_ref().unwrap();
-            self.visit_expr(object);
-            args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
-        } else if call_type.is_ctor_new() {
-            let ty = self.ty(expr.id);
-            args.insert(0, Arg::SelfieNew(ty, 0));
+        let cls_type_params: TypeArgs;
+        let fct_type_params: TypeArgs;
+
+        match *call_type {
+            CallType::Ctor(_, _, ref type_params) |
+            CallType::CtorNew(_, _, ref type_params) => {
+                let ty = self.ty(expr.id);
+                let arg = if call_type.is_ctor() {
+                    Arg::Selfie(ty, 0)
+                } else {
+                    Arg::SelfieNew(ty, 0)
+                };
+
+                args.insert(0, arg);
+
+                cls_type_params = type_params.clone();
+                fct_type_params = Rc::new(Vec::new());
+            }
+
+            CallType::Method(_, _) => {
+                let object = expr.object.as_ref().unwrap();
+                self.visit_expr(object);
+                args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
+
+                cls_type_params = Rc::new(Vec::new());
+                fct_type_params = Rc::new(Vec::new());
+            }
+
+            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
+                cls_type_params = cls_tps.clone();
+                fct_type_params = fct_tps.clone();
+            }
         }
 
         self.universal_call(expr.id,
                             args,
                             None,
-                            Rc::new(Vec::new()),
-                            Rc::new(Vec::new()),
+                            cls_type_params,
+                            fct_type_params,
                             None);
     }
 

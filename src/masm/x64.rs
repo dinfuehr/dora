@@ -5,6 +5,7 @@ use baseline::expr::ExprStore;
 use baseline::fct::GcPoint;
 use baseline::fct::BailoutInfo;
 use byteorder::{LittleEndian, WriteBytesExt};
+use class::TypeArgs;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
@@ -40,7 +41,11 @@ impl MacroAssembler {
         asm::emit_retq(self);
     }
 
-    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8) {
+    pub fn direct_call(&mut self,
+                       fct_id: FctId,
+                       ptr: *const u8,
+                       cls_tps: TypeArgs,
+                       fct_tps: TypeArgs) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -48,10 +53,7 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(fct_id,
-                                                    disp + pos,
-                                                    Rc::new(Vec::new()),
-                                                    Rc::new(Vec::new())));
+        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
     }
 
     pub fn direct_call_without_info(&mut self, ptr: *const u8) {
