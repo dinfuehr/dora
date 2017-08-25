@@ -15,7 +15,7 @@ use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
-use class::{Class, ClassDef, ClassDefId, ClassId, FieldId};
+use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeArgs};
 use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
@@ -1019,10 +1019,10 @@ impl IdentType {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
-    Fct(FctId, Vec<BuiltinType>),
+    Fct(FctId, TypeArgs, TypeArgs),
     Method(ClassId, FctId),
-    CtorNew(ClassId, FctId, Vec<BuiltinType>),
-    Ctor(ClassId, FctId, Vec<BuiltinType>),
+    CtorNew(ClassId, FctId, TypeArgs),
+    Ctor(ClassId, FctId, TypeArgs),
 }
 
 impl CallType {
@@ -1059,7 +1059,7 @@ impl CallType {
     pub fn fct_id(&self) -> FctId {
         match *self {
 
-            CallType::Fct(fctid, _) => fctid,
+            CallType::Fct(fctid, _, _) => fctid,
             CallType::Method(_, fctid) => fctid,
             CallType::CtorNew(_, fctid, _) => fctid,
             CallType::Ctor(_, fctid, _) => fctid,
@@ -1070,6 +1070,8 @@ impl CallType {
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
     pub callee: FctId,
+    pub cls_type_params: TypeArgs,
+    pub fct_type_params: TypeArgs,
     pub args: Vec<Arg<'ast>>,
     pub super_call: bool,
     pub return_type: BuiltinType,

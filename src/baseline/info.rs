@@ -6,6 +6,7 @@ use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
+use class::TypeArgs;
 use cpu::*;
 use ctxt::{Arg, CallSite, CallType, SemContext, Fct, FctId, FctParent, FctSrc, NodeMap, Store,
            VarId};
@@ -254,7 +255,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                             Arg::Expr(&expr.index, BuiltinType::Unit, 0)];
 
-            self.universal_call(expr.id, args, None, None);
+            self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
         }
     }
 
@@ -312,7 +313,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             args.insert(0, Arg::SelfieNew(ty, 0));
         }
 
-        self.universal_call(expr.id, args, None, None);
+        self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
@@ -324,13 +325,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls_id = *self.src.map_cls.get(expr.id).unwrap();
         args.insert(0, Arg::Selfie(BuiltinType::Class(cls_id), 0));
 
-        self.universal_call(expr.id, args, None, None);
+        self.universal_call(expr.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
     }
 
     fn universal_call(&mut self,
                       id: NodeId,
                       args: Vec<Arg<'ast>>,
                       callee: Option<FctId>,
+                      cls_type_params: TypeArgs,
+                      fct_type_params: TypeArgs,
                       return_type: Option<BuiltinType>) {
         // function invokes another function
         self.leaf = false;
@@ -407,8 +410,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         let call_type = self.src.map_calls.get(id).unwrap().clone();
 
                         match *call_type {
-                            CallType::Fct(_, ref type_params) => {
-                                specialize_type(self.ctxt, ty, &[], type_params)
+                            CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+                                specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
                             }
 
                             CallType::Ctor(_, _, ref type_params) |
@@ -439,6 +442,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let csite = CallSite {
             callee: callee,
             args: args,
+            cls_type_params: cls_type_params,
+            fct_type_params: fct_type_params,
             super_call: super_call,
             return_type: return_type,
         };
@@ -484,7 +489,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                                 Arg::Expr(&array.index, BuiltinType::Unit, 0),
                                 Arg::Expr(&e.rhs, BuiltinType::Unit, 0)];
 
-                self.universal_call(e.id, args, None, None);
+                self.universal_call(e.id, args, None, Rc::new(Vec::new()), Rc::new(Vec::new()), None);
             }
         }
     }
@@ -509,7 +514,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, Some(fid), Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, Some(fid), Rc::new(Vec::new()), Rc::new(Vec::new()), Some(BuiltinType::Bool));
         }
     }
 
@@ -524,7 +529,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id, args, Some(fid), Some(BuiltinType::Bool));
+            self.universal_call(expr.id, args, Some(fid), Rc::new(Vec::new()), Rc::new(Vec::new()), Some(BuiltinType::Bool));
         }
     }
 

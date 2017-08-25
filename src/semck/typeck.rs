@@ -630,6 +630,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Vec::new()
         };
 
+        let type_params = Rc::new(type_params);
+
         if let Some(object_type) = object_type {
             if object_type.is_type_param() {
                 self.check_generic_method_call(e, in_try, object_type, &call_types);
@@ -684,7 +686,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if lookup.find() {
                         let fct_id = lookup.found_fct_id().unwrap();
-                        let call_type = Rc::new(CallType::Fct(fct_id, type_params.to_vec()));
+                        let call_type = Rc::new(CallType::Fct(fct_id, Rc::new(Vec::new()), type_params.clone()));
                         self.src.map_calls.insert(e.id, call_type.clone());
 
                         call_type
@@ -721,7 +723,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let cls_id = lookup.found_cls_id().unwrap();
                     let cls = self.ctxt.classes[cls_id].borrow();
 
-                    let call_type = CallType::CtorNew(cls_id, fct_id, type_params.to_vec());
+                    let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
                     self.src.map_calls.replace(e.id, Rc::new(call_type));
 
                     if cls.is_abstract {
@@ -738,7 +740,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = ty;
             }
 
-            CallType::Fct(callee_id, _) => {
+            CallType::Fct(callee_id, _, _) => {
                 let mut lookup = MethodLookup::new(self.ctxt)
                     .pos(e.pos)
                     .callee(callee_id)
@@ -817,7 +819,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                                &[]) {
                 self.src.map_cls.insert(e.id, cls.id);
 
-                let call_type = CallType::Ctor(cls.id, ctor.id, type_params.to_vec());
+                let call_type = CallType::Ctor(cls.id, ctor.id, Rc::new(type_params));
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
                 return;
             }
@@ -875,7 +877,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let trai = self.ctxt.traits[trait_id].borrow();
 
             if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
-                let call_type = CallType::Fct(fid, Vec::new());
+                let call_type = CallType::Fct(fid, Rc::new(Vec::new()), Rc::new(Vec::new()));
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
 
                 let fct = self.ctxt.fcts[fid].borrow();

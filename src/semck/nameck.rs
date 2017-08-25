@@ -253,13 +253,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         if let Some(sym) = self.ctxt.sym.borrow().get(name) {
             match sym {
                 SymFct(fct_id) => {
-                    let call_type = CallType::Fct(fct_id, Vec::new());
+                    let call_type = CallType::Fct(fct_id, Rc::new(Vec::new()), Rc::new(Vec::new()));
                     self.src.map_calls.insert(call.id, Rc::new(call_type));
                     found = true;
                 }
 
                 SymClass(cls_id) => {
-                    let call_type = CallType::CtorNew(cls_id, FctId(0), Vec::new());
+                    let call_type = CallType::CtorNew(cls_id, FctId(0), Rc::new(Vec::new()));
                     self.src.map_calls.insert(call.id, Rc::new(call_type));
                     found = true;
                 }
