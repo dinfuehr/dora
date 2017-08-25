@@ -1,7 +1,8 @@
 use std::ptr;
+use std::rc::Rc;
 
 use baseline::stub::ensure_stub;
-use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef};
+use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeArgs};
 use ctxt::SemContext;
 use mem;
 use object::Header;
@@ -83,7 +84,8 @@ pub fn specialize_class(ctxt: &SemContext,
                         cls: &class::Class,
                         type_params: &[BuiltinType])
                         -> ClassDefId {
-    if let Some(&id) = cls.specializations.borrow().get(type_params) {
+    let type_params = Rc::new(type_params.to_vec());
+    if let Some(&id) = cls.specializations.borrow().get(&type_params) {
         return id;
     }
 
@@ -92,20 +94,20 @@ pub fn specialize_class(ctxt: &SemContext,
 
 fn create_specialized_class(ctxt: &SemContext,
                             cls: &class::Class,
-                            type_params: &[BuiltinType])
+                            type_params: TypeArgs)
                             -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
     let old = cls.specializations
         .borrow_mut()
-        .insert(type_params.to_vec(), id);
+        .insert(type_params.clone(), id);
     assert!(old.is_none());
 
     ctxt.class_defs
         .push(ClassDef {
                   id: id,
                   cls_id: cls.id,
-                  type_params: type_params.to_vec(),
+                  type_params: type_params.clone(),
                   parent_id: None,
                   size: ClassSize::Fixed(0),
                   fields: Vec::new(),

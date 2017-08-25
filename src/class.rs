@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 
 use ctxt::{SemContext, FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
@@ -63,7 +64,7 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub specializations: RefCell<HashMap<Vec<BuiltinType>, ClassDefId>>,
+    pub specializations: RefCell<HashMap<TypeArgs, ClassDefId>>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -299,7 +300,7 @@ pub enum ClassSize {
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: ClassId,
-    pub type_params: Vec<BuiltinType>,
+    pub type_params: TypeArgs,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
     pub size: ClassSize,
@@ -332,3 +333,5 @@ pub struct FieldDef {
     pub offset: i32,
     pub ty: BuiltinType,
 }
+
+pub type TypeArgs = Rc<Vec<BuiltinType>>;
