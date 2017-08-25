@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
@@ -118,8 +119,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let type_id = self.ctxt.types.borrow_mut().insert(cls.id, params);
-                self.ctxt.types.borrow().set_cls_id(type_id, cls.id);
+                let type_id = self.ctxt.types.borrow_mut().insert(cls.id, Rc::new(params));
                 cls.ty = BuiltinType::Generic(type_id);
 
             } else {

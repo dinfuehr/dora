@@ -932,7 +932,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let t = self.ctxt.types.borrow().get(type_id);
                         t.params.clone()
                     }
-                    _ => Vec::new(),
+                    _ => Rc::new(Vec::new()),
                 };
                 let fty = replace_type_param(self.ctxt, field.ty, &class_type_params, &[]);
 
@@ -1273,7 +1273,7 @@ fn arg_allows(ctxt: &SemContext,
                 return false;
             }
 
-            for (&tp, &op) in t.params.iter().zip(&o.params) {
+            for (&tp, &op) in t.params.iter().zip(o.params.iter()) {
                 if !arg_allows(ctxt, tp, op, cls_tps, fct_tps) {
                     return false;
                 }
@@ -1638,8 +1638,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         self.found_cls_id = cls_id;
 
-        let cls_tps: Vec<_> = if let Some(cls_tps) = self.cls_tps {
-            cls_tps.to_vec()
+        let cls_tps: Rc<Vec<_>> = if let Some(cls_tps) = self.cls_tps {
+            Rc::new(cls_tps.to_vec())
 
         } else if let LookupKind::Method(obj) = kind {
             match obj {
@@ -1648,11 +1648,11 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     ty.params.clone()
                 }
 
-                _ => Vec::new(),
+                _ => Rc::new(Vec::new()),
             }
 
         } else {
-            Vec::new()
+            Rc::new(Vec::new())
         };
 
         if cls_id.is_some() && !self.check_cls_tps(&cls_tps) {
@@ -1913,8 +1913,8 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                        fct_tps: &[BuiltinType],
                        return_type: Option<BuiltinType>)
                        -> Option<(ClassId, FctId, BuiltinType)> {
-    let values: Option<(ClassId, Vec<BuiltinType>)> = match object_type {
-        BuiltinType::Class(cls_id) => Some((cls_id, Vec::new())),
+    let values: Option<(ClassId, Rc<Vec<BuiltinType>>)> = match object_type {
+        BuiltinType::Class(cls_id) => Some((cls_id, Rc::new(Vec::new()))),
         BuiltinType::Generic(type_id) if !is_static => {
             let ty = ctxt.types.borrow().get(type_id);
             Some((ty.cls_id, ty.params.clone()))
@@ -1922,7 +1922,7 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
         _ => {
             ctxt.vips
                 .find_class(object_type)
-                .map(|c| (c, Vec::new()))
+                .map(|c| (c, Rc::new(Vec::new())))
         }
     };
 
@@ -1984,7 +1984,7 @@ fn replace_type_param(ctxt: &SemContext,
                 .map(|&p| replace_type_param(ctxt, p, cls_tp, fct_tp))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, params);
+            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, Rc::new(params));
             BuiltinType::Generic(type_id)
         }
 

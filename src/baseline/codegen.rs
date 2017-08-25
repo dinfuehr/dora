@@ -290,7 +290,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         if self.fct.has_self() {
             let var = self.src.var_self();
-            let mode = var.ty.to_specialized(self.ctxt).mode();
+            let mode = var.ty.mode();
 
             self.masm.emit_comment(Comment::StoreParam(var.id));
 
@@ -645,8 +645,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             self.scopes.pop_scope();
 
             let _ = self.src
-                .ty(catch.data_type.id())
-                .to_specialized(self.ctxt);
+                .ty(catch.data_type.id());
             // TODO: emit real class ptr
             let catch_type = CatchType::Class(ptr::null());
             self.masm

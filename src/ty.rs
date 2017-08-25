@@ -1,8 +1,7 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use class::{ClassId, TypeParamId};
+use class::{ClassId, TypeArgs, TypeParamId};
 use ctxt::{SemContext, FctId, StructId, TraitId};
 use mem;
 
@@ -134,17 +133,6 @@ impl BuiltinType {
             &BuiltinType::Lambda(_) => unimplemented!(),
 
             _ => false,
-        }
-    }
-
-    pub fn to_specialized(&self, ctxt: &SemContext) -> BuiltinType {
-        match self {
-            &BuiltinType::Generic(id) => {
-                let cls_id = ctxt.types.borrow().get_cls_id(id);
-                BuiltinType::Class(cls_id.expect("no specialized class exists"))
-            }
-
-            _ => *self,
         }
     }
 
@@ -382,7 +370,6 @@ impl MachineMode {
 pub struct Types {
     types: HashMap<Rc<TypeWithParams>, TypeId>,
     values: Vec<Rc<TypeWithParams>>,
-    classes: RefCell<Vec<Option<ClassId>>>,
     next_type_id: usize,
 }
 
@@ -391,7 +378,6 @@ impl Types {
         Types {
             types: HashMap::new(),
             values: Vec::new(),
-            classes: RefCell::new(Vec::new()),
             next_type_id: 0,
         }
     }
@@ -400,7 +386,7 @@ impl Types {
         self.values.len()
     }
 
-    pub fn insert(&mut self, cls_id: ClassId, params: Vec<BuiltinType>) -> TypeId {
+    pub fn insert(&mut self, cls_id: ClassId, params: TypeArgs) -> TypeId {
         let ty = TypeWithParams {
             cls_id: cls_id,
             params: params,
@@ -415,19 +401,10 @@ impl Types {
         self.types.insert(ty.clone(), type_id);
 
         self.values.push(ty);
-        self.classes.borrow_mut().push(None);
 
         self.next_type_id += 1;
 
         type_id
-    }
-
-    pub fn set_cls_id(&self, id: TypeId, cls_id: ClassId) {
-        self.classes.borrow_mut()[id.0] = Some(cls_id);
-    }
-
-    pub fn get_cls_id(&self, id: TypeId) -> Option<ClassId> {
-        self.classes.borrow()[id.0]
     }
 
     pub fn get(&self, id: TypeId) -> Rc<TypeWithParams> {
@@ -438,7 +415,7 @@ impl Types {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeWithParams {
     pub cls_id: ClassId,
-    pub params: Vec<BuiltinType>,
+    pub params: TypeArgs,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

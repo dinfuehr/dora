@@ -344,7 +344,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::GenericArrayGet => {
-                    let ty = self.src.ty(e.id).to_specialized(self.ctxt);
+                    let ty = self.src.ty(e.id);
                     self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
                 }
 
@@ -645,7 +645,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
-                        let ty = self.src.ty(e.rhs.id()).to_specialized(self.ctxt);
+                        let ty = self.src.ty(e.rhs.id());
                         self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs)
                     }
 
@@ -1449,7 +1449,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.has_self() && check_for_nil(self.ctxt, ty) &&
+                    if idx == 0 && fct.has_self() && check_for_nil(ty) &&
                        !csite.super_call && !fct.is_virtual() {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
@@ -1706,7 +1706,7 @@ fn result_reg(mode: MachineMode) -> ExprStore {
     }
 }
 
-fn check_for_nil(ctxt: &SemContext, ty: BuiltinType) -> bool {
+fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Unit => false,
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
@@ -1718,7 +1718,7 @@ fn check_for_nil(ctxt: &SemContext, ty: BuiltinType) -> bool {
         BuiltinType::This => unreachable!(),
         BuiltinType::ClassTypeParam(_, _) => unreachable!(),
         BuiltinType::FctTypeParam(_, _) => unreachable!(),
-        BuiltinType::Generic(_) => check_for_nil(ctxt, ty.to_specialized(ctxt)),
+        BuiltinType::Generic(_) => true,
         BuiltinType::Lambda(_) => true,
     }
 }

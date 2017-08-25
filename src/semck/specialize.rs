@@ -39,7 +39,7 @@ pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
                 .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params);
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }
@@ -56,12 +56,12 @@ pub enum SpecializeFor {
 
 pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
-    specialize_class(ctxt, &*cls, &[])
+    specialize_class(ctxt, &*cls, Rc::new(Vec::new()))
 }
 
 pub fn specialize_class_id_params(ctxt: &SemContext,
                                   cls_id: ClassId,
-                                  type_params: &[BuiltinType])
+                                  type_params: TypeArgs)
                                   -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
     specialize_class(ctxt, &*cls, type_params)
@@ -73,7 +73,7 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
         BuiltinType::Generic(type_id) => {
             let t = ctxt.types.borrow().get(type_id);
 
-            specialize_class_id_params(ctxt, t.cls_id, &t.params)
+            specialize_class_id_params(ctxt, t.cls_id, t.params.clone())
         }
 
         _ => unreachable!(),
@@ -82,9 +82,8 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
 
 pub fn specialize_class(ctxt: &SemContext,
                         cls: &class::Class,
-                        type_params: &[BuiltinType])
+                        type_params: TypeArgs)
                         -> ClassDefId {
-    let type_params = Rc::new(type_params.to_vec());
     if let Some(&id) = cls.specializations.borrow().get(&type_params) {
         return id;
     }

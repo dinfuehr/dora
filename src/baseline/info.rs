@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
@@ -572,7 +573,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     .map(|&t| self.specialize_type(t))
                     .collect();
 
-                let type_id = self.ctxt.types.borrow_mut().insert(ty.cls_id, params);
+                let type_id = self.ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
 
                 BuiltinType::Generic(type_id)
             }
@@ -602,7 +603,7 @@ fn specialize_type(ctxt: &SemContext,
                 .map(|&t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params);
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }

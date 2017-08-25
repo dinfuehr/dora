@@ -427,7 +427,8 @@ impl KnownElements {
         if let Some(cls_id) = cls_id {
             cls_id
         } else {
-            let cls_id = specialize_class_id_params(ctxt, self.array_class, &[BuiltinType::Int]);
+            let type_args = Rc::new(vec![BuiltinType::Int]);
+            let cls_id = specialize_class_id_params(ctxt, self.array_class, type_args);
             self.int_array_def.set(Some(cls_id));
             cls_id
         }
