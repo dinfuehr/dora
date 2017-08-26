@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
 use std::ptr;
+use std::rc::Rc;
 use std::slice;
 
 use capstone::{Engine, Error};
@@ -18,7 +19,7 @@ use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use cpu::{FREG_PARAMS, FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
-use ctxt::{SemContext, Fct, FctId, FctSrc, VarId};
+use ctxt::{SemContext, Fct, FctId, FctParent, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
@@ -78,6 +79,9 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>,
             active_upper: None,
             active_loop: None,
             lbl_return: None,
+
+            cls_type_params: cls_type_params,
+            fct_type_params: fct_type_params,
         }
         .generate();
 
@@ -251,6 +255,9 @@ pub struct CodeGen<'a, 'ast: 'a> {
     // would dump all active_finally-entries from the loop but we need an upper bound.
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     active_upper: Option<usize>,
+
+    cls_type_params: &'a [BuiltinType],
+    fct_type_params: &'a [BuiltinType],
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -314,7 +321,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
-            let ty = self.src.vars[varid].ty;
+            let ty = self.specialize_type(self.src.vars[varid].ty);
             let is_float = ty.mode().is_float();
 
             if ty.reference_type() {
@@ -326,7 +333,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.masm.emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm, &self.src, &self.jit_info, reg.into(), varid);
+                var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
 
@@ -334,7 +341,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 let reg = REG_PARAMS[reg_idx];
 
                 self.masm.emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm, &self.src, &self.jit_info, reg.into(), varid);
+                var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
 
@@ -568,7 +575,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             let value = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.masm, &self.src, &self.jit_info, value, var);
+            var_store(&mut self.masm, &self.jit_info, value, var);
         }
 
         let reference_type = {
@@ -587,7 +594,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
             var_store(&mut self.masm,
-                      &self.src,
                       &self.jit_info,
                       REG_RESULT.into(),
                       var);
@@ -734,6 +740,40 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         dest
     }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        match ty {
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                debug_assert!(self.fct.parent == FctParent::Class(cls_id));
+                self.cls_type_params[id.idx()]
+            }
+
+            BuiltinType::FctTypeParam(fct_id, id) => {
+                debug_assert!(self.fct.id == fct_id);
+                self.fct_type_params[id.idx()]
+            }
+
+            BuiltinType::Generic(type_id) => {
+                let ty = self.ctxt.types.borrow().get(type_id);
+
+                let params: Vec<_> = ty.params
+                    .iter()
+                    .map(|&t| self.specialize_type(t))
+                    .collect();
+
+                let type_id = self.ctxt
+                    .types
+                    .borrow_mut()
+                    .insert(ty.cls_id, Rc::new(params));
+
+                BuiltinType::Generic(type_id)
+            }
+
+            BuiltinType::Lambda(_) => unimplemented!(),
+
+            _ => ty,
+        }
+    }
 }
 
 pub fn register_for_mode(mode: MachineMode) -> ExprStore {
@@ -785,23 +825,21 @@ pub enum CondCode {
 }
 
 pub fn var_store(masm: &mut MacroAssembler,
-                 fsrc: &FctSrc,
                  jit_info: &JitInfo,
                  src: ExprStore,
                  var_id: VarId) {
-    let var = &fsrc.vars[var_id];
     let offset = jit_info.offset(var_id);
-    masm.store_mem(var.ty.mode(), Mem::Local(offset), src);
+    let ty = jit_info.ty(var_id);
+    masm.store_mem(ty.mode(), Mem::Local(offset), src);
 }
 
 pub fn var_load(masm: &mut MacroAssembler,
-                fsrc: &FctSrc,
                 jit_info: &JitInfo,
                 var_id: VarId,
                 dest: ExprStore) {
-    let var = &fsrc.vars[var_id];
     let offset = jit_info.offset(var_id);
-    masm.load_mem(var.ty.mode(), dest, Mem::Local(offset));
+    let ty = jit_info.ty(var_id);
+    masm.load_mem(ty.mode(), dest, Mem::Local(offset));
 }
 
 pub struct Scopes {

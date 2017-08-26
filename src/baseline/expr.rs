@@ -510,7 +510,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
         match ident {
             IdentType::Var(varid) => {
                 self.masm.emit_comment(Comment::LoadVar(varid));
-                codegen::var_load(self.masm, self.src, self.jit_info, varid, dest)
+                codegen::var_load(self.masm, self.jit_info, varid, dest)
             }
 
             IdentType::Global(gid) => {
@@ -675,7 +675,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
-                codegen::var_store(&mut self.masm, self.src, self.jit_info, dest, varid);
+                codegen::var_store(&mut self.masm, self.jit_info, dest, varid);
             }
 
             IdentType::Global(gid) => {

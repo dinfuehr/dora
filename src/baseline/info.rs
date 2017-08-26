@@ -59,6 +59,7 @@ pub struct JitInfo<'ast> {
     pub map_csites: NodeMap<CallSite<'ast>>,
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
+    pub map_var_types: HashMap<VarId, BuiltinType>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -77,6 +78,10 @@ impl<'ast> JitInfo<'ast> {
         *self.map_var_offsets.get(&var_id).unwrap()
     }
 
+    pub fn ty(&self, var_id: VarId) -> BuiltinType {
+        *self.map_var_types.get(&var_id).unwrap()
+    }
+
     pub fn new() -> JitInfo<'ast> {
         JitInfo {
             tempsize: 0,
@@ -89,6 +94,7 @@ impl<'ast> JitInfo<'ast> {
             map_csites: NodeMap::new(),
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
+            map_var_types: HashMap::new(),
         }
     }
 }
@@ -235,6 +241,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let offset = self.reserve_stack_for_type(ty);
 
         self.jit_info.map_var_offsets.insert(id, offset);
+        self.jit_info.map_var_types.insert(id, ty);
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
