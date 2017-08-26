@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use dora_parser::ast::*;
 use dora_parser::ast::Expr::*;
 use baseline::codegen::{self, dump_asm, CondCode, register_for_mode, Scopes, should_emit_asm,
@@ -80,6 +82,8 @@ pub struct ExprGen<'a, 'ast: 'a> {
     tempsize: i32,
     temps: TempOffsets,
     jit_info: &'a JitInfo<'ast>,
+    cls_type_params: &'a [BuiltinType],
+    fct_type_params: &'a [BuiltinType],
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast>
@@ -91,7 +95,9 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                ast: &'ast Function,
                masm: &'a mut MacroAssembler,
                scopes: &'a mut Scopes,
-               jit_info: &'a JitInfo<'ast>)
+               jit_info: &'a JitInfo<'ast>,
+               cls_type_params: &'a [BuiltinType],
+               fct_type_params: &'a [BuiltinType])
                -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -103,6 +109,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             scopes: scopes,
             temps: TempOffsets::new(),
             jit_info: jit_info,
+            cls_type_params: cls_type_params,
+            fct_type_params: fct_type_params
         }
     }
 
@@ -671,7 +679,8 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
 
         match ident_type {
             IdentType::Var(varid) => {
-                let dest = result_reg(self.src.vars[varid].ty.mode());
+                let ty = self.jit_info.ty(varid);
+                let dest = result_reg(ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
                 self.masm.emit_comment(Comment::StoreVar(varid));
@@ -694,6 +703,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             }
 
             IdentType::Field(ty, fieldid) => {
+                let ty = self.specialize_type(ty);
                 let cls_id = specialize_class_ty(self.ctxt, ty);
                 let cls = self.ctxt.class_defs[cls_id].borrow();
                 let field = &cls.fields[fieldid.idx()];
@@ -1708,6 +1718,40 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
                     self.masm.copy_reg(ty.mode(), dest, REG_RESULT);
                 }
             }
+        }
+    }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        match ty {
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                debug_assert!(self.fct.parent == FctParent::Class(cls_id));
+                self.cls_type_params[id.idx()]
+            }
+
+            BuiltinType::FctTypeParam(fct_id, id) => {
+                debug_assert!(self.fct.id == fct_id);
+                self.fct_type_params[id.idx()]
+            }
+
+            BuiltinType::Generic(type_id) => {
+                let ty = self.ctxt.types.borrow().get(type_id);
+
+                let params: Vec<_> = ty.params
+                    .iter()
+                    .map(|&t| self.specialize_type(t))
+                    .collect();
+
+                let type_id = self.ctxt
+                    .types
+                    .borrow_mut()
+                    .insert(ty.cls_id, Rc::new(params));
+
+                BuiltinType::Generic(type_id)
+            }
+
+            BuiltinType::Lambda(_) => unimplemented!(),
+
+            _ => ty,
         }
     }
 }

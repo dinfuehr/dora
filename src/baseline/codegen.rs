@@ -321,7 +321,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
         for p in &self.ast.params {
             let varid = *self.src.map_vars.get(p.id).unwrap();
-            let ty = self.specialize_type(self.src.vars[varid].ty);
+            let ty = self.jit_info.ty(varid);
             let is_float = ty.mode().is_float();
 
             if ty.reference_type() {
@@ -579,14 +579,14 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         }
 
         let reference_type = {
-            let var = &self.src.vars[var];
+            let ty = self.jit_info.ty(var);
 
-            if var.ty.reference_type() {
-                let offset = self.jit_info.offset(var.id);
-                self.scopes.add_var(var.id, offset);
+            if ty.reference_type() {
+                let offset = self.jit_info.offset(var);
+                self.scopes.add_var(var, offset);
             }
 
-            var.ty.reference_type()
+            ty.reference_type()
         };
 
         // uninitialized variables which reference objects need to be initialized to null
@@ -734,7 +734,9 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                                     self.ast,
                                     &mut self.masm,
                                     &mut self.scopes,
-                                    &self.jit_info);
+                                    &self.jit_info,
+                                    self.cls_type_params,
+                                    self.fct_type_params);
 
         expr_gen.generate(e, dest);
 
