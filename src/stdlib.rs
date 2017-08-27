@@ -140,8 +140,10 @@ pub extern "C" fn call(fct: Handle<Str>) {
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
-        libc::strcmp(lhs.data() as *const libc::c_char,
-                     rhs.data() as *const libc::c_char)
+        libc::strcmp(
+            lhs.data() as *const libc::c_char,
+            rhs.data() as *const libc::c_char,
+        )
     }
 }
 

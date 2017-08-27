@@ -9,9 +9,9 @@ use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
-use masm::{MacroAssembler, Label};
+use masm::{Label, MacroAssembler};
 use mem::ptr_width;
-use object::{Header, offset_of_array_data, offset_of_array_length};
+use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
 use vtable::VTable;
@@ -19,12 +19,26 @@ use vtable::VTable;
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
         self.emit_u32(asm::stp_pre(1, REG_FP, REG_LR, REG_SP, -2));
-        self.emit_u32(asm::add_extreg(1, REG_FP, REG_SP, REG_ZERO, Extend::UXTX, 0));
+        self.emit_u32(asm::add_extreg(
+            1,
+            REG_FP,
+            REG_SP,
+            REG_ZERO,
+            Extend::UXTX,
+            0,
+        ));
 
         if stacksize > 0 {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
-            self.emit_u32(asm::sub_extreg(1, REG_SP, REG_SP, *scratch, Extend::UXTX, 0));
+            self.emit_u32(asm::sub_extreg(
+                1,
+                REG_SP,
+                REG_SP,
+                *scratch,
+                Extend::UXTX,
+                0,
+            ));
         }
     }
 
@@ -32,7 +46,14 @@ impl MacroAssembler {
         if stacksize > 0 {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
-            self.emit_u32(asm::add_extreg(1, REG_SP, REG_SP, *scratch, Extend::UXTX, 0));
+            self.emit_u32(asm::add_extreg(
+                1,
+                REG_SP,
+                REG_SP,
+                *scratch,
+                Extend::UXTX,
+                0,
+            ));
         }
 
         self.check_polling_page(polling_page);
@@ -40,7 +61,14 @@ impl MacroAssembler {
         let gcpoint = GcPoint::new();
         self.emit_gcpoint(gcpoint);
 
-        self.emit_u32(asm::add_extreg(1, REG_SP, REG_FP, REG_ZERO, Extend::UXTX, 0));
+        self.emit_u32(asm::add_extreg(
+            1,
+            REG_SP,
+            REG_FP,
+            REG_ZERO,
+            Extend::UXTX,
+            0,
+        ));
         self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
         self.emit_u32(asm::ret());
     }
@@ -82,9 +110,11 @@ impl MacroAssembler {
         let disp = VTable::offset_of_method_table() + (index as i32) * ptr_width();
 
         // load vtable entry into scratch
-        self.load_mem(MachineMode::Ptr,
-                      scratch.reg().into(),
-                      Mem::Base(*scratch, disp));
+        self.load_mem(
+            MachineMode::Ptr,
+            scratch.reg().into(),
+            Mem::Base(*scratch, disp),
+        );
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
@@ -92,19 +122,25 @@ impl MacroAssembler {
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
-        self.load_mem(mode,
-                      dest,
-                      Mem::Index(array, index, mode.size(), offset_of_array_data()));
+        self.load_mem(
+            mode,
+            dest,
+            Mem::Index(array, index, mode.size(), offset_of_array_data()),
+        );
     }
 
-    pub fn store_array_elem(&mut self,
-                            mode: MachineMode,
-                            array: Reg,
-                            index: Reg,
-                            value: ExprStore) {
-        self.store_mem(mode,
-                       Mem::Index(array, index, mode.size(), offset_of_array_data()),
-                       value);
+    pub fn store_array_elem(
+        &mut self,
+        mode: MachineMode,
+        array: Reg,
+        index: Reg,
+        value: ExprStore,
+    ) {
+        self.store_mem(
+            mode,
+            Mem::Index(array, index, mode.size(), offset_of_array_data()),
+            value,
+        );
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -161,12 +197,11 @@ impl MacroAssembler {
             None => {
                 let pos = self.pos();
                 self.emit_u32(0);
-                self.jumps
-                    .push(ForwardJump {
-                              at: pos,
-                              to: lbl,
-                              ty: JumpType::JumpIf(cond),
-                          });
+                self.jumps.push(ForwardJump {
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::JumpIf(cond),
+                });
             }
         }
     }
@@ -187,12 +222,11 @@ impl MacroAssembler {
             None => {
                 let pos = self.pos();
                 self.emit_u32(0);
-                self.jumps
-                    .push(ForwardJump {
-                              at: pos,
-                              to: lbl,
-                              ty: JumpType::Jump,
-                          });
+                self.jumps.push(ForwardJump {
+                    at: pos,
+                    to: lbl,
+                    ty: JumpType::Jump,
+                });
             }
         }
     }
@@ -309,11 +343,13 @@ impl MacroAssembler {
         self.emit_u32(asm::eor_shreg(x64, dest, lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn int_to_float(&mut self,
-                        dest_mode: MachineMode,
-                        dest: FReg,
-                        src_mode: MachineMode,
-                        src: Reg) {
+    pub fn int_to_float(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: FReg,
+        src_mode: MachineMode,
+        src: Reg,
+    ) {
         let x64 = match src_mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
@@ -329,11 +365,13 @@ impl MacroAssembler {
         self.emit_u32(asm::scvtf(x64, flt, dest, src));
     }
 
-    pub fn float_to_int(&mut self,
-                        dest_mode: MachineMode,
-                        dest: Reg,
-                        src_mode: MachineMode,
-                        src: FReg) {
+    pub fn float_to_int(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: Reg,
+        src_mode: MachineMode,
+        src: FReg,
+    ) {
         let x64 = match dest_mode {
             MachineMode::Int32 => 0,
             MachineMode::Int64 => 1,
@@ -417,12 +455,14 @@ impl MacroAssembler {
         self.emit_u32(asm::fsqrt(dbl, dest, src));
     }
 
-    pub fn float_cmp(&mut self,
-                     mode: MachineMode,
-                     dest: Reg,
-                     lhs: FReg,
-                     rhs: FReg,
-                     cond: CondCode) {
+    pub fn float_cmp(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: FReg,
+        rhs: FReg,
+        cond: CondCode,
+    ) {
         let dbl = match mode {
             MachineMode::Float32 => 0,
             MachineMode::Float64 => 1,
@@ -474,12 +514,11 @@ impl MacroAssembler {
     pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        let size = Header::size() + ptr_width() +
-                   if element_size != ptr_width() {
-                       ptr_width() - 1
-                   } else {
-                       0
-                   };
+        let size = Header::size() + ptr_width() + if element_size != ptr_width() {
+            ptr_width() - 1
+        } else {
+            0
+        };
 
         if element_size != 1 {
             let shift = match element_size {
@@ -503,9 +542,11 @@ impl MacroAssembler {
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
-        self.load_mem(MachineMode::Int32,
-                      (*scratch).into(),
-                      Mem::Base(array, offset_of_array_length()));
+        self.load_mem(
+            MachineMode::Int32,
+            (*scratch).into(),
+            Mem::Base(array, offset_of_array_length()),
+        );
         self.cmp_reg(MachineMode::Int32, index, *scratch);
 
         let lbl = self.create_label();
@@ -518,12 +559,14 @@ impl MacroAssembler {
     }
 
 
-    pub fn load_field(&mut self,
-                      mode: MachineMode,
-                      dest: ExprStore,
-                      base: Reg,
-                      offset: i32,
-                      line: i32) {
+    pub fn load_field(
+        &mut self,
+        mode: MachineMode,
+        dest: ExprStore,
+        base: Reg,
+        offset: i32,
+        line: i32,
+    ) {
         self.load_base(mode, dest, base, offset, Some(line));
     }
 
@@ -540,8 +583,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::ldrw_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
                     }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
+                    MachineMode::Int64 | MachineMode::Ptr => {
                         asm::ldrx_ind(dest.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
                     }
                     MachineMode::Float32 => {
@@ -573,8 +615,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::ldrw_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
+                    MachineMode::Int64 | MachineMode::Ptr => {
                         asm::ldrx_ind(dest.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
                     MachineMode::Float32 => {
@@ -592,12 +633,14 @@ impl MacroAssembler {
         }
     }
 
-    fn load_base(&mut self,
-                 mode: MachineMode,
-                 dest: ExprStore,
-                 base: Reg,
-                 disp: i32,
-                 check_nil: Option<i32>) {
+    fn load_base(
+        &mut self,
+        mode: MachineMode,
+        dest: ExprStore,
+        base: Reg,
+        disp: i32,
+        check_nil: Option<i32>,
+    ) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
             REG_ZERO
@@ -609,8 +652,9 @@ impl MacroAssembler {
         let inst = match mode {
             MachineMode::Int8 => asm::ldrb_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int32 => asm::ldrw_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int64 |
-            MachineMode::Ptr => asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                asm::ldrx_ind(dest.reg(), base, reg, LdStExtend::LSL, 0)
+            }
             MachineMode::Float32 => asm::ldrs_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Float64 => asm::ldrd_ind(dest.freg(), base, reg, LdStExtend::LSL, 0),
         };
@@ -623,21 +667,25 @@ impl MacroAssembler {
         self.emit_u32(inst);
     }
 
-    pub fn store_field(&mut self,
-                       mode: MachineMode,
-                       base: Reg,
-                       disp: i32,
-                       src: ExprStore,
-                       line: i32) {
+    pub fn store_field(
+        &mut self,
+        mode: MachineMode,
+        base: Reg,
+        disp: i32,
+        src: ExprStore,
+        line: i32,
+    ) {
         self.store_base(mode, base, disp, src, Some(line));
     }
 
-    fn store_base(&mut self,
-                  mode: MachineMode,
-                  base: Reg,
-                  disp: i32,
-                  src: ExprStore,
-                  check_nil: Option<i32>) {
+    fn store_base(
+        &mut self,
+        mode: MachineMode,
+        base: Reg,
+        disp: i32,
+        src: ExprStore,
+        check_nil: Option<i32>,
+    ) {
         let scratch = self.get_scratch();
         let reg = if disp == 0 {
             REG_ZERO
@@ -649,8 +697,9 @@ impl MacroAssembler {
         let inst = match mode {
             MachineMode::Int8 => asm::strb_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Int32 => asm::strw_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
-            MachineMode::Int64 |
-            MachineMode::Ptr => asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0),
+            MachineMode::Int64 | MachineMode::Ptr => {
+                asm::strx_ind(src.reg(), base, reg, LdStExtend::LSL, 0)
+            }
             MachineMode::Float32 => asm::strs_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
             MachineMode::Float64 => asm::strd_ind(src.freg(), base, reg, LdStExtend::LSL, 0),
         };
@@ -676,8 +725,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::strw_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
                     }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
+                    MachineMode::Int64 | MachineMode::Ptr => {
                         asm::strx_ind(src.reg(), REG_FP, *scratch, LdStExtend::LSL, 0)
                     }
                     MachineMode::Float32 => {
@@ -709,8 +757,7 @@ impl MacroAssembler {
                     MachineMode::Int32 => {
                         asm::strw_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
-                    MachineMode::Int64 |
-                    MachineMode::Ptr => {
+                    MachineMode::Int64 | MachineMode::Ptr => {
                         asm::strx_ind(src.reg(), *scratch, index, LdStExtend::LSL, 1)
                     }
                     MachineMode::Float32 => {
@@ -729,7 +776,14 @@ impl MacroAssembler {
     }
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
-        self.emit_u32(orr_shreg(size_flag(mode), dest, REG_ZERO, src, Shift::LSL, 0));
+        self.emit_u32(orr_shreg(
+            size_flag(mode),
+            dest,
+            REG_ZERO,
+            src,
+            Shift::LSL,
+            0,
+        ));
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
@@ -774,8 +828,7 @@ impl MacroAssembler {
             MachineMode::Int32 => 32,
             MachineMode::Int64 => 64,
             MachineMode::Ptr => 64,
-            MachineMode::Float32 |
-            MachineMode::Float64 => unreachable!(),
+            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         };
         let imm = imm as u64;
 
@@ -783,15 +836,14 @@ impl MacroAssembler {
             let shift = shift_movz(imm);
             let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
             self.emit_u32(movz(sf, dest, imm, shift));
-
         } else if fits_movn(imm, register_size) {
             let shift = shift_movn(imm);
             let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
             self.emit_u32(movn(sf, dest, imm, shift));
-
         } else {
             let (halfword, invert) = if count_empty_half_words(!imm, register_size) >
-                                        count_empty_half_words(imm, register_size) {
+                count_empty_half_words(imm, register_size)
+            {
                 (0xFFFF, true)
             } else {
                 (0, false)
@@ -905,19 +957,16 @@ enum JumpType {
 
 fn size_flag(mode: MachineMode) -> u32 {
     match mode {
-        MachineMode::Int8 |
-        MachineMode::Int32 => 0,
-        MachineMode::Ptr |
-        MachineMode::Int64 => 1,
-        MachineMode::Float32 |
-        MachineMode::Float64 => unimplemented!(),
+        MachineMode::Int8 | MachineMode::Int32 => 0,
+        MachineMode::Ptr | MachineMode::Int64 => 1,
+        MachineMode::Float32 | MachineMode::Float64 => unimplemented!(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ty::MachineMode::{Int8, Int32, Ptr};
+    use ty::MachineMode::{Int32, Int8, Ptr};
 
     macro_rules! assert_emit {
         (

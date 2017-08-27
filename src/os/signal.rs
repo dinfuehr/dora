@@ -6,7 +6,7 @@ use baseline;
 use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
 use cpu;
-use ctxt::{SemContext, CTXT, FctId, get_ctxt};
+use ctxt::{get_ctxt, FctId, SemContext, CTXT};
 use exception::{handle_exception, stacktrace_from_es};
 use execstate::ExecState;
 use object::{Handle, Obj};
@@ -29,16 +29,24 @@ pub fn register_signals(ctxt: &SemContext) {
         libc::sigemptyset(&mut sa.sa_mask as *mut libc::sigset_t);
         sa.sa_flags = libc::SA_SIGINFO;
 
-        if libc::sigaction(libc::SIGSEGV,
-                           &sa as *const libc::sigaction,
-                           0 as *mut libc::sigaction) == -1 {
-            libc::perror("sigaction for SIGSEGV failed".as_ptr() as *const libc::c_char);
+        if libc::sigaction(
+            libc::SIGSEGV,
+            &sa as *const libc::sigaction,
+            0 as *mut libc::sigaction,
+        ) == -1
+        {
+            libc::perror("sigaction for SIGSEGV failed".as_ptr() as
+                *const libc::c_char);
         }
 
-        if libc::sigaction(libc::SIGILL,
-                           &sa as *const libc::sigaction,
-                           0 as *mut libc::sigaction) == -1 {
-            libc::perror("sigaction for SIGILL failed".as_ptr() as *const libc::c_char);
+        if libc::sigaction(
+            libc::SIGILL,
+            &sa as *const libc::sigaction,
+            0 as *mut libc::sigaction,
+        ) == -1
+        {
+            libc::perror("sigaction for SIGILL failed".as_ptr() as
+                *const libc::c_char);
         }
     }
 }
@@ -161,7 +169,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
             }
         }
 
-        // is this is a failed nil check?
+    // is this is a failed nil check?
     } else if detect_nil_check(ctxt, es.pc) {
         println!("nil check failed");
         let stacktrace = stacktrace_from_es(ctxt, &es);
@@ -169,16 +177,17 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         unsafe {
             libc::_exit(103);
         }
-
     } else if detect_polling_page_check(ctxt, signo, addr) {
         // polling page read failed => enter safepoint
         safepoint::enter(&es);
 
-        // otherwise trap not dected => crash
+    // otherwise trap not dected => crash
     } else {
-        println!("error: trap not detected (signal {}, addr {:?}).",
-                 signo,
-                 addr);
+        println!(
+            "error: trap not detected (signal {}, addr {:?}).",
+            signo,
+            addr
+        );
         println!();
         println!("{:?}", &es);
         println!();
@@ -262,10 +271,12 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
     write_execstate(es, ucontext as *mut u8);
 }
 
-fn patch_vtable_call(ctxt: &SemContext,
-                     es: &mut ExecState,
-                     vtable_index: u32,
-                     fct_tps: &[BuiltinType]) {
+fn patch_vtable_call(
+    ctxt: &SemContext,
+    es: &mut ExecState,
+    vtable_index: u32,
+    fct_tps: &[BuiltinType],
+) {
     let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
     let vtable = obj.header().vtbl();
@@ -290,13 +301,15 @@ fn patch_vtable_call(ctxt: &SemContext,
     es.pc = fct_ptr as usize;
 }
 
-pub fn patch_fct_call(ctxt: &SemContext,
-                      es: &mut ExecState,
-                      ra: usize,
-                      fct_id: FctId,
-                      cls_tps: &[BuiltinType],
-                      fct_tps: &[BuiltinType],
-                      disp: i32) {
+pub fn patch_fct_call(
+    ctxt: &SemContext,
+    es: &mut ExecState,
+    ra: usize,
+    fct_id: FctId,
+    cls_tps: &[BuiltinType],
+    fct_tps: &[BuiltinType],
+    disp: i32,
+) {
     let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 

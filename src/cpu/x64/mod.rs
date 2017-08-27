@@ -27,11 +27,13 @@ pub fn receiver_from_execstate(es: &ExecState) -> usize {
     es.regs[REG_PARAMS[0].int() as usize]
 }
 
-pub fn resume_with_handler(es: &mut ExecState,
-                           handler: &ExHandler,
-                           fp: usize,
-                           exception: Handle<Obj>,
-                           stacksize: usize) {
+pub fn resume_with_handler(
+    es: &mut ExecState,
+    handler: &ExHandler,
+    fp: usize,
+    exception: Handle<Obj>,
+    stacksize: usize,
+) {
     if let Some(offset) = handler.offset {
         let arg = (fp as isize + offset as isize) as usize;
 

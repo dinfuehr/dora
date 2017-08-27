@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use class::{ClassSize, ClassDefId};
+use class::{ClassDefId, ClassSize};
 use ctxt::SemContext;
 use gc::root::IndirectObj;
 use handle::Rooted;
@@ -46,7 +46,11 @@ impl Header {
     }
 
     pub fn marked(&self) -> bool {
-        if (self.info & 1) != 0 { true } else { false }
+        if (self.info & 1) != 0 {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn age(&self) -> u32 {
@@ -144,14 +148,17 @@ impl Obj {
             ClassSize::Array(element_size) => determine_array_size(self, element_size),
 
             ClassSize::Str => {
-                let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
+                let handle: Handle<Str> = Handle {
+                    ptr: self as *const Obj as *const Str,
+                };
                 mem::align_usize(handle.size(), mem::ptr_width() as usize)
             }
         }
     }
 
     pub fn visit_reference_fields<F>(&mut self, mut f: F)
-        where F: FnMut(IndirectObj)
+    where
+        F: FnMut(IndirectObj),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
@@ -180,10 +187,12 @@ impl Obj {
 }
 
 fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
-    let handle: Handle<ByteArray> = Handle { ptr: obj as *const Obj as *const ByteArray };
+    let handle: Handle<ByteArray> = Handle {
+        ptr: obj as *const Obj as *const ByteArray,
+    };
 
     let value = Header::size() as usize + mem::ptr_width() as usize +
-                element_size as usize * handle.len() as usize;
+        element_size as usize * handle.len() as usize;
 
     mem::align_usize(value, mem::ptr_width() as usize)
 }
@@ -201,7 +210,9 @@ impl<T> Handle<T> {
     }
 
     pub fn cast<R>(&self) -> Handle<R> {
-        Handle { ptr: self.ptr as *const R }
+        Handle {
+            ptr: self.ptr as *const R,
+        }
     }
 
     pub fn raw(&self) -> *const T {
@@ -234,7 +245,9 @@ impl<T> DerefMut for Handle<T> {
 
 impl<T> Into<Handle<T>> for usize {
     fn into(self) -> Handle<T> {
-        Handle { ptr: self as *const T }
+        Handle {
+            ptr: self as *const T,
+        }
     }
 }
 
@@ -347,7 +360,6 @@ impl Str {
             }
 
             handle
-
         } else {
             Handle::null()
         }
@@ -361,9 +373,11 @@ impl Str {
             handle.length = len;
 
             ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
-            ptr::copy_nonoverlapping(rhs.data(),
-                                     handle.data().offset(lhs.len() as isize) as *mut u8,
-                                     rhs.len());
+            ptr::copy_nonoverlapping(
+                rhs.data(),
+                handle.data().offset(lhs.len() as isize) as *mut u8,
+                rhs.len(),
+            );
         }
 
         handle
@@ -385,9 +399,11 @@ impl Str {
 }
 
 fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
-    str_alloc(ctxt,
-              len,
-              |ctxt, size| ctxt.gc.alloc(ctxt, size) as *const u8)
+    str_alloc(
+        ctxt,
+        len,
+        |ctxt, size| ctxt.gc.alloc(ctxt, size) as *const u8,
+    )
 }
 
 fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
@@ -395,7 +411,8 @@ fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
 }
 
 fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
-    where F: FnOnce(&SemContext, usize) -> *const u8
+where
+    F: FnOnce(&SemContext, usize) -> *const u8,
 {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
@@ -422,7 +439,8 @@ pub struct Array<T: Copy> {
 }
 
 impl<T> Array<T>
-    where T: Copy
+where
+    T: Copy,
 {
     pub fn header(&self) -> &Header {
         &self.header

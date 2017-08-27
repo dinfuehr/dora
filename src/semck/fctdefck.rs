@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
-use ctxt::{self, SemContext, Fct, FctId, FctParent, FctSrc};
+use ctxt::{self, Fct, FctId, FctParent, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 use semck;
 use sym::Sym;
@@ -49,11 +49,9 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                 }
             }
 
-            FctParent::Trait(_) => {
-                if fct.has_self() {
-                    fct.param_types.push(BuiltinType::This);
-                }
-            }
+            FctParent::Trait(_) => if fct.has_self() {
+                fct.param_types.push(BuiltinType::This);
+            },
 
             FctParent::None => {}
         }
@@ -70,8 +68,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                         ctxt.diag.borrow_mut().report(type_param.pos, msg);
                     }
 
-                    fct.type_params
-                        .push(ctxt::TypeParam::new(type_param.name));
+                    fct.type_params.push(ctxt::TypeParam::new(type_param.name));
 
                     for bound in &type_param.bounds {
                         let ty = semck::read_type(ctxt, bound);
@@ -87,9 +84,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
-                                if !fct.type_params[type_param_id]
-                                        .trait_bounds
-                                        .insert(trait_id) {
+                                if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
                                     ctxt.diag.borrow_mut().report(type_param.pos, msg);
                                 }
@@ -110,7 +105,6 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                     ctxt.sym.borrow_mut().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
-
             } else {
                 let msg = Msg::TypeParamsExpected;
                 ctxt.diag.borrow_mut().report(fct.pos, msg);
@@ -338,19 +332,23 @@ mod tests {
 
     #[test]
     fn allow_same_method_as_static_and_non_static() {
-        ok("class Foo {
+        ok(
+            "class Foo {
                 static fun foo() {}
                 fun foo() {}
-            }");
+            }",
+        );
     }
 
     #[test]
     fn fct_with_type_params() {
         ok("fun f<T>() {}");
         ok("fun f<X, Y>() {}");
-        err("fun f<T, T>() {}",
+        err(
+            "fun f<T, T>() {}",
             pos(1, 10),
-            Msg::TypeParamNameNotUnique("T".into()));
+            Msg::TypeParamNameNotUnique("T".into()),
+        );
         err("fun f<>() {}", pos(1, 1), Msg::TypeParamsExpected);
     }
 
@@ -361,44 +359,56 @@ mod tests {
 
     #[test]
     fn abstract_method_in_non_abstract_class() {
-        err("class A { abstract fun foo(); }",
+        err(
+            "class A { abstract fun foo(); }",
             pos(1, 20),
-            Msg::AbstractMethodNotInAbstractClass);
+            Msg::AbstractMethodNotInAbstractClass,
+        );
     }
 
     #[test]
     fn abstract_method_with_implementation() {
-        err("abstract class A { abstract fun foo() {} }",
+        err(
+            "abstract class A { abstract fun foo() {} }",
             pos(1, 29),
-            Msg::AbstractMethodWithImplementation);
+            Msg::AbstractMethodWithImplementation,
+        );
     }
 
     #[test]
     fn abstract_static_method() {
-        err("abstract class A { static abstract fun foo(); }",
+        err(
+            "abstract class A { static abstract fun foo(); }",
             pos(1, 36),
-            Msg::ModifierNotAllowedForStaticMethod("abstract".into()));
+            Msg::ModifierNotAllowedForStaticMethod("abstract".into()),
+        );
     }
 
     #[test]
     fn open_static_method() {
-        err("abstract class A { static open fun foo() {} }",
+        err(
+            "abstract class A { static open fun foo() {} }",
             pos(1, 32),
-            Msg::ModifierNotAllowedForStaticMethod("open".into()));
+            Msg::ModifierNotAllowedForStaticMethod("open".into()),
+        );
     }
 
     #[test]
     fn override_static_method() {
-        err("abstract class A { static override fun foo() {} }",
+        err(
+            "abstract class A { static override fun foo() {} }",
             pos(1, 36),
-            Msg::ModifierNotAllowedForStaticMethod("override".into()));
+            Msg::ModifierNotAllowedForStaticMethod("override".into()),
+        );
     }
 
     #[test]
     fn final_static_method() {
-        err("abstract class A { final static fun foo() {} }",
+        err(
+            "abstract class A { final static fun foo() {} }",
             pos(1, 33),
-            Msg::ModifierNotAllowedForStaticMethod("final".into()));
+            Msg::ModifierNotAllowedForStaticMethod("final".into()),
+        );
     }
 
     #[test]
@@ -407,29 +417,39 @@ mod tests {
         ok("fun f() { |a: int| {}; }");
         ok("fun f() { || -> int { return 2; }; }");
 
-        err("fun f() { || -> Foo { }; }",
+        err(
+            "fun f() { || -> Foo { }; }",
             pos(1, 17),
-            Msg::UnknownType("Foo".into()));
-        err("fun f() { |a: Foo| { }; }",
+            Msg::UnknownType("Foo".into()),
+        );
+        err(
+            "fun f() { |a: Foo| { }; }",
             pos(1, 15),
-            Msg::UnknownType("Foo".into()));
+            Msg::UnknownType("Foo".into()),
+        );
     }
 
     #[test]
     fn generic_bounds() {
-        err("fun f<T: Foo>() {}",
+        err(
+            "fun f<T: Foo>() {}",
             pos(1, 10),
-            Msg::UnknownType("Foo".into()));
+            Msg::UnknownType("Foo".into()),
+        );
         ok("class Foo fun f<T: Foo>() {}");
         ok("trait Foo {} fun f<T: Foo>() {}");
 
-        err("class A class B
+        err(
+            "class A class B
             fun f<T: A + B>() {  }",
             pos(2, 19),
-            Msg::MultipleClassBounds);
-        err("trait Foo {}
+            Msg::MultipleClassBounds,
+        );
+        err(
+            "trait Foo {}
             fun f<T: Foo + Foo>() {  }",
             pos(2, 19),
-            Msg::DuplicateTraitBound);
+            Msg::DuplicateTraitBound,
+        );
     }
 }

@@ -1,5 +1,5 @@
 use class::ClassId;
-use ctxt::{SemContext, FctKind, Intrinsic, TraitId};
+use ctxt::{FctKind, Intrinsic, SemContext, TraitId};
 use exception;
 use stdlib;
 use ty::BuiltinType;
@@ -30,10 +30,11 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.equals_trait = find_trait(ctxt, "Equals");
 }
 
-fn internal_class<'ast>(ctxt: &mut SemContext<'ast>,
-                        name: &str,
-                        ty: Option<BuiltinType>)
-                        -> ClassId {
+fn internal_class<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    name: &str,
+    ty: Option<BuiltinType>,
+) -> ClassId {
     let iname = ctxt.interner.intern(name);
     let clsid = ctxt.sym.borrow().get_class(iname);
 
@@ -79,9 +80,11 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
 
     native_fct(ctxt, "call", stdlib::call as *const u8);
     native_fct(ctxt, "throwFromNative", stdlib::throw_native as *const u8);
-    native_fct(ctxt,
-               "throwFromNativeButNotThrows",
-               stdlib::throw_native as *const u8);
+    native_fct(
+        ctxt,
+        "throwFromNativeButNotThrows",
+        stdlib::throw_native as *const u8,
+    );
 
     native_fct(ctxt, "loadFunction", stdlib::load_function as *const u8);
     native_fct(ctxt, "call0", stdlib::call0 as *const u8);
@@ -191,20 +194,26 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
     intrinsic_method(ctxt, clsid, "getByte", Intrinsic::StrGet);
     native_method(ctxt, clsid, "clone", stdlib::str_clone as *const u8);
-    native_method(ctxt,
-                  clsid,
-                  "fromBytesPartOrNull",
-                  stdlib::str_from_bytes as *const u8);
-    native_method(ctxt,
-                  clsid,
-                  "fromStrPartOrNull",
-                  stdlib::str_from_bytes as *const u8);
+    native_method(
+        ctxt,
+        clsid,
+        "fromBytesPartOrNull",
+        stdlib::str_from_bytes as *const u8,
+    );
+    native_method(
+        ctxt,
+        clsid,
+        "fromStrPartOrNull",
+        stdlib::str_from_bytes as *const u8,
+    );
 
     let clsid = ctxt.vips.float_class;
-    native_method(ctxt,
-                  clsid,
-                  "toString",
-                  stdlib::float_to_string as *const u8);
+    native_method(
+        ctxt,
+        clsid,
+        "toString",
+        stdlib::float_to_string as *const u8,
+    );
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::FloatToInt);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::FloatToLong);
     intrinsic_method(ctxt, clsid, "toDouble", Intrinsic::FloatToDouble);
@@ -224,10 +233,12 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "sqrt", Intrinsic::FloatSqrt);
 
     let clsid = ctxt.vips.double_class;
-    native_method(ctxt,
-                  clsid,
-                  "toString",
-                  stdlib::double_to_string as *const u8);
+    native_method(
+        ctxt,
+        clsid,
+        "toString",
+        stdlib::double_to_string as *const u8,
+    );
     intrinsic_method(ctxt, clsid, "toInt", Intrinsic::DoubleToInt);
     intrinsic_method(ctxt, clsid, "toLong", Intrinsic::DoubleToLong);
     intrinsic_method(ctxt, clsid, "toFloat", Intrinsic::DoubleToFloat);
@@ -252,14 +263,18 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     intrinsic_method(ctxt, clsid, "set", Intrinsic::GenericArraySet);
 
     let clsid = ctxt.vips.exception_class;
-    native_method(ctxt,
-                  clsid,
-                  "retrieveStackTrace",
-                  exception::retrieve_stack_trace as *const u8);
-    native_method(ctxt,
-                  clsid,
-                  "getStackTraceElement",
-                  exception::stack_element as *const u8);
+    native_method(
+        ctxt,
+        clsid,
+        "retrieveStackTrace",
+        exception::retrieve_stack_trace as *const u8,
+    );
+    native_method(
+        ctxt,
+        clsid,
+        "getStackTraceElement",
+        exception::stack_element as *const u8,
+    );
 
     let iname = ctxt.interner.intern("Thread");
     let clsid = ctxt.sym.borrow().get_class(iname);
@@ -269,17 +284,16 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn native_method<'ast>(ctxt: &mut SemContext<'ast>,
-                       clsid: ClassId,
-                       name: &str,
-                       fctptr: *const u8) {
+fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
 }
 
-fn intrinsic_method<'ast>(ctxt: &mut SemContext<'ast>,
-                          clsid: ClassId,
-                          name: &str,
-                          intrinsic: Intrinsic) {
+fn intrinsic_method<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    clsid: ClassId,
+    name: &str,
+    intrinsic: Intrinsic,
+) {
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
@@ -320,19 +334,23 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     }
 }
 
-fn intrinsic_impl<'ast>(ctxt: &mut SemContext<'ast>,
-                        clsid: ClassId,
-                        tid: TraitId,
-                        name: &str,
-                        intrinsic: Intrinsic) {
+fn intrinsic_impl<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    clsid: ClassId,
+    tid: TraitId,
+    name: &str,
+    intrinsic: Intrinsic,
+) {
     internal_impl(ctxt, clsid, tid, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_impl<'ast>(ctxt: &mut SemContext<'ast>,
-                       clsid: ClassId,
-                       tid: TraitId,
-                       name: &str,
-                       kind: FctKind) {
+fn internal_impl<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    clsid: ClassId,
+    tid: TraitId,
+    name: &str,
+    kind: FctKind,
+) {
     let name = ctxt.interner.intern(name);
     let cls = ctxt.classes[clsid].borrow();
 

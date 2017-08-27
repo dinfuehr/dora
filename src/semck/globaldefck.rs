@@ -2,7 +2,7 @@ use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{File, Global};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::error::msg::Msg;
-use ctxt::{SemContext, GlobalId, NodeMap};
+use ctxt::{GlobalId, NodeMap, SemContext};
 use semck;
 use ty::BuiltinType;
 
@@ -54,9 +54,11 @@ mod tests {
 
     #[test]
     fn check_initializer() {
-        err("let a: int = 0;",
+        err(
+            "let a: int = 0;",
             pos(1, 1),
-            Msg::GlobalInitializerNotSupported);
+            Msg::GlobalInitializerNotSupported,
+        );
     }
 
     #[test]

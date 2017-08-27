@@ -1,7 +1,7 @@
 use std::mem;
 
 use baseline;
-use ctxt::{exception_get_and_clear, SemContext, Fct, FctId};
+use ctxt::{exception_get_and_clear, Fct, FctId, SemContext};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
@@ -13,7 +13,7 @@ use exception::DoraToNativeInfo;
 use object::{self, Handle, Testing};
 use os;
 
-use dora_parser::parser::{Parser, NodeIdGenerator};
+use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
@@ -30,25 +30,26 @@ pub fn start() -> i32 {
     let id_generator = NodeIdGenerator::new();
     let mut ast = Ast::new();
 
-    if let Err(code) = parse_file("stdlib/prelude.dora",
-                                  &id_generator,
-                                  &mut ast,
-                                  &mut interner)
-               .and_then(|_| {
-                             parse_file("stdlib/str.dora", &id_generator, &mut ast, &mut interner)
-                         })
-               .and_then(|_| {
-                             parse_file("stdlib/io.dora", &id_generator, &mut ast, &mut interner)
-                         })
-               .and_then(|_| {
-                             parse_file("stdlib/utils.dora", &id_generator, &mut ast, &mut interner)
-                         })
-               .and_then(|_| {
-                             parse_file("stdlib/test.dora", &id_generator, &mut ast, &mut interner)
-                         })
-               .and_then(|_| {
-                             parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
-                         }) {
+    if let Err(code) = parse_file(
+        "stdlib/prelude.dora",
+        &id_generator,
+        &mut ast,
+        &mut interner,
+    ).and_then(|_| {
+        parse_file("stdlib/str.dora", &id_generator, &mut ast, &mut interner)
+    })
+        .and_then(|_| {
+            parse_file("stdlib/io.dora", &id_generator, &mut ast, &mut interner)
+        })
+        .and_then(|_| {
+            parse_file("stdlib/utils.dora", &id_generator, &mut ast, &mut interner)
+        })
+        .and_then(|_| {
+            parse_file("stdlib/test.dora", &id_generator, &mut ast, &mut interner)
+        })
+        .and_then(|_| {
+            parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
+        }) {
         return code;
     }
 
@@ -117,13 +118,19 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
         }
     }
 
-    println!("{} tests executed; {} passed; {} failed.",
-             tests,
-             passed,
-             tests - passed);
+    println!(
+        "{} tests executed; {} passed; {} failed.",
+        tests,
+        passed,
+        tests - passed
+    );
 
     // if all tests passed exit with 0, otherwise 1
-    if tests == passed { 0 } else { 1 }
+    if tests == passed {
+        0
+    } else {
+        1
+    }
 }
 
 fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
@@ -181,17 +188,18 @@ fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     if is_unit {
         0
 
-        // else use return value of main for exit status
+    // else use return value of main for exit status
     } else {
         res
     }
 }
 
-fn parse_file(filename: &str,
-              id_generator: &NodeIdGenerator,
-              ast: &mut Ast,
-              interner: &mut Interner)
-              -> Result<(), i32> {
+fn parse_file(
+    filename: &str,
+    id_generator: &NodeIdGenerator,
+    ast: &mut Ast,
+    interner: &mut Interner,
+) -> Result<(), i32> {
     let reader = if filename == "-" {
         match Reader::from_input() {
             Err(_) => {
@@ -236,12 +244,10 @@ fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
     let fct = ctxt.fcts[fctid].borrow();
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
-       fct.params_without_self().len() > 0 {
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
+    {
         let pos = fct.ast.pos;
-        ctxt.diag
-            .borrow_mut()
-            .report(pos, Msg::WrongMainDefinition);
+        ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
         return None;
     }
 

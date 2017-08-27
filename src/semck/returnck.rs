@@ -1,4 +1,4 @@
-use ctxt::{SemContext, Fct, FctSrc};
+use ctxt::{Fct, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::*;
@@ -52,12 +52,8 @@ impl<'a, 'ast> Visitor<'ast> for ReturnCheck<'a, 'ast> {
 
             // only report error for functions that do not just return ()
             if return_type != BuiltinType::Unit {
-                self.ctxt
-                    .diag
-                    .borrow_mut()
-                    .report(pos, Msg::NoReturnValue);
+                self.ctxt.diag.borrow_mut().report(pos, Msg::NoReturnValue);
             }
-
         } else {
             // otherwise the function is always finished with a return statement
             // save this information for the function, this information is useful
@@ -166,33 +162,55 @@ mod tests {
     #[test]
     fn returns_int() {
         err("fun f() -> int { }", pos(1, 16), Msg::NoReturnValue);
-        err("fun f() -> int { if true { return 1; } }",
+        err(
+            "fun f() -> int { if true { return 1; } }",
             pos(1, 18),
-            Msg::NoReturnValue);
-        err("fun f() -> int { if true { } else { return 1; } }",
+            Msg::NoReturnValue,
+        );
+        err(
+            "fun f() -> int { if true { } else { return 1; } }",
             pos(1, 26),
-            Msg::NoReturnValue);
-        err("fun f() -> int { while true { return 1; } }",
+            Msg::NoReturnValue,
+        );
+        err(
+            "fun f() -> int { while true { return 1; } }",
             pos(1, 18),
-            Msg::NoReturnValue);
+            Msg::NoReturnValue,
+        );
         ok("fun f() -> int { loop { return 1; } }");
-        ok("fun f() -> int { if true { return 1; } else { return 2; } }");
+        ok(
+            "fun f() -> int { if true { return 1; } else { return 2; } }",
+        );
         ok("fun f() -> int { return 1; 1+2; }");
-        ok("fun f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
+        ok(
+            "fun f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }",
+        );
     }
 
     #[test]
     fn do_returns() {
-        ok("fun f() -> int { do { return 1; } catch x: Str { return 2; } }");
-        ok("fun f() -> int { do { } catch x: Str { return 2; } return 1; }");
-        ok("fun f() -> int { do { return 2; } catch x: Str { } return 1; }");
+        ok(
+            "fun f() -> int { do { return 1; } catch x: Str { return 2; } }",
+        );
+        ok(
+            "fun f() -> int { do { } catch x: Str { return 2; } return 1; }",
+        );
+        ok(
+            "fun f() -> int { do { return 2; } catch x: Str { } return 1; }",
+        );
         ok("fun f() -> int { do { } catch x: Str { } return 1; }");
-        ok("fun f() -> int { do { } catch x: Str { } finally { return 1; } }");
-        err("fun f() -> int { do { return 1; } catch x: Str { } }",
+        ok(
+            "fun f() -> int { do { } catch x: Str { } finally { return 1; } }",
+        );
+        err(
+            "fun f() -> int { do { return 1; } catch x: Str { } }",
             pos(1, 48),
-            Msg::NoReturnValue);
-        err("fun f() -> int { do { } catch x: Str { return 1; } }",
+            Msg::NoReturnValue,
+        );
+        err(
+            "fun f() -> int { do { } catch x: Str { return 1; } }",
             pos(1, 21),
-            Msg::NoReturnValue);
+            Msg::NoReturnValue,
+        );
     }
 }

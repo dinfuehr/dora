@@ -16,13 +16,14 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
         for &method_id in &ximpl.methods {
             let method = ctxt.fcts[method_id].borrow();
 
-            if let Some(fid) = xtrait.find_method(ctxt,
-                                                  method.is_static,
-                                                  method.name,
-                                                  Some(cls),
-                                                  method.params_without_self()) {
+            if let Some(fid) = xtrait.find_method(
+                ctxt,
+                method.is_static,
+                method.name,
+                Some(cls),
+                method.params_without_self(),
+            ) {
                 defined.insert(fid);
-
             } else {
                 let args = method
                     .params_without_self()
@@ -76,31 +77,36 @@ mod tests {
 
     #[test]
     fn method_not_in_trait() {
-        err("
+        err(
+            "
             trait Foo {}
             class A
             impl Foo for A {
                 fun bar() {}
             }",
             pos(5, 17),
-            Msg::MethodNotInTrait("Foo".into(), "bar".into(), vec![]));
+            Msg::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+        );
     }
 
     #[test]
     fn method_missing_in_impl() {
-        err("
+        err(
+            "
             trait Foo {
                 fun bar();
             }
             class A
             impl Foo for A {}",
             pos(6, 13),
-            Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]));
+            Msg::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+        );
     }
 
     #[test]
     fn method_returning_self() {
-        ok("trait Foo {
+        ok(
+            "trait Foo {
                 fun foo() -> Self;
             }
 
@@ -108,30 +114,35 @@ mod tests {
 
             impl Foo for A {
                 fun foo() -> A { return A(); }
-            }");
+            }",
+        );
     }
 
     #[test]
     fn static_method_not_in_trait() {
-        err("
+        err(
+            "
             trait Foo {}
             class A
             impl Foo for A {
                 static fun bar() {}
             }",
             pos(5, 24),
-            Msg::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]));
+            Msg::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+        );
     }
 
     #[test]
     fn static_method_missing_in_impl() {
-        err("
+        err(
+            "
             trait Foo {
                 static fun bar();
             }
             class A
             impl Foo for A {}",
             pos(6, 13),
-            Msg::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]));
+            Msg::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+        );
     }
 }

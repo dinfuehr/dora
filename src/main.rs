@@ -9,10 +9,10 @@ extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
 extern crate docopt;
+extern crate dora_parser;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
-extern crate dora_parser;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;

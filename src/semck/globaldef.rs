@@ -13,13 +13,15 @@ use ctxt::*;
 use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>,
-                   map_cls_defs: &mut NodeMap<ClassId>,
-                   map_struct_defs: &mut NodeMap<StructId>,
-                   map_trait_defs: &mut NodeMap<TraitId>,
-                   map_impl_defs: &mut NodeMap<ImplId>,
-                   map_global_defs: &mut NodeMap<GlobalId>,
-                   map_const_defs: &mut NodeMap<ConstId>) {
+pub fn check<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    map_cls_defs: &mut NodeMap<ClassId>,
+    map_struct_defs: &mut NodeMap<StructId>,
+    map_trait_defs: &mut NodeMap<TraitId>,
+    map_impl_defs: &mut NodeMap<ImplId>,
+    map_global_defs: &mut NodeMap<GlobalId>,
+    map_const_defs: &mut NodeMap<ConstId>,
+) {
     let mut gdef = GlobalDef {
         ctxt: ctxt,
         map_cls_defs: map_cls_defs,
@@ -251,42 +253,60 @@ mod tests {
     #[test]
     fn test_struct() {
         ok("struct Foo {}");
-        err("struct Foo {} struct Foo {}",
+        err(
+            "struct Foo {} struct Foo {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()));
-        err("struct Foo {} class Foo {}",
+            Msg::ShadowStruct("Foo".into()),
+        );
+        err(
+            "struct Foo {} class Foo {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()));
-        err("struct Foo {} fun Foo() {}",
+            Msg::ShadowStruct("Foo".into()),
+        );
+        err(
+            "struct Foo {} fun Foo() {}",
             pos(1, 15),
-            Msg::ShadowStruct("Foo".into()));
+            Msg::ShadowStruct("Foo".into()),
+        );
     }
 
     #[test]
     fn test_trait() {
         ok("trait Foo {}");
-        err("trait Foo {} struct Foo {}",
+        err(
+            "trait Foo {} struct Foo {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()));
-        err("trait Foo {} class Foo {}",
+            Msg::ShadowTrait("Foo".into()),
+        );
+        err(
+            "trait Foo {} class Foo {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()));
-        err("trait Foo {} fun Foo() {}",
+            Msg::ShadowTrait("Foo".into()),
+        );
+        err(
+            "trait Foo {} fun Foo() {}",
             pos(1, 14),
-            Msg::ShadowTrait("Foo".into()));
+            Msg::ShadowTrait("Foo".into()),
+        );
     }
 
     #[test]
     fn test_const() {
         ok("const foo: int = 0;");
-        err("const foo: int = 0; fun foo() {}",
+        err(
+            "const foo: int = 0; fun foo() {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()));
-        err("const foo: int = 0; class foo {}",
+            Msg::ShadowConst("foo".into()),
+        );
+        err(
+            "const foo: int = 0; class foo {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()));
-        err("const foo: int = 0; struct foo {}",
+            Msg::ShadowConst("foo".into()),
+        );
+        err(
+            "const foo: int = 0; struct foo {}",
             pos(1, 21),
-            Msg::ShadowConst("foo".into()));
+            Msg::ShadowConst("foo".into()),
+        );
     }
 }

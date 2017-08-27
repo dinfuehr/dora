@@ -16,7 +16,8 @@ impl Timer {
     }
 
     pub fn stop_with<F>(&mut self, f: F) -> u64
-        where F: FnOnce(u64)
+    where
+        F: FnOnce(u64),
     {
         if self.active {
             let ts = timestamp() - self.timestamp;

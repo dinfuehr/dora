@@ -18,10 +18,12 @@ pub fn register_with_perf(jit_fct: &JitFct, ctxt: &SemContext, name: Name) {
     let code_end = jit_fct.ptr_end() as usize;
     let name = ctxt.interner.str(name);
 
-    let line = format!("{:x} {:x} dora::{}\n",
-                       code_start,
-                       code_end - code_start,
-                       name);
+    let line = format!(
+        "{:x} {:x} dora::{}\n",
+        code_start,
+        code_end - code_start,
+        name
+    );
     file.write_all(line.as_bytes()).unwrap();
 }
 

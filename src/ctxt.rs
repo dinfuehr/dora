@@ -65,15 +65,15 @@ pub struct SemContext<'ast> {
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVec<StructData>, // stores all struct definitions
-    pub classes: GrowableVec<Class>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>, // stores all class definitions
-    pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
-    pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
-    pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
-    pub code_map: Mutex<CodeMap>, // stores all compiled functions
+    pub structs: GrowableVec<StructData>,     // stores all struct definitions
+    pub classes: GrowableVec<Class>,          // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
+    pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
+    pub traits: Vec<RefCell<TraitData>>,      // stores all trait definitions
+    pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
-    pub gc: Gc, // garbage collector
+    pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
@@ -141,7 +141,8 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
-        where F: FnOnce() -> R
+    where
+        F: FnOnce() -> R,
     {
         dtn.last = *self.dtn.borrow();
 
@@ -200,10 +201,7 @@ impl<'ast> SemContext<'ast> {
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
-        self.sym
-            .borrow()
-            .get_class(name)
-            .expect("class not found")
+        self.sym.borrow().get_class(name).expect("class not found")
     }
 
     #[cfg(test)]
@@ -305,18 +303,20 @@ pub struct TraitData {
 }
 
 impl TraitData {
-    pub fn find_method(&self,
-                       ctxt: &SemContext,
-                       is_static: bool,
-                       name: Name,
-                       replace: Option<BuiltinType>,
-                       args: &[BuiltinType])
-                       -> Option<FctId> {
+    pub fn find_method(
+        &self,
+        ctxt: &SemContext,
+        is_static: bool,
+        name: Name,
+        replace: Option<BuiltinType>,
+        args: &[BuiltinType],
+    ) -> Option<FctId> {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
             if method.name == name && method.is_static == is_static &&
-               params_match(replace, method.params_without_self(), args) {
+                params_match(replace, method.params_without_self(), args)
+            {
                 return Some(method.id);
             }
         }
@@ -325,10 +325,11 @@ impl TraitData {
     }
 }
 
-fn params_match(replace: Option<BuiltinType>,
-                trait_args: &[BuiltinType],
-                args: &[BuiltinType])
-                -> bool {
+fn params_match(
+    replace: Option<BuiltinType>,
+    trait_args: &[BuiltinType],
+    args: &[BuiltinType],
+) -> bool {
     if trait_args.len() != args.len() {
         return false;
     }
@@ -624,12 +625,11 @@ impl<'ast> Fct<'ast> {
             repr.push_str("<");
 
             repr.push_str(&self.type_params
-                               .iter()
-                               .map(|n| ctxt.interner.str(n.name).to_string())
-                               .collect::<Vec<_>>()
-                               .join(", "));
+                .iter()
+                .map(|n| ctxt.interner.str(n.name).to_string())
+                .collect::<Vec<_>>()
+                .join(", "));
             repr.push_str(">");
-
         }
 
         repr.push_str("(");
@@ -675,9 +675,7 @@ impl<'ast> Fct<'ast> {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) |
-            FctParent::Trait(_) |
-            FctParent::Impl(_) => !self.is_static,
+            FctParent::Class(_) | FctParent::Trait(_) | FctParent::Impl(_) => !self.is_static,
 
             _ => false,
         }
@@ -923,16 +921,20 @@ impl FctSrc {
 
 #[derive(Clone, Debug)]
 pub struct NodeMap<V>
-    where V: Clone
+where
+    V: Clone,
 {
     map: HashMap<ast::NodeId, V>,
 }
 
 impl<V> NodeMap<V>
-    where V: Clone
+where
+    V: Clone,
 {
     pub fn new() -> NodeMap<V> {
-        NodeMap { map: HashMap::new() }
+        NodeMap {
+            map: HashMap::new(),
+        }
     }
 
     pub fn get(&self, id: ast::NodeId) -> Option<&V> {
@@ -1067,7 +1069,6 @@ impl CallType {
 
     pub fn fct_id(&self) -> FctId {
         match *self {
-
             CallType::Fct(fctid, _, _) => fctid,
             CallType::Method(_, fctid) => fctid,
             CallType::CtorNew(_, fctid, _) => fctid,

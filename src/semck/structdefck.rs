@@ -1,6 +1,6 @@
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{SemContext, NodeMap, StructFieldData, StructId};
+use ctxt::{NodeMap, SemContext, StructFieldData, StructId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;
@@ -81,11 +81,15 @@ mod tests {
         ok("struct Foo { a: int, b: int }");
         ok("struct Foo { a: int } struct Bar { a: int }");
         ok("struct Foo { a: int, bar: Bar } struct Bar { a: int }");
-        err("struct Bar { a: Unknown }",
+        err(
+            "struct Bar { a: Unknown }",
             pos(1, 17),
-            Msg::UnknownType("Unknown".into()));
-        err("struct Foo { a: int, a: int }",
+            Msg::UnknownType("Unknown".into()),
+        );
+        err(
+            "struct Foo { a: int, a: int }",
             pos(1, 22),
-            Msg::ShadowField("a".into()));
+            Msg::ShadowField("a".into()),
+        );
     }
 }

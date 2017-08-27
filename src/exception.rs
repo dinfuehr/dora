@@ -2,8 +2,8 @@ use std::ptr;
 
 use baseline::fct::CatchType;
 use baseline::map::CodeData;
-use cpu::{get_exception_object, resume_with_handler, fp_from_execstate};
-use ctxt::{SemContext, FctKind, FctId, get_ctxt};
+use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
+use ctxt::{get_ctxt, FctId, FctKind, SemContext};
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
 use semck::specialize::specialize_class_id;
@@ -22,11 +22,10 @@ impl Stacktrace {
     }
 
     pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
-        self.elems
-            .push(StackElem {
-                      fct_id: fct_id,
-                      lineno: lineno,
-                  });
+        self.elems.push(StackElem {
+            fct_id: fct_id,
+            lineno: lineno,
+        });
     }
 
     pub fn dump(&self, ctxt: &SemContext) {
@@ -172,11 +171,9 @@ pub fn handle_exception(es: &mut ExecState) -> bool {
             HandlerFound::Stop => {
                 return false;
             }
-            HandlerFound::No => {
-                if fp == 0 {
-                    return false;
-                }
-            }
+            HandlerFound::No => if fp == 0 {
+                return false;
+            },
         }
 
         pc = unsafe { *((fp + 8) as *const usize) };
@@ -218,13 +215,13 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                     //          entry.try_start, entry.try_end, entry.catch_type);
 
                     if entry.try_start < pc && pc <= entry.try_end &&
-                       (entry.catch_type == CatchType::Any ||
-                        entry.catch_type == CatchType::Class(clsptr)) {
+                        (entry.catch_type == CatchType::Any ||
+                            entry.catch_type == CatchType::Class(clsptr))
+                    {
                         let stacksize = jit_fct.framesize as usize;
                         resume_with_handler(es, entry, fp, exception, stacksize);
 
                         return HandlerFound::Yes;
-
                     } else if pc > entry.try_end {
                         // exception handlers are sorted, no more possible handlers
                         // in this function
@@ -274,9 +271,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     let mut ste = ctxt.handles.root(ste);
     ste.line = lineno;
 
-    let name = ctxt.fcts[FctId(fct_id as usize)]
-        .borrow()
-        .full_name(ctxt);
+    let name = ctxt.fcts[FctId(fct_id as usize)].borrow().full_name(ctxt);
     ste.name = Str::from_buffer(ctxt, name.as_bytes());
 
     ste.direct()

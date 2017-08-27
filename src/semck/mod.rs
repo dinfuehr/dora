@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use ctxt::{SemContext, NodeMap};
+use ctxt::{NodeMap, SemContext};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
 use dora_parser::error::msg::Msg;
 use mem;
-use sym::Sym::{SymClass, SymStruct, SymTrait, SymClassTypeParam, SymFctTypeParam};
+use sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 mod abstractck;
@@ -42,13 +42,15 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
     // add user defined fcts and classes to ctxt
     // this check does not look into fct or class bodies
-    globaldef::check(ctxt,
-                     &mut map_cls_defs,
-                     &mut map_struct_defs,
-                     &mut map_trait_defs,
-                     &mut map_impl_defs,
-                     &mut map_global_defs,
-                     &mut map_const_defs);
+    globaldef::check(
+        ctxt,
+        &mut map_cls_defs,
+        &mut map_struct_defs,
+        &mut map_trait_defs,
+        &mut map_impl_defs,
+        &mut map_global_defs,
+        &mut map_const_defs,
+    );
     return_on_error!(ctxt);
 
     // define internal classes
@@ -122,9 +124,7 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag
-                .borrow_mut()
-                .report(fct.pos, Msg::MissingFctBody);
+            ctxt.diag.borrow_mut().report(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -185,127 +185,123 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
             return Some(BuiltinType::This);
         }
 
-        TypeBasic(ref basic) => {
-            if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
-                match sym {
-                    SymClass(cls_id) => {
-                        let ty = if basic.params.len() > 0 {
-                            let mut type_params = Vec::new();
+        TypeBasic(ref basic) => if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
+            match sym {
+                SymClass(cls_id) => {
+                    let ty = if basic.params.len() > 0 {
+                        let mut type_params = Vec::new();
 
-                            for param in &basic.params {
-                                let param = read_type(ctxt, param);
+                        for param in &basic.params {
+                            let param = read_type(ctxt, param);
 
-                                if let Some(param) = param {
-                                    type_params.push(param);
-                                } else {
-                                    return None;
-                                }
-                            }
-
-                            let cls = ctxt.classes[cls_id].borrow();
-
-                            if cls.type_params.len() != type_params.len() {
-                                let msg = Msg::WrongNumberTypeParams(cls.type_params.len(),
-                                                                     type_params.len());
-                                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            if let Some(param) = param {
+                                type_params.push(param);
+                            } else {
                                 return None;
                             }
+                        }
 
-                            for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
-                                if let Some(cls_id) = tp.class_bound {
-                                    let cls = BuiltinType::Class(cls_id);
+                        let cls = ctxt.classes[cls_id].borrow();
 
-                                    if !ty.subclass_from(ctxt, cls) {
-                                        let name = ty.name(ctxt);
-                                        let cls = cls.name(ctxt);
+                        if cls.type_params.len() != type_params.len() {
+                            let msg = Msg::WrongNumberTypeParams(
+                                cls.type_params.len(),
+                                type_params.len(),
+                            );
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            return None;
+                        }
 
-                                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                                        ctxt.diag.borrow_mut().report(basic.pos, msg);
-                                    }
-                                }
+                        for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
+                            if let Some(cls_id) = tp.class_bound {
+                                let cls = BuiltinType::Class(cls_id);
 
-                                let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
-                                    cls_id
-                                } else {
-                                    continue;
-                                };
+                                if !ty.subclass_from(ctxt, cls) {
+                                    let name = ty.name(ctxt);
+                                    let cls = cls.name(ctxt);
 
-                                let cls = ctxt.classes[cls_id].borrow();
-
-                                for &trait_bound in &tp.trait_bounds {
-                                    if !cls.traits.contains(&trait_bound) {
-                                        let bound = ctxt.traits[trait_bound].borrow();
-                                        let name = ty.name(ctxt);
-                                        let trait_name = ctxt.interner.str(bound.name).to_string();
-                                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                        ctxt.diag.borrow_mut().report(bound.pos, msg);
-                                    }
+                                    let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                                    ctxt.diag.borrow_mut().report(basic.pos, msg);
                                 }
                             }
 
-                            let type_id = ctxt.types
-                                .borrow_mut()
-                                .insert(cls.id, Rc::new(type_params));
-                            BuiltinType::Generic(type_id)
+                            let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
+                                cls_id
+                            } else {
+                                continue;
+                            };
 
-                        } else {
                             let cls = ctxt.classes[cls_id].borrow();
 
-                            cls.ty
-                        };
-
-                        return Some(ty);
-                    }
-
-                    SymTrait(trait_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            for &trait_bound in &tp.trait_bounds {
+                                if !cls.traits.contains(&trait_bound) {
+                                    let bound = ctxt.traits[trait_bound].borrow();
+                                    let name = ty.name(ctxt);
+                                    let trait_name = ctxt.interner.str(bound.name).to_string();
+                                    let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                                    ctxt.diag.borrow_mut().report(bound.pos, msg);
+                                }
+                            }
                         }
 
-                        return Some(BuiltinType::Trait(trait_id));
-                    }
+                        let type_id = ctxt.types.borrow_mut().insert(cls.id, Rc::new(type_params));
+                        BuiltinType::Generic(type_id)
+                    } else {
+                        let cls = ctxt.classes[cls_id].borrow();
 
-                    SymStruct(struct_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
-                        }
+                        cls.ty
+                    };
 
-                        return Some(BuiltinType::Struct(struct_id));
-                    }
-
-                    SymClassTypeParam(cls_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
-                        }
-
-                        return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
-                    }
-
-                    SymFctTypeParam(fct_id, type_param_id) => {
-                        if basic.params.len() > 0 {
-                            let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
-                        }
-
-                        return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
-                    }
-
-                    _ => {
-                        let name = ctxt.interner.str(basic.name).to_string();
-                        let msg = Msg::ExpectedType(name);
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
-                    }
+                    return Some(ty);
                 }
 
-            } else {
-                let name = ctxt.interner.str(basic.name).to_string();
-                let msg = Msg::UnknownType(name);
-                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                SymTrait(trait_id) => {
+                    if basic.params.len() > 0 {
+                        let msg = Msg::NoTypeParamsExpected;
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
+
+                    return Some(BuiltinType::Trait(trait_id));
+                }
+
+                SymStruct(struct_id) => {
+                    if basic.params.len() > 0 {
+                        let msg = Msg::NoTypeParamsExpected;
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
+
+                    return Some(BuiltinType::Struct(struct_id));
+                }
+
+                SymClassTypeParam(cls_id, type_param_id) => {
+                    if basic.params.len() > 0 {
+                        let msg = Msg::NoTypeParamsExpected;
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
+
+                    return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
+                }
+
+                SymFctTypeParam(fct_id, type_param_id) => {
+                    if basic.params.len() > 0 {
+                        let msg = Msg::NoTypeParamsExpected;
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
+
+                    return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
+                }
+
+                _ => {
+                    let name = ctxt.interner.str(basic.name).to_string();
+                    let msg = Msg::ExpectedType(name);
+                    ctxt.diag.borrow_mut().report(basic.pos, msg);
+                }
             }
-        }
+        } else {
+            let name = ctxt.interner.str(basic.name).to_string();
+            let msg = Msg::UnknownType(name);
+            ctxt.diag.borrow_mut().report(basic.pos, msg);
+        },
 
         TypeTuple(ref tuple) if tuple.subtypes.len() == 0 => {
             return Some(BuiltinType::Unit);
@@ -370,7 +366,8 @@ mod tests {
     }
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
-        where F: FnOnce(&SemContext) -> R
+    where
+        F: FnOnce(&SemContext) -> R,
     {
         test::parse_with_errors(code, |ctxt| {
             let diag = ctxt.diag.borrow();

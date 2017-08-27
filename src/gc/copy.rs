@@ -31,11 +31,11 @@ impl Spaces {
 
 impl CopyCollector {
     pub fn new(args: &Args) -> CopyCollector {
-        let heap_size = args.flag_heap_size
-            .map(|s| *s)
-            .unwrap_or(32 * 1024 * 1024) / 2;
+        let heap_size = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024) / 2;
 
-        CopyCollector { spaces: Mutex::new(Spaces::new(heap_size)) }
+        CopyCollector {
+            spaces: Mutex::new(Spaces::new(heap_size)),
+        }
     }
 }
 
@@ -109,7 +109,6 @@ impl SemiSpace {
             self.next = next;
 
             addr
-
         } else {
             ptr::null()
         }
@@ -136,10 +135,12 @@ impl Drop for SemiSpace {
     }
 }
 
-pub fn minor_collect(ctxt: &SemContext,
-                     from_space: &mut SemiSpace,
-                     to_space: &mut SemiSpace,
-                     rootset: Vec<IndirectObj>) {
+pub fn minor_collect(
+    ctxt: &SemContext,
+    from_space: &mut SemiSpace,
+    to_space: &mut SemiSpace,
+    rootset: Vec<IndirectObj>,
+) {
     let mut timer = Timer::new(ctxt.args.flag_gc_events);
     swap(from_space, to_space);
 
@@ -158,12 +159,12 @@ pub fn minor_collect(ctxt: &SemContext,
         let object = unsafe { &mut *(to_space.scan as *mut Obj) };
 
         object.visit_reference_fields(|child| {
-                                          let child_ptr = child.get();
+            let child_ptr = child.get();
 
-                                          if from_space.includes(child_ptr as *const u8) {
-                                              child.set(copy(child_ptr, to_space));
-                                          }
-                                      });
+            if from_space.includes(child_ptr as *const u8) {
+                child.set(copy(child_ptr, to_space));
+            }
+        });
 
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
     }
@@ -177,12 +178,12 @@ pub fn minor_collect(ctxt: &SemContext,
     }
 
     timer.stop_with(|dur| {
-                        // self.collect_duration += dur;
+        // self.collect_duration += dur;
 
-                        if ctxt.args.flag_gc_events {
-                            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
-                        }
-                    });
+        if ctxt.args.flag_gc_events {
+            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
+        }
+    });
 }
 
 pub fn copy(obj: *mut Obj, to_space: &mut SemiSpace) -> *mut Obj {
@@ -191,7 +192,6 @@ pub fn copy(obj: *mut Obj, to_space: &mut SemiSpace) -> *mut Obj {
 
     if is_forwarding_address(addr) {
         unmark_forwarding_address(addr) as *mut Obj
-
     } else {
         let addr = to_space.next;
         let obj_size = obj.size();

@@ -18,8 +18,8 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
-use cpu::{FREG_PARAMS, FREG_RESULT, Mem, REG_PARAMS, REG_RESULT};
-use ctxt::{SemContext, Fct, FctId, FctParent, FctSrc, VarId};
+use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
+use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
@@ -28,11 +28,12 @@ use os::signal::Trap;
 use semck::always_returns;
 use ty::{BuiltinType, MachineMode};
 
-pub fn generate<'ast>(ctxt: &SemContext<'ast>,
-                      id: FctId,
-                      cls_type_params: &[BuiltinType],
-                      fct_type_params: &[BuiltinType])
-                      -> *const u8 {
+pub fn generate<'ast>(
+    ctxt: &SemContext<'ast>,
+    id: FctId,
+    cls_type_params: &[BuiltinType],
+    fct_type_params: &[BuiltinType],
+) -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.borrow_mut();
@@ -40,12 +41,13 @@ pub fn generate<'ast>(ctxt: &SemContext<'ast>,
     generate_fct(ctxt, &fct, &mut src, cls_type_params, fct_type_params)
 }
 
-pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>,
-                          fct: &Fct<'ast>,
-                          src: &mut FctSrc,
-                          cls_type_params: &[BuiltinType],
-                          fct_type_params: &[BuiltinType])
-                          -> *const u8 {
+pub fn generate_fct<'ast>(
+    ctxt: &SemContext<'ast>,
+    fct: &Fct<'ast>,
+    src: &mut FctSrc,
+    cls_type_params: &[BuiltinType],
+    fct_type_params: &[BuiltinType],
+) -> *const u8 {
     {
         let src_jit_fct = src.jit_fct.read().unwrap();
 
@@ -57,40 +59,43 @@ pub fn generate_fct<'ast>(ctxt: &SemContext<'ast>,
     let ast = fct.ast;
 
     let mut jit_info = JitInfo::new();
-    info::generate(ctxt,
-                   fct,
-                   src,
-                   &mut jit_info,
-                   cls_type_params,
-                   fct_type_params);
+    info::generate(
+        ctxt,
+        fct,
+        src,
+        &mut jit_info,
+        cls_type_params,
+        fct_type_params,
+    );
     let jit_fct = CodeGen {
-            ctxt: ctxt,
-            fct: &fct,
-            ast: ast,
-            masm: MacroAssembler::new(),
-            scopes: Scopes::new(),
-            src: src,
-            jit_info: jit_info,
+        ctxt: ctxt,
+        fct: &fct,
+        ast: ast,
+        masm: MacroAssembler::new(),
+        scopes: Scopes::new(),
+        src: src,
+        jit_info: jit_info,
 
-            lbl_break: None,
-            lbl_continue: None,
+        lbl_break: None,
+        lbl_continue: None,
 
-            active_finallys: Vec::new(),
-            active_upper: None,
-            active_loop: None,
-            lbl_return: None,
+        active_finallys: Vec::new(),
+        active_upper: None,
+        active_loop: None,
+        lbl_return: None,
 
-            cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params,
-        }
-        .generate();
+        cls_type_params: cls_type_params,
+        fct_type_params: fct_type_params,
+    }.generate();
 
     if should_emit_asm(ctxt, &*fct) {
-        dump_asm(ctxt,
-                 &*fct,
-                 &jit_fct,
-                 Some(&src),
-                 ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att));
+        dump_asm(
+            ctxt,
+            &*fct,
+            &jit_fct,
+            Some(&src),
+            ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+        );
     }
 
     let fct_ptr = jit_fct.fct_ptr();
@@ -120,11 +125,13 @@ fn get_engine() -> Result<Engine, Error> {
     Engine::new(Arch::Arm64, MODE_ARM)
 }
 
-pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
-                      fct: &Fct<'ast>,
-                      jit_fct: &JitFct,
-                      fct_src: Option<&FctSrc>,
-                      asm_syntax: AsmSyntax) {
+pub fn dump_asm<'ast>(
+    ctxt: &SemContext<'ast>,
+    fct: &Fct<'ast>,
+    jit_fct: &JitFct,
+    fct_src: Option<&FctSrc>,
+    asm_syntax: AsmSyntax,
+) {
     use capstone::*;
 
     let buf: &[u8] = unsafe { slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
@@ -211,12 +218,13 @@ pub fn dump_asm<'ast>(ctxt: &SemContext<'ast>,
             }
         }
 
-        writeln!(&mut w,
-                 "  {:#06x}: {}\t\t{}",
-                 instr.addr,
-                 instr.mnemonic,
-                 instr.op_str)
-                .unwrap();
+        writeln!(
+            &mut w,
+            "  {:#06x}: {}\t\t{}",
+            instr.addr,
+            instr.mnemonic,
+            instr.op_str
+        ).unwrap();
     }
 
     writeln!(&mut w).unwrap();
@@ -261,7 +269,8 @@ pub struct CodeGen<'a, 'ast: 'a> {
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
-    where 'ast: 'a
+where
+    'ast: 'a,
 {
     pub fn generate(mut self) -> JitFct {
         if should_emit_debug(self.ctxt, self.fct) {
@@ -336,7 +345,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
-
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
@@ -344,7 +352,6 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
-
             } else {
                 // ignore params not stored in register
             }
@@ -464,8 +471,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_safepoint(&mut self) {
         self.masm.emit_comment(Comment::ReadPollingPage);
-        self.masm
-            .check_polling_page(self.ctxt.polling_page.addr());
+        self.masm.check_polling_page(self.ctxt.polling_page.addr());
 
         let temps = TempOffsets::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
@@ -473,7 +479,8 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
-        where F: FnOnce(&mut CodeGen<'a, 'ast>)
+    where
+        F: FnOnce(&mut CodeGen<'a, 'ast>),
     {
         let old_lbl_break = self.lbl_break;
         let old_lbl_continue = self.lbl_continue;
@@ -599,8 +606,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         self.emit_expr(&s.expr);
-        self.masm
-            .test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
+        self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
         self.masm.trap(Trap::THROW);
     }
@@ -620,20 +626,22 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
                 .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.masm
-                    .emit_exception_handler(catch_span,
-                                            finally_start,
-                                            Some(offset),
-                                            CatchType::Any);
+                self.masm.emit_exception_handler(
+                    catch_span,
+                    finally_start,
+                    Some(offset),
+                    CatchType::Any,
+                );
             }
         }
     }
 
-    fn emit_do_catch_blocks(&mut self,
-                            s: &'ast StmtDoType,
-                            try_span: (usize, usize),
-                            lbl_after: Label)
-                            -> Vec<(usize, usize)> {
+    fn emit_do_catch_blocks(
+        &mut self,
+        s: &'ast StmtDoType,
+        try_span: (usize, usize),
+        lbl_after: Label,
+    ) -> Vec<(usize, usize)> {
         let mut ret = Vec::new();
 
         for catch in &s.catch_blocks {
@@ -659,11 +667,12 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         ret
     }
 
-    fn stmt_with_finally(&mut self,
-                         s: &'ast StmtDoType,
-                         stmt: &'ast Stmt,
-                         lbl_after: Label)
-                         -> (usize, usize) {
+    fn stmt_with_finally(
+        &mut self,
+        s: &'ast StmtDoType,
+        stmt: &'ast Stmt,
+        lbl_after: Label,
+    ) -> (usize, usize) {
         if s.finally_block.is_some() {
             let finally = &*s.finally_block.as_ref().unwrap().block;
             self.active_finallys.push(finally);
@@ -725,15 +734,17 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             REG_RESULT.into()
         };
 
-        let expr_gen = ExprGen::new(self.ctxt,
-                                    self.fct,
-                                    self.src,
-                                    self.ast,
-                                    &mut self.masm,
-                                    &mut self.scopes,
-                                    &self.jit_info,
-                                    self.cls_type_params,
-                                    self.fct_type_params);
+        let expr_gen = ExprGen::new(
+            self.ctxt,
+            self.fct,
+            self.src,
+            self.ast,
+            &mut self.masm,
+            &mut self.scopes,
+            &self.jit_info,
+            self.cls_type_params,
+            self.fct_type_params,
+        );
 
         expr_gen.generate(e, dest);
 
@@ -755,10 +766,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
             BuiltinType::Generic(type_id) => {
                 let ty = self.ctxt.types.borrow().get(type_id);
 
-                let params: Vec<_> = ty.params
-                    .iter()
-                    .map(|&t| self.specialize_type(t))
-                    .collect();
+                let params: Vec<_> = ty.params.iter().map(|&t| self.specialize_type(t)).collect();
 
                 let type_id = self.ctxt
                     .types
@@ -841,7 +849,9 @@ pub struct Scopes {
 
 impl Scopes {
     pub fn new() -> Scopes {
-        Scopes { scopes: vec![Scope::new()] }
+        Scopes {
+            scopes: vec![Scope::new()],
+        }
     }
 
     pub fn push_scope(&mut self) {
@@ -884,7 +894,9 @@ pub struct TempOffsets {
 
 impl TempOffsets {
     pub fn new() -> TempOffsets {
-        TempOffsets { offsets: HashSet::new() }
+        TempOffsets {
+            offsets: HashSet::new(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {

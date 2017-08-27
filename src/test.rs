@@ -8,7 +8,8 @@ use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
-    where F: FnOnce(&SemContext) -> T
+where
+    F: FnOnce(&SemContext) -> T,
 {
     parse_with_errors(code, |ctxt| {
         if ctxt.diag.borrow().has_errors() {
@@ -22,7 +23,8 @@ pub fn parse<F, T>(code: &'static str, f: F) -> T
 }
 
 pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
-    where F: FnOnce(&SemContext) -> T
+where
+    F: FnOnce(&SemContext) -> T,
 {
     os::mem::init_page_size();
 

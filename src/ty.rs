@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use class::{ClassId, TypeArgs, TypeParamId};
-use ctxt::{SemContext, FctId, StructId, TraitId};
+use ctxt::{FctId, SemContext, StructId, TraitId};
 use mem;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -75,8 +75,7 @@ impl BuiltinType {
 
     pub fn is_float(&self) -> bool {
         match self {
-            &BuiltinType::Float |
-            &BuiltinType::Double => true,
+            &BuiltinType::Float | &BuiltinType::Double => true,
             _ => false,
         }
     }
@@ -140,8 +139,13 @@ impl BuiltinType {
 
     pub fn value_type(&self) -> bool {
         match *self {
-            BuiltinType::Unit | BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int |
-            BuiltinType::Long | BuiltinType::Float | BuiltinType::Double => true,
+            BuiltinType::Unit |
+            BuiltinType::Bool |
+            BuiltinType::Byte |
+            BuiltinType::Int |
+            BuiltinType::Long |
+            BuiltinType::Float |
+            BuiltinType::Double => true,
             _ => false,
         }
     }
@@ -261,7 +265,11 @@ impl BuiltinType {
     }
 
     pub fn if_nil(&self, other: BuiltinType) -> BuiltinType {
-        if self.is_nil() { other } else { *self }
+        if self.is_nil() {
+            other
+        } else {
+            *self
+        }
     }
 
     pub fn size(&self, ctxt: &SemContext) -> i32 {
@@ -276,13 +284,12 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Class(_) |
-            BuiltinType::Lambda(_) |
-            BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_, _) |
-            BuiltinType::FctTypeParam(_, _) => panic!("no size for type variable."),
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+                panic!("no size for type variable.")
+            }
             BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
@@ -299,13 +306,12 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Class(_) |
-            BuiltinType::Lambda(_) |
-            BuiltinType::Ptr => mem::ptr_width(),
+            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => mem::ptr_width(),
             BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
             BuiltinType::Trait(_) => mem::ptr_width(),
-            BuiltinType::ClassTypeParam(_, _) |
-            BuiltinType::FctTypeParam(_, _) => panic!("no alignment for type variable."),
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+                panic!("no alignment for type variable.")
+            }
             BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
@@ -322,13 +328,12 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Class(_) |
-            BuiltinType::Lambda(_) |
-            BuiltinType::Ptr => MachineMode::Ptr,
+            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => MachineMode::Ptr,
             BuiltinType::Struct(_) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
-            BuiltinType::ClassTypeParam(_, _) |
-            BuiltinType::FctTypeParam(_, _) => panic!("no machine mode for type variable."),
+            BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
+                panic!("no machine mode for type variable.")
+            }
             BuiltinType::Generic(_) => MachineMode::Ptr,
         }
     }
@@ -358,8 +363,7 @@ impl MachineMode {
 
     pub fn is_float(self) -> bool {
         match self {
-            MachineMode::Float32 |
-            MachineMode::Float64 => true,
+            MachineMode::Float32 | MachineMode::Float64 => true,
             _ => false,
         }
     }

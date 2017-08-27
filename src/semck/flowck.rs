@@ -1,4 +1,4 @@
-use ctxt::{SemContext, Fct, FctSrc};
+use ctxt::{Fct, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::ast::*;
@@ -86,12 +86,16 @@ mod tests {
         ok("fun a() { loop { if true { break; } } }");
         err("fun a() { break; }", pos(1, 11), Msg::OutsideLoop);
         err("fun a() { loop { } break; }", pos(1, 20), Msg::OutsideLoop);
-        err("fun a() { while true { } break; }",
+        err(
+            "fun a() { while true { } break; }",
             pos(1, 26),
-            Msg::OutsideLoop);
-        err("fun a() { if true { } break; }",
+            Msg::OutsideLoop,
+        );
+        err(
+            "fun a() { if true { } break; }",
             pos(1, 23),
-            Msg::OutsideLoop);
+            Msg::OutsideLoop,
+        );
     }
 
     #[test]
@@ -101,14 +105,20 @@ mod tests {
         ok("fun a() { loop { continue; } }");
         ok("fun a() { loop { if true { continue; } } }");
         err("fun a() { continue; }", pos(1, 11), Msg::OutsideLoop);
-        err("fun a() { loop { } continue; }",
+        err(
+            "fun a() { loop { } continue; }",
             pos(1, 20),
-            Msg::OutsideLoop);
-        err("fun a() { while true { } continue; }",
+            Msg::OutsideLoop,
+        );
+        err(
+            "fun a() { while true { } continue; }",
             pos(1, 26),
-            Msg::OutsideLoop);
-        err("fun a() { if true { } continue; }",
+            Msg::OutsideLoop,
+        );
+        err(
+            "fun a() { if true { } continue; }",
             pos(1, 23),
-            Msg::OutsideLoop);
+            Msg::OutsideLoop,
+        );
     }
 }

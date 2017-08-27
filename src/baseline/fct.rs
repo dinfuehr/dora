@@ -4,7 +4,7 @@ use std::ptr;
 
 use class::{ClassDef, ClassDefId, FieldId, TypeArgs};
 use cpu::flush_icache;
-use ctxt::{SemContext, FctId, FctSrc, GlobalId, VarId};
+use ctxt::{FctId, FctSrc, GlobalId, SemContext, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 
@@ -37,17 +37,18 @@ pub struct JitFct {
 }
 
 impl JitFct {
-    pub fn from_buffer(ctxt: &SemContext,
-                       dseg: &DSeg,
-                       buffer: &[u8],
-                       bailouts: Bailouts,
-                       nil_checks: HashSet<i32>,
-                       gcpoints: GcPoints,
-                       framesize: i32,
-                       comments: Comments,
-                       linenos: LineNumberTable,
-                       mut exception_handlers: Vec<ExHandler>)
-                       -> JitFct {
+    pub fn from_buffer(
+        ctxt: &SemContext,
+        dseg: &DSeg,
+        buffer: &[u8],
+        bailouts: Bailouts,
+        nil_checks: HashSet<i32>,
+        gcpoints: GcPoints,
+        framesize: i32,
+        comments: Comments,
+        linenos: LineNumberTable,
+        mut exception_handlers: Vec<ExHandler>,
+    ) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
         let ptr = ctxt.gc.alloc_code(size);
 
@@ -124,10 +125,12 @@ impl JitFct {
 
 impl fmt::Debug for JitFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "JitFct {{ start: {:?}, end: {:?} }}",
-               self.ptr_start(),
-               self.ptr_end())
+        write!(
+            f,
+            "JitFct {{ start: {:?}, end: {:?} }}",
+            self.ptr_start(),
+            self.ptr_end()
+        )
     }
 }
 
@@ -138,7 +141,9 @@ pub struct GcPoints {
 
 impl GcPoints {
     pub fn new() -> GcPoints {
-        GcPoints { points: HashMap::new() }
+        GcPoints {
+            points: HashMap::new(),
+        }
     }
 
     pub fn get(&self, offset: i32) -> Option<&GcPoint> {
@@ -157,7 +162,9 @@ pub struct GcPoint {
 
 impl GcPoint {
     pub fn new() -> GcPoint {
-        GcPoint { offsets: Vec::new() }
+        GcPoint {
+            offsets: Vec::new(),
+        }
     }
 
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
@@ -171,7 +178,9 @@ pub struct Comments {
 
 impl Comments {
     pub fn new() -> Comments {
-        Comments { comments: HashMap::new() }
+        Comments {
+            comments: HashMap::new(),
+        }
     }
 
     pub fn get(&self, pos: i32) -> Option<&[Comment]> {
@@ -179,10 +188,7 @@ impl Comments {
     }
 
     pub fn insert(&mut self, pos: i32, comment: Comment) {
-        self.comments
-            .entry(pos)
-            .or_insert(Vec::new())
-            .push(comment);
+        self.comments.entry(pos).or_insert(Vec::new()).push(comment);
     }
 }
 
@@ -332,7 +338,9 @@ pub struct LineNumberTable {
 
 impl LineNumberTable {
     pub fn new() -> LineNumberTable {
-        LineNumberTable { map: HashMap::new() }
+        LineNumberTable {
+            map: HashMap::new(),
+        }
     }
 
     pub fn insert(&mut self, offset: i32, lineno: i32) {
@@ -370,7 +378,9 @@ pub struct Bailouts {
 
 impl Bailouts {
     pub fn new() -> Bailouts {
-        Bailouts { map: HashMap::new() }
+        Bailouts {
+            map: HashMap::new(),
+        }
     }
 
     pub fn insert(&mut self, offset: i32, info: BailoutInfo) {

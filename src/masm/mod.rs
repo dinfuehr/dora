@@ -4,8 +4,8 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use baseline::expr::ExprStore;
-use baseline::fct::{Bailouts, BailoutInfo, CatchType, Comments, Comment, ExHandler, JitFct,
-                    LineNumberTable, GcPoints, GcPoint};
+use baseline::fct::{BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint,
+                    GcPoints, JitFct, LineNumberTable};
 use baseline::codegen::CondCode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
@@ -66,16 +66,18 @@ impl MacroAssembler {
         self.dseg.align(16);
         self.finish();
 
-        JitFct::from_buffer(ctxt,
-                            &self.dseg,
-                            &self.data,
-                            self.bailout_infos,
-                            self.nil_checks,
-                            self.gcpoints,
-                            stacksize,
-                            self.comments,
-                            self.linenos,
-                            self.exception_handlers)
+        JitFct::from_buffer(
+            ctxt,
+            &self.dseg,
+            &self.data,
+            self.bailout_infos,
+            self.nil_checks,
+            self.gcpoints,
+            stacksize,
+            self.comments,
+            self.linenos,
+            self.exception_handlers,
+        )
     }
 
     #[cfg(test)]
@@ -190,19 +192,20 @@ impl MacroAssembler {
         self.trap(trap);
     }
 
-    pub fn emit_exception_handler(&mut self,
-                                  span: (usize, usize),
-                                  catch: usize,
-                                  offset: Option<i32>,
-                                  catch_type: CatchType) {
-        self.exception_handlers
-            .push(ExHandler {
-                      try_start: span.0,
-                      try_end: span.1,
-                      catch: catch,
-                      offset: offset,
-                      catch_type: catch_type,
-                  });
+    pub fn emit_exception_handler(
+        &mut self,
+        span: (usize, usize),
+        catch: usize,
+        offset: Option<i32>,
+        catch_type: CatchType,
+    ) {
+        self.exception_handlers.push(ExHandler {
+            try_start: span.0,
+            try_end: span.1,
+            catch: catch,
+            offset: offset,
+            catch_type: catch_type,
+        });
     }
 
     pub fn get_scratch(&self) -> ScratchReg {
@@ -281,10 +284,10 @@ impl ScratchRegisters {
                 self.value.set(value | bitmask);
 
                 return ScratchReg {
-                           ind: ind as u32,
-                           reg: reg,
-                           scratch: self.clone(),
-                       };
+                    ind: ind as u32,
+                    reg: reg,
+                    scratch: self.clone(),
+                };
             }
         }
 

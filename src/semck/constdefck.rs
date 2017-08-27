@@ -1,6 +1,6 @@
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
-use ctxt::{ConstId, SemContext, NodeMap};
+use ctxt::{ConstId, NodeMap, SemContext};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;
@@ -51,9 +51,11 @@ mod tests {
 
     #[test]
     fn const_unknown_type() {
-        err("const x: Foo = 0;",
+        err(
+            "const x: Foo = 0;",
             pos(1, 10),
-            Msg::UnknownType("Foo".into()));
+            Msg::UnknownType("Foo".into()),
+        );
 
         ok("const x: int = 0;");
     }

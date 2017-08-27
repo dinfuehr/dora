@@ -37,16 +37,17 @@ pub fn sub_extreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, extend: Extend, amount: u3
     cls_addsub_extreg(sf, 1, 0, 0, rm, extend, amount, rn, rd)
 }
 
-fn cls_addsub_extreg(sf: u32,
-                     op: u32,
-                     s: u32,
-                     opt: u32,
-                     rm: Reg,
-                     option: Extend,
-                     imm3: u32,
-                     rn: Reg,
-                     rd: Reg)
-                     -> u32 {
+fn cls_addsub_extreg(
+    sf: u32,
+    op: u32,
+    s: u32,
+    opt: u32,
+    rm: Reg,
+    option: Extend,
+    imm3: u32,
+    rn: Reg,
+    rd: Reg,
+) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(op));
     assert!(fits_bit(s));
@@ -56,8 +57,8 @@ fn cls_addsub_extreg(sf: u32,
     assert!(rn.is_gpr_or_sp());
     assert!(rd.is_gpr_or_sp());
 
-    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 | 1u32 << 21 |
-    rm.asm() << 16 | option.u32() << 13 | imm3 << 10 | rn.asm() << 5 | rd.asm()
+    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 | 1u32 << 21 | rm.asm() << 16 |
+        option.u32() << 13 | imm3 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn stp_pre(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
@@ -78,8 +79,8 @@ fn cls_ldst_pair_pre(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt:
 
     let imm7 = (imm7 as u32) & 0x7F;
 
-    opc << 30 | 0b101u32 << 27 | v << 26 | 0b011u32 << 23 | l << 22 | imm7 << 15 |
-    rt2.asm() << 10 | rn.asm() << 5 | rt.asm()
+    opc << 30 | 0b101u32 << 27 | v << 26 | 0b011u32 << 23 | l << 22 | imm7 << 15 | rt2.asm() << 10 |
+        rn.asm() << 5 | rt.asm()
 }
 
 pub fn ldp_post(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
@@ -100,8 +101,8 @@ fn cls_ldst_pair_post(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt
 
     let imm7 = (imm7 as u32) & 0x7F;
 
-    opc << 30 | 0b101u32 << 27 | v << 26 | 0b001u32 << 23 | l << 22 | imm7 << 15 |
-    rt2.asm() << 10 | rn.asm() << 5 | rt.asm()
+    opc << 30 | 0b101u32 << 27 | v << 26 | 0b001u32 << 23 | l << 22 | imm7 << 15 | rt2.asm() << 10 |
+        rn.asm() << 5 | rt.asm()
 }
 
 pub fn b_imm(imm26: i32) -> u32 {
@@ -176,7 +177,7 @@ fn cls_addsub_imm(sf: u32, op: u32, s: u32, shift: u32, imm12: u32, rn: Reg, rd:
     }
 
     (0b10001 as u32) << 24 | sf << 31 | op << 30 | s << 29 | shift << 22 | imm12 << 10 |
-    rn.asm() << 5 | rd.asm()
+        rn.asm() << 5 | rd.asm()
 }
 
 pub fn add_reg(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
@@ -219,15 +220,16 @@ pub fn cmp_shreg(sf: u32, rn: Reg, rm: Reg, shift: Shift, amount: u32) -> u32 {
     cls_addsub_shreg(sf, 1, 1, shift, rm, amount, rn, REG_ZERO)
 }
 
-fn cls_addsub_shreg(sf: u32,
-                    op: u32,
-                    s: u32,
-                    shift: Shift,
-                    rm: Reg,
-                    imm6: u32,
-                    rn: Reg,
-                    rd: Reg)
-                    -> u32 {
+fn cls_addsub_shreg(
+    sf: u32,
+    op: u32,
+    s: u32,
+    shift: Shift,
+    rm: Reg,
+    imm6: u32,
+    rn: Reg,
+    rd: Reg,
+) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_bit(op));
     assert!(fits_bit(s));
@@ -238,7 +240,7 @@ fn cls_addsub_shreg(sf: u32,
     assert!(rd.is_gpr_or_zero());
 
     0b01011u32 << 24 | sf << 31 | op << 30 | s << 29 | shift.u32() << 22 | rm.asm() << 16 |
-    imm6 << 10 | rn.asm() << 5 | rd.asm()
+        imm6 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn ldrb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
@@ -297,15 +299,16 @@ pub fn strd_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> 
     cls_ldst_regoffset(0b11, 1, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
-fn cls_ldst_regoffset(size: u32,
-                      v: u32,
-                      opc: u32,
-                      rm: Reg,
-                      option: LdStExtend,
-                      s: u32,
-                      rn: Reg,
-                      rt: u32)
-                      -> u32 {
+fn cls_ldst_regoffset(
+    size: u32,
+    v: u32,
+    opc: u32,
+    rm: Reg,
+    option: LdStExtend,
+    s: u32,
+    rn: Reg,
+    rt: u32,
+) -> u32 {
     assert!(fits_u2(size));
     assert!(fits_bit(v));
     assert!(fits_u2(opc));
@@ -315,7 +318,7 @@ fn cls_ldst_regoffset(size: u32,
     assert!(fits_u5(rt));
 
     0b111u32 << 27 | 1u32 << 21 | 0b10u32 << 10 | size << 30 | v << 26 | opc << 22 |
-    rm.asm() << 16 | option.u32() << 13 | s << 12 | rn.asm() << 5 | rt
+        rm.asm() << 16 | option.u32() << 13 | s << 12 | rn.asm() << 5 | rt
 }
 
 pub fn ldrb_imm(rt: Reg, rn: Reg, imm12: u32) -> u32 {
@@ -412,15 +415,16 @@ pub fn bics_shreg(sf: u32, rd: Reg, rn: Reg, rm: Reg, shift: Shift, imm6: u32) -
     cls_logical_shreg(sf, 0b11, shift, 1, rm, imm6, rn, rd)
 }
 
-fn cls_logical_shreg(sf: u32,
-                     opc: u32,
-                     shift: Shift,
-                     n: u32,
-                     rm: Reg,
-                     imm6: u32,
-                     rn: Reg,
-                     rd: Reg)
-                     -> u32 {
+fn cls_logical_shreg(
+    sf: u32,
+    opc: u32,
+    shift: Shift,
+    n: u32,
+    rm: Reg,
+    imm6: u32,
+    rn: Reg,
+    rd: Reg,
+) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(opc));
     assert!(fits_bit(n));
@@ -430,7 +434,7 @@ fn cls_logical_shreg(sf: u32,
     assert!(rd.is_gpr());
 
     0b01010u32 << 24 | sf << 31 | opc << 29 | shift.u32() << 22 | n << 21 | rm.asm() << 16 |
-    imm6 << 10 | rn.asm() << 5 | rd.asm()
+        imm6 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn brk(imm16: u32) -> u32 {
@@ -468,7 +472,7 @@ fn cls_csel(sf: u32, op: u32, s: u32, rm: Reg, cond: Cond, op2: u32, rn: Reg, rd
     assert!(rd.is_gpr());
 
     0b11010100u32 << 21 | sf << 31 | op << 30 | s << 29 | rm.asm() << 16 | cond.u32() << 12 |
-    op2 << 10 | rn.asm() << 5 | rd.asm()
+        op2 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn movn(sf: u32, rd: Reg, imm16: u32, shift: u32) -> u32 {
@@ -550,7 +554,7 @@ fn cls_dataproc2(sf: u32, s: u32, rm: Reg, opcode: u32, rn: Reg, rd: Reg) -> u32
     assert!(rd.is_gpr());
 
     sf << 31 | s << 29 | 0b11010110u32 << 21 | rm.asm() << 16 | opcode << 10 | rn.asm() << 5 |
-    rd.asm()
+        rd.asm()
 }
 
 pub fn madd(sf: u32, rd: Reg, rn: Reg, rm: Reg, ra: Reg) -> u32 {
@@ -565,15 +569,16 @@ pub fn mul(sf: u32, rd: Reg, rn: Reg, rm: Reg) -> u32 {
     madd(sf, rd, rn, rm, REG_ZERO)
 }
 
-fn cls_dataproc3(sf: u32,
-                 op54: u32,
-                 op31: u32,
-                 rm: Reg,
-                 o0: u32,
-                 ra: Reg,
-                 rn: Reg,
-                 rd: Reg)
-                 -> u32 {
+fn cls_dataproc3(
+    sf: u32,
+    op54: u32,
+    op31: u32,
+    rm: Reg,
+    o0: u32,
+    ra: Reg,
+    rn: Reg,
+    rd: Reg,
+) -> u32 {
     assert!(fits_bit(sf));
     assert!(fits_u2(op54));
     assert!(fits_u3(op31));
@@ -584,7 +589,7 @@ fn cls_dataproc3(sf: u32,
     assert!(rd.is_gpr());
 
     sf << 31 | op54 << 29 | 0b11011u32 << 24 | op31 << 21 | rm.asm() << 16 | o0 << 15 |
-    ra.asm() << 10 | rn.asm() << 5 | rd.asm()
+        ra.asm() << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn ldp(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
@@ -613,7 +618,7 @@ fn cls_ldst_pair(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt: Reg
     let imm = (imm7 as u32) & 0x7F;
 
     opc << 30 | 0b101u32 << 27 | 1u32 << 24 | l << 22 | imm << 15 | rt2.asm() << 10 |
-    rn.asm() << 5 | rt.asm()
+        rn.asm() << 5 | rt.asm()
 }
 
 pub fn sbfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
@@ -654,8 +659,8 @@ fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Re
     assert!(rn.is_gpr());
     assert!(rd.is_gpr());
 
-    sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 |
-    (imms & 0x3F) << 10 | rn.asm() << 5 | rd.asm()
+    sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 | (imms & 0x3F) << 10 |
+        rn.asm() << 5 | rd.asm()
 }
 
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
@@ -698,7 +703,7 @@ fn encode_logical_imm(mut imm: u64, reg_size: u32) -> Option<u32> {
         rotation = (size - tz) & (size - 1);
         ones = (!(imm >> tz)).trailing_zeros();
 
-        // not all immediates are shifted masks: e.g. 1001
+    // not all immediates are shifted masks: e.g. 1001
     } else {
         // extend imm again to 64 bits: e.g. 1..1|1001
         imm |= !mask;
@@ -757,7 +762,7 @@ fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg, rd
     assert!(fits_u4(opcode));
 
     m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rm.asm() << 16 | opcode << 12 |
-    0b10 << 10 | rn.asm() << 5 | rd.asm()
+        0b10 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn fadd(ty: u32, rd: FReg, rn: FReg, rm: FReg) -> u32 {
@@ -783,7 +788,7 @@ fn cls_fp_dataproc1(m: u32, s: u32, ty: u32, opcode: u32, rn: FReg, rd: FReg) ->
     assert!(fits_u6(opcode));
 
     m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | opcode << 15 | 0b10000 << 10 |
-    rn.asm() << 5 | rd.asm()
+        rn.asm() << 5 | rd.asm()
 }
 
 pub fn fsqrt(ty: u32, rd: FReg, rn: FReg) -> u32 {
@@ -823,8 +828,8 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u3
     assert!(fits_u5(rn));
     assert!(fits_u5(rd));
 
-    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 |
-    rn << 5 | rd
+    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 | rn << 5 |
+        rd
 }
 
 pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {
@@ -843,7 +848,7 @@ fn cls_fp_compare(m: u32, s: u32, ty: u32, rm: FReg, op: u32, rn: FReg, opcode2:
     assert!(fits_u5(opcode2));
 
     m << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rm.asm() << 16 | op << 14 |
-    0b1000 << 10 | rn.asm() << 5 | opcode2
+        0b1000 << 10 | rn.asm() << 5 | opcode2
 }
 
 #[derive(Copy, Clone)]
@@ -1736,11 +1741,15 @@ mod tests {
         assert_eq!(None, encode_logical_imm((1 << 32) - 1, 32));
 
         assert_eq!(Some(0b0_000000_111100), encode_logical_imm(0x55555555, 32));
-        assert_eq!(Some(0b0_000000_111100),
-                   encode_logical_imm(0x5555555555555555, 64));
+        assert_eq!(
+            Some(0b0_000000_111100),
+            encode_logical_imm(0x5555555555555555, 64)
+        );
         assert_eq!(Some(0b0_000001_111100), encode_logical_imm(0xaaaaaaaa, 32));
-        assert_eq!(Some(0b0_000001_111100),
-                   encode_logical_imm(0xaaaaaaaaaaaaaaaa, 64));
+        assert_eq!(
+            Some(0b0_000001_111100),
+            encode_logical_imm(0xaaaaaaaaaaaaaaaa, 64)
+        );
         assert_eq!(Some(0b0_000000_111000), encode_logical_imm(0x11111111, 32));
         assert_eq!(Some(0b0_000001_111000), encode_logical_imm(0x88888888, 32));
         assert_eq!(Some(0b0_000001_111001), encode_logical_imm(0x99999999, 32));

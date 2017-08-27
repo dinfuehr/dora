@@ -1,6 +1,6 @@
 use cpu::*;
 use baseline::codegen::CondCode;
-use masm::{MacroAssembler, Label};
+use masm::{Label, MacroAssembler};
 use ty::MachineMode;
 
 pub fn emit_or_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) {
@@ -77,13 +77,15 @@ pub fn emit_movq_memq_reg(buf: &mut MacroAssembler, src: Reg, disp: i32, dest: R
     emit_mov_memq_reg(buf, 0, 1, 0x8b, src, disp, dest);
 }
 
-fn emit_mov_memq_reg(buf: &mut MacroAssembler,
-                     rex_prefix: u8,
-                     x64: u8,
-                     opcode: u8,
-                     src: Reg,
-                     disp: i32,
-                     dest: Reg) {
+fn emit_mov_memq_reg(
+    buf: &mut MacroAssembler,
+    rex_prefix: u8,
+    x64: u8,
+    opcode: u8,
+    src: Reg,
+    disp: i32,
+    dest: Reg,
+) {
     let src_msb = if src == RIP { 0 } else { src.msb() };
 
     if src_msb != 0 || dest.msb() != 0 || x64 != 0 || rex_prefix != 0 {
@@ -129,13 +131,15 @@ pub fn emit_movl_ra(buf: &mut MacroAssembler, src: Reg, base: Reg, index: Reg, s
     emit_mov_ar(buf, 0, 0x89, base, index, scale, src);
 }
 
-fn emit_mov_ar(buf: &mut MacroAssembler,
-               x64: u8,
-               opcode: u8,
-               base: Reg,
-               index: Reg,
-               scale: u8,
-               dest: Reg) {
+fn emit_mov_ar(
+    buf: &mut MacroAssembler,
+    x64: u8,
+    opcode: u8,
+    base: Reg,
+    index: Reg,
+    scale: u8,
+    dest: Reg,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -154,12 +158,14 @@ fn emit_mov_ar(buf: &mut MacroAssembler,
     emit_sib(buf, scale, index.and7(), base.and7());
 }
 
-fn emit_mov_reg_memq(buf: &mut MacroAssembler,
-                     opcode: u8,
-                     x64: u8,
-                     src: Reg,
-                     dest: Reg,
-                     disp: i32) {
+fn emit_mov_reg_memq(
+    buf: &mut MacroAssembler,
+    opcode: u8,
+    x64: u8,
+    src: Reg,
+    dest: Reg,
+    disp: i32,
+) {
     let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
     if dest_msb != 0 || src.msb() != 0 || x64 != 0 {
@@ -184,18 +190,14 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
             emit_sib(buf, 0, RSP.and7(), RSP.and7());
             emit_u32(buf, disp as u32);
         }
-
     } else if disp == 0 && base != RBP && base != R13 && base != RIP {
         emit_modrm(buf, 0, dest.and7(), base.and7());
-
     } else if base == RIP {
         emit_modrm(buf, 0, dest.and7(), RBP.and7());
         emit_u32(buf, disp as u32);
-
     } else if fits_i8(disp) {
         emit_modrm(buf, 1, dest.and7(), base.and7());
         emit_u8(buf, disp as u8);
-
     } else {
         emit_modrm(buf, 2, dest.and7(), base.and7());
         emit_u32(buf, disp as u32);
@@ -204,11 +206,9 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
 
 pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, reg: Reg) {
     let x64 = match mode {
-        MachineMode::Int8 |
-        MachineMode::Int32 => 0,
+        MachineMode::Int8 | MachineMode::Int32 => 0,
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => 1,
     };
 
@@ -227,12 +227,14 @@ pub fn emit_andq_imm_reg(buf: &mut MacroAssembler, imm: i32, reg: Reg) {
     emit_aluq_imm_reg(buf, 1, imm, reg, 0x25, 4);
 }
 
-fn emit_aluq_imm_reg(buf: &mut MacroAssembler,
-                     x64: u8,
-                     imm: i32,
-                     reg: Reg,
-                     rax_opcode: u8,
-                     modrm_reg: u8) {
+fn emit_aluq_imm_reg(
+    buf: &mut MacroAssembler,
+    x64: u8,
+    imm: i32,
+    reg: Reg,
+    rax_opcode: u8,
+    modrm_reg: u8,
+) {
     assert!(x64 == 0 || x64 == 1);
 
     if x64 != 0 || reg.msb() != 0 {
@@ -243,11 +245,9 @@ fn emit_aluq_imm_reg(buf: &mut MacroAssembler,
         emit_op(buf, 0x83);
         emit_modrm(buf, 0b11, modrm_reg, reg.and7());
         emit_u8(buf, imm as u8);
-
     } else if reg == RAX {
         emit_op(buf, rax_opcode);
         emit_u32(buf, imm as u32);
-
     } else {
         emit_op(buf, 0x81);
         emit_modrm(buf, 0b11, modrm_reg, reg.and7());
@@ -293,12 +293,14 @@ pub fn emit_andb_imm_reg(buf: &mut MacroAssembler, imm: u8, dest: Reg) {
     emit_alub_imm_reg(buf, 0x80, 0x24, 0b100, imm, dest);
 }
 
-fn emit_alub_imm_reg(buf: &mut MacroAssembler,
-                     opcode: u8,
-                     rax_opcode: u8,
-                     modrm_reg: u8,
-                     imm: u8,
-                     dest: Reg) {
+fn emit_alub_imm_reg(
+    buf: &mut MacroAssembler,
+    opcode: u8,
+    rax_opcode: u8,
+    modrm_reg: u8,
+    imm: u8,
+    dest: Reg,
+) {
     if dest == RAX {
         emit_op(buf, rax_opcode);
         emit_u8(buf, imm);
@@ -318,8 +320,7 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
         MachineMode::Ptr => (1, 0x83),
         MachineMode::Int32 => (0, 0x83),
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         MachineMode::Int8 => (0, 0x80),
     };
 
@@ -409,10 +410,10 @@ pub fn emit_jcc(buf: &mut MacroAssembler, cond: CondCode, lbl: Label) {
         CondCode::GreaterEq => 0x8D,
         CondCode::Less => 0x8C,
         CondCode::LessEq => 0x8E,
-        CondCode::UnsignedGreater => 0x87, // above
+        CondCode::UnsignedGreater => 0x87,   // above
         CondCode::UnsignedGreaterEq => 0x83, // above or equal
-        CondCode::UnsignedLess => 0x82, // below
-        CondCode::UnsignedLessEq => 0x86, // below or equal
+        CondCode::UnsignedLess => 0x82,      // below
+        CondCode::UnsignedLessEq => 0x86,    // below or equal
     };
 
     emit_op(buf, 0x0f);
@@ -541,19 +542,20 @@ pub fn emit_cmp_reg_reg(buf: &mut MacroAssembler, x64: u8, src: Reg, dest: Reg) 
     emit_alu_reg_reg(buf, x64, 0x39, src, dest);
 }
 
-pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
-                        mode: MachineMode,
-                        base: Reg,
-                        disp: i32,
-                        dest: Reg) {
+pub fn emit_cmp_mem_reg(
+    buf: &mut MacroAssembler,
+    mode: MachineMode,
+    base: Reg,
+    disp: i32,
+    dest: Reg,
+) {
     let base_msb = if base == RIP { 0 } else { base.msb() };
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x38),
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => (1, 0x39),
     };
 
@@ -565,23 +567,23 @@ pub fn emit_cmp_mem_reg(buf: &mut MacroAssembler,
     emit_membase(buf, base, disp, dest);
 }
 
-pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
-                             mode: MachineMode,
-                             base: Reg,
-                             index: Reg,
-                             scale: i32,
-                             disp: i32,
-                             dest: Reg) {
+pub fn emit_mov_memindex_reg(
+    buf: &mut MacroAssembler,
+    mode: MachineMode,
+    base: Reg,
+    index: Reg,
+    scale: i32,
+    disp: i32,
+    dest: Reg,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
     assert!(mode.size() == scale);
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x8a),
         MachineMode::Int32 => (0, 0x8b),
-        MachineMode::Int64 |
-        MachineMode::Ptr => (1, 0x8b),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Int64 | MachineMode::Ptr => (1, 0x8b),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -592,12 +594,14 @@ pub fn emit_mov_memindex_reg(buf: &mut MacroAssembler,
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
 }
 
-pub fn emit_movzx_memindex_byte_reg(buf: &mut MacroAssembler,
-                                    x64: u8,
-                                    base: Reg,
-                                    index: Reg,
-                                    disp: i32,
-                                    dest: Reg) {
+pub fn emit_movzx_memindex_byte_reg(
+    buf: &mut MacroAssembler,
+    x64: u8,
+    base: Reg,
+    index: Reg,
+    disp: i32,
+    dest: Reg,
+) {
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
         emit_rex(buf, x64, dest.msb(), index.msb(), base.msb());
     }
@@ -607,22 +611,22 @@ pub fn emit_movzx_memindex_byte_reg(buf: &mut MacroAssembler,
     emit_membase_with_index_and_scale(buf, base, index, 1, disp, dest);
 }
 
-pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
-                             mode: MachineMode,
-                             src: Reg,
-                             base: Reg,
-                             index: Reg,
-                             scale: i32,
-                             disp: i32) {
+pub fn emit_mov_reg_memindex(
+    buf: &mut MacroAssembler,
+    mode: MachineMode,
+    src: Reg,
+    base: Reg,
+    index: Reg,
+    scale: i32,
+    disp: i32,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x88),
         MachineMode::Int32 => (0, 0x89),
-        MachineMode::Int64 |
-        MachineMode::Ptr => (1, 0x89),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Int64 | MachineMode::Ptr => (1, 0x89),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || src.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -633,11 +637,13 @@ pub fn emit_mov_reg_memindex(buf: &mut MacroAssembler,
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, src);
 }
 
-pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
-                        mode: MachineMode,
-                        base: Reg,
-                        disp: i32,
-                        imm: i32) {
+pub fn emit_cmp_mem_imm(
+    buf: &mut MacroAssembler,
+    mode: MachineMode,
+    base: Reg,
+    disp: i32,
+    imm: i32,
+) {
     let base_msb = if base == RIP { 0 } else { base.msb() };
 
     let opcode = if fits_i8(imm) { 0x83 } else { 0x81 };
@@ -647,8 +653,7 @@ pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, opcode),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, opcode),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || base_msb != 0 {
@@ -669,13 +674,15 @@ pub fn emit_cmp_mem_imm(buf: &mut MacroAssembler,
     }
 }
 
-pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
-                             mode: MachineMode,
-                             base: Reg,
-                             index: Reg,
-                             scale: i32,
-                             disp: i32,
-                             dest: Reg) {
+pub fn emit_cmp_memindex_reg(
+    buf: &mut MacroAssembler,
+    mode: MachineMode,
+    base: Reg,
+    index: Reg,
+    scale: i32,
+    disp: i32,
+    dest: Reg,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     let (x64, opcode) = match mode {
@@ -683,8 +690,7 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x39),
-        MachineMode::Float32 |
-        MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -695,11 +701,13 @@ pub fn emit_cmp_memindex_reg(buf: &mut MacroAssembler,
     emit_membase_with_index_and_scale(buf, base, index, scale, disp, dest);
 }
 
-fn emit_membase_without_base(buf: &mut MacroAssembler,
-                             index: Reg,
-                             scale: i32,
-                             disp: i32,
-                             dest: Reg) {
+fn emit_membase_without_base(
+    buf: &mut MacroAssembler,
+    index: Reg,
+    scale: i32,
+    disp: i32,
+    dest: Reg,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     let scale = match scale {
@@ -714,12 +722,14 @@ fn emit_membase_without_base(buf: &mut MacroAssembler,
     emit_u32(buf, disp as u32);
 }
 
-fn emit_membase_with_index_and_scale(buf: &mut MacroAssembler,
-                                     base: Reg,
-                                     index: Reg,
-                                     scale: i32,
-                                     disp: i32,
-                                     dest: Reg) {
+fn emit_membase_with_index_and_scale(
+    buf: &mut MacroAssembler,
+    base: Reg,
+    index: Reg,
+    scale: i32,
+    disp: i32,
+    dest: Reg,
+) {
     assert!(scale == 8 || scale == 4 || scale == 2 || scale == 1);
 
     let scale = match scale {
@@ -732,12 +742,10 @@ fn emit_membase_with_index_and_scale(buf: &mut MacroAssembler,
     if disp == 0 {
         emit_modrm(buf, 0, dest.and7(), 4);
         emit_sib(buf, scale, index.and7(), base.and7());
-
     } else if fits_i8(disp) {
         emit_modrm(buf, 1, dest.and7(), 4);
         emit_sib(buf, scale, index.and7(), base.and7());
         emit_u8(buf, disp as u8);
-
     } else {
         emit_modrm(buf, 2, dest.and7(), 4);
         emit_sib(buf, scale, index.and7(), base.and7());
@@ -764,10 +772,10 @@ pub fn emit_setb_reg(buf: &mut MacroAssembler, op: CondCode, reg: Reg) {
         CondCode::LessEq => 0x9e,
         CondCode::Greater => 0x9f,
         CondCode::GreaterEq => 0x9d,
-        CondCode::UnsignedGreater => 0x97, // above
+        CondCode::UnsignedGreater => 0x97,   // above
         CondCode::UnsignedGreaterEq => 0x93, // above or equal
-        CondCode::UnsignedLess => 0x92, // below
-        CondCode::UnsignedLessEq => 0x96, // below or equal
+        CondCode::UnsignedLess => 0x92,      // below
+        CondCode::UnsignedLessEq => 0x96,    // below or equal
         CondCode::Zero | CondCode::Equal => 0x94,
         CondCode::NonZero | CondCode::NotEqual => 0x95,
     };
@@ -833,10 +841,10 @@ pub fn cmov(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: Reg, cond: CondCo
         CondCode::GreaterEq => 0x4D,
         CondCode::Less => 0x4C,
         CondCode::LessEq => 0x4E,
-        CondCode::UnsignedGreater => 0x47, // above
+        CondCode::UnsignedGreater => 0x47,   // above
         CondCode::UnsignedGreaterEq => 0x43, // above or equal
-        CondCode::UnsignedLess => 0x42, // below
-        CondCode::UnsignedLessEq => 0x46, // below or equal
+        CondCode::UnsignedLess => 0x42,      // below
+        CondCode::UnsignedLessEq => 0x46,    // below or equal
     };
 
     if src.msb() != 0 || dest.msb() != 0 || x64 != 0 {
@@ -1701,7 +1709,6 @@ mod tests {
 
         // cmp [rsp+rbp],rax
         assert_emit!(0x48, 0x39, 0x04, 0x2c; emit_cmp_memindex_reg(p, RSP, RBP, 1, 0, RAX));
-
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use std::convert::From;
 
 use baseline::map::CodeData;
-use ctxt::{SemContext, FctKind};
+use ctxt::{FctKind, SemContext};
 use object::Obj;
 use exception::DoraToNativeInfo;
 
@@ -43,10 +43,11 @@ fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &SemContex
     }
 }
 
-fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
-                            ctxt: &SemContext,
-                            dtn: *const DoraToNativeInfo)
-                            -> *const DoraToNativeInfo {
+fn from_dora_to_native_info(
+    rootset: &mut Vec<IndirectObj>,
+    ctxt: &SemContext,
+    dtn: *const DoraToNativeInfo,
+) -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
 
     let mut pc: usize = dtn.pc;
@@ -64,11 +65,12 @@ fn from_dora_to_native_info(rootset: &mut Vec<IndirectObj>,
     dtn.last
 }
 
-fn determine_rootset(rootset: &mut Vec<IndirectObj>,
-                     ctxt: &SemContext,
-                     fp: usize,
-                     pc: usize)
-                     -> bool {
+fn determine_rootset(
+    rootset: &mut Vec<IndirectObj>,
+    ctxt: &SemContext,
+    fp: usize,
+    pc: usize,
+) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 

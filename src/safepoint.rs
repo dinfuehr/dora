@@ -10,7 +10,9 @@ pub struct PollingPage {
 
 impl PollingPage {
     pub fn new() -> PollingPage {
-        PollingPage { addr: alloc_polling_page() }
+        PollingPage {
+            addr: alloc_polling_page(),
+        }
     }
 
     pub fn addr(&self) -> *const u8 {
@@ -19,9 +21,11 @@ impl PollingPage {
 
     pub fn arm(&self) {
         unsafe {
-            let res = libc::mprotect(self.addr as *mut libc::c_void,
-                                     os::page_size() as usize,
-                                     libc::PROT_NONE);
+            let res = libc::mprotect(
+                self.addr as *mut libc::c_void,
+                os::page_size() as usize,
+                libc::PROT_NONE,
+            );
 
             if res != 0 {
                 panic!("mprotect failed");
@@ -31,9 +35,11 @@ impl PollingPage {
 
     pub fn unarm(&self) {
         unsafe {
-            let res = libc::mprotect(self.addr as *mut libc::c_void,
-                                     os::page_size() as usize,
-                                     libc::PROT_READ);
+            let res = libc::mprotect(
+                self.addr as *mut libc::c_void,
+                os::page_size() as usize,
+                libc::PROT_READ,
+            );
 
             if res != 0 {
                 panic!("mprotect failed");
@@ -50,12 +56,14 @@ impl Drop for PollingPage {
 
 fn alloc_polling_page() -> *const u8 {
     let ptr = unsafe {
-        libc::mmap(ptr::null_mut(),
-                   os::page_size() as usize,
-                   libc::PROT_READ,
-                   libc::MAP_PRIVATE | libc::MAP_ANON,
-                   -1,
-                   0) as *mut libc::c_void
+        libc::mmap(
+            ptr::null_mut(),
+            os::page_size() as usize,
+            libc::PROT_READ,
+            libc::MAP_PRIVATE | libc::MAP_ANON,
+            -1,
+            0,
+        ) as *mut libc::c_void
     };
 
     if ptr == libc::MAP_FAILED {

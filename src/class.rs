@@ -4,7 +4,7 @@ use std::convert::From;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-use ctxt::{SemContext, FctId, ImplId, TraitId, TypeParam};
+use ctxt::{FctId, ImplId, SemContext, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use vtable::VTableBox;
@@ -86,7 +86,6 @@ impl Class {
                 .map(|p| ctxt.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
-
         } else {
             return name.to_string();
         };
@@ -108,7 +107,6 @@ impl Class {
 
             if let Some(parent_class) = cls.parent_class {
                 classid = parent_class;
-
             } else {
                 return None;
             }
@@ -131,7 +129,6 @@ impl Class {
 
             if let Some(parent_class) = cls.parent_class {
                 classid = parent_class;
-
             } else {
                 return None;
             }
@@ -162,7 +159,6 @@ impl Class {
 
             if let Some(parent_class) = cls.parent_class {
                 classid = parent_class;
-
             } else {
                 break;
             }
@@ -187,7 +183,6 @@ impl Class {
 
             if let Some(parent_class) = cls.parent_class {
                 classid = parent_class;
-
             } else {
                 break;
             }
@@ -320,7 +315,6 @@ impl ClassDef {
                 .map(|p| p.name(ctxt))
                 .collect::<Vec<_>>()
                 .join(", ")
-
         } else {
             return name.to_string();
         };

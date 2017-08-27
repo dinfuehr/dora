@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use ctxt;
-use ctxt::{CallType, ConstData, ConstValue, SemContext, ConvInfo, Fct, FctId, FctParent, FctSrc,
-           IdentType, TraitId};
+use ctxt::{CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType,
+           SemContext, TraitId};
 use class::ClassId;
 use dora_parser::error::msg::Msg;
 
@@ -76,12 +76,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_var(&mut self, s: &'ast StmtVarType) {
         let var = *self.src.map_vars.get(s.id).unwrap();
 
-        let expr_type = s.expr
-            .as_ref()
-            .map(|expr| {
-                     self.visit_expr(&expr);
-                     self.expr_type
-                 });
+        let expr_type = s.expr.as_ref().map(|expr| {
+            self.visit_expr(&expr);
+            self.expr_type
+        });
 
         let defined_type = if let Some(_) = s.data_type {
             let ty = self.src.vars[var].ty;
@@ -120,7 +118,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt.diag.borrow_mut().report(s.pos, msg);
             }
 
-            // let variable binding needs to be assigned
+        // let variable binding needs to be assigned
         } else if !s.reassignable {
             self.ctxt
                 .diag
@@ -161,10 +159,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_type = s.expr
             .as_ref()
             .map(|expr| {
-                     self.visit_expr(&expr);
+                self.visit_expr(&expr);
 
-                     self.expr_type
-                 })
+                self.expr_type
+            })
             .unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
@@ -190,12 +188,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let ty = self.expr_type;
 
         if ty.is_nil() {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(s.pos, Msg::ThrowNil);
-
-
+            self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowNil);
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
             self.ctxt
@@ -287,13 +280,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let ret_type = Some(BuiltinType::Unit);
 
             if let Some((cls_id, fct_id, _)) =
-                self.find_method(e.pos, object_type, false, name, &args, &[], ret_type) {
+                self.find_method(e.pos, object_type, false, name, &args, &[], ret_type)
+            {
                 let call_type = CallType::Method(cls_id, fct_id);
                 self.src
                     .map_calls
                     .insert_or_replace(e.id, Rc::new(call_type));
             }
-
         } else if e.lhs.is_field() || e.lhs.is_ident() {
             self.visit_expr(&e.lhs);
             let lhs_type = self.expr_type;
@@ -303,29 +296,26 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
                 match ident_type {
-                    &IdentType::Var(varid) => {
-                        if !self.src.vars[varid].reassignable {
-                            self.ctxt
-                                .diag
-                                .borrow_mut()
-                                .report(e.pos, Msg::LetReassigned);
-                        }
-                    }
+                    &IdentType::Var(varid) => if !self.src.vars[varid].reassignable {
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(e.pos, Msg::LetReassigned);
+                    },
 
-                    &IdentType::Global(gid) => {
-                        if !self.ctxt.globals[gid].borrow().reassignable {
-                            self.ctxt
-                                .diag
-                                .borrow_mut()
-                                .report(e.pos, Msg::LetReassigned);
-                        }
-                    }
+                    &IdentType::Global(gid) => if !self.ctxt.globals[gid].borrow().reassignable {
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(e.pos, Msg::LetReassigned);
+                    },
 
                     &IdentType::Field(ty, fieldid) => {
                         let clsid = ty.cls_id(self.ctxt).unwrap();
 
                         if !self.fct.ctor.is() &&
-                           !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable {
+                            !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable
+                        {
                             self.ctxt
                                 .diag
                                 .borrow_mut()
@@ -353,7 +343,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         let rhs_type = rhs_type.name(self.ctxt);
 
                         Msg::AssignType(name, lhs_type, rhs_type)
-
                     } else {
                         let field = e.lhs.to_field().unwrap();
                         let name = self.ctxt.interner.str(field.name).to_string();
@@ -370,7 +359,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
             }
-
         } else {
             self.ctxt
                 .diag
@@ -382,22 +370,25 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Unit;
     }
 
-    fn find_method(&mut self,
-                   pos: Position,
-                   object_type: BuiltinType,
-                   is_static: bool,
-                   name: Name,
-                   args: &[BuiltinType],
-                   fct_type_params: &[BuiltinType],
-                   return_type: Option<BuiltinType>)
-                   -> Option<(ClassId, FctId, BuiltinType)> {
-        let result = lookup_method(self.ctxt,
-                                   object_type,
-                                   is_static,
-                                   name,
-                                   args,
-                                   fct_type_params,
-                                   return_type);
+    fn find_method(
+        &mut self,
+        pos: Position,
+        object_type: BuiltinType,
+        is_static: bool,
+        name: Name,
+        args: &[BuiltinType],
+        fct_type_params: &[BuiltinType],
+        return_type: Option<BuiltinType>,
+    ) -> Option<(ClassId, FctId, BuiltinType)> {
+        let result = lookup_method(
+            self.ctxt,
+            object_type,
+            is_static,
+            name,
+            args,
+            fct_type_params,
+            return_type,
+        );
 
         if result.is_none() {
             let type_name = object_type.name(self.ctxt);
@@ -434,23 +425,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_un_method(&mut self,
-                            e: &'ast ExprUnType,
-                            op: UnOp,
-                            name: &str,
-                            ty: BuiltinType) {
+    fn check_expr_un_method(&mut self, e: &'ast ExprUnType, op: UnOp, name: &str, ty: BuiltinType) {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 
         if let Some((cls_id, fct_id, return_type)) =
-            lookup_method(self.ctxt, ty, false, name, &call_types, &[], None) {
-
+            lookup_method(self.ctxt, ty, false, name, &call_types, &[], None)
+        {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src.map_calls.insert(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
-
         } else {
             let ty = ty.name(self.ctxt);
             let msg = Msg::UnOpType(op.as_str().into(), ty);
@@ -488,28 +474,32 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_bin_bool(&mut self,
-                           e: &'ast ExprBinType,
-                           op: BinOp,
-                           lhs_type: BuiltinType,
-                           rhs_type: BuiltinType) {
+    fn check_expr_bin_bool(
+        &mut self,
+        e: &'ast ExprBinType,
+        op: BinOp,
+        lhs_type: BuiltinType,
+        rhs_type: BuiltinType,
+    ) {
         self.check_type(e, op, lhs_type, rhs_type, BuiltinType::Bool);
         self.src.set_ty(e.id, BuiltinType::Bool);
         self.expr_type = BuiltinType::Bool;
     }
 
-    fn check_expr_bin_method(&mut self,
-                             e: &'ast ExprBinType,
-                             op: BinOp,
-                             name: &str,
-                             lhs_type: BuiltinType,
-                             rhs_type: BuiltinType) {
+    fn check_expr_bin_method(
+        &mut self,
+        e: &'ast ExprBinType,
+        op: BinOp,
+        name: &str,
+        lhs_type: BuiltinType,
+        rhs_type: BuiltinType,
+    ) {
         let name = self.ctxt.interner.intern(name);
         let call_types = [rhs_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            lookup_method(self.ctxt, lhs_type, false, name, &call_types, &[], None) {
-
+            lookup_method(self.ctxt, lhs_type, false, name, &call_types, &[], None)
+        {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src
                 .map_calls
@@ -517,7 +507,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
-
         } else {
             let lhs_type = lhs_type.name(self.ctxt);
             let rhs_type = rhs_type.name(self.ctxt);
@@ -530,11 +519,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_expr_bin_cmp(&mut self,
-                          e: &'ast ExprBinType,
-                          cmp: CmpOp,
-                          lhs_type: BuiltinType,
-                          rhs_type: BuiltinType) {
+    fn check_expr_bin_cmp(
+        &mut self,
+        e: &'ast ExprBinType,
+        cmp: CmpOp,
+        lhs_type: BuiltinType,
+        rhs_type: BuiltinType,
+    ) {
         match cmp {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.reference_type() {
@@ -554,7 +545,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
 
                 if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type)) &&
-                   !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type)) {
+                    !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type))
+                {
                     let lhs_type = lhs_type.name(self.ctxt);
                     let rhs_type = rhs_type.name(self.ctxt);
                     self.ctxt
@@ -579,14 +571,16 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.expr_type = BuiltinType::Bool;
     }
 
-    fn check_type(&mut self,
-                  e: &'ast ExprBinType,
-                  op: BinOp,
-                  lhs_type: BuiltinType,
-                  rhs_type: BuiltinType,
-                  expected_type: BuiltinType) {
-        if !expected_type.allows(self.ctxt, lhs_type) ||
-           !expected_type.allows(self.ctxt, rhs_type) {
+    fn check_type(
+        &mut self,
+        e: &'ast ExprBinType,
+        op: BinOp,
+        lhs_type: BuiltinType,
+        rhs_type: BuiltinType,
+        expected_type: BuiltinType,
+    ) {
+        if !expected_type.allows(self.ctxt, lhs_type) || !expected_type.allows(self.ctxt, rhs_type)
+        {
             let op = op.as_str().into();
             let lhs_type = lhs_type.name(self.ctxt);
             let rhs_type = rhs_type.name(self.ctxt);
@@ -602,7 +596,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             let object_type = if object.is_super() {
                 self.super_type(e.pos)
-
             } else {
                 self.visit_expr(object);
                 self.expr_type
@@ -616,16 +609,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
+                self.visit_expr(arg);
+                self.expr_type
+            })
             .collect();
 
         let type_params = if let Some(ref type_params) = e.type_params {
-            type_params
-                .iter()
-                .map(|p| self.src.ty(p.id()))
-                .collect()
+            type_params.iter().map(|p| self.src.ty(p.id())).collect()
         } else {
             Vec::new()
         };
@@ -686,13 +676,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if lookup.find() {
                         let fct_id = lookup.found_fct_id().unwrap();
-                        let call_type = Rc::new(CallType::Fct(fct_id,
-                                                              Rc::new(Vec::new()),
-                                                              type_params.clone()));
+                        let call_type = Rc::new(CallType::Fct(
+                            fct_id,
+                            Rc::new(Vec::new()),
+                            type_params.clone(),
+                        ));
                         self.src.map_calls.insert(e.id, call_type.clone());
 
                         call_type
-
                     } else {
                         self.expr_type = BuiltinType::Unit;
                         return;
@@ -777,9 +768,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let arg_types: Vec<BuiltinType> = e.args
             .iter()
             .map(|arg| {
-                     self.visit_expr(arg);
-                     self.expr_type
-                 })
+                self.visit_expr(arg);
+                self.expr_type
+            })
             .collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
@@ -814,11 +805,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor_id].borrow();
 
-            if args_compatible(self.ctxt,
-                               &ctor.params_without_self(),
-                               &arg_types,
-                               &type_params,
-                               &[]) {
+            if args_compatible(
+                self.ctxt,
+                &ctor.params_without_self(),
+                &arg_types,
+                &type_params,
+                &[],
+            ) {
                 self.src.map_cls.insert(e.id, cls.id);
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, Rc::new(type_params));
@@ -848,11 +841,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         BuiltinType::Unit
     }
 
-    fn check_generic_method_call(&mut self,
-                                 e: &'ast ExprCallType,
-                                 in_try: bool,
-                                 obj: BuiltinType,
-                                 args: &[BuiltinType]) {
+    fn check_generic_method_call(
+        &mut self,
+        e: &'ast ExprCallType,
+        in_try: bool,
+        obj: BuiltinType,
+        args: &[BuiltinType],
+    ) {
         match obj {
             BuiltinType::FctTypeParam(_, tpid) => {
                 let tp = &self.fct.type_params[tpid.idx()];
@@ -869,12 +864,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
-    fn check_generic_method_call_for_type_param(&mut self,
-                                                e: &'ast ExprCallType,
-                                                in_try: bool,
-                                                obj: BuiltinType,
-                                                args: &[BuiltinType],
-                                                tp: &ctxt::TypeParam) {
+    fn check_generic_method_call_for_type_param(
+        &mut self,
+        e: &'ast ExprCallType,
+        in_try: bool,
+        obj: BuiltinType,
+        args: &[BuiltinType],
+        tp: &ctxt::TypeParam,
+    ) {
         for &trait_id in &tp.trait_bounds {
             let trai = self.ctxt.traits[trait_id].borrow();
 
@@ -1015,7 +1012,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let args = vec![index_type];
 
         if let Some((cls_id, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, false, name, &args, &[], None) {
+            self.find_method(e.pos, object_type, false, name, &args, &[], None)
+        {
             let call_type = CallType::Method(cls_id, fct_id);
             self.src
                 .map_calls
@@ -1068,10 +1066,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.expr_type = e_type;
         } else {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::TryNeedsCall);
+            self.ctxt.diag.borrow_mut().report(e.pos, Msg::TryNeedsCall);
 
             self.expr_type = BuiltinType::Unit;
             self.src.set_ty(e.id, BuiltinType::Unit);
@@ -1120,7 +1115,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             // (b is A) is valid
 
             valid = true;
-
         } else if check_type.subclass_from(self.ctxt, object_type) {
             // normal check
 
@@ -1131,13 +1125,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
         }
 
-        self.src
-            .map_convs
-            .insert(e.id,
-                    ConvInfo {
-                        cls_id: check_type.cls_id(self.ctxt).unwrap(),
-                        valid: valid,
-                    });
+        self.src.map_convs.insert(
+            e.id,
+            ConvInfo {
+                cls_id: check_type.cls_id(self.ctxt).unwrap(),
+                valid: valid,
+            },
+        );
 
         self.expr_type = if e.is { BuiltinType::Bool } else { check_type };
     }
@@ -1222,12 +1216,13 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
     }
 }
 
-fn args_compatible(ctxt: &SemContext,
-                   def: &[BuiltinType],
-                   expr: &[BuiltinType],
-                   cls_tps: &[BuiltinType],
-                   fct_tps: &[BuiltinType])
-                   -> bool {
+fn args_compatible(
+    ctxt: &SemContext,
+    def: &[BuiltinType],
+    expr: &[BuiltinType],
+    cls_tps: &[BuiltinType],
+    fct_tps: &[BuiltinType],
+) -> bool {
     if def.len() != expr.len() {
         return false;
     }
@@ -1241,12 +1236,13 @@ fn args_compatible(ctxt: &SemContext,
     true
 }
 
-fn arg_allows(ctxt: &SemContext,
-              def: BuiltinType,
-              arg: BuiltinType,
-              cls_tps: &[BuiltinType],
-              fct_tps: &[BuiltinType])
-              -> bool {
+fn arg_allows(
+    ctxt: &SemContext,
+    def: BuiltinType,
+    arg: BuiltinType,
+    cls_tps: &[BuiltinType],
+    fct_tps: &[BuiltinType],
+) -> bool {
     match def {
         BuiltinType::Unit |
         BuiltinType::Bool |
@@ -1307,10 +1303,11 @@ fn arg_allows(ctxt: &SemContext,
     }
 }
 
-fn check_lit_int<'ast>(ctxt: &SemContext<'ast>,
-                       e: &'ast ExprLitIntType,
-                       negative_expr_id: NodeId)
-                       -> (BuiltinType, i64) {
+fn check_lit_int<'ast>(
+    ctxt: &SemContext<'ast>,
+    e: &'ast ExprLitIntType,
+    negative_expr_id: NodeId,
+) -> (BuiltinType, i64) {
     let ty = match e.suffix {
         IntSuffix::Byte => BuiltinType::Byte,
         IntSuffix::Int => BuiltinType::Int,
@@ -1361,10 +1358,11 @@ fn check_lit_int<'ast>(ctxt: &SemContext<'ast>,
     (ty, val)
 }
 
-fn check_lit_float<'ast>(ctxt: &SemContext<'ast>,
-                         e: &'ast ExprLitFloatType,
-                         negative_expr_id: NodeId)
-                         -> (BuiltinType, f64) {
+fn check_lit_float<'ast>(
+    ctxt: &SemContext<'ast>,
+    e: &'ast ExprLitFloatType,
+    negative_expr_id: NodeId,
+) -> (BuiltinType, f64) {
     let ty = match e.suffix {
         FloatSuffix::Float => BuiltinType::Float,
         FloatSuffix::Double => BuiltinType::Double,
@@ -1562,27 +1560,21 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             LookupKind::Callee(fct_id) => Some(fct_id),
 
-            LookupKind::Method(obj) => {
-                if obj == BuiltinType::Nil {
-                    None
+            LookupKind::Method(obj) => if obj == BuiltinType::Nil {
+                None
+            } else {
+                let cls_id = match obj {
+                    BuiltinType::Generic(type_id) => {
+                        let ty = self.ctxt.types.borrow().get(type_id);
+                        ty.cls_id
+                    }
 
-                } else {
-                    let cls_id = match obj {
-                        BuiltinType::Generic(type_id) => {
-                            let ty = self.ctxt.types.borrow().get(type_id);
-                            ty.cls_id
-                        }
+                    _ => obj.cls_id(self.ctxt).expect("cls_id not found for object"),
+                };
 
-                        _ => {
-                            obj.cls_id(self.ctxt)
-                                .expect("cls_id not found for object")
-                        }
-                    };
-
-                    let name = self.name.expect("name not set");
-                    self.find_method(cls_id, name, false)
-                }
-            }
+                let name = self.name.expect("name not set");
+                self.find_method(cls_id, name, false)
+            },
 
             LookupKind::Static(cls_id) => {
                 assert!(self.cls_tps.is_none());
@@ -1656,7 +1648,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let cls_tps: Rc<Vec<_>> = if let Some(cls_tps) = self.cls_tps {
             Rc::new(cls_tps.to_vec())
-
         } else if let LookupKind::Method(obj) = kind {
             match obj {
                 BuiltinType::Generic(type_id) => {
@@ -1666,7 +1657,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
                 _ => Rc::new(Vec::new()),
             }
-
         } else {
             Rc::new(Vec::new())
         };
@@ -1685,19 +1675,19 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             &[]
         };
 
-        if !args_compatible(self.ctxt,
-                            &fct.params_without_self(),
-                            args,
-                            &cls_tps,
-                            fct_tps) {
+        if !args_compatible(
+            self.ctxt,
+            &fct.params_without_self(),
+            args,
+            &cls_tps,
+            fct_tps,
+        ) {
             let fct_name = self.ctxt.interner.str(fct.name).to_string();
             let fct_params = fct.params_without_self()
                 .iter()
                 .map(|a| a.name(self.ctxt))
                 .collect::<Vec<_>>();
-            let call_types = args.iter()
-                .map(|a| a.name(self.ctxt))
-                .collect::<Vec<_>>();
+            let call_types = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
             let msg = Msg::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.ctxt
                 .diag
@@ -1707,14 +1697,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         }
 
         let cmp_type = match kind {
-            LookupKind::Ctor(cls_id) => {
-                if cls_tps.len() > 0 {
-                    let type_id = self.ctxt.types.borrow_mut().insert(cls_id, cls_tps);
-                    BuiltinType::Generic(type_id)
-                } else {
-                    BuiltinType::Class(cls_id)
-                }
-            }
+            LookupKind::Ctor(cls_id) => if cls_tps.len() > 0 {
+                let type_id = self.ctxt.types.borrow_mut().insert(cls_id, cls_tps);
+                BuiltinType::Generic(type_id)
+            } else {
+                BuiltinType::Class(cls_id)
+            },
 
             _ => replace_type_param(self.ctxt, fct.return_type, &cls_tps, fct_tps),
         };
@@ -1722,7 +1710,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         if self.ret.is_none() || self.ret.unwrap() == cmp_type {
             self.found_ret = Some(cmp_type);
             true
-
         } else {
             false
         }
@@ -1741,11 +1728,13 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fcts[ctor_id].borrow();
 
-            if args_compatible(self.ctxt,
-                               &ctor.params_without_self(),
-                               &args,
-                               &type_params,
-                               &[]) {
+            if args_compatible(
+                self.ctxt,
+                &ctor.params_without_self(),
+                &args,
+                &type_params,
+                &[],
+            ) {
                 return Some(ctor_id);
             }
         }
@@ -1814,7 +1803,6 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 if !ok {
                     succeeded = false;
                 }
-
             } else if !self.check_tp(tp, ty) {
                 succeeded = false;
             }
@@ -1855,11 +1843,12 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         succeeded
     }
 
-    fn check_tp_against_tp(&self,
-                           tp: &ctxt::TypeParam,
-                           arg: &ctxt::TypeParam,
-                           arg_ty: BuiltinType)
-                           -> bool {
+    fn check_tp_against_tp(
+        &self,
+        tp: &ctxt::TypeParam,
+        arg: &ctxt::TypeParam,
+        arg_ty: BuiltinType,
+    ) -> bool {
         let mut succeeded = true;
 
         if let Some(cls_id) = tp.class_bound {
@@ -1921,25 +1910,24 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 }
 
-fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
-                       object_type: BuiltinType,
-                       is_static: bool,
-                       name: Name,
-                       args: &[BuiltinType],
-                       fct_tps: &[BuiltinType],
-                       return_type: Option<BuiltinType>)
-                       -> Option<(ClassId, FctId, BuiltinType)> {
+fn lookup_method<'ast>(
+    ctxt: &SemContext<'ast>,
+    object_type: BuiltinType,
+    is_static: bool,
+    name: Name,
+    args: &[BuiltinType],
+    fct_tps: &[BuiltinType],
+    return_type: Option<BuiltinType>,
+) -> Option<(ClassId, FctId, BuiltinType)> {
     let values: Option<(ClassId, Rc<Vec<BuiltinType>>)> = match object_type {
         BuiltinType::Class(cls_id) => Some((cls_id, Rc::new(Vec::new()))),
         BuiltinType::Generic(type_id) if !is_static => {
             let ty = ctxt.types.borrow().get(type_id);
             Some((ty.cls_id, ty.params.clone()))
         }
-        _ => {
-            ctxt.vips
-                .find_class(object_type)
-                .map(|c| (c, Rc::new(Vec::new())))
-        }
+        _ => ctxt.vips
+            .find_class(object_type)
+            .map(|c| (c, Rc::new(Vec::new()))),
     };
 
     if let Some((cls_id, ref cls_type_params)) = values {
@@ -1961,11 +1949,13 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
                 _ => unreachable!(),
             };
 
-            if args_compatible(ctxt,
-                               &method.params_without_self(),
-                               args,
-                               cls_type_params,
-                               fct_tps) {
+            if args_compatible(
+                ctxt,
+                &method.params_without_self(),
+                args,
+                cls_type_params,
+                fct_tps,
+            ) {
                 let cmp_type =
                     replace_type_param(ctxt, method.return_type, cls_type_params, fct_tps);
 
@@ -1979,11 +1969,12 @@ fn lookup_method<'ast>(ctxt: &SemContext<'ast>,
     None
 }
 
-fn replace_type_param(ctxt: &SemContext,
-                      ty: BuiltinType,
-                      cls_tp: &[BuiltinType],
-                      fct_tp: &[BuiltinType])
-                      -> BuiltinType {
+fn replace_type_param(
+    ctxt: &SemContext,
+    ty: BuiltinType,
+    cls_tp: &[BuiltinType],
+    fct_tp: &[BuiltinType],
+) -> BuiltinType {
     if cls_tp.len() == 0 && fct_tp.len() == 0 {
         return ty;
     }
@@ -2000,9 +1991,7 @@ fn replace_type_param(ctxt: &SemContext,
                 .map(|&p| replace_type_param(ctxt, p, cls_tp, fct_tp))
                 .collect();
 
-            let type_id = ctxt.types
-                .borrow_mut()
-                .insert(t.cls_id, Rc::new(params));
+            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, Rc::new(params));
             BuiltinType::Generic(type_id)
         }
 
@@ -2029,173 +2018,219 @@ mod tests {
     fn type_object_field() {
         ok("class Foo(let a:int) fun f(x: Foo) -> int { return x.a; }");
         ok("class Foo(let a:Str) fun f(x: Foo) -> Str { return x.a; }");
-        err("class Foo(let a:int) fun f(x: Foo) -> bool { return x.a; }",
+        err(
+            "class Foo(let a:int) fun f(x: Foo) -> bool { return x.a; }",
             pos(1, 46),
-            Msg::ReturnType("bool".into(), "int".into()));
+            Msg::ReturnType("bool".into(), "int".into()),
+        );
 
-        parse_with_errors("class Foo(let a:int) fun f(x: Foo) -> int { return x.b; }",
-                          |ctxt| {
-            let diag = ctxt.diag.borrow();
-            let errors = diag.errors();
-            assert_eq!(2, errors.len());
+        parse_with_errors(
+            "class Foo(let a:int) fun f(x: Foo) -> int { return x.b; }",
+            |ctxt| {
+                let diag = ctxt.diag.borrow();
+                let errors = diag.errors();
+                assert_eq!(2, errors.len());
 
-            let err = &errors[0];
-            assert_eq!(pos(1, 53), err.pos);
-            assert_eq!(Msg::UnknownField("b".into(), "Foo".into()), err.msg);
+                let err = &errors[0];
+                assert_eq!(pos(1, 53), err.pos);
+                assert_eq!(Msg::UnknownField("b".into(), "Foo".into()), err.msg);
 
-            let err = &errors[1];
-            assert_eq!(pos(1, 45), err.pos);
-            assert_eq!(Msg::ReturnType("int".into(), "()".into()), err.msg);
-        });
+                let err = &errors[1];
+                assert_eq!(pos(1, 45), err.pos);
+                assert_eq!(Msg::ReturnType("int".into(), "()".into()), err.msg);
+            },
+        );
     }
 
     #[test]
     fn type_object_set_field() {
         ok("class Foo(var a: int) fun f(x: Foo) { x.a = 1; }");
-        err("class Foo(var a: int) fun f(x: Foo) { x.a = false; }",
+        err(
+            "class Foo(var a: int) fun f(x: Foo) { x.a = false; }",
             pos(1, 43),
-            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()));
+            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()),
+        );
     }
 
     #[test]
     fn type_object_field_without_self() {
-        err("class Foo(let a: int) { fun f() -> int { return a; } }",
+        err(
+            "class Foo(let a: int) { fun f() -> int { return a; } }",
             pos(1, 49),
-            Msg::UnknownIdentifier("a".into()));
-        err("class Foo(var a: int) { fun set(x: int) { a = x; } }",
+            Msg::UnknownIdentifier("a".into()),
+        );
+        err(
+            "class Foo(var a: int) { fun set(x: int) { a = x; } }",
             pos(1, 43),
-            Msg::UnknownIdentifier("a".into()));
+            Msg::UnknownIdentifier("a".into()),
+        );
     }
 
     #[test]
     fn type_method_call() {
-        ok("class Foo {
+        ok(
+            "class Foo {
                 fun bar() {}
                 fun baz() -> int { return 1; }
             }
 
             fun f(x: Foo) { x.bar(); }
-            fun g(x: Foo) -> int { return x.baz(); }");
+            fun g(x: Foo) -> int { return x.baz(); }",
+        );
 
-        err("class Foo {
+        err(
+            "class Foo {
                  fun bar() -> int { return 0; }
              }
 
              fun f(x: Foo) -> Str { return x.bar(); }",
             pos(5, 37),
-            Msg::ReturnType("Str".into(), "int".into()));
+            Msg::ReturnType("Str".into(), "int".into()),
+        );
     }
 
     #[test]
     fn type_method_defined_twice() {
-        err("class Foo {
+        err(
+            "class Foo {
                  fun bar() {}
                  fun bar() {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        );
 
-        err("class Foo {
+        err(
+            "class Foo {
                  fun bar() {}
                  fun bar() -> int {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        );
 
-        err("class Foo {
+        err(
+            "class Foo {
                  fun bar(a: int) {}
                  fun bar(a: int) -> int {}
              }",
             pos(3, 18),
-            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 18)),
+        );
 
-        err("class Foo {
+        err(
+            "class Foo {
                 fun bar(a: int) {}
                 fun bar(a: Str) {}
             }",
             pos(3, 17),
-            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 17)));
+            Msg::MethodExists("Foo".into(), "bar".into(), pos(2, 17)),
+        );
     }
 
     #[test]
     fn type_self() {
         ok("class Foo { fun me() -> Foo { return self; } }");
-        err("class Foo fun me() { return self; }",
+        err(
+            "class Foo fun me() { return self; }",
             pos(1, 29),
-            Msg::ThisUnavailable);
+            Msg::ThisUnavailable,
+        );
 
-        ok("class Foo(let a: int, let b: int) {
+        ok(
+            "class Foo(let a: int, let b: int) {
             fun bar() -> int { return self.a + self.b; }
-        }");
+        }",
+        );
 
-        ok("class Foo(var a: int) {
+        ok(
+            "class Foo(var a: int) {
             fun setA(a: int) { self.a = a; }
-        }");
+        }",
+        );
 
-        ok("class Foo {
+        ok(
+            "class Foo {
             fun zero() -> int { return 0; }
             fun other() -> int { return self.zero(); }
-        }");
+        }",
+        );
 
-        ok("class Foo {
+        ok(
+            "class Foo {
             fun bar() { self.bar(); }
-        }");
+        }",
+        );
     }
 
     #[test]
     fn type_unknown_method() {
-        err("class Foo {
+        err(
+            "class Foo {
                  fun bar(a: int) { }
              }
 
              fun f(x: Foo) { x.bar(); }",
             pos(5, 31),
-            Msg::ParamTypesIncompatible("bar".into(), vec!["int".into()], Vec::new()));
+            Msg::ParamTypesIncompatible("bar".into(), vec!["int".into()], Vec::new()),
+        );
 
-        err("class Foo { }
+        err(
+            "class Foo { }
               fun f(x: Foo) { x.bar(1); }",
             pos(2, 32),
-            Msg::UnknownMethod("Foo".into(), "bar".into(), vec!["int".into()]));
+            Msg::UnknownMethod("Foo".into(), "bar".into(), vec!["int".into()]),
+        );
     }
 
     #[test]
     fn type_ctor() {
         ok("class Foo fun f() -> Foo { return Foo(); }");
         ok("class Foo(let a: int) fun f() -> Foo { return Foo(1); }");
-        err("class Foo fun f() -> Foo { return 1; }",
+        err(
+            "class Foo fun f() -> Foo { return 1; }",
             pos(1, 28),
-            Msg::ReturnType("Foo".into(), "int".into()));
+            Msg::ReturnType("Foo".into(), "int".into()),
+        );
     }
 
     #[test]
     fn type_def_for_return_type() {
         ok("fun a() -> int { return 1; }");
-        err("fun a() -> unknown {}",
+        err(
+            "fun a() -> unknown {}",
             pos(1, 12),
-            Msg::UnknownType("unknown".into()));
+            Msg::UnknownType("unknown".into()),
+        );
     }
 
     #[test]
     fn type_def_for_param() {
         ok("fun a(b: int) {}");
-        err("fun a(b: foo) {}",
+        err(
+            "fun a(b: foo) {}",
             pos(1, 10),
-            Msg::UnknownType("foo".into()));
+            Msg::UnknownType("foo".into()),
+        );
     }
 
     #[test]
     fn type_def_for_var() {
         ok("fun a() { let a : int = 1; }");
-        err("fun a() { let a : test = 1; }",
+        err(
+            "fun a() { let a : test = 1; }",
             pos(1, 19),
-            Msg::UnknownType("test".into()));
+            Msg::UnknownType("test".into()),
+        );
     }
 
     #[test]
     fn type_var_needs_expr_or_definition() {
-        err("fun a() { let a; }",
+        err(
+            "fun a() { let a; }",
             pos(1, 11),
-            Msg::VarNeedsTypeInfo("a".into()));
+            Msg::VarNeedsTypeInfo("a".into()),
+        );
     }
 
     #[test]
@@ -2204,54 +2239,70 @@ mod tests {
         ok("fun f() { let a : bool = false; }");
         ok("fun f() { let a : Str = \"f\"; }");
 
-        err("fun f() { let a : int = true; }",
+        err(
+            "fun f() { let a : int = true; }",
             pos(1, 11),
-            Msg::AssignType("a".into(), "int".into(), "bool".into()));
-        err("fun f() { let b : bool = 2; }",
+            Msg::AssignType("a".into(), "int".into(), "bool".into()),
+        );
+        err(
+            "fun f() { let b : bool = 2; }",
             pos(1, 11),
-            Msg::AssignType("b".into(), "bool".into(), "int".into()));
+            Msg::AssignType("b".into(), "bool".into(), "int".into()),
+        );
     }
 
     #[test]
     fn type_while() {
         ok("fun x() { while true { } }");
         ok("fun x() { while false { } }");
-        err("fun x() { while 2 { } }",
+        err(
+            "fun x() { while 2 { } }",
             pos(1, 11),
-            Msg::WhileCondType("int".into()));
+            Msg::WhileCondType("int".into()),
+        );
     }
 
     #[test]
     fn type_if() {
         ok("fun x() { if true { } }");
         ok("fun x() { if false { } }");
-        err("fun x() { if 4 { } }",
+        err(
+            "fun x() { if 4 { } }",
             pos(1, 11),
-            Msg::IfCondType("int".into()));
+            Msg::IfCondType("int".into()),
+        );
     }
 
     #[test]
     fn type_return_unit() {
         ok("fun f() { return; }");
-        err("fun f() { return 1; }",
+        err(
+            "fun f() { return 1; }",
             pos(1, 11),
-            Msg::ReturnType("()".into(), "int".into()));
+            Msg::ReturnType("()".into(), "int".into()),
+        );
     }
 
     #[test]
     fn type_return() {
         ok("fun f() -> int { let a = 1; return a; }");
         ok("fun f() -> int { return 1; }");
-        err("fun f() -> int { return; }",
+        err(
+            "fun f() -> int { return; }",
             pos(1, 18),
-            Msg::ReturnType("int".into(), "()".into()));
+            Msg::ReturnType("int".into(), "()".into()),
+        );
 
-        ok("fun f() -> int { return 0; }
-            fun g() -> int { return f(); }");
-        err("fun f() { }
+        ok(
+            "fun f() -> int { return 0; }
+            fun g() -> int { return f(); }",
+        );
+        err(
+            "fun f() { }
              fun g() -> int { return f(); }",
             pos(2, 31),
-            Msg::ReturnType("int".into(), "()".into()));
+            Msg::ReturnType("int".into(), "()".into()),
+        );
     }
 
     #[test]
@@ -2267,12 +2318,16 @@ mod tests {
     #[test]
     fn type_un_op() {
         ok("fun f(a: int) { !a; -a; +a; }");
-        err("fun f(a: bool) { -a; }",
+        err(
+            "fun f(a: bool) { -a; }",
             pos(1, 18),
-            Msg::UnOpType("-".into(), "bool".into()));
-        err("fun f(a: bool) { +a; }",
+            Msg::UnOpType("-".into(), "bool".into()),
+        );
+        err(
+            "fun f(a: bool) { +a; }",
             pos(1, 18),
-            Msg::UnOpType("+".into(), "bool".into()));
+            Msg::UnOpType("+".into(), "bool".into()),
+        );
     }
 
     #[test]
@@ -2285,41 +2340,63 @@ mod tests {
         ok("fun f(a: int) { a|a; a&a; a^a; }");
         ok("fun f(a: bool) { a||a; a&&a; }");
 
-        err("class A class B fun f(a: A, b: B) { a === b; }",
+        err(
+            "class A class B fun f(a: A, b: B) { a === b; }",
             pos(1, 39),
-            Msg::TypesIncompatible("A".into(), "B".into()));
-        err("class A class B fun f(a: A, b: B) { b !== a; }",
+            Msg::TypesIncompatible("A".into(), "B".into()),
+        );
+        err(
+            "class A class B fun f(a: A, b: B) { b !== a; }",
             pos(1, 39),
-            Msg::TypesIncompatible("B".into(), "A".into()));
-        err("fun f(a: bool) { a+a; }",
+            Msg::TypesIncompatible("B".into(), "A".into()),
+        );
+        err(
+            "fun f(a: bool) { a+a; }",
             pos(1, 19),
-            Msg::BinOpType("+".into(), "bool".into(), "bool".into()));
-        err("fun f(a: bool) { a^a; }",
+            Msg::BinOpType("+".into(), "bool".into(), "bool".into()),
+        );
+        err(
+            "fun f(a: bool) { a^a; }",
             pos(1, 19),
-            Msg::BinOpType("^".into(), "bool".into(), "bool".into()));
-        err("fun f(a: int) { a||a; }",
+            Msg::BinOpType("^".into(), "bool".into(), "bool".into()),
+        );
+        err(
+            "fun f(a: int) { a||a; }",
             pos(1, 18),
-            Msg::BinOpType("||".into(), "int".into(), "int".into()));
-        err("fun f(a: int) { a&&a; }",
+            Msg::BinOpType("||".into(), "int".into(), "int".into()),
+        );
+        err(
+            "fun f(a: int) { a&&a; }",
             pos(1, 18),
-            Msg::BinOpType("&&".into(), "int".into(), "int".into()));
-        err("fun f(a: Str) { a-a; }",
+            Msg::BinOpType("&&".into(), "int".into(), "int".into()),
+        );
+        err(
+            "fun f(a: Str) { a-a; }",
             pos(1, 18),
-            Msg::BinOpType("-".into(), "Str".into(), "Str".into()));
-        err("fun f(a: Str) { a*a; }",
+            Msg::BinOpType("-".into(), "Str".into(), "Str".into()),
+        );
+        err(
+            "fun f(a: Str) { a*a; }",
             pos(1, 18),
-            Msg::BinOpType("*".into(), "Str".into(), "Str".into()));
-        err("fun f(a: Str) { a%a; }",
+            Msg::BinOpType("*".into(), "Str".into(), "Str".into()),
+        );
+        err(
+            "fun f(a: Str) { a%a; }",
             pos(1, 18),
-            Msg::BinOpType("%".into(), "Str".into(), "Str".into()));
+            Msg::BinOpType("%".into(), "Str".into(), "Str".into()),
+        );
     }
 
     #[test]
     fn type_function_return_type() {
-        ok("fun foo() -> int { return 1; }\nfun f() { let i: int = foo(); }");
-        err("fun foo() -> int { return 1; }\nfun f() { let i: bool = foo(); }",
+        ok(
+            "fun foo() -> int { return 1; }\nfun f() { let i: int = foo(); }",
+        );
+        err(
+            "fun foo() -> int { return 1; }\nfun f() { let i: bool = foo(); }",
             pos(2, 11),
-            Msg::AssignType("i".into(), "bool".into(), "int".into()));
+            Msg::AssignType("i".into(), "bool".into(), "int".into()),
+        );
     }
 
     #[test]
@@ -2338,112 +2415,148 @@ mod tests {
         ok("fun foo(a: int) {}\nfun f() { foo(1); }");
         ok("fun foo(a: int, b: bool) {}\nfun f() { foo(1, true); }");
 
-        err("fun foo() {}\nfun f() { foo(1); }",
+        err(
+            "fun foo() {}\nfun f() { foo(1); }",
             pos(2, 11),
-            Msg::ParamTypesIncompatible("foo".into(), vec![], vec!["int".into()]));
-        err("fun foo(a: int) {}\nfun f() { foo(true); }",
+            Msg::ParamTypesIncompatible("foo".into(), vec![], vec!["int".into()]),
+        );
+        err(
+            "fun foo(a: int) {}\nfun f() { foo(true); }",
             pos(2, 11),
-            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec!["bool".into()]));
-        err("fun foo(a: int, b: bool) {}\nfun f() { foo(1, 2); }",
+            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec!["bool".into()]),
+        );
+        err(
+            "fun foo(a: int, b: bool) {}\nfun f() { foo(1, 2); }",
             pos(2, 11),
-            Msg::ParamTypesIncompatible("foo".into(),
-                                        vec!["int".into(), "bool".into()],
-                                        vec!["int".into(), "int".into()]));
+            Msg::ParamTypesIncompatible(
+                "foo".into(),
+                vec!["int".into(), "bool".into()],
+                vec!["int".into(), "int".into()],
+            ),
+        );
     }
 
     #[test]
     fn type_return_nil() {
         ok("fun foo() -> Str { return nil; }");
         ok("class Foo fun foo() -> Foo { return nil; }");
-        err("fun foo() -> int { return nil; }",
+        err(
+            "fun foo() -> int { return nil; }",
             pos(1, 20),
-            Msg::IncompatibleWithNil("int".into()));
+            Msg::IncompatibleWithNil("int".into()),
+        );
     }
 
     #[test]
     fn type_nil_as_argument() {
         ok("fun foo(a: Str) {} fun test() { foo(nil); }");
-        err("fun foo(a: int) {} fun test() { foo(nil); }",
+        err(
+            "fun foo(a: int) {} fun test() { foo(nil); }",
             pos(1, 33),
-            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec!["nil".into()]));
+            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec!["nil".into()]),
+        );
     }
 
     #[test]
     fn type_nil_for_ctor() {
         ok("class Foo(let a: Str) fun test() { Foo(nil); }");
-        err("class Foo(let a: int) fun test() { Foo(nil); }",
+        err(
+            "class Foo(let a: int) fun test() { Foo(nil); }",
             pos(1, 36),
-            Msg::UnknownCtor("Foo".into(), vec!["nil".into()]));
+            Msg::UnknownCtor("Foo".into(), vec!["nil".into()]),
+        );
     }
 
     #[test]
     fn type_nil_for_local_variable() {
         ok("fun f() { let x: Str = nil; }");
-        err("fun f() { let x: int = nil; }",
+        err(
+            "fun f() { let x: int = nil; }",
             pos(1, 11),
-            Msg::AssignType("x".into(), "int".into(), "nil".into()));
+            Msg::AssignType("x".into(), "int".into(), "nil".into()),
+        );
     }
 
     #[test]
     fn type_nil_for_field() {
         ok("class Foo(var a: Str) fun f() { Foo(nil).a = nil; }");
-        err("class Foo(var a: int) fun f() { Foo(1).a = nil; }",
+        err(
+            "class Foo(var a: int) fun f() { Foo(1).a = nil; }",
             pos(1, 42),
-            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "nil".into()));
+            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "nil".into()),
+        );
     }
 
     #[test]
     fn type_nil_method() {
-        err("fun f() { nil.test(); }",
+        err(
+            "fun f() { nil.test(); }",
             pos(1, 14),
-            Msg::UnknownMethod("nil".into(), "test".into(), Vec::new()));
+            Msg::UnknownMethod("nil".into(), "test".into(), Vec::new()),
+        );
     }
 
     #[test]
     fn type_nil_as_method_argument() {
-        ok("class Foo {
+        ok(
+            "class Foo {
             fun f(a: Str) {}
-        } fun f() { Foo().f(nil); }");
+        } fun f() { Foo().f(nil); }",
+        );
     }
 
     #[test]
     fn type_array() {
         ok("fun f(a: Array<int>) -> int { return a[1]; }");
-        err("fun f(a: Array<int>) -> Str { return a[1]; }",
+        err(
+            "fun f(a: Array<int>) -> Str { return a[1]; }",
             pos(1, 31),
-            Msg::ReturnType("Str".into(), "int".into()));
+            Msg::ReturnType("Str".into(), "int".into()),
+        );
     }
 
     #[test]
     fn type_array_assign() {
-        err("fun f(a: Array<int>) -> int { return a[3] = 4; }",
+        err(
+            "fun f(a: Array<int>) -> int { return a[3] = 4; }",
             pos(1, 31),
-            Msg::ReturnType("int".into(), "()".into()));
-        err("fun f(a: Array<int>) { a[3] = \"b\"; }",
+            Msg::ReturnType("int".into(), "()".into()),
+        );
+        err(
+            "fun f(a: Array<int>) { a[3] = \"b\"; }",
             pos(1, 29),
-            Msg::UnknownMethod("Array<int>".into(),
-                               "set".into(),
-                               vec!["int".into(), "Str".into()]));
+            Msg::UnknownMethod(
+                "Array<int>".into(),
+                "set".into(),
+                vec!["int".into(), "Str".into()],
+            ),
+        );
     }
 
     #[test]
     fn type_throw() {
         ok("fun f() { throw \"abc\"; }");
         ok("fun f() { throw Array::<int>(); }");
-        err("fun f() { throw 1; }",
+        err(
+            "fun f() { throw 1; }",
             pos(1, 11),
-            Msg::ReferenceTypeExpected("int".into()));
+            Msg::ReferenceTypeExpected("int".into()),
+        );
         err("fun f() { throw nil; }", pos(1, 11), Msg::ThrowNil);
     }
 
     #[test]
     fn type_defer() {
-        ok("fun foo() { }
-            fun f() { defer foo(); }");
+        ok(
+            "fun foo() { }
+            fun f() { defer foo(); }",
+        );
 
-        err("fun foo(a: int) {} fun f() { defer foo();}",
+        err(
+            "fun foo(a: int) {} fun f() { defer foo();}",
             pos(1, 36),
-            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec![]));
+            Msg::ParamTypesIncompatible("foo".into(), vec!["int".into()], vec![]),
+        );
 
         err("fun f() { defer 1; }", pos(1, 11), Msg::FctCallExpected);
     }
@@ -2451,14 +2564,18 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { do {} catch a: Str { print(a); } }");
-        ok("fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }");
+        ok(
+            "fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }",
+        );
     }
 
     #[test]
     fn try_value_type() {
-        err("fun f() { do {} catch a: int {} }",
+        err(
+            "fun f() { do {} catch a: int {} }",
             pos(1, 26),
-            Msg::ReferenceTypeExpected("int".into()));
+            Msg::ReferenceTypeExpected("int".into()),
+        );
     }
 
     #[test]
@@ -2468,25 +2585,35 @@ mod tests {
 
     #[test]
     fn try_check_blocks() {
-        err("fun f() { do {} catch a: Array<int> {} a.len(); }",
+        err(
+            "fun f() { do {} catch a: Array<int> {} a.len(); }",
             pos(1, 40),
-            Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do {} catch a: Array<int> {} finally { a.len(); } }",
+            Msg::UnknownIdentifier("a".into()),
+        );
+        err(
+            "fun f() { do {} catch a: Array<int> {} finally { a.len(); } }",
             pos(1, 50),
-            Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do { return a; } catch a: Array<int> {} }",
+            Msg::UnknownIdentifier("a".into()),
+        );
+        err(
+            "fun f() { do { return a; } catch a: Array<int> {} }",
             pos(1, 23),
-            Msg::UnknownIdentifier("a".into()));
-        err("fun f() { do { } catch a: Array<int> { return a; } }",
+            Msg::UnknownIdentifier("a".into()),
+        );
+        err(
+            "fun f() { do { } catch a: Array<int> { return a; } }",
             pos(1, 40),
-            Msg::ReturnType("()".into(), "Array<int>".into()));
+            Msg::ReturnType("()".into(), "Array<int>".into()),
+        );
     }
 
     #[test]
     fn let_without_initialization() {
-        err("fun f() { let x: int; }",
+        err(
+            "fun f() { let x: int; }",
             pos(1, 11),
-            Msg::LetMissingInitialization);
+            Msg::LetMissingInitialization,
+        );
     }
 
     #[test]
@@ -2503,14 +2630,17 @@ mod tests {
     #[test]
     fn reassign_field() {
         ok("class Foo(var x: int) fun foo(var f: Foo) { f.x = 1; }");
-        err("class Foo(let x: int) fun foo(var f: Foo) { f.x = 1; }",
+        err(
+            "class Foo(let x: int) fun foo(var f: Foo) { f.x = 1; }",
             pos(1, 49),
-            Msg::LetReassigned);
+            Msg::LetReassigned,
+        );
     }
 
     #[test]
     fn reassign_catch() {
-        err("fun f() {
+        err(
+            "fun f() {
                do {
                  throw \"test\";
                } catch x: Array<int> {
@@ -2518,7 +2648,8 @@ mod tests {
                }
              }",
             pos(5, 20),
-            Msg::LetReassigned);
+            Msg::LetReassigned,
+        );
     }
 
     #[test]
@@ -2533,11 +2664,13 @@ mod tests {
 
     #[test]
     fn reassign_self() {
-        err("class Foo {
+        err(
+            "class Foo {
             fun f() { self = Foo(); }
         }",
             pos(2, 28),
-            Msg::LvalueExpected);
+            Msg::LvalueExpected,
+        );
     }
 
     #[test]
@@ -2545,33 +2678,47 @@ mod tests {
         ok("open class A class B: A");
         ok("open class A class B: A()");
         ok("open class A(a: int) class B: A(1)");
-        err("open class A(a: int) class B: A(true)",
+        err(
+            "open class A(a: int) class B: A(true)",
             pos(1, 31),
-            Msg::UnknownCtor("A".into(), vec!["bool".into()]));
+            Msg::UnknownCtor("A".into(), vec!["bool".into()]),
+        );
     }
 
     #[test]
     fn access_super_class_field() {
-        ok("open class A(var a: int) class B(x: int): A(x*2)
-            fun foo(b: B) { b.a = b.a + 10; }");
+        ok(
+            "open class A(var a: int) class B(x: int): A(x*2)
+            fun foo(b: B) { b.a = b.a + 10; }",
+        );
     }
 
     #[test]
     fn check_is() {
-        ok("open class A class B: A
-            fun f(a: A) -> bool { return a is B; }");
-        ok("open class A class B: A
-            fun f(b: B) -> bool { return b is A; }");
-        ok("class A
-            fun f(a: A) -> bool { return a is A; }");
-        err("open class A class B: A
+        ok(
+            "open class A class B: A
+            fun f(a: A) -> bool { return a is B; }",
+        );
+        ok(
+            "open class A class B: A
+            fun f(b: B) -> bool { return b is A; }",
+        );
+        ok(
+            "class A
+            fun f(a: A) -> bool { return a is A; }",
+        );
+        err(
+            "open class A class B: A
              fun f(a: A) -> bool { return a is Str; }",
             pos(2, 45),
-            Msg::TypesIncompatible("A".into(), "Str".into()));
-        err("open class A class B: A class C
+            Msg::TypesIncompatible("A".into(), "Str".into()),
+        );
+        err(
+            "open class A class B: A class C
              fun f(a: A) -> bool { return a is C; }",
             pos(2, 45),
-            Msg::TypesIncompatible("A".into(), "C".into()));
+            Msg::TypesIncompatible("A".into(), "C".into()),
+        );
 
         ok("open class A class B: A fun f() -> A { return B(); }");
         ok("open class A class B: A fun f() { let a: A = B(); }");
@@ -2579,23 +2726,32 @@ mod tests {
 
     #[test]
     fn check_as() {
-        ok("open class A class B: A
-            fun f(a: A) -> B { return a as B; }");
-        ok("class A
-            fun f(a: A) -> A { return a as A; }");
-        err("open class A class B: A
+        ok(
+            "open class A class B: A
+            fun f(a: A) -> B { return a as B; }",
+        );
+        ok(
+            "class A
+            fun f(a: A) -> A { return a as A; }",
+        );
+        err(
+            "open class A class B: A
              fun f(a: A) -> Str { return a as Str; }",
             pos(2, 44),
-            Msg::TypesIncompatible("A".into(), "Str".into()));
-        err("open class A class B: A class C
+            Msg::TypesIncompatible("A".into(), "Str".into()),
+        );
+        err(
+            "open class A class B: A class C
              fun f(a: A) -> C { return a as C; }",
             pos(2, 42),
-            Msg::TypesIncompatible("A".into(), "C".into()));
+            Msg::TypesIncompatible("A".into(), "C".into()),
+        );
     }
 
     #[test]
     fn check_upcast() {
-        ok("open class A class B: A
+        ok(
+            "open class A class B: A
             fun f(b: B) -> A {
                 let a: A = b;
                 return a;
@@ -2603,41 +2759,50 @@ mod tests {
                 //return b;
             }
 
-            fun g(a: A) {}");
+            fun g(a: A) {}",
+        );
     }
 
     #[test]
     fn check_cmp_is() {
-        ok("fun f(x: Str) {
+        ok(
+            "fun f(x: Str) {
                 let a = nil === x;
                 let b = x === nil;
                 let c = nil === nil;
-            }");
+            }",
+        );
     }
 
     #[test]
     fn super_delegation() {
-        ok("open class A { fun f() {} }
+        ok(
+            "open class A { fun f() {} }
             class B: A { fun g() {} }
 
             fun foo(b: B) {
                 b.f();
                 b.g();
-            }");
+            }",
+        );
     }
 
     #[test]
     fn super_method_call() {
-        ok("open class A { open fun f() -> int { return 1; } }
-            class B: A { override fun f() -> int { return super.f() + 1; } }");
+        ok(
+            "open class A { open fun f() -> int { return 1; } }
+            class B: A { override fun f() -> int { return super.f() + 1; } }",
+        );
     }
 
     #[test]
     fn super_as_normal_expression() {
-        err("open class A { }
+        err(
+            "open class A { }
             class B: A { fun me() { let x = super; } }",
             pos(2, 45),
-            Msg::SuperNeedsMethodCall);
+            Msg::SuperNeedsMethodCall,
+        );
     }
 
     #[test]
@@ -2647,58 +2812,76 @@ mod tests {
 
     #[test]
     fn try_fct() {
-        ok("fun one() throws -> int { return 1; } fun me() -> int { return try one(); }");
+        ok(
+            "fun one() throws -> int { return 1; } fun me() -> int { return try one(); }",
+        );
     }
 
     #[test]
     fn throws_fct_without_try() {
-        err("fun one() throws -> int { return 1; } fun me() -> int { return one(); }",
+        err(
+            "fun one() throws -> int { return 1; } fun me() -> int { return one(); }",
             pos(1, 64),
-            Msg::ThrowingCallWithoutTry);
+            Msg::ThrowingCallWithoutTry,
+        );
     }
 
     #[test]
     fn try_fct_non_throwing() {
-        err("fun one() -> int { return 1; }
+        err(
+            "fun one() -> int { return 1; }
              fun me() -> int { return try one(); }",
             pos(2, 39),
-            Msg::TryCallNonThrowing);
+            Msg::TryCallNonThrowing,
+        );
     }
 
     #[test]
     fn try_method() {
-        ok("class Foo { fun one() throws -> int { return 1; } }
-            fun me() -> int { return try Foo().one(); }");
+        ok(
+            "class Foo { fun one() throws -> int { return 1; } }
+            fun me() -> int { return try Foo().one(); }",
+        );
     }
 
     #[test]
     fn throws_method_without_try() {
-        err("class Foo { fun one() throws -> int { return 1; } }
+        err(
+            "class Foo { fun one() throws -> int { return 1; } }
              fun me() -> int { return Foo().one(); }",
             pos(2, 44),
-            Msg::ThrowingCallWithoutTry);
+            Msg::ThrowingCallWithoutTry,
+        );
     }
 
     #[test]
     fn try_method_non_throwing() {
-        err("class Foo { fun one() -> int { return 1; } }
+        err(
+            "class Foo { fun one() -> int { return 1; } }
              fun me() -> int { return try Foo().one(); }",
             pos(2, 39),
-            Msg::TryCallNonThrowing);
+            Msg::TryCallNonThrowing,
+        );
     }
 
     #[test]
     fn try_else() {
-        ok("fun one() throws -> int { return 1; }
-            fun me() -> int { return try one() else 0; }");
-        err("fun one() throws -> int { return 1; }
+        ok(
+            "fun one() throws -> int { return 1; }
+            fun me() -> int { return try one() else 0; }",
+        );
+        err(
+            "fun one() throws -> int { return 1; }
              fun me() -> int { return try one() else \"bla\"; }",
             pos(2, 39),
-            Msg::TypesIncompatible("int".into(), "Str".into()));
-        err("fun one() throws -> int { return 1; }
+            Msg::TypesIncompatible("int".into(), "Str".into()),
+        );
+        err(
+            "fun one() throws -> int { return 1; }
              fun me() -> int { return try one() else false; }",
             pos(2, 39),
-            Msg::TypesIncompatible("int".into(), "bool".into()));
+            Msg::TypesIncompatible("int".into(), "bool".into()),
+        );
     }
 
     #[test]
@@ -2706,12 +2889,16 @@ mod tests {
         ok("struct Foo {} fun foo() -> Foo { return Foo; }");
         ok("struct Foo {} fun foo() { let x = Foo; }");
         ok("struct Foo {} fun foo() { let x: Foo = Foo; }");
-        err("struct Foo {} fun foo() { let x: int = Foo; }",
+        err(
+            "struct Foo {} fun foo() { let x: int = Foo; }",
             pos(1, 27),
-            Msg::AssignType("x".into(), "int".into(), "Foo".into()));
-        err("struct Foo {} fun foo() -> int { return Foo; }",
+            Msg::AssignType("x".into(), "int".into(), "Foo".into()),
+        );
+        err(
+            "struct Foo {} fun foo() -> int { return Foo; }",
             pos(1, 34),
-            Msg::ReturnType("int".into(), "Foo".into()));
+            Msg::ReturnType("int".into(), "Foo".into()),
+        );
     }
 
     #[test]
@@ -2728,84 +2915,110 @@ mod tests {
 
     #[test]
     fn overload_plus() {
-        ok("class A { fun plus(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() + A(); }");
+        ok(
+            "class A { fun plus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() + A(); }",
+        );
     }
 
     #[test]
     fn overload_minus() {
-        ok("class A { fun minus(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() - A(); }");
+        ok(
+            "class A { fun minus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() - A(); }",
+        );
     }
 
     #[test]
     fn overload_times() {
-        ok("class A { fun times(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() * A(); }");
+        ok(
+            "class A { fun times(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() * A(); }",
+        );
     }
 
     #[test]
     fn overload_div() {
-        ok("class A { fun div(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() / A(); }");
+        ok(
+            "class A { fun div(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() / A(); }",
+        );
     }
 
     #[test]
     fn overload_mod() {
-        ok("class A { fun mod(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() % A(); }");
+        ok(
+            "class A { fun mod(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() % A(); }",
+        );
     }
 
     #[test]
     fn overload_bitwise_or() {
-        ok("class A { fun bitwiseOr(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() | A(); }");
+        ok(
+            "class A { fun bitwiseOr(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() | A(); }",
+        );
     }
 
     #[test]
     fn overload_bitwise_and() {
-        ok("class A { fun bitwiseAnd(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() & A(); }");
+        ok(
+            "class A { fun bitwiseAnd(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() & A(); }",
+        );
     }
 
     #[test]
     fn overload_bitwise_xor() {
-        ok("class A { fun bitwiseXor(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() ^ A(); }");
+        ok(
+            "class A { fun bitwiseXor(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() ^ A(); }",
+        );
     }
 
     #[test]
     fn overload_shl() {
-        ok("class A { fun shiftLeft(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() << A(); }");
+        ok(
+            "class A { fun shiftLeft(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() << A(); }",
+        );
     }
 
     #[test]
     fn overload_sar() {
-        ok("class A { fun shiftRight(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() >> A(); }");
+        ok(
+            "class A { fun shiftRight(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() >> A(); }",
+        );
     }
 
     #[test]
     fn overload_shr() {
-        ok("class A { fun unsignedShiftRight(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() >>> A(); }");
+        ok(
+            "class A { fun unsignedShiftRight(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() >>> A(); }",
+        );
     }
 
     #[test]
     fn overload_equals() {
-        ok("class A { fun equals(rhs: A) -> bool { return true; } }
+        ok(
+            "class A { fun equals(rhs: A) -> bool { return true; } }
             fun f1() -> bool { return A() == A(); }
-            fun f2() -> bool { return A() != A(); }");
+            fun f2() -> bool { return A() != A(); }",
+        );
     }
 
     #[test]
     fn overload_compare_to() {
-        ok("class A { fun compareTo(rhs: A) -> int { return 0; } }
+        ok(
+            "class A { fun compareTo(rhs: A) -> int { return 0; } }
             fun f1() -> bool { return A() < A(); }
             fun f2() -> bool { return A() <= A(); }
             fun f3() -> bool { return A() > A(); }
-            fun f4() -> bool { return A() >= A(); }");
+            fun f4() -> bool { return A() >= A(); }",
+        );
     }
 
     #[test]
@@ -2834,256 +3047,330 @@ mod tests {
 
     #[test]
     fn test_literal_int_overflow() {
-        err("fun f() { let x = 2147483648; }",
+        err(
+            "fun f() { let x = 2147483648; }",
             pos(1, 19),
-            Msg::NumberOverflow("int".into()));
+            Msg::NumberOverflow("int".into()),
+        );
         ok("fun f() { let x = 2147483647; }");
-        err("fun f() { let x = -2147483649; }",
+        err(
+            "fun f() { let x = -2147483649; }",
             pos(1, 20),
-            Msg::NumberOverflow("int".into()));
+            Msg::NumberOverflow("int".into()),
+        );
         ok("fun f() { let x = -2147483648; }");
     }
 
     #[test]
     fn test_literal_hex_int_overflow() {
-        err("fun f() { let x = 0x1_FF_FF_FF_FF; }",
+        err(
+            "fun f() { let x = 0x1_FF_FF_FF_FF; }",
             pos(1, 19),
-            Msg::NumberOverflow("int".into()));
+            Msg::NumberOverflow("int".into()),
+        );
         ok("fun f() { let x: int = 0xFF_FF_FF_FF; }");
     }
 
     #[test]
     fn test_literal_bin_int_overflow() {
-        err("fun f() { let x = 0b1_11111111_11111111_11111111_11111111; }",
+        err(
+            "fun f() { let x = 0b1_11111111_11111111_11111111_11111111; }",
             pos(1, 19),
-            Msg::NumberOverflow("int".into()));
-        ok("fun f() { let x: int = 0b11111111_11111111_11111111_11111111; }");
+            Msg::NumberOverflow("int".into()),
+        );
+        ok(
+            "fun f() { let x: int = 0b11111111_11111111_11111111_11111111; }",
+        );
     }
 
     #[test]
     fn test_literal_long_overflow() {
-        err("fun f() { let x = 9223372036854775808L; }",
+        err(
+            "fun f() { let x = 9223372036854775808L; }",
             pos(1, 19),
-            Msg::NumberOverflow("long".into()));
+            Msg::NumberOverflow("long".into()),
+        );
         ok("fun f() { let x = 9223372036854775807L; }");
-        err("fun f() { let x = -9223372036854775809L; }",
+        err(
+            "fun f() { let x = -9223372036854775809L; }",
             pos(1, 20),
-            Msg::NumberOverflow("long".into()));
+            Msg::NumberOverflow("long".into()),
+        );
         ok("fun f() { let x = -9223372036854775808L; }");
     }
 
     #[test]
     fn test_literal_float_overflow() {
-        err("fun f() { let x = -340282350000000000000000000000000000000F; }",
+        err(
+            "fun f() { let x = -340282350000000000000000000000000000000F; }",
             pos(1, 20),
-            Msg::NumberOverflow("float".into()));
-        ok("fun f() { let x = -340282340000000000000000000000000000000F; }");
-        err("fun f() { let x = 340282350000000000000000000000000000001F; }",
+            Msg::NumberOverflow("float".into()),
+        );
+        ok(
+            "fun f() { let x = -340282340000000000000000000000000000000F; }",
+        );
+        err(
+            "fun f() { let x = 340282350000000000000000000000000000001F; }",
             pos(1, 19),
-            Msg::NumberOverflow("float".into()));
-        ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
+            Msg::NumberOverflow("float".into()),
+        );
+        ok(
+            "fun f() { let x = 340282340000000000000000000000000000000F; }",
+        );
     }
 
     #[test]
     fn test_char() {
         ok("fun foo() -> char { return 'c'; }");
         ok("fun foo(a: char) -> char { return a; }");
-        err("fun foo() -> char { return false; }",
+        err(
+            "fun foo() -> char { return false; }",
             pos(1, 21),
-            Msg::ReturnType("char".into(), "bool".into()));
-        err("fun foo() -> char { return 10; }",
+            Msg::ReturnType("char".into(), "bool".into()),
+        );
+        err(
+            "fun foo() -> char { return 10; }",
             pos(1, 21),
-            Msg::ReturnType("char".into(), "int".into()));
+            Msg::ReturnType("char".into(), "int".into()),
+        );
     }
 
     #[test]
     fn test_generic_arguments_mismatch() {
-        err("class A<T>
+        err(
+            "class A<T>
             fun foo() {
                 let a = A::<int, int>();
             }",
             pos(3, 25),
-            Msg::WrongNumberTypeParams(1, 2));
+            Msg::WrongNumberTypeParams(1, 2),
+        );
 
-        err("class A<T>
+        err(
+            "class A<T>
             fun foo() {
                 let a = A();
             }",
             pos(3, 25),
-            Msg::WrongNumberTypeParams(1, 0));
+            Msg::WrongNumberTypeParams(1, 0),
+        );
 
-        err("class A
+        err(
+            "class A
             fun foo() {
                 let a = A::<int>();
             }",
             pos(3, 25),
-            Msg::WrongNumberTypeParams(0, 1));
+            Msg::WrongNumberTypeParams(0, 1),
+        );
     }
 
     #[test]
     fn test_invoke_static_method_as_instance_method() {
-        err("class A {
+        err(
+            "class A {
                 static fun foo() {}
                 fun test() { self.foo(); }
             }",
             pos(3, 34),
-            Msg::UnknownMethod("A".into(), "foo".into(), vec![]));
+            Msg::UnknownMethod("A".into(), "foo".into(), vec![]),
+        );
     }
 
     #[test]
     fn test_invoke_method_as_static() {
-        err("class A {
+        err(
+            "class A {
                 fun foo() {}
                 static fun test() { A::foo(); }
             }",
             pos(3, 37),
-            Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]));
+            Msg::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
+        );
     }
 
     #[test]
     fn test_fct_with_type_params() {
-        err("fun f() {} fun g() { f::<int>(); }",
+        err(
+            "fun f() {} fun g() { f::<int>(); }",
             pos(1, 22),
-            Msg::WrongNumberTypeParams(0, 1));
-        err("fun f<T>() {} fun g() { f(); }",
+            Msg::WrongNumberTypeParams(0, 1),
+        );
+        err(
+            "fun f<T>() {} fun g() { f(); }",
             pos(1, 25),
-            Msg::WrongNumberTypeParams(1, 0));
+            Msg::WrongNumberTypeParams(1, 0),
+        );
         ok("fun f<T>() {} fun g() { f::<int>(); }");
         ok("fun f<T1, T2>() {} fun g() { f::<int, Str>(); }");
     }
 
     #[test]
     fn test_const_check() {
-        err("const one: int = 1;
+        err(
+            "const one: int = 1;
             fun f() -> long { return one; }",
             pos(2, 31),
-            Msg::ReturnType("long".into(), "int".into()));
+            Msg::ReturnType("long".into(), "int".into()),
+        );
 
-        err("const one: int = 1;
+        err(
+            "const one: int = 1;
             fun f() { let x: Str = one; }",
             pos(2, 23),
-            Msg::AssignType("x".into(), "Str".into(), "int".into()));
+            Msg::AssignType("x".into(), "Str".into(), "int".into()),
+        );
     }
 
     #[test]
     fn test_const() {
-        ok_with_test("  const yes: bool = true;
+        ok_with_test(
+            "  const yes: bool = true;
                         const x: byte = 255Y;
                         const a: int = 100;
                         const b: long = 200L;
                         const c: char = 'A';
                         const d: float = 3.0F;
                         const e: double = 6.0;",
-                     |ctxt| {
-            assert_eq!(ConstValue::Bool(true), ctxt.consts[0].borrow().value);
-            assert_eq!(ConstValue::Int(255), ctxt.consts[1].borrow().value);
-            assert_eq!(ConstValue::Int(100), ctxt.consts[2].borrow().value);
-            assert_eq!(ConstValue::Int(200), ctxt.consts[3].borrow().value);
-            assert_eq!(ConstValue::Char('A'), ctxt.consts[4].borrow().value);
-            assert_eq!(ConstValue::Float(3.0), ctxt.consts[5].borrow().value);
-            assert_eq!(ConstValue::Float(6.0), ctxt.consts[6].borrow().value);
-        });
+            |ctxt| {
+                assert_eq!(ConstValue::Bool(true), ctxt.consts[0].borrow().value);
+                assert_eq!(ConstValue::Int(255), ctxt.consts[1].borrow().value);
+                assert_eq!(ConstValue::Int(100), ctxt.consts[2].borrow().value);
+                assert_eq!(ConstValue::Int(200), ctxt.consts[3].borrow().value);
+                assert_eq!(ConstValue::Char('A'), ctxt.consts[4].borrow().value);
+                assert_eq!(ConstValue::Float(3.0), ctxt.consts[5].borrow().value);
+                assert_eq!(ConstValue::Float(6.0), ctxt.consts[6].borrow().value);
+            },
+        );
     }
 
     #[test]
     fn test_assignment_to_const() {
-        err("const one: int = 1;
+        err(
+            "const one: int = 1;
             fun f() { one = 2; }",
             pos(2, 27),
-            Msg::AssignmentToConst);
+            Msg::AssignmentToConst,
+        );
     }
 
     #[test]
     fn test_unary_minus_byte() {
-        err("const m1: byte = -1Y;",
+        err(
+            "const m1: byte = -1Y;",
             pos(1, 18),
-            Msg::UnOpType("-".into(), "byte".into()));
+            Msg::UnOpType("-".into(), "byte".into()),
+        );
         ok("const m1: int = -1;");
         ok("const m1: long = -1L;");
     }
 
     #[test]
     fn test_generic_class_bounds() {
-        ok("class Foo
+        ok(
+            "class Foo
             class A<T: Foo>
-            fun f() -> A<Foo> { return nil; }");
+            fun f() -> A<Foo> { return nil; }",
+        );
 
-        ok("open class Foo
+        ok(
+            "open class Foo
             class Bar: Foo
             class A<T: Foo>
-            fun f() -> A<Bar> { return nil; }");
+            fun f() -> A<Bar> { return nil; }",
+        );
 
-        err("class Foo
+        err(
+            "class Foo
             class Bar
             class A<T: Foo>
             fun f() -> A<Bar> { return nil; }",
             pos(4, 24),
-            Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()));
+            Msg::ClassBoundNotSatisfied("Bar".into(), "Foo".into()),
+        );
 
-        err("class Foo
+        err(
+            "class Foo
             fun f<T: Foo>() {}
             fun t() { f::<int>(); }",
             pos(3, 23),
-            Msg::ClassBoundNotSatisfied("int".into(), "Foo".into()));
+            Msg::ClassBoundNotSatisfied("int".into(), "Foo".into()),
+        );
     }
 
     #[test]
     fn test_generic_trait_bounds() {
-        ok("trait Foo {}
+        ok(
+            "trait Foo {}
             class X
             impl Foo for X {}
             class A<T: Foo>
-            fun f() -> A<X> { return nil; }");
+            fun f() -> A<X> { return nil; }",
+        );
 
-        err("trait Foo {}
+        err(
+            "trait Foo {}
             class X
             class A<T: Foo>
             fun f() -> A<X> { return nil; }",
             pos(1, 1),
-            Msg::TraitBoundNotSatisfied("X".into(), "Foo".into()));
+            Msg::TraitBoundNotSatisfied("X".into(), "Foo".into()),
+        );
 
-        err("trait Foo {}
+        err(
+            "trait Foo {}
             fun f<T: Foo>() {}
             fun t() { f::<int>(); }",
             pos(3, 23),
-            Msg::TraitBoundNotSatisfied("int".into(), "Foo".into()));
+            Msg::TraitBoundNotSatisfied("int".into(), "Foo".into()),
+        );
     }
 
     #[test]
     fn test_operator_on_generic_type() {
-        err("fun f<T>(a: T, b: T) { a + b; }",
+        err(
+            "fun f<T>(a: T, b: T) { a + b; }",
             pos(1, 26),
-            Msg::BinOpType("+".into(), "T".into(), "T".into()));
+            Msg::BinOpType("+".into(), "T".into(), "T".into()),
+        );
     }
 
     #[test]
     fn test_find_class_method_precedence() {
         // finding class method should have precedence over
         // trait methods
-        ok("class A { fun foo() {} }
+        ok(
+            "class A { fun foo() {} }
             trait Foo { fun foo(); }
             impl Foo for A { fun foo() {} }
-            fun test(a: A) { a.foo(); }");
+            fun test(a: A) { a.foo(); }",
+        );
 
-        err("class A { fun foo() {} }
+        err(
+            "class A { fun foo() {} }
             trait Foo { fun foo(a: int); }
             impl Foo for A { fun foo(a:  int) {} }
             fun test(a: A) { a.foo(1); }",
             pos(4, 31),
-            Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["int".into()]));
+            Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["int".into()]),
+        );
 
-        ok("class A { static fun foo() {} }
+        ok(
+            "class A { static fun foo() {} }
             trait Foo { fun foo(a: int); }
             impl Foo for A { fun foo(a:  int) {} }
-            fun test(a: A) { a.foo(1); }");
+            fun test(a: A) { a.foo(1); }",
+        );
     }
 
     #[test]
     fn test_invoke_abstract_class_ctor() {
-        err("abstract class A
+        err(
+            "abstract class A
             fun test() -> A { return A(); }",
             pos(2, 38),
-            Msg::NewAbstractClass);
+            Msg::NewAbstractClass,
+        );
     }
 
     #[test]
@@ -3094,9 +3381,11 @@ mod tests {
     #[test]
     fn test_global_set() {
         ok("var x: int; fun foo(a: int) { x = a; }");
-        err("let x: int; fun foo(a: int) { x = a; }",
+        err(
+            "let x: int; fun foo(a: int) { x = a; }",
             pos(1, 33),
-            Msg::LetReassigned);
+            Msg::LetReassigned,
+        );
     }
 
     #[test]
@@ -3106,57 +3395,75 @@ mod tests {
         ok("fun f() { let x: () -> () = || {}; }");
         ok("fun f() { let x: () -> () = || -> () {}; }");
         ok("fun f() { let x: () -> int = || -> int { return 2; }; }");
-        err("fun f() { let x: () -> int = || {}; }",
+        err(
+            "fun f() { let x: () -> int = || {}; }",
             pos(1, 11),
-            Msg::AssignType("x".into(), "() -> int".into(), "() -> ()".into()));
+            Msg::AssignType("x".into(), "() -> int".into(), "() -> ()".into()),
+        );
     }
 
     #[test]
     fn generic_trait_method_call() {
-        ok("trait Foo { fun bar(); }
-            fun f<T: Foo>(t: T) { t.bar(); }");
-        ok("trait Foo { fun bar(); }
+        ok(
+            "trait Foo { fun bar(); }
+            fun f<T: Foo>(t: T) { t.bar(); }",
+        );
+        ok(
+            "trait Foo { fun bar(); }
             class A<T: Foo>(let t: T) {
                 fun baz() { self.t.bar(); }
-            }");
+            }",
+        );
 
-        err("trait Foo { fun bar() throws; }
+        err(
+            "trait Foo { fun bar() throws; }
             fun f<T: Foo>(t: T) { t.bar(); }",
             pos(2, 36),
-            Msg::ThrowingCallWithoutTry);
-        err("trait Foo { fun bar() throws; }
+            Msg::ThrowingCallWithoutTry,
+        );
+        err(
+            "trait Foo { fun bar() throws; }
             class A<T: Foo>(let t: T) {
                 fun baz() { self.t.bar(); }
             }",
             pos(3, 35),
-            Msg::ThrowingCallWithoutTry);
+            Msg::ThrowingCallWithoutTry,
+        );
 
-        err("trait Foo { fun bar(); }
+        err(
+            "trait Foo { fun bar(); }
             fun f<T: Foo>(t: T) { try t.bar(); }",
             pos(2, 35),
-            Msg::TryCallNonThrowing);
-        err("trait Foo { fun bar(); }
+            Msg::TryCallNonThrowing,
+        );
+        err(
+            "trait Foo { fun bar(); }
             class A<T: Foo>(let t: T) {
                 fun baz() { try self.t.bar(); }
             }",
             pos(3, 29),
-            Msg::TryCallNonThrowing);
+            Msg::TryCallNonThrowing,
+        );
     }
 
     #[test]
     fn test_generic_ctor_without_type_params() {
-        err("class Foo<A, B>()
+        err(
+            "class Foo<A, B>()
             fun test() { Foo(); }",
             pos(2, 26),
-            Msg::WrongNumberTypeParams(2, 0));
+            Msg::WrongNumberTypeParams(2, 0),
+        );
     }
 
     #[test]
     fn test_generic_argument_with_trait_bound() {
-        err("fun f<X: Comparable>(x: X) {}
+        err(
+            "fun f<X: Comparable>(x: X) {}
             fun g<T>(t: T) { f::<T>(t); }",
             pos(2, 30),
-            Msg::TraitBoundNotSatisfied("T".into(), "Comparable".into()));
+            Msg::TraitBoundNotSatisfied("T".into(), "Comparable".into()),
+        );
     }
 
     // #[test]

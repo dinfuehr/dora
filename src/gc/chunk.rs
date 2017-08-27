@@ -37,7 +37,6 @@ impl Chunk {
             self.next = next;
 
             addr
-
         } else {
             ptr::null()
         }

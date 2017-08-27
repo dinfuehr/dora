@@ -5,7 +5,7 @@ use std::rc::Rc;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use class::*;
-use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, NodeMap};
+use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -95,9 +95,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
-                                if !cls.type_params[type_param_id]
-                                        .trait_bounds
-                                        .insert(trait_id) {
+                                if !cls.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
                                     self.ctxt.diag.borrow_mut().report(type_param.pos, msg);
                                 }
@@ -119,12 +117,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let type_id = self.ctxt
-                    .types
-                    .borrow_mut()
-                    .insert(cls.id, Rc::new(params));
+                let type_id = self.ctxt.types.borrow_mut().insert(cls.id, Rc::new(params));
                 cls.ty = BuiltinType::Generic(type_id);
-
             } else {
                 let msg = Msg::TypeParamsExpected;
                 self.ctxt.diag.borrow_mut().report(c.pos, msg);
@@ -146,19 +140,13 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
-                        self.ctxt
-                            .diag
-                            .borrow_mut()
-                            .report(parent_class.pos, msg);
+                        self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
                     }
                 }
 
                 _ => {
                     let msg = Msg::UnknownClass(name);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(parent_class.pos, msg);
+                    self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
                 }
             };
         } else {
@@ -286,19 +274,25 @@ mod tests {
 
     #[test]
     fn test_multiple_definition() {
-        err("class Foo class Foo",
+        err(
+            "class Foo class Foo",
             pos(1, 11),
-            Msg::ShadowClass("Foo".into()));
+            Msg::ShadowClass("Foo".into()),
+        );
     }
 
     #[test]
     fn test_class_and_function() {
-        err("fun Foo() {} class Foo",
+        err(
+            "fun Foo() {} class Foo",
             pos(1, 14),
-            Msg::ShadowFunction("Foo".into()));
-        err("class Foo fun Foo() {}",
+            Msg::ShadowFunction("Foo".into()),
+        );
+        err(
+            "class Foo fun Foo() {}",
             pos(1, 11),
-            Msg::ShadowClass("Foo".into()));
+            Msg::ShadowClass("Foo".into()),
+        );
     }
 
     #[test]
@@ -309,32 +303,42 @@ mod tests {
         ok("class Foo(let a: int, let b:int)");
         ok("class Foo(let a: Foo)");
         ok("class Foo(let a: Bar) class Bar");
-        err("class Foo(let a: Unknown)",
+        err(
+            "class Foo(let a: Unknown)",
             pos(1, 18),
-            Msg::UnknownType("Unknown".into()));
-        err("class Foo(let a: int, let a: int)",
+            Msg::UnknownType("Unknown".into()),
+        );
+        err(
+            "class Foo(let a: int, let a: int)",
             pos(1, 27),
-            Msg::ShadowField("a".to_string()));
+            Msg::ShadowField("a".to_string()),
+        );
     }
 
     #[test]
     fn class_with_unknown_super_class() {
         err("class B : A {}", pos(1, 11), Msg::UnknownClass("A".into()));
-        err("open class B : A {}",
+        err(
+            "open class B : A {}",
             pos(1, 16),
-            Msg::UnknownClass("A".into()));
-        err("class B : int {}",
+            Msg::UnknownClass("A".into()),
+        );
+        err(
+            "class B : int {}",
             pos(1, 11),
-            Msg::UnderivableType("int".into()));
+            Msg::UnderivableType("int".into()),
+        );
     }
 
     #[test]
     fn class_with_open_modifier() {
         ok("open class A {}");
         ok("open class A {} class B : A {}");
-        err("class A {} class B : A {}",
+        err(
+            "class A {} class B : A {}",
             pos(1, 22),
-            Msg::UnderivableType("A".into()));
+            Msg::UnderivableType("A".into()),
+        );
     }
 
     #[test]
@@ -342,53 +346,71 @@ mod tests {
         ok("class Foo(a: int, b: int)");
         ok("class Foo(let a: int, b: int)");
         ok("class Foo(a: int, var b: int)");
-        err("class Foo(a: int, a: int)",
+        err(
+            "class Foo(a: int, a: int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()));
-        err("class Foo(a: int, let a: int)",
+            Msg::ShadowParam("a".into()),
+        );
+        err(
+            "class Foo(a: int, let a: int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()));
-        err("class Foo(let a: int, a: int)",
+            Msg::ShadowParam("a".into()),
+        );
+        err(
+            "class Foo(let a: int, a: int)",
             pos(1, 1),
-            Msg::ShadowParam("a".into()));
-        err("class Foo(a: int) fun f(x: Foo) { x.a = 1; }",
+            Msg::ShadowParam("a".into()),
+        );
+        err(
+            "class Foo(a: int) fun f(x: Foo) { x.a = 1; }",
             pos(1, 36),
-            Msg::UnknownField("a".into(), "Foo".into()));
+            Msg::UnknownField("a".into(), "Foo".into()),
+        );
 
         ok("class Foo(a: int) fun foo() -> Foo { return Foo(1); } ");
     }
 
     #[test]
     fn field_defined_twice() {
-        err("class Foo { var a: int; var a: int; }",
+        err(
+            "class Foo { var a: int; var a: int; }",
             pos(1, 25),
-            Msg::ShadowField("a".into()));
-        err("class Foo(let a: int) { var a: int; }",
+            Msg::ShadowField("a".into()),
+        );
+        err(
+            "class Foo(let a: int) { var a: int; }",
             pos(1, 25),
-            Msg::ShadowField("a".into()));
+            Msg::ShadowField("a".into()),
+        );
     }
 
     #[test]
     fn let_field_without_initialization() {
-        err("class Foo { let a: int; }",
+        err(
+            "class Foo { let a: int; }",
             pos(1, 13),
-            Msg::LetMissingInitialization);
+            Msg::LetMissingInitialization,
+        );
     }
 
     #[test]
     fn field_self_assignment() {
-        err("class Foo(a: int) { var b: int = b; }",
+        err(
+            "class Foo(a: int) { var b: int = b; }",
             pos(1, 34),
-            Msg::UnknownIdentifier("b".into()));
+            Msg::UnknownIdentifier("b".into()),
+        );
     }
 
     #[test]
     fn test_generic_class() {
         ok("class A<T>");
         ok("class A<X, Y>");
-        err("class A<T, T>",
+        err(
+            "class A<T, T>",
             pos(1, 12),
-            Msg::TypeParamNameNotUnique("T".into()));
+            Msg::TypeParamNameNotUnique("T".into()),
+        );
         err("class A<>", pos(1, 1), Msg::TypeParamsExpected);
     }
 
@@ -401,26 +423,32 @@ mod tests {
 
     #[test]
     fn test_generic_bound() {
-        err("class A<T: Foo>",
+        err(
+            "class A<T: Foo>",
             pos(1, 12),
-            Msg::UnknownType("Foo".into()));
+            Msg::UnknownType("Foo".into()),
+        );
         ok("class Foo class A<T: Foo>");
         ok("trait Foo {} class A<T: Foo>");
     }
 
     #[test]
     fn test_generic_multiple_class_bounds() {
-        err("class Foo class Bar
+        err(
+            "class Foo class Bar
             class A<T: Foo + Bar>",
             pos(2, 21),
-            Msg::MultipleClassBounds);
+            Msg::MultipleClassBounds,
+        );
     }
 
     #[test]
     fn test_duplicate_trait_bound() {
-        err("trait Foo {}
+        err(
+            "trait Foo {}
             class A<T: Foo + Foo>",
             pos(2, 21),
-            Msg::DuplicateTraitBound);
+            Msg::DuplicateTraitBound,
+        );
     }
 }

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::{SemContext, FctId};
+use ctxt::{FctId, SemContext};
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeData>,
@@ -9,7 +9,9 @@ pub struct CodeMap {
 
 impl CodeMap {
     pub fn new() -> CodeMap {
-        CodeMap { tree: BTreeMap::new() }
+        CodeMap {
+            tree: BTreeMap::new(),
+        }
     }
 
     pub fn dump(&self, ctxt: &SemContext) {
@@ -28,7 +30,6 @@ impl CodeMap {
                     println!("{} (id {})", fct_name, id.0);
                 }
             }
-
         }
 
         println!("}}");
@@ -62,8 +63,8 @@ struct CodeSpan {
 impl CodeSpan {
     fn intersect(&self, other: &CodeSpan) -> bool {
         (self.start <= other.start && other.start < self.end) ||
-        (self.start < other.end && other.end <= self.end) ||
-        (other.start <= self.start && self.end <= other.end)
+            (self.start < other.end && other.end <= self.end) ||
+            (other.start <= self.start && self.end <= other.end)
     }
 }
 
@@ -85,10 +86,8 @@ impl Ord for CodeSpan {
     fn cmp(&self, other: &CodeSpan) -> Ordering {
         if self.intersect(other) {
             Ordering::Equal
-
         } else if self.start >= other.end {
             Ordering::Greater
-
         } else {
             Ordering::Less
         }

@@ -1,6 +1,6 @@
 use dora_parser::ast::{Stmt, StmtBlockType, StmtReturnType};
 use ctxt::Fct;
-use mir::repr::{BasicBlockId, BasicBlock, Mir};
+use mir::repr::{BasicBlock, BasicBlockId, Mir};
 
 pub fn generate<'a, 'ast>(fct: &'a Fct<'ast>) -> Result<Mir, ()> {
     let mut builder = Builder::new(fct);

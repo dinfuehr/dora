@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap};
+use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use sym::Sym;
@@ -123,19 +123,22 @@ mod tests {
 
     #[test]
     fn impl_method_without_body() {
-        err("
+        err(
+            "
             trait Foo {
                 fun foo() -> int;
             }
             class Bar {}
             impl Foo for Bar { fun foo() -> int;}",
             pos(6, 32),
-            Msg::MissingFctBody);
+            Msg::MissingFctBody,
+        );
     }
 
     #[test]
     fn impl_method_defined_twice() {
-        err("
+        err(
+            "
             trait Foo {
                 fun foo() -> int;
             }
@@ -145,28 +148,35 @@ mod tests {
                 fun foo() -> int { return 1; }
             }",
             pos(8, 17),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(7, 17)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(7, 17)),
+        );
     }
 
     #[test]
     fn impl_for_unknown_trait() {
-        err("class A {} impl Foo for A {}",
+        err(
+            "class A {} impl Foo for A {}",
             pos(1, 12),
-            Msg::ExpectedTrait("Foo".into()));
+            Msg::ExpectedTrait("Foo".into()),
+        );
     }
 
     #[test]
     fn impl_for_unknown_class() {
-        err("trait Foo {} impl Foo for A {}",
+        err(
+            "trait Foo {} impl Foo for A {}",
             pos(1, 14),
-            Msg::ExpectedClass("A".into()));
+            Msg::ExpectedClass("A".into()),
+        );
     }
 
     #[test]
     fn impl_definitions() {
         ok("trait Foo {} class A {} impl Foo for A {}");
-        ok("trait Foo { fun toBool() -> bool; }
+        ok(
+            "trait Foo { fun toBool() -> bool; }
             class A {}
-            impl Foo for A { fun toBool() -> bool { return false; } }");
+            impl Foo for A { fun toBool() -> bool { return false; } }",
+        );
     }
 }

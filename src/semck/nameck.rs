@@ -89,7 +89,8 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     pub fn add_var<F>(&mut self, mut var: Var, replacable: F) -> Result<VarId, Sym>
-        where F: FnOnce(&Sym) -> bool
+    where
+        F: FnOnce(&Sym) -> bool,
     {
         let name = var.name;
         let var_id = VarId(self.src.vars.len());
@@ -97,13 +98,11 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var.id = var_id;
 
         let result = match self.ctxt.sym.borrow().get(name) {
-            Some(sym) => {
-                if replacable(&sym) {
-                    Ok(var_id)
-                } else {
-                    Err(sym)
-                }
-            }
+            Some(sym) => if replacable(&sym) {
+                Ok(var_id)
+            } else {
+                Err(sym)
+            },
             None => Ok(var_id),
         };
 
@@ -197,23 +196,17 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             Some(SymGlobal(id)) => {
-                self.src
-                    .map_idents
-                    .insert(ident.id, IdentType::Global(id));
+                self.src.map_idents.insert(ident.id, IdentType::Global(id));
                 return;
             }
 
             Some(SymStruct(id)) => {
-                self.src
-                    .map_idents
-                    .insert(ident.id, IdentType::Struct(id));
+                self.src.map_idents.insert(ident.id, IdentType::Struct(id));
                 return;
             }
 
             Some(SymConst(id)) => {
-                self.src
-                    .map_idents
-                    .insert(ident.id, IdentType::Const(id));
+                self.src.map_idents.insert(ident.id, IdentType::Const(id));
                 return;
             }
 
@@ -281,10 +274,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
         if let Some(sid) = self.ctxt.sym.borrow().get_struct(struc.path.name()) {
-            self.src
-                .map_idents
-                .insert(struc.id, IdentType::Struct(sid));
-
+            self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
         } else {
             let name = self.ctxt.interner.str(struc.path.name()).to_string();
             report(self.ctxt, struc.pos, Msg::UnknownStruct(name));
@@ -365,9 +355,11 @@ mod tests {
 
     #[test]
     fn redefine_function() {
-        err("fun f() {}\nfun f() {}",
+        err(
+            "fun f() {}\nfun f() {}",
             pos(2, 1),
-            Msg::ShadowFunction("f".into()));
+            Msg::ShadowFunction("f".into()),
+        );
     }
 
     #[test]
@@ -377,24 +369,30 @@ mod tests {
 
     #[test]
     fn shadow_type_with_param() {
-        err("fun test(bool: Str) {}",
+        err(
+            "fun test(bool: Str) {}",
             pos(1, 10),
-            Msg::ShadowClass("bool".into()));
+            Msg::ShadowClass("bool".into()),
+        );
     }
 
     #[test]
     fn shadow_type_with_var() {
-        err("fun test() { let Str = 3; }",
+        err(
+            "fun test() { let Str = 3; }",
             pos(1, 14),
-            Msg::ShadowClass("Str".into()));
+            Msg::ShadowClass("Str".into()),
+        );
     }
 
     #[test]
     fn shadow_function() {
         ok("fun f() { let f = 1; }");
-        err("fun f() { let f = 1; f(); }",
+        err(
+            "fun f() { let f = 1; f(); }",
             pos(1, 22),
-            Msg::UnknownFunction("f".into()));
+            Msg::UnknownFunction("f".into()),
+        );
     }
 
     #[test]
@@ -404,9 +402,11 @@ mod tests {
 
     #[test]
     fn shadow_param() {
-        err("fun f(a: int, b: int, a: Str) {}",
+        err(
+            "fun f(a: int, b: int, a: Str) {}",
             pos(1, 23),
-            Msg::ShadowParam("a".into()));
+            Msg::ShadowParam("a".into()),
+        );
     }
 
     #[test]
@@ -416,19 +416,25 @@ mod tests {
 
     #[test]
     fn undefined_variable() {
-        err("fun f() { let b = a; }",
+        err(
+            "fun f() { let b = a; }",
             pos(1, 19),
-            Msg::UnknownIdentifier("a".into()));
-        err("fun f() { a; }",
+            Msg::UnknownIdentifier("a".into()),
+        );
+        err(
+            "fun f() { a; }",
             pos(1, 11),
-            Msg::UnknownIdentifier("a".into()));
+            Msg::UnknownIdentifier("a".into()),
+        );
     }
 
     #[test]
     fn undefined_function() {
-        err("fun f() { foo(); }",
+        err(
+            "fun f() { foo(); }",
             pos(1, 11),
-            Msg::UnknownFunction("foo".into()));
+            Msg::UnknownFunction("foo".into()),
+        );
     }
 
     #[test]
@@ -446,28 +452,36 @@ mod tests {
 
     #[test]
     fn variable_outside_of_scope() {
-        err("fun f() -> int { { let a = 1; } return a; }",
+        err(
+            "fun f() -> int { { let a = 1; } return a; }",
             pos(1, 40),
-            Msg::UnknownIdentifier("a".into()));
+            Msg::UnknownIdentifier("a".into()),
+        );
 
         ok("fun f() -> int { let a = 1; { let a = 2; } return a; }");
     }
 
     #[test]
     fn struct_lit() {
-        err("fun foo() { let x = Foo { a: 1 }; }",
+        err(
+            "fun foo() { let x = Foo { a: 1 }; }",
             pos(1, 21),
-            Msg::UnknownStruct("Foo".into()));
+            Msg::UnknownStruct("Foo".into()),
+        );
 
         // Struct literal without any field initializers
-        err("fun foo() { let x = Foo; }",
+        err(
+            "fun foo() { let x = Foo; }",
             pos(1, 21),
-            Msg::UnknownIdentifier("Foo".into()));
+            Msg::UnknownIdentifier("Foo".into()),
+        );
     }
 
     #[test]
     fn const_value() {
-        ok("const one: int = 1;
-            fun f() -> int { return one; }");
+        ok(
+            "const one: int = 1;
+            fun f() -> int { return one; }",
+        );
     }
 }

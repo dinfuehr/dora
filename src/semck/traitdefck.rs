@@ -1,6 +1,6 @@
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{SemContext, Fct, FctId, FctKind, FctParent, NodeMap, TraitId};
+use ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
@@ -92,39 +92,51 @@ mod tests {
 
     #[test]
     fn trait_method_with_body() {
-        err("trait Foo { fun foo() -> int { return 1; } }",
+        err(
+            "trait Foo { fun foo() -> int { return 1; } }",
             pos(1, 13),
-            Msg::TraitMethodWithBody);
+            Msg::TraitMethodWithBody,
+        );
     }
 
     #[test]
     fn trait_definitions() {
         ok("trait Foo {}");
         ok("trait Foo { fun toBool() -> bool; }");
-        ok("trait Foo {
+        ok(
+            "trait Foo {
                 fun toFloat() -> float;
                 fun toDouble() -> double;
-            }");
+            }",
+        );
 
-        err("trait Bar { fun foo() -> Unknown; }",
+        err(
+            "trait Bar { fun foo() -> Unknown; }",
             pos(1, 26),
-            Msg::UnknownType("Unknown".into()));
-        err("trait Foo { fun foo(); fun foo() -> int; }",
+            Msg::UnknownType("Unknown".into()),
+        );
+        err(
+            "trait Foo { fun foo(); fun foo() -> int; }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+        );
 
-        err("trait Foo { fun foo(); fun foo(); }",
+        err(
+            "trait Foo { fun foo(); fun foo(); }",
             pos(1, 24),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(1, 13)),
+        );
     }
 
     #[test]
     fn trait_with_self() {
-        err("trait Foo {
+        err(
+            "trait Foo {
             fun foo() -> int;
             fun foo() -> Self;
         }",
             pos(3, 13),
-            Msg::MethodExists("Foo".into(), "foo".into(), pos(2, 13)));
+            Msg::MethodExists("Foo".into(), "foo".into(), pos(2, 13)),
+        );
     }
 }

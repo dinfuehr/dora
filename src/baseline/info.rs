@@ -8,17 +8,19 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
 use class::TypeArgs;
 use cpu::*;
-use ctxt::{Arg, CallSite, CallType, SemContext, Fct, FctId, FctParent, FctSrc, NodeMap, Store,
+use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctParent, FctSrc, NodeMap, SemContext, Store,
            VarId};
 use mem;
 use ty::BuiltinType;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>,
-                              fct: &Fct<'ast>,
-                              src: &'a FctSrc,
-                              jit_info: &'a mut JitInfo<'ast>,
-                              cls_type_params: &[BuiltinType],
-                              fct_type_params: &[BuiltinType]) {
+pub fn generate<'a, 'ast: 'a>(
+    ctxt: &'a SemContext<'ast>,
+    fct: &Fct<'ast>,
+    src: &'a FctSrc,
+    jit_info: &'a mut JitInfo<'ast>,
+    cls_type_params: &[BuiltinType],
+    fct_type_params: &[BuiltinType],
+) {
     let start = if fct.has_self() { 1 } else { 0 };
 
     let mut ig = InfoGenerator {
@@ -49,10 +51,10 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>,
 }
 
 pub struct JitInfo<'ast> {
-    pub tempsize: i32, // size of temporary variables on stack
-    pub localsize: i32, // size of local variables on stack
-    pub argsize: i32, // size of arguments on stack (need to be on bottom)
-    pub leaf: bool, // false if fct calls other functions
+    pub tempsize: i32,                // size of temporary variables on stack
+    pub localsize: i32,               // size of local variables on stack
+    pub argsize: i32,                 // size of arguments on stack (need to be on bottom)
+    pub leaf: bool,                   // false if fct calls other functions
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 
     pub map_stores: NodeMap<Store>,
@@ -133,13 +135,12 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         if is_float && self.param_freg_idx < FREG_PARAMS.len() {
             self.reserve_stack_for_node(var);
             self.param_freg_idx += 1;
-
         } else if !is_float && self.param_reg_idx < REG_PARAMS.len() {
             self.reserve_stack_for_node(var);
             self.param_reg_idx += 1;
 
-            // the rest of the parameters are already stored on the stack
-            // just use the current offset
+        // the rest of the parameters are already stored on the stack
+        // just use the current offset
         } else {
             let var = &self.src.vars[var];
             self.jit_info
@@ -161,9 +162,10 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             let ret = self.fct.return_type;
 
             if !ret.is_unit() {
-                self.eh_return_value =
-                    Some(self.eh_return_value
-                             .unwrap_or_else(|| self.reserve_stack_for_type(ret)));
+                self.eh_return_value = Some(
+                    self.eh_return_value
+                        .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
+                );
             }
 
             // we also need space for catch block parameters
@@ -257,17 +259,20 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         if self.is_intrinsic(expr.id) {
             self.reserve_temp_for_node(&expr.object);
-
         } else {
-            let args = vec![Arg::Expr(&expr.object, BuiltinType::Unit, 0),
-                            Arg::Expr(&expr.index, BuiltinType::Unit, 0)];
+            let args = vec![
+                Arg::Expr(&expr.object, BuiltinType::Unit, 0),
+                Arg::Expr(&expr.index, BuiltinType::Unit, 0),
+            ];
 
-            self.universal_call(expr.id,
-                                args,
-                                None,
-                                Rc::new(Vec::new()),
-                                Rc::new(Vec::new()),
-                                None);
+            self.universal_call(
+                expr.id,
+                args,
+                None,
+                Rc::new(Vec::new()),
+                Rc::new(Vec::new()),
+                None,
+            );
         }
     }
 
@@ -317,8 +322,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_type_params: TypeArgs;
 
         match *call_type {
-            CallType::Ctor(_, _, ref type_params) |
-            CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
                     Arg::Selfie(ty, 0)
@@ -359,21 +363,25 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls_id = *self.src.map_cls.get(expr.id).unwrap();
         args.insert(0, Arg::Selfie(BuiltinType::Class(cls_id), 0));
 
-        self.universal_call(expr.id,
-                            args,
-                            None,
-                            Rc::new(Vec::new()),
-                            Rc::new(Vec::new()),
-                            None);
+        self.universal_call(
+            expr.id,
+            args,
+            None,
+            Rc::new(Vec::new()),
+            Rc::new(Vec::new()),
+            None,
+        );
     }
 
-    fn universal_call(&mut self,
-                      id: NodeId,
-                      args: Vec<Arg<'ast>>,
-                      callee: Option<FctId>,
-                      cls_type_params: TypeArgs,
-                      fct_type_params: TypeArgs,
-                      return_type: Option<BuiltinType>) {
+    fn universal_call(
+        &mut self,
+        id: NodeId,
+        args: Vec<Arg<'ast>>,
+        callee: Option<FctId>,
+        cls_type_params: TypeArgs,
+        fct_type_params: TypeArgs,
+        return_type: Option<BuiltinType>,
+    ) {
         // function invokes another function
         self.leaf = false;
 
@@ -392,20 +400,17 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                Arg::Selfie(ty, _) |
-                Arg::SelfieNew(ty, _) => {
-                    if ty.is_float() {
-                        freg_args += 1;
-                    } else {
-                        reg_args += 1;
-                    }
-                }
+                Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => if ty.is_float() {
+                    freg_args += 1;
+                } else {
+                    reg_args += 1;
+                },
             }
         }
 
         // some register are reserved on stack
         let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32) +
-                            max(0, freg_args - FREG_PARAMS.len() as i32);
+            max(0, freg_args - FREG_PARAMS.len() as i32);
 
         let argsize = 8 * args_on_stack;
 
@@ -424,57 +429,56 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let args = args.iter()
             .enumerate()
             .map(|(ind, arg)| match *arg {
-                     Arg::Expr(ast, mut ty, _) => {
-                if let Some(fid) = fid {
-                    let fct = self.ctxt.fcts[fid].borrow();
-                    ty = if ind == 0 && fct.has_self() {
-                        if ast.is_super() {
-                            super_call = true;
-                        }
-
-                        let cid = match fct.parent {
-                            FctParent::Class(cid) => cid,
-                            FctParent::Impl(impl_id) => {
-                                let ximpl = self.ctxt.impls[impl_id].borrow();
-                                ximpl.cls_id()
-                            }
-                            _ => unreachable!(),
-                        };
-
-                        let cls = self.ctxt.classes[cid].borrow();
-                        cls.ty
-
-                    } else {
-                        let ty = fct.params_with_self()[ind];
-                        let call_type = self.src.map_calls.get(id).unwrap().clone();
-
-                        match *call_type {
-                            CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                                specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
+                Arg::Expr(ast, mut ty, _) => {
+                    if let Some(fid) = fid {
+                        let fct = self.ctxt.fcts[fid].borrow();
+                        ty = if ind == 0 && fct.has_self() {
+                            if ast.is_super() {
+                                super_call = true;
                             }
 
-                            CallType::Ctor(_, _, ref type_params) |
-                            CallType::CtorNew(_, _, ref type_params) => {
-                                specialize_type(self.ctxt, ty, type_params, &[])
-                            }
+                            let cid = match fct.parent {
+                                FctParent::Class(cid) => cid,
+                                FctParent::Impl(impl_id) => {
+                                    let ximpl = self.ctxt.impls[impl_id].borrow();
+                                    ximpl.cls_id()
+                                }
+                                _ => unreachable!(),
+                            };
 
-                            _ => ty,
+                            let cls = self.ctxt.classes[cid].borrow();
+                            cls.ty
+                        } else {
+                            let ty = fct.params_with_self()[ind];
+                            let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+                            match *call_type {
+                                CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+                                    specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
+                                }
+
+                                CallType::Ctor(_, _, ref type_params) |
+                                CallType::CtorNew(_, _, ref type_params) => {
+                                    specialize_type(self.ctxt, ty, type_params, &[])
+                                }
+
+                                _ => ty,
+                            }
                         }
                     }
+
+                    Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
                 }
 
-                Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
-            }
-
-                     Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
-                     Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
-                 })
+                Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
+                Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
+            })
             .collect::<Vec<_>>();
 
         let return_type = return_type.unwrap_or_else(|| {
-                                                         let fid = fid.unwrap();
-                                                         self.ctxt.fcts[fid].borrow().return_type
-                                                     });
+            let fid = fid.unwrap();
+            self.ctxt.fcts[fid].borrow().return_type
+        });
 
         let callee = callee.unwrap_or_else(|| fid.unwrap());
 
@@ -501,7 +505,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             if field {
                 self.reserve_temp_for_node_with_type(lhs.id, BuiltinType::Ptr);
             }
-
         } else if e.lhs.is_field() {
             let lhs = e.lhs.to_field().unwrap();
 
@@ -509,7 +512,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&e.rhs);
 
             self.reserve_temp_for_node(&lhs.object);
-
         } else {
             assert!(e.lhs.is_array());
             let array = e.lhs.to_array().unwrap();
@@ -522,18 +524,21 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.reserve_temp_for_node(&array.object);
                 self.reserve_temp_for_node(&array.index);
                 self.reserve_temp_for_node(&e.rhs);
-
             } else {
-                let args = vec![Arg::Expr(&array.object, BuiltinType::Unit, 0),
-                                Arg::Expr(&array.index, BuiltinType::Unit, 0),
-                                Arg::Expr(&e.rhs, BuiltinType::Unit, 0)];
+                let args = vec![
+                    Arg::Expr(&array.object, BuiltinType::Unit, 0),
+                    Arg::Expr(&array.index, BuiltinType::Unit, 0),
+                    Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
+                ];
 
-                self.universal_call(e.id,
-                                    args,
-                                    None,
-                                    Rc::new(Vec::new()),
-                                    Rc::new(Vec::new()),
-                                    None);
+                self.universal_call(
+                    e.id,
+                    args,
+                    None,
+                    Rc::new(Vec::new()),
+                    Rc::new(Vec::new()),
+                    None,
+                );
             }
         }
     }
@@ -547,23 +552,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
             self.reserve_temp_for_node_with_type(expr.lhs.id(), BuiltinType::Ptr);
-
         } else if expr.op == BinOp::Or || expr.op == BinOp::And {
             // no temporaries needed
 
         } else if self.is_intrinsic(expr.id) {
             self.reserve_temp_for_node(&expr.lhs);
-
         } else {
-            let args = vec![Arg::Expr(&expr.lhs, lhs_ty, 0), Arg::Expr(&expr.rhs, rhs_ty, 0)];
+            let args = vec![
+                Arg::Expr(&expr.lhs, lhs_ty, 0),
+                Arg::Expr(&expr.rhs, rhs_ty, 0),
+            ];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id,
-                                args,
-                                Some(fid),
-                                Rc::new(Vec::new()),
-                                Rc::new(Vec::new()),
-                                Some(BuiltinType::Bool));
+            self.universal_call(
+                expr.id,
+                args,
+                Some(fid),
+                Rc::new(Vec::new()),
+                Rc::new(Vec::new()),
+                Some(BuiltinType::Bool),
+            );
         }
     }
 
@@ -578,12 +586,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(expr.id,
-                                args,
-                                Some(fid),
-                                Rc::new(Vec::new()),
-                                Rc::new(Vec::new()),
-                                Some(BuiltinType::Bool));
+            self.universal_call(
+                expr.id,
+                args,
+                Some(fid),
+                Rc::new(Vec::new()),
+                Rc::new(Vec::new()),
+                Some(BuiltinType::Bool),
+            );
         }
     }
 
@@ -627,10 +637,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             BuiltinType::Generic(type_id) => {
                 let ty = self.ctxt.types.borrow().get(type_id);
 
-                let params: Vec<_> = ty.params
-                    .iter()
-                    .map(|&t| self.specialize_type(t))
-                    .collect();
+                let params: Vec<_> = ty.params.iter().map(|&t| self.specialize_type(t)).collect();
 
                 let type_id = self.ctxt
                     .types
@@ -647,11 +654,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 }
 
-fn specialize_type(ctxt: &SemContext,
-                   ty: BuiltinType,
-                   cls_type_params: &[BuiltinType],
-                   fct_type_params: &[BuiltinType])
-                   -> BuiltinType {
+fn specialize_type(
+    ctxt: &SemContext,
+    ty: BuiltinType,
+    cls_type_params: &[BuiltinType],
+    fct_type_params: &[BuiltinType],
+) -> BuiltinType {
     match ty {
         BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
 
@@ -662,12 +670,12 @@ fn specialize_type(ctxt: &SemContext,
 
             let params: Vec<_> = ty.params
                 .iter()
-                .map(|&t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
+                .map(|&t| {
+                    specialize_type(ctxt, t, cls_type_params, fct_type_params)
+                })
                 .collect();
 
-            let type_id = ctxt.types
-                .borrow_mut()
-                .insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }
@@ -687,7 +695,8 @@ mod tests {
     use test;
 
     fn info<F>(code: &'static str, f: F)
-        where F: FnOnce(&FctSrc, &JitInfo)
+    where
+        F: FnOnce(&FctSrc, &JitInfo),
     {
         os::init_page_size();
 
@@ -719,25 +728,31 @@ mod tests {
 
     #[test]
     fn test_tempsize_for_fct_call() {
-        info("fun f() { g(1,2,3,4,5,6); }
+        info(
+            "fun f() { g(1,2,3,4,5,6); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int) {}",
-             |_, jit_info| {
-                 assert_eq!(24, jit_info.tempsize);
-             });
+            |_, jit_info| {
+                assert_eq!(24, jit_info.tempsize);
+            },
+        );
 
-        info("fun f() { g(1,2,3,4,5,6,7,8); }
+        info(
+            "fun f() { g(1,2,3,4,5,6,7,8); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) {}",
-             |_, jit_info| {
-                 assert_eq!(32, jit_info.tempsize);
-             });
+            |_, jit_info| {
+                assert_eq!(32, jit_info.tempsize);
+            },
+        );
 
-        info("fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
+        info(
+            "fun f() { g(1,2,3,4,5,6,7,8)+(1+2); }
               fun g(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int {
                   return 0;
               }",
-             |_, jit_info| {
-                 assert_eq!(40, jit_info.tempsize);
-             });
+            |_, jit_info| {
+                assert_eq!(40, jit_info.tempsize);
+            },
+        );
     }
 
     #[test]
@@ -765,47 +780,53 @@ mod tests {
     #[test]
     #[cfg(target_arch = "x86_64")]
     fn test_params_over_6_offset() {
-        info("fun f(a: int, b: int, c: int, d: int,
+        info(
+            "fun f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int) {
                   let i : int = 1;
               }",
-             |fct, jit_info| {
-                 assert_eq!(28, jit_info.localsize);
-                 let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
+            |fct, jit_info| {
+                assert_eq!(28, jit_info.localsize);
+                let offsets = [-4, -8, -12, -16, -20, -24, 16, 24, -28];
 
-                 for (var, offset) in fct.vars.iter().zip(&offsets) {
-                     assert_eq!(*offset, jit_info.offset(var.id));
-                 }
-             });
+                for (var, offset) in fct.vars.iter().zip(&offsets) {
+                    assert_eq!(*offset, jit_info.offset(var.id));
+                }
+            },
+        );
     }
 
     #[test]
     #[cfg(target_arch = "aarch64")]
     fn test_params_over_8_offset() {
-        info("fun f(a: int, b: int, c: int, d: int,
+        info(
+            "fun f(a: int, b: int, c: int, d: int,
                    e: int, f: int, g: int, h: int,
                    i: int, j: int) {
                   let k : int = 1;
               }",
-             |fct, jit_info| {
-                 assert_eq!(36, jit_info.localsize);
-                 let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
+            |fct, jit_info| {
+                assert_eq!(36, jit_info.localsize);
+                let offsets = [-4, -8, -12, -16, -20, -24, -28, -32, 16, 24, -36];
 
-                 for (var, offset) in fct.vars.iter().zip(&offsets) {
-                     assert_eq!(*offset, jit_info.offset(var.id));
-                 }
-             });
+                for (var, offset) in fct.vars.iter().zip(&offsets) {
+                    assert_eq!(*offset, jit_info.offset(var.id));
+                }
+            },
+        );
     }
 
     #[test]
     fn test_var_offset() {
-        info("fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
-             |fct, jit_info| {
-                 assert_eq!(16, jit_info.localsize);
+        info(
+            "fun f() { let a = true; let b = false; let c = 2; let d = \"abc\"; }",
+            |fct, jit_info| {
+                assert_eq!(16, jit_info.localsize);
 
-                 for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
-                     assert_eq!(*offset, jit_info.offset(var.id));
-                 }
-             });
+                for (var, offset) in fct.vars.iter().zip(&[-1, -2, -8, -16]) {
+                    assert_eq!(*offset, jit_info.offset(var.id));
+                }
+            },
+        );
     }
 }

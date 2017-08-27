@@ -4,7 +4,7 @@ use std::rc::Rc;
 use dora_parser::error::msg::Msg;
 
 use class::{Class, ClassId};
-use ctxt::{SemContext, FctId};
+use ctxt::{FctId, SemContext};
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
@@ -29,10 +29,12 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-pub fn check_abstract<'ast>(ctxt: &SemContext<'ast>,
-                            cls: &Class,
-                            super_cls: &Class,
-                            abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>) {
+pub fn check_abstract<'ast>(
+    ctxt: &SemContext<'ast>,
+    cls: &Class,
+    super_cls: &Class,
+    abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
+) {
     assert!(!cls.is_abstract);
     assert!(super_cls.is_abstract);
 
@@ -62,10 +64,11 @@ pub fn check_abstract<'ast>(ctxt: &SemContext<'ast>,
     }
 }
 
-fn find_abstract_methods<'ast>(ctxt: &SemContext<'ast>,
-                               cls: &Class,
-                               abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>)
-                               -> Rc<Vec<FctId>> {
+fn find_abstract_methods<'ast>(
+    ctxt: &SemContext<'ast>,
+    cls: &Class,
+    abstract_methods: &mut HashMap<ClassId, Rc<Vec<FctId>>>,
+) -> Rc<Vec<FctId>> {
     assert!(cls.is_abstract);
 
     if let Some(mtds) = abstract_methods.get(&cls.id) {
@@ -119,31 +122,39 @@ mod tests {
 
     #[test]
     fn test_override_abstract_method() {
-        ok("open abstract class A { abstract fun foo(); }
-            class B: A { override fun foo() {} }");
+        ok(
+            "open abstract class A { abstract fun foo(); }
+            class B: A { override fun foo() {} }",
+        );
     }
 
     #[test]
     fn test_override_abstract_method_in_super_class() {
-        ok("open abstract class A { abstract fun foo(); }
+        ok(
+            "open abstract class A { abstract fun foo(); }
             open abstract class B: A { override fun foo() {} }
-            class C: B { }");
+            class C: B { }",
+        );
     }
 
     #[test]
     fn test_missing_abstract_override() {
-        err("open abstract class A { abstract fun foo(); }
+        err(
+            "open abstract class A { abstract fun foo(); }
             class B: A { }",
             pos(2, 13),
-            Msg::MissingAbstractOverride("A".into(), "foo".into()));
+            Msg::MissingAbstractOverride("A".into(), "foo".into()),
+        );
     }
 
     #[test]
     fn test_missing_abstract_override_indirect() {
-        err("open abstract class A { abstract fun foo(); }
+        err(
+            "open abstract class A { abstract fun foo(); }
             open abstract class B: A {}
             class C: B { }",
             pos(3, 13),
-            Msg::MissingAbstractOverride("A".into(), "foo".into()));
+            Msg::MissingAbstractOverride("A".into(), "foo".into()),
+        );
     }
 }

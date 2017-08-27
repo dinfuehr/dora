@@ -7,13 +7,13 @@ pub struct GrowableVec<T> {
 
 impl<T> GrowableVec<T> {
     pub fn new() -> GrowableVec<T> {
-        GrowableVec { elements: RefCell::new(Vec::new()) }
+        GrowableVec {
+            elements: RefCell::new(Vec::new()),
+        }
     }
 
     pub fn push(&self, val: T) {
-        self.elements
-            .borrow_mut()
-            .push(Box::new(RefCell::new(val)));
+        self.elements.borrow_mut().push(Box::new(RefCell::new(val)));
     }
 
     pub fn len(&self) -> usize {
@@ -37,7 +37,8 @@ impl<T> Index<usize> for GrowableVec<T> {
 }
 
 pub struct GrowableVecIter<'a, T>
-    where T: 'a
+where
+    T: 'a,
 {
     vec: &'a GrowableVec<T>,
     idx: usize,

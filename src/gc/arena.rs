@@ -43,12 +43,14 @@ pub fn reserve(size: usize) -> Option<*mut u8> {
     use libc;
 
     let ptr = unsafe {
-        libc::mmap(ptr::null_mut(),
-                   size,
-                   libc::PROT_NONE,
-                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
-                   -1,
-                   0) as *mut libc::c_void
+        libc::mmap(
+            ptr::null_mut(),
+            size,
+            libc::PROT_NONE,
+            libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
+            -1,
+            0,
+        ) as *mut libc::c_void
     };
 
     if ptr == libc::MAP_FAILED {
@@ -62,12 +64,14 @@ pub fn commit(ptr: *const u8, size: usize) -> Result<(), ()> {
     use libc;
 
     let val = unsafe {
-        libc::mmap(ptr as *mut libc::c_void,
-                   size,
-                   libc::PROT_READ | libc::PROT_WRITE,
-                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
-                   -1,
-                   0)
+        libc::mmap(
+            ptr as *mut libc::c_void,
+            size,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
+            -1,
+            0,
+        )
     };
 
     if val != libc::MAP_FAILED {
@@ -81,12 +85,14 @@ pub fn uncommit(ptr: *const u8, size: usize) -> Result<(), ()> {
     use libc;
 
     let val = unsafe {
-        libc::mmap(ptr as *mut libc::c_void,
-                   size,
-                   libc::PROT_NONE,
-                   libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
-                   -1,
-                   0)
+        libc::mmap(
+            ptr as *mut libc::c_void,
+            size,
+            libc::PROT_NONE,
+            libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_NORESERVE,
+            -1,
+            0,
+        )
     };
 
     if val != libc::MAP_FAILED {

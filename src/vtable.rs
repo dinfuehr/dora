@@ -110,7 +110,6 @@ impl VTable {
 
     pub fn offset_of_depth() -> i32 {
         offset_of!(VTable, subtype_depth) as i32
-
     }
 
     pub fn offset_of_display() -> i32 {
@@ -126,8 +125,10 @@ impl VTable {
     }
 
     pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable {
-        assert!(self.subtype_depth as usize >= DISPLAY_SIZE &&
-                ind < self.subtype_depth as usize - DISPLAY_SIZE + 1);
+        assert!(
+            self.subtype_depth as usize >= DISPLAY_SIZE &&
+                ind < self.subtype_depth as usize - DISPLAY_SIZE + 1
+        );
 
         unsafe {
             let ptr = self.subtype_overflow.offset(ind as isize) as *mut _;
@@ -153,9 +154,10 @@ impl VTable {
     pub fn deallocate_overflow(&mut self, num: usize) {
         assert!(!self.subtype_overflow.is_null());
         let mut heap: Heap = Default::default();
-        let lay = Layout::from_size_align(num * size_of::<*const VTable>(),
-                                          align_of::<*const VTable>())
-                .unwrap();
+        let lay = Layout::from_size_align(
+            num * size_of::<*const VTable>(),
+            align_of::<*const VTable>(),
+        ).unwrap();
 
         unsafe {
             heap.dealloc(self.subtype_overflow as *const u8 as *mut _, lay);

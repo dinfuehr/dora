@@ -54,19 +54,14 @@ impl HandleMemory {
         let buffer = self.buffers.borrow().len();
         let element = self.free.get();
 
-        self.borders
-            .borrow_mut()
-            .push(BorderData {
-                      buffer: buffer,
-                      element: element,
-                  });
+        self.borders.borrow_mut().push(BorderData {
+            buffer: buffer,
+            element: element,
+        });
     }
 
     pub fn pop_border(&self) {
-        let border = self.borders
-            .borrow_mut()
-            .pop()
-            .expect("no border left");
+        let border = self.borders.borrow_mut().pop().expect("no border left");
 
         self.buffers.borrow_mut().truncate(border.buffer);
         self.free.set(border.element);
@@ -91,7 +86,9 @@ struct HandleBuffer {
 
 impl HandleBuffer {
     fn new() -> HandleBuffer {
-        HandleBuffer { elements: [Handle::null(); HANDLE_SIZE] }
+        HandleBuffer {
+            elements: [Handle::null(); HANDLE_SIZE],
+        }
     }
 }
 
@@ -159,7 +156,6 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
                 return Some(Rooted(&mut buffer.elements[idx] as *mut Handle<Obj>));
-
             } else {
                 self.buffer_idx += 1;
                 self.element_idx = 0;
@@ -174,7 +170,6 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
                 return Some(Rooted(&mut buffer.elements[idx] as *mut Handle<Obj>));
-
             } else {
                 return None;
             }

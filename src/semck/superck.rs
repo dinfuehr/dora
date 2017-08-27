@@ -2,7 +2,7 @@ use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 
 use class::{Class, ClassId};
-use ctxt::{SemContext, Fct, StructId, StructData};
+use ctxt::{Fct, SemContext, StructData, StructId};
 use dora_parser::error::msg::Msg;
 use mem;
 use ty::BuiltinType;
@@ -39,7 +39,6 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
 
             parent = ctxt.classes[p].borrow().parent_class;
         }
-
     }
 }
 
@@ -52,21 +51,20 @@ fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn determine_vtable<'ast>(ctxt: &SemContext<'ast>,
-                          lens: &mut HashMap<ClassId, u32>,
-                          cls: &mut Class)
-                          -> u32 {
+fn determine_vtable<'ast>(
+    ctxt: &SemContext<'ast>,
+    lens: &mut HashMap<ClassId, u32>,
+    cls: &mut Class,
+) -> u32 {
     let mut vtable_len = if let Some(parent_cls_id) = cls.parent_class {
         let parent_vtable_len = lens.get(&parent_cls_id).map(|&len| len);
 
         if let Some(parent_vtable_len) = parent_vtable_len {
             parent_vtable_len
-
         } else {
             let mut parent = ctxt.classes[parent_cls_id].borrow_mut();
             determine_vtable(ctxt, lens, &mut *parent)
         }
-
     } else {
         0
     };
@@ -79,7 +77,6 @@ fn determine_vtable<'ast>(ctxt: &SemContext<'ast>,
         if fct.is_virtual() {
             let vtable_index = if let Some(overrides) = fct.overrides {
                 ctxt.fcts[overrides].borrow().vtable_index.unwrap()
-
             } else {
                 let vtable_index = vtable_len;
                 vtable_len += 1;
@@ -107,11 +104,12 @@ fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
     }
 }
 
-fn determine_struct_size<'ast>(ctxt: &SemContext<'ast>,
-                               path: &mut Vec<StructId>,
-                               sizes: &mut HashMap<StructId, (i32, i32)>,
-                               struc: &mut StructData)
-                               -> (i32, i32) {
+fn determine_struct_size<'ast>(
+    ctxt: &SemContext<'ast>,
+    path: &mut Vec<StructId>,
+    sizes: &mut HashMap<StructId, (i32, i32)>,
+    struc: &mut StructData,
+) -> (i32, i32) {
     let mut size = 0;
     let mut align = 0;
 
@@ -121,7 +119,6 @@ fn determine_struct_size<'ast>(ctxt: &SemContext<'ast>,
         let (field_size, field_align) = if let BuiltinType::Struct(id) = field.ty {
             if let Some(&(size, align)) = sizes.get(&id) {
                 (size, align)
-
             } else {
                 if path.iter().find(|&&x| x == id).is_some() {
                     ctxt.diag
@@ -311,70 +308,103 @@ mod tests {
 
     #[test]
     fn test_cycle() {
-        errors("open class A: B open class B: A",
-               &[(pos(1, 6), Msg::CycleInHierarchy), (pos(1, 22), Msg::CycleInHierarchy)]);
+        errors(
+            "open class A: B open class B: A",
+            &[
+                (pos(1, 6), Msg::CycleInHierarchy),
+                (pos(1, 22), Msg::CycleInHierarchy),
+            ],
+        );
     }
 
     #[test]
     fn test_superfluous_override() {
-        err("class A { override fun f() {} }",
+        err(
+            "class A { override fun f() {} }",
             pos(1, 20),
-            Msg::SuperfluousOverride("f".into()));
-        err("open class B { } class A: B { override fun f() {} }",
+            Msg::SuperfluousOverride("f".into()),
+        );
+        err(
+            "open class B { } class A: B { override fun f() {} }",
             pos(1, 40),
-            Msg::SuperfluousOverride("f".into()));
-        err("open class B { fun g() {} } class A: B { override fun f() {} }",
+            Msg::SuperfluousOverride("f".into()),
+        );
+        err(
+            "open class B { fun g() {} } class A: B { override fun f() {} }",
             pos(1, 51),
-            Msg::SuperfluousOverride("f".into()));
-        err("open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
+            Msg::SuperfluousOverride("f".into()),
+        );
+        err(
+            "open class B { fun f(a: int) {} } class A: B { override fun f() {} }",
             pos(1, 57),
-            Msg::MethodNotOverridable("f".into()));
+            Msg::MethodNotOverridable("f".into()),
+        );
     }
 
     #[test]
     fn test_override() {
-        err("open class A { fun f() {} } class B: A { override fun f() {} }",
+        err(
+            "open class A { fun f() {} } class B: A { override fun f() {} }",
             pos(1, 51),
-            Msg::MethodNotOverridable("f".into()));
-        ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
-        ok("open class A { open fun f() {} }
+            Msg::MethodNotOverridable("f".into()),
+        );
+        ok(
+            "open class A { open fun f() {} } class B: A { override fun f() {} }",
+        );
+        ok(
+            "open class A { open fun f() {} }
             open class B: A { override fun f() {} }
-            open class C: B { override fun f() {} }");
-        err("open class A { open fun f() {} } class B: A { fun f() {} }",
+            open class C: B { override fun f() {} }",
+        );
+        err(
+            "open class A { open fun f() {} } class B: A { fun f() {} }",
             pos(1, 47),
-            Msg::MissingOverride("f".into()));
-        err("open class A { open fun f() {} }
+            Msg::MissingOverride("f".into()),
+        );
+        err(
+            "open class A { open fun f() {} }
              open class B: A { final override fun f() {} }
              class C: B { override fun f() {} }",
             pos(3, 36),
-            Msg::MethodNotOverridable("f".into()));
+            Msg::MethodNotOverridable("f".into()),
+        );
     }
 
     #[test]
     fn test_overload_method_in_super_class() {
-        errors("open class A { fun f() {} }
+        errors(
+            "open class A { fun f() {} }
             class B: A { fun f(a: int) {} }",
-               &[(pos(2, 26), Msg::MissingOverride("f".into())),
-                 (pos(2, 26), Msg::MethodNotOverridable("f".into()))]);
+            &[
+                (pos(2, 26), Msg::MissingOverride("f".into())),
+                (pos(2, 26), Msg::MethodNotOverridable("f".into())),
+            ],
+        );
 
-        ok("open class A { static fun f() {} }
-            class B: A { static fun f(a: int) {} }");
+        ok(
+            "open class A { static fun f() {} }
+            class B: A { static fun f(a: int) {} }",
+        );
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
-        err("open class A { open fun f() {} }
+        err(
+            "open class A { open fun f() {} }
              class B: A { override fun f() -> int { return 1; } }",
             pos(2, 36),
-            Msg::ReturnTypeMismatch("int".into(), "()".into()));
+            Msg::ReturnTypeMismatch("int".into(), "()".into()),
+        );
     }
 
     #[test]
     fn test_override_with_missing_throws() {
-        err("open class A { open fun f() throws {} }
+        err(
+            "open class A { open fun f() throws {} }
              class B: A { override fun f() {} }",
             pos(2, 36),
-            Msg::ThrowsDifference("f".into()));
+            Msg::ThrowsDifference("f".into()),
+        );
     }
 
     #[test]
@@ -384,9 +414,11 @@ mod tests {
 
     #[test]
     fn test_superfluous_open() {
-        err("class A { open fun f() {} }",
+        err(
+            "class A { open fun f() {} }",
             pos(1, 16),
-            Msg::SuperfluousOpen("f".into()));
+            Msg::SuperfluousOpen("f".into()),
+        );
     }
 
     #[test]
@@ -408,17 +440,20 @@ mod tests {
             assert_eq!(cls.vtable_len, 1);
         });
 
-        ok_with_test("open class A { open fun f() {} }
+        ok_with_test(
+            "open class A { open fun f() {} }
                       open class B: A { override fun f() {}
-                                        open fun g() {} }", |ctxt| {
-            let cls_id = ctxt.cls_by_name("A");
-            let cls = ctxt.classes[cls_id].borrow();
-            assert_eq!(cls.vtable_len, 1);
+                                        open fun g() {} }",
+            |ctxt| {
+                let cls_id = ctxt.cls_by_name("A");
+                let cls = ctxt.classes[cls_id].borrow();
+                assert_eq!(cls.vtable_len, 1);
 
-            let cls_id = ctxt.cls_by_name("B");
-            let cls = ctxt.classes[cls_id].borrow();
-            assert_eq!(cls.vtable_len, 2);
-        });
+                let cls_id = ctxt.cls_by_name("B");
+                let cls = ctxt.classes[cls_id].borrow();
+                assert_eq!(cls.vtable_len, 2);
+            },
+        );
     }
 
     // #[test]
@@ -571,34 +606,42 @@ mod tests {
 
     #[test]
     fn test_struct_size() {
-        ok_with_test("struct Foo { a: int, b: int }
+        ok_with_test(
+            "struct Foo { a: int, b: int }
                       struct Foo1 { a: bool, b: int, c: bool }
                       struct Bar { }",
-                     |ctxt| {
-                         assert_eq!(8, ctxt.structs[0].borrow().size);
-                         assert_eq!(12, ctxt.structs[1].borrow().size);
-                         assert_eq!(0, ctxt.structs[2].borrow().size);
-                     });
+            |ctxt| {
+                assert_eq!(8, ctxt.structs[0].borrow().size);
+                assert_eq!(12, ctxt.structs[1].borrow().size);
+                assert_eq!(0, ctxt.structs[2].borrow().size);
+            },
+        );
     }
 
     #[test]
     fn test_struct_in_struct() {
-        ok_with_test("struct Foo { a: bool, bar: Bar }
+        ok_with_test(
+            "struct Foo { a: bool, bar: Bar }
                       struct Bar { a: int }",
-                     |ctxt| {
-                         assert_eq!(8, ctxt.structs[0].borrow().size);
-                     });
+            |ctxt| {
+                assert_eq!(8, ctxt.structs[0].borrow().size);
+            },
+        );
 
-        ok_with_test("struct Bar { a: int }
+        ok_with_test(
+            "struct Bar { a: int }
                       struct Foo { a: bool, bar: Bar }",
-                     |ctxt| {
-                         assert_eq!(8, ctxt.structs[1].borrow().size);
-                     });
+            |ctxt| {
+                assert_eq!(8, ctxt.structs[1].borrow().size);
+            },
+        );
 
-        err("struct Foo { a: int, bar: Bar }
+        err(
+            "struct Foo { a: int, bar: Bar }
              struct Bar { b: int, foo: Foo }",
             pos(2, 35),
-            Msg::RecursiveStructure);
+            Msg::RecursiveStructure,
+        );
     }
 
     // #[test]

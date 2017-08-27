@@ -6,30 +6,27 @@ use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeArgs};
 use ctxt::SemContext;
 use mem;
 use object::Header;
-use vtable::{DISPLAY_SIZE, VTableBox};
+use vtable::{VTableBox, DISPLAY_SIZE};
 use ty::BuiltinType;
 
-pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
-                             ty: BuiltinType,
-                             specialize_for: SpecializeFor,
-                             type_params: &[BuiltinType])
-                             -> BuiltinType {
+pub fn specialize_type<'ast>(
+    ctxt: &SemContext<'ast>,
+    ty: BuiltinType,
+    specialize_for: SpecializeFor,
+    type_params: &[BuiltinType],
+) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(_, id) => {
-            if specialize_for == SpecializeFor::Class {
-                type_params[id.idx()]
-            } else {
-                ty
-            }
-        }
+        BuiltinType::ClassTypeParam(_, id) => if specialize_for == SpecializeFor::Class {
+            type_params[id.idx()]
+        } else {
+            ty
+        },
 
-        BuiltinType::FctTypeParam(_, id) => {
-            if specialize_for == SpecializeFor::Fct {
-                type_params[id.idx()]
-            } else {
-                ty
-            }
-        }
+        BuiltinType::FctTypeParam(_, id) => if specialize_for == SpecializeFor::Fct {
+            type_params[id.idx()]
+        } else {
+            ty
+        },
 
         BuiltinType::Generic(type_id) => {
             let ty = ctxt.types.borrow().get(type_id);
@@ -39,9 +36,7 @@ pub fn specialize_type<'ast>(ctxt: &SemContext<'ast>,
                 .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
-            let type_id = ctxt.types
-                .borrow_mut()
-                .insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
 
             BuiltinType::Generic(type_id)
         }
@@ -61,10 +56,11 @@ pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
     specialize_class(ctxt, &*cls, Rc::new(Vec::new()))
 }
 
-pub fn specialize_class_id_params(ctxt: &SemContext,
-                                  cls_id: ClassId,
-                                  type_params: TypeArgs)
-                                  -> ClassDefId {
+pub fn specialize_class_id_params(
+    ctxt: &SemContext,
+    cls_id: ClassId,
+    type_params: TypeArgs,
+) -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
     specialize_class(ctxt, &*cls, type_params)
 }
@@ -82,10 +78,11 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
     }
 }
 
-pub fn specialize_class(ctxt: &SemContext,
-                        cls: &class::Class,
-                        type_params: TypeArgs)
-                        -> ClassDefId {
+pub fn specialize_class(
+    ctxt: &SemContext,
+    cls: &class::Class,
+    type_params: TypeArgs,
+) -> ClassDefId {
     if let Some(&id) = cls.specializations.borrow().get(&type_params) {
         return id;
     }
@@ -93,10 +90,11 @@ pub fn specialize_class(ctxt: &SemContext,
     create_specialized_class(ctxt, cls, type_params)
 }
 
-fn create_specialized_class(ctxt: &SemContext,
-                            cls: &class::Class,
-                            type_params: TypeArgs)
-                            -> ClassDefId {
+fn create_specialized_class(
+    ctxt: &SemContext,
+    cls: &class::Class,
+    type_params: TypeArgs,
+) -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
     let old = cls.specializations
@@ -104,17 +102,16 @@ fn create_specialized_class(ctxt: &SemContext,
         .insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    ctxt.class_defs
-        .push(ClassDef {
-                  id: id,
-                  cls_id: cls.id,
-                  type_params: type_params.clone(),
-                  parent_id: None,
-                  size: ClassSize::Fixed(0),
-                  fields: Vec::new(),
-                  ref_fields: Vec::new(),
-                  vtable: None,
-              });
+    ctxt.class_defs.push(ClassDef {
+        id: id,
+        cls_id: cls.id,
+        type_params: type_params.clone(),
+        parent_id: None,
+        size: ClassSize::Fixed(0),
+        fields: Vec::new(),
+        ref_fields: Vec::new(),
+        vtable: None,
+    });
 
     let mut fields;
     let mut ref_fields;
@@ -139,7 +136,6 @@ fn create_specialized_class(ctxt: &SemContext,
             .expect("Array & Str should have super class");
         let id = specialize_class_id(ctxt, super_id);
         parent_id = Some(id);
-
     } else {
         let mut csize;
 
@@ -154,7 +150,6 @@ fn create_specialized_class(ctxt: &SemContext,
                 _ => unreachable!(),
             };
             parent_id = Some(id);
-
         } else {
             fields = Vec::with_capacity(cls.fields.len());
             ref_fields = Vec::new();
@@ -171,9 +166,9 @@ fn create_specialized_class(ctxt: &SemContext,
 
             let offset = mem::align_i32(csize, field_align);
             fields.push(FieldDef {
-                            offset: offset,
-                            ty: ty,
-                        });
+                offset: offset,
+                ty: ty,
+            });
 
             csize = offset + field_size;
 
@@ -225,19 +220,20 @@ fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usiz
 
             unsafe {
                 if depth > DISPLAY_SIZE {
-                    ptr::copy_nonoverlapping(parent_vtable.subtype_overflow,
-                                             vtable.subtype_overflow as *mut _,
-                                             depth as usize - DISPLAY_SIZE);
+                    ptr::copy_nonoverlapping(
+                        parent_vtable.subtype_overflow,
+                        vtable.subtype_overflow as *mut _,
+                        depth as usize - DISPLAY_SIZE,
+                    );
                 }
 
                 let ptr = vtable
                     .subtype_overflow
                     .offset(depth as isize - DISPLAY_SIZE as isize) as
-                          *mut _;
+                    *mut _;
 
                 *ptr = &**vtable as *const _;
             }
-
         } else {
             depth_fixed = depth;
 
@@ -245,11 +241,10 @@ fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usiz
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_display[0..depth_fixed].clone_from_slice(&parent_vtable.subtype_display
-                                                                     [0..depth_fixed]);
+        vtable.subtype_display[0..depth_fixed]
+            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
 
         depth
-
     } else {
         vtable.subtype_depth = 0;
         vtable.subtype_display[0] = &**vtable as *const _;
