@@ -336,7 +336,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 fct_type_params = Rc::new(Vec::new());
             }
 
-            CallType::Method(_, _) => {
+            CallType::Method(_, _, _) => {
                 let object = expr.object.as_ref().unwrap();
                 self.visit_expr(object);
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
@@ -457,23 +457,31 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                             let cls = self.ctxt.classes[cid].borrow();
                             cls.ty
                         } else {
-                            let ty = fct.params_with_self()[ind];
-                            let call_type = self.src.map_calls.get(id).unwrap().clone();
-
-                            match *call_type {
-                                CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                                    specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
-                                }
-
-                                CallType::Ctor(_, _, ref type_params) |
-                                CallType::CtorNew(_, _, ref type_params) => {
-                                    specialize_type(self.ctxt, ty, type_params, &[])
-                                }
-
-                                _ => ty,
-                            }
+                            fct.params_with_self()[ind]
                         }
                     }
+
+                    let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+                    let ty = match *call_type {
+                        CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+                            specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
+                        }
+
+                        CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
+                            BuiltinType::Generic(type_id) => {
+                                let t = self.ctxt.types.borrow().get(type_id);
+                                specialize_type(self.ctxt, ty, t.params.as_slice(), type_params)
+                            }
+
+                            _ => ty,
+                        },
+
+                        CallType::Ctor(_, _, ref type_params) |
+                        CallType::CtorNew(_, _, ref type_params) => {
+                            specialize_type(self.ctxt, ty, type_params, &[])
+                        }
+                    };
 
                     let ty = self.specialize_type(ty);
 
@@ -491,18 +499,27 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let return_type = self.ctxt.fcts[fid].borrow().return_type;
             let call_type = self.src.map_calls.get(id).unwrap().clone();
 
-            match *call_type {
+            let return_type = match *call_type {
                 CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                     specialize_type(self.ctxt, return_type, cls_type_params, fct_type_params)
                 }
+
+                CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
+                    BuiltinType::Generic(type_id) => {
+                        let t = self.ctxt.types.borrow().get(type_id);
+                        specialize_type(self.ctxt, return_type, t.params.as_slice(), type_params)
+                    }
+
+                    _ => return_type,
+                },
 
                 CallType::Ctor(_, _, ref type_params) |
                 CallType::CtorNew(_, _, ref type_params) => {
                     specialize_type(self.ctxt, return_type, type_params, &[])
                 }
+            };
 
-                _ => return_type,
-            }
+            self.specialize_type(return_type)
         });
 
         let callee = callee.unwrap_or_else(|| fid.unwrap());

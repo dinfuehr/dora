@@ -29,7 +29,7 @@ impl CodeMap {
                     let fct = ctxt.fcts[jit_fct.fct_id].borrow();
 
                     println!("{}", fct.full_name(ctxt));
-                },
+                }
             }
         }
 

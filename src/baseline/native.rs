@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use baseline::fct::{JitFct, JitFctId};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{exception_get_and_clear, FctId, get_ctxt, SemContext};
+use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use masm::MacroAssembler;
 use mem;
 use os::signal::Trap;
@@ -22,9 +22,7 @@ impl NativeFcts {
     }
 
     pub fn find_fct(&self, ptr: *const u8) -> Option<JitFctId> {
-        self.map
-            .get(&ptr)
-            .map(|&jit_fct_id| jit_fct_id)
+        self.map.get(&ptr).map(|&jit_fct_id| jit_fct_id)
     }
 
     pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFctId) {
@@ -118,7 +116,8 @@ where
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm.jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
+        self.masm
+            .jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
     }
 }
 

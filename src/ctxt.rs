@@ -1030,7 +1030,7 @@ impl IdentType {
 #[derive(Debug, Clone)]
 pub enum CallType {
     Fct(FctId, TypeArgs, TypeArgs),
-    Method(ClassId, FctId),
+    Method(BuiltinType, FctId, TypeArgs),
     CtorNew(ClassId, FctId, TypeArgs),
     Ctor(ClassId, FctId, TypeArgs),
 }
@@ -1052,24 +1052,15 @@ impl CallType {
 
     pub fn is_method(&self) -> bool {
         match *self {
-            CallType::Method(_, _) => true,
+            CallType::Method(_, _, _) => true,
             _ => false,
-        }
-    }
-
-    pub fn cls_id(&self) -> ClassId {
-        match *self {
-            CallType::Method(clsid, _) => clsid,
-            CallType::CtorNew(clsid, _, _) => clsid,
-            CallType::Ctor(clsid, _, _) => clsid,
-            _ => panic!(),
         }
     }
 
     pub fn fct_id(&self) -> FctId {
         match *self {
             CallType::Fct(fctid, _, _) => fctid,
-            CallType::Method(_, fctid) => fctid,
+            CallType::Method(_, fctid, _) => fctid,
             CallType::CtorNew(_, fctid, _) => fctid,
             CallType::Ctor(_, fctid, _) => fctid,
         }

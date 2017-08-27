@@ -279,10 +279,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((cls_id, fct_id, _)) =
+            if let Some((_, fct_id, _)) =
                 self.find_method(e.pos, object_type, false, name, &args, &[], ret_type)
             {
-                let call_type = CallType::Method(cls_id, fct_id);
+                let call_type = CallType::Method(object_type, fct_id, Rc::new(Vec::new()));
                 self.src
                     .map_calls
                     .insert_or_replace(e.id, Rc::new(call_type));
@@ -429,10 +429,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 
-        if let Some((cls_id, fct_id, return_type)) =
+        if let Some((_, fct_id, return_type)) =
             lookup_method(self.ctxt, ty, false, name, &call_types, &[], None)
         {
-            let call_type = CallType::Method(cls_id, fct_id);
+            let call_type = CallType::Method(ty, fct_id, Rc::new(Vec::new()));
             self.src.map_calls.insert(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
@@ -497,10 +497,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [rhs_type];
 
-        if let Some((cls_id, fct_id, return_type)) =
+        if let Some((_, fct_id, return_type)) =
             lookup_method(self.ctxt, lhs_type, false, name, &call_types, &[], None)
         {
-            let call_type = CallType::Method(cls_id, fct_id);
+            let call_type = CallType::Method(lhs_type, fct_id, Rc::new(Vec::new()));
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Rc::new(call_type));
@@ -635,11 +635,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .args(&call_types);
 
             if lookup.find() {
-                let cls_id = lookup.found_cls_id().unwrap();
                 let fct_id = lookup.found_fct_id().unwrap();
                 let return_type = lookup.found_ret().unwrap();
 
-                let call_type = CallType::Method(cls_id, fct_id);
+                let call_type = CallType::Method(object_type, fct_id, Rc::new(Vec::new()));
                 self.src
                     .map_calls
                     .insert_or_replace(e.id, Rc::new(call_type));
@@ -1015,10 +1014,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];
 
-        if let Some((cls_id, fct_id, return_type)) =
+        if let Some((_, fct_id, return_type)) =
             self.find_method(e.pos, object_type, false, name, &args, &[], None)
         {
-            let call_type = CallType::Method(cls_id, fct_id);
+            let call_type = CallType::Method(object_type, fct_id, Rc::new(Vec::new()));
             self.src
                 .map_calls
                 .insert_or_replace(e.id, Rc::new(call_type));

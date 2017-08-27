@@ -1559,13 +1559,34 @@ where
         }
 
         let return_type = self.specialize_type(csite.return_type);
+        let cls_type_params = Rc::new(
+            csite
+                .cls_type_params
+                .iter()
+                .map(|&ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
+        let fct_type_params = Rc::new(
+            csite
+                .fct_type_params
+                .iter()
+                .map(|&ty| self.specialize_type(ty))
+                .collect::<Vec<_>>(),
+        );
+
+        debug_assert!(
+            cls_type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.ctxt))
+        );
+        debug_assert!(
+            fct_type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.ctxt))
+        );
 
         if csite.super_call {
-            let ptr = self.ptr_for_fct_id(
-                fid,
-                csite.cls_type_params.clone(),
-                csite.fct_type_params.clone(),
-            );
+            let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.masm.emit_comment(Comment::CallSuper(fid));
             self.emit_direct_call_insn(
                 fid,
@@ -1573,19 +1594,15 @@ where
                 pos,
                 return_type,
                 dest,
-                csite.cls_type_params,
-                csite.fct_type_params,
+                cls_type_params,
+                fct_type_params,
             );
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.masm.emit_comment(Comment::CallVirtual(fid));
             self.emit_indirect_call_insn(vtable_index, pos, return_type, dest);
         } else {
-            let ptr = self.ptr_for_fct_id(
-                fid,
-                csite.cls_type_params.clone(),
-                csite.fct_type_params.clone(),
-            );
+            let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.masm.emit_comment(Comment::CallDirect(fid));
             self.emit_direct_call_insn(
                 fid,
@@ -1593,8 +1610,8 @@ where
                 pos,
                 return_type,
                 dest,
-                csite.cls_type_params,
-                csite.fct_type_params,
+                cls_type_params,
+                fct_type_params,
             );
         }
 
@@ -1821,7 +1838,6 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
     if let Some(jit_fct_id) = native_fcts.find_fct(ptr) {
         let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
         jit_fct.fct_start
-
     } else {
         let fct = ctxt.fcts[fct_id].borrow();
         let dbg = should_emit_debug(ctxt, &*fct);

@@ -319,7 +319,12 @@ where
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.jit(self.ctxt, self.jit_info.stacksize(), self.fct.id, self.ast.throws);
+        let jit_fct = self.masm.jit(
+            self.ctxt,
+            self.jit_info.stacksize(),
+            self.fct.id,
+            self.ast.throws,
+        );
 
         if self.ctxt.args.flag_enable_perf {
             os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);
@@ -409,8 +414,11 @@ where
 
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
-                self.masm
-                    .store_mem(return_mode, Mem::Local(offset), register_for_mode(return_mode));
+                self.masm.store_mem(
+                    return_mode,
+                    Mem::Local(offset),
+                    register_for_mode(return_mode),
+                );
             }
         }
 
@@ -435,8 +443,11 @@ where
 
             if s.expr.is_some() {
                 let offset = self.jit_info.eh_return_value.unwrap();
-                self.masm
-                    .load_mem(return_mode, register_for_mode(return_mode), Mem::Local(offset));
+                self.masm.load_mem(
+                    return_mode,
+                    register_for_mode(return_mode),
+                    Mem::Local(offset),
+                );
             }
 
             self.lbl_return = None;
