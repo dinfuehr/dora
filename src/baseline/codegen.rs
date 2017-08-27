@@ -48,6 +48,9 @@ pub fn generate_fct<'ast>(
     cls_type_params: &[BuiltinType],
     fct_type_params: &[BuiltinType],
 ) -> *const u8 {
+    debug_assert!(cls_type_params.iter().all(|ty| !ty.contains_type_param(ctxt)));
+    debug_assert!(fct_type_params.iter().all(|ty| !ty.contains_type_param(ctxt)));
+
     {
         let src_jit_fct = src.jit_fct.read().unwrap();
 

@@ -475,6 +475,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         }
                     }
 
+                    let ty = self.specialize_type(ty);
+
                     Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
                 }
 
