@@ -368,8 +368,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let cls_id = *self.src.map_cls.get(expr.id).unwrap();
-        args.insert(0, Arg::Selfie(BuiltinType::Class(cls_id), 0));
+        let cls = self.ty(expr.id);
+        args.insert(0, Arg::Selfie(cls, 0));
 
         self.universal_call(
             expr.id,
@@ -392,39 +392,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     ) {
         // function invokes another function
         self.leaf = false;
-
-        let mut reg_args: i32 = 0;
-        let mut freg_args: i32 = 0;
-
-        for arg in &args {
-            match *arg {
-                Arg::Expr(ast, ty, _) => {
-                    self.visit_expr(ast);
-
-                    if ty.is_float() {
-                        freg_args += 1;
-                    } else {
-                        reg_args += 1;
-                    }
-                }
-
-                Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => if ty.is_float() {
-                    freg_args += 1;
-                } else {
-                    reg_args += 1;
-                },
-            }
-        }
-
-        // some register are reserved on stack
-        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32) +
-            max(0, freg_args - FREG_PARAMS.len() as i32);
-
-        let argsize = 8 * args_on_stack;
-
-        if argsize > self.argsize {
-            self.argsize = argsize;
-        }
 
         let fid = if callee.is_none() {
             Some(self.src.map_calls.get(id).unwrap().fct_id())
@@ -521,6 +488,39 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.specialize_type(return_type)
         });
+
+        let mut reg_args: i32 = 0;
+        let mut freg_args: i32 = 0;
+
+        for arg in &args {
+            match *arg {
+                Arg::Expr(ast, ty, _) => {
+                    self.visit_expr(ast);
+
+                    if ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
+                }
+
+                Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => if ty.is_float() {
+                    freg_args += 1;
+                } else {
+                    reg_args += 1;
+                },
+            }
+        }
+
+        // some register are reserved on stack
+        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32) +
+            max(0, freg_args - FREG_PARAMS.len() as i32);
+
+        let argsize = 8 * args_on_stack;
+
+        if argsize > self.argsize {
+            self.argsize = argsize;
+        }
 
         let callee = callee.unwrap_or_else(|| fid.unwrap());
 

@@ -815,7 +815,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &type_params,
                 &[],
             ) {
-                self.src.map_cls.insert(e.id, cls.id);
+                self.src.map_tys.insert(e.id, BuiltinType::Class(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, Rc::new(type_params));
                 self.src.map_calls.insert(e.id, Rc::new(call_type));

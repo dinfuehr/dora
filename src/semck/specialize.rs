@@ -143,7 +143,7 @@ fn create_specialized_class(
             let id = specialize_class_id(ctxt, super_id);
             let cls_def = ctxt.class_defs[id].borrow();
 
-            fields = cls_def.fields.clone();
+            fields = Vec::new();
             ref_fields = cls_def.ref_fields.clone();
             csize = match cls_def.size {
                 ClassSize::Fixed(size) => size,
