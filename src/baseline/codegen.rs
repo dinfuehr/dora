@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
-use std::ptr;
 use std::rc::Rc;
 use std::slice;
 
@@ -18,6 +17,7 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
+use class::ClassDef;
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext, VarId};
 use driver::cmd::AsmSyntax;
@@ -26,6 +26,7 @@ use masm::*;
 use os;
 use os::signal::Trap;
 use semck::always_returns;
+use semck::specialize::specialize_class_ty;
 use ty::{BuiltinType, MachineMode};
 
 pub fn generate<'ast>(
@@ -694,9 +695,12 @@ where
 
             self.scopes.pop_scope();
 
-            let _ = self.src.ty(catch.data_type.id());
-            // TODO: emit real class ptr
-            let catch_type = CatchType::Class(ptr::null());
+            let ty = self.src.ty(catch.data_type.id());
+            let ty = self.specialize_type(ty);
+            let cls_def_id = specialize_class_ty(self.ctxt, ty);
+            let cls_def = self.ctxt.class_defs[cls_def_id].borrow();
+
+            let catch_type = CatchType::Class(&* cls_def as *const ClassDef);
             self.masm
                 .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
