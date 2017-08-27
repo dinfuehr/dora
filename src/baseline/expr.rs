@@ -1551,6 +1551,8 @@ where
             idx += 1;
         }
 
+        let return_type = self.specialize_type(csite.return_type);
+
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid);
             self.masm.emit_comment(Comment::CallSuper(fid));
@@ -1558,7 +1560,7 @@ where
                 fid,
                 ptr,
                 pos,
-                csite.return_type,
+                return_type,
                 dest,
                 csite.cls_type_params,
                 csite.fct_type_params,
@@ -1566,7 +1568,7 @@ where
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.masm.emit_comment(Comment::CallVirtual(fid));
-            self.emit_indirect_call_insn(vtable_index, pos, csite.return_type, dest);
+            self.emit_indirect_call_insn(vtable_index, pos, return_type, dest);
         } else {
             let ptr = self.ptr_for_fct_id(fid);
             self.masm.emit_comment(Comment::CallDirect(fid));
@@ -1574,7 +1576,7 @@ where
                 fid,
                 ptr,
                 pos,
-                csite.return_type,
+                return_type,
                 dest,
                 csite.cls_type_params,
                 csite.fct_type_params,
@@ -1736,12 +1738,12 @@ where
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
         match ty {
             BuiltinType::ClassTypeParam(cls_id, id) => {
-                debug_assert!(self.fct.parent == FctParent::Class(cls_id));
+                assert!(self.fct.parent == FctParent::Class(cls_id));
                 self.cls_type_params[id.idx()]
             }
 
             BuiltinType::FctTypeParam(fct_id, id) => {
-                debug_assert!(self.fct.id == fct_id);
+                assert!(self.fct.id == fct_id);
                 self.fct_type_params[id.idx()]
             }
 

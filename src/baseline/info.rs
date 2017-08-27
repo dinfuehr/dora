@@ -485,7 +485,22 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let return_type = return_type.unwrap_or_else(|| {
             let fid = fid.unwrap();
-            self.ctxt.fcts[fid].borrow().return_type
+
+            let return_type = self.ctxt.fcts[fid].borrow().return_type;
+            let call_type = self.src.map_calls.get(id).unwrap().clone();
+
+            match *call_type {
+                CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
+                    specialize_type(self.ctxt, return_type, cls_type_params, fct_type_params)
+                }
+
+                CallType::Ctor(_, _, ref type_params) |
+                CallType::CtorNew(_, _, ref type_params) => {
+                    specialize_type(self.ctxt, return_type, type_params, &[])
+                }
+
+                _ => return_type,
+            }
         });
 
         let callee = callee.unwrap_or_else(|| fid.unwrap());
