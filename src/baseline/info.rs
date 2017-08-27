@@ -336,12 +336,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 fct_type_params = Rc::new(Vec::new());
             }
 
-            CallType::Method(_, _, _) => {
+            CallType::Method(ty, _, ref type_params) => {
                 let object = expr.object.as_ref().unwrap();
                 self.visit_expr(object);
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
 
-                let ty = self.ty(object.id());
+                let ty = self.specialize_type(ty);
 
                 cls_type_params = match ty {
                     BuiltinType::Generic(type_id) => {
@@ -350,7 +350,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                     _ => Rc::new(Vec::new()),
                 };
-                fct_type_params = Rc::new(Vec::new());
+                fct_type_params = type_params.clone();
             }
 
             CallType::Fct(_, ref cls_tps, ref fct_tps) => {
