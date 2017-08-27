@@ -24,7 +24,12 @@ impl CodeMap {
             match data {
                 &CodeData::CompileStub => println!("compile stub"),
                 &CodeData::VirtCompileStub => println!("virtual compile stub"),
-                &CodeData::Fct(_) => println!("source fct"),
+                &CodeData::Fct(jit_fct_id) => {
+                    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+                    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
+
+                    println!("{}", fct.full_name(ctxt));
+                },
             }
         }
 
