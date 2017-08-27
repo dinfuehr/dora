@@ -850,10 +850,15 @@ where
         self.masm.bind_label(lbl_end);
     }
 
-    fn ptr_for_fct_id(&mut self, fid: FctId) -> *const u8 {
+    fn ptr_for_fct_id(
+        &mut self,
+        fid: FctId,
+        cls_type_params: TypeArgs,
+        fct_type_params: TypeArgs,
+    ) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.src, self.ctxt)
+            ensure_jit_or_stub_ptr(self.src, self.ctxt, cls_type_params, fct_type_params)
         } else {
             let fct = self.ctxt.fcts[fid].borrow();
 
@@ -862,7 +867,7 @@ where
                     let src = fct.src();
                     let mut src = src.borrow_mut();
 
-                    ensure_jit_or_stub_ptr(&mut src, self.ctxt)
+                    ensure_jit_or_stub_ptr(&mut src, self.ctxt, cls_type_params, fct_type_params)
                 }
 
                 FctKind::Native(ptr) => {
@@ -1554,7 +1559,11 @@ where
         let return_type = self.specialize_type(csite.return_type);
 
         if csite.super_call {
-            let ptr = self.ptr_for_fct_id(fid);
+            let ptr = self.ptr_for_fct_id(
+                fid,
+                csite.cls_type_params.clone(),
+                csite.fct_type_params.clone(),
+            );
             self.masm.emit_comment(Comment::CallSuper(fid));
             self.emit_direct_call_insn(
                 fid,
@@ -1570,7 +1579,11 @@ where
             self.masm.emit_comment(Comment::CallVirtual(fid));
             self.emit_indirect_call_insn(vtable_index, pos, return_type, dest);
         } else {
-            let ptr = self.ptr_for_fct_id(fid);
+            let ptr = self.ptr_for_fct_id(
+                fid,
+                csite.cls_type_params.clone(),
+                csite.fct_type_params.clone(),
+            );
             self.masm.emit_comment(Comment::CallDirect(fid));
             self.emit_direct_call_insn(
                 fid,
@@ -1801,21 +1814,27 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 
-    if let Some(ptr) = native_fcts.find_fct(ptr) {
-        ptr
+    if let Some(jit_fct_id) = native_fcts.find_fct(ptr) {
+        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        jit_fct.fct_start
+
     } else {
         let fct = ctxt.fcts[fct_id].borrow();
         let dbg = should_emit_debug(ctxt, &*fct);
 
-        let jit_fct = native::generate(ctxt, internal_fct, dbg);
+        let jit_fct_id = native::generate(ctxt, internal_fct, dbg);
+        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
 
         {
             use baseline::map::CodeData;
 
             let mut code_map = ctxt.code_map.lock().unwrap();
-            let cdata = CodeData::Fct(fct_id);
+            let cdata = CodeData::Fct(jit_fct_id);
+
             code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
         }
+
+        let fct_start = jit_fct.fct_start;
 
         if should_emit_asm(ctxt, &*fct) {
             dump_asm(
@@ -1827,15 +1846,23 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
             );
         }
 
-        native_fcts.insert_fct(ptr, jit_fct)
+        native_fcts.insert_fct(ptr, jit_fct_id);
+        fct_start
     }
 }
 
-fn ensure_jit_or_stub_ptr<'ast>(src: &mut FctSrc, ctxt: &SemContext) -> *const u8 {
-    let jit_fct = src.jit_fct.read().unwrap();
+fn ensure_jit_or_stub_ptr<'ast>(
+    src: &mut FctSrc,
+    ctxt: &SemContext,
+    cls_type_params: TypeArgs,
+    fct_type_params: TypeArgs,
+) -> *const u8 {
+    let specials = src.specializations.read().unwrap();
+    let key = (cls_type_params, fct_type_params);
 
-    if let Some(ref jit) = *jit_fct {
-        return jit.fct_ptr();
+    if let Some(&jit_fct_id) = specials.get(&key) {
+        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        return jit_fct.fct_ptr();
     }
 
     ensure_stub(ctxt)

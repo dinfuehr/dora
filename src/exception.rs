@@ -1,9 +1,9 @@
 use std::ptr;
 
-use baseline::fct::CatchType;
+use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeData;
 use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
-use ctxt::{get_ctxt, FctId, FctKind, SemContext};
+use ctxt::{get_ctxt, FctId, SemContext};
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
 use semck::specialize::specialize_class_id;
@@ -21,7 +21,7 @@ impl Stacktrace {
         self.elems.len()
     }
 
-    pub fn push_entry(&mut self, fct_id: FctId, lineno: i32) {
+    pub fn push_entry(&mut self, fct_id: JitFctId, lineno: i32) {
         self.elems.push(StackElem {
             fct_id: fct_id,
             lineno: lineno,
@@ -30,7 +30,10 @@ impl Stacktrace {
 
     pub fn dump(&self, ctxt: &SemContext) {
         for (ind, elem) in self.elems.iter().enumerate() {
-            let name = ctxt.fcts[elem.fct_id].borrow().full_name(ctxt);
+            let jit_fct = ctxt.jit_fcts[elem.fct_id].borrow();
+            let fct_id = jit_fct.fct_id;
+            let fct = ctxt.fcts[fct_id].borrow();
+            let name = fct.full_name(ctxt);
             print!("{}: {}: ", ind, name);
 
             if elem.lineno == 0 {
@@ -43,7 +46,7 @@ impl Stacktrace {
 }
 
 struct StackElem {
-    fct_id: FctId,
+    fct_id: JitFctId,
     lineno: i32,
 }
 
@@ -122,29 +125,13 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
     }
 
     if let CodeData::Fct(fct_id) = data.unwrap() {
-        let lineno;
-        let fct = ctxt.fcts[fct_id].borrow();
+        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
-        match fct.kind {
-            FctKind::Source(ref src) => {
-                let src = src.borrow();
-                let jit_fct = src.jit_fct.read().unwrap();
-                let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
-                let offset = pc - (jit_fct.fct_ptr() as usize);
-                lineno = jit_fct.lineno_for_offset(offset as i32);
+        let offset = pc - (jit_fct.fct_ptr() as usize);
+        let lineno = jit_fct.lineno_for_offset(offset as i32);
 
-                if lineno == 0 {
-                    panic!("lineno not found for program point");
-                }
-            }
-
-            FctKind::Native(_) => {
-                lineno = fct.ast.pos.line as i32;
-            }
-
-            _ => {
-                panic!("fct kind neither source nor native");
-            }
+        if lineno == 0 {
+            panic!("lineno not found for program point");
         }
 
         stacktrace.push_entry(fct_id, lineno);
@@ -200,49 +187,31 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     }
 
     if let CodeData::Fct(fct_id) = data.unwrap() {
-        let fct = ctxt.fcts[fct_id].borrow();
+        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+        let clsptr = exception.header().vtbl().classptr();
 
-        match fct.kind {
-            FctKind::Source(ref src) => {
-                let src = src.borrow();
-                let jit_fct = src.jit_fct.read().unwrap();
-                let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
+        for entry in &jit_fct.exception_handlers {
+            // println!("entry = {:x} to {:x} for {:?}",
+            //          entry.try_start, entry.try_end, entry.catch_type);
 
-                let clsptr = exception.header().vtbl().classptr();
+            if entry.try_start < pc && pc <= entry.try_end &&
+                (entry.catch_type == CatchType::Any || entry.catch_type == CatchType::Class(clsptr))
+            {
+                let stacksize = jit_fct.framesize as usize;
+                resume_with_handler(es, entry, fp, exception, stacksize);
 
-                for entry in &jit_fct.exception_handlers {
-                    // println!("entry = {:x} to {:x} for {:?}",
-                    //          entry.try_start, entry.try_end, entry.catch_type);
+                return HandlerFound::Yes;
+            } else if pc > entry.try_end {
+                // exception handlers are sorted, no more possible handlers
+                // in this function
 
-                    if entry.try_start < pc && pc <= entry.try_end &&
-                        (entry.catch_type == CatchType::Any ||
-                            entry.catch_type == CatchType::Class(clsptr))
-                    {
-                        let stacksize = jit_fct.framesize as usize;
-                        resume_with_handler(es, entry, fp, exception, stacksize);
-
-                        return HandlerFound::Yes;
-                    } else if pc > entry.try_end {
-                        // exception handlers are sorted, no more possible handlers
-                        // in this function
-
-                        return HandlerFound::No;
-                    }
-                }
-            }
-
-            FctKind::Native(_) => {
-                // native fct stub doesn't have exception handlers
-            }
-
-            _ => {
-                panic!("fct kind neither source nor native");
+                return HandlerFound::No;
             }
         }
 
         // exception can only bubble up in stacktrace if current function
         // is allowed to throw exceptions
-        if !fct.ast.throws {
+        if !jit_fct.throws {
             return HandlerFound::Stop;
         }
     }
@@ -303,7 +272,7 @@ fn set_exception_backtrace(ctxt: &SemContext, obj: Handle<Exception>, via_retrie
     // ignore first element of stack trace (ctor of Exception)
     for elem in stacktrace.elems.iter().skip(skip) {
         array.set_at(i, elem.lineno);
-        array.set_at(i + 1, elem.fct_id.0 as i32);
+        array.set_at(i + 1, elem.fct_id.idx() as i32);
 
         i += 2;
     }

@@ -741,7 +741,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .fct_type_params(&type_params);
 
                 let ty = if lookup.find() {
-                    let call_type = CallType::Fct(callee_id, Rc::new(Vec::new()), type_params.clone());
+                    let call_type =
+                        CallType::Fct(callee_id, Rc::new(Vec::new()), type_params.clone());
                     self.src.map_calls.replace(e.id, Rc::new(call_type));
 
                     lookup.found_ret().unwrap()

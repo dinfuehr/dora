@@ -69,6 +69,7 @@ pub struct SemContext<'ast> {
     pub classes: GrowableVec<Class>,          // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
+    pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
     pub traits: Vec<RefCell<TraitData>>,      // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
@@ -129,6 +130,7 @@ impl<'ast> SemContext<'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fcts: GrowableVec::new(),
+            jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
@@ -862,8 +864,7 @@ pub struct FctSrc {
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub jit_fct: RwLock<Option<JitFct>>, // compile function
-    pub specializations: RwLock<HashMap<Vec<BuiltinType>, JitFctId>>,
+    pub specializations: RwLock<HashMap<(TypeArgs, TypeArgs), JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -879,7 +880,6 @@ impl Clone for FctSrc {
 
             vars: self.vars.clone(),
             always_returns: self.always_returns,
-            jit_fct: RwLock::new(None),
             specializations: RwLock::new(HashMap::new()),
         }
     }
@@ -897,7 +897,6 @@ impl FctSrc {
 
             vars: Vec::new(),
             always_returns: false,
-            jit_fct: RwLock::new(None),
             specializations: RwLock::new(HashMap::new()),
         }
     }

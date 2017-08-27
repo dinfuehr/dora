@@ -1,7 +1,7 @@
 use std::convert::From;
 
 use baseline::map::CodeData;
-use ctxt::{FctKind, SemContext};
+use ctxt::SemContext;
 use object::Obj;
 use exception::DoraToNativeInfo;
 
@@ -79,31 +79,16 @@ fn determine_rootset(
     }
 
     if let CodeData::Fct(fct_id) = data.unwrap() {
-        let fct = ctxt.fcts[fct_id].borrow();
+        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
-        match fct.kind {
-            FctKind::Source(ref src) => {
-                let src = src.borrow();
-                let jit_fct = src.jit_fct.read().unwrap();
-                let jit_fct = jit_fct.as_ref().expect("no jit information");
-                let offset = pc - (jit_fct.fct_ptr() as usize);
-                let gcpoint = jit_fct
-                    .gcpoint_for_offset(offset as i32)
-                    .expect("no gcpoint");
+        let offset = pc - (jit_fct.fct_ptr() as usize);
+        let gcpoint = jit_fct
+            .gcpoint_for_offset(offset as i32)
+            .expect("no gcpoint");
 
-                for &offset in &gcpoint.offsets {
-                    let addr = (fp as isize + offset as isize) as usize;
-                    rootset.push(addr.into());
-                }
-            }
-
-            FctKind::Native(_) => {
-                // native stub, doesn't keep anything alive
-            }
-
-            _ => {
-                panic!("fct kind neither source or native");
-            }
+        for &offset in &gcpoint.offsets {
+            let addr = (fp as isize + offset as isize) as usize;
+            rootset.push(addr.into());
         }
 
         true

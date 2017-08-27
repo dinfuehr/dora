@@ -1,5 +1,7 @@
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::ops::Index;
 use std::ptr;
 
 use class::{ClassDef, ClassDefId, FieldId, TypeArgs};
@@ -7,19 +9,37 @@ use cpu::flush_icache;
 use ctxt::{FctId, FctSrc, GlobalId, SemContext, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
+use utils::GrowableVec;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);
 
 impl JitFctId {
-    fn idx(self) -> usize {
+    pub fn idx(self) -> usize {
         self.0
+    }
+}
+
+impl<'ast> Index<JitFctId> for GrowableVec<JitFct> {
+    type Output = RefCell<JitFct>;
+
+    fn index(&self, index: JitFctId) -> &RefCell<JitFct> {
+        &self[index.0]
+    }
+}
+
+impl From<usize> for JitFctId {
+    fn from(data: usize) -> JitFctId {
+        JitFctId(data)
     }
 }
 
 pub struct JitFct {
     code_start: *const u8,
     code_end: *const u8,
+
+    pub fct_id: FctId,
+    pub throws: bool,
 
     // pointer to beginning of function
     pub fct_start: *const u8,
@@ -47,6 +67,8 @@ impl JitFct {
         framesize: i32,
         comments: Comments,
         linenos: LineNumberTable,
+        fct_id: FctId,
+        throws: bool,
         mut exception_handlers: Vec<ExHandler>,
     ) -> JitFct {
         let size = dseg.size() as usize + buffer.len();
@@ -82,6 +104,8 @@ impl JitFct {
             fct_start: fct_start,
             fct_len: buffer.len(),
             linenos: linenos,
+            fct_id: fct_id,
+            throws: throws,
             exception_handlers: exception_handlers,
         }
     }

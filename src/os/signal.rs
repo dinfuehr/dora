@@ -207,13 +207,7 @@ fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
 
     if let Some(CodeData::Fct(fid)) = code_map.get(pc as *const u8) {
-        let fct = ctxt.fcts[fid].borrow();
-
-        let src = fct.src();
-        let src = src.borrow();
-
-        let jit_fct = src.jit_fct.read().unwrap();
-        let jit_fct = jit_fct.as_ref().expect("fct not compiled yet");
+        let jit_fct = ctxt.jit_fcts[fid].borrow();
         let offset = pc - (jit_fct.fct_ptr() as usize);
 
         jit_fct.nil_check_for_offset(offset as i32)
@@ -243,11 +237,7 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
             _ => panic!("expected function for code"),
         };
 
-        let fct = ctxt.fcts[fct_id].borrow();
-        let src = fct.src();
-        let src = src.borrow();
-        let jit_fct = src.jit_fct.read().unwrap();
-        let jit_fct = jit_fct.as_ref().expect("jitted fct not found");
+        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
         let offset = ra - jit_fct.fct_ptr() as usize;
         jit_fct

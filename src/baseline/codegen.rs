@@ -48,14 +48,26 @@ pub fn generate_fct<'ast>(
     cls_type_params: &[BuiltinType],
     fct_type_params: &[BuiltinType],
 ) -> *const u8 {
-    debug_assert!(cls_type_params.iter().all(|ty| !ty.contains_type_param(ctxt)));
-    debug_assert!(fct_type_params.iter().all(|ty| !ty.contains_type_param(ctxt)));
+    debug_assert!(
+        cls_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(ctxt))
+    );
+    debug_assert!(
+        fct_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(ctxt))
+    );
 
     {
-        let src_jit_fct = src.jit_fct.read().unwrap();
+        let specials = src.specializations.read().unwrap();
+        let key = (
+            Rc::new(cls_type_params.to_vec()),
+            Rc::new(fct_type_params.to_vec()),
+        );
 
-        if let Some(ref jit) = *src_jit_fct {
-            return jit.fct_ptr();
+        if let Some(&jit_fct_id) = specials.get(&key) {
+            return ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
         }
     }
 
@@ -102,14 +114,31 @@ pub fn generate_fct<'ast>(
     }
 
     let fct_ptr = jit_fct.fct_ptr();
+    let ptr_start;
+    let ptr_end;
 
-    let mut src_jit_fct = src.jit_fct.write().unwrap();
+    let jit_fct_id = {
+        let mut specials = src.specializations.write().unwrap();
+        let key = (
+            Rc::new(cls_type_params.to_vec()),
+            Rc::new(fct_type_params.to_vec()),
+        );
 
-    if let Some(ref jit) = *src_jit_fct {
-        return jit.fct_ptr();
+        ptr_start = jit_fct.ptr_start();
+        ptr_end = jit_fct.ptr_end();
+
+        let jit_fct_id = ctxt.jit_fcts.len().into();
+        ctxt.jit_fcts.push(jit_fct);
+        specials.insert(key, jit_fct_id);
+
+        jit_fct_id
+    };
+
+    {
+        let mut code_map = ctxt.code_map.lock().unwrap();
+        let cdata = CodeData::Fct(jit_fct_id);
+        code_map.insert(ptr_start, ptr_end, cdata);
     }
-
-    *src_jit_fct = Some(jit_fct);
 
     fct_ptr
 }
@@ -290,11 +319,7 @@ where
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.jit(self.ctxt, self.jit_info.stacksize());
-
-        let mut code_map = self.ctxt.code_map.lock().unwrap();
-        let cdata = CodeData::Fct(self.fct.id);
-        code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
+        let jit_fct = self.masm.jit(self.ctxt, self.jit_info.stacksize(), self.fct.id, self.ast.throws);
 
         if self.ctxt.args.flag_enable_perf {
             os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);

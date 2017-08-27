@@ -1,7 +1,8 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ctxt::{FctId, SemContext};
+use baseline::fct::JitFctId;
+use ctxt::SemContext;
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeData>,
@@ -23,12 +24,7 @@ impl CodeMap {
             match data {
                 &CodeData::CompileStub => println!("compile stub"),
                 &CodeData::VirtCompileStub => println!("virtual compile stub"),
-                &CodeData::Fct(id) => {
-                    let fct = ctxt.fcts[id].borrow();
-                    let fct_name = fct.full_name(ctxt);
-
-                    println!("{} (id {})", fct_name, id.0);
-                }
+                &CodeData::Fct(_) => println!("source fct"),
             }
         }
 
@@ -51,7 +47,7 @@ impl CodeMap {
 pub enum CodeData {
     CompileStub,
     VirtCompileStub,
-    Fct(FctId),
+    Fct(JitFctId),
 }
 
 #[derive(Copy, Clone, Debug)]

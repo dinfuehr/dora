@@ -1,9 +1,9 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use baseline::fct::JitFct;
+use baseline::fct::{JitFct, JitFctId};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{exception_get_and_clear, get_ctxt, SemContext};
+use ctxt::{exception_get_and_clear, FctId, get_ctxt, SemContext};
 use masm::MacroAssembler;
 use mem;
 use os::signal::Trap;
@@ -11,7 +11,7 @@ use exception::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeFcts {
-    map: HashMap<*const u8, JitFct>,
+    map: HashMap<*const u8, JitFctId>,
 }
 
 impl NativeFcts {
@@ -21,14 +21,14 @@ impl NativeFcts {
         }
     }
 
-    pub fn find_fct(&self, ptr: *const u8) -> Option<*const u8> {
+    pub fn find_fct(&self, ptr: *const u8) -> Option<JitFctId> {
         self.map
             .get(&ptr)
-            .map(|jit_fct| jit_fct.fct_start as *const u8)
+            .map(|&jit_fct_id| jit_fct_id)
     }
 
-    pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFct) -> *const u8 {
-        self.map.entry(ptr).or_insert(fct).fct_start as *const u8
+    pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFctId) {
+        self.map.entry(ptr).or_insert(fct);
     }
 }
 
@@ -38,7 +38,7 @@ pub struct InternalFct<'a> {
     pub return_type: BuiltinType,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFct {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
     let ngen = NativeGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -46,7 +46,12 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg:
         dbg: dbg,
     };
 
-    ngen.generate()
+    let jit_fct = ngen.generate();
+
+    let jit_fct_id = ctxt.jit_fcts.len().into();
+    ctxt.jit_fcts.push(jit_fct);
+
+    jit_fct_id
 }
 
 struct NativeGen<'a, 'ast: 'a> {
@@ -111,7 +116,7 @@ where
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm.jit(self.ctxt, framesize)
+        self.masm.jit(self.ctxt, framesize, FctId(0), false)
     }
 }
 
