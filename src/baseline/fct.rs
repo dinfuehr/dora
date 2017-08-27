@@ -151,9 +151,10 @@ impl fmt::Debug for JitFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "JitFct {{ start: {:?}, end: {:?} }}",
+            "JitFct {{ start: {:?}, end: {:?}, fct_id: {:?} }}",
             self.ptr_start(),
-            self.ptr_end()
+            self.ptr_end(),
+            self.fct_id,
         )
     }
 }

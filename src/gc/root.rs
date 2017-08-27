@@ -74,26 +74,26 @@ fn determine_rootset(
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
-    if data.is_none() {
-        return false;
-    }
+    match data {
+        Some(CodeData::Fct(fct_id)) => {
+            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
-    if let CodeData::Fct(fct_id) = data.unwrap() {
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let offset = pc - (jit_fct.fct_ptr() as usize);
+            let gcpoint = jit_fct
+                .gcpoint_for_offset(offset as i32)
+                .expect("no gcpoint");
 
-        let offset = pc - (jit_fct.fct_ptr() as usize);
-        let gcpoint = jit_fct
-            .gcpoint_for_offset(offset as i32)
-            .expect("no gcpoint");
+            for &offset in &gcpoint.offsets {
+                let addr = (fp as isize + offset as isize) as usize;
+                rootset.push(addr.into());
+            }
 
-        for &offset in &gcpoint.offsets {
-            let addr = (fp as isize + offset as isize) as usize;
-            rootset.push(addr.into());
+            true
         }
 
-        true
-    } else {
-        false
+        Some(CodeData::NativeStub(_)) => true,
+
+        _ => false,
     }
 }
 

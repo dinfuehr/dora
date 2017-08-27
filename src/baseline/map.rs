@@ -30,6 +30,7 @@ impl CodeMap {
 
                     println!("{}", fct.full_name(ctxt));
                 }
+                &CodeData::NativeStub(_) => println!("native stub"),
             }
         }
 
@@ -53,6 +54,7 @@ pub enum CodeData {
     CompileStub,
     VirtCompileStub,
     Fct(JitFctId),
+    NativeStub(JitFctId),
 }
 
 #[derive(Copy, Clone, Debug)]

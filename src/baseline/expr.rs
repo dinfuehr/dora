@@ -1849,7 +1849,7 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
             use baseline::map::CodeData;
 
             let mut code_map = ctxt.code_map.lock().unwrap();
-            let cdata = CodeData::Fct(jit_fct_id);
+            let cdata = CodeData::NativeStub(jit_fct_id);
 
             code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
         }
