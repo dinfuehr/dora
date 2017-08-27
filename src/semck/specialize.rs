@@ -119,7 +119,6 @@ fn create_specialized_class(ctxt: &SemContext,
     let mut fields;
     let mut ref_fields;
     let size;
-    let mut vtable_entries = Vec::new();
     let parent_id;
 
     if cls.is_array || cls.is_str {
@@ -156,9 +155,6 @@ fn create_specialized_class(ctxt: &SemContext,
             };
             parent_id = Some(id);
 
-            let vtable = cls_def.vtable.as_ref().unwrap();
-            vtable_entries.extend_from_slice(vtable.table());
-
         } else {
             fields = Vec::with_capacity(cls.fields.len());
             ref_fields = Vec::new();
@@ -189,27 +185,8 @@ fn create_specialized_class(ctxt: &SemContext,
         size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
-    for &mid in &cls.methods {
-        let mut fct = ctxt.fcts[mid].borrow_mut();
-
-        if fct.vtable_index.is_some() {
-            continue;
-        }
-
-        if fct.is_virtual() {
-            let vtable_index = if let Some(overrides) = fct.overrides {
-                ctxt.fcts[overrides].borrow().vtable_index.unwrap()
-
-            } else {
-                let vtable_index = vtable_entries.len();
-                vtable_entries.push(ensure_stub(ctxt) as usize);
-
-                vtable_index as u32
-            };
-
-            fct.vtable_index = Some(vtable_index);
-        }
-    }
+    let stub = ensure_stub(ctxt) as usize;
+    let vtable_entries = vec![stub; cls.vtable_len as usize];
 
     let mut cls_def = ctxt.class_defs[id].borrow_mut();
     cls_def.size = size;

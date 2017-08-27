@@ -198,6 +198,15 @@ impl<'ast> SemContext<'ast> {
     }
 
     #[cfg(test)]
+    pub fn cls_by_name(&self, name: &'static str) -> ClassId {
+        let name = self.interner.intern(name);
+        self.sym
+            .borrow()
+            .get_class(name)
+            .expect("class not found")
+    }
+
+    #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         self.sym.borrow().get_fct(name)

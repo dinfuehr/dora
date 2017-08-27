@@ -15,6 +15,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 
     determine_struct_sizes(ctxt);
+    determine_vtables(ctxt);
 }
 
 fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
@@ -40,6 +41,60 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
         }
 
     }
+}
+
+fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
+    let mut lens = HashMap::new();
+
+    for cls in ctxt.classes.iter() {
+        let mut cls = cls.borrow_mut();
+        determine_vtable(ctxt, &mut lens, &mut *cls);
+    }
+}
+
+fn determine_vtable<'ast>(ctxt: &SemContext<'ast>,
+                          lens: &mut HashMap<ClassId, u32>,
+                          cls: &mut Class)
+                          -> u32 {
+    let mut vtable_len = if let Some(parent_cls_id) = cls.parent_class {
+        let parent_vtable_len = lens.get(&parent_cls_id).map(|&len| len);
+
+        if let Some(parent_vtable_len) = parent_vtable_len {
+            parent_vtable_len
+
+        } else {
+            let mut parent = ctxt.classes[parent_cls_id].borrow_mut();
+            determine_vtable(ctxt, lens, &mut *parent)
+        }
+
+    } else {
+        0
+    };
+
+    for &mid in &cls.methods {
+        let mut fct = ctxt.fcts[mid].borrow_mut();
+
+        assert!(fct.vtable_index.is_none());
+
+        if fct.is_virtual() {
+            let vtable_index = if let Some(overrides) = fct.overrides {
+                ctxt.fcts[overrides].borrow().vtable_index.unwrap()
+
+            } else {
+                let vtable_index = vtable_len;
+                vtable_len += 1;
+
+                vtable_index
+            };
+
+            fct.vtable_index = Some(vtable_index);
+        }
+    }
+
+    cls.vtable_len = vtable_len;
+    lens.insert(cls.id, vtable_len);
+
+    vtable_len
 }
 
 fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
@@ -339,6 +394,33 @@ mod tests {
         ok("open class A { final fun f() {} }");
     }
 
+    #[test]
+    fn test_vtable_index_and_len() {
+        ok_with_test("class A {}", |ctxt| {
+            let cls_id = ctxt.cls_by_name("A");
+            let cls = ctxt.classes[cls_id].borrow();
+            assert_eq!(cls.vtable_len, 0);
+        });
+
+        ok_with_test("open class A { open fun f() {} }", |ctxt| {
+            let cls_id = ctxt.cls_by_name("A");
+            let cls = ctxt.classes[cls_id].borrow();
+            assert_eq!(cls.vtable_len, 1);
+        });
+
+        ok_with_test("open class A { open fun f() {} }
+                      open class B: A { override fun f() {}
+                                        open fun g() {} }", |ctxt| {
+            let cls_id = ctxt.cls_by_name("A");
+            let cls = ctxt.classes[cls_id].borrow();
+            assert_eq!(cls.vtable_len, 1);
+
+            let cls_id = ctxt.cls_by_name("B");
+            let cls = ctxt.classes[cls_id].borrow();
+            assert_eq!(cls.vtable_len, 2);
+        });
+    }
+
     // #[test]
     // fn test_depth() {
     //     ok_with_test("class A { } class B { }", |ctxt| {
@@ -574,14 +656,6 @@ mod tests {
     //     let vtable = cls.vtable.as_ref().unwrap();
 
     //     fct(vtable)
-    // }
-
-    // fn cls_by_name<'a, 'ast>(ctxt: &'a SemContext<'ast>, name: &'static str) -> ClassId {
-    //     let name = ctxt.interner.intern(name);
-    //     ctxt.sym
-    //         .borrow()
-    //         .get_class(name)
-    //         .expect("class not found")
     // }
 
     // fn check_class<'ast>(ctxt: &SemContext<'ast>,

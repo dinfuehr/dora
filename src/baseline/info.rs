@@ -347,12 +347,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         }
 
-        self.universal_call(expr.id,
-                            args,
-                            None,
-                            cls_type_params,
-                            fct_type_params,
-                            None);
+        self.universal_call(expr.id, args, None, cls_type_params, fct_type_params, None);
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {

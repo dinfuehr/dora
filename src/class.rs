@@ -65,6 +65,7 @@ pub struct Class {
     pub type_params: Vec<TypeParam>,
 
     pub specializations: RefCell<HashMap<TypeArgs, ClassDefId>>,
+    pub vtable_len: u32,
 
     // true if this class is the generic Array class
     pub is_array: bool,

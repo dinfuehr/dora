@@ -110,7 +110,7 @@ impl<'a, 'ast> ExprGen<'a, 'ast>
             temps: TempOffsets::new(),
             jit_info: jit_info,
             cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params
+            fct_type_params: fct_type_params,
         }
     }
 

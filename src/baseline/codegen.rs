@@ -593,10 +593,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm.load_nil(REG_RESULT);
-            var_store(&mut self.masm,
-                      &self.jit_info,
-                      REG_RESULT.into(),
-                      var);
+            var_store(&mut self.masm, &self.jit_info, REG_RESULT.into(), var);
         }
     }
 
@@ -826,19 +823,13 @@ pub enum CondCode {
     UnsignedLessEq,
 }
 
-pub fn var_store(masm: &mut MacroAssembler,
-                 jit_info: &JitInfo,
-                 src: ExprStore,
-                 var_id: VarId) {
+pub fn var_store(masm: &mut MacroAssembler, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
     let offset = jit_info.offset(var_id);
     let ty = jit_info.ty(var_id);
     masm.store_mem(ty.mode(), Mem::Local(offset), src);
 }
 
-pub fn var_load(masm: &mut MacroAssembler,
-                jit_info: &JitInfo,
-                var_id: VarId,
-                dest: ExprStore) {
+pub fn var_load(masm: &mut MacroAssembler, jit_info: &JitInfo, var_id: VarId, dest: ExprStore) {
     let offset = jit_info.offset(var_id);
     let ty = jit_info.ty(var_id);
     masm.load_mem(ty.mode(), dest, Mem::Local(offset));
