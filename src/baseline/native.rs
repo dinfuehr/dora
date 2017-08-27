@@ -36,6 +36,8 @@ pub struct InternalFct<'a> {
     pub ptr: *const u8,
     pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
+    pub throws: bool,
+    pub id: FctId,
 }
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
@@ -116,7 +118,7 @@ where
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm.jit(self.ctxt, framesize, FctId(0), false)
+        self.masm.jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
     }
 }
 

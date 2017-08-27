@@ -875,6 +875,8 @@ where
                         ptr: ptr,
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
+                        throws: fct.ast.throws,
+                        id: fid,
                     };
 
                     ensure_native_stub(self.ctxt, fid, internal_fct)
@@ -1662,6 +1664,8 @@ where
             ptr: stdlib::gc_alloc as *mut u8,
             args: &[BuiltinType::Int],
             return_type: BuiltinType::Ptr,
+            throws: false,
+            id: FctId(0),
         };
 
         self.emit_native_call_insn(pos, internal_fct, dest.into());
