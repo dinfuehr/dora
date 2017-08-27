@@ -341,7 +341,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.visit_expr(object);
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
 
-                cls_type_params = Rc::new(Vec::new());
+                let ty = self.ty(object.id());
+
+                cls_type_params = match ty {
+                    BuiltinType::Generic(type_id) => {
+                        let t = self.ctxt.types.borrow().get(type_id);
+                        t.params.clone()
+                    }
+                    _ => Rc::new(Vec::new()),
+                };
                 fct_type_params = Rc::new(Vec::new());
             }
 

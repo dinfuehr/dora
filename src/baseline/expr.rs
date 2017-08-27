@@ -451,6 +451,8 @@ where
             }
         };
 
+        let ty = self.specialize_type(ty);
+
         self.emit_expr(&expr.object, REG_RESULT.into());
         self.emit_field_access(expr.pos, ty, field, REG_RESULT, dest);
     }
