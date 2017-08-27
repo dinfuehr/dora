@@ -354,7 +354,7 @@ where
         if let Some(intrinsic) = self.intrinsic(e.id) {
             match intrinsic {
                 Intrinsic::GenericArrayGet => {
-                    let ty = self.src.ty(e.id);
+                    let ty = self.ty(e.id);
                     self.emit_array_get(e.pos, ty.mode(), &e.object, &e.index, dest);
                 }
 
@@ -371,7 +371,7 @@ where
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {
         let id = expr.id();
-        let ty = self.src.ty(id);
+        let ty = self.ty(id);
         let offset = -(self.jit_info.localsize + self.jit_info.get_store(id).offset());
 
         if ty.reference_type() {
@@ -393,7 +393,7 @@ where
     }
 
     fn free_temp_for_node(&mut self, expr: &Expr, offset: i32) {
-        let ty = self.src.ty(expr.id());
+        let ty = self.ty(expr.id());
 
         if ty.reference_type() {
             self.temps.remove(offset);
@@ -656,7 +656,7 @@ where
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
-                        let ty = self.src.ty(e.rhs.id());
+                        let ty = self.ty(e.rhs.id());
                         self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs)
                     }
 
@@ -1016,7 +1016,7 @@ where
     }
 
     fn emit_intrinsic_default_value(&mut self, e: &'ast ExprCallType, dest: ExprStore) {
-        let ty = self.src.ty(e.id);
+        let ty = self.ty(e.id);
 
         match ty {
             BuiltinType::Bool |
@@ -1284,7 +1284,7 @@ where
         intr: Intrinsic,
         op: Option<BinOp>,
     ) {
-        let mode = self.src.ty(lhs.id()).mode();
+        let mode = self.ty(lhs.id()).mode();
 
         let (lhs_reg, rhs_reg) = if mode.is_float() {
             (FREG_RESULT.into(), FREG_TMP1.into())
@@ -1647,7 +1647,7 @@ where
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
             }
 
-            ClassSize::Array(esize) => {
+            ClassSize::Array(esize) if temps.len() > 1 => {
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
@@ -1657,7 +1657,7 @@ where
                 store_length = true;
             }
 
-            ClassSize::ObjArray => {
+            ClassSize::ObjArray if temps.len() > 1 => {
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
@@ -1667,13 +1667,21 @@ where
                 store_length = true;
             }
 
-            ClassSize::Str => {
+            ClassSize::Str if temps.len() > 1 => {
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
                 self.masm.determine_array_size(REG_PARAMS[0], REG_TMP1, 1);
 
                 store_length = true;
+            }
+
+            ClassSize::Array(_) |
+            ClassSize::ObjArray |
+            ClassSize::Str => {
+                let size = (Header::size() + mem::ptr_width()) as i64;
+                self.masm
+                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
             }
         }
 
@@ -1798,6 +1806,11 @@ where
 
             _ => ty,
         }
+    }
+
+    fn ty(&self, id: NodeId) -> BuiltinType {
+        let ty = self.src.ty(id);
+        self.specialize_type(ty)
     }
 }
 
