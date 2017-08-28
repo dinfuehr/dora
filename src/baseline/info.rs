@@ -128,7 +128,11 @@ struct InfoGenerator<'a, 'ast: 'a> {
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     fn visit_param(&mut self, p: &'ast Param) {
         let var = *self.src.map_vars.get(p.id).unwrap();
-        let is_float = self.src.vars[var].ty.is_float();
+        let ty = self.src.vars[var].ty;
+        let ty = self.specialize_type(ty);
+        self.jit_info.map_var_types.insert(var, ty);
+
+        let is_float = ty.is_float();
 
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
