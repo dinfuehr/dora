@@ -264,6 +264,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if self.is_intrinsic(expr.id) {
             self.reserve_temp_for_node(&expr.object);
         } else {
+            let ty = self.src.ty(expr.object.id());
+            let ty = self.specialize_type_for_call(expr.id, ty);
+
+            let cls_type_params = ty.type_params(self.ctxt);
+
             let args = vec![
                 Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                 Arg::Expr(&expr.index, BuiltinType::Unit, 0),
@@ -273,7 +278,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 expr.id,
                 args,
                 None,
-                Rc::new(Vec::new()),
+                cls_type_params,
                 Rc::new(Vec::new()),
                 None,
             );
@@ -527,6 +532,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.reserve_temp_for_node(&array.index);
                 self.reserve_temp_for_node(&e.rhs);
             } else {
+                let ty = self.src.ty(array.object.id());
+                let ty = self.specialize_type_for_call(e.id, ty);
+
+                let cls_type_params = ty.type_params(self.ctxt);
+
                 let args = vec![
                     Arg::Expr(&array.object, BuiltinType::Unit, 0),
                     Arg::Expr(&array.index, BuiltinType::Unit, 0),
@@ -537,7 +547,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     e.id,
                     args,
                     None,
-                    Rc::new(Vec::new()),
+                    cls_type_params,
                     Rc::new(Vec::new()),
                     None,
                 );

@@ -117,6 +117,19 @@ impl BuiltinType {
         }
     }
 
+    pub fn type_params(&self, ctxt: &SemContext) -> TypeArgs {
+        debug_assert!(!self.contains_type_param(ctxt));
+
+        match self {
+            &BuiltinType::Generic(type_id) => {
+                let t = ctxt.types.borrow().get(type_id);
+                t.params.clone()
+            }
+
+            _ => Rc::new(Vec::new()),
+        }
+    }
+
     pub fn contains_type_param(&self, ctxt: &SemContext) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
