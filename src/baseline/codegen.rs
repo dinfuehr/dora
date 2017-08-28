@@ -408,17 +408,17 @@ where
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
         let len = self.active_upper.unwrap_or(self.active_finallys.len());
         let return_type = self.specialize_type(self.fct.return_type);
-        let return_mode = return_type.mode();
 
         if let Some(ref expr) = s.expr {
             self.emit_expr(expr);
 
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
+                let rmode = return_type.mode();
                 self.masm.store_mem(
-                    return_mode,
+                    rmode,
                     Mem::Local(offset),
-                    register_for_mode(return_mode),
+                    register_for_mode(rmode),
                 );
             }
         }
@@ -444,9 +444,10 @@ where
 
             if s.expr.is_some() {
                 let offset = self.jit_info.eh_return_value.unwrap();
+                let rmode = return_type.mode();
                 self.masm.load_mem(
-                    return_mode,
-                    register_for_mode(return_mode),
+                    rmode,
+                    register_for_mode(rmode),
                     Mem::Local(offset),
                 );
             }
