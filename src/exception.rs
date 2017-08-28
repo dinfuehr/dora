@@ -3,10 +3,9 @@ use std::ptr;
 use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeData;
 use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
-use ctxt::{get_ctxt, FctId, SemContext};
+use ctxt::{get_ctxt, SemContext};
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
-use semck::specialize::specialize_class_id;
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,
@@ -120,25 +119,32 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
-    if data.is_none() {
-        return false;
-    }
+    match data {
+        Some(CodeData::Fct(fct_id)) => {
+            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
-    if let CodeData::Fct(fct_id) = data.unwrap() {
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let offset = pc - (jit_fct.fct_ptr() as usize);
+            let lineno = jit_fct.lineno_for_offset(offset as i32);
 
-        let offset = pc - (jit_fct.fct_ptr() as usize);
-        let lineno = jit_fct.lineno_for_offset(offset as i32);
+            if lineno == 0 {
+                panic!("lineno not found for program point");
+            }
 
-        if lineno == 0 {
-            panic!("lineno not found for program point");
+            stacktrace.push_entry(fct_id, lineno);
+
+            true
         }
 
-        stacktrace.push_entry(fct_id, lineno);
+        Some(CodeData::NativeStub(fct_id)) => {
+            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let fct = ctxt.fcts[jit_fct.fct_id].borrow();
 
-        true
-    } else {
-        false
+            stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
+
+            true
+        }
+
+        _ => false
     }
 }
 
@@ -233,14 +239,16 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
-    let cls_id = ctxt.vips.stack_trace_element_class;
-    let cls_def_id = specialize_class_id(ctxt, cls_id);
+    let cls_def_id = ctxt.vips.stack_trace_element(ctxt);
 
     let ste: Handle<StackTraceElement> = alloc(ctxt, cls_def_id).cast();
     let mut ste = ctxt.handles.root(ste);
     ste.line = lineno;
 
-    let name = ctxt.fcts[FctId(fct_id as usize)].borrow().full_name(ctxt);
+    let jit_fct_id = JitFctId::from(fct_id as usize);
+    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
+    let name = fct.full_name(ctxt);
     ste.name = Str::from_buffer(ctxt, name.as_bytes());
 
     ste.direct()

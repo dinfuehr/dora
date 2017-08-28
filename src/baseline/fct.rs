@@ -15,6 +15,10 @@ use utils::GrowableVec;
 pub struct JitFctId(usize);
 
 impl JitFctId {
+    pub fn from(idx: usize) -> JitFctId {
+        JitFctId(idx)
+    }
+
     pub fn idx(self) -> usize {
         self.0
     }
