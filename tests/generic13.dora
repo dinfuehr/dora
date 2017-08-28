@@ -1,0 +1,15 @@
+fun main() {
+    let x = SomeTest::<int>(1);
+    assert(+x == 1);
+    assert(-x == 1);
+}
+
+class SomeTest<T>(let x: T) {
+    fun unaryPlus() -> T {
+        return self.x;
+    }
+
+    fun unaryMinus() -> T {
+        return self.x;
+    }
+}

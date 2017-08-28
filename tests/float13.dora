@@ -1,0 +1,15 @@
+fun main() {
+    let x = SomeTest();
+    assert(+x == 1.0F);
+    assert(-x == 2.0F);
+}
+
+class SomeTest {
+    fun unaryPlus() -> float {
+        return 1.0F;
+    }
+
+    fun unaryMinus() -> float {
+        return 2.0F;
+    }
+}

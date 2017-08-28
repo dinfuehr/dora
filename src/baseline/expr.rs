@@ -48,14 +48,14 @@ impl ExprStore {
     pub fn reg(&self) -> Reg {
         match self {
             &ExprStore::Reg(reg) => reg,
-            _ => unreachable!(),
+            _ => panic!("fp-register accessed as gp-register."),
         }
     }
 
     pub fn freg(&self) -> FReg {
         match self {
             &ExprStore::FReg(reg) => reg,
-            _ => unreachable!(),
+            _ => panic!("gp-register accessed as fp-register."),
         }
     }
 }
@@ -587,9 +587,9 @@ where
     }
 
     fn emit_un(&mut self, e: &'ast ExprUnType, dest: ExprStore) {
-        self.emit_expr(&e.opnd, dest);
-
         if let Some(intrinsic) = self.intrinsic(e.id) {
+            self.emit_expr(&e.opnd, dest);
+
             match intrinsic {
                 Intrinsic::IntPlus |
                 Intrinsic::LongPlus |

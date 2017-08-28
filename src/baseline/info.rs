@@ -448,7 +448,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .collect::<Vec<_>>();
 
         let return_type = return_type.unwrap_or_else(|| {
-            let fid = fid.unwrap();
+            let fid = self.src.map_calls.get(id).unwrap().fct_id();
             let return_type = self.ctxt.fcts[fid].borrow().return_type;
 
             self.specialize_type_for_call(id, return_type)
@@ -575,36 +575,40 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.rhs, rhs_ty, 0),
             ];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+            let cls_type_params = lhs_ty.type_params(self.ctxt);
 
             self.universal_call(
                 expr.id,
                 args,
                 Some(fid),
+                cls_type_params,
                 Rc::new(Vec::new()),
-                Rc::new(Vec::new()),
-                Some(BuiltinType::Bool),
+                None,
             );
         }
     }
 
     fn expr_un(&mut self, expr: &'ast ExprUnType) {
         self.visit_expr(&expr.opnd);
-        let opnd = self.ty(expr.opnd.id());
 
         if self.is_intrinsic(expr.id) {
             // no temporaries needed
 
         } else {
+            let opnd = self.ty(expr.opnd.id());
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
+
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
+
+            let cls_type_params = opnd.type_params(self.ctxt);
 
             self.universal_call(
                 expr.id,
                 args,
                 Some(fid),
+                cls_type_params,
                 Rc::new(Vec::new()),
-                Rc::new(Vec::new()),
-                Some(BuiltinType::Bool),
+                None,
             );
         }
     }
