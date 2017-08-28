@@ -77,11 +77,11 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
-        *self.map_var_offsets.get(&var_id).unwrap()
+        *self.map_var_offsets.get(&var_id).expect("no offset found for var")
     }
 
     pub fn ty(&self, var_id: VarId) -> BuiltinType {
-        *self.map_var_types.get(&var_id).unwrap()
+        *self.map_var_types.get(&var_id).expect("no type found for var")
     }
 
     pub fn new() -> JitInfo<'ast> {
