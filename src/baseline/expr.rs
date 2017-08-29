@@ -882,7 +882,7 @@ where
                     ensure_native_stub(self.ctxt, fid, internal_fct)
                 }
 
-                FctKind::Definition => unreachable!(),
+                FctKind::Definition => panic!("prototype for fct call"),
                 FctKind::Builtin(_) => panic!("intrinsic fct call"),
             }
         }
