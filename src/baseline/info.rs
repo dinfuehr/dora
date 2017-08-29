@@ -272,11 +272,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
 
         } else {
-            let ty = self.src.ty(expr.object.id());
-            let ty = self.specialize_type_for_call(expr.id, ty);
-
-            let cls_type_params = ty.type_params(self.ctxt);
-
             let args = vec![
                 Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                 Arg::Expr(&expr.index, BuiltinType::Unit, 0),
@@ -285,9 +280,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.universal_call(
                 expr.id,
                 args,
-                None,
-                cls_type_params,
-                Rc::new(Vec::new()),
                 None,
             );
         }
@@ -332,13 +324,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
 
-        let cls_type_params: TypeArgs;
-        let fct_type_params: TypeArgs;
         let fct_id: FctId;
 
         match *call_type {
-            CallType::Ctor(_, fid, ref type_params) |
-            CallType::CtorNew(_, fid, ref type_params) => {
+            CallType::Ctor(_, fid, _) |
+            CallType::CtorNew(_, fid, _) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
                     Arg::Selfie(ty, 0)
@@ -348,35 +338,17 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 args.insert(0, arg);
 
-                cls_type_params = type_params.clone();
-                fct_type_params = Rc::new(Vec::new());
-
                 fct_id = fid;
             }
 
-            CallType::Method(ty, fid, ref type_params) => {
+            CallType::Method(_, fid, _) => {
                 let object = expr.object.as_ref().unwrap();
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
 
-                let ty = self.specialize_type(ty);
-
-                cls_type_params = match ty {
-                    BuiltinType::Generic(type_id) => {
-                        let t = self.ctxt.types.borrow().get(type_id);
-                        t.params.clone()
-                    }
-                    _ => Rc::new(Vec::new()),
-                };
-
-                fct_type_params = type_params.clone();
-
                 fct_id = fid;
             }
 
-            CallType::Fct(fid, ref cls_tps, ref fct_tps) => {
-                cls_type_params = cls_tps.clone();
-                fct_type_params = fct_tps.clone();
-
+            CallType::Fct(fid, _, _) => {
                 fct_id = fid;
             }
         }
@@ -409,9 +381,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             expr.id,
             args,
             Some(callee_id),
-            cls_type_params,
-            fct_type_params,
-            None,
         );
     }
 
@@ -463,9 +432,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             expr.id,
             args,
             None,
-            Rc::new(Vec::new()),
-            Rc::new(Vec::new()),
-            None,
         );
     }
 
@@ -474,17 +440,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         id: NodeId,
         args: Vec<Arg<'ast>>,
         callee_id: Option<FctId>,
-        cls_type_params: TypeArgs,
-        fct_type_params: TypeArgs,
-        return_type: Option<BuiltinType>,
     ) {
         // function invokes another function
         self.leaf = false;
 
+        let call_type = self.src.map_calls.get(id).unwrap().clone();
+
         let callee_id = if let Some(callee_id) = callee_id {
             callee_id
         } else {
-            self.src.map_calls.get(id).unwrap().fct_id()
+            call_type.fct_id()
         };
 
         let callee = self.ctxt.fcts[callee_id].borrow();
@@ -511,10 +476,37 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             })
             .collect::<Vec<_>>();
 
-        let return_type = return_type.unwrap_or_else(|| {
-            let return_type = callee.return_type;
-            self.specialize_type_for_call(id, return_type)
-        });
+        let return_type = self.specialize_type_for_call(id, callee.return_type);
+
+        let cls_type_params: TypeArgs;
+        let fct_type_params: TypeArgs;
+
+        match *call_type {
+            CallType::Ctor(_, _, ref type_params) |
+            CallType::CtorNew(_, _, ref type_params) => {
+                cls_type_params = type_params.clone();
+                fct_type_params = Rc::new(Vec::new());
+            }
+
+            CallType::Method(ty, _, ref type_params) => {
+                let ty = self.specialize_type(ty);
+
+                cls_type_params = match ty {
+                    BuiltinType::Generic(type_id) => {
+                        let t = self.ctxt.types.borrow().get(type_id);
+                        t.params.clone()
+                    }
+                    _ => Rc::new(Vec::new()),
+                };
+
+                fct_type_params = type_params.clone();
+            }
+
+            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
+                cls_type_params = cls_tps.clone();
+                fct_type_params = fct_tps.clone();
+            }
+        }
 
         let mut reg_args: i32 = 0;
         let mut freg_args: i32 = 0;
@@ -594,18 +586,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 self.jit_info.map_intrinsics.insert(e.id, intrinsic);
             } else {
-                let ty = self.src.ty(array.object.id());
-                let ty = self.specialize_type_for_call(e.id, ty);
-
-                let cls_type_params = ty.type_params(self.ctxt);
-
                 let args = vec![
                     Arg::Expr(&array.object, BuiltinType::Unit, 0),
                     Arg::Expr(&array.index, BuiltinType::Unit, 0),
                     Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
                 ];
 
-                self.universal_call(e.id, args, None, cls_type_params, Rc::new(Vec::new()), None);
+                self.universal_call(e.id, args, None);
             }
         }
     }
@@ -639,15 +626,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 Arg::Expr(&expr.rhs, rhs_ty, 0),
             ];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
-            let cls_type_params = lhs_ty.type_params(self.ctxt);
 
             self.universal_call(
                 expr.id,
                 args,
                 Some(fid),
-                cls_type_params,
-                Rc::new(Vec::new()),
-                None,
             );
         }
     }
@@ -658,19 +641,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&expr.opnd);
             self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
         } else {
-            let opnd = self.ty(expr.opnd.id());
-            let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
-
-            let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
-
-            let cls_type_params = opnd.type_params(self.ctxt);
+            let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit, 0)];
 
             self.universal_call(
                 expr.id,
                 args,
-                Some(fid),
-                cls_type_params,
-                Rc::new(Vec::new()),
                 None,
             );
         }
