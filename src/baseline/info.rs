@@ -8,8 +8,8 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
 use class::TypeArgs;
 use cpu::*;
-use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctParent, FctSrc, NodeMap, SemContext, Store,
-           TraitId, VarId};
+use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
+           SemContext, Store, TraitId, VarId};
 use mem;
 use ty::BuiltinType;
 
@@ -62,6 +62,7 @@ pub struct JitInfo<'ast> {
     pub map_offsets: NodeMap<i32>,
     pub map_var_offsets: HashMap<VarId, i32>,
     pub map_var_types: HashMap<VarId, BuiltinType>,
+    pub map_intrinsics: NodeMap<Intrinsic>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -77,11 +78,15 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
-        *self.map_var_offsets.get(&var_id).expect("no offset found for var")
+        *self.map_var_offsets
+            .get(&var_id)
+            .expect("no offset found for var")
     }
 
     pub fn ty(&self, var_id: VarId) -> BuiltinType {
-        *self.map_var_types.get(&var_id).expect("no type found for var")
+        *self.map_var_types
+            .get(&var_id)
+            .expect("no type found for var")
     }
 
     pub fn new() -> JitInfo<'ast> {
@@ -97,6 +102,7 @@ impl<'ast> JitInfo<'ast> {
             map_offsets: NodeMap::new(),
             map_var_offsets: HashMap::new(),
             map_var_types: HashMap::new(),
+            map_intrinsics: NodeMap::new(),
         }
     }
 }
@@ -258,11 +264,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_array(&mut self, expr: &'ast ExprArrayType) {
-        self.visit_expr(&expr.object);
-        self.visit_expr(&expr.index);
+        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            self.visit_expr(&expr.object);
+            self.visit_expr(&expr.index);
 
-        if self.is_intrinsic(expr.id) {
             self.reserve_temp_for_node(&expr.object);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+
         } else {
             let ty = self.src.ty(expr.object.id());
             let ty = self.specialize_type_for_call(expr.id, ty);
@@ -294,29 +302,26 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
     }
 
-    fn is_intrinsic(&self, id: NodeId) -> bool {
+    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
         let fid = self.src.map_calls.get(id).unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {
-            return false;
+            return None;
         }
 
-        self.ctxt.fcts[fid].borrow().kind.is_intrinsic()
+        let fct = self.ctxt.fcts[fid].borrow();
+
+        match fct.kind {
+            FctKind::Builtin(intr) => Some(intr),
+            _ => None,
+        }
     }
 
     fn expr_call(&mut self, expr: &'ast ExprCallType) {
-        if self.is_intrinsic(expr.id) {
-            for arg in &expr.args {
-                self.visit_expr(arg);
-                self.reserve_temp_for_node(arg);
-            }
-
-            if let Some(ref object) = expr.object {
-                self.visit_expr(object);
-                self.reserve_temp_for_node(object);
-            }
-
+        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            self.reserve_args(expr);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
             return;
         }
 
@@ -351,7 +356,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             CallType::Method(ty, fid, ref type_params) => {
                 let object = expr.object.as_ref().unwrap();
-                self.visit_expr(object);
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
 
                 let ty = self.specialize_type(ty);
@@ -389,12 +393,38 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             let object_type = self.specialize_type(object_type);
 
             self.find_trait_impl(fct_id, trait_id, object_type)
-
         } else {
             fct_id
         };
 
-        self.universal_call(expr.id, args, Some(callee_id), cls_type_params, fct_type_params, None);
+        let callee = self.ctxt.fcts[callee_id].borrow();
+
+        if let FctKind::Builtin(intrinsic) = callee.kind {
+            self.reserve_args(expr);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+            return;
+        }
+
+        self.universal_call(
+            expr.id,
+            args,
+            Some(callee_id),
+            cls_type_params,
+            fct_type_params,
+            None,
+        );
+    }
+
+    fn reserve_args(&mut self, expr: &'ast ExprCallType) {
+        for arg in &expr.args {
+            self.visit_expr(arg);
+            self.reserve_temp_for_node(arg);
+        }
+
+        if let Some(ref object) = expr.object {
+            self.visit_expr(object);
+            self.reserve_temp_for_node(object);
+        }
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
@@ -553,14 +583,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             assert!(e.lhs.is_array());
             let array = e.lhs.to_array().unwrap();
 
-            self.visit_expr(&array.object);
-            self.visit_expr(&array.index);
-            self.visit_expr(&e.rhs);
+            if let Some(intrinsic) = self.get_intrinsic(e.id) {
+                self.visit_expr(&array.object);
+                self.visit_expr(&array.index);
+                self.visit_expr(&e.rhs);
 
-            if self.is_intrinsic(e.id) {
                 self.reserve_temp_for_node(&array.object);
                 self.reserve_temp_for_node(&array.index);
                 self.reserve_temp_for_node(&e.rhs);
+
+                self.jit_info.map_intrinsics.insert(e.id, intrinsic);
             } else {
                 let ty = self.src.ty(array.object.id());
                 let ty = self.specialize_type_for_call(e.id, ty);
@@ -573,32 +605,34 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     Arg::Expr(&e.rhs, BuiltinType::Unit, 0),
                 ];
 
-                self.universal_call(
-                    e.id,
-                    args,
-                    None,
-                    cls_type_params,
-                    Rc::new(Vec::new()),
-                    None,
-                );
+                self.universal_call(e.id, args, None, cls_type_params, Rc::new(Vec::new()), None);
             }
         }
     }
 
     fn expr_bin(&mut self, expr: &'ast ExprBinType) {
-        self.visit_expr(&expr.lhs);
-        self.visit_expr(&expr.rhs);
-
         let lhs_ty = self.ty(expr.lhs.id());
         let rhs_ty = self.ty(expr.rhs.id());
 
         if expr.op == BinOp::Cmp(CmpOp::Is) || expr.op == BinOp::Cmp(CmpOp::IsNot) {
+            self.visit_expr(&expr.lhs);
+            self.visit_expr(&expr.rhs);
+
             self.reserve_temp_for_node_with_type(expr.lhs.id(), BuiltinType::Ptr);
+
         } else if expr.op == BinOp::Or || expr.op == BinOp::And {
+            self.visit_expr(&expr.lhs);
+            self.visit_expr(&expr.rhs);
+
             // no temporaries needed
 
-        } else if self.is_intrinsic(expr.id) {
+        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
+            self.visit_expr(&expr.lhs);
+            self.visit_expr(&expr.rhs);
+
             self.reserve_temp_for_node(&expr.lhs);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
+
         } else {
             let args = vec![
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
@@ -619,11 +653,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_un(&mut self, expr: &'ast ExprUnType) {
-        self.visit_expr(&expr.opnd);
-
-        if self.is_intrinsic(expr.id) {
+        if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             // no temporaries needed
-
+            self.visit_expr(&expr.opnd);
+            self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
         } else {
             let opnd = self.ty(expr.opnd.id());
             let args = vec![Arg::Expr(&expr.opnd, opnd, 0)];
@@ -685,8 +718,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 _ => ty,
             },
 
-            CallType::Ctor(_, _, ref type_params) |
-            CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 specialize_type(self.ctxt, ty, type_params, &[])
             }
         };

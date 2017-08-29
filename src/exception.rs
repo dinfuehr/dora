@@ -144,7 +144,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
             true
         }
 
-        _ => false
+        _ => false,
     }
 }
 
@@ -189,8 +189,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     };
 
     match data {
-        Some(CodeData::Fct(fct_id)) |
-        Some(CodeData::NativeStub(fct_id)) => {
+        Some(CodeData::Fct(fct_id)) | Some(CodeData::NativeStub(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
             let clsptr = exception.header().vtbl().classptr();
 
@@ -199,7 +198,8 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                 //          entry.try_start, entry.try_end, entry.catch_type);
 
                 if entry.try_start < pc && pc <= entry.try_end &&
-                    (entry.catch_type == CatchType::Any || entry.catch_type == CatchType::Class(clsptr))
+                    (entry.catch_type == CatchType::Any ||
+                        entry.catch_type == CatchType::Class(clsptr))
                 {
                     let stacksize = jit_fct.framesize as usize;
                     resume_with_handler(es, entry, fp, exception, stacksize);

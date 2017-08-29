@@ -415,11 +415,8 @@ where
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.store_mem(
-                    rmode,
-                    Mem::Local(offset),
-                    register_for_mode(rmode),
-                );
+                self.masm
+                    .store_mem(rmode, Mem::Local(offset), register_for_mode(rmode));
             }
         }
 
@@ -445,11 +442,8 @@ where
             if s.expr.is_some() {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.load_mem(
-                    rmode,
-                    register_for_mode(rmode),
-                    Mem::Local(offset),
-                );
+                self.masm
+                    .load_mem(rmode, register_for_mode(rmode), Mem::Local(offset));
             }
 
             self.lbl_return = None;
@@ -701,7 +695,7 @@ where
             let cls_def_id = specialize_class_ty(self.ctxt, ty);
             let cls_def = self.ctxt.class_defs[cls_def_id].borrow();
 
-            let catch_type = CatchType::Class(&* cls_def as *const ClassDef);
+            let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
             self.masm
                 .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 

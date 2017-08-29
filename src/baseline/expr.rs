@@ -407,24 +407,7 @@ where
     }
 
     fn intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let call = self.src.map_calls.get(id);
-        if call.is_none() {
-            return None;
-        }
-
-        let fid = call.unwrap().fct_id();
-
-        // the function we compile right now is never an intrinsic
-        if self.fct.id == fid {
-            return None;
-        }
-
-        let fct = self.ctxt.fcts[fid].borrow();
-
-        match fct.kind {
-            FctKind::Builtin(intrinsic) => Some(intrinsic),
-            _ => None,
-        }
+        self.jit_info.map_intrinsics.get(id).map(|&intr| intr)
     }
 
     fn emit_self(&mut self, dest: Reg) {
@@ -1676,9 +1659,7 @@ where
                 store_length = true;
             }
 
-            ClassSize::Array(_) |
-            ClassSize::ObjArray |
-            ClassSize::Str => {
+            ClassSize::Array(_) | ClassSize::ObjArray | ClassSize::Str => {
                 let size = (Header::size() + mem::ptr_width()) as i64;
                 self.masm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
