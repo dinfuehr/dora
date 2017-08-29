@@ -879,7 +879,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let trai = self.ctxt.traits[trait_id].borrow();
 
             if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
-                let call_type = CallType::Fct(fid, Rc::new(Vec::new()), Rc::new(Vec::new()));
+                let call_type = CallType::Method(obj, fid, Rc::new(Vec::new()));
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
 
                 let fct = self.ctxt.fcts[fid].borrow();

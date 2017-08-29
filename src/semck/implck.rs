@@ -14,7 +14,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
         let mut defined = HashSet::new();
 
         for &method_id in &ximpl.methods {
-            let method = ctxt.fcts[method_id].borrow();
+            let mut method = ctxt.fcts[method_id].borrow_mut();
 
             if let Some(fid) = xtrait.find_method(
                 ctxt,
@@ -23,6 +23,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
                 Some(cls),
                 method.params_without_self(),
             ) {
+                method.impl_for = Some(fid);
                 defined.insert(fid);
             } else {
                 let args = method

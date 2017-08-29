@@ -9,7 +9,7 @@ use dora_parser::ast::visit::*;
 use class::TypeArgs;
 use cpu::*;
 use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctParent, FctSrc, NodeMap, SemContext, Store,
-           VarId};
+           TraitId, VarId};
 use mem;
 use ty::BuiltinType;
 
@@ -329,9 +329,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let cls_type_params: TypeArgs;
         let fct_type_params: TypeArgs;
+        let fct_id: FctId;
 
         match *call_type {
-            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(_, fid, ref type_params) |
+            CallType::CtorNew(_, fid, ref type_params) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
                     Arg::Selfie(ty, 0)
@@ -343,9 +345,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 cls_type_params = type_params.clone();
                 fct_type_params = Rc::new(Vec::new());
+
+                fct_id = fid;
             }
 
-            CallType::Method(ty, _, ref type_params) => {
+            CallType::Method(ty, fid, ref type_params) => {
                 let object = expr.object.as_ref().unwrap();
                 self.visit_expr(object);
                 args.insert(0, Arg::Expr(object, BuiltinType::Unit, 0));
@@ -359,16 +363,61 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                     _ => Rc::new(Vec::new()),
                 };
+
                 fct_type_params = type_params.clone();
+
+                fct_id = fid;
             }
 
-            CallType::Fct(_, ref cls_tps, ref fct_tps) => {
+            CallType::Fct(fid, ref cls_tps, ref fct_tps) => {
                 cls_type_params = cls_tps.clone();
                 fct_type_params = fct_tps.clone();
+
+                fct_id = fid;
             }
         }
 
-        self.universal_call(expr.id, args, None, cls_type_params, fct_type_params, None);
+        let fct = self.ctxt.fcts[fct_id].borrow();
+
+        let callee_id = if fct.kind.is_definition() {
+            let trait_id = fct.trait_id();
+            let object_type = match *call_type {
+                CallType::Method(ty, _, _) => ty,
+                _ => unreachable!(),
+            };
+
+            let object_type = self.specialize_type(object_type);
+
+            self.find_trait_impl(fct_id, trait_id, object_type)
+
+        } else {
+            fct_id
+        };
+
+        self.universal_call(expr.id, args, Some(callee_id), cls_type_params, fct_type_params, None);
+    }
+
+    fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
+        let cls_id = object_type.cls_id(self.ctxt).unwrap();
+        let cls = self.ctxt.classes[cls_id].borrow();
+
+        for &impl_id in &cls.impls {
+            let ximpl = self.ctxt.impls[impl_id].borrow();
+
+            if ximpl.trait_id() != trait_id {
+                continue;
+            }
+
+            for &mtd_id in &ximpl.methods {
+                let mtd = self.ctxt.fcts[mtd_id].borrow();
+
+                if mtd.impl_for == Some(fct_id) {
+                    return mtd_id;
+                }
+            }
+        }
+
+        panic!("no impl found for generic trait call")
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
@@ -394,7 +443,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         &mut self,
         id: NodeId,
         args: Vec<Arg<'ast>>,
-        callee: Option<FctId>,
+        callee_id: Option<FctId>,
         cls_type_params: TypeArgs,
         fct_type_params: TypeArgs,
         return_type: Option<BuiltinType>,
@@ -402,11 +451,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // function invokes another function
         self.leaf = false;
 
-        let fid = if callee.is_none() {
-            Some(self.src.map_calls.get(id).unwrap().fct_id())
+        let callee_id = if let Some(callee_id) = callee_id {
+            callee_id
         } else {
-            None
+            self.src.map_calls.get(id).unwrap().fct_id()
         };
+
+        let callee = self.ctxt.fcts[callee_id].borrow();
 
         let mut super_call = false;
 
@@ -414,28 +465,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .enumerate()
             .map(|(ind, arg)| match *arg {
                 Arg::Expr(ast, mut ty, _) => {
-                    if let Some(fid) = fid {
-                        let fct = self.ctxt.fcts[fid].borrow();
-                        ty = if ind == 0 && fct.has_self() {
-                            if ast.is_super() {
-                                super_call = true;
-                            }
-
-                            let cid = match fct.parent {
-                                FctParent::Class(cid) => cid,
-                                FctParent::Impl(impl_id) => {
-                                    let ximpl = self.ctxt.impls[impl_id].borrow();
-                                    ximpl.cls_id()
-                                }
-                                _ => unreachable!(),
-                            };
-
-                            let cls = self.ctxt.classes[cid].borrow();
-                            cls.ty
-                        } else {
-                            fct.params_with_self()[ind]
-                        }
+                    if ind == 0 && ast.is_super() {
+                        super_call = true;
                     }
+
+                    ty = callee.params_with_self()[ind];
 
                     let ty = self.specialize_type_for_call(id, ty);
 
@@ -448,9 +482,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             .collect::<Vec<_>>();
 
         let return_type = return_type.unwrap_or_else(|| {
-            let fid = self.src.map_calls.get(id).unwrap().fct_id();
-            let return_type = self.ctxt.fcts[fid].borrow().return_type;
-
+            let return_type = callee.return_type;
             self.specialize_type_for_call(id, return_type)
         });
 
@@ -487,10 +519,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.argsize = argsize;
         }
 
-        let callee = callee.unwrap_or_else(|| fid.unwrap());
-
         let csite = CallSite {
-            callee: callee,
+            callee: callee_id,
             args: args,
             cls_type_params: cls_type_params,
             fct_type_params: fct_type_params,

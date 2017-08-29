@@ -218,6 +218,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ctor: CtorType::None,
             vtable_index: None,
             initialized: false,
+            impl_for: None,
 
             type_params: Vec::new(),
             kind: kind,

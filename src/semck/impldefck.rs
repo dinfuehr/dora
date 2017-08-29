@@ -100,6 +100,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
             ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
+            impl_for: None,
 
             type_params: Vec::new(),
             kind: kind,

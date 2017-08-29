@@ -567,6 +567,7 @@ pub struct Fct<'ast> {
     pub ctor: ast::CtorType,
 
     pub vtable_index: Option<u32>,
+    pub impl_for: Option<FctId>,
     pub initialized: bool,
     pub throws: bool,
 

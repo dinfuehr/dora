@@ -205,6 +205,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             ctor: f.ctor,
             vtable_index: None,
             initialized: false,
+            impl_for: None,
 
             type_params: Vec::new(),
             kind: kind,
@@ -251,6 +252,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             ctor: ast::CtorType::None,
             vtable_index: None,
             initialized: false,
+            impl_for: None,
 
             type_params: Vec::new(),
             kind: kind,
