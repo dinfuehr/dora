@@ -188,38 +188,39 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
         code_map.get(pc as *const u8)
     };
 
-    if data.is_none() {
-        return HandlerFound::No;
-    }
+    match data {
+        Some(CodeData::Fct(fct_id)) |
+        Some(CodeData::NativeStub(fct_id)) => {
+            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let clsptr = exception.header().vtbl().classptr();
 
-    if let CodeData::Fct(fct_id) = data.unwrap() {
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-        let clsptr = exception.header().vtbl().classptr();
+            for entry in &jit_fct.exception_handlers {
+                // println!("entry = {:x} to {:x} for {:?}",
+                //          entry.try_start, entry.try_end, entry.catch_type);
 
-        for entry in &jit_fct.exception_handlers {
-            // println!("entry = {:x} to {:x} for {:?}",
-            //          entry.try_start, entry.try_end, entry.catch_type);
+                if entry.try_start < pc && pc <= entry.try_end &&
+                    (entry.catch_type == CatchType::Any || entry.catch_type == CatchType::Class(clsptr))
+                {
+                    let stacksize = jit_fct.framesize as usize;
+                    resume_with_handler(es, entry, fp, exception, stacksize);
 
-            if entry.try_start < pc && pc <= entry.try_end &&
-                (entry.catch_type == CatchType::Any || entry.catch_type == CatchType::Class(clsptr))
-            {
-                let stacksize = jit_fct.framesize as usize;
-                resume_with_handler(es, entry, fp, exception, stacksize);
+                    return HandlerFound::Yes;
+                } else if pc > entry.try_end {
+                    // exception handlers are sorted, no more possible handlers
+                    // in this function
 
-                return HandlerFound::Yes;
-            } else if pc > entry.try_end {
-                // exception handlers are sorted, no more possible handlers
-                // in this function
+                    return HandlerFound::No;
+                }
+            }
 
-                return HandlerFound::No;
+            // exception can only bubble up in stacktrace if current function
+            // is allowed to throw exceptions
+            if !jit_fct.throws {
+                return HandlerFound::Stop;
             }
         }
 
-        // exception can only bubble up in stacktrace if current function
-        // is allowed to throw exceptions
-        if !jit_fct.throws {
-            return HandlerFound::Stop;
-        }
+        _ => {}
     }
 
     HandlerFound::No
