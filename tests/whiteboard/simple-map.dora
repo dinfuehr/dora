@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     let m = SlowMap::<int, Str>();
     assert(m.insert(1, "hello"));

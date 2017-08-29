@@ -1,5 +1,3 @@
-//= ignore
-
 fun main() {
     let bar = Bar::<int>(11);
     assert(bar.x.fst == 11);
