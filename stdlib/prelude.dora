@@ -393,6 +393,37 @@ class StackTraceElement(let name: Str, let line: int) {
   }
 }
 
+class IntRange(let lower: int, let upper: int) {
+  fun makeIterator() -> IntRangeIter {
+    return IntRangeIter(self);
+  }
+}
+
+fun range(l: int, u: int) -> IntRange {
+  return IntRange(l, u);
+}
+
+trait Iterator {
+  fun hasNext() -> bool;
+  fun next() -> int;
+}
+
+class IntRangeIter(let range: IntRange) {
+  var value: int = range.lower;
+}
+
+impl Iterator for IntRangeIter {
+  fun hasNext() -> bool {
+    return self.value < self.range.upper;
+  }
+
+  fun next() -> int {
+    let cur = self.value;
+    self.value = cur + 1;
+    return cur;
+  }
+}
+
 open abstract class Thread {
   internal fun start();
 
