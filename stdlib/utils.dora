@@ -109,6 +109,18 @@ class Vec<T> {
   }
 }
 
+fun removeItem<T: Equals>(vec: Vec<T>, elem: T) {
+  var i = 0;
+
+  while i < vec.len() {
+    if vec[i].equals(elem) {
+      vec.removeAt(i);
+    } else {
+      i = i + 1;
+    }
+  }
+}
+
 fun isValidUtf8(data: Array<byte>) -> bool {
     var i = 0;
 
