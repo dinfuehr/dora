@@ -209,6 +209,11 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(v: &mut V, s: &'v Stmt) {
             }
         }
 
+        StmtFor(ref value) => {
+            v.visit_expr_top(&value.expr);
+            v.visit_stmt(&value.block);   
+        }
+
         StmtWhile(ref value) => {
             v.visit_expr_top(&value.cond);
             v.visit_stmt(&value.block);

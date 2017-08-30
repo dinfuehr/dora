@@ -838,6 +838,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtIf(ref stmt) => self.emit_stmt_if(stmt),
             StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
+            StmtFor(_) => unimplemented!(),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),

@@ -261,6 +261,7 @@ impl<'a> AstDumper<'a> {
             StmtDefer(ref stmt) => self.dump_stmt_defer(stmt),
             StmtDo(ref stmt) => self.dump_stmt_do(stmt),
             StmtSpawn(ref stmt) => self.dump_stmt_spawn(stmt),
+            StmtFor(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
 
@@ -286,6 +287,18 @@ impl<'a> AstDumper<'a> {
                          dump!(d, "<no expr given>");
                      });
         });
+    }
+
+    fn dump_stmt_for(&mut self, stmt: &StmtForType) {
+        dump!(self, "for @ {} {}", stmt.pos, stmt.id);
+
+        self.indent(|d| {
+                        dump!(d, "name {:?}", stmt.name);
+                        dump!(d, "cond");
+                        d.indent(|d| { d.dump_expr(&stmt.expr); });
+                        dump!(d, "body");
+                        d.indent(|d| { d.dump_stmt(&stmt.block); });
+                    });
     }
 
     fn dump_stmt_while(&mut self, stmt: &StmtWhileType) {

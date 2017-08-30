@@ -70,7 +70,7 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         StmtBlock(ref stmt) => block_returns_value(stmt),
         StmtIf(ref stmt) => if_returns_value(stmt),
         StmtLoop(ref stmt) => returns_value(&stmt.block),
-
+        StmtFor(ref stmt) => Err(stmt.pos),
         StmtWhile(ref stmt) => Err(stmt.pos),
         StmtBreak(ref stmt) => Err(stmt.pos),
         StmtContinue(ref stmt) => Err(stmt.pos),

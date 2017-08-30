@@ -399,8 +399,8 @@ class IntRange(let lower: int, let upper: int) {
   }
 }
 
-fun range(l: int, u: int) -> IntRange {
-  return IntRange(l, u);
+fun range(lower: int, upper: int) -> IntRange {
+  return IntRange(lower, upper);
 }
 
 trait Iterator {

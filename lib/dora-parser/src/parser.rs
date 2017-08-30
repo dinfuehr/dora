@@ -859,6 +859,7 @@ impl<'a> Parser<'a> {
             TokenKind::Defer => self.parse_defer(),
             TokenKind::Do => self.parse_do(),
             TokenKind::Spawn => self.parse_spawn(),
+            TokenKind::For => self.parse_for(),
             _ => self.parse_expression_statement(),
         }
     }
@@ -1014,6 +1015,20 @@ impl<'a> Parser<'a> {
         };
 
         Ok(Box::new(Stmt::create_if(self.generate_id(), pos, cond, then_block, else_block)))
+    }
+
+    fn parse_for(&mut self) -> StmtResult {
+        let pos = self.expect_token(TokenKind::For)?.position;
+        let name = self.expect_identifier()?;
+        self.expect_token(TokenKind::In)?;
+    
+        let mut opts = ExprParsingOpts::new();
+        opts.parse_struct_lit(false);
+        let expr = self.parse_expression_with_opts(&opts)?;
+
+        let block = self.parse_block()?;
+
+        Ok(Box::new(Stmt::create_for(self.generate_id(), pos, name, expr, block)))
     }
 
     fn parse_while(&mut self) -> StmtResult {
@@ -3282,5 +3297,11 @@ mod tests {
         let basic = ret.to_basic().unwrap();
 
         assert_eq!("C", *interner.str(basic.name));
+    }
+
+    #[test]
+    fn parse_for() {
+        let stmt = parse_stmt("for i in a+b {}");
+        assert!(stmt.is_for());
     }
 }

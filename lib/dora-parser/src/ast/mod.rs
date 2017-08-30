@@ -627,6 +627,7 @@ pub enum Stmt {
     StmtDefer(StmtDeferType),
     StmtDo(StmtDoType),
     StmtSpawn(StmtSpawnType),
+    StmtFor(StmtForType),
 }
 
 impl Stmt {
@@ -645,6 +646,16 @@ impl Stmt {
                           data_type: data_type,
                           expr: expr,
                       })
+    }
+
+    pub fn create_for(id: NodeId, pos: Position, name: Name, expr: Box<Expr>, block: Box<Stmt>) -> Stmt {
+        Stmt::StmtFor(StmtForType {
+                            id: id,
+                            pos: pos,
+                            name: name,
+                            expr: expr,
+                            block: block,
+                        })
     }
 
     pub fn create_while(id: NodeId, pos: Position, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
@@ -754,6 +765,7 @@ impl Stmt {
         match *self {
             Stmt::StmtVar(ref stmt) => stmt.id,
             Stmt::StmtWhile(ref stmt) => stmt.id,
+            Stmt::StmtFor(ref stmt) => stmt.id,
             Stmt::StmtLoop(ref stmt) => stmt.id,
             Stmt::StmtIf(ref stmt) => stmt.id,
             Stmt::StmtExpr(ref stmt) => stmt.id,
@@ -772,6 +784,7 @@ impl Stmt {
         match *self {
             Stmt::StmtVar(ref stmt) => stmt.pos,
             Stmt::StmtWhile(ref stmt) => stmt.pos,
+            Stmt::StmtFor(ref stmt) => stmt.pos,
             Stmt::StmtLoop(ref stmt) => stmt.pos,
             Stmt::StmtIf(ref stmt) => stmt.pos,
             Stmt::StmtExpr(ref stmt) => stmt.pos,
@@ -852,6 +865,20 @@ impl Stmt {
     pub fn is_while(&self) -> bool {
         match *self {
             Stmt::StmtWhile(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_for(&self) -> Option<&StmtForType> {
+        match *self {
+            Stmt::StmtFor(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_for(&self) -> bool {
+        match *self {
+            Stmt::StmtFor(_) => true,
             _ => false,
         }
     }
@@ -978,6 +1005,17 @@ pub struct StmtVarType {
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
+}
+
+
+#[derive(Clone, Debug)]
+pub struct StmtForType {
+    pub id: NodeId,
+    pub pos: Position,
+
+    pub name: Name,
+    pub expr: Box<Expr>,
+    pub block: Box<Stmt>,
 }
 
 #[derive(Clone, Debug)]

@@ -1202,6 +1202,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
         match *s {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
+            StmtFor(_) => unimplemented!(),
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
