@@ -1,8 +1,11 @@
+use std::rc::Rc;
+
 use baseline::expr::ExprStore;
 use baseline::fct::BailoutInfo;
 use baseline::fct::GcPoint;
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
+use class::TypeArgs;
 use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
@@ -73,7 +76,7 @@ impl MacroAssembler {
         self.emit_u32(asm::ret());
     }
 
-    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8) {
+    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8, cls_tps: TypeArgs, fct_tps: TypeArgs) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -83,7 +86,7 @@ impl MacroAssembler {
         self.emit_u32(asm::blr(*scratch));
 
         let pos = self.pos() as i32;
-        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos));
+        self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
     }
 
     pub fn direct_call_without_info(&mut self, ptr: *const u8) {
@@ -118,7 +121,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, Rc::new(Vec::new())));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
@@ -784,6 +787,10 @@ impl MacroAssembler {
             Shift::LSL,
             0,
         ));
+    }
+
+    pub fn copy_pc(&mut self, dest: Reg) {
+        self.emit_u32(asm::adrp(dest, 0));
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {

@@ -1,9 +1,9 @@
 use std::ptr;
 
 use baseline::fct::ExHandler;
+use exception::DoraToNativeInfo;
 use execstate::ExecState;
 use object::{Handle, Obj};
-use stacktrace::DoraToNativeInfo;
 
 pub use self::param::*;
 pub use self::reg::*;
