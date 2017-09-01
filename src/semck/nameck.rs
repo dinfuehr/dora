@@ -142,6 +142,34 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
     }
 
+    fn check_stmt_for(&mut self, for_loop: &'ast StmtForType) {
+        self.visit_expr(&for_loop.expr);
+
+        self.ctxt.sym.borrow_mut().push_level();
+
+        let var_ctxt = Var {
+            id: VarId(0),
+            name: for_loop.name,
+            reassignable: false,
+            ty: BuiltinType::Unit,
+            node_id: for_loop.id,
+        };
+
+        match self.add_var(var_ctxt, |sym| !sym.is_class()) {
+            Ok(var_id) => {
+                self.src.map_vars.insert(for_loop.id, var_id);
+            }
+
+            Err(_) => {
+                let name = str(self.ctxt, for_loop.name);
+                report(self.ctxt, for_loop.pos, Msg::ShadowClass(name));
+            }
+        }
+
+        self.visit_stmt(&for_loop.block);
+        self.ctxt.sym.borrow_mut().pop_level();
+    }
+
     fn check_stmt_do(&mut self, try: &'ast StmtDoType) {
         self.visit_stmt(&try.do_block);
 
@@ -317,6 +345,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtBlock(ref stmt) => self.check_stmt_block(stmt),
             StmtDo(ref stmt) => self.check_stmt_do(stmt),
+            StmtFor(ref stmt) => self.check_stmt_for(stmt),
 
             // no need to handle rest of statements
             _ => visit::walk_stmt(self, s),
@@ -483,5 +512,10 @@ mod tests {
             "const one: int = 1;
             fun f() -> int { return one; }",
         );
+    }
+
+    #[test]
+    fn for_var() {
+        ok("fun f() { for i in range(0, 4) { i; } }");
     }
 }

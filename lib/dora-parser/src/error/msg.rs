@@ -111,6 +111,7 @@ pub enum Msg {
     MissingAbstractOverride(String, String),
     ModifierNotAllowedForStaticMethod(String),
     GlobalInitializerNotSupported,
+    MakeIteratorReturnType(String),
 }
 
 impl Msg {
@@ -349,6 +350,10 @@ impl Msg {
             }
             GlobalInitializerNotSupported => {
                 "global variables do no support initial assignment for now.".into()
+            }
+            MakeIteratorReturnType(ref ty) => {
+                format!("makeIterator() returns `{}` which does not implement Iterator.",
+                        ty)
             }
         }
     }

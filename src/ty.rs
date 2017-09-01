@@ -117,6 +117,15 @@ impl BuiltinType {
         }
     }
 
+    pub fn implements_trait(&self, ctxt: &SemContext, trait_id: TraitId) -> bool {
+        if let Some(cls_id) = self.cls_id(ctxt) {
+            let cls = ctxt.classes[cls_id].borrow();
+            return cls.traits.contains(&trait_id);
+        }
+
+        false
+    }
+
     pub fn type_params(&self, ctxt: &SemContext) -> TypeArgs {
         debug_assert!(!self.contains_type_param(ctxt));
 

@@ -119,6 +119,7 @@ impl<'ast> SemContext<'ast> {
 
                 equals_trait: empty_trait_id,
                 comparable_trait: empty_trait_id,
+                iterator_trait: Cell::new(None),
 
                 int_array_def: Cell::new(None),
                 str_class_def: Cell::new(None),
@@ -277,6 +278,18 @@ impl ImplData {
     pub fn cls_id(&self) -> ClassId {
         self.class_id.expect("trait_id not initialized yet.")
     }
+
+    pub fn find_implements(&self, ctxt: &SemContext, fct_id: FctId) -> Option<FctId> {
+        for &mtd_id in &self.methods {
+            let mtd = ctxt.fcts[mtd_id].borrow();
+
+            if mtd.impl_for == Some(fct_id) {
+                return Some(mtd_id);
+            }
+        }
+
+        None
+    }
 }
 
 impl Index<ImplId> for Vec<RefCell<ImplData>> {
@@ -425,6 +438,7 @@ pub struct KnownElements {
 
     pub equals_trait: TraitId,
     pub comparable_trait: TraitId,
+    pub iterator_trait: Cell<Option<TraitId>>,
 
     int_array_def: Cell<Option<ClassDefId>>,
     str_class_def: Cell<Option<ClassDefId>>,
@@ -433,6 +447,10 @@ pub struct KnownElements {
 }
 
 impl KnownElements {
+    pub fn iterator(&self) -> TraitId {
+        self.iterator_trait.get().expect("iterator trait not set")
+    }
+
     pub fn int_array(&self, ctxt: &SemContext) -> ClassDefId {
         let cls_id = self.int_array_def.get();
 

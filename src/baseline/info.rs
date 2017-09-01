@@ -270,18 +270,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.reserve_temp_for_node(&expr.object);
             self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
-
         } else {
             let args = vec![
                 Arg::Expr(&expr.object, BuiltinType::Unit, 0),
                 Arg::Expr(&expr.index, BuiltinType::Unit, 0),
             ];
 
-            self.universal_call(
-                expr.id,
-                args,
-                None,
-            );
+            self.universal_call(expr.id, args, None);
         }
     }
 
@@ -327,8 +322,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_id: FctId;
 
         match *call_type {
-            CallType::Ctor(_, fid, _) |
-            CallType::CtorNew(_, fid, _) => {
+            CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
                     Arg::Selfie(ty, 0)
@@ -377,11 +371,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return;
         }
 
-        self.universal_call(
-            expr.id,
-            args,
-            Some(callee_id),
-        );
+        self.universal_call(expr.id, args, Some(callee_id));
     }
 
     fn reserve_args(&mut self, expr: &'ast ExprCallType) {
@@ -428,19 +418,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls = self.ty(expr.id);
         args.insert(0, Arg::Selfie(cls, 0));
 
-        self.universal_call(
-            expr.id,
-            args,
-            None,
-        );
+        self.universal_call(expr.id, args, None);
     }
 
-    fn universal_call(
-        &mut self,
-        id: NodeId,
-        args: Vec<Arg<'ast>>,
-        callee_id: Option<FctId>,
-    ) {
+    fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>, callee_id: Option<FctId>) {
         // function invokes another function
         self.leaf = false;
 
@@ -482,8 +463,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_type_params: TypeArgs;
 
         match *call_type {
-            CallType::Ctor(_, _, ref type_params) |
-            CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 cls_type_params = type_params.clone();
                 fct_type_params = Rc::new(Vec::new());
             }
@@ -606,20 +586,17 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             self.visit_expr(&expr.rhs);
 
             self.reserve_temp_for_node_with_type(expr.lhs.id(), BuiltinType::Ptr);
-
         } else if expr.op == BinOp::Or || expr.op == BinOp::And {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 
-            // no temporaries needed
-
+        // no temporaries needed
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.visit_expr(&expr.lhs);
             self.visit_expr(&expr.rhs);
 
             self.reserve_temp_for_node(&expr.lhs);
             self.jit_info.map_intrinsics.insert(expr.id, intrinsic);
-
         } else {
             let args = vec![
                 Arg::Expr(&expr.lhs, lhs_ty, 0),
@@ -627,11 +604,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             ];
             let fid = self.src.map_calls.get(expr.id).unwrap().fct_id();
 
-            self.universal_call(
-                expr.id,
-                args,
-                Some(fid),
-            );
+            self.universal_call(expr.id, args, Some(fid));
         }
     }
 
@@ -643,11 +616,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         } else {
             let args = vec![Arg::Expr(&expr.opnd, BuiltinType::Unit, 0)];
 
-            self.universal_call(
-                expr.id,
-                args,
-                None,
-            );
+            self.universal_call(expr.id, args, None);
         }
     }
 

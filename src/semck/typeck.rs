@@ -127,6 +127,58 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
     }
 
+    fn check_stmt_for(&mut self, s: &'ast StmtForType) {
+        self.visit_expr(&s.expr);
+        let object_type = self.expr_type;
+
+        let name = self.ctxt.interner.intern("makeIterator");
+
+        let mut lookup = MethodLookup::new(self.ctxt)
+            .method(object_type)
+            .pos(s.pos)
+            .name(name)
+            .args(&[]);
+
+        if lookup.find() {
+            let ret = lookup.found_ret().unwrap();
+            let iterator_trait_id = self.ctxt.vips.iterator();
+
+            if ret.implements_trait(self.ctxt, iterator_trait_id) {
+                // find fct next() in iterator-trait
+                let next_name = self.ctxt.interner.intern("next");
+                let trai = self.ctxt.traits[iterator_trait_id].borrow();
+                let next_id = trai.find_method(self.ctxt, false, next_name, None, &[])
+                    .expect("next() not found");
+
+                // find impl for ret that implements Iterator
+                let cls_id = ret.cls_id(self.ctxt).unwrap();
+                let cls = self.ctxt.classes[cls_id].borrow();
+                let impl_id = cls.find_impl_for_trait(self.ctxt, iterator_trait_id)
+                    .expect("impl not found for Iterator");
+
+                // find method in impl that implements next()
+                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let impl_next_id = ximpl
+                    .find_implements(self.ctxt, next_id)
+                    .expect("next() impl not found");
+
+                // get return type of next() in impl
+                let fct = self.ctxt.fcts[impl_next_id].borrow();
+                let ret = fct.return_type;
+
+                // set variable type to return type of next
+                let var_id = *self.src.map_vars.get(s.id).unwrap();
+                self.src.vars[var_id].ty = ret;
+            } else {
+                let ret = ret.name(self.ctxt);
+                let msg = Msg::MakeIteratorReturnType(ret);
+                self.ctxt.diag.borrow_mut().report(s.expr.pos(), msg);
+            }
+        }
+
+        self.visit_stmt(&s.block);
+    }
+
     fn check_stmt_while(&mut self, s: &'ast StmtWhileType) {
         self.visit_expr(&s.cond);
 
@@ -1202,7 +1254,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
         match *s {
             StmtVar(ref stmt) => self.check_stmt_var(stmt),
             StmtWhile(ref stmt) => self.check_stmt_while(stmt),
-            StmtFor(_) => unimplemented!(),
+            StmtFor(ref stmt) => self.check_stmt_for(stmt),
             StmtIf(ref stmt) => self.check_stmt_if(stmt),
             StmtReturn(ref stmt) => self.check_stmt_return(stmt),
             StmtThrow(ref stmt) => self.check_stmt_throw(stmt),
@@ -3470,14 +3522,30 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_generic_trait_method_call() {
-    //     ok("trait Foo { fun one() -> int; }
-    //        class X
-    //        impl Foo for X { fun one() -> int { return 1; } }
-    //        class A<T: Foo>
-    //        fun f(a: A<X>) {
-    //          return a.one();
-    //        }");
-    // }
+    #[test]
+    fn test_for_supports_make_iterator() {
+        err(
+            "fun f() { for i in 1 {} }",
+            pos(1, 11),
+            Msg::UnknownMethod("int".into(), "makeIterator".into(), Vec::new()),
+        );
+
+        err(
+            "
+            class Foo { fun makeIterator() -> bool { return true; } }
+            fun f() { for i in Foo() {} }",
+            pos(3, 32),
+            Msg::MakeIteratorReturnType("bool".into()),
+        );
+
+        ok(
+            "class Foo { fun makeIterator() -> FooIter { return FooIter(); } }
+            class FooIter
+            impl Iterator for FooIter {
+                fun hasNext() -> bool { return false; }
+                fun next() -> int { return 0; }
+            }
+            fun f() -> int { for i in Foo() { return i; } return 0; }",
+        );
+    }
 }

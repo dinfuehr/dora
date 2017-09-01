@@ -93,6 +93,18 @@ impl Class {
         format!("{}<{}>", name, params)
     }
 
+    pub fn find_impl_for_trait(&self, ctxt: &SemContext, trait_id: TraitId) -> Option<ImplId> {
+        for &impl_id in &self.impls {
+            let ximpl = ctxt.impls[impl_id].borrow();
+
+            if ximpl.trait_id == Some(trait_id) {
+                return Some(impl_id);
+            }
+        }
+
+        None
+    }
+
     pub fn find_field(&self, ctxt: &SemContext, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
