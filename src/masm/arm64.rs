@@ -790,7 +790,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
-        self.emit_u32(asm::adrp(dest, 0));
+        self.emit_u32(asm::adr(dest, 0));
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {

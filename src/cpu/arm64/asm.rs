@@ -1472,12 +1472,16 @@ mod tests {
         assert_emit!(0x1000001d; adr(R29,  0));
         assert_emit!(0x1000003c; adr(R28,  4));
         assert_emit!(0x1000005b; adr(R27,  8));
+        assert_emit!(0x10000000; adr(R0,  0));
+        assert_emit!(0x10000001; adr(R1,  0));
 
         assert_emit!(0x90ffffe0; adrp(R0 , -4));
         assert_emit!(0x90ffffde; adrp(R30, -8));
         assert_emit!(0x9000001d; adrp(R29,  0));
         assert_emit!(0x9000003c; adrp(R28,  4));
         assert_emit!(0x9000005b; adrp(R27,  8));
+        assert_emit!(0x90000000; adrp(R0,  0));
+        assert_emit!(0x90000001; adrp(R1,  0));
     }
 
     #[test]
