@@ -163,31 +163,35 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
     }
 
     fn visit_stmt(&mut self, s: &'ast Stmt) {
-        if let StmtVar(ref var) = *s {
-            let var = *self.src.map_vars.get(var.id).unwrap();
-            self.reserve_stack_for_node(var);
-        }
-
-        if let StmtDo(ref try) = *s {
-            let ret = self.fct.return_type;
-
-            if !ret.is_unit() {
-                self.eh_return_value = Some(
-                    self.eh_return_value
-                        .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
-                );
-            }
-
-            // we also need space for catch block parameters
-            for catch in &try.catch_blocks {
-                let var = *self.src.map_vars.get(catch.id).unwrap();
+        match s {
+            &StmtVar(ref var) => {
+                let var = *self.src.map_vars.get(var.id).unwrap();
                 self.reserve_stack_for_node(var);
             }
 
-            if try.finally_block.is_some() {
-                let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-                self.jit_info.map_offsets.insert(try.id, offset);
+            &StmtDo(ref try) => {
+                let ret = self.fct.return_type;
+
+                if !ret.is_unit() {
+                    self.eh_return_value = Some(
+                        self.eh_return_value
+                            .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
+                    );
+                }
+
+                // we also need space for catch block parameters
+                for catch in &try.catch_blocks {
+                    let var = *self.src.map_vars.get(catch.id).unwrap();
+                    self.reserve_stack_for_node(var);
+                }
+
+                if try.finally_block.is_some() {
+                    let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+                    self.jit_info.map_offsets.insert(try.id, offset);
+                }
             }
+
+            _ => {}
         }
 
         visit::walk_stmt(self, s);
