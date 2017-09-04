@@ -880,6 +880,7 @@ pub struct FctSrc {
     pub map_vars: NodeMap<VarId>,
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassId>,
+    pub map_fors: NodeMap<ForTypeInfo>,
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
@@ -896,6 +897,7 @@ impl Clone for FctSrc {
             map_vars: self.map_vars.clone(),
             map_convs: self.map_convs.clone(),
             map_cls: self.map_cls.clone(),
+            map_fors: self.map_fors.clone(),
 
             vars: self.vars.clone(),
             always_returns: self.always_returns,
@@ -913,6 +915,7 @@ impl FctSrc {
             map_vars: NodeMap::new(),
             map_convs: NodeMap::new(),
             map_cls: NodeMap::new(),
+            map_fors: NodeMap::new(),
 
             vars: Vec::new(),
             always_returns: false,
@@ -1044,6 +1047,14 @@ impl IdentType {
             _ => false,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ForTypeInfo {
+    pub make_iterator: FctId,
+    pub next: FctId,
+    pub has_next: FctId,
+    pub iterator_type: BuiltinType,
 }
 
 #[derive(Debug, Clone)]

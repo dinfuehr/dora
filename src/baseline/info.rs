@@ -63,6 +63,7 @@ pub struct JitInfo<'ast> {
     pub map_var_offsets: HashMap<VarId, i32>,
     pub map_var_types: HashMap<VarId, BuiltinType>,
     pub map_intrinsics: NodeMap<Intrinsic>,
+    pub map_fors: NodeMap<ForInfo<'ast>>,
 }
 
 impl<'ast> JitInfo<'ast> {
@@ -103,6 +104,7 @@ impl<'ast> JitInfo<'ast> {
             map_var_offsets: HashMap::new(),
             map_var_types: HashMap::new(),
             map_intrinsics: NodeMap::new(),
+            map_fors: NodeMap::new(),
         }
     }
 }
@@ -143,10 +145,10 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // only some parameters are passed in registers
         // these registers need to be stored into local variables
         if is_float && self.param_freg_idx < FREG_PARAMS.len() {
-            self.reserve_stack_for_node(var);
+            self.reserve_stack_for_var(var);
             self.param_freg_idx += 1;
         } else if !is_float && self.param_reg_idx < REG_PARAMS.len() {
-            self.reserve_stack_for_node(var);
+            self.reserve_stack_for_var(var);
             self.param_reg_idx += 1;
 
         // the rest of the parameters are already stored on the stack
@@ -166,29 +168,15 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         match s {
             &StmtVar(ref var) => {
                 let var = *self.src.map_vars.get(var.id).unwrap();
-                self.reserve_stack_for_node(var);
+                self.reserve_stack_for_var(var);
             }
 
             &StmtDo(ref try) => {
-                let ret = self.fct.return_type;
+                self.reserve_stmt_do(try);
+            }
 
-                if !ret.is_unit() {
-                    self.eh_return_value = Some(
-                        self.eh_return_value
-                            .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
-                    );
-                }
-
-                // we also need space for catch block parameters
-                for catch in &try.catch_blocks {
-                    let var = *self.src.map_vars.get(catch.id).unwrap();
-                    self.reserve_stack_for_node(var);
-                }
-
-                if try.finally_block.is_some() {
-                    let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
-                    self.jit_info.map_offsets.insert(try.id, offset);
-                }
+            &StmtFor(ref sfor) => {
+                self.reserve_stmt_for(sfor);
             }
 
             _ => {}
@@ -233,6 +221,37 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.eh_return_value = self.eh_return_value;
     }
 
+    fn reserve_stmt_do(&mut self, try: &'ast StmtDoType) {
+        let ret = self.fct.return_type;
+
+        if !ret.is_unit() {
+            self.eh_return_value = Some(
+                self.eh_return_value
+                    .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
+            );
+        }
+
+        // we also need space for catch block parameters
+        for catch in &try.catch_blocks {
+            let var = *self.src.map_vars.get(catch.id).unwrap();
+            self.reserve_stack_for_var(var);
+        }
+
+        if try.finally_block.is_some() {
+            let offset = self.reserve_stack_for_type(BuiltinType::Ptr);
+            self.jit_info.map_offsets.insert(try.id, offset);
+        }
+    }
+
+    fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {
+        // reserve stack slot for iterated value
+        let var = *self.src.map_vars.get(stmt.id).unwrap();
+        self.reserve_stack_for_var(var);
+
+        // reserve stack slot for iterator
+        self.reserve_temp_for_node(&stmt.expr);
+    }
+
     fn reserve_stack_for_self(&mut self) {
         let ty = match self.fct.parent {
             FctParent::Class(clsid) => self.ctxt.classes[clsid].borrow().ty,
@@ -251,7 +270,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.map_var_offsets.insert(id, offset);
     }
 
-    fn reserve_stack_for_node(&mut self, id: VarId) {
+    fn reserve_stack_for_var(&mut self, id: VarId) {
         let ty = self.src.vars[id].ty;
         let ty = self.specialize_type(ty);
         let offset = self.reserve_stack_for_type(ty);
@@ -736,6 +755,13 @@ fn specialize_type(
 
         _ => ty,
     }
+}
+
+#[derive(Clone)]
+pub struct ForInfo<'ast> {
+    make_iterator: CallSite<'ast>,
+    has_next: CallSite<'ast>,
+    next: CallSite<'ast>,
 }
 
 #[cfg(test)]

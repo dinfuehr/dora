@@ -76,7 +76,13 @@ impl MacroAssembler {
         self.emit_u32(asm::ret());
     }
 
-    pub fn direct_call(&mut self, fct_id: FctId, ptr: *const u8, cls_tps: TypeArgs, fct_tps: TypeArgs) {
+    pub fn direct_call(
+        &mut self,
+        fct_id: FctId,
+        ptr: *const u8,
+        cls_tps: TypeArgs,
+        fct_tps: TypeArgs,
+    ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 

@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use ctxt;
-use ctxt::{CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, IdentType,
-           SemContext, TraitId};
+use ctxt::{CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
+           IdentType, SemContext, TraitId};
 use class::ClassId;
 use dora_parser::error::msg::Msg;
 
@@ -140,15 +140,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .args(&[]);
 
         if lookup.find() {
+            let make_iterator_id = lookup.found_fct_id().unwrap();
             let ret = lookup.found_ret().unwrap();
             let iterator_trait_id = self.ctxt.vips.iterator();
 
             if ret.implements_trait(self.ctxt, iterator_trait_id) {
-                // find fct next() in iterator-trait
+                // find fct next() & hasNext() in iterator-trait
+                let has_next_name = self.ctxt.interner.intern("hasNext");
                 let next_name = self.ctxt.interner.intern("next");
                 let trai = self.ctxt.traits[iterator_trait_id].borrow();
                 let next_id = trai.find_method(self.ctxt, false, next_name, None, &[])
                     .expect("next() not found");
+                let has_next_id = trai.find_method(self.ctxt, false, has_next_name, None, &[])
+                    .expect("hasNext() not found");
 
                 // find impl for ret that implements Iterator
                 let cls_id = ret.cls_id(self.ctxt).unwrap();
@@ -162,6 +166,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .find_implements(self.ctxt, next_id)
                     .expect("next() impl not found");
 
+                // find method in impl that implements hasNext();
+                let impl_has_next_id = ximpl
+                    .find_implements(self.ctxt, has_next_id)
+                    .expect("hasNext() impl not found");
+
                 // get return type of next() in impl
                 let fct = self.ctxt.fcts[impl_next_id].borrow();
                 let ret = fct.return_type;
@@ -169,6 +178,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 // set variable type to return type of next
                 let var_id = *self.src.map_vars.get(s.id).unwrap();
                 self.src.vars[var_id].ty = ret;
+
+                // store fct ids for `for-in` loop
+                self.src.map_fors.insert(
+                    s.id,
+                    ForTypeInfo {
+                        make_iterator: make_iterator_id,
+                        has_next: impl_has_next_id,
+                        next: impl_next_id,
+                        iterator_type: ret,
+                    },
+                );
             } else {
                 let ret = ret.name(self.ctxt);
                 let msg = Msg::MakeIteratorReturnType(ret);
