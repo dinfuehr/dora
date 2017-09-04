@@ -42,7 +42,7 @@ impl CopyCollector {
 impl Collector for CopyCollector {
     fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         let mut spaces = self.spaces.lock().unwrap();
-        let mut spaces = &mut *spaces;
+        let spaces = &mut *spaces;
 
         if ctxt.args.flag_gc_stress {
             let rootset = get_rootset(ctxt);
@@ -63,7 +63,7 @@ impl Collector for CopyCollector {
 
     fn collect(&self, ctxt: &SemContext) {
         let mut spaces = self.spaces.lock().unwrap();
-        let mut spaces = &mut *spaces;
+        let spaces = &mut *spaces;
 
         let rootset = get_rootset(ctxt);
         minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
