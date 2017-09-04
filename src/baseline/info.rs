@@ -461,13 +461,38 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let callee = self.ctxt.fcts[callee_id].borrow();
 
+        let (args, return_type, super_call) =
+            self.determine_call_types(&*call_type, &*callee, args);
+        let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
+
+        self.determine_call_stack(&args);
+
+        let csite = CallSite {
+            callee: callee_id,
+            args: args,
+            cls_type_params: cls_type_params,
+            fct_type_params: fct_type_params,
+            super_call: super_call,
+            return_type: return_type,
+        };
+
+        // remember args
+        self.jit_info.map_csites.insert_or_replace(id, csite);
+    }
+
+    fn determine_call_types(
+        &mut self,
+        call_type: &CallType,
+        callee: &Fct<'ast>,
+        args: Vec<Arg<'ast>>,
+    ) -> (Vec<Arg<'ast>>, BuiltinType, bool) {
         let mut super_call = false;
 
         let args = args.iter()
             .enumerate()
             .map(|(ind, arg)| {
                 let ty = callee.params_with_self()[ind];
-                let ty = self.specialize_type_for_call(id, ty);
+                let ty = self.specialize_type_for_call(call_type, ty);
                 let offset = self.reserve_temp_for_type(ty);
 
                 match *arg {
@@ -485,10 +510,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             })
             .collect::<Vec<_>>();
 
-        let return_type = self.specialize_type_for_call(id, callee.return_type);
+        let return_type = self.specialize_type_for_call(call_type, callee.return_type);
 
-        let cls_type_params: TypeArgs;
-        let fct_type_params: TypeArgs;
+        (args, return_type, super_call)
+    }
+
+    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeArgs, TypeArgs) {
+        let cls_type_params;
+        let fct_type_params;
 
         match *call_type {
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
@@ -516,10 +545,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         }
 
+        (cls_type_params, fct_type_params)
+    }
+
+    fn determine_call_stack(&mut self, args: &[Arg<'ast>]) {
         let mut reg_args: i32 = 0;
         let mut freg_args: i32 = 0;
 
-        for arg in &args {
+        for arg in args {
             match *arg {
                 Arg::Expr(ast, ty, _) => {
                     self.visit_expr(ast);
@@ -548,18 +581,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         if argsize > self.argsize {
             self.argsize = argsize;
         }
-
-        let csite = CallSite {
-            callee: callee_id,
-            args: args,
-            cls_type_params: cls_type_params,
-            fct_type_params: fct_type_params,
-            super_call: super_call,
-            return_type: return_type,
-        };
-
-        // remember args
-        self.jit_info.map_csites.insert_or_replace(id, csite);
     }
 
     fn expr_assign(&mut self, e: &'ast ExprAssignType) {
@@ -679,9 +700,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.specialize_type(ty)
     }
 
-    fn specialize_type_for_call(&self, id: NodeId, ty: BuiltinType) -> BuiltinType {
-        let call_type = self.src.map_calls.get(id).unwrap().clone();
-
+    fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
         let ty = match *call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
                 specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
