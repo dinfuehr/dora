@@ -244,12 +244,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stmt_for(&mut self, stmt: &'ast StmtForType) {
+        let for_type_info = self.src.map_fors.get(stmt.id).unwrap();
+
         // reserve stack slot for iterated value
         let var = *self.src.map_vars.get(stmt.id).unwrap();
         self.reserve_stack_for_var(var);
 
         // reserve stack slot for iterator
-        self.reserve_temp_for_node(&stmt.expr);
+        let offset = self.reserve_stack_for_type(for_type_info.iterator_type);
+        self.jit_info.map_offsets.insert(stmt.id, offset);
     }
 
     fn reserve_stack_for_self(&mut self) {
