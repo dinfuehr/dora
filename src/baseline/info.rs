@@ -465,21 +465,23 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let args = args.iter()
             .enumerate()
-            .map(|(ind, arg)| match *arg {
-                Arg::Expr(ast, mut ty, _) => {
-                    if ind == 0 && ast.is_super() {
-                        super_call = true;
+            .map(|(ind, arg)| {
+                let ty = callee.params_with_self()[ind];
+                let ty = self.specialize_type_for_call(id, ty);
+                let offset = self.reserve_temp_for_type(ty);
+
+                match *arg {
+                    Arg::Expr(ast, _, _) => {
+                        if ind == 0 && ast.is_super() {
+                            super_call = true;
+                        }
+
+                        Arg::Expr(ast, ty, offset)
                     }
 
-                    ty = callee.params_with_self()[ind];
-
-                    let ty = self.specialize_type_for_call(id, ty);
-
-                    Arg::Expr(ast, ty, self.reserve_temp_for_node_with_type(ast.id(), ty))
+                    Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, offset),
+                    Arg::Selfie(cid, _) => Arg::Selfie(cid, offset),
                 }
-
-                Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, self.reserve_temp_for_ctor(id)),
-                Arg::Selfie(cid, _) => Arg::Selfie(cid, self.reserve_temp_for_ctor(id)),
             })
             .collect::<Vec<_>>();
 
@@ -656,12 +658,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size(self.ctxt);
-        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
+        let offset = self.reserve_temp_for_type(ty);
 
         self.jit_info
             .map_stores
-            .insert_or_replace(id, Store::Temp(self.cur_tempsize, ty));
+            .insert_or_replace(id, Store::Temp(offset, ty));
+
+        offset
+    }
+
+    fn reserve_temp_for_type(&mut self, ty: BuiltinType) -> i32 {
+        let ty_size = ty.size(self.ctxt);
+        self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
         self.cur_tempsize
     }
