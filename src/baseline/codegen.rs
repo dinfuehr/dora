@@ -484,6 +484,32 @@ where
         self.active_loop = saved_active_loop;
     }
 
+    fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
+        // emit makeIterator()
+
+        let lbl_start = self.masm.create_label();
+        let lbl_end = self.masm.create_label();
+
+        let saved_active_loop = self.active_loop;
+
+        self.active_loop = Some(self.active_finallys.len());
+        self.masm.bind_label(lbl_start);
+
+        // TODO: emit: iterator.hasNext() & jump to lbl_end if false
+        // TODO: emit: for_var = iterator.next()
+
+        self.save_label_state(lbl_end, lbl_start, |this| {
+            // execute while body, then jump back to condition
+            this.visit_stmt(&s.block);
+
+            this.emit_safepoint();
+            this.masm.jump(lbl_start);
+        });
+
+        self.masm.bind_label(lbl_end);
+        self.active_loop = saved_active_loop;
+    }
+
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
@@ -838,7 +864,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtIf(ref stmt) => self.emit_stmt_if(stmt),
             StmtLoop(ref stmt) => self.emit_stmt_loop(stmt),
             StmtWhile(ref stmt) => self.emit_stmt_while(stmt),
-            StmtFor(_) => unimplemented!(),
+            StmtFor(ref stmt) => self.emit_stmt_for(stmt),
             StmtReturn(ref stmt) => self.emit_stmt_return(stmt),
             StmtBreak(ref stmt) => self.emit_stmt_break(stmt),
             StmtContinue(ref stmt) => self.emit_stmt_continue(stmt),
