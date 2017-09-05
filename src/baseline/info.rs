@@ -462,7 +462,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let callee = self.ctxt.fcts[callee_id].borrow();
 
         let (args, return_type, super_call) =
-            self.determine_call_types(&*call_type, &*callee, args);
+            self.determine_call_args_and_types(&*call_type, &*callee, args);
         let (cls_type_params, fct_type_params) = self.determine_call_type_params(&*call_type);
 
         self.determine_call_stack(&args);
@@ -480,7 +480,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.map_csites.insert_or_replace(id, csite);
     }
 
-    fn determine_call_types(
+    fn determine_call_args_and_types(
         &mut self,
         call_type: &CallType,
         callee: &Fct<'ast>,
