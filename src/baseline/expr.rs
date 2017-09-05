@@ -365,7 +365,7 @@ where
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
         } else {
-            self.emit_universal_call(e.id, e.pos, dest);
+            self.emit_call_site_id(e.id, e.pos, dest);
         }
     }
 
@@ -628,7 +628,7 @@ where
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
             }
         } else {
-            self.emit_universal_call(e.id, e.pos, dest);
+            self.emit_call_site_id(e.id, e.pos, dest);
         }
     }
 
@@ -654,7 +654,7 @@ where
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
             } else {
-                self.emit_universal_call(e.id, e.pos, REG_RESULT.into());
+                self.emit_call_site_id(e.id, e.pos, REG_RESULT.into());
             }
 
             return;
@@ -760,7 +760,7 @@ where
         } else if e.op == BinOp::And {
             self.emit_bin_and(e, dest.reg());
         } else {
-            self.emit_universal_call(e.id, e.pos, dest);
+            self.emit_call_site_id(e.id, e.pos, dest);
 
             match e.op {
                 BinOp::Cmp(CmpOp::Eq) => {}
@@ -994,7 +994,7 @@ where
                 _ => panic!("unknown intrinsic {:?}", intrinsic),
             }
         } else {
-            self.emit_universal_call(e.id, e.pos, dest);
+            self.emit_call_site_id(e.id, e.pos, dest);
         }
     }
 
@@ -1434,15 +1434,19 @@ where
     }
 
     fn emit_delegation(&mut self, e: &'ast ExprDelegationType, dest: ExprStore) {
-        self.emit_universal_call(e.id, e.pos, dest);
+        self.emit_call_site_id(e.id, e.pos, dest);
     }
 
     fn has_call_site(&self, id: NodeId) -> bool {
         self.jit_info.map_csites.get(id).is_some()
     }
 
-    fn emit_universal_call(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
+    fn emit_call_site_id(&mut self, id: NodeId, pos: Position, dest: ExprStore) {
         let csite = self.jit_info.map_csites.get(id).unwrap().clone();
+        self.emit_call_site(&csite, pos, dest);
+    }
+
+    fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
         let mut temps: Vec<(BuiltinType, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;
