@@ -1,4 +1,3 @@
-//= ignore
 //= output "01234"
 
 fun main() {

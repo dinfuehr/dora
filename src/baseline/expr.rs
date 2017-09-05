@@ -1446,7 +1446,7 @@ where
         self.emit_call_site(&csite, pos, dest);
     }
 
-    fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
+    pub fn emit_call_site(&mut self, csite: &CallSite<'ast>, pos: Position, dest: ExprStore) {
         let mut temps: Vec<(BuiltinType, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;

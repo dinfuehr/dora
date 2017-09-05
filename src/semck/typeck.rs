@@ -141,10 +141,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if lookup.find() {
             let make_iterator_id = lookup.found_fct_id().unwrap();
-            let ret = lookup.found_ret().unwrap();
+            let make_iterator_ret = lookup.found_ret().unwrap();
             let iterator_trait_id = self.ctxt.vips.iterator();
 
-            if ret.implements_trait(self.ctxt, iterator_trait_id) {
+            if make_iterator_ret.implements_trait(self.ctxt, iterator_trait_id) {
                 // find fct next() & hasNext() in iterator-trait
                 let has_next_name = self.ctxt.interner.intern("hasNext");
                 let next_name = self.ctxt.interner.intern("next");
@@ -155,7 +155,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .expect("hasNext() not found");
 
                 // find impl for ret that implements Iterator
-                let cls_id = ret.cls_id(self.ctxt).unwrap();
+                let cls_id = make_iterator_ret.cls_id(self.ctxt).unwrap();
                 let cls = self.ctxt.classes[cls_id].borrow();
                 let impl_id = cls.find_impl_for_trait(self.ctxt, iterator_trait_id)
                     .expect("impl not found for Iterator");
@@ -186,11 +186,11 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         make_iterator: make_iterator_id,
                         has_next: impl_has_next_id,
                         next: impl_next_id,
-                        iterator_type: ret,
+                        iterator_type: make_iterator_ret,
                     },
                 );
             } else {
-                let ret = ret.name(self.ctxt);
+                let ret = make_iterator_ret.name(self.ctxt);
                 let msg = Msg::MakeIteratorReturnType(ret);
                 self.ctxt.diag.borrow_mut().report(s.expr.pos(), msg);
             }

@@ -310,13 +310,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         self.jit_info.map_var_offsets.insert(id, offset);
     }
 
-    fn reserve_stack_for_var(&mut self, id: VarId) {
+    fn reserve_stack_for_var(&mut self, id: VarId) -> i32 {
         let ty = self.src.vars[id].ty;
         let ty = self.specialize_type(ty);
         let offset = self.reserve_stack_for_type(ty);
 
         self.jit_info.map_var_offsets.insert(id, offset);
         self.jit_info.map_var_types.insert(id, ty);
+
+        offset
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
@@ -840,9 +842,9 @@ fn specialize_type(
 
 #[derive(Clone)]
 pub struct ForInfo<'ast> {
-    make_iterator: CallSite<'ast>,
-    has_next: CallSite<'ast>,
-    next: CallSite<'ast>,
+    pub make_iterator: CallSite<'ast>,
+    pub has_next: CallSite<'ast>,
+    pub next: CallSite<'ast>,
 }
 
 #[cfg(test)]

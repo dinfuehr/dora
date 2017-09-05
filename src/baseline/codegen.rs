@@ -12,6 +12,7 @@ use capstone::{Engine, Error};
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
+use dora_parser::lexer::position::Position;
 
 use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
@@ -19,7 +20,7 @@ use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use class::ClassDef;
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
-use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext, VarId};
+use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, SemContext, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
 
@@ -485,7 +486,14 @@ where
     }
 
     fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
-        // TODO: emit makeIterator()
+        let for_info = self.jit_info.map_fors.get(s.id).unwrap().clone();
+
+        // emit: <iterator> = obj.makeIterator()
+        let dest = self.emit_call_site(&for_info.make_iterator, s.pos);
+
+        // offset of iterator storage
+        let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
+        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
@@ -495,8 +503,15 @@ where
         self.active_loop = Some(self.active_finallys.len());
         self.masm.bind_label(lbl_start);
 
-        // TODO: emit: iterator.hasNext() & jump to lbl_end if false
-        // TODO: emit: for_var = iterator.next()
+        // emit: iterator.hasNext() & jump to lbl_end if false
+        let dest = self.emit_call_site(&for_info.has_next, s.pos);
+        self.masm.test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
+
+        // emit: <for_var> = iterator.next()
+        let dest = self.emit_call_site(&for_info.next, s.pos);
+
+        let for_var_id = *self.src.map_vars.get(s.id).unwrap();
+        var_store(&mut self.masm, &self.jit_info, dest, for_var_id);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -813,6 +828,29 @@ where
         );
 
         expr_gen.generate(e, dest);
+
+        dest
+    }
+
+    fn emit_call_site(&mut self, call_site: &CallSite<'ast>, pos: Position) -> ExprStore {
+        let callee = self.ctxt.fcts[call_site.callee].borrow();
+        let return_type = self.specialize_type(callee.return_type);
+
+        let dest = register_for_mode(return_type.mode());
+
+        let mut expr_gen = ExprGen::new(
+            self.ctxt,
+            self.fct,
+            self.src,
+            self.ast,
+            &mut self.masm,
+            &mut self.scopes,
+            &self.jit_info,
+            self.cls_type_params,
+            self.fct_type_params,
+        );
+
+        expr_gen.emit_call_site(call_site, pos, dest);
 
         dest
     }
