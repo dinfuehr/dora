@@ -448,9 +448,6 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn universal_call(&mut self, id: NodeId, args: Vec<Arg<'ast>>, callee_id: Option<FctId>) {
-        // function invokes another function
-        self.leaf = false;
-
         let call_type = self.src.map_calls.get(id).unwrap().clone();
 
         let callee_id = if let Some(callee_id) = callee_id {
@@ -458,6 +455,21 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         } else {
             call_type.fct_id()
         };
+
+        let csite = self.build_call_site(&*call_type, callee_id, args);
+
+        // remember args
+        self.jit_info.map_csites.insert_or_replace(id, csite);
+    }
+
+    fn build_call_site(
+        &mut self,
+        call_type: &CallType,
+        callee_id: FctId,
+        args: Vec<Arg<'ast>>,
+    ) -> CallSite<'ast> {
+        // function invokes another function
+        self.leaf = false;
 
         let callee = self.ctxt.fcts[callee_id].borrow();
 
@@ -467,17 +479,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         self.determine_call_stack(&args);
 
-        let csite = CallSite {
+        CallSite {
             callee: callee_id,
             args: args,
             cls_type_params: cls_type_params,
             fct_type_params: fct_type_params,
             super_call: super_call,
             return_type: return_type,
-        };
-
-        // remember args
-        self.jit_info.map_csites.insert_or_replace(id, csite);
+        }
     }
 
     fn determine_call_args_and_types(
