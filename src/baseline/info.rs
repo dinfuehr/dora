@@ -253,6 +253,40 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // reserve stack slot for iterator
         let offset = self.reserve_stack_for_type(for_type_info.iterator_type);
         self.jit_info.map_offsets.insert(stmt.id, offset);
+
+        // build makeIterator() call
+        let object_type = self.ty(stmt.expr.id());
+        let ctype = CallType::Method(
+            object_type,
+            for_type_info.make_iterator,
+            Rc::new(Vec::new()),
+        );
+        let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, Vec::new());
+
+        // build hasNext() call
+        let ctype = CallType::Method(
+            for_type_info.iterator_type,
+            for_type_info.has_next,
+            Rc::new(Vec::new()),
+        );
+        let has_next = self.build_call_site(&ctype, for_type_info.has_next, Vec::new());
+
+        // build next() call
+        let ctype = CallType::Method(
+            for_type_info.iterator_type,
+            for_type_info.next,
+            Rc::new(Vec::new()),
+        );
+        let next = self.build_call_site(&ctype, for_type_info.next, Vec::new());
+
+        self.jit_info.map_fors.insert(
+            stmt.id,
+            ForInfo {
+                make_iterator: make_iterator,
+                has_next: has_next,
+                next: next,
+            },
+        );
     }
 
     fn reserve_stack_for_self(&mut self) {
