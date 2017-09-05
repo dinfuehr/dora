@@ -485,7 +485,7 @@ where
     }
 
     fn emit_stmt_for(&mut self, s: &'ast StmtForType) {
-        // emit makeIterator()
+        // TODO: emit makeIterator()
 
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();

@@ -261,7 +261,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             for_type_info.make_iterator,
             Rc::new(Vec::new()),
         );
-        let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, Vec::new());
+        let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit, 0)];
+        let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
 
         // build hasNext() call
         let ctype = CallType::Method(
@@ -269,7 +270,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             for_type_info.has_next,
             Rc::new(Vec::new()),
         );
-        let has_next = self.build_call_site(&ctype, for_type_info.has_next, Vec::new());
+        let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
+        let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
 
         // build next() call
         let ctype = CallType::Method(
@@ -277,7 +279,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             for_type_info.next,
             Rc::new(Vec::new()),
         );
-        let next = self.build_call_site(&ctype, for_type_info.next, Vec::new());
+        let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
+        let next = self.build_call_site(&ctype, for_type_info.next, args);
 
         self.jit_info.map_fors.insert(
             stmt.id,
@@ -531,6 +534,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     ) -> (Vec<Arg<'ast>>, BuiltinType, bool) {
         let mut super_call = false;
 
+        assert!(callee.params_with_self().len() == args.len());
+
         let args = args.iter()
             .enumerate()
             .map(|(ind, arg)| {
@@ -547,6 +552,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         Arg::Expr(ast, ty, offset)
                     }
 
+                    Arg::Stack(soffset, _, _) => Arg::Stack(soffset, ty, offset),
                     Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, offset),
                     Arg::Selfie(cid, _) => Arg::Selfie(cid, offset),
                 }
@@ -607,11 +613,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => if ty.is_float() {
-                    freg_args += 1;
-                } else {
-                    reg_args += 1;
-                },
+                Arg::Stack(_, ty, _) | Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => {
+                    if ty.is_float() {
+                        freg_args += 1;
+                    } else {
+                        reg_args += 1;
+                    }
+                }
             }
         }
 

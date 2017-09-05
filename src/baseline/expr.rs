@@ -1472,6 +1472,10 @@ where
                     }
                 }
 
+                Arg::Stack(soffset, ty, _) => {
+                    self.masm.load_mem(ty.mode(), dest, Mem::Local(soffset));
+                }
+
                 Arg::Selfie(_, _) => {
                     self.emit_self(dest.reg());
                 }
