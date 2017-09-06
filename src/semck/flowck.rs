@@ -65,6 +65,7 @@ impl<'a, 'ast> Visitor<'ast> for FlowCheck<'a, 'ast> {
         match *s {
             StmtLoop(_) => self.handle_loop(s),
             StmtWhile(_) => self.handle_loop(s),
+            StmtFor(_) => self.handle_loop(s),
             StmtBreak(_) => self.handle_flow(s),
             StmtContinue(_) => self.handle_flow(s),
 
