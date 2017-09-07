@@ -5,6 +5,7 @@ use libc;
 use baseline;
 use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
+use class::TypeParams;
 use cpu;
 use ctxt::{get_ctxt, FctId, SemContext, CTXT};
 use exception::{handle_exception, stacktrace_from_es};
@@ -12,7 +13,6 @@ use execstate::ExecState;
 use object::{Handle, Obj};
 use os_cpu::*;
 use safepoint;
-use ty::BuiltinType;
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;
@@ -265,7 +265,7 @@ fn patch_vtable_call(
     ctxt: &SemContext,
     es: &mut ExecState,
     vtable_index: u32,
-    fct_tps: &[BuiltinType],
+    fct_tps: &TypeParams,
 ) {
     let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
 
@@ -279,7 +279,8 @@ fn patch_vtable_call(
         let fct = ctxt.fcts[fct_id].borrow();
 
         if Some(vtable_index) == fct.vtable_index {
-            fct_ptr = baseline::generate(ctxt, fct_id, &[], fct_tps);
+            let empty = TypeParams::empty();
+            fct_ptr = baseline::generate(ctxt, fct_id, &empty, fct_tps);
             break;
         }
     }
@@ -296,8 +297,8 @@ pub fn patch_fct_call(
     es: &mut ExecState,
     ra: usize,
     fct_id: FctId,
-    cls_tps: &[BuiltinType],
-    fct_tps: &[BuiltinType],
+    cls_tps: &TypeParams,
+    fct_tps: &TypeParams,
     disp: i32,
 ) {
     let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);

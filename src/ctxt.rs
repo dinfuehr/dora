@@ -15,7 +15,7 @@ use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
-use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeArgs};
+use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
 use exception::DoraToNativeInfo;
 use gc::Gc;
 use dora_parser::interner::*;
@@ -457,8 +457,8 @@ impl KnownElements {
         if let Some(cls_id) = cls_id {
             cls_id
         } else {
-            let type_args = Rc::new(vec![BuiltinType::Int]);
-            let cls_id = specialize_class_id_params(ctxt, self.array_class, type_args);
+            let type_args = vec![BuiltinType::Int];
+            let cls_id = specialize_class_id_params(ctxt, self.array_class, type_args.into());
             self.int_array_def.set(Some(cls_id));
             cls_id
         }
@@ -884,7 +884,7 @@ pub struct FctSrc {
 
     pub always_returns: bool, // true if function is always exited via return statement
     // false if function execution could reach the closing } of this function
-    pub specializations: RwLock<HashMap<(TypeArgs, TypeArgs), JitFctId>>,
+    pub specializations: RwLock<HashMap<(TypeParams, TypeParams), JitFctId>>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -1059,10 +1059,10 @@ pub struct ForTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
-    Fct(FctId, TypeArgs, TypeArgs),
-    Method(BuiltinType, FctId, TypeArgs),
-    CtorNew(ClassId, FctId, TypeArgs),
-    Ctor(ClassId, FctId, TypeArgs),
+    Fct(FctId, TypeParams, TypeParams),
+    Method(BuiltinType, FctId, TypeParams),
+    CtorNew(ClassId, FctId, TypeParams),
+    Ctor(ClassId, FctId, TypeParams),
 }
 
 impl CallType {
@@ -1100,8 +1100,8 @@ impl CallType {
 #[derive(Clone, Debug)]
 pub struct CallSite<'ast> {
     pub callee: FctId,
-    pub cls_type_params: TypeArgs,
-    pub fct_type_params: TypeArgs,
+    pub cls_type_params: TypeParams,
+    pub fct_type_params: TypeParams,
     pub args: Vec<Arg<'ast>>,
     pub super_call: bool,
     pub return_type: BuiltinType,

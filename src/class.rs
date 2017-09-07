@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
+use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
@@ -64,7 +65,7 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub specializations: RefCell<HashMap<TypeArgs, ClassDefId>>,
+    pub specializations: RefCell<HashMap<TypeParams, ClassDefId>>,
     pub vtable_len: u32,
 
     // true if this class is the generic Array class
@@ -308,7 +309,7 @@ pub enum ClassSize {
 pub struct ClassDef {
     pub id: ClassDefId,
     pub cls_id: ClassId,
-    pub type_params: TypeArgs,
+    pub type_params: TypeParams,
     pub parent_id: Option<ClassDefId>,
     pub fields: Vec<FieldDef>,
     pub size: ClassSize,
@@ -341,4 +342,77 @@ pub struct FieldDef {
     pub ty: BuiltinType,
 }
 
-pub type TypeArgs = Rc<Vec<BuiltinType>>;
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum TypeParams {
+    Empty,
+    List(Rc<Vec<BuiltinType>>),
+}
+
+impl TypeParams {
+    pub fn empty() -> TypeParams {
+        TypeParams::Empty
+    }
+
+    pub fn with(type_params: Vec<BuiltinType>) -> TypeParams {
+        TypeParams::List(Rc::new(type_params))
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            &TypeParams::Empty => 0,
+            &TypeParams::List(ref params) => params.len(),
+        }
+    }
+
+    pub fn iter(&self) -> TypeParamsIter {
+        TypeParamsIter {
+            params: self,
+            idx: 0,
+        }
+    }
+}
+
+impl Index<usize> for TypeParams {
+    type Output = BuiltinType;
+
+    fn index(&self, idx: usize) -> &BuiltinType {
+        match self {
+            &TypeParams::Empty => panic!("out-of-bounds"),
+            &TypeParams::List(ref params) => &params[idx],
+        }
+    }
+}
+
+pub struct TypeParamsIter<'a> {
+    params: &'a TypeParams,
+    idx: usize,
+}
+
+impl<'a> Iterator for TypeParamsIter<'a> {
+    type Item = BuiltinType;
+
+    fn next(&mut self) -> Option<BuiltinType> {
+        match self.params {
+            &TypeParams::Empty => {
+                None
+            }
+
+            &TypeParams::List(ref params) => {
+                if self.idx < params.len() {
+                    let ret = params[self.idx];
+                    self.idx += 1;
+
+                    Some(ret)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+impl From<Vec<BuiltinType>> for TypeParams {
+    fn from(val: Vec<BuiltinType>) -> TypeParams {
+        TypeParams::with(val)
+    }
+}

@@ -10,6 +10,7 @@ use std::str;
 use std::thread;
 
 use baseline;
+use class::TypeParams;
 use ctxt::{exception_set, get_ctxt};
 use exception::alloc_exception;
 use object::{ByteArray, Handle, Obj, Str};
@@ -125,7 +126,8 @@ pub extern "C" fn call(fct: Handle<Str>) {
                 }
             }
 
-            let fct_ptr = baseline::generate(ctxt, fct_id, &[], &[]);
+            let type_params = TypeParams::empty();
+            let fct_ptr = baseline::generate(ctxt, fct_id, &type_params, &type_params);
             let fct: extern "C" fn() = unsafe { mem::transmute(fct_ptr) };
             fct();
         }
@@ -276,7 +278,8 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
-            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main, &[], &[]))
+            let type_params = TypeParams::empty();
+            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main, &type_params, &type_params))
         };
 
         let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };

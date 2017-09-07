@@ -1,12 +1,11 @@
 use std::cmp::max;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use dora_parser::ast::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::visit::*;
-use class::TypeArgs;
+use class::TypeParams;
 use cpu::*;
 use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
            SemContext, Store, TraitId, VarId};
@@ -18,8 +17,8 @@ pub fn generate<'a, 'ast: 'a>(
     fct: &Fct<'ast>,
     src: &'a FctSrc,
     jit_info: &'a mut JitInfo<'ast>,
-    cls_type_params: &[BuiltinType],
-    fct_type_params: &[BuiltinType],
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) {
     let start = if fct.has_self() { 1 } else { 0 };
 
@@ -129,8 +128,8 @@ struct InfoGenerator<'a, 'ast: 'a> {
     param_reg_idx: usize,
     param_freg_idx: usize,
 
-    cls_type_params: &'a [BuiltinType],
-    fct_type_params: &'a [BuiltinType],
+    cls_type_params: &'a TypeParams,
+    fct_type_params: &'a TypeParams,
 }
 
 impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
@@ -259,7 +258,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ctype = CallType::Method(
             object_type,
             for_type_info.make_iterator,
-            Rc::new(Vec::new()),
+            TypeParams::empty(),
         );
         let args = vec![Arg::Expr(&stmt.expr, BuiltinType::Unit, 0)];
         let make_iterator = self.build_call_site(&ctype, for_type_info.make_iterator, args);
@@ -268,7 +267,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ctype = CallType::Method(
             for_type_info.iterator_type,
             for_type_info.has_next,
-            Rc::new(Vec::new()),
+            TypeParams::empty(),
         );
         let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
         let has_next = self.build_call_site(&ctype, for_type_info.has_next, args);
@@ -277,7 +276,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ctype = CallType::Method(
             for_type_info.iterator_type,
             for_type_info.next,
-            Rc::new(Vec::new()),
+            TypeParams::empty(),
         );
         let args = vec![Arg::Stack(offset, BuiltinType::Unit, 0)];
         let next = self.build_call_site(&ctype, for_type_info.next, args);
@@ -566,14 +565,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         (args, return_type, super_call)
     }
 
-    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeArgs, TypeArgs) {
+    fn determine_call_type_params(&mut self, call_type: &CallType) -> (TypeParams, TypeParams) {
         let cls_type_params;
         let fct_type_params;
 
         match *call_type {
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 cls_type_params = type_params.clone();
-                fct_type_params = Rc::new(Vec::new());
+                fct_type_params = TypeParams::empty();
             }
 
             CallType::Method(ty, _, ref type_params) => {
@@ -584,7 +583,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                         let t = self.ctxt.types.borrow().get(type_id);
                         t.params.clone()
                     }
-                    _ => Rc::new(Vec::new()),
+                    _ => TypeParams::empty(),
                 };
 
                 fct_type_params = type_params.clone();
@@ -762,14 +761,15 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
                 BuiltinType::Generic(type_id) => {
                     let t = self.ctxt.types.borrow().get(type_id);
-                    specialize_type(self.ctxt, ty, t.params.as_slice(), type_params)
+                    specialize_type(self.ctxt, ty, &t.params, type_params)
                 }
 
                 _ => ty,
             },
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
-                specialize_type(self.ctxt, ty, type_params, &[])
+                let empty = TypeParams::empty();
+                specialize_type(self.ctxt, ty, type_params, &empty)
             }
         };
 
@@ -791,12 +791,12 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             BuiltinType::Generic(type_id) => {
                 let ty = self.ctxt.types.borrow().get(type_id);
 
-                let params: Vec<_> = ty.params.iter().map(|&t| self.specialize_type(t)).collect();
+                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
 
                 let type_id = self.ctxt
                     .types
                     .borrow_mut()
-                    .insert(ty.cls_id, Rc::new(params));
+                    .insert(ty.cls_id, params.into());
 
                 BuiltinType::Generic(type_id)
             }
@@ -811,8 +811,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 fn specialize_type(
     ctxt: &SemContext,
     ty: BuiltinType,
-    cls_type_params: &[BuiltinType],
-    fct_type_params: &[BuiltinType],
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) -> BuiltinType {
     match ty {
         BuiltinType::ClassTypeParam(_, id) => cls_type_params[id.idx()],
@@ -824,12 +824,12 @@ fn specialize_type(
 
             let params: Vec<_> = ty.params
                 .iter()
-                .map(|&t| {
+                .map(|t| {
                     specialize_type(ctxt, t, cls_type_params, fct_type_params)
                 })
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params.into());
 
             BuiltinType::Generic(type_id)
         }
@@ -867,8 +867,9 @@ mod tests {
             let src = fct.src();
             let mut src = src.borrow_mut();
             let mut jit_info = JitInfo::new();
+            let empty = TypeParams::empty();
 
-            generate(ctxt, &fct, &mut src, &mut jit_info, &[], &[]);
+            generate(ctxt, &fct, &mut src, &mut jit_info, &empty, &empty);
 
             f(&src, &jit_info);
         });

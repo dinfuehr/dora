@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::Index;
 use std::ptr;
 
-use class::{ClassDef, ClassDefId, FieldId, TypeArgs};
+use class::{ClassDef, ClassDefId, FieldId, TypeParams};
 use cpu::flush_icache;
 use ctxt::{FctId, FctSrc, GlobalId, SemContext, VarId};
 use dseg::DSeg;
@@ -423,6 +423,6 @@ impl Bailouts {
 
 #[derive(Clone, Debug)]
 pub enum BailoutInfo {
-    Compile(FctId, i32, TypeArgs, TypeArgs),
-    VirtCompile(u32, TypeArgs),
+    Compile(FctId, i32, TypeParams, TypeParams),
+    VirtCompile(u32, TypeParams),
 }

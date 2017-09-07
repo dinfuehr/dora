@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use class::{ClassId, TypeArgs, TypeParamId};
+use class::{ClassId, TypeParams, TypeParamId};
 use ctxt::{FctId, SemContext, StructId, TraitId};
 use mem;
 
@@ -126,7 +126,7 @@ impl BuiltinType {
         false
     }
 
-    pub fn type_params(&self, ctxt: &SemContext) -> TypeArgs {
+    pub fn type_params(&self, ctxt: &SemContext) -> TypeParams {
         debug_assert!(!self.contains_type_param(ctxt));
 
         match self {
@@ -135,7 +135,7 @@ impl BuiltinType {
                 t.params.clone()
             }
 
-            _ => Rc::new(Vec::new()),
+            _ => TypeParams::empty(),
         }
     }
 
@@ -392,8 +392,8 @@ impl MachineMode {
 }
 
 pub struct Types {
-    types: HashMap<Rc<TypeWithParams>, TypeId>,
-    values: Vec<Rc<TypeWithParams>>,
+    types: HashMap<TypeWithParams, TypeId>,
+    values: Vec<TypeWithParams>,
     next_type_id: usize,
 }
 
@@ -410,7 +410,7 @@ impl Types {
         self.values.len()
     }
 
-    pub fn insert(&mut self, cls_id: ClassId, params: TypeArgs) -> TypeId {
+    pub fn insert(&mut self, cls_id: ClassId, params: TypeParams) -> TypeId {
         let ty = TypeWithParams {
             cls_id: cls_id,
             params: params,
@@ -421,7 +421,6 @@ impl Types {
         }
 
         let type_id = TypeId(self.next_type_id);
-        let ty = Rc::new(ty);
         self.types.insert(ty.clone(), type_id);
 
         self.values.push(ty);
@@ -431,7 +430,7 @@ impl Types {
         type_id
     }
 
-    pub fn get(&self, id: TypeId) -> Rc<TypeWithParams> {
+    pub fn get(&self, id: TypeId) -> TypeWithParams {
         self.values[id.0].clone()
     }
 }
@@ -439,7 +438,7 @@ impl Types {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeWithParams {
     pub cls_id: ClassId,
-    pub params: TypeArgs,
+    pub params: TypeParams,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

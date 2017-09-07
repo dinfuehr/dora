@@ -1,11 +1,9 @@
-use std::rc::Rc;
-
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::GcPoint;
 use baseline::fct::BailoutInfo;
 use byteorder::{LittleEndian, WriteBytesExt};
-use class::TypeArgs;
+use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
@@ -45,8 +43,8 @@ impl MacroAssembler {
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
-        cls_tps: TypeArgs,
-        fct_tps: TypeArgs,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
     ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
@@ -87,7 +85,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, Rc::new(Vec::new())));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeParams::empty()));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

@@ -1,8 +1,7 @@
 use std::ptr;
-use std::rc::Rc;
 
 use baseline::stub::ensure_stub;
-use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeArgs};
+use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
 use ctxt::SemContext;
 use mem;
 use object::Header;
@@ -13,7 +12,7 @@ pub fn specialize_type<'ast>(
     ctxt: &SemContext<'ast>,
     ty: BuiltinType,
     specialize_for: SpecializeFor,
-    type_params: &[BuiltinType],
+    type_params: &TypeParams,
 ) -> BuiltinType {
     match ty {
         BuiltinType::ClassTypeParam(_, id) => if specialize_for == SpecializeFor::Class {
@@ -33,10 +32,10 @@ pub fn specialize_type<'ast>(
 
             let params: Vec<_> = ty.params
                 .iter()
-                .map(|&t| specialize_type(ctxt, t, specialize_for, type_params))
+                .map(|t| specialize_type(ctxt, t, specialize_for, type_params))
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, Rc::new(params));
+            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params.into());
 
             BuiltinType::Generic(type_id)
         }
@@ -53,13 +52,13 @@ pub enum SpecializeFor {
 
 pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
-    specialize_class(ctxt, &*cls, Rc::new(Vec::new()))
+    specialize_class(ctxt, &*cls, TypeParams::empty())
 }
 
 pub fn specialize_class_id_params(
     ctxt: &SemContext,
     cls_id: ClassId,
-    type_params: TypeArgs,
+    type_params: TypeParams,
 ) -> ClassDefId {
     let cls = ctxt.classes[cls_id].borrow();
     specialize_class(ctxt, &*cls, type_params)
@@ -81,7 +80,7 @@ pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
 pub fn specialize_class(
     ctxt: &SemContext,
     cls: &class::Class,
-    type_params: TypeArgs,
+    type_params: TypeParams,
 ) -> ClassDefId {
     if let Some(&id) = cls.specializations.borrow().get(&type_params) {
         return id;
@@ -93,7 +92,7 @@ pub fn specialize_class(
 fn create_specialized_class(
     ctxt: &SemContext,
     cls: &class::Class,
-    type_params: TypeArgs,
+    type_params: TypeParams,
 ) -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 

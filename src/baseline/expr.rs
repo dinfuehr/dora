@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use dora_parser::ast::*;
 use dora_parser::ast::Expr::*;
 use baseline::codegen::{self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug,
@@ -8,7 +6,7 @@ use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
-use class::{ClassDefId, ClassSize, FieldId, TypeArgs};
+use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{FREG_TMP1, FReg, Mem, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
           REG_RESULT};
 use ctxt::*;
@@ -82,8 +80,8 @@ pub struct ExprGen<'a, 'ast: 'a> {
     tempsize: i32,
     temps: TempOffsets,
     jit_info: &'a JitInfo<'ast>,
-    cls_type_params: &'a [BuiltinType],
-    fct_type_params: &'a [BuiltinType],
+    cls_type_params: &'a TypeParams,
+    fct_type_params: &'a TypeParams,
 }
 
 impl<'a, 'ast> ExprGen<'a, 'ast>
@@ -98,8 +96,8 @@ where
         masm: &'a mut MacroAssembler,
         scopes: &'a mut Scopes,
         jit_info: &'a JitInfo<'ast>,
-        cls_type_params: &'a [BuiltinType],
-        fct_type_params: &'a [BuiltinType],
+        cls_type_params: &'a TypeParams,
+        fct_type_params: &'a TypeParams,
     ) -> ExprGen<'a, 'ast> {
         ExprGen {
             ctxt: ctxt,
@@ -836,8 +834,8 @@ where
     fn ptr_for_fct_id(
         &mut self,
         fid: FctId,
-        cls_type_params: TypeArgs,
-        fct_type_params: TypeArgs,
+        cls_type_params: TypeParams,
+        fct_type_params: TypeParams,
     ) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
@@ -1550,20 +1548,16 @@ where
         }
 
         let return_type = self.specialize_type(csite.return_type);
-        let cls_type_params = Rc::new(
-            csite
+        let cls_type_params: TypeParams = csite
                 .cls_type_params
                 .iter()
-                .map(|&ty| self.specialize_type(ty))
-                .collect::<Vec<_>>(),
-        );
-        let fct_type_params = Rc::new(
-            csite
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>().into();
+        let fct_type_params: TypeParams = csite
                 .fct_type_params
                 .iter()
-                .map(|&ty| self.specialize_type(ty))
-                .collect::<Vec<_>>(),
-        );
+                .map(|ty| self.specialize_type(ty))
+                .collect::<Vec<_>>().into();
 
         debug_assert!(
             cls_type_params
@@ -1727,8 +1721,8 @@ where
         pos: Position,
         ty: BuiltinType,
         dest: ExprStore,
-        cls_tps: TypeArgs,
-        fct_tps: TypeArgs,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
     ) {
         self.masm.direct_call(fid, ptr, cls_tps, fct_tps);
         self.emit_after_call_insns(pos, ty, dest);
@@ -1781,12 +1775,12 @@ where
             BuiltinType::Generic(type_id) => {
                 let ty = self.ctxt.types.borrow().get(type_id);
 
-                let params: Vec<_> = ty.params.iter().map(|&t| self.specialize_type(t)).collect();
+                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
 
                 let type_id = self.ctxt
                     .types
                     .borrow_mut()
-                    .insert(ty.cls_id, Rc::new(params));
+                    .insert(ty.cls_id, params.into());
 
                 BuiltinType::Generic(type_id)
             }
@@ -1876,8 +1870,8 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
 fn ensure_jit_or_stub_ptr<'ast>(
     src: &mut FctSrc,
     ctxt: &SemContext,
-    cls_type_params: TypeArgs,
-    fct_type_params: TypeArgs,
+    cls_type_params: TypeParams,
+    fct_type_params: TypeParams,
 ) -> *const u8 {
     let specials = src.specializations.read().unwrap();
     let key = (cls_type_params, fct_type_params);

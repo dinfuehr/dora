@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
-use std::rc::Rc;
 use std::slice;
 
 use capstone::{Engine, Error};
@@ -18,7 +17,7 @@ use baseline::expr::*;
 use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
-use class::ClassDef;
+use class::{ClassDef, TypeParams};
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, SemContext, VarId};
 use driver::cmd::AsmSyntax;
@@ -33,8 +32,8 @@ use ty::{BuiltinType, MachineMode};
 pub fn generate<'ast>(
     ctxt: &SemContext<'ast>,
     id: FctId,
-    cls_type_params: &[BuiltinType],
-    fct_type_params: &[BuiltinType],
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) -> *const u8 {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
@@ -47,8 +46,8 @@ pub fn generate_fct<'ast>(
     ctxt: &SemContext<'ast>,
     fct: &Fct<'ast>,
     src: &mut FctSrc,
-    cls_type_params: &[BuiltinType],
-    fct_type_params: &[BuiltinType],
+    cls_type_params: &TypeParams,
+    fct_type_params: &TypeParams,
 ) -> *const u8 {
     debug_assert!(
         cls_type_params
@@ -64,8 +63,8 @@ pub fn generate_fct<'ast>(
     {
         let specials = src.specializations.read().unwrap();
         let key = (
-            Rc::new(cls_type_params.to_vec()),
-            Rc::new(fct_type_params.to_vec()),
+            cls_type_params.clone(),
+            fct_type_params.clone(),
         );
 
         if let Some(&jit_fct_id) = specials.get(&key) {
@@ -122,8 +121,8 @@ pub fn generate_fct<'ast>(
     let jit_fct_id = {
         let mut specials = src.specializations.write().unwrap();
         let key = (
-            Rc::new(cls_type_params.to_vec()),
-            Rc::new(fct_type_params.to_vec()),
+            cls_type_params.clone(),
+            fct_type_params.clone(),
         );
 
         ptr_start = jit_fct.ptr_start();
@@ -298,8 +297,8 @@ pub struct CodeGen<'a, 'ast: 'a> {
     // see emit_finallys_within_loop and tests/finally/continue-return.dora
     active_upper: Option<usize>,
 
-    cls_type_params: &'a [BuiltinType],
-    fct_type_params: &'a [BuiltinType],
+    cls_type_params: &'a TypeParams,
+    fct_type_params: &'a TypeParams,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -870,12 +869,12 @@ where
             BuiltinType::Generic(type_id) => {
                 let ty = self.ctxt.types.borrow().get(type_id);
 
-                let params: Vec<_> = ty.params.iter().map(|&t| self.specialize_type(t)).collect();
+                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
 
                 let type_id = self.ctxt
                     .types
                     .borrow_mut()
-                    .insert(ty.cls_id, Rc::new(params));
+                    .insert(ty.cls_id, params.into());
 
                 BuiltinType::Generic(type_id)
             }

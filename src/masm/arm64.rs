@@ -5,7 +5,7 @@ use baseline::fct::BailoutInfo;
 use baseline::fct::GcPoint;
 use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
-use class::TypeArgs;
+use class::TypeParams;
 use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
@@ -80,8 +80,8 @@ impl MacroAssembler {
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
-        cls_tps: TypeArgs,
-        fct_tps: TypeArgs,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
     ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
@@ -127,7 +127,7 @@ impl MacroAssembler {
 
         // call *scratch
         self.emit_u32(asm::blr(*scratch));
-        self.emit_bailout_info(BailoutInfo::VirtCompile(index, Rc::new(Vec::new())));
+        self.emit_bailout_info(BailoutInfo::VirtCompile(index, TypeParams::empty()));
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {

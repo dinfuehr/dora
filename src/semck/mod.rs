@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use ctxt::{NodeMap, SemContext};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
@@ -244,7 +242,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                             }
                         }
 
-                        let type_id = ctxt.types.borrow_mut().insert(cls.id, Rc::new(type_params));
+                        let type_id = ctxt.types.borrow_mut().insert(cls.id, type_params.into());
                         BuiltinType::Generic(type_id)
                     } else {
                         let cls = ctxt.classes[cls_id].borrow();
