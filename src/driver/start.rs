@@ -139,7 +139,9 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeParams::empty();
 
-        ctxt.use_dtn(&mut dtn, || baseline::generate(&ctxt, fct, &type_params, &type_params))
+        ctxt.use_dtn(&mut dtn, || {
+            baseline::generate(&ctxt, fct, &type_params, &type_params)
+        })
     };
 
     let testing_class = ctxt.vips.testing_class;
@@ -164,7 +166,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
     }
 
     // parameter needs to be of type Testing
-    let testing_cls = BuiltinType::Class(ctxt.vips.testing_class);
+    let testing_cls = ctxt.cls(ctxt.vips.testing_class);
     if fct.param_types[0] != testing_cls {
         return false;
     }
@@ -179,7 +181,9 @@ fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeParams::empty();
 
-        ctxt.use_dtn(&mut dtn, || baseline::generate(&ctxt, main, &type_params, &type_params))
+        ctxt.use_dtn(&mut dtn, || {
+            baseline::generate(&ctxt, main, &type_params, &type_params)
+        })
     };
 
     let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };

@@ -354,7 +354,11 @@ impl TypeParams {
     }
 
     pub fn with(type_params: Vec<BuiltinType>) -> TypeParams {
-        TypeParams::List(Rc::new(type_params))
+        if type_params.len() == 0 {
+            TypeParams::Empty
+        } else {
+            TypeParams::List(Rc::new(type_params))
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -393,20 +397,16 @@ impl<'a> Iterator for TypeParamsIter<'a> {
 
     fn next(&mut self) -> Option<BuiltinType> {
         match self.params {
-            &TypeParams::Empty => {
+            &TypeParams::Empty => None,
+
+            &TypeParams::List(ref params) => if self.idx < params.len() {
+                let ret = params[self.idx];
+                self.idx += 1;
+
+                Some(ret)
+            } else {
                 None
-            }
-
-            &TypeParams::List(ref params) => {
-                if self.idx < params.len() {
-                    let ret = params[self.idx];
-                    self.idx += 1;
-
-                    Some(ret)
-                } else {
-                    None
-                }
-            }
+            },
         }
     }
 }

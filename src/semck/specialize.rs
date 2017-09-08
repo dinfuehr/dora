@@ -27,17 +27,18 @@ pub fn specialize_type<'ast>(
             ty
         },
 
-        BuiltinType::Generic(type_id) => {
-            let ty = ctxt.types.borrow().get(type_id);
+        BuiltinType::Class(cls_id, list_id) => {
+            let params = ctxt.lists.borrow().get(list_id);
 
-            let params: Vec<_> = ty.params
+            let params: TypeParams = params
                 .iter()
                 .map(|t| specialize_type(ctxt, t, specialize_for, type_params))
-                .collect();
+                .collect::<Vec<_>>()
+                .into();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params.into());
+            let list_id = ctxt.lists.borrow_mut().insert(params);
 
-            BuiltinType::Generic(type_id)
+            BuiltinType::Class(cls_id, list_id)
         }
 
         _ => ty,
@@ -66,11 +67,9 @@ pub fn specialize_class_id_params(
 
 pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
     match ty {
-        BuiltinType::Class(cls_id) => specialize_class_id(ctxt, cls_id),
-        BuiltinType::Generic(type_id) => {
-            let t = ctxt.types.borrow().get(type_id);
-
-            specialize_class_id_params(ctxt, t.cls_id, t.params.clone())
+        BuiltinType::Class(cls_id, list_id) => {
+            let params = ctxt.lists.borrow().get(list_id);
+            specialize_class_id_params(ctxt, cls_id, params)
         }
 
         _ => unreachable!(),

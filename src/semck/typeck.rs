@@ -320,7 +320,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Struct(sid) => {
-                let ty = BuiltinType::Struct(sid);
+                let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
+                let ty = BuiltinType::Struct(sid, list_id);
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
@@ -351,9 +352,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((_, fct_id, _)) =
-                self.find_method(e.pos, object_type, false, name, &args, &TypeParams::empty(), ret_type)
-            {
+            if let Some((_, fct_id, _)) = self.find_method(
+                e.pos,
+                object_type,
+                false,
+                name,
+                &args,
+                &TypeParams::empty(),
+                ret_type,
+            ) {
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
                 self.src
                     .map_calls
@@ -501,9 +508,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 
-        if let Some((_, fct_id, return_type)) =
-            lookup_method(self.ctxt, ty, false, name, &call_types, &TypeParams::empty(), None)
-        {
+        if let Some((_, fct_id, return_type)) = lookup_method(
+            self.ctxt,
+            ty,
+            false,
+            name,
+            &call_types,
+            &TypeParams::empty(),
+            None,
+        ) {
             let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
             self.src.map_calls.insert(e.id, Rc::new(call_type));
 
@@ -569,9 +582,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [rhs_type];
 
-        if let Some((_, fct_id, return_type)) =
-            lookup_method(self.ctxt, lhs_type, false, name, &call_types, &TypeParams::empty(), None)
-        {
+        if let Some((_, fct_id, return_type)) = lookup_method(
+            self.ctxt,
+            lhs_type,
+            false,
+            name,
+            &call_types,
+            &TypeParams::empty(),
+            None,
+        ) {
             let call_type = CallType::Method(lhs_type, fct_id, TypeParams::empty());
             self.src
                 .map_calls
@@ -886,7 +905,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &TypeParams::empty(),
                 &TypeParams::empty(),
             ) {
-                self.src.map_tys.insert(e.id, BuiltinType::Class(cls.id));
+                self.src
+                    .map_tys
+                    .insert(e.id, self.ctxt.cls(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
@@ -986,25 +1007,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let ty = self.expr_type;
 
-        let cls_id = match ty {
-            BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::Generic(type_id) => Some(self.ctxt.types.borrow().get(type_id).cls_id),
-
-            _ => None,
-        };
+        let cls_id = ty.cls_id(self.ctxt);
 
         if let Some(cls_id) = cls_id {
             let cls = self.ctxt.classes[cls_id].borrow();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
                 let ty = match ty {
-                    BuiltinType::Class(_) => BuiltinType::Class(cls_id),
-                    BuiltinType::Generic(type_id) => {
-                        let params = self.ctxt.types.borrow().get(type_id).params.clone();
-                        let type_id = self.ctxt.types.borrow_mut().insert(cls_id, params);
-
-                        BuiltinType::Generic(type_id)
-                    }
+                    BuiltinType::Class(_, list_id) => BuiltinType::Class(cls_id, list_id),
 
                     _ => unreachable!(),
                 };
@@ -1014,14 +1024,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &cls.fields[field_id];
-                let class_type_params = match ty {
-                    BuiltinType::Generic(type_id) => {
-                        let t = self.ctxt.types.borrow().get(type_id);
-                        t.params.clone()
-                    }
-                    _ => TypeParams::empty(),
-                };
-                let fty = replace_type_param(self.ctxt, field.ty, &class_type_params, &TypeParams::empty());
+                let class_type_params = ty.type_params(self.ctxt);
+                let fty = replace_type_param(
+                    self.ctxt,
+                    field.ty,
+                    &class_type_params,
+                    &TypeParams::empty(),
+                );
 
                 self.src.set_ty(e.id, fty);
                 self.expr_type = fty;
@@ -1085,9 +1094,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];
 
-        if let Some((_, fct_id, return_type)) =
-            self.find_method(e.pos, object_type, false, name, &args, &TypeParams::empty(), None)
-        {
+        if let Some((_, fct_id, return_type)) = self.find_method(
+            e.pos,
+            object_type,
+            false,
+            name,
+            &args,
+            &TypeParams::empty(),
+            None,
+        ) {
             let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
             self.src
                 .map_calls
@@ -1213,7 +1228,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
         let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
 
-        let ty = BuiltinType::Struct(sid);
+        let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
+        let ty = BuiltinType::Struct(sid, list_id);
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
     }
@@ -1243,7 +1259,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeCheck<'a, 'ast> {
             ExprLitInt(ref expr) => self.check_expr_lit_int(expr),
             ExprLitFloat(ref expr) => self.check_expr_lit_float(expr),
             ExprLitStr(ExprLitStrType { id, .. }) => {
-                let str_ty = BuiltinType::Class(self.ctxt.vips.str_class);
+                let str_ty = self.ctxt.cls(self.ctxt.vips.str_class);
                 self.src.set_ty(id, str_ty);
                 self.expr_type = str_ty;
             }
@@ -1323,7 +1339,7 @@ fn arg_allows(
         BuiltinType::Bool |
         BuiltinType::Byte |
         BuiltinType::Char |
-        BuiltinType::Struct(_) |
+        BuiltinType::Struct(_, _) |
         BuiltinType::Int |
         BuiltinType::Long |
         BuiltinType::Float |
@@ -1331,7 +1347,6 @@ fn arg_allows(
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
         BuiltinType::This => panic!("this should not occur in fct definition."),
-        BuiltinType::Class(_) => def == arg || arg.is_nil() || arg.subclass_from(ctxt, def),
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
         BuiltinType::ClassTypeParam(_, tpid) => {
@@ -1341,26 +1356,37 @@ fn arg_allows(
             def == arg || arg_allows(ctxt, fct_tps[tpid.idx()], arg, cls_tps, fct_tps)
         }
 
-        BuiltinType::Generic(type_id) => {
+        BuiltinType::Class(cls_id, list_id) => {
             if def == arg || arg.is_nil() {
                 return true;
             }
 
-            let t = ctxt.types.borrow().get(type_id);
-            let other_id = match arg {
-                BuiltinType::Generic(other_id) => other_id,
+            let other_cls_id;
+            let other_list_id;
+
+            match arg {
+                BuiltinType::Class(cls_id, list_id) => {
+                    other_cls_id = cls_id;
+                    other_list_id = list_id;
+                }
+
                 _ => {
                     return false;
                 }
             };
 
-            let o = ctxt.types.borrow().get(other_id);
+            let params = ctxt.lists.borrow().get(list_id);
+            let other_params = ctxt.lists.borrow().get(other_list_id);
 
-            if t.cls_id != o.cls_id || t.params.len() != o.params.len() {
+            if params.len() == 0 && other_params.len() == 0 {
+                return arg.subclass_from(ctxt, def);
+            }
+
+            if cls_id != other_cls_id || params.len() != other_params.len() {
                 return false;
             }
 
-            for (tp, op) in t.params.iter().zip(o.params.iter()) {
+            for (tp, op) in params.iter().zip(other_params.iter()) {
                 if !arg_allows(ctxt, tp, op, cls_tps, fct_tps) {
                     return false;
                 }
@@ -1496,7 +1522,16 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                 let (ty, val) = self.check_expr(&expr.opnd);
                 let name = self.ctxt.interner.intern("unaryMinus");
 
-                if lookup_method(self.ctxt, ty, false, name, &[], &TypeParams::empty(), Some(ty)).is_none() {
+                if lookup_method(
+                    self.ctxt,
+                    ty,
+                    false,
+                    name,
+                    &[],
+                    &TypeParams::empty(),
+                    Some(ty),
+                ).is_none()
+                {
                     let ty = ty.name(self.ctxt);
                     let msg = Msg::UnOpType(expr.op.as_str().into(), ty);
 
@@ -1638,15 +1673,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             LookupKind::Method(obj) => if obj == BuiltinType::Nil {
                 None
             } else {
-                let cls_id = match obj {
-                    BuiltinType::Generic(type_id) => {
-                        let ty = self.ctxt.types.borrow().get(type_id);
-                        ty.cls_id
-                    }
-
-                    _ => obj.cls_id(self.ctxt).expect("cls_id not found for object"),
-                };
-
+                let cls_id = obj.cls_id(self.ctxt).expect("cls_id not found for object");
                 let name = self.name.expect("name not set");
                 self.find_method(cls_id, name, false)
             },
@@ -1690,7 +1717,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
 
                 LookupKind::Static(cls_id) => {
-                    let type_name = BuiltinType::Class(cls_id).name(self.ctxt);
+                    let type_name = self.ctxt.cls(cls_id).name(self.ctxt);
                     Msg::UnknownStaticMethod(type_name, name, param_names)
                 }
 
@@ -1724,14 +1751,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls_tps: TypeParams = if let Some(cls_tps) = self.cls_tps {
             cls_tps.clone()
         } else if let LookupKind::Method(obj) = kind {
-            match obj {
-                BuiltinType::Generic(type_id) => {
-                    let ty = self.ctxt.types.borrow().get(type_id);
-                    ty.params.clone()
-                }
-
-                _ => TypeParams::empty(),
-            }
+            obj.type_params(self.ctxt)
         } else {
             TypeParams::empty()
         };
@@ -1772,12 +1792,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         }
 
         let cmp_type = match kind {
-            LookupKind::Ctor(cls_id) => if cls_tps.len() > 0 {
-                let type_id = self.ctxt.types.borrow_mut().insert(cls_id, cls_tps);
-                BuiltinType::Generic(type_id)
-            } else {
-                BuiltinType::Class(cls_id)
-            },
+            LookupKind::Ctor(cls_id) => {
+                let list_id = self.ctxt.lists.borrow_mut().insert(cls_tps);
+                BuiltinType::Class(cls_id, list_id)
+            }
 
             _ => replace_type_param(self.ctxt, fct.return_type, &cls_tps, &fct_tps),
         };
@@ -1890,22 +1908,14 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let mut succeeded = true;
 
         if let Some(cls_id) = tp.class_bound {
-            let cls = BuiltinType::Class(cls_id);
+            let cls = self.ctxt.cls(cls_id);
             if !ty.subclass_from(self.ctxt, cls) {
                 self.fail_cls_bound(cls_id, ty);
                 succeeded = false;
             }
         }
 
-        let cls_id = match ty {
-            BuiltinType::Generic(type_id) => {
-                let t = self.ctxt.types.borrow().get(type_id);
-                t.cls_id
-            }
-
-            _ => ty.cls_id(self.ctxt).unwrap(),
-        };
-
+        let cls_id = ty.cls_id(self.ctxt).unwrap();
         let cls = self.ctxt.classes[cls_id].borrow();
 
         for &trait_bound in &tp.trait_bounds {
@@ -1951,8 +1961,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn fail_cls_bound(&self, cls_id: ClassId, ty: BuiltinType) {
         let name = ty.name(self.ctxt);
-        let cls = BuiltinType::Class(cls_id);
-        let cls = cls.name(self.ctxt);
+        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.interner.str(cls.name).to_string();
 
         let msg = Msg::ClassBoundNotSatisfied(name, cls);
         self.ctxt
@@ -1995,10 +2005,9 @@ fn lookup_method<'ast>(
     return_type: Option<BuiltinType>,
 ) -> Option<(ClassId, FctId, BuiltinType)> {
     let values: Option<(ClassId, TypeParams)> = match object_type {
-        BuiltinType::Class(cls_id) => Some((cls_id, TypeParams::empty())),
-        BuiltinType::Generic(type_id) if !is_static => {
-            let ty = ctxt.types.borrow().get(type_id);
-            Some((ty.cls_id, ty.params.clone()))
+        BuiltinType::Class(cls_id, list_id) if !is_static => {
+            let params = ctxt.lists.borrow().get(list_id);
+            Some((cls_id, params))
         }
         _ => ctxt.vips
             .find_class(object_type)
@@ -2058,16 +2067,17 @@ fn replace_type_param(
         BuiltinType::ClassTypeParam(_, tpid) => cls_tp[tpid.idx()],
         BuiltinType::FctTypeParam(_, tpid) => fct_tp[tpid.idx()],
 
-        BuiltinType::Generic(type_id) => {
-            let t = ctxt.types.borrow().get(type_id);
+        BuiltinType::Class(cls_id, list_id) => {
+            let params = ctxt.lists.borrow().get(list_id);
 
-            let params: Vec<_> = t.params
+            let params: TypeParams = params
                 .iter()
                 .map(|p| replace_type_param(ctxt, p, cls_tp, fct_tp))
-                .collect();
+                .collect::<Vec<_>>()
+                .into();
 
-            let type_id = ctxt.types.borrow_mut().insert(t.cls_id, params.into());
-            BuiltinType::Generic(type_id)
+            let list_id = ctxt.lists.borrow_mut().insert(params);
+            BuiltinType::Class(cls_id, list_id)
         }
 
         BuiltinType::Lambda(_) => unimplemented!(),

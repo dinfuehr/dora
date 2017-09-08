@@ -25,7 +25,7 @@ use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use sym::*;
 use sym::Sym::*;
-use ty::{BuiltinType, LambdaTypes, Types};
+use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
 pub static mut CTXT: Option<*const u8> = None;
@@ -79,7 +79,7 @@ pub struct SemContext<'ast> {
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
     pub polling_page: PollingPage,
-    pub types: RefCell<Types>,
+    pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
 }
@@ -137,7 +137,7 @@ impl<'ast> SemContext<'ast> {
             native_fcts: Mutex::new(NativeFcts::new()),
             compile_stub: RefCell::new(None),
             polling_page: PollingPage::new(),
-            types: RefCell::new(Types::new()),
+            lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
         }
@@ -211,6 +211,11 @@ impl<'ast> SemContext<'ast> {
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
         self.sym.borrow().get_fct(name)
+    }
+
+    pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
+        let list_id = self.lists.borrow_mut().insert(TypeParams::empty());
+        BuiltinType::Class(cls_id, list_id)
     }
 }
 

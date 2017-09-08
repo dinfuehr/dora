@@ -1,3 +1,4 @@
+use class::TypeParams;
 use ctxt::{NodeMap, SemContext};
 use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
@@ -212,7 +213,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
 
                         for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
                             if let Some(cls_id) = tp.class_bound {
-                                let cls = BuiltinType::Class(cls_id);
+                                let cls = ctxt.cls(cls_id);
 
                                 if !ty.subclass_from(ctxt, cls) {
                                     let name = ty.name(ctxt);
@@ -242,8 +243,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                             }
                         }
 
-                        let type_id = ctxt.types.borrow_mut().insert(cls.id, type_params.into());
-                        BuiltinType::Generic(type_id)
+                        let list_id = ctxt.lists.borrow_mut().insert(type_params.into());
+                        BuiltinType::Class(cls.id, list_id)
                     } else {
                         let cls = ctxt.classes[cls_id].borrow();
 
@@ -268,7 +269,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                         ctxt.diag.borrow_mut().report(basic.pos, msg);
                     }
 
-                    return Some(BuiltinType::Struct(struct_id));
+                    let list_id = ctxt.lists.borrow_mut().insert(TypeParams::empty());
+                    return Some(BuiltinType::Struct(struct_id, list_id));
                 }
 
                 SymClassTypeParam(cls_id, type_param_id) => {

@@ -578,14 +578,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Method(ty, _, ref type_params) => {
                 let ty = self.specialize_type(ty);
 
-                cls_type_params = match ty {
-                    BuiltinType::Generic(type_id) => {
-                        let t = self.ctxt.types.borrow().get(type_id);
-                        t.params.clone()
-                    }
-                    _ => TypeParams::empty(),
-                };
-
+                cls_type_params = ty.type_params(self.ctxt);
                 fct_type_params = type_params.clone();
             }
 
@@ -759,9 +752,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
-                BuiltinType::Generic(type_id) => {
-                    let t = self.ctxt.types.borrow().get(type_id);
-                    specialize_type(self.ctxt, ty, &t.params, type_params)
+                BuiltinType::Class(_, list_id) => {
+                    let params = self.ctxt.lists.borrow().get(list_id);
+                    specialize_type(self.ctxt, ty, &params, type_params)
                 }
 
                 _ => ty,
@@ -788,17 +781,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 self.fct_type_params[id.idx()]
             }
 
-            BuiltinType::Generic(type_id) => {
-                let ty = self.ctxt.types.borrow().get(type_id);
+            BuiltinType::Class(cls_id, list_id) => {
+                let params = self.ctxt.lists.borrow().get(list_id);
+                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
+                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
 
-                let type_id = self.ctxt
-                    .types
-                    .borrow_mut()
-                    .insert(ty.cls_id, params.into());
-
-                BuiltinType::Generic(type_id)
+                BuiltinType::Class(cls_id, list_id)
             }
 
             BuiltinType::Lambda(_) => unimplemented!(),
@@ -819,19 +808,19 @@ fn specialize_type(
 
         BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
 
-        BuiltinType::Generic(type_id) => {
-            let ty = ctxt.types.borrow().get(type_id);
+        BuiltinType::Class(cls_id, list_id) => {
+            let params = ctxt.lists.borrow().get(list_id);
 
-            let params: Vec<_> = ty.params
+            let params: Vec<_> = params
                 .iter()
                 .map(|t| {
                     specialize_type(ctxt, t, cls_type_params, fct_type_params)
                 })
                 .collect();
 
-            let type_id = ctxt.types.borrow_mut().insert(ty.cls_id, params.into());
+            let list_id = ctxt.lists.borrow_mut().insert(params.into());
 
-            BuiltinType::Generic(type_id)
+            BuiltinType::Class(cls_id, list_id)
         }
 
         BuiltinType::Lambda(_) => unimplemented!(),

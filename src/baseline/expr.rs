@@ -1549,15 +1549,17 @@ where
 
         let return_type = self.specialize_type(csite.return_type);
         let cls_type_params: TypeParams = csite
-                .cls_type_params
-                .iter()
-                .map(|ty| self.specialize_type(ty))
-                .collect::<Vec<_>>().into();
+            .cls_type_params
+            .iter()
+            .map(|ty| self.specialize_type(ty))
+            .collect::<Vec<_>>()
+            .into();
         let fct_type_params: TypeParams = csite
-                .fct_type_params
-                .iter()
-                .map(|ty| self.specialize_type(ty))
-                .collect::<Vec<_>>().into();
+            .fct_type_params
+            .iter()
+            .map(|ty| self.specialize_type(ty))
+            .collect::<Vec<_>>()
+            .into();
 
         debug_assert!(
             cls_type_params
@@ -1772,17 +1774,14 @@ where
                 self.fct_type_params[id.idx()]
             }
 
-            BuiltinType::Generic(type_id) => {
-                let ty = self.ctxt.types.borrow().get(type_id);
+            BuiltinType::Class(cls_id, list_id) => {
+                let params = self.ctxt.lists.borrow().get(list_id);
 
-                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
+                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let type_id = self.ctxt
-                    .types
-                    .borrow_mut()
-                    .insert(ty.cls_id, params.into());
+                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
 
-                BuiltinType::Generic(type_id)
+                BuiltinType::Class(cls_id, list_id)
             }
 
             BuiltinType::Lambda(_) => unimplemented!(),
@@ -1816,13 +1815,12 @@ fn check_for_nil(ty: BuiltinType) -> bool {
         BuiltinType::Double |
         BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,
-        BuiltinType::Class(_) => true,
-        BuiltinType::Struct(_) => false,
+        BuiltinType::Class(_, _) => true,
+        BuiltinType::Struct(_, _) => false,
         BuiltinType::Trait(_) => false,
         BuiltinType::This => unreachable!(),
         BuiltinType::ClassTypeParam(_, _) => unreachable!(),
         BuiltinType::FctTypeParam(_, _) => unreachable!(),
-        BuiltinType::Generic(_) => true,
         BuiltinType::Lambda(_) => true,
     }
 }

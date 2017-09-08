@@ -84,7 +84,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         let ty = semck::read_type(self.ctxt, bound);
 
                         match ty {
-                            Some(BuiltinType::Class(cls_id)) => {
+                            Some(BuiltinType::Class(cls_id, _)) => {
                                 if let None = cls.type_params[type_param_id].class_bound {
                                     cls.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
@@ -116,8 +116,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let type_id = self.ctxt.types.borrow_mut().insert(cls.id, params.into());
-                cls.ty = BuiltinType::Generic(type_id);
+                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+                cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = Msg::TypeParamsExpected;
                 self.ctxt.diag.borrow_mut().report(c.pos, msg);

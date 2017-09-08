@@ -130,7 +130,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             id: id,
             name: c.name,
             pos: c.pos,
-            ty: BuiltinType::Class(id),
+            ty: self.ctxt.cls(id),
             parent_class: None,
             has_open: c.has_open,
             is_abstract: c.is_abstract,

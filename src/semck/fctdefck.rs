@@ -74,7 +74,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                         let ty = semck::read_type(ctxt, bound);
 
                         match ty {
-                            Some(BuiltinType::Class(cls_id)) => {
+                            Some(BuiltinType::Class(cls_id, _)) => {
                                 if let None = fct.type_params[type_param_id].class_bound {
                                     fct.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {

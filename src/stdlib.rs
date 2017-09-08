@@ -279,7 +279,9 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
             let type_params = TypeParams::empty();
-            ctxt.use_dtn(&mut dtn, || baseline::generate(ctxt, main, &type_params, &type_params))
+            ctxt.use_dtn(&mut dtn, || {
+                baseline::generate(ctxt, main, &type_params, &type_params)
+            })
         };
 
         let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };

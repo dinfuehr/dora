@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use class::{ClassId, TypeParams, TypeParamId};
+use class::{ClassId, TypeParamId, TypeParams};
 use ctxt::{FctId, SemContext, StructId, TraitId};
 use mem;
 
@@ -31,10 +31,10 @@ pub enum BuiltinType {
     This,
 
     // some class
-    Class(ClassId),
+    Class(ClassId, TypeListId),
 
     // some struct
-    Struct(StructId),
+    Struct(StructId, TypeListId),
 
     // some trait
     Trait(TraitId),
@@ -42,10 +42,6 @@ pub enum BuiltinType {
     // some type variable
     FctTypeParam(FctId, TypeParamId),
     ClassTypeParam(ClassId, TypeParamId),
-
-    // generic types can have multiple params
-    // use TypeId to store params
-    Generic(TypeId),
 
     // some lambda
     Lambda(LambdaId),
@@ -68,7 +64,7 @@ impl BuiltinType {
 
     pub fn is_cls(&self) -> bool {
         match *self {
-            BuiltinType::Class(_) => true,
+            BuiltinType::Class(_, _) => true,
             _ => false,
         }
     }
@@ -76,13 +72,6 @@ impl BuiltinType {
     pub fn is_float(&self) -> bool {
         match self {
             &BuiltinType::Float | &BuiltinType::Double => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_generic(&self) -> bool {
-        match self {
-            &BuiltinType::Generic(_) => true,
             _ => false,
         }
     }
@@ -95,17 +84,9 @@ impl BuiltinType {
         }
     }
 
-    pub fn type_id(&self) -> TypeId {
-        match self {
-            &BuiltinType::Generic(id) => id,
-            _ => panic!(),
-        }
-    }
-
     pub fn cls_id(&self, ctxt: &SemContext) -> Option<ClassId> {
         match *self {
-            BuiltinType::Class(cls_id) => Some(cls_id),
-            BuiltinType::Generic(type_id) => Some(ctxt.types.borrow().get(type_id).cls_id),
+            BuiltinType::Class(cls_id, _) => Some(cls_id),
             BuiltinType::Bool => Some(ctxt.vips.bool_class),
             BuiltinType::Byte => Some(ctxt.vips.byte_class),
             BuiltinType::Char => Some(ctxt.vips.char_class),
@@ -127,13 +108,8 @@ impl BuiltinType {
     }
 
     pub fn type_params(&self, ctxt: &SemContext) -> TypeParams {
-        debug_assert!(!self.contains_type_param(ctxt));
-
         match self {
-            &BuiltinType::Generic(type_id) => {
-                let t = ctxt.types.borrow().get(type_id);
-                t.params.clone()
-            }
+            &BuiltinType::Class(_, list_id) => ctxt.lists.borrow().get(list_id),
 
             _ => TypeParams::empty(),
         }
@@ -144,9 +120,9 @@ impl BuiltinType {
             &BuiltinType::ClassTypeParam(_, _) => true,
             &BuiltinType::FctTypeParam(_, _) => true,
 
-            &BuiltinType::Generic(type_id) => {
-                let t = ctxt.types.borrow().get(type_id);
-                t.params.iter().any(|t| t.contains_type_param(ctxt))
+            &BuiltinType::Class(_, list_id) => {
+                let params = ctxt.lists.borrow().get(list_id);
+                params.iter().any(|t| t.contains_type_param(ctxt))
             }
 
             &BuiltinType::Lambda(_) => unimplemented!(),
@@ -198,13 +174,40 @@ impl BuiltinType {
             BuiltinType::Nil => "nil".into(),
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
-            BuiltinType::Class(cid) => {
-                let cls = ctxt.classes[cid].borrow();
-                ctxt.interner.str(cls.name).to_string()
+            BuiltinType::Class(id, list_id) => {
+                let params = ctxt.lists.borrow().get(list_id);
+                let cls = ctxt.classes[id].borrow();
+                let base = ctxt.interner.str(cls.name);
+
+                if params.len() == 0 {
+                    base.to_string()
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| ty.name(ctxt))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}<{}>", base, params)
+                }
             }
-            BuiltinType::Struct(sid) => {
+            BuiltinType::Struct(sid, list_id) => {
                 let name = ctxt.structs[sid].borrow().name;
-                ctxt.interner.str(name).to_string()
+                let name = ctxt.interner.str(name).to_string();
+
+                let params = ctxt.lists.borrow().get(list_id);
+
+                if params.len() == 0 {
+                    name
+                } else {
+                    let params = params
+                        .iter()
+                        .map(|ty| ty.name(ctxt))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}<{}>", name, params)
+                }
             }
             BuiltinType::Trait(tid) => {
                 let name = ctxt.traits[tid].borrow().name;
@@ -222,21 +225,6 @@ impl BuiltinType {
                 ctxt.interner
                     .str(fct.type_params[id.idx()].name)
                     .to_string()
-            }
-
-            BuiltinType::Generic(id) => {
-                let generic = ctxt.types.borrow().get(id);
-                let cls_id = generic.cls_id;
-                let cls = ctxt.classes[cls_id].borrow();
-                let base = ctxt.interner.str(cls.name);
-                let params = generic
-                    .params
-                    .iter()
-                    .map(|ty| ty.name(ctxt))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-
-                format!("{}<{}>", base, params)
             }
 
             BuiltinType::Lambda(id) => {
@@ -260,22 +248,20 @@ impl BuiltinType {
             BuiltinType::Bool |
             BuiltinType::Byte |
             BuiltinType::Char |
-            BuiltinType::Struct(_) => *self == other,
+            BuiltinType::Struct(_, _) => *self == other,
             BuiltinType::Int => *self == other,
             BuiltinType::Long => *self == other,
             BuiltinType::Float | BuiltinType::Double => *self == other,
             BuiltinType::Nil => panic!("nil does not allow any other types"),
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
-            BuiltinType::Class(_) => {
+            BuiltinType::Class(_, _) => {
                 *self == other || other.is_nil() || other.subclass_from(ctxt, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
 
             BuiltinType::ClassTypeParam(_, _) => *self == other,
             BuiltinType::FctTypeParam(_, _) => *self == other,
-
-            BuiltinType::Generic(_) => *self == other || other.is_nil(),
 
             BuiltinType::Lambda(_) => {
                 // for now expect the exact same params and return types
@@ -294,7 +280,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn size(&self, ctxt: &SemContext) -> i32 {
+    pub fn size(&self, _: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -306,17 +292,18 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no size for nil."),
             BuiltinType::This => panic!("no size for Self."),
-            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => ctxt.structs[id].borrow().size,
+            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+                mem::ptr_width()
+            }
+            BuiltinType::Struct(_, _) => unimplemented!(),
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no size for type variable.")
             }
-            BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
 
-    pub fn align(&self, ctxt: &SemContext) -> i32 {
+    pub fn align(&self, _: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -328,13 +315,14 @@ impl BuiltinType {
             BuiltinType::Double => 8,
             BuiltinType::Nil => panic!("no alignment for nil."),
             BuiltinType::This => panic!("no alignment for Self."),
-            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => mem::ptr_width(),
-            BuiltinType::Struct(id) => ctxt.structs[id].borrow().align,
+            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+                mem::ptr_width()
+            }
+            BuiltinType::Struct(_, _) => unimplemented!(),
             BuiltinType::Trait(_) => mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no alignment for type variable.")
             }
-            BuiltinType::Generic(_) => mem::ptr_width(),
         }
     }
 
@@ -350,13 +338,14 @@ impl BuiltinType {
             BuiltinType::Double => MachineMode::Float64,
             BuiltinType::Nil => panic!("no machine mode for nil."),
             BuiltinType::This => panic!("no machine mode for Self."),
-            BuiltinType::Class(_) | BuiltinType::Lambda(_) | BuiltinType::Ptr => MachineMode::Ptr,
-            BuiltinType::Struct(_) => unimplemented!(),
+            BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
+                MachineMode::Ptr
+            }
+            BuiltinType::Struct(_, _) => unimplemented!(),
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no machine mode for type variable.")
             }
-            BuiltinType::Generic(_) => MachineMode::Ptr,
         }
     }
 }
@@ -391,64 +380,43 @@ impl MachineMode {
     }
 }
 
-pub struct Types {
-    types: HashMap<TypeWithParams, TypeId>,
-    values: Vec<TypeWithParams>,
-    next_type_id: usize,
+pub struct TypeLists {
+    lists: HashMap<TypeParams, TypeListId>,
+    values: Vec<TypeParams>,
+    next_id: usize,
 }
 
-impl Types {
-    pub fn new() -> Types {
-        Types {
-            types: HashMap::new(),
+impl TypeLists {
+    pub fn new() -> TypeLists {
+        TypeLists {
+            lists: HashMap::new(),
             values: Vec::new(),
-            next_type_id: 0,
+            next_id: 0,
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.values.len()
-    }
-
-    pub fn insert(&mut self, cls_id: ClassId, params: TypeParams) -> TypeId {
-        let ty = TypeWithParams {
-            cls_id: cls_id,
-            params: params,
-        };
-
-        if let Some(&val) = self.types.get(&ty) {
+    pub fn insert(&mut self, list: TypeParams) -> TypeListId {
+        if let Some(&val) = self.lists.get(&list) {
             return val;
         }
 
-        let type_id = TypeId(self.next_type_id);
-        self.types.insert(ty.clone(), type_id);
+        let id = TypeListId(self.next_id);
+        self.lists.insert(list.clone(), id);
 
-        self.values.push(ty);
+        self.values.push(list);
 
-        self.next_type_id += 1;
+        self.next_id += 1;
 
-        type_id
+        id
     }
 
-    pub fn get(&self, id: TypeId) -> TypeWithParams {
+    pub fn get(&self, id: TypeListId) -> TypeParams {
         self.values[id.0].clone()
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeWithParams {
-    pub cls_id: ClassId,
-    pub params: TypeParams,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct TypeId(usize);
-
-impl From<usize> for TypeId {
-    fn from(val: usize) -> TypeId {
-        TypeId(val)
-    }
-}
+pub struct TypeListId(usize);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LambdaId(usize);

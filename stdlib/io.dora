@@ -10,3 +10,28 @@ class File(let name: Str) {
     }
   }
 }
+
+class FileDescriptor {
+  var fd: int;
+
+  init(fd: int) {
+    self.fd = fd;
+  }
+
+  fun read() -> byte {
+    // TODO
+    return 0Y;
+  }
+
+  fun readBytes(array: Array<byte>, off: int, len: int) {
+    // TODO
+  }
+
+  fun write(val: byte) {
+    // TODO
+  }
+
+  fun writeBytes(array: Array<byte>, off: int, len: int) {
+    // TODO
+  }
+}

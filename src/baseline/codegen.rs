@@ -62,10 +62,7 @@ pub fn generate_fct<'ast>(
 
     {
         let specials = src.specializations.read().unwrap();
-        let key = (
-            cls_type_params.clone(),
-            fct_type_params.clone(),
-        );
+        let key = (cls_type_params.clone(), fct_type_params.clone());
 
         if let Some(&jit_fct_id) = specials.get(&key) {
             return ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
@@ -120,10 +117,7 @@ pub fn generate_fct<'ast>(
 
     let jit_fct_id = {
         let mut specials = src.specializations.write().unwrap();
-        let key = (
-            cls_type_params.clone(),
-            fct_type_params.clone(),
-        );
+        let key = (cls_type_params.clone(), fct_type_params.clone());
 
         ptr_start = jit_fct.ptr_start();
         ptr_end = jit_fct.ptr_end();
@@ -492,7 +486,8 @@ where
 
         // offset of iterator storage
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        self.masm.store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
@@ -504,7 +499,8 @@ where
 
         // emit: iterator.hasNext() & jump to lbl_end if false
         let dest = self.emit_call_site(&for_info.has_next, s.pos);
-        self.masm.test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
+        self.masm
+            .test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
 
         // emit: <for_var> = iterator.next()
         let dest = self.emit_call_site(&for_info.next, s.pos);
@@ -866,17 +862,14 @@ where
                 self.fct_type_params[id.idx()]
             }
 
-            BuiltinType::Generic(type_id) => {
-                let ty = self.ctxt.types.borrow().get(type_id);
+            BuiltinType::Class(cls_id, list_id) => {
+                let params = self.ctxt.lists.borrow().get(list_id);
 
-                let params: Vec<_> = ty.params.iter().map(|t| self.specialize_type(t)).collect();
+                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let type_id = self.ctxt
-                    .types
-                    .borrow_mut()
-                    .insert(ty.cls_id, params.into());
+                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
 
-                BuiltinType::Generic(type_id)
+                BuiltinType::Class(cls_id, list_id)
             }
 
             BuiltinType::Lambda(_) => unimplemented!(),

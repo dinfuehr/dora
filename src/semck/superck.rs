@@ -116,7 +116,7 @@ fn determine_struct_size<'ast>(
     path.push(struc.id);
 
     for field in &mut struc.fields {
-        let (field_size, field_align) = if let BuiltinType::Struct(id) = field.ty {
+        let (field_size, field_align) = if let BuiltinType::Struct(id, _) = field.ty {
             if let Some(&(size, align)) = sizes.get(&id) {
                 (size, align)
             } else {
