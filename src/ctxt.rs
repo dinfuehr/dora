@@ -65,7 +65,8 @@ pub struct SemContext<'ast> {
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVec<StructData>,     // stores all struct definitions
+    pub structs: GrowableVec<StructData>,     // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructDef>,  // stores all struct definitions
     pub classes: GrowableVec<Class>,          // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
@@ -94,6 +95,7 @@ impl<'ast> SemContext<'ast> {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
+            struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
             traits: Vec::new(),
@@ -230,7 +232,21 @@ impl<'ast> Index<FctId> for GrowableVec<Fct<'ast>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructDefId(usize);
 
-struct StructDef {
+impl From<usize> for StructDefId {
+    fn from(data: usize) -> StructDefId {
+        StructDefId(data)
+    }
+}
+
+impl Index<StructDefId> for GrowableVec<StructDef> {
+    type Output = RefCell<StructDef>;
+
+    fn index(&self, index: StructDefId) -> &RefCell<StructDef> {
+        &self[index.0]
+    }
+}
+
+pub struct StructDef {
     pub fields: Vec<StructFieldDef>,
     pub size: i32,
     pub ref_fields: Vec<i32>,

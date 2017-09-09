@@ -2,7 +2,7 @@ use std::ptr;
 
 use baseline::stub::ensure_stub;
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
-use ctxt::SemContext;
+use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
 use mem;
 use object::Header;
 use vtable::{VTableBox, DISPLAY_SIZE};
@@ -11,28 +11,33 @@ use ty::BuiltinType;
 pub fn specialize_type<'ast>(
     ctxt: &SemContext<'ast>,
     ty: BuiltinType,
-    specialize_for: SpecializeFor,
     type_params: &TypeParams,
 ) -> BuiltinType {
     match ty {
-        BuiltinType::ClassTypeParam(_, id) => if specialize_for == SpecializeFor::Class {
-            type_params[id.idx()]
-        } else {
-            ty
-        },
+        BuiltinType::ClassTypeParam(_, id) => type_params[id.idx()],
 
-        BuiltinType::FctTypeParam(_, id) => if specialize_for == SpecializeFor::Fct {
-            type_params[id.idx()]
-        } else {
-            ty
-        },
+        BuiltinType::FctTypeParam(_, _) => panic!("no fct type params expected"),
+
+        BuiltinType::Struct(struct_id, list_id) => {
+            let params = ctxt.lists.borrow().get(list_id);
+
+            let params: TypeParams = params
+                .iter()
+                .map(|t| specialize_type(ctxt, t, type_params))
+                .collect::<Vec<_>>()
+                .into();
+
+            let list_id = ctxt.lists.borrow_mut().insert(params);
+
+            BuiltinType::Struct(struct_id, list_id)
+        }
 
         BuiltinType::Class(cls_id, list_id) => {
             let params = ctxt.lists.borrow().get(list_id);
 
             let params: TypeParams = params
                 .iter()
-                .map(|t| specialize_type(ctxt, t, specialize_for, type_params))
+                .map(|t| specialize_type(ctxt, t, type_params))
                 .collect::<Vec<_>>()
                 .into();
 
@@ -49,6 +54,83 @@ pub fn specialize_type<'ast>(
 pub enum SpecializeFor {
     Fct,
     Class,
+}
+
+pub fn specialize_struct_id(ctxt: &SemContext, struct_id: StructId) -> StructDefId {
+    let struc = ctxt.structs[struct_id].borrow();
+    specialize_struct(ctxt, &*struc, TypeParams::empty())
+}
+
+pub fn specialize_struct_id_params(
+    ctxt: &SemContext,
+    struct_id: StructId,
+    type_params: TypeParams,
+) -> StructDefId {
+    let struc = ctxt.structs[struct_id].borrow();
+    specialize_struct(ctxt, &*struc, type_params)
+}
+
+pub fn specialize_struct(
+    ctxt: &SemContext,
+    struc: &StructData,
+    type_params: TypeParams,
+) -> StructDefId {
+    if let Some(&id) = struc.specializations.borrow().get(&type_params) {
+        return id;
+    }
+
+    create_specialized_struct(ctxt, struc, type_params)
+}
+
+fn create_specialized_struct(
+    ctxt: &SemContext,
+    struc: &StructData,
+    type_params: TypeParams,
+) -> StructDefId {
+    let id: StructDefId = ctxt.struct_defs.len().into();
+
+    let old = struc
+        .specializations
+        .borrow_mut()
+        .insert(type_params.clone(), id);
+    assert!(old.is_none());
+
+    ctxt.struct_defs.push(StructDef {
+        size: 0,
+        fields: Vec::new(),
+        ref_fields: Vec::new(),
+    });
+
+    let mut size = 0;
+    let mut fields = Vec::with_capacity(struc.fields.len());
+    let mut ref_fields = Vec::new();
+
+    for f in &struc.fields {
+        let ty = specialize_type(ctxt, f.ty, &type_params);
+        debug_assert!(!ty.contains_type_param(ctxt));
+
+        let field_size = ty.size(ctxt);
+        let field_align = ty.align(ctxt);
+
+        let offset = mem::align_i32(size, field_align);
+        fields.push(StructFieldDef {
+            offset: offset,
+            ty: ty,
+        });
+
+        size = offset + field_size;
+
+        if ty.reference_type() {
+            ref_fields.push(offset);
+        }
+    }
+
+    let mut struct_def = ctxt.struct_defs[id].borrow_mut();
+    struct_def.size = size;
+    struct_def.fields = fields;
+    struct_def.ref_fields = ref_fields;
+
+    id
 }
 
 pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
@@ -156,7 +238,7 @@ fn create_specialized_class(
         };
 
         for f in &cls.fields {
-            let ty = specialize_type(ctxt, f.ty, SpecializeFor::Class, &type_params);
+            let ty = specialize_type(ctxt, f.ty, &type_params);
             debug_assert!(!ty.contains_type_param(ctxt));
 
             let field_size = ty.size(ctxt);
