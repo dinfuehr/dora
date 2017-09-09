@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::ptr;
 
 use baseline::stub::ensure_stub;
@@ -97,11 +98,13 @@ fn create_specialized_struct(
 
     ctxt.struct_defs.push(StructDef {
         size: 0,
+        align: 0,
         fields: Vec::new(),
         ref_fields: Vec::new(),
     });
 
     let mut size = 0;
+    let mut align = 0;
     let mut fields = Vec::with_capacity(struc.fields.len());
     let mut ref_fields = Vec::new();
 
@@ -119,6 +122,7 @@ fn create_specialized_struct(
         });
 
         size = offset + field_size;
+        align = max(align, field_align);
 
         if ty.reference_type() {
             ref_fields.push(offset);
@@ -127,6 +131,7 @@ fn create_specialized_struct(
 
     let mut struct_def = ctxt.struct_defs[id].borrow_mut();
     struct_def.size = size;
+    struct_def.align = align;
     struct_def.fields = fields;
     struct_def.ref_fields = ref_fields;
 

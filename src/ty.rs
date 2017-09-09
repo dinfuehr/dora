@@ -4,6 +4,7 @@ use std::rc::Rc;
 use class::{ClassId, TypeParamId, TypeParams};
 use ctxt::{FctId, SemContext, StructId, TraitId};
 use mem;
+use semck;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -280,7 +281,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn size(&self, _: &SemContext) -> i32 {
+    pub fn size(&self, ctxt: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -295,7 +296,13 @@ impl BuiltinType {
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 mem::ptr_width()
             }
-            BuiltinType::Struct(_, _) => unimplemented!(),
+            BuiltinType::Struct(sid, list_id) => {
+                let params = ctxt.lists.borrow().get(list_id);
+                let sid = semck::specialize::specialize_struct_id_params(ctxt, sid, params);
+                let struc = ctxt.struct_defs[sid].borrow();
+
+                struc.size
+            }
             BuiltinType::Trait(_) => 2 * mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no size for type variable.")
@@ -303,7 +310,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn align(&self, _: &SemContext) -> i32 {
+    pub fn align(&self, ctxt: &SemContext) -> i32 {
         match *self {
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
@@ -318,7 +325,13 @@ impl BuiltinType {
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 mem::ptr_width()
             }
-            BuiltinType::Struct(_, _) => unimplemented!(),
+            BuiltinType::Struct(sid, list_id) => {
+                let params = ctxt.lists.borrow().get(list_id);
+                let sid = semck::specialize::specialize_struct_id_params(ctxt, sid, params);
+                let struc = ctxt.struct_defs[sid].borrow();
+
+                struc.align
+            }
             BuiltinType::Trait(_) => mem::ptr_width(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no alignment for type variable.")
@@ -341,7 +354,7 @@ impl BuiltinType {
             BuiltinType::Class(_, _) | BuiltinType::Lambda(_) | BuiltinType::Ptr => {
                 MachineMode::Ptr
             }
-            BuiltinType::Struct(_, _) => unimplemented!(),
+            BuiltinType::Struct(_, _) => panic!("no machine mode for struct."),
             BuiltinType::Trait(_) => unimplemented!(),
             BuiltinType::ClassTypeParam(_, _) | BuiltinType::FctTypeParam(_, _) => {
                 panic!("no machine mode for type variable.")

@@ -249,6 +249,7 @@ impl Index<StructDefId> for GrowableVec<StructDef> {
 pub struct StructDef {
     pub fields: Vec<StructFieldDef>,
     pub size: i32,
+    pub align: i32,
     pub ref_fields: Vec<i32>,
 }
 
