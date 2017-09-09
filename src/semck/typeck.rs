@@ -1,5 +1,5 @@
 use std::{f32, f64};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use ctxt;
@@ -905,9 +905,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &TypeParams::empty(),
                 &TypeParams::empty(),
             ) {
-                self.src
-                    .map_tys
-                    .insert(e.id, self.ctxt.cls(cls.id));
+                self.src.map_tys.insert(e.id, self.ctxt.cls(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
@@ -1227,6 +1225,44 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
         let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
+        let struc = self.ctxt.structs[sid].borrow();
+
+        let mut initialized: HashMap<Name, BuiltinType> = Default::default();
+
+        for arg in &e.args {
+            self.visit_expr(&arg.expr);
+            initialized.insert(arg.name, self.expr_type);
+        }
+
+        let struc_name = self.ctxt.interner.str(struc.name).to_string();
+
+        for field in &struc.fields {
+            if let Some(&vty) = initialized.get(&field.name) {
+                initialized.remove(&field.name);
+
+                if !field.ty.allows(self.ctxt, vty) {
+                    let fname = self.ctxt.interner.str(field.name).to_string();
+                    let fty = field.ty.name(self.ctxt);
+                    let vty = vty.name(self.ctxt);
+                    let msg = Msg::AssignField(fname, struc_name.clone(), fty, vty);
+                    self.ctxt.diag.borrow_mut().report(e.pos, msg);
+                }
+            } else {
+                let fname = self.ctxt.interner.str(field.name).to_string();
+                self.ctxt.diag.borrow_mut().report(
+                    e.pos,
+                    Msg::StructFieldNotInitialized(struc_name.clone(), fname),
+                );
+            }
+        }
+
+        for &fname in initialized.keys() {
+            let fname = self.ctxt.interner.str(fname).to_string();
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
+        }
 
         let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
         let ty = BuiltinType::Struct(sid, list_id);
@@ -3576,5 +3612,45 @@ mod tests {
             }
             fun f() -> int { for i in Foo() { return i; } return 0; }",
         );
+    }
+
+    #[test]
+    fn test_struct_field_missing() {
+        err("
+            struct Foo {
+                a: int,
+                b: int,
+            }
+            fun f() {
+                Foo { a: 1 };
+            }",
+            pos(7, 17),
+            Msg::StructFieldNotInitialized("Foo".into(), "b".into()));
+    }
+
+    #[test]
+    fn test_struct_unknown_field() {
+        err("
+            struct Foo {
+                a: int,
+            }
+            fun f() {
+                Foo { a: 1, b: 2 };
+            }",
+            pos(6, 17),
+            Msg::UnknownStructField("Foo".into(), "b".into()));
+    }
+
+    #[test]
+    fn test_struct_wrong_type() {
+        err("
+            struct Foo {
+                a: int,
+            }
+            fun f() {
+                Foo { a: true };
+            }",
+            pos(6, 17),
+            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()));
     }
 }

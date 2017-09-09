@@ -112,6 +112,8 @@ pub enum Msg {
     ModifierNotAllowedForStaticMethod(String),
     GlobalInitializerNotSupported,
     MakeIteratorReturnType(String),
+    UnknownStructField(String, String),
+    StructFieldNotInitialized(String, String),
 }
 
 impl Msg {
@@ -354,6 +356,12 @@ impl Msg {
             MakeIteratorReturnType(ref ty) => {
                 format!("makeIterator() returns `{}` which does not implement Iterator.",
                         ty)
+            }
+            UnknownStructField(ref struc, ref field) => {
+                format!("struct `{}` does not have field named `{}`.", struc, field)
+            }
+            StructFieldNotInitialized(ref struc, ref field) => {
+                format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
         }
     }
