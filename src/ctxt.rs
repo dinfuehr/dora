@@ -228,6 +228,21 @@ impl<'ast> Index<FctId> for GrowableVec<Fct<'ast>> {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct StructDefId(usize);
+
+struct StructDef {
+    pub fields: Vec<StructFieldDef>,
+    pub size: i32,
+    pub ref_fields: Vec<i32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StructFieldDef {
+    pub offset: i32,
+    pub ty: BuiltinType,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalId(u32);
 
 impl From<u32> for GlobalId {
@@ -402,8 +417,7 @@ pub struct StructData {
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
-    pub size: i32,
-    pub align: i32,
+    pub specializations: RefCell<HashMap<TypeParams, StructDefId>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

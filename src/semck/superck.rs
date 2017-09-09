@@ -1,11 +1,8 @@
-use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 
 use class::{Class, ClassId};
-use ctxt::{Fct, SemContext, StructData, StructId};
+use ctxt::{Fct, SemContext};
 use dora_parser::error::msg::Msg;
-use mem;
-use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     cycle_detection(ctxt);
@@ -14,7 +11,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
         return;
     }
 
-    determine_struct_sizes(ctxt);
+    // determine_struct_sizes(ctxt);
     determine_vtables(ctxt);
 }
 
@@ -94,64 +91,64 @@ fn determine_vtable<'ast>(
     vtable_len
 }
 
-fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
-    let mut path = Vec::new();
-    let mut sizes = HashMap::new();
+// fn determine_struct_sizes<'ast>(ctxt: &SemContext<'ast>) {
+//     let mut path = Vec::new();
+//     let mut sizes = HashMap::new();
 
-    for struc in ctxt.structs.iter() {
-        let mut struc = struc.borrow_mut();
-        determine_struct_size(ctxt, &mut path, &mut sizes, &mut *struc);
-    }
-}
+//     for struc in ctxt.structs.iter() {
+//         let mut struc = struc.borrow_mut();
+//         determine_struct_size(ctxt, &mut path, &mut sizes, &mut *struc);
+//     }
+// }
 
-fn determine_struct_size<'ast>(
-    ctxt: &SemContext<'ast>,
-    path: &mut Vec<StructId>,
-    sizes: &mut HashMap<StructId, (i32, i32)>,
-    struc: &mut StructData,
-) -> (i32, i32) {
-    let mut size = 0;
-    let mut align = 0;
+// fn determine_struct_size<'ast>(
+//     ctxt: &SemContext<'ast>,
+//     path: &mut Vec<StructId>,
+//     sizes: &mut HashMap<StructId, (i32, i32)>,
+//     struc: &mut StructData,
+// ) -> (i32, i32) {
+//     let mut size = 0;
+//     let mut align = 0;
 
-    path.push(struc.id);
+//     path.push(struc.id);
 
-    for field in &mut struc.fields {
-        let (field_size, field_align) = if let BuiltinType::Struct(id, _) = field.ty {
-            if let Some(&(size, align)) = sizes.get(&id) {
-                (size, align)
-            } else {
-                if path.iter().find(|&&x| x == id).is_some() {
-                    ctxt.diag
-                        .borrow_mut()
-                        .report(field.pos, Msg::RecursiveStructure);
-                    return (0, 0);
-                }
+//     for field in &mut struc.fields {
+//         let (field_size, field_align) = if let BuiltinType::Struct(id, _) = field.ty {
+//             if let Some(&(size, align)) = sizes.get(&id) {
+//                 (size, align)
+//             } else {
+//                 if path.iter().find(|&&x| x == id).is_some() {
+//                     ctxt.diag
+//                         .borrow_mut()
+//                         .report(field.pos, Msg::RecursiveStructure);
+//                     return (0, 0);
+//                 }
 
-                let mut struc = ctxt.structs[id].borrow_mut();
-                determine_struct_size(ctxt, path, sizes, &mut *struc)
-            }
-        } else {
-            let ty = field.ty;
+//                 let mut struc = ctxt.structs[id].borrow_mut();
+//                 determine_struct_size(ctxt, path, sizes, &mut *struc)
+//             }
+//         } else {
+//             let ty = field.ty;
 
-            (ty.size(ctxt), ty.align(ctxt))
-        };
+//             (ty.size(ctxt), ty.align(ctxt))
+//         };
 
-        field.offset = mem::align_i32(size, field_align);
+//         field.offset = mem::align_i32(size, field_align);
 
-        size = field.offset + field_size;
-        align = max(align, field_align);
-    }
+//         size = field.offset + field_size;
+//         align = max(align, field_align);
+//     }
 
-    size = mem::align_i32(size, align);
+//     size = mem::align_i32(size, align);
 
-    struc.size = size;
-    struc.align = align;
+//     // struc.size = size;
+//     // struc.align = align;
 
-    sizes.insert(struc.id, (size, align));
-    path.pop();
+//     sizes.insert(struc.id, (size, align));
+//     path.pop();
 
-    (size, align)
-}
+//     (size, align)
+// }
 
 pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
@@ -604,45 +601,45 @@ mod tests {
     //     });
     // }
 
-    #[test]
-    fn test_struct_size() {
-        ok_with_test(
-            "struct Foo { a: int, b: int }
-                      struct Foo1 { a: bool, b: int, c: bool }
-                      struct Bar { }",
-            |ctxt| {
-                assert_eq!(8, ctxt.structs[0].borrow().size);
-                assert_eq!(12, ctxt.structs[1].borrow().size);
-                assert_eq!(0, ctxt.structs[2].borrow().size);
-            },
-        );
-    }
+    // #[test]
+    // fn test_struct_size() {
+    //     ok_with_test(
+    //         "struct Foo { a: int, b: int }
+    //                   struct Foo1 { a: bool, b: int, c: bool }
+    //                   struct Bar { }",
+    //         |ctxt| {
+    //             assert_eq!(8, ctxt.structs[0].borrow().size);
+    //             assert_eq!(12, ctxt.structs[1].borrow().size);
+    //             assert_eq!(0, ctxt.structs[2].borrow().size);
+    //         },
+    //     );
+    // }
 
-    #[test]
-    fn test_struct_in_struct() {
-        ok_with_test(
-            "struct Foo { a: bool, bar: Bar }
-                      struct Bar { a: int }",
-            |ctxt| {
-                assert_eq!(8, ctxt.structs[0].borrow().size);
-            },
-        );
+    // #[test]
+    // fn test_struct_in_struct() {
+    //     ok_with_test(
+    //         "struct Foo { a: bool, bar: Bar }
+    //                   struct Bar { a: int }",
+    //         |ctxt| {
+    //             assert_eq!(8, ctxt.structs[0].borrow().size);
+    //         },
+    //     );
 
-        ok_with_test(
-            "struct Bar { a: int }
-                      struct Foo { a: bool, bar: Bar }",
-            |ctxt| {
-                assert_eq!(8, ctxt.structs[1].borrow().size);
-            },
-        );
+    //     ok_with_test(
+    //         "struct Bar { a: int }
+    //                   struct Foo { a: bool, bar: Bar }",
+    //         |ctxt| {
+    //             assert_eq!(8, ctxt.structs[1].borrow().size);
+    //         },
+    //     );
 
-        err(
-            "struct Foo { a: int, bar: Bar }
-             struct Bar { b: int, foo: Foo }",
-            pos(2, 35),
-            Msg::RecursiveStructure,
-        );
-    }
+    //     err(
+    //         "struct Foo { a: int, bar: Bar }
+    //          struct Bar { b: int, foo: Foo }",
+    //         pos(2, 35),
+    //         Msg::RecursiveStructure,
+    //     );
+    // }
 
     // #[test]
     // fn test_class_in_struct() {

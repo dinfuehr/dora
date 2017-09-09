@@ -176,8 +176,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: s.pos,
             name: s.name,
             fields: Vec::new(),
-            size: 0,
-            align: 0,
+            specializations: RefCell::new(HashMap::new()),
         };
 
         self.ctxt.structs.push(struc);
