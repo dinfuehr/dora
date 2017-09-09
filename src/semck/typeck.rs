@@ -3616,7 +3616,8 @@ mod tests {
 
     #[test]
     fn test_struct_field_missing() {
-        err("
+        err(
+            "
             struct Foo {
                 a: int,
                 b: int,
@@ -3625,12 +3626,14 @@ mod tests {
                 Foo { a: 1 };
             }",
             pos(7, 17),
-            Msg::StructFieldNotInitialized("Foo".into(), "b".into()));
+            Msg::StructFieldNotInitialized("Foo".into(), "b".into()),
+        );
     }
 
     #[test]
     fn test_struct_unknown_field() {
-        err("
+        err(
+            "
             struct Foo {
                 a: int,
             }
@@ -3638,12 +3641,14 @@ mod tests {
                 Foo { a: 1, b: 2 };
             }",
             pos(6, 17),
-            Msg::UnknownStructField("Foo".into(), "b".into()));
+            Msg::UnknownStructField("Foo".into(), "b".into()),
+        );
     }
 
     #[test]
     fn test_struct_wrong_type() {
-        err("
+        err(
+            "
             struct Foo {
                 a: int,
             }
@@ -3651,6 +3656,7 @@ mod tests {
                 Foo { a: true };
             }",
             pos(6, 17),
-            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()));
+            Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()),
+        );
     }
 }

@@ -129,7 +129,7 @@ where
             ExprLitFloat(ref expr) => self.emit_lit_float(expr, dest.freg()),
             ExprLitBool(ref expr) => self.emit_lit_bool(expr, dest.reg()),
             ExprLitStr(ref expr) => self.emit_lit_str(expr, dest.reg()),
-            ExprLitStruct(_) => unimplemented!(),
+            ExprLitStruct(ref expr) => self.emit_lit_struct(expr, dest),
             ExprUn(ref expr) => self.emit_un(expr, dest),
             ExprIdent(ref expr) => self.emit_ident(expr, dest),
             ExprAssign(ref expr) => self.emit_assign(expr),
@@ -495,6 +495,10 @@ where
 
         self.masm.emit_comment(Comment::LoadString(handle));
         self.masm.load_constpool(dest, disp + pos);
+    }
+
+    fn emit_lit_struct(&mut self, _: &'ast ExprLitStructType, _: ExprStore) {
+        unimplemented!();
     }
 
     fn emit_ident(&mut self, e: &'ast ExprIdentType, dest: ExprStore) {

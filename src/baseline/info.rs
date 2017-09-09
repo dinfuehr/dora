@@ -199,6 +199,7 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
             ExprBin(ref expr) => self.expr_bin(expr),
             ExprUn(ref expr) => self.expr_un(expr),
             ExprConv(ref expr) => self.expr_conv(expr),
+            ExprLitStruct(ref expr) => self.expr_lit_struct(expr),
 
             _ => visit::walk_expr(self, e),
         }
@@ -350,6 +351,14 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         if !e.is && !is_valid {
             self.reserve_temp_for_node(&e.object);
+        }
+    }
+
+    fn expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
+        self.reserve_temp_for_node_id(e.id);
+
+        for arg in &e.args {
+            self.visit_expr(&arg.expr);
         }
     }
 
@@ -712,6 +721,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             self.universal_call(expr.id, args, None);
         }
+    }
+
+    fn reserve_temp_for_node_id(&mut self, id: NodeId) -> i32 {
+        let ty = self.ty(id);
+        self.reserve_temp_for_node_with_type(id, ty)
     }
 
     fn reserve_temp_for_node(&mut self, expr: &Expr) -> i32 {

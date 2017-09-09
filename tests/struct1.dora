@@ -1,0 +1,9 @@
+//= ignore
+
+struct Foo {
+    a: int,
+}
+
+fun main() {
+    Foo { a: 1 };
+}
