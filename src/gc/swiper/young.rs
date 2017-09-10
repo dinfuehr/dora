@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicUsize;
 use ctxt::SemContext;
 use gc::Address;
 use gc::Collector;
+use gc::swiper::Region;
 
 pub struct YoungGen {
     total: Region,
@@ -30,24 +31,6 @@ impl Collector for YoungGen {
 
     fn collect(&self, _: &SemContext) {
         unimplemented!();
-    }
-}
-
-struct Region {
-    start: Address,
-    end: Address,
-}
-
-impl Region {
-    fn new(start: Address, end: Address) -> Region {
-        Region {
-            start: start,
-            end: end,
-        }
-    }
-
-    fn size(&self) -> usize {
-        self.end.to_usize() - self.start.to_usize()
     }
 }
 

@@ -5,6 +5,7 @@ use gc::Address;
 use gc::Collector;
 use gc::swiper::card::CardTable;
 use gc::swiper::young::YoungGen;
+use gc::swiper::old::OldGen;
 use mem;
 
 pub mod young;
@@ -20,12 +21,10 @@ const CARD_SIZE: usize = 128;
 const CARD_SIZE_BITS: usize = 7;
 
 pub struct Swiper {
-    heap_start: Address,
-    heap_end: Address,
-    heap_size: usize,
+    heap: Region,
 
     young: YoungGen,
-    // old: OldGen,
+    old: OldGen,
     card_table: CardTable,
 }
 
@@ -54,17 +53,15 @@ impl Swiper {
         let young = YoungGen::new(young_start, young_end);
 
         // determine boundaries of old generation
-        // let old_start = heap_start.offset(young_size);
-        // let old_end = heap_end;
-        // let old = OldGen::new(old_start, old_end);
+        let old_start = heap_start.offset(young_size);
+        let old_end = heap_end;
+        let old = OldGen::new(old_start, old_end);
 
         Swiper {
-            heap_start: ptr,
-            heap_end: heap_end,
-            heap_size: heap_size,
+            heap: Region::new(heap_start, heap_end),
 
             young: young,
-            // old: old,
+            old: old,
             card_table: CardTable::new(heap_end, heap_end.offset(card_size)),
         }
     }
@@ -81,5 +78,23 @@ impl Collector for Swiper {
 
     fn needs_write_barrier(&self) -> bool {
         return true;
+    }
+}
+
+pub struct Region {
+    pub start: Address,
+    pub end: Address,
+}
+
+impl Region {
+    fn new(start: Address, end: Address) -> Region {
+        Region {
+            start: start,
+            end: end,
+        }
+    }
+
+    fn size(&self) -> usize {
+        self.end.to_usize() - self.start.to_usize()
     }
 }
