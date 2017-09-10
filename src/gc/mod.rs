@@ -62,6 +62,10 @@ impl Gc {
         }
     }
 
+    pub fn needs_write_barrier(&self) -> bool {
+        return self.collector.needs_write_barrier();
+    }
+
     pub fn alloc_code(&self, size: usize) -> *mut u8 {
         self.code_space.lock().unwrap().alloc(size)
     }
@@ -82,6 +86,10 @@ impl Gc {
 trait Collector {
     fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8;
     fn collect(&self, ctxt: &SemContext);
+
+    fn needs_write_barrier(&self) -> bool {
+        return false;
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

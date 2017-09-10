@@ -723,6 +723,13 @@ where
                     e.pos.line as i32,
                 );
                 self.free_temp_for_node(temp, temp_offset);
+
+                if self.ctxt.gc.needs_write_barrier() {
+                    // emit write barrier
+                    // REG_TMP1 = REG_TMP1 (object_address) + heap_size
+                    // REG_TMP1 = REG_TMP1 >> CARD_TABLE_SIZE_BITS
+                    // [REG_TMP1] = 1
+                }
             }
 
             IdentType::Struct(_) => {

@@ -4,6 +4,7 @@ use gc::arena;
 use gc::Address;
 use gc::Collector;
 use gc::swiper::card::CardTable;
+use gc::swiper::young::YoungGen;
 use mem;
 
 pub mod young;
@@ -22,12 +23,16 @@ pub struct Swiper {
     heap_start: Address,
     heap_end: Address,
     heap_size: usize,
+
+    young: YoungGen,
+    // old: OldGen,
     card_table: CardTable,
 }
 
 impl Swiper {
     pub fn new(args: &Args) -> Swiper {
         let heap_size = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024);
+
         // set heap size to multiple of page
         let heap_size = mem::page_align(heap_size);
 
@@ -39,12 +44,27 @@ impl Swiper {
         let ptr = arena::reserve(alloc_size).expect("could not reserve memory");
         let ptr = Address::from_ptr(ptr);
 
+        let heap_start = ptr;
         let heap_end = ptr.offset(heap_size);
+
+        // determine boundaries of young generation
+        let young_start = heap_start;
+        let young_size = mem::page_align(heap_size / (YOUNG_RATIO as usize));
+        let young_end = young_start.offset(young_size);
+        let young = YoungGen::new(young_start, young_end);
+
+        // determine boundaries of old generation
+        // let old_start = heap_start.offset(young_size);
+        // let old_end = heap_end;
+        // let old = OldGen::new(old_start, old_end);
 
         Swiper {
             heap_start: ptr,
             heap_end: heap_end,
             heap_size: heap_size,
+
+            young: young,
+            // old: old,
             card_table: CardTable::new(heap_end, heap_end.offset(card_size)),
         }
     }
@@ -57,5 +77,9 @@ impl Collector for Swiper {
 
     fn collect(&self, _: &SemContext) {
         unimplemented!();
+    }
+
+    fn needs_write_barrier(&self) -> bool {
+        return true;
     }
 }

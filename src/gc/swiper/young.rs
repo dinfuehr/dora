@@ -4,14 +4,14 @@ use ctxt::SemContext;
 use gc::Address;
 use gc::Collector;
 
-struct YoungGen {
+pub struct YoungGen {
     total: Region,
     from: Chunk,
     to: Chunk,
 }
 
 impl YoungGen {
-    fn new(young_start: Address, young_end: Address) -> YoungGen {
+    pub fn new(young_start: Address, young_end: Address) -> YoungGen {
         let half_size = (young_end.to_usize() - young_start.to_usize()) / 2;
         let half_address = young_start.offset(half_size);
 
