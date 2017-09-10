@@ -7,8 +7,8 @@ use gc::swiper::Region;
 
 pub struct YoungGen {
     total: Region,
-    from: Chunk,
-    to: Chunk,
+    from: SemiSpace,
+    to: SemiSpace,
 }
 
 impl YoungGen {
@@ -18,8 +18,8 @@ impl YoungGen {
 
         YoungGen {
             total: Region::new(young_start, young_end),
-            from: Chunk::new(young_start, half_address),
-            to: Chunk::new(half_address, young_end),
+            from: SemiSpace::new(young_start, half_address),
+            to: SemiSpace::new(half_address, young_end),
         }
     }
 }
@@ -34,16 +34,16 @@ impl Collector for YoungGen {
     }
 }
 
-struct Chunk {
+struct SemiSpace {
     start: Address,
     next: AtomicUsize,
     uncommitted: Address,
     end: Address,
 }
 
-impl Chunk {
-    fn new(start: Address, end: Address) -> Chunk {
-        Chunk {
+impl SemiSpace {
+    fn new(start: Address, end: Address) -> SemiSpace {
+        SemiSpace {
             start: start,
             next: AtomicUsize::new(start.to_usize()),
             uncommitted: start,
@@ -51,8 +51,8 @@ impl Chunk {
         }
     }
 
-    fn empty() -> Chunk {
-        Chunk {
+    fn empty() -> SemiSpace {
+        SemiSpace {
             start: Address::null(),
             next: AtomicUsize::new(0),
             uncommitted: Address::null(),
