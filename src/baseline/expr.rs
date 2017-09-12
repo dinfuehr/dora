@@ -715,21 +715,18 @@ where
                     .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
                 self.masm.emit_comment(Comment::StoreField(cls_id, fieldid));
+
+                let write_barrier = self.ctxt.gc.needs_write_barrier() && field.ty.reference_type();
+
                 self.masm.store_field(
                     field.ty.mode(),
                     REG_TMP1,
                     field.offset,
                     reg,
                     e.pos.line as i32,
+                    write_barrier,
                 );
                 self.free_temp_for_node(temp, temp_offset);
-
-                if self.ctxt.gc.needs_write_barrier() {
-                    // emit write barrier
-                    // REG_TMP1 = REG_TMP1 (object_address) + heap_size
-                    // REG_TMP1 = REG_TMP1 >> CARD_TABLE_SIZE_BITS
-                    // [REG_TMP1] = 1
-                }
             }
 
             IdentType::Struct(_) => {

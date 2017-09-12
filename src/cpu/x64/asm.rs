@@ -900,6 +900,19 @@ pub fn emit_shr_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
     emit_modrm(buf, 0b11, 0b101, dest.and7());
 }
 
+pub fn emit_shr_reg_imm(buf: &mut MacroAssembler, x64: u8, dest: Reg, imm: u8) {
+    if dest.msb() != 0 || x64 != 0 {
+        emit_rex(buf, x64, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, if imm == 1 { 0xD1 } else { 0xC1 });
+    emit_modrm(buf, 0b11, 0b101, dest.and7());
+
+    if imm != 1 {
+        emit_u8(buf, imm);
+    }
+}
+
 pub fn emit_sar_reg_cl(buf: &mut MacroAssembler, x64: u8, dest: Reg) {
     if dest.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, 0, 0, dest.msb());
@@ -1672,6 +1685,20 @@ mod tests {
 
         assert_emit!(0x48, 0xD3, 0xE8; emit_shr_reg_cl(1, RAX));
         assert_emit!(0x49, 0xD3, 0xE9; emit_shr_reg_cl(1, R9));
+    }
+
+    #[test]
+    fn test_shr_reg_imm() {
+        assert_emit!(0x48, 0xC1, 0xE8, 0x02; emit_shr_reg_imm(1, RAX, 2));
+        assert_emit!(0x48, 0xC1, 0xE8, 0x09; emit_shr_reg_imm(1, RAX, 9));
+        assert_emit!(0x49, 0xC1, 0xEA, 0x09; emit_shr_reg_imm(1, R10, 9));
+        assert_emit!(0x49, 0xC1, 0xEF, 0x09; emit_shr_reg_imm(1, R15, 9));
+
+        assert_emit!(0xC1, 0xE8, 0x09; emit_shr_reg_imm(0, RAX, 9));
+        assert_emit!(0x41, 0xC1, 0xE9, 0x09; emit_shr_reg_imm(0, R9, 9));
+
+        assert_emit!(0xD1, 0xE8; emit_shr_reg_imm(0, RAX, 1));
+        assert_emit!(0x41, 0xD1, 0xE9; emit_shr_reg_imm(0, R9, 1));
     }
 
     #[test]

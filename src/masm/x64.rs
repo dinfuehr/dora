@@ -547,6 +547,7 @@ impl MacroAssembler {
         offset: i32,
         src: ExprStore,
         line: i32,
+        _write_barrier: bool,
     ) {
         self.emit_nil_check();
         self.emit_lineno_if_missing(line);
