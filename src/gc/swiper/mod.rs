@@ -17,8 +17,8 @@ const YOUNG_RATIO: u32 = 5;
 // size of card is 128 bytes
 // although stored in constant
 // it is not really expected to change
-const CARD_SIZE: usize = 128;
-const CARD_SIZE_BITS: usize = 7;
+const CARD_SIZE: usize = 512;
+const CARD_SIZE_BITS: usize = 9;
 
 pub struct Swiper {
     heap: Region,
