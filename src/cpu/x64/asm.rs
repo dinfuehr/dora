@@ -115,6 +115,18 @@ pub fn emit_movb_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i
     emit_membase(buf, dest, disp, src);
 }
 
+pub fn emit_movb_imm_memq(buf: &mut MacroAssembler, imm: u8, dest: Reg, disp: i32) {
+    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
+
+    if dest_msb != 0 {
+        emit_rex(buf, 0, 0, 0, dest.msb());
+    }
+
+    emit_op(buf, 0xC6);
+    emit_membase(buf, dest, disp, Reg(0));
+    emit_u8(buf, imm);
+}
+
 pub fn emit_movq_ar(buf: &mut MacroAssembler, base: Reg, index: Reg, scale: u8, dest: Reg) {
     emit_mov_ar(buf, 1, 0x8b, base, index, scale, dest);
 }
@@ -2161,5 +2173,17 @@ mod tests {
 
         // and r9, 128
         assert_emit!(0x49, 0x81, 0xe1, 0x80, 0, 0, 0; emit_andq_imm_reg(128, R9));
+    }
+
+    #[test]
+    fn test_emit_movb_imm_memq() {
+        assert_emit!(0xC6, 0x80, 0x44, 0x33, 0x22, 0x11, 0x00;
+                     emit_movb_imm_memq(0, RAX, 0x11223344));
+        assert_emit!(0xC6, 0x00, 0x00;
+                     emit_movb_imm_memq(0, RAX, 0));
+        assert_emit!(0x41, 0xC6, 0x80, 0x44, 0x33, 0x22, 0x11, 0x00;
+                     emit_movb_imm_memq(0, R8, 0x11223344));
+        assert_emit!(0x41, 0xC6, 0x87, 0x44, 0x33, 0x22, 0x11, 0xFF;
+                     emit_movb_imm_memq(0xFF, R15, 0x11223344));
     }
 }

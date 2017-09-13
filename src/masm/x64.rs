@@ -552,6 +552,10 @@ impl MacroAssembler {
         self.emit_nil_check();
         self.emit_lineno_if_missing(line);
         self.store_mem(mode, Mem::Base(base, offset), src);
+
+        // if _write_barrier {
+        //     asm::emit_shr_reg_imm(self, 1, base, CARD_TABLE_SIZE_BITS);
+        // }
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {

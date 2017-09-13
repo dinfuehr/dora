@@ -10,7 +10,7 @@ pub struct OldGen {
 impl OldGen {
     pub fn new(old_start: Address, old_end: Address) -> OldGen {
         OldGen {
-            total: Region::new(old_start, old_end)
+            total: Region::new(old_start, old_end),
         }
     }
 }
