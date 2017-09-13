@@ -7,6 +7,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
+use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
 use mem::{ptr_width, fits_i32};
 use object::{offset_of_array_data, offset_of_array_length, Header};
@@ -553,9 +554,10 @@ impl MacroAssembler {
         self.emit_lineno_if_missing(line);
         self.store_mem(mode, Mem::Base(base, offset), src);
 
-        // if _write_barrier {
-        //     asm::emit_shr_reg_imm(self, 1, base, CARD_TABLE_SIZE_BITS);
-        // }
+        if _write_barrier {
+            asm::emit_shr_reg_imm(self, 1, base, CARD_SIZE_BITS as u8);
+            // TODO: emit mov [byte_map + base], 0
+        }
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
