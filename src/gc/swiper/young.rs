@@ -1,8 +1,7 @@
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::ptr;
 
-use ctxt::SemContext;
 use gc::Address;
-use gc::Collector;
 use gc::swiper::Region;
 
 pub struct YoungGen {
@@ -22,15 +21,29 @@ impl YoungGen {
             to: SemiSpace::new(half_address, young_end),
         }
     }
-}
 
-impl Collector for YoungGen {
-    fn alloc(&self, _: &SemContext, _: usize) -> *const u8 {
-        unimplemented!()
-    }
+    pub fn alloc(&self, size: usize) -> *const u8 {
+        let mut old = self.from.next.load(Ordering::Relaxed);
+        let mut new;
 
-    fn collect(&self, _: &SemContext) {
-        unimplemented!();
+        loop {
+            new = old + size;
+
+            if new >= self.from.end.to_usize() {
+                return ptr::null();
+            }
+
+            let res =
+                self.from.next
+                    .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
+
+            match res {
+                Ok(_) => break,
+                Err(x) => old = x,
+            }
+        }
+
+        old as *const u8
     }
 }
 

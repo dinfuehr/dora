@@ -76,8 +76,8 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc(&self, _: &SemContext, _: usize) -> *const u8 {
-        unimplemented!()
+    fn alloc(&self, _: &SemContext, size: usize) -> *const u8 {
+        self.young.alloc(size)
     }
 
     fn collect(&self, _: &SemContext) {
