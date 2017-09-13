@@ -7,7 +7,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
-use gc::swiper::CARD_SIZE_BITS;
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use masm::{Label, MacroAssembler};
 use mem::{ptr_width, fits_i32};
 use object::{offset_of_array_data, offset_of_array_length, Header};
@@ -548,15 +548,36 @@ impl MacroAssembler {
         offset: i32,
         src: ExprStore,
         line: i32,
-        _write_barrier: bool,
+        write_barrier: bool,
+        card_table_offset: usize,
     ) {
+        // TODO: for offsets >= CARD_SIZE we need to mark the field instead of
+        // the start of the object, this costs an additional add instruction
+        assert!(!write_barrier || card_table_offset < CARD_SIZE);
+
         self.emit_nil_check();
         self.emit_lineno_if_missing(line);
         self.store_mem(mode, Mem::Base(base, offset), src);
 
-        if _write_barrier {
-            asm::emit_shr_reg_imm(self, 1, base, CARD_SIZE_BITS as u8);
-            // TODO: emit mov [byte_map + base], 0
+        if write_barrier {
+            self.emit_barrier(base, card_table_offset);
+        }
+    }
+
+    fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
+        asm::emit_shr_reg_imm(self, 1, src, CARD_SIZE_BITS as u8);
+
+        // test if card table offset fits into displacement of memory store
+        if card_table_offset <= 0x7FFF_FFFF {
+            // emit mov [card_table_offset + base], 0
+            asm::emit_movb_imm_memq(self, 0, src, card_table_offset as i32);
+
+        } else {
+            // TODO: emit instructions for large card table offset
+
+            // temp = card_table_offset
+            // mov [temp + base], 0
+            unimplemented!();
         }
     }
 

@@ -49,13 +49,13 @@ impl Collector for CopyCollector {
             minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
         }
 
-        let mut ptr = spaces.to_space.allocate(size);
+        let mut ptr = spaces.from_space.allocate(size);
 
         if ptr.is_null() {
             let rootset = get_rootset(ctxt);
             minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
 
-            ptr = spaces.to_space.allocate(size);
+            ptr = spaces.from_space.allocate(size);
         }
 
         ptr
@@ -142,7 +142,6 @@ pub fn minor_collect(
     rootset: Vec<IndirectObj>,
 ) {
     let mut timer = Timer::new(ctxt.args.flag_gc_events);
-    swap(from_space, to_space);
 
     // empty to-space
     to_space.reset();
@@ -176,6 +175,8 @@ pub fn minor_collect(
             ptr::write_bytes(from_space.start as *mut u8, 0xcc, from_space.size());
         }
     }
+
+    swap(from_space, to_space);
 
     timer.stop_with(|dur| {
         // self.collect_duration += dur;

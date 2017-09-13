@@ -717,6 +717,7 @@ where
                 self.masm.emit_comment(Comment::StoreField(cls_id, fieldid));
 
                 let write_barrier = self.ctxt.gc.needs_write_barrier() && field.ty.reference_type();
+                let card_table_offset = self.ctxt.gc.card_table_offset();
 
                 self.masm.store_field(
                     field.ty.mode(),
@@ -725,6 +726,7 @@ where
                     reg,
                     e.pos.line as i32,
                     write_barrier,
+                    card_table_offset,
                 );
                 self.free_temp_for_node(temp, temp_offset);
             }

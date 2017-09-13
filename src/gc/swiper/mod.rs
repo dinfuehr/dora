@@ -26,6 +26,8 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     card_table: CardTable,
+
+    card_table_offset: usize,
 }
 
 impl Swiper {
@@ -57,12 +59,18 @@ impl Swiper {
         let old_end = heap_end;
         let old = OldGen::new(old_start, old_end);
 
+        // determine offset to card table (card table starts right after heap)
+        // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
+        let card_table_offset = heap_end.to_usize() - (heap_start.to_usize() >> CARD_SIZE_BITS);
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
 
             young: young,
             old: old,
             card_table: CardTable::new(heap_end, heap_end.offset(card_size)),
+
+            card_table_offset: card_table_offset,
         }
     }
 }
@@ -78,6 +86,10 @@ impl Collector for Swiper {
 
     fn needs_write_barrier(&self) -> bool {
         return true;
+    }
+
+    fn card_table_offset(&self) -> usize {
+        self.card_table_offset
     }
 }
 

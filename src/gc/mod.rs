@@ -63,7 +63,11 @@ impl Gc {
     }
 
     pub fn needs_write_barrier(&self) -> bool {
-        return self.collector.needs_write_barrier();
+        self.collector.needs_write_barrier()
+    }
+
+    pub fn card_table_offset(&self) -> usize {
+        self.collector.card_table_offset()
     }
 
     pub fn alloc_code(&self, size: usize) -> *mut u8 {
@@ -87,8 +91,15 @@ trait Collector {
     fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8;
     fn collect(&self, ctxt: &SemContext);
 
+    // decides whether to emit write barriers needed for
+    // generational GC to write into card table
     fn needs_write_barrier(&self) -> bool {
-        return false;
+        false
+    }
+
+    // only need if write barriers needed
+    fn card_table_offset(&self) -> usize {
+        0
     }
 }
 
