@@ -23,7 +23,7 @@ impl YoungGen {
     }
 
     pub fn alloc(&self, size: usize) -> *const u8 {
-        let mut old = self.from.next.load(Ordering::Relaxed);
+        let mut old = self.from.free.load(Ordering::Relaxed);
         let mut new;
 
         loop {
@@ -34,7 +34,7 @@ impl YoungGen {
             }
 
             let res =
-                self.from.next
+                self.from.free
                     .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
@@ -49,7 +49,7 @@ impl YoungGen {
 
 struct SemiSpace {
     start: Address,
-    next: AtomicUsize,
+    free: AtomicUsize,
     uncommitted: Address,
     end: Address,
 }
@@ -58,7 +58,7 @@ impl SemiSpace {
     fn new(start: Address, end: Address) -> SemiSpace {
         SemiSpace {
             start: start,
-            next: AtomicUsize::new(start.to_usize()),
+            free: AtomicUsize::new(start.to_usize()),
             uncommitted: start,
             end: end,
         }
@@ -67,7 +67,7 @@ impl SemiSpace {
     fn empty() -> SemiSpace {
         SemiSpace {
             start: Address::null(),
-            next: AtomicUsize::new(0),
+            free: AtomicUsize::new(0),
             uncommitted: Address::null(),
             end: Address::null(),
         }
