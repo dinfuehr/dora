@@ -1,8 +1,12 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
 
+use ctxt::SemContext;
 use gc::Address;
+use gc::root::IndirectObj;
 use gc::swiper::Region;
+use object::Obj;
+use timer::{in_ms, Timer};
 
 pub struct YoungGen {
     total: Region,
@@ -45,6 +49,60 @@ impl YoungGen {
 
         old as *const u8
     }
+
+    pub fn collect(
+        &mut self,
+        ctxt: &SemContext,
+        rootset: Vec<IndirectObj>,
+    ) {
+        let mut timer = Timer::new(ctxt.args.flag_gc_events);
+
+        let mut scan = self.from.start;
+        let end: Address = self.from.free.load(Ordering::SeqCst).into();
+        let mut free = self.to.start;
+
+        for &root in &rootset {
+            let root_ptr = root.get();
+
+            if self.from.includes(root_ptr as usize) {
+                root.set(copy(root_ptr, &mut free));
+            }
+        }
+
+        while scan < end {
+            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+
+            object.visit_reference_fields(|child| {
+                let child_ptr = child.get();
+
+                if self.from.includes(child_ptr as usize) {
+                    child.set(copy(child_ptr, &mut free));
+                }
+            });
+
+            scan = scan.offset(object.size());
+        }
+
+        // memset from-space to garbage data for debug builds
+        // makes sure that no pointer into from-space is left
+        if cfg!(debug_assertions) {
+            unsafe {
+                ptr::write_bytes(self.from.start.to_usize() as *mut u8, 0xcc, self.from.size());
+            }
+        }
+
+        self.swap_spaces();
+
+        timer.stop_with(|dur| {
+            if ctxt.args.flag_gc_events {
+                println!("GC minor: collect garbage ({} ms)", in_ms(dur));
+            }
+        });
+    }
+
+    fn swap_spaces(&mut self) {
+        unimplemented!();
+    }
 }
 
 struct SemiSpace {
@@ -73,11 +131,62 @@ impl SemiSpace {
         }
     }
 
+    fn size(&self) -> usize {
+        self.end.to_usize() - self.start.to_usize()
+    }
+
     fn committed_size(&self) -> usize {
         self.uncommitted.to_usize() - self.start.to_usize()
     }
 
     fn uncommitted_size(&self) -> usize {
         self.end.to_usize() - self.uncommitted.to_usize()
+    }
+
+    fn includes(&self, ptr: usize) -> bool {
+        self.start.to_usize() <= ptr && ptr < self.end.to_usize()
+    }
+}
+
+pub fn copy(obj: *mut Obj, free: &mut Address) -> *mut Obj {
+    let obj = unsafe { &mut *obj };
+    let addr = get_forwarding_address(obj);
+
+    if is_forwarding_address(addr) {
+        unmark_forwarding_address(addr).to_mut_ptr::<Obj>()
+    } else {
+        let addr = *free;
+        let obj_size = obj.size();
+
+        unsafe {
+            ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), obj_size);
+            *free = addr.offset(obj_size);
+        }
+
+        set_forwarding_address(obj, addr);
+
+        addr.to_mut_ptr::<Obj>()
+    }
+}
+
+pub fn is_forwarding_address(obj: Address) -> bool {
+    (obj.to_usize() & 1) == 1
+}
+
+pub fn mark_forwarding_address(obj: Address) -> Address {
+    (obj.to_usize() | 1).into()
+}
+
+pub fn unmark_forwarding_address(obj: Address) -> Address {
+    (obj.to_usize() & !1).into()
+}
+
+pub fn get_forwarding_address(obj: &Obj) -> Address {
+    unsafe { *(obj as *const Obj as *const Address) }
+}
+
+pub fn set_forwarding_address(obj: &mut Obj, addr: Address) {
+    unsafe {
+        *(obj as *mut Obj as *mut Address) = mark_forwarding_address(addr);
     }
 }

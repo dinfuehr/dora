@@ -1,3 +1,4 @@
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::sync::Mutex;
 
 use ctxt::SemContext;
@@ -123,7 +124,35 @@ impl Address {
     }
 
     #[inline(always)]
+    pub fn to_ptr<T>(&self) -> *const T {
+        self.0 as *const T
+    }
+
+    #[inline(always)]
+    pub fn to_mut_ptr<T>(&self) -> *mut T {
+        self.0 as *const T as *mut T
+    }
+
+    #[inline(always)]
     pub fn null() -> Address {
         Address(0)
+    }
+}
+
+impl PartialOrd for Address {
+    fn partial_cmp(&self, other: &Address) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Address {
+    fn cmp(&self, other: &Address) -> Ordering {
+        self.to_usize().cmp(&other.to_usize())
+    }
+}
+
+impl From<usize> for Address {
+    fn from(val: usize) -> Address {
+        Address(val)
     }
 }

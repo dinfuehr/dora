@@ -77,6 +77,15 @@ impl Swiper {
 
 impl Collector for Swiper {
     fn alloc(&self, _: &SemContext, size: usize) -> *const u8 {
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        // TODO: invoke collect
+        // self.young.collect(ctxt);
+
         self.young.alloc(size)
     }
 
