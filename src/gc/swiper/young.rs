@@ -149,18 +149,30 @@ impl SemiSpace {
 }
 
 pub fn copy(obj: *mut Obj, free: &mut Address) -> *mut Obj {
-    let obj = unsafe { &mut *obj };
     let addr = get_forwarding_address(obj);
 
     if is_forwarding_address(addr) {
         unmark_forwarding_address(addr).to_mut_ptr::<Obj>()
     } else {
-        let addr = *free;
+        let obj = unsafe { &mut *obj };
         let obj_size = obj.size();
 
-        unsafe {
-            ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), obj_size);
-            *free = addr.offset(obj_size);
+        let age = obj.increase_age();
+
+        let addr: Address;
+
+        // if object is old enough we copy it into the old generation
+        if age >= PROMOTION_AGE {
+            unimplemented!();
+
+        // otherwise the object remains in the young generation for nows
+        } else {
+            addr = *free;
+
+            unsafe {
+                ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), obj_size);
+                *free = addr.offset(obj_size);
+            }
         }
 
         set_forwarding_address(obj, addr);

@@ -61,6 +61,13 @@ impl Header {
         assert!(age <= 15);
         self.info = (self.info & !0x1E) | (age << 1) as usize;
     }
+
+    pub fn increase_age(&mut self) -> u32 {
+        let age = self.age() + 1;
+        self.set_age(age);
+
+        age
+    }
 }
 
 #[test]
