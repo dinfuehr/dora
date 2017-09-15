@@ -4,7 +4,7 @@ use std::ptr;
 use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
-use gc::swiper::Region;
+use gc::swiper::{PROMOTION_AGE, Region};
 use object::Obj;
 use timer::{in_ms, Timer};
 
@@ -149,15 +149,14 @@ impl SemiSpace {
 }
 
 pub fn copy(obj: *mut Obj, free: &mut Address) -> *mut Obj {
+    let obj = unsafe { &mut *obj };
     let addr = get_forwarding_address(obj);
 
     if is_forwarding_address(addr) {
         unmark_forwarding_address(addr).to_mut_ptr::<Obj>()
     } else {
-        let obj = unsafe { &mut *obj };
         let obj_size = obj.size();
-
-        let age = obj.increase_age();
+        let age = obj.header_mut().increase_age();
 
         let addr: Address;
 

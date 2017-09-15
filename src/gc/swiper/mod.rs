@@ -20,6 +20,10 @@ const YOUNG_RATIO: u32 = 5;
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
 
+// the number of collections an object remains in
+// young generation
+pub const PROMOTION_AGE: u32 = 4;
+
 pub struct Swiper {
     heap: Region,
 
