@@ -10,9 +10,17 @@ use object::Obj;
 use timer::{in_ms, Timer};
 
 pub struct YoungGen {
+    // bounds of from- & to-space
     total: Region,
-    from: SemiSpace,
-    to: SemiSpace,
+    
+    // address that separates fro & to-space
+    separator: Address,
+
+    // address of next free memory
+    free: AtomicUsize,
+
+    // end of free memory (either separator or total.end)
+    end: AtomicUsize,
 }
 
 impl YoungGen {
@@ -22,24 +30,25 @@ impl YoungGen {
 
         YoungGen {
             total: Region::new(young_start, young_end),
-            from: SemiSpace::new(young_start, half_address),
-            to: SemiSpace::new(half_address, young_end),
+            separator: half_address,
+            free: AtomicUsize::new(young_start.to_usize()),
+            end: AtomicUsize::new(half_address.to_usize()),
         }
     }
 
     pub fn alloc(&self, size: usize) -> *const u8 {
-        let mut old = self.from.free.load(Ordering::Relaxed);
+        let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
         loop {
             new = old + size;
 
-            if new >= self.from.end.to_usize() {
+            if new >= self.end.load(Ordering::Relaxed) {
                 return ptr::null();
             }
 
             let res =
-                self.from.free
+                self.free
                     .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
@@ -59,25 +68,38 @@ impl YoungGen {
     ) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
-        let mut scan = self.from.start;
-        let end: Address = self.from.free.load(Ordering::SeqCst).into();
-        let mut free = self.to.start;
+        let mut scan;
+        let scan_end: Address = self.free.load(Ordering::SeqCst).into();
+
+        let mut free;
+        let new_end;
+
+        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
+            scan = self.total.start;
+            free = self.separator;
+            new_end = self.total.end;
+
+        } else {
+            scan = self.separator;
+            free = self.total.start;
+            new_end = self.separator;
+        }
 
         for &root in &rootset {
             let root_ptr = root.get();
 
-            if self.from.includes(root_ptr as usize) {
+            if self.total.includes(Address::from_ptr(root_ptr)) {
                 root.set(copy(root_ptr, &mut free, old));
             }
         }
 
-        while scan < end {
+        while scan < scan_end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
 
             object.visit_reference_fields(|child| {
                 let child_ptr = child.get();
 
-                if self.from.includes(child_ptr as usize) {
+                if self.total.includes(Address::from_ptr(child_ptr)) {
                     child.set(copy(child_ptr, &mut free, old));
                 }
             });
@@ -85,15 +107,27 @@ impl YoungGen {
             scan = scan.offset(object.size());
         }
 
+        // swap spaces
+        self.end.store(new_end.to_usize(), Ordering::Relaxed);
+
+        // update start of free memory
+        self.free.store(free.to_usize(), Ordering::SeqCst);
+
         // memset from-space to garbage data for debug builds
         // makes sure that no pointer into from-space is left
         if cfg!(debug_assertions) {
+            let start = if new_end == self.separator {
+                self.total.start
+            } else {
+                self.separator
+            };
+
+            let size = self.separator.to_usize() - self.total.start.to_usize();
+
             unsafe {
-                ptr::write_bytes(self.from.start.to_usize() as *mut u8, 0xcc, self.from.size());
+                ptr::write_bytes(start.to_mut_ptr::<u8>(), 0xcc, size);
             }
         }
-
-        self.swap_spaces();
 
         timer.stop_with(|dur| {
             if ctxt.args.flag_gc_events {
@@ -101,16 +135,10 @@ impl YoungGen {
             }
         });
     }
-
-    fn swap_spaces(&mut self) {
-        unimplemented!();
-    }
 }
 
 struct SemiSpace {
     start: Address,
-    free: AtomicUsize,
-    uncommitted: Address,
     end: Address,
 }
 
@@ -118,8 +146,6 @@ impl SemiSpace {
     fn new(start: Address, end: Address) -> SemiSpace {
         SemiSpace {
             start: start,
-            free: AtomicUsize::new(start.to_usize()),
-            uncommitted: start,
             end: end,
         }
     }
@@ -127,22 +153,12 @@ impl SemiSpace {
     fn empty() -> SemiSpace {
         SemiSpace {
             start: Address::null(),
-            free: AtomicUsize::new(0),
-            uncommitted: Address::null(),
             end: Address::null(),
         }
     }
 
     fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
-    }
-
-    fn committed_size(&self) -> usize {
-        self.uncommitted.to_usize() - self.start.to_usize()
-    }
-
-    fn uncommitted_size(&self) -> usize {
-        self.end.to_usize() - self.uncommitted.to_usize()
     }
 
     fn includes(&self, ptr: usize) -> bool {

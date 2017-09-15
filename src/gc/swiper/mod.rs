@@ -126,6 +126,12 @@ impl Region {
         }
     }
 
+    #[inline(always)]
+    fn includes(&self, addr: Address) -> bool {
+        self.start <= addr && addr < self.end
+    }
+
+    #[inline(always)]
     fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
     }
