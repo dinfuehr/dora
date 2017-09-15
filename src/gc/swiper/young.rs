@@ -5,6 +5,7 @@ use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
 use gc::swiper::{PROMOTION_AGE, Region};
+use gc::swiper::old::OldGen;
 use object::Obj;
 use timer::{in_ms, Timer};
 
@@ -54,6 +55,7 @@ impl YoungGen {
         &mut self,
         ctxt: &SemContext,
         rootset: Vec<IndirectObj>,
+        old: &OldGen,
     ) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
@@ -65,7 +67,7 @@ impl YoungGen {
             let root_ptr = root.get();
 
             if self.from.includes(root_ptr as usize) {
-                root.set(copy(root_ptr, &mut free));
+                root.set(copy(root_ptr, &mut free, old));
             }
         }
 
@@ -76,7 +78,7 @@ impl YoungGen {
                 let child_ptr = child.get();
 
                 if self.from.includes(child_ptr as usize) {
-                    child.set(copy(child_ptr, &mut free));
+                    child.set(copy(child_ptr, &mut free, old));
                 }
             });
 
@@ -148,7 +150,7 @@ impl SemiSpace {
     }
 }
 
-pub fn copy(obj: *mut Obj, free: &mut Address) -> *mut Obj {
+pub fn copy(obj: *mut Obj, free: &mut Address, old: &OldGen) -> *mut Obj {
     let obj = unsafe { &mut *obj };
     let addr = get_forwarding_address(obj);
 
@@ -162,21 +164,25 @@ pub fn copy(obj: *mut Obj, free: &mut Address) -> *mut Obj {
 
         // if object is old enough we copy it into the old generation
         if age >= PROMOTION_AGE {
-            unimplemented!();
+            addr = Address::from_ptr(old.alloc(obj_size));
+            copy_object(obj, addr, obj_size);
 
         // otherwise the object remains in the young generation for nows
         } else {
             addr = *free;
-
-            unsafe {
-                ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), obj_size);
-                *free = addr.offset(obj_size);
-            }
+            copy_object(obj, addr, obj_size);
+            *free = addr.offset(obj_size);
         }
 
         set_forwarding_address(obj, addr);
 
         addr.to_mut_ptr::<Obj>()
+    }
+}
+
+fn copy_object(obj: &Obj, addr: Address, size: usize) {
+    unsafe {
+        ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), size);
     }
 }
 
