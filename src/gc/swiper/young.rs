@@ -167,7 +167,7 @@ pub fn copy(obj: *mut Obj, free: &mut Address, old: &OldGen) -> *mut Obj {
             addr = Address::from_ptr(old.alloc(obj_size));
             copy_object(obj, addr, obj_size);
 
-        // otherwise the object remains in the young generation for nows
+        // otherwise the object remains in the young generation for now
         } else {
             addr = *free;
             copy_object(obj, addr, obj_size);

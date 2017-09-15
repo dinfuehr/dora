@@ -12,6 +12,8 @@ pub mod young;
 pub mod old;
 pub mod card;
 
+// determines size of young generation in heap
+// young generation size = heap size / YOUNG_RATIO
 const YOUNG_RATIO: u32 = 5;
 
 // size of card is 128 bytes
@@ -43,6 +45,11 @@ impl Swiper {
 
         // determine size for card table
         let card_size = mem::page_align(heap_size >> CARD_SIZE_BITS);
+
+        // determine size for crossing map
+        // allocate crossings for whole heap, although we should only
+        // need it for the old generation
+        let crossing_size = mem::page_align(heap_size >> CARD_SIZE_BITS);
 
         let alloc_size = heap_size + card_size;
 
