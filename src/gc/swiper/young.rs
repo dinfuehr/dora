@@ -13,7 +13,7 @@ pub struct YoungGen {
     // bounds of from- & to-space
     total: Region,
     
-    // address that separates fro & to-space
+    // address that separates from & to-space
     separator: Address,
 
     // address of next free memory
@@ -134,35 +134,6 @@ impl YoungGen {
                 println!("GC minor: collect garbage ({} ms)", in_ms(dur));
             }
         });
-    }
-}
-
-struct SemiSpace {
-    start: Address,
-    end: Address,
-}
-
-impl SemiSpace {
-    fn new(start: Address, end: Address) -> SemiSpace {
-        SemiSpace {
-            start: start,
-            end: end,
-        }
-    }
-
-    fn empty() -> SemiSpace {
-        SemiSpace {
-            start: Address::null(),
-            end: Address::null(),
-        }
-    }
-
-    fn size(&self) -> usize {
-        self.end.to_usize() - self.start.to_usize()
-    }
-
-    fn includes(&self, ptr: usize) -> bool {
-        self.start.to_usize() <= ptr && ptr < self.end.to_usize()
     }
 }
 

@@ -79,7 +79,7 @@ impl Swiper {
 
             young: young,
             old: old,
-            card_table: CardTable::new(heap_end, heap_end.offset(card_size)),
+            card_table: CardTable::new(heap_end, heap_end.offset(card_size), young_size),
 
             card_table_offset: card_table_offset,
         }
