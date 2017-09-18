@@ -27,8 +27,8 @@ impl CardTable {
         card
     }
 
-    // reset card table
-    pub fn reset(&self) {
+    // reset card table entries to 1 (not dirty)
+    fn reset(&self) {
         let size = self.end.to_usize() - self.start.to_usize();
 
         unsafe {

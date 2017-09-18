@@ -4,10 +4,12 @@ use gc::arena;
 use gc::Address;
 use gc::Collector;
 use gc::swiper::card::CardTable;
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
 use mem;
 
+mod crossing;
 pub mod young;
 pub mod old;
 pub mod card;
@@ -32,6 +34,7 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     card_table: CardTable,
+    crossing_map: CrossingMap,
 
     card_table_offset: usize,
 }
@@ -43,15 +46,17 @@ impl Swiper {
         // set heap size to multiple of page
         let heap_size = mem::page_align(heap_size);
 
+        // determine sizes of young/old-gen
+        let young_size = mem::page_align(heap_size / (YOUNG_RATIO as usize));
+        let old_size = heap_size - young_size;
+
         // determine size for card table
         let card_size = mem::page_align(heap_size >> CARD_SIZE_BITS);
 
         // determine size for crossing map
-        // allocate crossings for whole heap, although we should only
-        // need it for the old generation
-        let crossing_size = mem::page_align(heap_size >> CARD_SIZE_BITS);
+        let crossing_size = mem::page_align(old_size >> CARD_SIZE_BITS);
 
-        let alloc_size = heap_size + card_size;
+        let alloc_size = heap_size + card_size + crossing_size;
 
         let ptr = arena::reserve(alloc_size).expect("could not reserve memory");
         let ptr = Address::from_ptr(ptr);
@@ -61,7 +66,6 @@ impl Swiper {
 
         // determine boundaries of young generation
         let young_start = heap_start;
-        let young_size = mem::page_align(heap_size / (YOUNG_RATIO as usize));
         let young_end = young_start.offset(young_size);
         let young = YoungGen::new(young_start, young_end);
 
@@ -74,12 +78,23 @@ impl Swiper {
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
         let card_table_offset = heap_end.to_usize() - (heap_start.to_usize() >> CARD_SIZE_BITS);
 
+        // determine boundaries for card table
+        let card_start = heap_end;
+        let card_end = card_start.offset(card_size);
+        let card_table = CardTable::new(card_start, card_end, young_size);
+
+        // determine boundaries for crossing map
+        let crossing_start = card_end;
+        let crossing_end = crossing_start.offset(crossing_size);
+        let crossing_map = CrossingMap::new(crossing_start, crossing_end);
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
 
             young: young,
             old: old,
-            card_table: CardTable::new(heap_end, heap_end.offset(card_size), young_size),
+            card_table: card_table,
+            crossing_map: crossing_map,
 
             card_table_offset: card_table_offset,
         }
