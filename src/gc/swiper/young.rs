@@ -5,6 +5,8 @@ use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
 use gc::swiper::{PROMOTION_AGE, Region};
+use gc::swiper::card::CardTable;
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
 use object::Obj;
 use timer::{in_ms, Timer};
@@ -64,6 +66,8 @@ impl YoungGen {
         &self,
         ctxt: &SemContext,
         rootset: Vec<IndirectObj>,
+        card_table: &CardTable,
+        _crossing_map: &CrossingMap,
         old: &OldGen,
     ) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
@@ -93,7 +97,12 @@ impl YoungGen {
             }
         }
 
-        // pseudo code for old -> young references
+        // copy objects for old -> young references
+        card_table.visit_dirty(|_card| {
+
+        });
+
+
         // for card in dirty_cards {
         //     for object in card.objects {
         //         object.visit_reference_fields(|child| {

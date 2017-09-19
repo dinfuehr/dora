@@ -51,4 +51,43 @@ impl CrossingMap {
             *self.start.offset(card).to_mut_ptr::<u8>() = val;
         }
     }
+
+    pub fn get(&self, card: usize) -> CrossingEntry {
+        let val = unsafe { *self.start.offset(card).to_ptr::<u8>() };
+
+        CrossingEntry(val)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct CrossingEntry(u8);
+
+impl CrossingEntry {
+    pub fn is_no_references(self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn is_first_object(self) -> bool {
+        self.0 > 0 && self.0 <= 64
+    }
+
+    pub fn first_object(self) -> u8 {
+        self.0
+    }
+
+    pub fn is_references_at_start(self) -> bool {
+        self.0 > 64 && self.0 <= 128
+    }
+
+    pub fn references_at_start(self) -> u8 {
+        self.0 - 64
+    }
+
+    pub fn is_previous_card(self) -> bool {
+        self.0 > 128
+    }
+
+    pub fn previous_card(self) -> u8 {
+        self.0 - 128
+    }
 }

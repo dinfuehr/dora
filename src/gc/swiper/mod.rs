@@ -111,7 +111,7 @@ impl Collector for Swiper {
         }
 
         let rootset = get_rootset(ctxt);
-        self.young.collect(ctxt, rootset, &self.old);
+        self.young.collect(ctxt, rootset, &self.card_table, &self.crossing_map, &self.old);
 
         self.young.alloc(size)
     }

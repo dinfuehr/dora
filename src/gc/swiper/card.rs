@@ -35,4 +35,19 @@ impl CardTable {
             ptr::write_bytes(self.start.to_mut_ptr::<u8>(), 1, size);
         }
     }
+
+    // visits all dirty cards
+    pub fn visit_dirty<F>(&self, mut f: F) where F: FnMut(usize) {
+        let mut ptr = self.start.to_usize();
+
+        while ptr < self.end.to_usize() {
+            let val = unsafe { *(ptr as *const u8) };
+
+            if val == 0 {
+                f(ptr - self.start.to_usize());
+            }
+
+            ptr += 1;
+        }
+    }
 }
