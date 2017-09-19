@@ -3,6 +3,7 @@ use driver::cmd::Args;
 use gc::arena;
 use gc::Address;
 use gc::Collector;
+use gc::root::get_rootset;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::young::YoungGen;
@@ -102,15 +103,15 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc(&self, _: &SemContext, size: usize) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
         }
 
-        // TODO: invoke collect
-        // self.young.collect(ctxt);
+        let rootset = get_rootset(ctxt);
+        self.young.collect(ctxt, rootset, &self.old);
 
         self.young.alloc(size)
     }

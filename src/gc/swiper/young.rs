@@ -61,7 +61,7 @@ impl YoungGen {
     }
 
     pub fn collect(
-        &mut self,
+        &self,
         ctxt: &SemContext,
         rootset: Vec<IndirectObj>,
         old: &OldGen,
@@ -92,6 +92,19 @@ impl YoungGen {
                 root.set(copy(root_ptr, &mut free, old));
             }
         }
+
+        // pseudo code for old -> young references
+        // for card in dirty_cards {
+        //     for object in card.objects {
+        //         object.visit_reference_fields(|child| {
+        //             let child_ptr = child.get();
+
+        //             if self.total.includes(Address::from_ptr(child_ptr)) {
+        //                 child.set(copy(child_ptr, &mut free, old));
+        //             }
+        //         });
+        //     }
+        // }
 
         while scan < scan_end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
