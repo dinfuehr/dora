@@ -1,4 +1,5 @@
 use gc::Address;
+use gc::swiper::CARD_SIZE;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
@@ -56,6 +57,10 @@ impl CrossingMap {
         let val = unsafe { *self.start.offset(card).to_ptr::<u8>() };
 
         CrossingEntry(val)
+    }
+
+    pub fn address_of_card(&self, card: usize) -> Address {
+        self.start.offset(card * CARD_SIZE)
     }
 }
 

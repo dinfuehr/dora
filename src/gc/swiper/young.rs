@@ -4,7 +4,7 @@ use std::ptr;
 use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
-use gc::swiper::{PROMOTION_AGE, Region};
+use gc::swiper::{CARD_SIZE, PROMOTION_AGE, Region};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
@@ -103,10 +103,19 @@ impl YoungGen {
 
             // card contains: any data but no references, then first object
             if crossing_entry.is_first_object() {
+                let card_start = crossing_map.address_of_card(card);
+
+                // first_object() returns number of words before end of card
+                let offset_from_end = crossing_entry.first_object() as usize * 8;
+                let _address = card_start.offset(CARD_SIZE - offset_from_end);
+
                 unimplemented!();
 
             // card contains: references, then first object
             } else if crossing_entry.is_references_at_start() {
+                let _number_references = crossing_entry.references_at_start() as usize;
+                let _ptr = crossing_map.address_of_card(card);
+
                 unimplemented!();
 
             // object spans multiple cards
