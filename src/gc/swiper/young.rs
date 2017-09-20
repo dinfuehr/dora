@@ -103,20 +103,38 @@ impl YoungGen {
 
             // card contains: any data but no references, then first object
             if crossing_entry.is_first_object() {
-                let card_start = crossing_map.address_of_card(card);
+                let card_address = crossing_map.address_of_card(card);
 
                 // first_object() returns number of words before end of card
                 let offset_from_end = crossing_entry.first_object() as usize * 8;
-                let _address = card_start.offset(CARD_SIZE - offset_from_end);
+                let ptr = card_address.offset(CARD_SIZE - offset_from_end);
 
-                unimplemented!();
+                let end = card_address.offset(CARD_SIZE);
+
+                // copy all objects from this card
+                copy_card(ptr, end, &mut free, &self.total, old);
 
             // card contains: references, then first object
             } else if crossing_entry.is_references_at_start() {
-                let _number_references = crossing_entry.references_at_start() as usize;
-                let _ptr = crossing_map.address_of_card(card);
+                let number_references = crossing_entry.references_at_start() as usize;
+                let card_address = crossing_map.address_of_card(card);
+                let mut ptr = card_address;
 
-                unimplemented!();
+                for _ in 0..number_references {
+                    let ind_ptr = IndirectObj::from_address(ptr);
+                    let dir_ptr = ind_ptr.get();
+
+                    if self.total.includes(Address::from_ptr(dir_ptr)) {
+                        ind_ptr.set(copy(dir_ptr, &mut free, old));
+                    }
+
+                    ptr = ptr.offset(8);
+                }
+
+                let end = card_address.offset(CARD_SIZE);
+
+                // copy all objects from this card
+                copy_card(ptr, end, &mut free, &self.total, old);
 
             // object spans multiple cards
             } else if crossing_entry.is_previous_card() {
@@ -169,6 +187,22 @@ impl YoungGen {
                 println!("GC minor: collect garbage ({} ms)", in_ms(dur));
             }
         });
+    }
+}
+
+pub fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Region, old: &OldGen) {
+    while ptr < end {
+        let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
+
+        object.visit_reference_fields(|child| {
+            let child_ptr = child.get();
+
+            if young.includes(Address::from_ptr(child_ptr)) {
+                child.set(copy(child_ptr, &mut free, old));
+            }
+        });
+
+        ptr = ptr.offset(object.size());
     }
 }
 

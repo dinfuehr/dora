@@ -4,6 +4,7 @@ use baseline::map::CodeData;
 use ctxt::SemContext;
 use object::Obj;
 use exception::DoraToNativeInfo;
+use gc::Address;
 
 pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
     let mut rootset = Vec::new();
@@ -101,6 +102,10 @@ fn determine_rootset(
 pub struct IndirectObj(*mut *mut Obj);
 
 impl IndirectObj {
+    pub fn from_address(addr: Address) -> IndirectObj {
+        IndirectObj(addr.to_usize() as *mut *mut Obj)
+    }
+
     pub fn get(self) -> *mut Obj {
         unsafe { *self.0 }
     }
