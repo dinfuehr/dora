@@ -92,6 +92,7 @@ impl YoungGen {
             new_end = self.separator;
         }
 
+        // copy all references from roots into young generation
         for &root in &rootset {
             let root_ptr = root.get();
 
@@ -100,6 +101,7 @@ impl YoungGen {
             }
         }
 
+        // copy all references from dirty cards into young generation
         copy_dirty_cards(card_table, crossing_map, &mut free, &self.total, old);
 
         while scan < scan_end {
