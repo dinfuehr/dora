@@ -22,7 +22,8 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
                 method.name,
                 Some(cls),
                 method.params_without_self(),
-            ) {
+            )
+            {
                 method.impl_for = Some(fid);
                 defined.insert(fid);
             } else {

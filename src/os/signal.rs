@@ -227,9 +227,9 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
     let bailout = {
         let data = {
             let code_map = ctxt.code_map.lock().unwrap();
-            code_map
-                .get(ra as *const u8)
-                .expect("return address not found")
+            code_map.get(ra as *const u8).expect(
+                "return address not found",
+            )
         };
 
         let fct_id = match data {

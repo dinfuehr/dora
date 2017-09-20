@@ -57,9 +57,13 @@ pub fn check_abstract<'ast>(
             let cls_name = ctxt.interner.str(mtd_cls.name).to_string();
             let mtd_name = ctxt.interner.str(mtd.name).to_string();
 
-            ctxt.diag
-                .borrow_mut()
-                .report(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
+            ctxt.diag.borrow_mut().report(
+                cls.pos,
+                Msg::MissingAbstractOverride(
+                    cls_name,
+                    mtd_name,
+                ),
+            );
         }
     }
 }

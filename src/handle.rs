@@ -86,9 +86,7 @@ struct HandleBuffer {
 
 impl HandleBuffer {
     fn new() -> HandleBuffer {
-        HandleBuffer {
-            elements: [Handle::null(); HANDLE_SIZE],
-        }
+        HandleBuffer { elements: [Handle::null(); HANDLE_SIZE] }
     }
 }
 

@@ -117,9 +117,10 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag
-                .borrow_mut()
-                .report(fct.pos, Msg::UnresolvedInternal);
+            ctxt.diag.borrow_mut().report(
+                fct.pos,
+                Msg::UnresolvedInternal,
+            );
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
@@ -131,24 +132,27 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.borrow();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag
-                .borrow_mut()
-                .report(cls.pos, Msg::UnresolvedInternal);
+            ctxt.diag.borrow_mut().report(
+                cls.pos,
+                Msg::UnresolvedInternal,
+            );
         }
 
         for method in &cls.methods {
             let method = ctxt.fcts[*method].borrow();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(method.pos, Msg::UnresolvedInternal);
+                ctxt.diag.borrow_mut().report(
+                    method.pos,
+                    Msg::UnresolvedInternal,
+                );
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(method.pos, Msg::MissingFctBody);
+                ctxt.diag.borrow_mut().report(
+                    method.pos,
+                    Msg::MissingFctBody,
+                );
             }
         }
     }
@@ -184,124 +188,126 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
             return Some(BuiltinType::This);
         }
 
-        TypeBasic(ref basic) => if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
-            match sym {
-                SymClass(cls_id) => {
-                    let ty = if basic.params.len() > 0 {
-                        let mut type_params = Vec::new();
+        TypeBasic(ref basic) => {
+            if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
+                match sym {
+                    SymClass(cls_id) => {
+                        let ty = if basic.params.len() > 0 {
+                            let mut type_params = Vec::new();
 
-                        for param in &basic.params {
-                            let param = read_type(ctxt, param);
+                            for param in &basic.params {
+                                let param = read_type(ctxt, param);
 
-                            if let Some(param) = param {
-                                type_params.push(param);
-                            } else {
-                                return None;
-                            }
-                        }
-
-                        let cls = ctxt.classes[cls_id].borrow();
-
-                        if cls.type_params.len() != type_params.len() {
-                            let msg = Msg::WrongNumberTypeParams(
-                                cls.type_params.len(),
-                                type_params.len(),
-                            );
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
-                            return None;
-                        }
-
-                        for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
-                            if let Some(cls_id) = tp.class_bound {
-                                let cls = ctxt.cls(cls_id);
-
-                                if !ty.subclass_from(ctxt, cls) {
-                                    let name = ty.name(ctxt);
-                                    let cls = cls.name(ctxt);
-
-                                    let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                                    ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                if let Some(param) = param {
+                                    type_params.push(param);
+                                } else {
+                                    return None;
                                 }
                             }
-
-                            let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
-                                cls_id
-                            } else {
-                                continue;
-                            };
 
                             let cls = ctxt.classes[cls_id].borrow();
 
-                            for &trait_bound in &tp.trait_bounds {
-                                if !cls.traits.contains(&trait_bound) {
-                                    let bound = ctxt.traits[trait_bound].borrow();
-                                    let name = ty.name(ctxt);
-                                    let trait_name = ctxt.interner.str(bound.name).to_string();
-                                    let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                    ctxt.diag.borrow_mut().report(bound.pos, msg);
+                            if cls.type_params.len() != type_params.len() {
+                                let msg = Msg::WrongNumberTypeParams(
+                                    cls.type_params.len(),
+                                    type_params.len(),
+                                );
+                                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                return None;
+                            }
+
+                            for (tp, ty) in cls.type_params.iter().zip(type_params.iter()) {
+                                if let Some(cls_id) = tp.class_bound {
+                                    let cls = ctxt.cls(cls_id);
+
+                                    if !ty.subclass_from(ctxt, cls) {
+                                        let name = ty.name(ctxt);
+                                        let cls = cls.name(ctxt);
+
+                                        let msg = Msg::ClassBoundNotSatisfied(name, cls);
+                                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                    }
+                                }
+
+                                let cls_id = if let Some(cls_id) = ty.cls_id(ctxt) {
+                                    cls_id
+                                } else {
+                                    continue;
+                                };
+
+                                let cls = ctxt.classes[cls_id].borrow();
+
+                                for &trait_bound in &tp.trait_bounds {
+                                    if !cls.traits.contains(&trait_bound) {
+                                        let bound = ctxt.traits[trait_bound].borrow();
+                                        let name = ty.name(ctxt);
+                                        let trait_name = ctxt.interner.str(bound.name).to_string();
+                                        let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
+                                        ctxt.diag.borrow_mut().report(bound.pos, msg);
+                                    }
                                 }
                             }
+
+                            let list_id = ctxt.lists.borrow_mut().insert(type_params.into());
+                            BuiltinType::Class(cls.id, list_id)
+                        } else {
+                            let cls = ctxt.classes[cls_id].borrow();
+
+                            cls.ty
+                        };
+
+                        return Some(ty);
+                    }
+
+                    SymTrait(trait_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
                         }
 
-                        let list_id = ctxt.lists.borrow_mut().insert(type_params.into());
-                        BuiltinType::Class(cls.id, list_id)
-                    } else {
-                        let cls = ctxt.classes[cls_id].borrow();
-
-                        cls.ty
-                    };
-
-                    return Some(ty);
-                }
-
-                SymTrait(trait_id) => {
-                    if basic.params.len() > 0 {
-                        let msg = Msg::NoTypeParamsExpected;
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        return Some(BuiltinType::Trait(trait_id));
                     }
 
-                    return Some(BuiltinType::Trait(trait_id));
-                }
+                    SymStruct(struct_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
 
-                SymStruct(struct_id) => {
-                    if basic.params.len() > 0 {
-                        let msg = Msg::NoTypeParamsExpected;
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        let list_id = ctxt.lists.borrow_mut().insert(TypeParams::empty());
+                        return Some(BuiltinType::Struct(struct_id, list_id));
                     }
 
-                    let list_id = ctxt.lists.borrow_mut().insert(TypeParams::empty());
-                    return Some(BuiltinType::Struct(struct_id, list_id));
-                }
+                    SymClassTypeParam(cls_id, type_param_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
 
-                SymClassTypeParam(cls_id, type_param_id) => {
-                    if basic.params.len() > 0 {
-                        let msg = Msg::NoTypeParamsExpected;
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
                     }
 
-                    return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
-                }
+                    SymFctTypeParam(fct_id, type_param_id) => {
+                        if basic.params.len() > 0 {
+                            let msg = Msg::NoTypeParamsExpected;
+                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        }
 
-                SymFctTypeParam(fct_id, type_param_id) => {
-                    if basic.params.len() > 0 {
-                        let msg = Msg::NoTypeParamsExpected;
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
                     }
 
-                    return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
+                    _ => {
+                        let name = ctxt.interner.str(basic.name).to_string();
+                        let msg = Msg::ExpectedType(name);
+                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                    }
                 }
-
-                _ => {
-                    let name = ctxt.interner.str(basic.name).to_string();
-                    let msg = Msg::ExpectedType(name);
-                    ctxt.diag.borrow_mut().report(basic.pos, msg);
-                }
+            } else {
+                let name = ctxt.interner.str(basic.name).to_string();
+                let msg = Msg::UnknownType(name);
+                ctxt.diag.borrow_mut().report(basic.pos, msg);
             }
-        } else {
-            let name = ctxt.interner.str(basic.name).to_string();
-            let msg = Msg::UnknownType(name);
-            ctxt.diag.borrow_mut().report(basic.pos, msg);
-        },
+        }
 
         TypeTuple(ref tuple) if tuple.subtypes.len() == 0 => {
             return Some(BuiltinType::Unit);

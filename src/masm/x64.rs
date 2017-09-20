@@ -138,9 +138,12 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
-            MachineMode::Int8 | MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
-            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+            MachineMode::Int8 |
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         };
 
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
@@ -457,11 +460,12 @@ impl MacroAssembler {
     pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        let size = Header::size() + ptr_width() + if element_size != ptr_width() {
-            ptr_width() - 1
-        } else {
-            0
-        };
+        let size = Header::size() + ptr_width() +
+            if element_size != ptr_width() {
+                ptr_width() - 1
+            } else {
+                0
+            };
 
         asm::lea(self, dest, Mem::Offset(length, element_size, size));
 
@@ -503,39 +507,45 @@ impl MacroAssembler {
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: ExprStore, mem: Mem) {
         match mem {
-            Mem::Local(offset) => match mode {
-                MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
-                MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest.reg()),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_memq_reg(self, RBP, offset, dest.reg())
+            Mem::Local(offset) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, RBP, offset, dest.reg()),
+                    MachineMode::Int32 => asm::emit_movl_memq_reg(self, RBP, offset, dest.reg()),
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => asm::emit_movq_memq_reg(self, RBP, offset, dest.reg()),
+                    MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
+                    MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
                 }
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
+            }
 
-            Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest.reg()),
-                MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest.reg()),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_memq_reg(self, base, disp, dest.reg())
+            Mem::Base(base, disp) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movzbl_memq_reg(self, base, disp, dest.reg()),
+                    MachineMode::Int32 => asm::emit_movl_memq_reg(self, base, disp, dest.reg()),
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => asm::emit_movq_memq_reg(self, base, disp, dest.reg()),
+                    MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
+                    MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
                 }
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
+            }
 
-            Mem::Index(base, index, scale, disp) => match mode {
-                MachineMode::Int8 => {
-                    assert!(scale == 1);
-                    asm::emit_movzx_memindex_byte_reg(self, 0, base, index, disp, dest.reg())
+            Mem::Index(base, index, scale, disp) => {
+                match mode {
+                    MachineMode::Int8 => {
+                        assert!(scale == 1);
+                        asm::emit_movzx_memindex_byte_reg(self, 0, base, index, disp, dest.reg())
+                    }
+
+                    MachineMode::Int32 |
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => {
+                        asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest.reg())
+                    }
+
+                    MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
+                    MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
                 }
-
-                MachineMode::Int32 | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_mov_memindex_reg(self, mode, base, index, scale, disp, dest.reg())
-                }
-
-                MachineMode::Float32 => asm::movss_load(self, dest.freg(), mem),
-                MachineMode::Float64 => asm::movsd_load(self, dest.freg(), mem),
-            },
+            }
 
             Mem::Offset(_, _, _) => unimplemented!(),
         }
@@ -583,34 +593,41 @@ impl MacroAssembler {
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: ExprStore) {
         match mem {
-            Mem::Local(offset) => match mode {
-                MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),
-                MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), RBP, offset),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_reg_memq(self, src.reg(), RBP, offset)
+            Mem::Local(offset) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), RBP, offset),
+                    MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), RBP, offset),
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => asm::emit_movq_reg_memq(self, src.reg(), RBP, offset),
+                    MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
+                    MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
                 }
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
+            }
 
-            Mem::Base(base, disp) => match mode {
-                MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), base, disp),
-                MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), base, disp),
-                MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_movq_reg_memq(self, src.reg(), base, disp)
+            Mem::Base(base, disp) => {
+                match mode {
+                    MachineMode::Int8 => asm::emit_movb_reg_memq(self, src.reg(), base, disp),
+                    MachineMode::Int32 => asm::emit_movl_reg_memq(self, src.reg(), base, disp),
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => asm::emit_movq_reg_memq(self, src.reg(), base, disp),
+                    MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
+                    MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
                 }
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
+            }
 
-            Mem::Index(base, index, scale, disp) => match mode {
-                MachineMode::Int8 | MachineMode::Int32 | MachineMode::Int64 | MachineMode::Ptr => {
-                    asm::emit_mov_reg_memindex(self, mode, src.reg(), base, index, scale, disp)
+            Mem::Index(base, index, scale, disp) => {
+                match mode {
+                    MachineMode::Int8 |
+                    MachineMode::Int32 |
+                    MachineMode::Int64 |
+                    MachineMode::Ptr => {
+                        asm::emit_mov_reg_memindex(self, mode, src.reg(), base, index, scale, disp)
+                    }
+
+                    MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
+                    MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
                 }
-
-                MachineMode::Float32 => asm::movss_store(self, mem, src.freg()),
-                MachineMode::Float64 => asm::movsd_store(self, mem, src.freg()),
-            },
+            }
 
             Mem::Offset(_, _, _) => unimplemented!(),
         }
@@ -618,9 +635,12 @@ impl MacroAssembler {
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         let x64 = match mode {
-            MachineMode::Int8 | MachineMode::Int32 => 0,
-            MachineMode::Int64 | MachineMode::Ptr => 1,
-            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+            MachineMode::Int8 |
+            MachineMode::Int32 => 0,
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         };
 
         asm::emit_mov_reg_reg(self, x64, src, dest);
@@ -671,15 +691,18 @@ impl MacroAssembler {
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         match mode {
-            MachineMode::Int8 | MachineMode::Int32 => {
-                asm::emit_movl_imm_reg(self, imm as i32, dest)
+            MachineMode::Int8 |
+            MachineMode::Int32 => asm::emit_movl_imm_reg(self, imm as i32, dest),
+            MachineMode::Int64 |
+            MachineMode::Ptr => {
+                if fits_i32(imm) {
+                    asm::emit_movq_imm_reg(self, imm as i32, dest);
+                } else {
+                    asm::emit_movq_imm64_reg(self, imm, dest);
+                }
             }
-            MachineMode::Int64 | MachineMode::Ptr => if fits_i32(imm) {
-                asm::emit_movq_imm_reg(self, imm as i32, dest);
-            } else {
-                asm::emit_movq_imm64_reg(self, imm, dest);
-            },
-            MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+            MachineMode::Float32 |
+            MachineMode::Float64 => unreachable!(),
         }
     }
 

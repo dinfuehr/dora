@@ -218,9 +218,11 @@ fn emit_membase(buf: &mut MacroAssembler, base: Reg, disp: i32, dest: Reg) {
 
 pub fn emit_cmp_imm_reg(buf: &mut MacroAssembler, mode: MachineMode, imm: i32, reg: Reg) {
     let x64 = match mode {
-        MachineMode::Int8 | MachineMode::Int32 => 0,
+        MachineMode::Int8 |
+        MachineMode::Int32 => 0,
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => 1,
     };
 
@@ -332,7 +334,8 @@ pub fn emit_sub_imm_mem(buf: &mut MacroAssembler, mode: MachineMode, base: Reg, 
         MachineMode::Ptr => (1, 0x83),
         MachineMode::Int32 => (0, 0x83),
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Int8 => (0, 0x80),
     };
 
@@ -567,7 +570,8 @@ pub fn emit_cmp_mem_reg(
         MachineMode::Int8 => (0, 0x38),
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
         MachineMode::Ptr => (1, 0x39),
     };
 
@@ -594,8 +598,10 @@ pub fn emit_mov_memindex_reg(
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x8a),
         MachineMode::Int32 => (0, 0x8b),
-        MachineMode::Int64 | MachineMode::Ptr => (1, 0x8b),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Int64 |
+        MachineMode::Ptr => (1, 0x8b),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -637,8 +643,10 @@ pub fn emit_mov_reg_memindex(
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x88),
         MachineMode::Int32 => (0, 0x89),
-        MachineMode::Int64 | MachineMode::Ptr => (1, 0x89),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Int64 |
+        MachineMode::Ptr => (1, 0x89),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || src.msb() != 0 || index.msb() != 0 || base.msb() != 0 {
@@ -665,7 +673,8 @@ pub fn emit_cmp_mem_imm(
         MachineMode::Int32 => (0, opcode),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, opcode),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || base_msb != 0 {
@@ -702,7 +711,8 @@ pub fn emit_cmp_memindex_reg(
         MachineMode::Int32 => (0, 0x39),
         MachineMode::Int64 => unimplemented!(),
         MachineMode::Ptr => (1, 0x39),
-        MachineMode::Float32 | MachineMode::Float64 => unreachable!(),
+        MachineMode::Float32 |
+        MachineMode::Float64 => unreachable!(),
     };
 
     if x64 != 0 || dest.msb() != 0 || index.msb() != 0 || base.msb() != 0 {

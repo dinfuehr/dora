@@ -33,9 +33,7 @@ impl CopyCollector {
     pub fn new(args: &Args) -> CopyCollector {
         let heap_size = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024) / 2;
 
-        CopyCollector {
-            spaces: Mutex::new(Spaces::new(heap_size)),
-        }
+        CopyCollector { spaces: Mutex::new(Spaces::new(heap_size)) }
     }
 }
 

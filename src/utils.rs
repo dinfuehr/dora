@@ -7,9 +7,7 @@ pub struct GrowableVec<T> {
 
 impl<T> GrowableVec<T> {
     pub fn new() -> GrowableVec<T> {
-        GrowableVec {
-            elements: RefCell::new(Vec::new()),
-        }
+        GrowableVec { elements: RefCell::new(Vec::new()) }
     }
 
     pub fn push(&self, val: T) {

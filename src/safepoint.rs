@@ -10,9 +10,7 @@ pub struct PollingPage {
 
 impl PollingPage {
     pub fn new() -> PollingPage {
-        PollingPage {
-            addr: alloc_polling_page(),
-        }
+        PollingPage { addr: alloc_polling_page() }
     }
 
     pub fn addr(&self) -> *const u8 {

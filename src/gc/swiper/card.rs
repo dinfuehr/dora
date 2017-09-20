@@ -37,7 +37,10 @@ impl CardTable {
     }
 
     // visits all dirty cards
-    pub fn visit_dirty<F>(&self, mut f: F) where F: FnMut(usize) {
+    pub fn visit_dirty<F>(&self, mut f: F)
+    where
+        F: FnMut(usize),
+    {
         let mut ptr = self.start.to_usize();
 
         while ptr < self.end.to_usize() {

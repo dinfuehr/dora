@@ -16,9 +16,7 @@ pub struct NativeFcts {
 
 impl NativeFcts {
     pub fn new() -> NativeFcts {
-        NativeFcts {
-            map: HashMap::new(),
-        }
+        NativeFcts { map: HashMap::new() }
     }
 
     pub fn find_fct(&self, ptr: *const u8) -> Option<JitFctId> {
@@ -89,26 +87,34 @@ where
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
-        self.masm
-            .direct_call_without_info(start_native_call as *const u8);
+        self.masm.direct_call_without_info(
+            start_native_call as *const u8,
+        );
 
         restore_params(&mut self.masm, self.fct.args, offset_args);
 
         self.masm.direct_call_without_info(self.fct.ptr);
 
         if save_return {
-            self.masm
-                .store_mem(MachineMode::Ptr, Mem::Base(REG_SP, 0), REG_RESULT.into());
+            self.masm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_SP, 0),
+                REG_RESULT.into(),
+            );
         }
 
-        self.masm
-            .direct_call_without_info(finish_native_call as *const u8);
+        self.masm.direct_call_without_info(
+            finish_native_call as *const u8,
+        );
 
         let lbl_exception = self.masm.test_if_not_nil(REG_RESULT);
 
         if save_return {
-            self.masm
-                .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(REG_SP, 0));
+            self.masm.load_mem(
+                MachineMode::Ptr,
+                REG_RESULT.into(),
+                Mem::Base(REG_SP, 0),
+            );
         }
 
         self.masm.epilog(framesize, self.ctxt.polling_page.addr());
@@ -116,8 +122,12 @@ where
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm
-            .jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
+        self.masm.jit(
+            self.ctxt,
+            framesize,
+            self.fct.id,
+            self.fct.throws,
+        )
     }
 }
 

@@ -96,10 +96,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Some(ty) => ty,
             None => {
                 let tyname = self.ctxt.interner.str(s.name).to_string();
-                self.ctxt
-                    .diag
-                    .borrow_mut()
-                    .report(s.pos, Msg::VarNeedsTypeInfo(tyname));
+                self.ctxt.diag.borrow_mut().report(
+                    s.pos,
+                    Msg::VarNeedsTypeInfo(tyname),
+                );
 
                 return;
             }
@@ -120,10 +120,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // let variable binding needs to be assigned
         } else if !s.reassignable {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(s.pos, Msg::LetMissingInitialization);
+            self.ctxt.diag.borrow_mut().report(
+                s.pos,
+                Msg::LetMissingInitialization,
+            );
         }
     }
 
@@ -162,14 +162,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 // find method in impl that implements next()
                 let ximpl = self.ctxt.impls[impl_id].borrow();
-                let impl_next_id = ximpl
-                    .find_implements(self.ctxt, next_id)
-                    .expect("next() impl not found");
+                let impl_next_id = ximpl.find_implements(self.ctxt, next_id).expect(
+                    "next() impl not found",
+                );
 
                 // find method in impl that implements hasNext();
-                let impl_has_next_id = ximpl
-                    .find_implements(self.ctxt, has_next_id)
-                    .expect("hasNext() impl not found");
+                let impl_has_next_id = ximpl.find_implements(self.ctxt, has_next_id).expect(
+                    "hasNext() impl not found",
+                );
 
                 // get return type of next() in impl
                 let fct = self.ctxt.fcts[impl_next_id].borrow();
@@ -263,10 +263,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowNil);
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(s.pos, Msg::ReferenceTypeExpected(tyname));
+            self.ctxt.diag.borrow_mut().report(
+                s.pos,
+                Msg::ReferenceTypeExpected(
+                    tyname,
+                ),
+            );
         }
     }
 
@@ -274,10 +276,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
 
         if !s.expr.is_call() {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(s.pos, Msg::FctCallExpected);
+            self.ctxt.diag.borrow_mut().report(
+                s.pos,
+                Msg::FctCallExpected,
+            );
         }
     }
 
@@ -352,19 +354,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((_, fct_id, _)) = self.find_method(
-                e.pos,
-                object_type,
-                false,
-                name,
-                &args,
-                &TypeParams::empty(),
-                ret_type,
-            ) {
+            if let Some((_, fct_id, _)) =
+                self.find_method(
+                    e.pos,
+                    object_type,
+                    false,
+                    name,
+                    &args,
+                    &TypeParams::empty(),
+                    ret_type,
+                )
+            {
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src
-                    .map_calls
-                    .insert_or_replace(e.id, Rc::new(call_type));
+                self.src.map_calls.insert_or_replace(
+                    e.id,
+                    Rc::new(call_type),
+                );
             }
         } else if e.lhs.is_field() || e.lhs.is_ident() {
             self.visit_expr(&e.lhs);
@@ -375,19 +380,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some(ident_type) = self.src.map_idents.get(e.lhs.id()) {
                 match ident_type {
-                    &IdentType::Var(varid) => if !self.src.vars[varid].reassignable {
-                        self.ctxt
-                            .diag
-                            .borrow_mut()
-                            .report(e.pos, Msg::LetReassigned);
-                    },
+                    &IdentType::Var(varid) => {
+                        if !self.src.vars[varid].reassignable {
+                            self.ctxt.diag.borrow_mut().report(
+                                e.pos,
+                                Msg::LetReassigned,
+                            );
+                        }
+                    }
 
-                    &IdentType::Global(gid) => if !self.ctxt.globals[gid].borrow().reassignable {
-                        self.ctxt
-                            .diag
-                            .borrow_mut()
-                            .report(e.pos, Msg::LetReassigned);
-                    },
+                    &IdentType::Global(gid) => {
+                        if !self.ctxt.globals[gid].borrow().reassignable {
+                            self.ctxt.diag.borrow_mut().report(
+                                e.pos,
+                                Msg::LetReassigned,
+                            );
+                        }
+                    }
 
                     &IdentType::Field(ty, fieldid) => {
                         let clsid = ty.cls_id(self.ctxt).unwrap();
@@ -395,10 +404,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                         if !self.fct.ctor.is() &&
                             !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable
                         {
-                            self.ctxt
-                                .diag
-                                .borrow_mut()
-                                .report(e.pos, Msg::LetReassigned);
+                            self.ctxt.diag.borrow_mut().report(
+                                e.pos,
+                                Msg::LetReassigned,
+                            );
                         }
                     }
 
@@ -407,10 +416,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Const(_) => {
-                        self.ctxt
-                            .diag
-                            .borrow_mut()
-                            .report(e.pos, Msg::AssignmentToConst);
+                        self.ctxt.diag.borrow_mut().report(
+                            e.pos,
+                            Msg::AssignmentToConst,
+                        );
                     }
                 }
 
@@ -439,10 +448,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
         } else {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::LvalueExpected);
+            self.ctxt.diag.borrow_mut().report(
+                e.pos,
+                Msg::LvalueExpected,
+            );
         }
 
         self.src.set_ty(e.id, BuiltinType::Unit);
@@ -508,15 +517,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 
-        if let Some((_, fct_id, return_type)) = lookup_method(
-            self.ctxt,
-            ty,
-            false,
-            name,
-            &call_types,
-            &TypeParams::empty(),
-            None,
-        ) {
+        if let Some((_, fct_id, return_type)) =
+            lookup_method(
+                self.ctxt,
+                ty,
+                false,
+                name,
+                &call_types,
+                &TypeParams::empty(),
+                None,
+            )
+        {
             let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
             self.src.map_calls.insert(e.id, Rc::new(call_type));
 
@@ -582,19 +593,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [rhs_type];
 
-        if let Some((_, fct_id, return_type)) = lookup_method(
-            self.ctxt,
-            lhs_type,
-            false,
-            name,
-            &call_types,
-            &TypeParams::empty(),
-            None,
-        ) {
+        if let Some((_, fct_id, return_type)) =
+            lookup_method(
+                self.ctxt,
+                lhs_type,
+                false,
+                name,
+                &call_types,
+                &TypeParams::empty(),
+                None,
+            )
+        {
             let call_type = CallType::Method(lhs_type, fct_id, TypeParams::empty());
-            self.src
-                .map_calls
-                .insert_or_replace(e.id, Rc::new(call_type));
+            self.src.map_calls.insert_or_replace(
+                e.id,
+                Rc::new(call_type),
+            );
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -621,18 +635,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.reference_type() {
                     let lhs_type = lhs_type.name(self.ctxt);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, Msg::ReferenceTypeExpected(lhs_type));
+                    self.ctxt.diag.borrow_mut().report(
+                        e.pos,
+                        Msg::ReferenceTypeExpected(
+                            lhs_type,
+                        ),
+                    );
                 }
 
                 if !rhs_type.reference_type() {
                     let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, Msg::ReferenceTypeExpected(rhs_type));
+                    self.ctxt.diag.borrow_mut().report(
+                        e.pos,
+                        Msg::ReferenceTypeExpected(
+                            rhs_type,
+                        ),
+                    );
                 }
 
                 if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type)) &&
@@ -640,10 +658,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 {
                     let lhs_type = lhs_type.name(self.ctxt);
                     let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, Msg::TypesIncompatible(lhs_type, rhs_type));
+                    self.ctxt.diag.borrow_mut().report(
+                        e.pos,
+                        Msg::TypesIncompatible(
+                            lhs_type,
+                            rhs_type,
+                        ),
+                    );
                 }
 
                 self.src.set_ty(e.id, BuiltinType::Bool);
@@ -670,7 +691,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         rhs_type: BuiltinType,
         expected_type: BuiltinType,
     ) {
-        if !expected_type.allows(self.ctxt, lhs_type) || !expected_type.allows(self.ctxt, rhs_type)
+        if !expected_type.allows(self.ctxt, lhs_type) ||
+            !expected_type.allows(self.ctxt, rhs_type)
         {
             let op = op.as_str().into();
             let lhs_type = lhs_type.name(self.ctxt);
@@ -730,9 +752,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let return_type = lookup.found_ret().unwrap();
 
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src
-                    .map_calls
-                    .insert_or_replace(e.id, Rc::new(call_type));
+                self.src.map_calls.insert_or_replace(
+                    e.id,
+                    Rc::new(call_type),
+                );
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
 
@@ -904,7 +927,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 &arg_types,
                 &TypeParams::empty(),
                 &TypeParams::empty(),
-            ) {
+            )
+            {
                 self.src.map_tys.insert(e.id, self.ctxt.cls(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
@@ -1092,19 +1116,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];
 
-        if let Some((_, fct_id, return_type)) = self.find_method(
-            e.pos,
-            object_type,
-            false,
-            name,
-            &args,
-            &TypeParams::empty(),
-            None,
-        ) {
+        if let Some((_, fct_id, return_type)) =
+            self.find_method(
+                e.pos,
+                object_type,
+                false,
+                name,
+                &args,
+                &TypeParams::empty(),
+                None,
+            )
+        {
             let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-            self.src
-                .map_calls
-                .insert_or_replace(e.id, Rc::new(call_type));
+            self.src.map_calls.insert_or_replace(
+                e.id,
+                Rc::new(call_type),
+            );
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -1125,10 +1152,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
                 if !throws {
-                    self.ctxt
-                        .diag
-                        .borrow_mut()
-                        .report(e.pos, Msg::TryCallNonThrowing);
+                    self.ctxt.diag.borrow_mut().report(
+                        e.pos,
+                        Msg::TryCallNonThrowing,
+                    );
                 }
             }
 
@@ -1188,10 +1215,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !check_type.reference_type() {
             let name = check_type.name(self.ctxt);
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::ReferenceTypeExpected(name));
+            self.ctxt.diag.borrow_mut().report(
+                e.pos,
+                Msg::ReferenceTypeExpected(name),
+            );
             return;
         }
 
@@ -1251,17 +1278,23 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fname = self.ctxt.interner.str(field.name).to_string();
                 self.ctxt.diag.borrow_mut().report(
                     e.pos,
-                    Msg::StructFieldNotInitialized(struc_name.clone(), fname),
+                    Msg::StructFieldNotInitialized(
+                        struc_name.clone(),
+                        fname,
+                    ),
                 );
             }
         }
 
         for &fname in initialized.keys() {
             let fname = self.ctxt.interner.str(fname).to_string();
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
+            self.ctxt.diag.borrow_mut().report(
+                e.pos,
+                Msg::UnknownStructField(
+                    struc_name.clone(),
+                    fname,
+                ),
+            );
         }
 
         let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
@@ -1468,9 +1501,10 @@ fn check_lit_int<'ast>(
         };
 
         if (negative && val > max) || (!negative && val >= max) {
-            ctxt.diag
-                .borrow_mut()
-                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+            ctxt.diag.borrow_mut().report(
+                e.pos,
+                Msg::NumberOverflow(ty_name.into()),
+            );
         }
     } else {
         let max = match e.suffix {
@@ -1480,9 +1514,10 @@ fn check_lit_int<'ast>(
         };
 
         if val > max {
-            ctxt.diag
-                .borrow_mut()
-                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
+            ctxt.diag.borrow_mut().report(
+                e.pos,
+                Msg::NumberOverflow(ty_name.into()),
+            );
         }
     }
 
@@ -1522,9 +1557,10 @@ fn check_lit_float<'ast>(
             FloatSuffix::Double => "double",
         };
 
-        ctxt.diag
-            .borrow_mut()
-            .report(e.pos, Msg::NumberOverflow(ty.into()));
+        ctxt.diag.borrow_mut().report(
+            e.pos,
+            Msg::NumberOverflow(ty.into()),
+        );
     }
 
     (ty, value)
@@ -1706,13 +1742,15 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
             LookupKind::Callee(fct_id) => Some(fct_id),
 
-            LookupKind::Method(obj) => if obj == BuiltinType::Nil {
-                None
-            } else {
-                let cls_id = obj.cls_id(self.ctxt).expect("cls_id not found for object");
-                let name = self.name.expect("name not set");
-                self.find_method(cls_id, name, false)
-            },
+            LookupKind::Method(obj) => {
+                if obj == BuiltinType::Nil {
+                    None
+                } else {
+                    let cls_id = obj.cls_id(self.ctxt).expect("cls_id not found for object");
+                    let name = self.name.expect("name not set");
+                    self.find_method(cls_id, name, false)
+                }
+            }
 
             LookupKind::Static(cls_id) => {
                 assert!(self.cls_tps.is_none());
@@ -1764,10 +1802,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
             };
 
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(self.pos.expect("pos not set"), msg);
+            self.ctxt.diag.borrow_mut().report(
+                self.pos.expect("pos not set"),
+                msg,
+            );
             return false;
         };
 
@@ -1812,7 +1850,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             args,
             &cls_tps,
             &fct_tps,
-        ) {
+        )
+        {
             let fct_name = self.ctxt.interner.str(fct.name).to_string();
             let fct_params = fct.params_without_self()
                 .iter()
@@ -1820,10 +1859,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 .collect::<Vec<_>>();
             let call_types = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
             let msg = Msg::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(self.pos.expect("pos not set"), msg);
+            self.ctxt.diag.borrow_mut().report(
+                self.pos.expect("pos not set"),
+                msg,
+            );
             return false;
         }
 
@@ -1863,7 +1902,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 &args,
                 type_params,
                 &TypeParams::empty(),
-            ) {
+            )
+            {
                 return Some(ctor_id);
             }
         }
@@ -1904,10 +1944,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     fn check_tps(&self, specified_tps: &[ctxt::TypeParam], tps: &TypeParams) -> bool {
         if specified_tps.len() != tps.len() {
             let msg = Msg::WrongNumberTypeParams(specified_tps.len(), tps.len());
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(self.pos.expect("pos not set"), msg);
+            self.ctxt.diag.borrow_mut().report(
+                self.pos.expect("pos not set"),
+                msg,
+            );
             return false;
         }
 
@@ -2001,10 +2041,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls = self.ctxt.interner.str(cls.name).to_string();
 
         let msg = Msg::ClassBoundNotSatisfied(name, cls);
-        self.ctxt
-            .diag
-            .borrow_mut()
-            .report(self.pos.expect("pos not set"), msg);
+        self.ctxt.diag.borrow_mut().report(
+            self.pos.expect("pos not set"),
+            msg,
+        );
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
@@ -2012,10 +2052,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let name = ty.name(self.ctxt);
         let trait_name = self.ctxt.interner.str(bound.name).to_string();
         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-        self.ctxt
-            .diag
-            .borrow_mut()
-            .report(self.pos.expect("pos not set"), msg);
+        self.ctxt.diag.borrow_mut().report(
+            self.pos.expect("pos not set"),
+            msg,
+        );
     }
 
     fn found_fct_id(&self) -> Option<FctId> {
@@ -2045,9 +2085,11 @@ fn lookup_method<'ast>(
             let params = ctxt.lists.borrow().get(list_id);
             Some((cls_id, params))
         }
-        _ => ctxt.vips
-            .find_class(object_type)
-            .map(|c| (c, TypeParams::empty())),
+        _ => {
+            ctxt.vips.find_class(object_type).map(|c| {
+                (c, TypeParams::empty())
+            })
+        }
     };
 
     if let Some((cls_id, ref cls_type_params)) = values {
@@ -2075,7 +2117,8 @@ fn lookup_method<'ast>(
                 args,
                 cls_type_params,
                 fct_tps,
-            ) {
+            )
+            {
                 let cmp_type =
                     replace_type_param(ctxt, method.return_type, &cls_type_params, fct_tps);
 

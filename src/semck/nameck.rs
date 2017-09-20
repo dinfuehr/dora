@@ -99,11 +99,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         var.id = var_id;
 
         let result = match self.ctxt.sym.borrow().get(name) {
-            Some(sym) => if replacable(&sym) {
-                Ok(var_id)
-            } else {
-                Err(sym)
-            },
+            Some(sym) => {
+                if replacable(&sym) {
+                    Ok(var_id)
+                } else {
+                    Err(sym)
+                }
+            }
             None => Ok(var_id),
         };
 

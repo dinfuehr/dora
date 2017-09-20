@@ -14,7 +14,7 @@ use timer::{in_ms, Timer};
 pub struct YoungGen {
     // bounds of from- & to-space
     total: Region,
-    
+
     // address that separates from & to-space
     separator: Address,
 
@@ -49,9 +49,12 @@ impl YoungGen {
                 return ptr::null();
             }
 
-            let res =
-                self.free
-                    .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
+            let res = self.free.compare_exchange_weak(
+                old,
+                new,
+                Ordering::SeqCst,
+                Ordering::Relaxed,
+            );
 
             match res {
                 Ok(_) => break,
@@ -135,15 +138,19 @@ impl YoungGen {
             }
         }
 
-        timer.stop_with(|dur| {
-            if ctxt.args.flag_gc_events {
-                println!("GC minor: collect garbage ({} ms)", in_ms(dur));
-            }
+        timer.stop_with(|dur| if ctxt.args.flag_gc_events {
+            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
         });
     }
 }
 
-fn copy_dirty_cards(card_table: &CardTable, crossing_map: &CrossingMap, mut free: &mut Address, young: &Region, old: &OldGen) {
+fn copy_dirty_cards(
+    card_table: &CardTable,
+    crossing_map: &CrossingMap,
+    mut free: &mut Address,
+    young: &Region,
+    old: &OldGen,
+) {
     // copy objects for old -> young references
     card_table.visit_dirty(|card| {
         let crossing_entry = crossing_map.get(card);
@@ -242,7 +249,11 @@ pub fn copy(obj: *mut Obj, free: &mut Address, old: &OldGen) -> *mut Obj {
 
 fn copy_object(obj: &Obj, addr: Address, size: usize) {
     unsafe {
-        ptr::copy_nonoverlapping(obj as *const Obj as *const u8, addr.to_mut_ptr::<u8>(), size);
+        ptr::copy_nonoverlapping(
+            obj as *const Obj as *const u8,
+            addr.to_mut_ptr::<u8>(),
+            size,
+        );
     }
 }
 

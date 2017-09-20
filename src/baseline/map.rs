@@ -10,9 +10,7 @@ pub struct CodeMap {
 
 impl CodeMap {
     pub fn new() -> CodeMap {
-        CodeMap {
-            tree: BTreeMap::new(),
-        }
+        CodeMap { tree: BTreeMap::new() }
     }
 
     pub fn dump(&self, ctxt: &SemContext) {

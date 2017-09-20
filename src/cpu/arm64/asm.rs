@@ -57,8 +57,8 @@ fn cls_addsub_extreg(
     assert!(rn.is_gpr_or_sp());
     assert!(rd.is_gpr_or_sp());
 
-    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 | 1u32 << 21 | rm.asm() << 16 |
-        option.u32() << 13 | imm3 << 10 | rn.asm() << 5 | rd.asm()
+    sf << 31 | op << 30 | s << 29 | 0b01011u32 << 24 | opt << 22 | 1u32 << 21 |
+        rm.asm() << 16 | option.u32() << 13 | imm3 << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn stp_pre(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
@@ -79,8 +79,8 @@ fn cls_ldst_pair_pre(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt:
 
     let imm7 = (imm7 as u32) & 0x7F;
 
-    opc << 30 | 0b101u32 << 27 | v << 26 | 0b011u32 << 23 | l << 22 | imm7 << 15 | rt2.asm() << 10 |
-        rn.asm() << 5 | rt.asm()
+    opc << 30 | 0b101u32 << 27 | v << 26 | 0b011u32 << 23 | l << 22 | imm7 << 15 |
+        rt2.asm() << 10 | rn.asm() << 5 | rt.asm()
 }
 
 pub fn ldp_post(sf: u32, rt: Reg, rt2: Reg, rn: Reg, imm7: i32) -> u32 {
@@ -101,8 +101,8 @@ fn cls_ldst_pair_post(opc: u32, v: u32, l: u32, imm7: i32, rt2: Reg, rn: Reg, rt
 
     let imm7 = (imm7 as u32) & 0x7F;
 
-    opc << 30 | 0b101u32 << 27 | v << 26 | 0b001u32 << 23 | l << 22 | imm7 << 15 | rt2.asm() << 10 |
-        rn.asm() << 5 | rt.asm()
+    opc << 30 | 0b101u32 << 27 | v << 26 | 0b001u32 << 23 | l << 22 | imm7 << 15 |
+        rt2.asm() << 10 | rn.asm() << 5 | rt.asm()
 }
 
 pub fn b_imm(imm26: i32) -> u32 {
@@ -659,8 +659,8 @@ fn cls_bitfield(sf: u32, opc: u32, n: u32, immr: u32, imms: u32, rn: Reg, rd: Re
     assert!(rn.is_gpr());
     assert!(rd.is_gpr());
 
-    sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 | (imms & 0x3F) << 10 |
-        rn.asm() << 5 | rd.asm()
+    sf << 31 | opc << 29 | 0b100110u32 << 23 | n << 22 | (immr & 0x3F) << 16 |
+        (imms & 0x3F) << 10 | rn.asm() << 5 | rd.asm()
 }
 
 pub fn and_imm(sf: u32, rd: Reg, rn: Reg, imm: u64) -> u32 {
@@ -828,8 +828,8 @@ fn cls_fp_int(sf: u32, s: u32, ty: u32, rmode: u32, opcode: u32, rn: u32, rd: u3
     assert!(fits_u5(rn));
     assert!(fits_u5(rd));
 
-    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 | rn << 5 |
-        rd
+    sf << 31 | s << 29 | 0b11110 << 24 | ty << 22 | 1 << 21 | rmode << 19 | opcode << 16 |
+        rn << 5 | rd
 }
 
 pub fn fcmp(ty: u32, rn: FReg, rm: FReg) -> u32 {

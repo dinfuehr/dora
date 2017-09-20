@@ -39,10 +39,10 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         self.ctxt.globals[global_id].borrow_mut().ty = ty;
 
         if g.expr.is_some() {
-            self.ctxt
-                .diag
-                .borrow_mut()
-                .report(g.pos, Msg::GlobalInitializerNotSupported);
+            self.ctxt.diag.borrow_mut().report(
+                g.pos,
+                Msg::GlobalInitializerNotSupported,
+            );
         }
     }
 }

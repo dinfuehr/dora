@@ -399,14 +399,16 @@ impl<'a> Iterator for TypeParamsIter<'a> {
         match self.params {
             &TypeParams::Empty => None,
 
-            &TypeParams::List(ref params) => if self.idx < params.len() {
-                let ret = params[self.idx];
-                self.idx += 1;
+            &TypeParams::List(ref params) => {
+                if self.idx < params.len() {
+                    let ret = params[self.idx];
+                    self.idx += 1;
 
-                Some(ret)
-            } else {
-                None
-            },
+                    Some(ret)
+                } else {
+                    None
+                }
+            }
         }
     }
 }
