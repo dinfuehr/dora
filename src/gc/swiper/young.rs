@@ -97,54 +97,7 @@ impl YoungGen {
             }
         }
 
-        // copy objects for old -> young references
-        card_table.visit_dirty(|card| {
-            let crossing_entry = crossing_map.get(card);
-
-            // card contains: any data but no references, then first object
-            if crossing_entry.is_first_object() {
-                let card_address = crossing_map.address_of_card(card);
-
-                // first_object() returns number of words before end of card
-                let offset_from_end = crossing_entry.first_object() as usize * 8;
-                let ptr = card_address.offset(CARD_SIZE - offset_from_end);
-
-                let end = card_address.offset(CARD_SIZE);
-
-                // copy all objects from this card
-                copy_card(ptr, end, &mut free, &self.total, old);
-
-            // card contains: references, then first object
-            } else if crossing_entry.is_references_at_start() {
-                let number_references = crossing_entry.references_at_start() as usize;
-                let card_address = crossing_map.address_of_card(card);
-                let mut ptr = card_address;
-
-                for _ in 0..number_references {
-                    let ind_ptr = IndirectObj::from_address(ptr);
-                    let dir_ptr = ind_ptr.get();
-
-                    if self.total.includes(Address::from_ptr(dir_ptr)) {
-                        ind_ptr.set(copy(dir_ptr, &mut free, old));
-                    }
-
-                    ptr = ptr.offset(8);
-                }
-
-                let end = card_address.offset(CARD_SIZE);
-
-                // copy all objects from this card
-                copy_card(ptr, end, &mut free, &self.total, old);
-
-            // object spans multiple cards
-            } else if crossing_entry.is_previous_card() {
-                unimplemented!();
-
-            } else {
-                assert!(crossing_entry.is_no_references());
-                panic!("dirty card without references: can this ever happen?");
-            }
-        });
+        copy_dirty_cards(card_table, crossing_map, &mut free, &self.total, old);
 
         while scan < scan_end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
@@ -190,7 +143,58 @@ impl YoungGen {
     }
 }
 
-pub fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Region, old: &OldGen) {
+fn copy_dirty_cards(card_table: &CardTable, crossing_map: &CrossingMap, mut free: &mut Address, young: &Region, old: &OldGen) {
+    // copy objects for old -> young references
+    card_table.visit_dirty(|card| {
+        let crossing_entry = crossing_map.get(card);
+
+        // card contains: any data but no references, then first object
+        if crossing_entry.is_first_object() {
+            let card_address = crossing_map.address_of_card(card);
+
+            // first_object() returns number of words before end of card
+            let offset_from_end = crossing_entry.first_object() as usize * 8;
+            let ptr = card_address.offset(CARD_SIZE - offset_from_end);
+
+            let end = card_address.offset(CARD_SIZE);
+
+            // copy all objects from this card
+            copy_card(ptr, end, free, young, old);
+
+        // card contains: references, then first object
+        } else if crossing_entry.is_references_at_start() {
+            let number_references = crossing_entry.references_at_start() as usize;
+            let card_address = crossing_map.address_of_card(card);
+            let mut ptr = card_address;
+
+            for _ in 0..number_references {
+                let ind_ptr = IndirectObj::from_address(ptr);
+                let dir_ptr = ind_ptr.get();
+
+                if young.includes(Address::from_ptr(dir_ptr)) {
+                    ind_ptr.set(copy(dir_ptr, &mut free, old));
+                }
+
+                ptr = ptr.offset(8);
+            }
+
+            let end = card_address.offset(CARD_SIZE);
+
+            // copy all objects from this card
+            copy_card(ptr, end, free, young, old);
+
+        // object spans multiple cards
+        } else if crossing_entry.is_previous_card() {
+            unimplemented!();
+
+        } else {
+            assert!(crossing_entry.is_no_references());
+            panic!("dirty card without references: can this ever happen?");
+        }
+    });
+}
+
+fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Region, old: &OldGen) {
     while ptr < end {
         let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
 
