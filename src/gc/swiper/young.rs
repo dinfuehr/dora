@@ -67,7 +67,7 @@ impl YoungGen {
         ctxt: &SemContext,
         rootset: Vec<IndirectObj>,
         card_table: &CardTable,
-        _crossing_map: &CrossingMap,
+        crossing_map: &CrossingMap,
         old: &OldGen,
     ) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
@@ -98,22 +98,26 @@ impl YoungGen {
         }
 
         // copy objects for old -> young references
-        card_table.visit_dirty(|_card| {
+        card_table.visit_dirty(|card| {
+            let crossing_entry = crossing_map.get(card);
 
+            // card contains: any data but no references, then first object
+            if crossing_entry.is_first_object() {
+                unimplemented!();
+
+            // card contains: references, then first object
+            } else if crossing_entry.is_references_at_start() {
+                unimplemented!();
+
+            // object spans multiple cards
+            } else if crossing_entry.is_previous_card() {
+                unimplemented!();
+
+            } else {
+                assert!(crossing_entry.is_no_references());
+                panic!("dirty card without references: can this ever happen?");
+            }
         });
-
-
-        // for card in dirty_cards {
-        //     for object in card.objects {
-        //         object.visit_reference_fields(|child| {
-        //             let child_ptr = child.get();
-
-        //             if self.total.includes(Address::from_ptr(child_ptr)) {
-        //                 child.set(copy(child_ptr, &mut free, old));
-        //             }
-        //         });
-        //     }
-        // }
 
         while scan < scan_end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
