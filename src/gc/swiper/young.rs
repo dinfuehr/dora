@@ -8,6 +8,7 @@ use gc::swiper::{CARD_SIZE, PROMOTION_AGE, Region};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
+use mem;
 use object::Obj;
 use timer::{in_ms, Timer};
 
@@ -146,6 +147,7 @@ impl YoungGen {
     }
 }
 
+// copy all references from old- into young-generation.
 fn copy_dirty_cards(
     card_table: &CardTable,
     crossing_map: &CrossingMap,
@@ -153,7 +155,6 @@ fn copy_dirty_cards(
     young: &Region,
     old: &OldGen,
 ) {
-    // copy objects for old -> young references
     card_table.visit_dirty(|card| {
         let crossing_entry = crossing_map.get(card);
 
@@ -162,7 +163,7 @@ fn copy_dirty_cards(
             let card_address = crossing_map.address_of_card(card);
 
             // first_object() returns number of words before end of card
-            let offset_from_end = crossing_entry.first_object() as usize * 8;
+            let offset_from_end = crossing_entry.first_object() as usize * ptr_width();
             let ptr = card_address.offset(CARD_SIZE - offset_from_end);
 
             let end = card_address.offset(CARD_SIZE);
@@ -184,7 +185,7 @@ fn copy_dirty_cards(
                     ind_ptr.set(copy(dir_ptr, &mut free, old));
                 }
 
-                ptr = ptr.offset(8);
+                ptr = ptr.offset(ptr_width());
             }
 
             let end = card_address.offset(CARD_SIZE);
@@ -194,11 +195,48 @@ fn copy_dirty_cards(
 
         // object spans multiple cards
         } else if crossing_entry.is_previous_card() {
-            unimplemented!();
+            let mut previous = card - crossing_entry.previous_card() as usize;
+            let mut crossing_entry = crossing_map.get(previous);
+
+            while crossing_entry.is_previous_card() {
+                previous = previous - crossing_entry.previous_card() as usize;
+                crossing_entry = crossing_map.get(previous);
+            }
+
+            let previous_address = crossing_map.address_of_card(previous);
+            let mut ptr;
+
+            if crossing_entry.is_references_at_start() {
+                let number_references = crossing_entry.references_at_start() as usize;
+                ptr = previous_address.offset(number_references * ptr_width());
+
+            } else if crossing_entry.is_first_object() {
+                let offset_from_end = crossing_entry.first_object() as usize * ptr_width();
+                ptr = previous_address.offset(CARD_SIZE - offset_from_end);
+
+            } else {
+                assert!(crossing_entry.is_no_references());
+                panic!("dirty card without references: is this allowed to happen?");
+            }
+
+            let card_address = crossing_map.address_of_card(card);
+            let mut last_object = ptr;
+
+            while ptr < card_address {
+                let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
+
+                last_object = ptr;
+                ptr = ptr.offset(object.size());
+            }
+
+            // last_object now stores pointer that reaches into current card
+            // TODO: handle fields in last_object
+
+            copy_card(ptr, card_address.offset(CARD_SIZE), free, young, old);
 
         } else {
             assert!(crossing_entry.is_no_references());
-            panic!("dirty card without references: can this ever happen?");
+            panic!("dirty card without references: is this allowed to happen?");
         }
     });
 }
@@ -279,4 +317,9 @@ pub fn set_forwarding_address(obj: &mut Obj, addr: Address) {
     unsafe {
         *(obj as *mut Obj as *mut Address) = mark_forwarding_address(addr);
     }
+}
+
+#[inline(always)]
+fn ptr_width() -> usize {
+    mem::ptr_width() as usize
 }
