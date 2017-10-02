@@ -8,7 +8,7 @@ use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use mem;
 use object::Obj;
-use os;
+use os::{self, ProtType};
 use timer::{in_ms, Timer};
 
 pub struct CopyCollector {
@@ -141,6 +141,11 @@ pub fn minor_collect(
 ) {
     let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
+    // enable writing into to-space again (for debug builds)
+    if cfg!(debug_assertions) {
+        os::mprotect(to_space.start as *const u8, to_space.size(), ProtType::Writable);
+    }
+
     // empty to-space
     to_space.reset();
 
@@ -166,21 +171,17 @@ pub fn minor_collect(
         to_space.scan = unsafe { to_space.scan.offset(object.size() as isize) };
     }
 
-    // memset from-space to garbage data for debug builds
-    // makes sure that no pointer into from-space is left
+    // disable access in current from-space
+    // makes sure that no pointer into from-space is left (in debug-builds)
     if cfg!(debug_assertions) {
-        unsafe {
-            ptr::write_bytes(from_space.start as *mut u8, 0xcc, from_space.size());
-        }
+        os::mprotect(from_space.start as *const u8, from_space.size(), ProtType::None);
     }
 
     swap(from_space, to_space);
 
     timer.stop_with(|dur| {
-        // self.collect_duration += dur;
-
         if ctxt.args.flag_gc_events {
-            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
+            println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
         }
     });
 }

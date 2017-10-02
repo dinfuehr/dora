@@ -82,23 +82,29 @@ pub fn page_size_bits() -> u32 {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ProtType {
+    None,
     Executable,
     Writable,
 }
 
-#[cfg(target_family = "unix")]
-pub fn mmap(size: usize, exec: ProtType) -> *const u8 {
-    let prot_exec = if exec == Executable {
-        libc::PROT_EXEC
-    } else {
-        0
-    };
+impl ProtType {
+    #[cfg(target_family = "unix")]
+    fn to_libc(self) -> libc::c_int {
+        match self {
+            ProtType::None => 0,
+            ProtType::Writable => libc::PROT_READ | libc::PROT_WRITE,
+            ProtType::Executable => libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
+        }
+    }
+}
 
+#[cfg(target_family = "unix")]
+pub fn mmap(size: usize, prot: ProtType) -> *const u8 {
     let ptr = unsafe {
         libc::mmap(
             ptr::null_mut(),
             size,
-            libc::PROT_READ | libc::PROT_WRITE | prot_exec,
+            prot.to_libc(),
             libc::MAP_PRIVATE | libc::MAP_ANON,
             -1,
             0,
@@ -151,5 +157,20 @@ pub fn munmap(ptr: *const u8, size: usize) {
 
     if res == 0 {
         panic!("VirtualFree failed");
+    }
+}
+
+#[cfg(target_family = "unix")]
+pub fn mprotect(ptr: *const u8, size: usize, prot: ProtType) {
+    let res = unsafe {
+        libc::mprotect(
+            ptr as *mut libc::c_void,
+            size,
+            prot.to_libc()
+        )
+    };
+
+    if res != 0 {
+        panic!("mprotect() failed");
     }
 }
