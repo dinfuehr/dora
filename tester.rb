@@ -16,6 +16,7 @@ class TestExpectation
                 :code,
                 :message,
                 :args,
+                :vm_args,
                 :output,
                 :file
 
@@ -93,6 +94,9 @@ def run_test(file)
   args = ""
   args = expectation.args.join(" ") if expectation.args
 
+  vm_args = ""
+  vm_args = expectation.vm_args.join(" ") if expectation.vm_args
+
   target = $release ? "release" : "debug"
   testfile = expectation.file || file
 
@@ -102,7 +106,7 @@ def run_test(file)
     out_args = ">#{$temp_out.path} 2>&1"
   end
 
-  system("target/#{target}/dora #{testfile} #{args} #{out_args}")
+  system("target/#{target}/dora #{vm_args} #{testfile} #{args} #{out_args}")
   process = $?
   exit_code = process.exitstatus
 
@@ -248,6 +252,9 @@ def test_case_expectation(file)
 
       when "args"
         exp.args = arguments[1..-1]
+
+      when "vm-args"
+        exp.vm_args = arguments[1..-1]
 
       end
     end
