@@ -1,9 +1,7 @@
 use libc;
 
-use std::ffi::CStr;
 use std::io::{self, Write};
 use std::mem;
-use std::os::raw::c_char;
 use std::process;
 use std::ptr;
 use std::str;
@@ -60,20 +58,12 @@ pub extern "C" fn double_to_string(val: f64) -> Handle<Str> {
 }
 
 pub extern "C" fn print(val: Handle<Str>) {
-    unsafe {
-        let buf = CStr::from_ptr(val.data() as *const c_char);
-        io::stdout().write(buf.to_bytes()).unwrap();
-    };
+    io::stdout().write(val.content()).unwrap();
 }
 
 pub extern "C" fn fatal_error(msg: Handle<Str>) {
     write!(&mut io::stderr(), "fatal error: ").expect("could not print to stderr");
-
-    unsafe {
-        let buf = CStr::from_ptr(msg.data() as *const c_char);
-        io::stderr().write(buf.to_bytes()).unwrap();
-    };
-
+    io::stderr().write(msg.content()).unwrap();
     writeln!(&mut io::stderr(), "").expect("could not print to stderr");
     process::exit(1);
 }
@@ -103,11 +93,8 @@ pub extern "C" fn throw_native(val: bool) {
 }
 
 pub extern "C" fn call(fct: Handle<Str>) {
-    let fct_name = {
-        let buf = unsafe { CStr::from_ptr(fct.data() as *const c_char) };
-
-        buf.to_str().expect("cannot decode as utf-8.")
-    };
+    let fct_name = fct.to_cstring();
+    let fct_name = fct_name.to_str().unwrap();
 
     let ctxt = get_ctxt();
     let name = ctxt.interner.intern(fct_name);
