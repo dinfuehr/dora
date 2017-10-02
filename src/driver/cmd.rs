@@ -32,7 +32,7 @@ Options:
     --gc-events             Dump GC events
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
-    --gc=<name>             Switch GC. Possible values: zero, copy, malloc (default)
+    --gc=<name>             Switch GC. Possible values: zero, copy (default), swiper
 
     --heap-size=<SIZE>       Set heap size
 ";

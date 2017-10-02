@@ -77,7 +77,6 @@ impl YoungGen {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
         let mut scan;
-        let scan_end: Address = self.free.load(Ordering::SeqCst).into();
 
         let mut free;
         let new_end;
@@ -93,7 +92,7 @@ impl YoungGen {
             new_end = self.separator;
         }
 
-        // copy all references from roots into young generation
+        // detect all references from roots into young generation
         for &root in &rootset {
             let root_ptr = root.get();
 
@@ -102,10 +101,11 @@ impl YoungGen {
             }
         }
 
-        // copy all references from dirty cards into young generation
+        // detect references from old generation (dirty cards) into young generation
         copy_dirty_cards(card_table, crossing_map, &mut free, &self.total, old);
 
-        while scan < scan_end {
+        // visit all fields in copied objects
+        while scan < free {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
 
             object.visit_reference_fields(|child| {
