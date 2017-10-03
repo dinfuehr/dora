@@ -9,12 +9,17 @@ use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
 use mem;
+use os::{self, ProtType};
 use object::Obj;
 use timer::{in_ms, Timer};
 
 pub struct YoungGen {
     // bounds of from- & to-space
     total: Region,
+
+    // size of both from- or to-space.
+    // Not combined, use total.size() for that.
+    size: usize,
 
     // address that separates from & to-space
     separator: Address,
@@ -33,6 +38,7 @@ impl YoungGen {
 
         YoungGen {
             total: Region::new(young_start, young_end),
+            size: half_size,
             separator: half_address,
             free: AtomicUsize::new(young_start.to_usize()),
             end: AtomicUsize::new(half_address.to_usize()),
@@ -92,6 +98,13 @@ impl YoungGen {
             new_end = self.separator;
         }
 
+        if cfg!(debug_assertions) {
+            // make memory readable & writable again, so that we
+            // can copy objects to the to-space.
+            // Since this has some overhead, do it only in debug builds.
+            os::mprotect(free.to_ptr::<u8>(), self.size, ProtType::Writable);
+        }
+
         // detect all references from roots into young generation
         for &root in &rootset {
             let root_ptr = root.get();
@@ -125,8 +138,8 @@ impl YoungGen {
         // update start of free memory
         self.free.store(free.to_usize(), Ordering::SeqCst);
 
-        // memset from-space to garbage data for debug builds
-        // makes sure that no pointer into from-space is left
+        // Make from-space unaccessible both from read/write.
+        // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) {
             let start = if new_end == self.separator {
                 self.total.start
@@ -134,11 +147,7 @@ impl YoungGen {
                 self.separator
             };
 
-            let size = self.separator.to_usize() - self.total.start.to_usize();
-
-            unsafe {
-                ptr::write_bytes(start.to_mut_ptr::<u8>(), 0xcc, size);
-            }
+            os::mprotect(start.to_ptr::<u8>(), self.size, ProtType::None);
         }
 
         timer.stop_with(|dur| if ctxt.args.flag_gc_events {
