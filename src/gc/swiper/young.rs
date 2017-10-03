@@ -1,3 +1,4 @@
+use std::cmp;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
 
@@ -251,6 +252,9 @@ fn copy_dirty_cards(
 }
 
 fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Region, old: &OldGen) {
+    let old_end: Address = old.free.load(Ordering::Relaxed).into();
+    let end = cmp::min(end, old_end);
+
     while ptr < end {
         let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
 

@@ -5,8 +5,8 @@ use gc::Address;
 use gc::swiper::Region;
 
 pub struct OldGen {
-    total: Region,
-    free: AtomicUsize,
+    pub total: Region,
+    pub free: AtomicUsize,
 }
 
 impl OldGen {
