@@ -5,12 +5,16 @@ Works on Linux (x86\_64, aarch64) and macOS (x86\_64).
 Build with:
 
 ## Dependencies
-You need to install dependencies (which is just [capstone](https://github.com/aquynh/capstone) for now):
+You need to install dependencies:
+
+[capstone](https://github.com/aquynh/capstone)
 
 ```
 $ git clone https://github.com/aquynh/capstone
 $ cd capstone && git checkout 3.0.4 && sudo make install
 ```
+[ruby](https://www.ruby-lang.org/en/documentation/installation/y) - used to run tests
+
 
 ## Compilation & Testing
 Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
