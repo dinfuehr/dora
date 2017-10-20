@@ -8,3 +8,4 @@ cargo test
 cd ../..
 
 cargo build && cargo test && ruby tester.rb $@
+cargo run lib/boots/compile.dora
