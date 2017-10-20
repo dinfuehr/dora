@@ -1,169 +1,203 @@
-class Function {
-  // all instructions in this function in random order
-  let insns: Vec<Insn> = Vec::<Insn>();
+class Graph {
+  var name: Str;
 
-  // entry block
-  var begin: BeginInsn;
+  var start: Node;
+  var end: Node;
 
-  // stores all blocks in random order
-  let begins: Vec<BeginInsn> = Vec::<BeginInsn>();
+  var nextNodeId: int;
 
-  fun addInsn(insn: Insn) {
-    self.insns.push(insn);
+  init(name: Str) {
+    self.name = name;
   }
 
-  fun removeInsn(insn: Insn) {
-    // self.insns.removeItem(insn);
+  fun getStart() -> Node { return self.start; }
+  fun getEnd() -> Node { return self.end; }
+
+  fun buildStart(params: int) -> Node {
+    return self.newNode0(Start(params));
   }
 
-  fun addBlock(block: BeginInsn) {
-    self.addInsn(block);
-    self.begins.push(block);
+  fun buildEnd(inputs: int) -> Node {
+    return self.newNode0(End(inputs));
   }
 
-  fun removeBlock(block: BeginInsn) {
-    self.removeInsn(block);
-    // self.begins.removeItem(block);
+  fun buildIntConst(val: int) -> Node {
+    return self.newNode0(IntConst(val));
+  }
+
+  fun buildLongConst(val: long) -> Node {
+    return self.newNode0(LongConst(val));
+  }
+
+  fun newNode0(op: Operator) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+
+    return n;
+  }
+
+  fun newNode1(op: Operator, input1: Node) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+
+    let array = Array::<Node>(1);
+    array[0] = input1;
+    n.inputs = array;
+
+    return n;
+  }
+
+  fun newNode2(op: Operator, input1: Node, input2: Node) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+
+    let array = Array::<Node>(2);
+    array[0] = input1;
+    array[1] = input2;
+    n.inputs = array;
+
+    return n;
+  }
+
+  fun newNodeX(op: Operator, inputs: Array<Node>) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+    n.inputs = inputs;
+
+    return n;
   }
 }
 
-open abstract class Value {
-  let users: Vec<Value> = Vec::<Value>();
+class Node {
+  var id: int;
+  var op: Operator;
+  var inputs: Array<Node>;
+
   var ty: int;
 
-  fun getUserCount() -> int {
-    return self.users.len();
+  fun getValueInput(ind: int) -> Node {
+    assert(ind < self.op.getValueInputCount());
+    return self.inputs[ind];
   }
 
-  fun getUser(idx: int) -> Value {
-    return self.users[idx];
-  }
-
-  fun appendUser(user: Value) {
-    self.users.push(user);
-  }
-
-  fun removeUser(user: Value) {
-    // self.users.removeItem(user);
-  }
-
-  fun getType() -> int {
-    return self.ty;
-  }
-
-  fun setType(ty: int) {
-    self.ty = ty;
+  fun getControlInput(ind: int) -> Node {
+    assert(ind < self.op.getControlInputCount());
+    return self.inputs[self.op.getValueInputCount() + ind];
   }
 }
 
-open abstract class Insn: Value {
-  let deps: Vec<Insn> = Vec::<Insn>();
-  let reverseDeps: Vec<Insn> = Vec::<Insn>();
-  var fct: Function;
-  var begin: BeginInsn;
-
-  fun getDepCount() -> int {
-    return self.deps.len();
-  }
-
-  fun getDep(idx: int) -> Insn {
-    return self.deps[idx];
-  }
-
-  fun getReverseDepCount() -> int {
-    return self.reverseDeps.len();
-  }
-
-  fun getReverseDep(idx: int) -> Insn {
-    return self.reverseDeps[idx];
-  }
-
-  fun appendDep(insn: Insn) {
-    self.deps.push(insn);
-    insn.reverseDeps.push(self);
-  }
-
-  fun removeDep(insn: Insn) {
-    // self.deps.removeItem(insn);
-    // insn.reverseDeps.removeItem(insn);
-  }
+abstract open class Operator {
+  abstract fun getValueInputCount() -> int;
+  abstract fun getControlInputCount() -> int;
+  abstract fun getValueOutputCount() -> int;
+  abstract fun getControlOutputCount() -> int;
 }
 
-class BeginInsn: Insn {
-  var end: EndInsn;
-  var preds: Array<BeginInsn>;
-
-  fun getPredeccesorCount() -> int {
-    if self.preds === nil {
-      return 0;
-    }
-
-    if self.preds[1] !== nil {
-      return 2;
-    } else {
-      return 1;
-    }
-  }
-
-  fun getPredeccesor(idx: int) -> BeginInsn {
-    return self.preds[idx];
-  }
-
-  fun getSuccessorCount() -> int {
-    return self.end.getSuccessorCount();
-  }
-
-  fun getSuccessor(idx: int) -> BeginInsn {
-    return self.end.getSuccessor(idx);
-  }
+class Start(let params: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return self.params; }
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
-open abstract class EndInsn: Insn {
-  abstract fun getSuccessorCount() -> int;
-  abstract fun getSuccessor(idx: int) -> BeginInsn;
+class End(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 0; }
 }
 
-class ReturnInsn: EndInsn {
-  var value: Insn;
-
-  override fun getSuccessorCount() -> int { return 0; }
-  override fun getSuccessor(idx: int) -> BeginInsn {
-    unreachable();
-    return nil;
-  }
+class Merge(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
-class GotoInsn: EndInsn {
-  var dest: BeginInsn;
-
-  override fun getSuccessorCount() -> int { return 1; }
-  override fun getSuccessor(idx: int) -> BeginInsn {
-    if idx == 0 {
-      return self.dest;
-    } else {
-      unreachable();
-      return nil;
-    }
-  }
+class Branch: Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 2; } 
 }
 
-class IfInsn: EndInsn {
-  var then_insn: BeginInsn;
-  var else_insn: BeginInsn;
+class IfTrue: Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; } 
+}
 
-  override fun getSuccessorCount() -> int { return 2; }
-  override fun getSuccessor(idx: int) -> BeginInsn {
-    if idx == 0 {
-      return self.then_insn;
-    } else if idx == 1 {
-      return self.else_insn;
-    } else {
-      unreachable();
-      return nil;
-    }
-  }
+class IfFalse: Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; } 
+}
+
+class Return: Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; } 
+}
+
+class Loop(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; } 
+}
+
+class Phi(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return self.input_count; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; } 
+}
+
+class Parameter(let name: Str): Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getName() -> Str { return self.name; }
+}
+
+class IntConst(let value: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> int { return self.value; }
+}
+
+class LongConst(let value: long): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> long { return self.value; }
 }
 
 fun main() {
-  println("Hello World!");
+  let g = Graph("foo");
 }
+
+const TYPE_UNTYPED: int = 0;
+const TYPE_INT: int = 1;
+const TYPE_LONG: int = 2;
+const TYPE_FLOAT: int = 3;
+const TYPE_DOUBLE: int = 4;
+const TYPE_REF: int = 5;
