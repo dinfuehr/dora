@@ -1,0 +1,5 @@
+//= output "hello"
+
+fun main() { 
+    defer print("hello"); 
+}

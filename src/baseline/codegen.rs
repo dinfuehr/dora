@@ -698,6 +698,10 @@ where
         self.masm.trap(Trap::THROW);
     }
 
+    fn emit_stmt_defer(&mut self, s: &'ast StmtDeferType) {
+        self.emit_expr(&s.expr);
+    }
+
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
         let lbl_after = self.masm.create_label();
 
@@ -926,7 +930,7 @@ impl<'a, 'ast> visit::Visitor<'ast> for CodeGen<'a, 'ast> {
             StmtBlock(ref stmt) => self.emit_stmt_block(stmt),
             StmtVar(ref stmt) => self.emit_stmt_var(stmt),
             StmtThrow(ref stmt) => self.emit_stmt_throw(stmt),
-            StmtDefer(_) => unimplemented!(),
+            StmtDefer(ref stmt) => self.emit_stmt_defer(stmt),
             StmtDo(ref stmt) => self.emit_stmt_do(stmt),
             StmtSpawn(_) => unimplemented!(),
         }
