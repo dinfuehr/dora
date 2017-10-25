@@ -13,21 +13,8 @@ class Graph {
   fun getStart() -> Node { return self.start; }
   fun getEnd() -> Node { return self.end; }
 
-  fun buildStart(params: int) -> Node {
-    return self.newNode0(Start(params));
-  }
-
-  fun buildEnd(inputs: int) -> Node {
-    return self.newNode0(End(inputs));
-  }
-
-  fun buildIntConst(val: int) -> Node {
-    return self.newNode0(IntConst(val));
-  }
-
-  fun buildLongConst(val: long) -> Node {
-    return self.newNode0(LongConst(val));
-  }
+  fun setStart(start: Node) { self.start = start; }
+  fun setEnd(end: Node) { self.end = end; }
 
   fun newNode0(op: Operator) -> Node {
     let n = Node();
@@ -39,30 +26,27 @@ class Graph {
   }
 
   fun newNode1(op: Operator, input1: Node) -> Node {
-    let n = Node();
-    n.id = self.nextNodeId;
-    self.nextNodeId = self.nextNodeId + 1;
-    n.op = op;
+    let inputs = Array::<Node>(1);
+    inputs[0] = input1;
 
-    let array = Array::<Node>(1);
-    array[0] = input1;
-    n.inputs = array;
-
-    return n;
+    return self.newNodeX(op, inputs);
   }
 
   fun newNode2(op: Operator, input1: Node, input2: Node) -> Node {
-    let n = Node();
-    n.id = self.nextNodeId;
-    self.nextNodeId = self.nextNodeId + 1;
-    n.op = op;
+    let inputs = Array::<Node>(2);
+    inputs[0] = input1;
+    inputs[1] = input2;
 
-    let array = Array::<Node>(2);
-    array[0] = input1;
-    array[1] = input2;
-    n.inputs = array;
+    return self.newNodeX(op, inputs);
+  }
 
-    return n;
+  fun newNode3(op: Operator, input1: Node, input2: Node, input3: Node) -> Node {
+    let inputs = Array::<Node>(3);
+    inputs[0] = input1;
+    inputs[1] = input2;
+    inputs[2] = input3;
+
+    return self.newNodeX(op, inputs);
   }
 
   fun newNodeX(op: Operator, inputs: Array<Node>) -> Node {
