@@ -110,7 +110,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.src.vars[var].ty = defined_type;
 
         if let Some(expr_type) = expr_type {
-            if !defined_type.allows(self.ctxt, expr_type) {
+            if !expr_type.is_error() && !defined_type.allows(self.ctxt, expr_type) {
                 let name = self.ctxt.interner.str(s.name).to_string();
                 let defined_type = defined_type.name(self.ctxt);
                 let expr_type = expr_type.name(self.ctxt);
@@ -214,7 +214,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_stmt_if(&mut self, s: &'ast StmtIfType) {
         self.visit_expr(&s.cond);
 
-        if self.expr_type != BuiltinType::Bool {
+        if self.expr_type != BuiltinType::Bool && !self.expr_type.is_error() {
             let expr_type = self.expr_type.name(self.ctxt);
             let msg = Msg::IfCondType(expr_type);
             self.ctxt.diag.borrow_mut().report(s.pos, msg);
@@ -354,7 +354,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((_, fct_id, _)) =
+            if let Some((_, fct_id, return_type)) =
                 self.find_method(
                     e.pos,
                     object_type,
@@ -370,6 +370,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     e.id,
                     Rc::new(call_type),
                 );
+
+                self.src.set_ty(e.id, return_type);
+                self.expr_type = return_type;
+                return;
+            } else {
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
             }
         } else if e.lhs.is_field() || e.lhs.is_ident() {
             self.visit_expr(&e.lhs);
@@ -454,8 +461,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             );
         }
 
-        self.src.set_ty(e.id, BuiltinType::Unit);
-        self.expr_type = BuiltinType::Unit;
+        self.src.set_ty(e.id, BuiltinType::Error);
+        self.expr_type = BuiltinType::Error;
     }
 
     fn find_method(
@@ -517,31 +524,34 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [];
 
-        if let Some((_, fct_id, return_type)) =
-            lookup_method(
-                self.ctxt,
-                ty,
-                false,
-                name,
-                &call_types,
-                &TypeParams::empty(),
-                None,
-            )
-        {
-            let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
-            self.src.map_calls.insert(e.id, Rc::new(call_type));
+        if !ty.is_error() {
+            if let Some((_, fct_id, return_type)) =
+                lookup_method(
+                    self.ctxt,
+                    ty,
+                    false,
+                    name,
+                    &call_types,
+                    &TypeParams::empty(),
+                    None,
+                )
+            {
+                let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
+                self.src.map_calls.insert(e.id, Rc::new(call_type));
 
-            self.src.set_ty(e.id, return_type);
-            self.expr_type = return_type;
-        } else {
+                self.src.set_ty(e.id, return_type);
+                self.expr_type = return_type;
+                return;
+            }
+
             let ty = ty.name(self.ctxt);
             let msg = Msg::UnOpType(op.as_str().into(), ty);
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
-
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
         }
+
+        self.src.set_ty(e.id, BuiltinType::Error);
+        self.expr_type = BuiltinType::Error;
     }
 
     fn check_expr_bin(&mut self, e: &'ast ExprBinType) {
@@ -619,8 +629,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.ctxt.diag.borrow_mut().report(e.pos, msg);
 
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
         }
     }
 
@@ -741,6 +751,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 return;
             }
 
+            if object_type.is_error() {
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+                return;
+            }
+
             let mut lookup = MethodLookup::new(self.ctxt)
                 .method(object_type)
                 .pos(e.pos)
@@ -768,8 +784,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
                 }
             } else {
-                self.src.set_ty(e.id, BuiltinType::Unit);
-                self.expr_type = BuiltinType::Unit;
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
             }
 
             return;
@@ -798,7 +814,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                         call_type
                     } else {
-                        self.expr_type = BuiltinType::Unit;
+                        self.expr_type = BuiltinType::Error;
                         return;
                     }
                 }
@@ -808,7 +824,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let msg = Msg::ClassExpected(name);
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
 
-                    self.expr_type = BuiltinType::Unit;
+                    self.expr_type = BuiltinType::Error;
                     return;
                 }
             }
@@ -839,7 +855,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     lookup.found_ret().unwrap()
                 } else {
-                    BuiltinType::Unit
+                    BuiltinType::Error
                 };
 
                 self.src.set_ty(e.id, ty);
@@ -860,7 +876,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     lookup.found_ret().unwrap()
                 } else {
-                    BuiltinType::Unit
+                    BuiltinType::Error
                 };
 
                 self.src.set_ty(e.id, ty);
@@ -955,7 +971,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let msg = Msg::SuperUnavailable;
         self.ctxt.diag.borrow_mut().report(pos, msg);
 
-        BuiltinType::Unit
+        BuiltinType::Error
     }
 
     fn check_generic_method_call(
@@ -1135,9 +1151,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
+
         } else {
-            self.src.set_ty(e.id, BuiltinType::Unit);
-            self.expr_type = BuiltinType::Unit;
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
         }
     }
 
@@ -1404,6 +1421,7 @@ fn arg_allows(
     fct_tps: &TypeParams,
 ) -> bool {
     match def {
+        BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
         BuiltinType::Unit |
         BuiltinType::Bool |
         BuiltinType::Byte |
@@ -1419,10 +1437,26 @@ fn arg_allows(
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
         BuiltinType::ClassTypeParam(_, tpid) => {
-            def == arg || arg_allows(ctxt, cls_tps[tpid.idx()], arg, cls_tps, fct_tps)
+            if def == arg {
+                return true;
+            }
+
+            if tpid.idx() >= cls_tps.len() {
+                return false;
+            }
+
+            arg_allows(ctxt, cls_tps[tpid.idx()], arg, cls_tps, fct_tps)
         }
         BuiltinType::FctTypeParam(_, tpid) => {
-            def == arg || arg_allows(ctxt, fct_tps[tpid.idx()], arg, cls_tps, fct_tps)
+            if def == arg {
+                return true;
+            }
+
+            if tpid.idx() >= fct_tps.len() {
+                return false;
+            }
+
+            arg_allows(ctxt, fct_tps[tpid.idx()], arg, cls_tps, fct_tps)
         }
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -1616,7 +1650,7 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
             _ => {
                 let msg = Msg::ConstValueExpected;
                 self.ctxt.diag.borrow_mut().report(expr.pos(), msg);
-                return (BuiltinType::Unit, ConstValue::None);
+                return (BuiltinType::Error, ConstValue::None);
             }
         };
 

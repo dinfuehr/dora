@@ -8,6 +8,9 @@ use semck;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
+    // couldn't determine type because of error
+    Error,
+
     // type with only one value: ()
     Unit,
 
@@ -49,6 +52,13 @@ pub enum BuiltinType {
 }
 
 impl BuiltinType {
+    pub fn is_error(&self) -> bool {
+        match *self {
+            BuiltinType::Error => true,
+            _ => false,
+        }
+    }
+
     pub fn is_unit(&self) -> bool {
         match *self {
             BuiltinType::Unit => true,
@@ -160,6 +170,7 @@ impl BuiltinType {
 
     pub fn name(&self, ctxt: &SemContext) -> String {
         match *self {
+            BuiltinType::Error => "<error>".into(),
             BuiltinType::Unit => "()".into(),
             BuiltinType::Byte => "byte".into(),
             BuiltinType::Char => "char".into(),
@@ -241,6 +252,7 @@ impl BuiltinType {
 
     pub fn allows(&self, ctxt: &SemContext, other: BuiltinType) -> bool {
         match *self {
+            BuiltinType::Error => panic!("allows() can't be called on error."),
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
@@ -275,6 +287,7 @@ impl BuiltinType {
 
     pub fn size(&self, ctxt: &SemContext) -> i32 {
         match *self {
+            BuiltinType::Error => panic!("no size for error."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
@@ -303,6 +316,7 @@ impl BuiltinType {
 
     pub fn align(&self, ctxt: &SemContext) -> i32 {
         match *self {
+            BuiltinType::Error => panic!("no alignment for error."),
             BuiltinType::Unit => 0,
             BuiltinType::Bool => 1,
             BuiltinType::Byte => 1,
@@ -331,6 +345,7 @@ impl BuiltinType {
 
     pub fn mode(&self) -> MachineMode {
         match *self {
+            BuiltinType::Error => panic!("no machine mode for error."),
             BuiltinType::Unit => panic!("no machine mode for ()."),
             BuiltinType::Bool => MachineMode::Int8,
             BuiltinType::Byte => MachineMode::Int8,

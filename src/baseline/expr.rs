@@ -1970,6 +1970,7 @@ fn result_reg(mode: MachineMode) -> ExprStore {
 
 fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
+        BuiltinType::Error => panic!("error shouldn't occur in code generation."),
         BuiltinType::Unit => false,
         BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
         BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
