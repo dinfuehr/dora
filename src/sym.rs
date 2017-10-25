@@ -26,6 +26,10 @@ impl SymTable {
         self.levels.pop();
     }
 
+    pub fn levels(&self) -> usize {
+        self.levels.len()
+    }
+
     pub fn get(&self, name: Name) -> Option<Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {

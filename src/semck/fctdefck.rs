@@ -10,6 +10,8 @@ use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
+    debug_assert!(ctxt.sym.borrow().levels() == 1);
+
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.borrow_mut();
         let ast = fct.ast;
@@ -189,6 +191,8 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
         ctxt.sym.borrow_mut().pop_level();
     }
+
+    debug_assert!(ctxt.sym.borrow().levels() == 1);
 }
 
 fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
