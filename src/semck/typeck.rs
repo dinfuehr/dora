@@ -941,6 +941,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.ctxt,
                 &ctor.params_without_self(),
                 &arg_types,
+                Some(cls_id),
+                None,
                 &TypeParams::empty(),
                 &TypeParams::empty(),
             )
@@ -1397,6 +1399,8 @@ fn args_compatible(
     ctxt: &SemContext,
     def: &[BuiltinType],
     expr: &[BuiltinType],
+    cls_id: Option<ClassId>,
+    fct_id: Option<FctId>,
     cls_tps: &TypeParams,
     fct_tps: &TypeParams,
 ) -> bool {
@@ -1405,7 +1409,7 @@ fn args_compatible(
     }
 
     for (ind, &arg) in def.iter().enumerate() {
-        if !arg_allows(ctxt, arg, expr[ind], cls_tps, fct_tps) {
+        if !arg_allows(ctxt, arg, expr[ind], cls_id, fct_id, cls_tps, fct_tps) {
             return false;
         }
     }
@@ -1417,6 +1421,8 @@ fn arg_allows(
     ctxt: &SemContext,
     def: BuiltinType,
     arg: BuiltinType,
+    global_cls_id: Option<ClassId>,
+    global_fct_id: Option<FctId>,
     cls_tps: &TypeParams,
     fct_tps: &TypeParams,
 ) -> bool {
@@ -1436,27 +1442,27 @@ fn arg_allows(
         BuiltinType::This => panic!("this should not occur in fct definition."),
         BuiltinType::Trait(_) => panic!("trait should not occur in fct definition."),
 
-        BuiltinType::ClassTypeParam(_, tpid) => {
+        BuiltinType::ClassTypeParam(cls_id, tpid) => {
             if def == arg {
                 return true;
             }
 
-            if tpid.idx() >= cls_tps.len() {
+            if global_cls_id != Some(cls_id) || tpid.idx() >= cls_tps.len() {
                 return false;
             }
 
-            arg_allows(ctxt, cls_tps[tpid.idx()], arg, cls_tps, fct_tps)
+            arg_allows(ctxt, cls_tps[tpid.idx()], arg, global_cls_id, global_fct_id, cls_tps, fct_tps)
         }
-        BuiltinType::FctTypeParam(_, tpid) => {
+        BuiltinType::FctTypeParam(fct_id, tpid) => {
             if def == arg {
                 return true;
             }
 
-            if tpid.idx() >= fct_tps.len() {
+            if global_fct_id != Some(fct_id) || tpid.idx() >= fct_tps.len() {
                 return false;
             }
 
-            arg_allows(ctxt, fct_tps[tpid.idx()], arg, cls_tps, fct_tps)
+            arg_allows(ctxt, fct_tps[tpid.idx()], arg, global_cls_id, global_fct_id, cls_tps, fct_tps)
         }
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -1490,7 +1496,7 @@ fn arg_allows(
             }
 
             for (tp, op) in params.iter().zip(other_params.iter()) {
-                if !arg_allows(ctxt, tp, op, cls_tps, fct_tps) {
+                if !arg_allows(ctxt, tp, op, global_cls_id, global_fct_id, cls_tps, fct_tps) {
                     return false;
                 }
             }
@@ -1882,6 +1888,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             self.ctxt,
             &fct.params_without_self(),
             args,
+            cls_id,
+            Some(fct_id),
             &cls_tps,
             &fct_tps,
         )
@@ -1934,6 +1942,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 self.ctxt,
                 &ctor.params_without_self(),
                 &args,
+                Some(cls_id),
+                None,
                 type_params,
                 &TypeParams::empty(),
             )
@@ -2149,6 +2159,8 @@ fn lookup_method<'ast>(
                 ctxt,
                 &method.params_without_self(),
                 args,
+                Some(cls_id),
+                Some(method.id),
                 cls_type_params,
                 fct_tps,
             )
@@ -3735,5 +3747,18 @@ mod tests {
             pos(6, 17),
             Msg::AssignField("a".into(), "Foo".into(), "int".into(), "bool".into()),
         );
+    }
+
+    #[test]
+    fn test_ctor_with_type_param() {
+        err("
+            class Foo<T> {
+                fun foo(a: int) {
+                    Bar::<T>(a);
+                }
+            }
+
+            class Bar<T>(a: T)
+            ", pos(4, 21), Msg::UnknownCtor("Bar".into(), vec!["int".into()]));
     }
 }
