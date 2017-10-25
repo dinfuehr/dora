@@ -171,6 +171,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if !fct.is_src() {
+            ctxt.sym.borrow_mut().pop_level();
             continue;
         }
 
@@ -455,5 +456,12 @@ mod tests {
             pos(2, 19),
             Msg::DuplicateTraitBound,
         );
+    }
+
+    #[test]
+    fn check_previous_defined_type_params() {
+        // defaultValue<T>() defines T and needs to be cleaned up again,
+        // such that this fct definition is reported as an error
+        err("fun f(a: T) {}", pos(1, 10), Msg::UnknownType("T".into()));
     }
 }
