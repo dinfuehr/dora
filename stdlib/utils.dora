@@ -29,14 +29,7 @@ class Vec<T> {
       }
 
       let newarray = Array::<T>(newcap);
-
-      var i = 0;
-
-      while i < self.length {
-        newarray[i] = self.array[i];
-        i = i + 1;
-      }
-
+      arraycopy::<T>(self.array, 0, newarray, 0, self.length);
       self.array = newarray;
     }
 
@@ -67,14 +60,7 @@ class Vec<T> {
         self.array = nil;
       } else {
         let newarray = Array::<T>(self.length);
-
-        var i = 0;
-
-        while i < self.length {
-          newarray[i] = self.array[i];
-          i = i + 1;
-        }
-
+        arraycopy::<T>(self.array, 0, newarray, 0, self.length);
         self.array = newarray;
       }
     }

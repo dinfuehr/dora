@@ -247,6 +247,15 @@ internal class Array<T> {
   internal fun set(idx: int, val: T);
 }
 
+fun arraycopy<T>(src: Array<T>, srcPos: int, dest: Array<T>, destPos: int, len: int) {
+  var i = 0;
+
+  while i < len {
+    dest[destPos+i] = src[srcPos+i];
+    i = i + 1;
+  }
+}
+
 trait Equals {
   fun equals(other: Self) -> bool;
 }
