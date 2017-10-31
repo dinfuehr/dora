@@ -4,8 +4,8 @@ version = "0.0.1"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 
 [dependencies]
-rustc-serialize = "*"
-docopt = "*"
+rustc-serialize = "0.3"
+docopt = "0.7"
 byteorder = "*"
 libc = "*"
 time = "*"
