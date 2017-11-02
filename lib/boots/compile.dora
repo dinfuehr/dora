@@ -65,7 +65,59 @@ class Node {
   var op: Operator;
   var inputs: Array<Node>;
 
+  var usages: Array<Node>;
+  var usageCount: int;
+
   var ty: int;
+
+  fun appendUsage(node: Node) {
+    if self.usages === nil {
+      self.usages = Array::<Node>(4);
+      self.usages[0] = node;
+      self.usageCount = 1;
+
+    } else {
+      var i = 0;
+
+      while i < self.usageCount {
+        if self.usages[i] === node {
+          return;
+        }
+
+        i = i + 1;
+      }
+
+      if i >= self.usages.len() {
+        let newusages = Array::<Node>(self.usages.len() * 2);
+        arraycopy::<Node>(self.usages, 0, newusages, 0, self.usages.len());
+        self.usages = newusages;
+      }
+
+      self.usages[i] = node;
+      self.usageCount = self.usageCount + 1;
+    }
+  }
+
+  fun removeUsage(node: Node) {
+    if self.usages === nil {
+      return;
+    }
+
+    var i = 0;
+
+    while i < self.usageCount {
+      let usage = self.usages[i];
+
+      if usage === node {
+        let replacement = self.usages[self.usageCount-1];
+        self.usages[self.usageCount-1] = nil;
+        self.usages[i] = replacement;
+        self.usageCount = self.usageCount - 1;
+      } else {
+        i = i + 1;
+      }
+    }
+  }
 
   fun getValueInput(ind: int) -> Node {
     assert(ind < self.op.getValueInputCount());
@@ -110,42 +162,42 @@ class Branch: Operator {
   override fun getValueInputCount() -> int { return 1; }
   override fun getControlInputCount() -> int { return 1; }
   override fun getValueOutputCount() -> int { return 0; }
-  override fun getControlOutputCount() -> int { return 2; } 
+  override fun getControlOutputCount() -> int { return 2; }
 }
 
 class IfTrue: Operator {
   override fun getValueInputCount() -> int { return 0; }
   override fun getControlInputCount() -> int { return 1; }
   override fun getValueOutputCount() -> int { return 0; }
-  override fun getControlOutputCount() -> int { return 1; } 
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
 class IfFalse: Operator {
   override fun getValueInputCount() -> int { return 0; }
   override fun getControlInputCount() -> int { return 1; }
   override fun getValueOutputCount() -> int { return 0; }
-  override fun getControlOutputCount() -> int { return 1; } 
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
 class Return: Operator {
   override fun getValueInputCount() -> int { return 1; }
   override fun getControlInputCount() -> int { return 1; }
   override fun getValueOutputCount() -> int { return 0; }
-  override fun getControlOutputCount() -> int { return 1; } 
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
 class Loop(let input_count: int): Operator {
   override fun getValueInputCount() -> int { return 0; }
   override fun getControlInputCount() -> int { return self.input_count; }
   override fun getValueOutputCount() -> int { return 0; }
-  override fun getControlOutputCount() -> int { return 1; } 
+  override fun getControlOutputCount() -> int { return 1; }
 }
 
 class Phi(let input_count: int): Operator {
   override fun getValueInputCount() -> int { return self.input_count; }
   override fun getControlInputCount() -> int { return 1; }
   override fun getValueOutputCount() -> int { return 1; }
-  override fun getControlOutputCount() -> int { return 0; } 
+  override fun getControlOutputCount() -> int { return 0; }
 }
 
 class Parameter(let name: Str): Operator {
@@ -185,3 +237,54 @@ const TYPE_LONG: int = 2;
 const TYPE_FLOAT: int = 3;
 const TYPE_DOUBLE: int = 4;
 const TYPE_REF: int = 5;
+
+fun testAppendUsage(t: Testing) {
+  let n = Node();
+  let u1 = Node();
+  let u2 = Node();
+  let u3 = Node();
+  let u4 = Node();
+  let u5 = Node();
+
+  n.appendUsage(u1);
+  assert(n.usageCount == 1);
+
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u1);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u3);
+  assert(n.usageCount == 3);
+
+  n.appendUsage(u4);
+  assert(n.usageCount == 4);
+
+  n.appendUsage(u5);
+  assert(n.usageCount == 5);
+
+  assert(n.usages[0] === u1);
+  assert(n.usages[1] === u2);
+  assert(n.usages[2] === u3);
+  assert(n.usages[3] === u4);
+  assert(n.usages[4] === u5);
+}
+
+fun testRemoveUsage(t: Testing) {
+  let n = Node();
+  let u1 = Node();
+  let u2 = Node();
+
+  n.appendUsage(u1);
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  /*n.removeUsage(u1);
+  assert(n.usageCount == 1);
+  assert(n.usages[0] === u2);
+  assert(n.usages[1] === nil);*/
+}
