@@ -351,6 +351,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.visit_expr(&e.rhs);
             let value_type = self.expr_type;
 
+            if object_type.is_error() {
+                self.src.set_ty(e.id, BuiltinType::Error);
+                self.expr_type = BuiltinType::Error;
+
+                return;
+            }
+
             let name = self.ctxt.interner.intern("set");
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
@@ -1092,9 +1099,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let expr_name = ty.name(self.ctxt);
         let msg = Msg::UnknownField(field_name, expr_name);
         self.ctxt.diag.borrow_mut().report(e.pos, msg);
-        // we don't know the type of the field, just assume ()
-        self.src.set_ty(e.id, BuiltinType::Unit);
-        self.expr_type = BuiltinType::Unit;
+
+        self.src.set_ty(e.id, BuiltinType::Error);
+        self.expr_type = BuiltinType::Error;
     }
 
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
@@ -1139,6 +1146,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         self.visit_expr(&e.index);
         let index_type = self.expr_type;
+
+        if object_type.is_error() {
+            self.src.set_ty(e.id, BuiltinType::Error);
+            self.expr_type = BuiltinType::Error;
+
+            return;
+        }
 
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];

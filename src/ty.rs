@@ -252,7 +252,7 @@ impl BuiltinType {
 
     pub fn allows(&self, ctxt: &SemContext, other: BuiltinType) -> bool {
         match *self {
-            BuiltinType::Error => panic!("allows() can't be called on error."),
+            BuiltinType::Error => true,
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
