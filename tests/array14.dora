@@ -1,0 +1,4 @@
+fun main() {
+    let x = Array::<Str>(1);
+    x[0] = nil;
+}
