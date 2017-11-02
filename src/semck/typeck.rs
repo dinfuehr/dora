@@ -240,7 +240,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let fct_type = self.fct.return_type;
 
-        if !fct_type.allows(self.ctxt, expr_type) {
+        if !expr_type.is_error() && !fct_type.allows(self.ctxt, expr_type) {
             let msg = if expr_type.is_nil() {
                 let fct_type = fct_type.name(self.ctxt);
 
