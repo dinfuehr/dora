@@ -669,7 +669,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
                 self.reserve_temp_for_node(&array.object);
                 self.reserve_temp_for_node(&array.index);
-                self.reserve_temp_for_node(&e.rhs);
+
+                let element_type = self.ty(array.id);
+                self.reserve_temp_for_node_with_type(e.rhs.id(), element_type);
 
                 self.jit_info.map_intrinsics.insert(e.id, intrinsic);
             } else {

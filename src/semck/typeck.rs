@@ -15,6 +15,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+use semck::specialize::specialize_type;
 use sym::Sym::SymClass;
 use ty::BuiltinType;
 
@@ -370,6 +371,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     e.id,
                     Rc::new(call_type),
                 );
+
+                let fct = &self.ctxt.fcts[fct_id];
+                let fct = fct.borrow();
+
+                let element_type = fct.params_without_self()[1];
+                let object_type_params = object_type.type_params(self.ctxt);
+                let element_type = specialize_type(self.ctxt, element_type, &object_type_params);
+                self.src.set_ty(array.id, element_type);
 
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;

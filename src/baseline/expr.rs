@@ -681,7 +681,7 @@ where
             if let Some(intrinsic) = self.intrinsic(e.id) {
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
-                        let ty = self.ty(e.rhs.id());
+                        let ty = self.ty(array.id);
                         self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs)
                     }
 
