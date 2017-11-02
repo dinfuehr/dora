@@ -56,6 +56,13 @@ class Graph {
     n.op = op;
     n.inputs = inputs;
 
+    var i = 0;
+
+    while i < inputs.len() {
+      inputs[i].appendUsage(n);
+      i = i + 1;
+    }
+
     return n;
   }
 }
@@ -123,6 +130,27 @@ class Node {
       } else {
         i = i + 1;
       }
+    }
+  }
+
+  fun replaceAllUsesWith(replace: Node) {
+    var i = 0;
+
+    while i < self.usageCount {
+      self.usages[i].replaceAllUsesOf(self, replace);
+      i = i + 1;
+    }
+  }
+
+  fun replaceAllUsesOf(old: Node, replace: Node) {
+    var i = 0;
+
+    while i < self.inputs.len() {
+      if self.inputs[i] === old {
+        self.inputs[i] = replace;
+      }
+
+      i = i + 1;
     }
   }
 
@@ -234,6 +262,13 @@ class LongConst(let value: long): Operator {
   fun getValue() -> long { return self.value; }
 }
 
+class TestValueOperator(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return self.input_count; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+}
+
 fun main() {
   let g = Graph("foo");
 }
@@ -306,4 +341,50 @@ fun testRemoveUsage(t: Testing) {
   assert(n.usageCount == 1);
   assert(n.usages[0] === u1);
   assert(n.usages[1] === nil);
+}
+
+fun testReplaceAllUsesOf(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let i1 = g.newNode0(op);
+  let i2 = g.newNode0(op);
+  let i3 = g.newNode0(op);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i2);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i1);
+  assert(n.inputs[1] === i2);
+
+  n.replaceAllUsesOf(i1, i3);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i3);
+  assert(n.inputs[1] === i2);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i1);
+
+  n.replaceAllUsesOf(i1, i2);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i2);
+  assert(n.inputs[1] === i2);
+}
+
+fun testReplaceAllUsesWith(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let i1 = g.newNode0(op);
+  let i2 = g.newNode0(op);
+  let i3 = g.newNode0(op);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i2);
+
+  i1.replaceAllUsesWith(i3);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i3);
+  assert(n.inputs[1] === i2);
 }
