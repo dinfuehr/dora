@@ -109,6 +109,13 @@ class Node {
       let usage = self.usages[i];
 
       if usage === node {
+        if i == self.usageCount-1 {
+          self.usages[i] = nil;
+          self.usageCount = self.usageCount - 1;
+
+          return;
+        }
+
         let replacement = self.usages[self.usageCount-1];
         self.usages[self.usageCount-1] = nil;
         self.usages[i] = replacement;
@@ -283,8 +290,20 @@ fun testRemoveUsage(t: Testing) {
   n.appendUsage(u2);
   assert(n.usageCount == 2);
 
-  /*n.removeUsage(u1);
+  n.removeUsage(u1);
   assert(n.usageCount == 1);
   assert(n.usages[0] === u2);
-  assert(n.usages[1] === nil);*/
+  assert(n.usages[1] === nil);
+
+  n.removeUsage(u2);
+  assert(n.usageCount == 0);
+  assert(n.usages[0] === nil);
+
+  n.appendUsage(u1);
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+  n.removeUsage(u2);
+  assert(n.usageCount == 1);
+  assert(n.usages[0] === u1);
+  assert(n.usages[1] === nil);
 }

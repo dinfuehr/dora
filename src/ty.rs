@@ -252,7 +252,10 @@ impl BuiltinType {
 
     pub fn allows(&self, ctxt: &SemContext, other: BuiltinType) -> bool {
         match *self {
+            // allow all types for Error, there is already an error,
+            // don't report too many messages for the same error
             BuiltinType::Error => true,
+
             BuiltinType::Unit |
             BuiltinType::Bool |
             BuiltinType::Byte |
