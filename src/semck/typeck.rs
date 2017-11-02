@@ -2256,22 +2256,10 @@ mod tests {
             pos(1, 46),
             Msg::ReturnType("bool".into(), "int".into()),
         );
-
-        parse_with_errors(
+        err(
             "class Foo(let a:int) fun f(x: Foo) -> int { return x.b; }",
-            |ctxt| {
-                let diag = ctxt.diag.borrow();
-                let errors = diag.errors();
-                assert_eq!(2, errors.len());
-
-                let err = &errors[0];
-                assert_eq!(pos(1, 53), err.pos);
-                assert_eq!(Msg::UnknownField("b".into(), "Foo".into()), err.msg);
-
-                let err = &errors[1];
-                assert_eq!(pos(1, 45), err.pos);
-                assert_eq!(Msg::ReturnType("int".into(), "()".into()), err.msg);
-            },
+            pos(1, 53),
+            Msg::UnknownField("b".into(), "Foo".into()),
         );
     }
 
