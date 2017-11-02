@@ -281,12 +281,15 @@ const TYPE_DOUBLE: int = 4;
 const TYPE_REF: int = 5;
 
 fun testAppendUsage(t: Testing) {
-  let n = Node();
-  let u1 = Node();
-  let u2 = Node();
-  let u3 = Node();
-  let u4 = Node();
-  let u5 = Node();
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let n = g.newNode0(op);
+  let u1 = g.newNode0(op);
+  let u2 = g.newNode0(op);
+  let u3 = g.newNode0(op);
+  let u4 = g.newNode0(op);
+  let u5 = g.newNode0(op);
 
   n.appendUsage(u1);
   assert(n.usageCount == 1);
@@ -317,9 +320,12 @@ fun testAppendUsage(t: Testing) {
 }
 
 fun testRemoveUsage(t: Testing) {
-  let n = Node();
-  let u1 = Node();
-  let u2 = Node();
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let n = g.newNode0(op);
+  let u1 = g.newNode0(op);
+  let u2 = g.newNode0(op);
 
   n.appendUsage(u1);
   n.appendUsage(u2);
