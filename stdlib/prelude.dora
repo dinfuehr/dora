@@ -131,19 +131,19 @@ internal class int {
     }
   }
 
-  static fun min(a: int, b: int) -> int {
-    if a < b {
-      return a;
+  static fun min(lhs: int, rhs: int) -> int {
+    if lhs < rhs {
+      return lhs;
     } else {
-      return b;
+      return rhs;
     }
   }
 
-  static fun max(a: int, b: int) -> int {
-    if a < b {
-      return b;
+  static fun max(lhs: int, rhs: int) -> int {
+    if lhs < rhs {
+      return rhs;
     } else {
-      return a;
+      return lhs;
     }
   }
 

@@ -1,4 +1,6 @@
+use std::fs;
 use std::mem;
+use std::path::Path;
 
 use baseline;
 use class::TypeParams;
@@ -31,26 +33,14 @@ pub fn start() -> i32 {
     let id_generator = NodeIdGenerator::new();
     let mut ast = Ast::new();
 
-    if let Err(code) = parse_file(
-        "stdlib/prelude.dora",
+    if let Err(code) = parse_dir(
+        "stdlib",
         &id_generator,
         &mut ast,
         &mut interner,
     ).and_then(|_| {
-        parse_file("stdlib/str.dora", &id_generator, &mut ast, &mut interner)
+        parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
     })
-        .and_then(|_| {
-            parse_file("stdlib/io.dora", &id_generator, &mut ast, &mut interner)
-        })
-        .and_then(|_| {
-            parse_file("stdlib/utils.dora", &id_generator, &mut ast, &mut interner)
-        })
-        .and_then(|_| {
-            parse_file("stdlib/test.dora", &id_generator, &mut ast, &mut interner)
-        })
-        .and_then(|_| {
-            parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
-        })
     {
         return code;
     }
@@ -195,6 +185,32 @@ fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     // else use return value of main for exit status
     } else {
         res
+    }
+}
+
+fn parse_dir(
+    dirname: &str,
+    id_generator: &NodeIdGenerator,
+    ast: &mut Ast,
+    interner: &mut Interner,
+) -> Result<(), i32> {
+    let path = Path::new(dirname);
+
+    if path.is_dir() {
+        for entry in fs::read_dir(path).unwrap() {
+            let path = entry.unwrap().path();
+
+            if path.is_file() && path.extension().unwrap() == "dora" {
+                parse_file(path.to_str().unwrap(), id_generator, ast, interner)?;
+            }
+        }
+
+        Ok(())
+
+    } else {
+        println!("directory `{}` does not exist.", dirname);
+
+        Err(1)
     }
 }
 
