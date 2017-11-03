@@ -2239,7 +2239,6 @@ mod tests {
     use ctxt::ConstValue;
     use dora_parser::error::msg::Msg;
     use semck::tests::*;
-    use test::parse_with_errors;
 
     #[test]
     fn type_method_len() {

@@ -132,13 +132,21 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
-                    let has_open = self.ctxt.classes[clsid].borrow().has_open;
+                    let super_cls = &self.ctxt.classes[clsid];
+                    let super_cls = super_cls.borrow();
 
-                    if has_open {
+                    if super_cls.has_open {
                         let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
+                        self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
+                    }
+
+                    let number_type_params = parent_class.type_params.as_ref().map(|x| x.len()).unwrap_or(0);
+
+                    if number_type_params != super_cls.type_params.len() {
+                        let msg = Msg::WrongNumberTypeParams(super_cls.type_params.len(), number_type_params);
                         self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
                     }
                 }
@@ -451,5 +459,14 @@ mod tests {
             pos(2, 21),
             Msg::DuplicateTraitBound,
         );
+    }
+
+    #[test]
+    fn test_super_class_with_superfluous_type_params() {
+        err("
+            open class A
+            class B: A<int> {}",
+            pos(3, 22),
+            Msg::WrongNumberTypeParams(0, 1));
     }
 }
