@@ -39,7 +39,18 @@ pub fn start() -> i32 {
         &mut ast,
         &mut interner,
     ).and_then(|_| {
-        parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
+        let path = Path::new(&args.arg_file);
+
+        if path.is_file() {
+            parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
+
+        } else if path.is_dir() {
+            parse_dir(&args.arg_file, &id_generator, &mut ast, &mut interner)
+
+        } else {
+            println!("file or directory `{}` does not exist.", &args.arg_file);
+            Err(1)
+        }
     })
     {
         return code;
