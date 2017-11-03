@@ -307,9 +307,10 @@ impl<'a> Parser<'a> {
 
             let pos = self.token.position;
             let name = self.expect_identifier()?;
+            let type_params = self.parse_type_params()?;
             let params = self.parse_parent_class_params()?;
 
-            Some(ParentClass::new(name, pos, params))
+            Some(ParentClass::new(name, pos, type_params, params))
         } else {
             None
         };
@@ -1021,7 +1022,7 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::For)?.position;
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::In)?;
-    
+
         let mut opts = ExprParsingOpts::new();
         opts.parse_struct_lit(false);
         let expr = self.parse_expression_with_opts(&opts)?;
@@ -3229,6 +3230,16 @@ mod tests {
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
         assert_eq!(2, type_param.bounds.len());
+    }
+
+    #[test]
+    fn parse_generic_super_class() {
+        let (prog, _) = parse("class A: B<SomeType, SomeOtherType>");
+        let cls = prog.cls0();
+
+        let parent = cls.parent_class.as_ref().unwrap();
+        let type_params = parent.type_params.as_ref().unwrap();
+        assert_eq!(2, type_params.len());
     }
 
     #[test]

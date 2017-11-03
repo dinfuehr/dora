@@ -262,6 +262,15 @@ class LongConst(let value: long): Operator {
   fun getValue() -> long { return self.value; }
 }
 
+class StrConst(let value: Str): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> Str { return self.value; }
+}
+
 class TestValueOperator(let input_count: int): Operator {
   override fun getValueInputCount() -> int { return self.input_count; }
   override fun getControlInputCount() -> int { return 0; }

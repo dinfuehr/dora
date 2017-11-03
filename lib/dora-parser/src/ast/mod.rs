@@ -463,14 +463,16 @@ pub struct PrimaryCtorParam {
 pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
+    pub type_params: Option<Vec<TypeParam>>,
     pub params: Vec<Box<Expr>>,
 }
 
 impl ParentClass {
-    pub fn new(name: Name, pos: Position, params: Vec<Box<Expr>>) -> ParentClass {
+    pub fn new(name: Name, pos: Position, type_params: Option<Vec<TypeParam>>, params: Vec<Box<Expr>>) -> ParentClass {
         ParentClass {
             name: name,
             pos: pos,
+            type_params: type_params,
             params: params,
         }
     }
