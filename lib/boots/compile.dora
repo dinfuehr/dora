@@ -8,6 +8,7 @@ class Graph {
 
   init(name: Str) {
     self.name = name;
+    self.nextNodeId = 1;
   }
 
   fun getStart() -> Node { return self.start; }
