@@ -148,17 +148,21 @@ class Node {
 
   fun replaceAllUsesOf(old: Node, replace: Node) {
     var i = 0;
+    var replaced = false;
 
     while i < self.inputs.len() {
       if self.inputs[i] === old {
         self.inputs[i] = replace;
+        replaced = true;
       }
 
       i = i + 1;
     }
 
-    old.removeUsage(self);
-    replace.appendUsage(self);
+    if replaced {
+      old.removeUsage(self);
+      replace.appendUsage(self);
+    }
   }
 
   fun getValueInput(ind: int) -> Node {
