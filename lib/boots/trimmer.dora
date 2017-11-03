@@ -1,0 +1,47 @@
+class GraphTrimmer(let graph: Graph) {
+    let bm: NodeBitMap = NodeBitMap();
+    let lives: Vec<Node> = Vec::<Node>();
+
+    fun trim() {
+        self.markLive(self.graph.getEnd());
+
+        var i = 0;
+
+        while i < self.lives.len() {
+            let live = self.lives[i];
+
+            for i in range(0, live.inputs.len()) {
+                let input = live.inputs[i];
+                self.markLive(input);
+            }
+        }
+
+        for i in range(0, self.lives.len()) {
+            let live = self.lives[i];
+            assert(self.isLive(live));
+
+            var j = 0;
+
+            while j < live.usageCount {
+                let use = live.usages[j];
+
+                if !self.isLive(use) {
+                    live.removeUsage(use);
+                } else {
+                    j = j + 1;
+                }
+            }
+        }
+    }
+
+    fun markLive(node: Node) {
+        if !self.isLive(node) {
+            self.bm.set(node, true);
+            self.lives.push(node);
+        }
+    }
+
+    fun isLive(node: Node) -> bool {
+        return self.bm.get(node);
+    }
+}
