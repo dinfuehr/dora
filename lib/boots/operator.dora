@@ -1,0 +1,112 @@
+abstract open class Operator {
+  abstract fun getValueInputCount() -> int;
+  abstract fun getControlInputCount() -> int;
+  abstract fun getValueOutputCount() -> int;
+  abstract fun getControlOutputCount() -> int;
+}
+
+class Start(let params: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return self.params; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class End(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 0; }
+}
+
+class Merge(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class Branch: Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 2; }
+}
+
+class IfTrue: Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class IfFalse: Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class Return: Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class Loop(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
+class Phi(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return self.input_count; }
+  override fun getControlInputCount() -> int { return 1; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+}
+
+class Parameter(let name: Str): Operator {
+  override fun getValueInputCount() -> int { return 1; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getName() -> Str { return self.name; }
+}
+
+class IntConst(let value: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> int { return self.value; }
+}
+
+class LongConst(let value: long): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> long { return self.value; }
+}
+
+class StrConst(let value: Str): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+
+  fun getValue() -> Str { return self.value; }
+}
+
+class TestValueOperator(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return self.input_count; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 0; }
+}

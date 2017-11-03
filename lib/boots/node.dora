@@ -1,0 +1,232 @@
+class Node {
+  var id: int;
+  var op: Operator;
+  var inputs: Array<Node>;
+
+  var usages: Array<Node>;
+  var usageCount: int;
+
+  var ty: int;
+
+  pub fun id() -> int {
+    return self.id;
+  }
+
+  fun appendUsage(node: Node) {
+    if self.usages === nil {
+      self.usages = Array::<Node>(4);
+      self.usages[0] = node;
+      self.usageCount = 1;
+
+    } else {
+      var i = 0;
+
+      while i < self.usageCount {
+        if self.usages[i] === node {
+          return;
+        }
+
+        i = i + 1;
+      }
+
+      if i >= self.usages.len() {
+        let newusages = Array::<Node>(self.usages.len() * 2);
+        arraycopy::<Node>(self.usages, 0, newusages, 0, self.usages.len());
+        self.usages = newusages;
+      }
+
+      self.usages[i] = node;
+      self.usageCount = self.usageCount + 1;
+    }
+  }
+
+  fun removeUsage(node: Node) {
+    if self.usages === nil {
+      return;
+    }
+
+    var i = 0;
+
+    while i < self.usageCount {
+      let usage = self.usages[i];
+
+      if usage === node {
+        if i == self.usageCount-1 {
+          self.usages[i] = nil;
+          self.usageCount = self.usageCount - 1;
+
+          return;
+        }
+
+        let replacement = self.usages[self.usageCount-1];
+        self.usages[self.usageCount-1] = nil;
+        self.usages[i] = replacement;
+        self.usageCount = self.usageCount - 1;
+      } else {
+        i = i + 1;
+      }
+    }
+  }
+
+  fun replaceAllUsesWith(replace: Node) {
+    var i = 0;
+
+    while i < self.usageCount {
+      self.usages[i].replaceAllUsesOf(self, replace);
+      i = i + 1;
+    }
+  }
+
+  fun replaceAllUsesOf(old: Node, replace: Node) {
+    var i = 0;
+    var replaced = false;
+
+    while i < self.inputs.len() {
+      if self.inputs[i] === old {
+        self.inputs[i] = replace;
+        replaced = true;
+      }
+
+      i = i + 1;
+    }
+
+    if replaced {
+      old.removeUsage(self);
+      replace.appendUsage(self);
+    }
+  }
+
+  fun getValueInput(ind: int) -> Node {
+    assert(ind < self.op.getValueInputCount());
+    return self.inputs[ind];
+  }
+
+  fun getControlInput(ind: int) -> Node {
+    assert(ind < self.op.getControlInputCount());
+    return self.inputs[self.op.getValueInputCount() + ind];
+  }
+}
+
+fun testAppendUsage(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let n = g.newNode0(op);
+  let u1 = g.newNode0(op);
+  let u2 = g.newNode0(op);
+  let u3 = g.newNode0(op);
+  let u4 = g.newNode0(op);
+  let u5 = g.newNode0(op);
+
+  n.appendUsage(u1);
+  assert(n.usageCount == 1);
+
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u1);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  n.appendUsage(u3);
+  assert(n.usageCount == 3);
+
+  n.appendUsage(u4);
+  assert(n.usageCount == 4);
+
+  n.appendUsage(u5);
+  assert(n.usageCount == 5);
+
+  assert(n.usages[0] === u1);
+  assert(n.usages[1] === u2);
+  assert(n.usages[2] === u3);
+  assert(n.usages[3] === u4);
+  assert(n.usages[4] === u5);
+}
+
+fun testRemoveUsage(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let n = g.newNode0(op);
+  let u1 = g.newNode0(op);
+  let u2 = g.newNode0(op);
+
+  n.appendUsage(u1);
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+
+  n.removeUsage(u1);
+  assert(n.usageCount == 1);
+  assert(n.usages[0] === u2);
+  assert(n.usages[1] === nil);
+
+  n.removeUsage(u2);
+  assert(n.usageCount == 0);
+  assert(n.usages[0] === nil);
+
+  n.appendUsage(u1);
+  n.appendUsage(u2);
+  assert(n.usageCount == 2);
+  n.removeUsage(u2);
+  assert(n.usageCount == 1);
+  assert(n.usages[0] === u1);
+  assert(n.usages[1] === nil);
+}
+
+fun testReplaceAllUsesOf(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let i1 = g.newNode0(op);
+  let i2 = g.newNode0(op);
+  let i3 = g.newNode0(op);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i2);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i1);
+  assert(n.inputs[1] === i2);
+
+  n.replaceAllUsesOf(i1, i3);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i3);
+  assert(n.inputs[1] === i2);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i1);
+
+  n.replaceAllUsesOf(i1, i2);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i2);
+  assert(n.inputs[1] === i2);
+}
+
+fun testReplaceAllUsesWith(t: Testing) {
+  let g = Graph("test");
+
+  let op = TestValueOperator(0);
+  let i1 = g.newNode0(op);
+  let i2 = g.newNode0(op);
+  let i3 = g.newNode0(op);
+
+  let n = g.newNode2(TestValueOperator(2), i1, i2);
+
+  assert(i1.usageCount == 1);
+  assert(i1.usages[0] === n);
+
+  i1.replaceAllUsesWith(i3);
+
+  assert(n.inputs.len() == 2);
+  assert(n.inputs[0] === i3);
+  assert(n.inputs[1] === i2);
+
+  assert(i3.usageCount == 1);
+  assert(i3.usages[0] === n);
+
+  assert(i1.usageCount == 0);
+  assert(i1.usages[0] === nil);
+}

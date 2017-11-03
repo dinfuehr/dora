@@ -1,0 +1,6 @@
+const TYPE_UNTYPED: int = 0;
+const TYPE_INT: int = 1;
+const TYPE_LONG: int = 2;
+const TYPE_FLOAT: int = 3;
+const TYPE_DOUBLE: int = 4;
+const TYPE_REF: int = 5;

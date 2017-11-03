@@ -1,0 +1,69 @@
+class Graph {
+  var name: Str;
+
+  var start: Node;
+  var end: Node;
+
+  var nextNodeId: int;
+
+  init(name: Str) {
+    self.name = name;
+    self.nextNodeId = 1;
+  }
+
+  fun getStart() -> Node { return self.start; }
+  fun getEnd() -> Node { return self.end; }
+
+  fun setStart(start: Node) { self.start = start; }
+  fun setEnd(end: Node) { self.end = end; }
+
+  fun newNode0(op: Operator) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+
+    return n;
+  }
+
+  fun newNode1(op: Operator, input1: Node) -> Node {
+    let inputs = Array::<Node>(1);
+    inputs[0] = input1;
+
+    return self.newNodeX(op, inputs);
+  }
+
+  fun newNode2(op: Operator, input1: Node, input2: Node) -> Node {
+    let inputs = Array::<Node>(2);
+    inputs[0] = input1;
+    inputs[1] = input2;
+
+    return self.newNodeX(op, inputs);
+  }
+
+  fun newNode3(op: Operator, input1: Node, input2: Node, input3: Node) -> Node {
+    let inputs = Array::<Node>(3);
+    inputs[0] = input1;
+    inputs[1] = input2;
+    inputs[2] = input3;
+
+    return self.newNodeX(op, inputs);
+  }
+
+  fun newNodeX(op: Operator, inputs: Array<Node>) -> Node {
+    let n = Node();
+    n.id = self.nextNodeId;
+    self.nextNodeId = self.nextNodeId + 1;
+    n.op = op;
+    n.inputs = inputs;
+
+    var i = 0;
+
+    while i < inputs.len() {
+      inputs[i].appendUsage(n);
+      i = i + 1;
+    }
+
+    return n;
+  }
+}
