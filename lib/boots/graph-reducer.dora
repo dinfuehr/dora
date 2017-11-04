@@ -33,7 +33,7 @@ open abstract class AdvancedReducer(let graphReducer: GraphReducer) {
 
 class GraphReducer(let graph: Graph) {
     var reducers: Vec<Reducer>;
-    var revisit: Vec<Node>;
+    var revisit: Queue<Node>;
     var stack: Vec<Node>;
 
     fun addReducer(reducer: Reducer) {
