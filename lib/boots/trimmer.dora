@@ -10,13 +10,20 @@ class GraphTrimmer(let graph: Graph) {
         while i < self.lives.len() {
             let live = self.lives[i];
 
-            for i in range(0, live.inputs.len()) {
-                let input = live.inputs[i];
+            var j = 0;
+
+            while j < live.getInputCount() {
+                let input = live.getInput(j);
                 self.markLive(input);
+                j = j + 1;
             }
+
+            i = i + 1;
         }
 
-        for i in range(0, self.lives.len()) {
+        i = 0;
+
+        while i < self.lives.len() {
             let live = self.lives[i];
             assert(self.isLive(live));
 
@@ -31,6 +38,8 @@ class GraphTrimmer(let graph: Graph) {
                     j = j + 1;
                 }
             }
+
+            i = i + 1;
         }
     }
 
@@ -44,4 +53,55 @@ class GraphTrimmer(let graph: Graph) {
     fun isLive(node: Node) -> bool {
         return self.bm.get(node);
     }
+}
+
+fun testTrimmerSimple(t: Testing) {
+    let g = Graph();
+
+    let s = g.newNode0(Start(0));
+    let e = g.newNode1(End(1), s);
+
+    g.setStart(s);
+    g.setEnd(e);
+
+    GraphTrimmer(g).trim();
+
+    assert(g.getStart() === s);
+    assert(g.getEnd() === e);
+    assert(e.getInput(0) === s);
+}
+
+fun testTrimmerDeadUseOfStart(t: Testing) {
+    let g = Graph();
+
+    let s = g.newNode0(Start(0));
+    let e = g.newNode1(End(1), s);
+    let u = g.newNode1(TestControlOperator(1), s);
+
+    g.setStart(s);
+    g.setEnd(e);
+
+    assertNodeUsages2(s, e, u);
+
+    GraphTrimmer(g).trim();
+
+    assertNodeUsage(s, e);
+}
+
+fun testTrimmerDeadAndLiveUseOfStart(t: Testing) {
+    let g = Graph();
+
+    let s = g.newNode0(Start(0));
+    let l = g.newNode1(TestControlOperator(1), s);
+    let e = g.newNode1(End(1), l);
+    let u = g.newNode1(TestControlOperator(1), s);
+
+    g.setStart(s);
+    g.setEnd(e);
+
+    assertNodeUsages2(s, l, u);
+
+    GraphTrimmer(g).trim();
+
+    assertNodeUsage(s, l);
 }

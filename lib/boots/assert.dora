@@ -1,0 +1,11 @@
+fun assertNodeUsage(node: Node, use1: Node) {
+    assert(node.usageCount == 1);
+    assert(node.usages[0] === use1);
+}
+
+fun assertNodeUsages2(node: Node, use1: Node, use2: Node) {
+    assert(node.usageCount == 2);
+    assert(node.usages[0] === use1 || node.usages[1] === use1);
+    assert(node.usages[0] === use2 || node.usages[1] === use2);
+    assert(node.usages[0] !== node.usages[1]);
+}

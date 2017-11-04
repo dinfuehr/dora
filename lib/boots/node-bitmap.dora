@@ -16,12 +16,13 @@ class NodeBitMap {
       self.setBit(index, id % 64, value);
 
     } else if value {
-      let new = Array::<long>(int::min(4, index+1));
+      let new = Array::<long>(int::max(4, index+1));
 
       if self.entries !== nil {
         arraycopy::<long>(self.entries, 0, new, 0, self.entries.len());
       }
 
+      self.entries = new;
       self.setBit(index, id, value);
     }
   }
@@ -63,7 +64,7 @@ class NodeBitMap {
   }
 }
 
-fun testNodeBitMap() {
+fun testNodeBitMap(t: Testing) {
   let bm = NodeBitMap();
 
   bm.setId(0, false);

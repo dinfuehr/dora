@@ -11,6 +11,8 @@ class Graph {
     self.nextNodeId = 1;
   }
 
+  init() : self("<unnamed>") {}
+
   fun getStart() -> Node { return self.start; }
   fun getEnd() -> Node { return self.end; }
 
@@ -56,6 +58,7 @@ class Graph {
     self.nextNodeId = self.nextNodeId + 1;
     n.op = op;
     n.inputs = inputs;
+    n.inputCount = inputs.len();
 
     var i = 0;
 

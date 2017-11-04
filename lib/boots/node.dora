@@ -1,7 +1,9 @@
 class Node {
   var id: int;
   var op: Operator;
+
   var inputs: Array<Node>;
+  var inputCount: int;
 
   var usages: Array<Node>;
   var usageCount: int;
@@ -98,12 +100,28 @@ class Node {
 
   fun getValueInput(ind: int) -> Node {
     assert(ind < self.op.getValueInputCount());
+    assert(ind < self.inputCount);
     return self.inputs[ind];
   }
 
   fun getControlInput(ind: int) -> Node {
     assert(ind < self.op.getControlInputCount());
-    return self.inputs[self.op.getValueInputCount() + ind];
+    let ind = self.op.getValueInputCount() + ind;
+    assert(ind < self.inputCount);
+    return self.inputs[ind];
+  }
+
+  fun getInput(ind: int) -> Node {
+    assert(ind < self.inputCount);
+    return self.inputs[ind];
+  }
+
+  fun getInputCount() -> int {
+    if self.inputs === nil {
+      return 0;
+    } else {
+      return self.inputs.len();
+    }
   }
 }
 

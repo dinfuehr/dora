@@ -110,3 +110,10 @@ class TestValueOperator(let input_count: int): Operator {
   override fun getValueOutputCount() -> int { return 1; }
   override fun getControlOutputCount() -> int { return 0; }
 }
+
+class TestControlOperator(let input_count: int): Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return self.input_count; }
+  override fun getValueOutputCount() -> int { return 0; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
