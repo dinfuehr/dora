@@ -59,7 +59,7 @@ class GraphReducer(let graph: Graph) {
             if self.stack.len() > 0 {
                 self.reduceTop();
             } else if self.revisit.len() > 0 {
-                self.revisit.removeAt(0);
+                self.revisit.dequeue();
             } else {
                 self.runFinalizers();
 
