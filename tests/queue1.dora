@@ -1,0 +1,14 @@
+fun main() {
+    let q = Queue::<int>();
+    assert(q.len() == 0);
+    assert(q.isEmpty());
+    q.enqueue(1);
+    assert(q.len() == 1);
+    assert(!q.isEmpty());
+    q.enqueue(2);
+    assert(q.len() == 2);
+    assert(q.dequeue() == 1);
+    assert(q.dequeue() == 2);
+    assert(q.len() == 0);
+    assert(q.isEmpty());
+}

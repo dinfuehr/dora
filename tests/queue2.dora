@@ -1,0 +1,11 @@
+fun main() {
+    let q = Queue::<int>();
+
+    for i in range(0, 100) {
+        q.enqueue(i);
+    }
+
+    for i in range(0, 100) {
+        assert(q.dequeue() == i);
+    }
+}
