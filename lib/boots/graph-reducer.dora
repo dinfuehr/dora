@@ -1,0 +1,84 @@
+class Reduction(let replacement: Node) {
+    fun isChanged() -> bool {
+        return self.replacement !== nil;
+    }
+
+    fun isNoChange() -> bool {
+        return self.replacement === nil;
+    }
+}
+
+fun noChange() -> Reduction {
+    return Reduction(nil);
+}
+
+fun changed(node: Node) -> Reduction {
+    return Reduction(node);
+}
+
+open abstract class Reducer {
+    abstract fun reduce(node: Node) -> Reduction;
+    abstract fun finalize();
+}
+
+open abstract class AdvancedReducer(let graphReducer: GraphReducer) {
+    fun replace(node: Node, replacement: Node) {
+        self.graphReducer.replace(node, replacement);
+    }
+
+    fun revisit(node: Node) {
+        self.graphReducer.revisit(node);
+    }
+}
+
+class GraphReducer(let graph: Graph) {
+    var reducers: Vec<Reducer>;
+    var revisit: Vec<Node>;
+    var stack: Vec<Node>;
+
+    fun addReducer(reducer: Reducer) {
+        self.reducers.push(reducer);
+    }
+
+    fun revisit(node: Node) {
+        unimplemented();
+    }
+
+    fun replace(node: Node, replacement: Node) {
+        unimplemented();
+    }
+
+    fun reduceGraph() {
+        self.reduceNode(self.graph.getEnd());
+    }
+
+    fun reduceNode(node: Node) {
+        self.stack.push(node);
+
+        loop {
+            if self.stack.len() > 0 {
+                self.reduceTop();
+            } else if self.revisit.len() > 0 {
+                self.revisit.removeAt(0);
+            } else {
+                self.runFinalizers();
+
+                if self.revisit.len() == 0 {
+                    break;
+                }
+            }
+        }
+    }
+
+    fun runFinalizers() {
+        var i = 0;
+
+        while i < self.reducers.len() {
+            self.reducers[i].finalize();
+        }
+    }
+
+    fun reduceTop() {
+
+    }
+}

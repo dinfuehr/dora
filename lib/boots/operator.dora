@@ -19,6 +19,13 @@ class End(let input_count: int): Operator {
   override fun getControlOutputCount() -> int { return 0; }
 }
 
+class Dead: Operator {
+  override fun getValueInputCount() -> int { return 0; }
+  override fun getControlInputCount() -> int { return 0; }
+  override fun getValueOutputCount() -> int { return 1; }
+  override fun getControlOutputCount() -> int { return 1; }
+}
+
 class Merge(let input_count: int): Operator {
   override fun getValueInputCount() -> int { return 0; }
   override fun getControlInputCount() -> int { return self.input_count; }
