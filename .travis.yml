@@ -6,12 +6,17 @@ addons:
   apt:
     packages:
     - ruby
-    - clang-4.0
 
 # don't test on macOS for now
 # os:
 #   - linux
 #   - osx
+
+before_script:
+  - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+  - echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list
+  - sudo apt-get update -qq
+  - sudo apt-get install clang-4.0 -y
 
 install:
   - git clone https://github.com/aquynh/capstone
