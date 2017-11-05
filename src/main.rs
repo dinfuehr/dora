@@ -41,6 +41,7 @@ mod masm;
 mod mem;
 mod mir;
 mod object;
+mod opt;
 mod os;
 mod os_cpu;
 mod semck;
