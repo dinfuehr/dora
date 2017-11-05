@@ -6,7 +6,7 @@ pub fn generate<'ast>(
     id: FctId,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
-) -> *const u8 {
+) -> Result<*const u8, ()> {
     let fct = ctxt.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.borrow_mut();
@@ -20,6 +20,6 @@ pub fn generate_fct<'ast>(
     _src: &mut FctSrc,
     _cls_type_params: &TypeParams,
     _fct_type_params: &TypeParams,
-) -> *const u8 {
+) -> Result<*const u8, ()> {
     unimplemented!()
 }

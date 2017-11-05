@@ -6,6 +6,7 @@ addons:
   apt:
     packages:
     - ruby
+    - clang-4.0
 
 # don't test on macOS for now
 # os:
