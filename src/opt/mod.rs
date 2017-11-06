@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::ptr;
 
 use class::TypeParams;
@@ -30,6 +31,8 @@ pub fn generate_fct<'ast>(
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
 ) -> Result<*const u8, ()> {
+    let name = fct.full_name(ctxt);
+
     let mut cg = CodeGen {
         ctxt: ctxt,
         fct: fct,
@@ -37,6 +40,8 @@ pub fn generate_fct<'ast>(
         src: src,
         cls_type_params,
         fct_type_params,
+
+        fct_name: CString::new(name).unwrap(),
 
         context: ptr::null_mut(),
         module: ptr::null_mut(),
@@ -54,6 +59,8 @@ struct CodeGen<'a, 'ast: 'a> {
     src: &'a mut FctSrc,
     cls_type_params: &'a TypeParams,
     fct_type_params: &'a TypeParams,
+
+    fct_name: CString,
 
     context: *mut llvm::LLVMContext,
     module: *mut llvm::LLVMModule,
@@ -76,7 +83,7 @@ where
         unsafe {
             self.context = LLVMContextCreate();
             self.module = LLVMModuleCreateWithNameInContext(
-                b"dora::foo\0".as_ptr() as *const _,
+                self.fct_name.as_ptr(),
                 self.context,
             );
             self.builder = LLVMCreateBuilderInContext(self.context);
@@ -93,7 +100,7 @@ where
                 argts.len() as u32,
                 0);
 
-            self.function = LLVMAddFunction(self.module, b"dora::foo\0".as_ptr() as *const _, function_type);
+            self.function = LLVMAddFunction(self.module, self.fct_name.as_ptr(), function_type);
         }
     }
 }
