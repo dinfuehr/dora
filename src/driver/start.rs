@@ -33,12 +33,7 @@ pub fn start() -> i32 {
     let id_generator = NodeIdGenerator::new();
     let mut ast = Ast::new();
 
-    if let Err(code) = parse_dir(
-        "stdlib",
-        &id_generator,
-        &mut ast,
-        &mut interner,
-    ).and_then(|_| {
+    if let Err(code) = parse_dir("stdlib", &id_generator, &mut ast, &mut interner).and_then(|_| {
         let path = Path::new(&args.arg_file);
 
         if path.is_file() {

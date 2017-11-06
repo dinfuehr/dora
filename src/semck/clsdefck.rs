@@ -143,10 +143,17 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                         self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
                     }
 
-                    let number_type_params = parent_class.type_params.as_ref().map(|x| x.len()).unwrap_or(0);
+                    let number_type_params = parent_class
+                        .type_params
+                        .as_ref()
+                        .map(|x| x.len())
+                        .unwrap_or(0);
 
                     if number_type_params != super_cls.type_params.len() {
-                        let msg = Msg::WrongNumberTypeParams(super_cls.type_params.len(), number_type_params);
+                        let msg = Msg::WrongNumberTypeParams(
+                            super_cls.type_params.len(),
+                            number_type_params,
+                        );
                         self.ctxt.diag.borrow_mut().report(parent_class.pos, msg);
                     }
                 }
@@ -463,10 +470,12 @@ mod tests {
 
     #[test]
     fn test_super_class_with_superfluous_type_params() {
-        err("
+        err(
+            "
             open class A
             class B: A<int> {}",
             pos(3, 22),
-            Msg::WrongNumberTypeParams(0, 1));
+            Msg::WrongNumberTypeParams(0, 1),
+        );
     }
 }

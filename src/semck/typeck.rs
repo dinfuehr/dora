@@ -1474,7 +1474,15 @@ fn arg_allows(
                 return false;
             }
 
-            arg_allows(ctxt, cls_tps[tpid.idx()], arg, global_cls_id, global_fct_id, cls_tps, fct_tps)
+            arg_allows(
+                ctxt,
+                cls_tps[tpid.idx()],
+                arg,
+                global_cls_id,
+                global_fct_id,
+                cls_tps,
+                fct_tps,
+            )
         }
         BuiltinType::FctTypeParam(fct_id, tpid) => {
             if def == arg {
@@ -1485,7 +1493,15 @@ fn arg_allows(
                 return false;
             }
 
-            arg_allows(ctxt, fct_tps[tpid.idx()], arg, global_cls_id, global_fct_id, cls_tps, fct_tps)
+            arg_allows(
+                ctxt,
+                fct_tps[tpid.idx()],
+                arg,
+                global_cls_id,
+                global_fct_id,
+                cls_tps,
+                fct_tps,
+            )
         }
 
         BuiltinType::Class(cls_id, list_id) => {
@@ -3761,7 +3777,8 @@ mod tests {
 
     #[test]
     fn test_ctor_with_type_param() {
-        err("
+        err(
+            "
             class Foo<T> {
                 fun foo(a: int) {
                     Bar::<T>(a);
@@ -3769,6 +3786,9 @@ mod tests {
             }
 
             class Bar<T>(a: T)
-            ", pos(4, 21), Msg::UnknownCtor("Bar".into(), vec!["int".into()]));
+            ",
+            pos(4, 21),
+            Msg::UnknownCtor("Bar".into(), vec!["int".into()]),
+        );
     }
 }

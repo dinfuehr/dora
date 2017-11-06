@@ -59,12 +59,17 @@ pub struct CodeGen<'a, 'ast: 'a> {
     builder: *mut llvm::LLVMBuilder,
 }
 
-impl<'a, 'ast> CodeGen<'a, 'ast> where 'ast: 'a {
+impl<'a, 'ast> CodeGen<'a, 'ast>
+where
+    'ast: 'a,
+{
     pub fn generate(&mut self) -> Result<*const u8, ()> {
         unsafe {
             self.context = LLVMContextCreate();
-            self.module = LLVMModuleCreateWithNameInContext(b"dora::foo\0".as_ptr() as *const _,
-                                                        self.context);
+            self.module = LLVMModuleCreateWithNameInContext(
+                b"dora::foo\0".as_ptr() as *const _,
+                self.context,
+            );
             self.builder = LLVMCreateBuilderInContext(self.context);
 
             Err(())

@@ -162,13 +162,7 @@ pub fn munmap(ptr: *const u8, size: usize) {
 
 #[cfg(target_family = "unix")]
 pub fn mprotect(ptr: *const u8, size: usize, prot: ProtType) {
-    let res = unsafe {
-        libc::mprotect(
-            ptr as *mut libc::c_void,
-            size,
-            prot.to_libc()
-        )
-    };
+    let res = unsafe { libc::mprotect(ptr as *mut libc::c_void, size, prot.to_libc()) };
 
     if res != 0 {
         panic!("mprotect() failed");

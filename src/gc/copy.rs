@@ -143,7 +143,11 @@ pub fn minor_collect(
 
     // enable writing into to-space again (for debug builds)
     if cfg!(debug_assertions) {
-        os::mprotect(to_space.start as *const u8, to_space.size(), ProtType::Writable);
+        os::mprotect(
+            to_space.start as *const u8,
+            to_space.size(),
+            ProtType::Writable,
+        );
     }
 
     // empty to-space
@@ -174,15 +178,17 @@ pub fn minor_collect(
     // disable access in current from-space
     // makes sure that no pointer into from-space is left (in debug-builds)
     if cfg!(debug_assertions) {
-        os::mprotect(from_space.start as *const u8, from_space.size(), ProtType::None);
+        os::mprotect(
+            from_space.start as *const u8,
+            from_space.size(),
+            ProtType::None,
+        );
     }
 
     swap(from_space, to_space);
 
-    timer.stop_with(|dur| {
-        if ctxt.args.flag_gc_events {
-            println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
-        }
+    timer.stop_with(|dur| if ctxt.args.flag_gc_events {
+        println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
     });
 }
 
