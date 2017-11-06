@@ -41,12 +41,13 @@ pub fn generate_fct<'ast>(
         context: ptr::null_mut(),
         module: ptr::null_mut(),
         builder: ptr::null_mut(),
+        function: ptr::null_mut(),
     };
 
     cg.generate()
 }
 
-pub struct CodeGen<'a, 'ast: 'a> {
+struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
@@ -57,13 +58,21 @@ pub struct CodeGen<'a, 'ast: 'a> {
     context: *mut llvm::LLVMContext,
     module: *mut llvm::LLVMModule,
     builder: *mut llvm::LLVMBuilder,
+    function: *mut llvm::LLVMValue,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(&mut self) -> Result<*const u8, ()> {
+    fn generate(&mut self) -> Result<*const u8, ()> {
+        self.init();
+        self.create_function();
+
+        Err(())
+    }
+
+    fn init(&mut self) {
         unsafe {
             self.context = LLVMContextCreate();
             self.module = LLVMModuleCreateWithNameInContext(
@@ -71,8 +80,20 @@ where
                 self.context,
             );
             self.builder = LLVMCreateBuilderInContext(self.context);
+        }
+    }
 
-            Err(())
+    fn create_function(&mut self) {
+        unsafe {
+            let i64t = LLVMInt64TypeInContext(self.context);
+            let mut argts = [i64t, i64t, i64t];
+            let function_type = LLVMFunctionType(
+                i64t,
+                argts.as_mut_ptr(),
+                argts.len() as u32,
+                0);
+
+            self.function = LLVMAddFunction(self.module, b"dora::foo\0".as_ptr() as *const _, function_type);
         }
     }
 }
