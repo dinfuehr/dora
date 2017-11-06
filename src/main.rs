@@ -11,6 +11,7 @@ extern crate capstone;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
+extern crate llvm_sys as llvm;
 extern crate rustc_serialize;
 extern crate time;
 
