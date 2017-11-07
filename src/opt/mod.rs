@@ -158,7 +158,10 @@ where
                 MachineMode::Int8 => LLVMInt8TypeInContext(self.context),
                 MachineMode::Float32 => LLVMFloatTypeInContext(self.context),
                 MachineMode::Float64 => LLVMDoubleTypeInContext(self.context),
-                MachineMode::Ptr => unimplemented!(),
+                MachineMode::Ptr => {
+                    let int8 = LLVMInt8TypeInContext(self.context);
+                    LLVMPointerType(int8, 1)
+                }
             }
         }
     }
