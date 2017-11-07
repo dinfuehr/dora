@@ -85,14 +85,15 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    fn generate(&mut self) -> Result<*const u8, ()> {
+    fn generate(&mut self) -> EmitResult<*const u8> {
         self.init();
         self.create_function()?;
+        self.add_entry_bb();
 
         let block = self.ast.block.as_ref().unwrap();
         self.emit_stmt(block)?;
 
-        Err(())
+        fail()
     }
 
     fn init(&mut self) {
@@ -106,7 +107,7 @@ where
         }
     }
 
-    fn create_function(&mut self) -> Result<(), ()> {
+    fn create_function(&mut self) -> EmitResult<()> {
         let mut params = Vec::with_capacity(self.ast.params.len());
 
         for param in &self.ast.params {
@@ -127,7 +128,18 @@ where
             self.function = LLVMAddFunction(self.module, self.fct_name.as_ptr(), function_type);
         }
 
-        Err(())
+        ok(())
+    }
+
+    fn add_entry_bb(&mut self) {
+        unsafe {
+            let bb = LLVMAppendBasicBlockInContext(
+                self.context,
+                self.function,
+                b"entry\0".as_ptr() as *const _);
+
+            LLVMPositionBuilderAtEnd(self.builder, bb);
+        }
     }
 
     fn emit_stmt(&mut self, s: &'ast Stmt) -> EmitResult<()> {
