@@ -16,6 +16,8 @@ use llvm::core::*;
 // use llvm::execution_engine::*;
 // use llvm::target::*;
 
+pub mod util;
+
 pub fn generate<'ast>(
     ctxt: &SemContext<'ast>,
     id: FctId,

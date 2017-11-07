@@ -64,5 +64,7 @@ use std::process::exit;
 #[cfg(not(test))]
 fn main() {
     os::mem::init_page_size();
+    opt::util::init();
+
     exit(driver::start());
 }
