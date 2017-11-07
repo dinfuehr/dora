@@ -2,7 +2,8 @@ use std::ffi::CString;
 use std::ptr;
 
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctSrc, SemContext};
+use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext};
+use ty::{BuiltinType, MachineMode};
 
 use dora_parser::ast::*;
 
@@ -74,7 +75,7 @@ where
 {
     fn generate(&mut self) -> Result<*const u8, ()> {
         self.init();
-        self.create_function();
+        self.create_function()?;
 
         Err(())
     }
@@ -90,17 +91,75 @@ where
         }
     }
 
-    fn create_function(&mut self) {
+    fn create_function(&mut self) -> Result<(), ()> {
+        let mut params = Vec::with_capacity(self.ast.params.len());
+
+        for param in &self.ast.params {
+            let ty = self.ty(param.id);
+            params.push(self.llvm_ty(ty));
+        }
+
+        let return_type = self.specialize_type(self.fct.return_type);
+        let llvm_return_type = self.llvm_ty(return_type);
+
         unsafe {
-            let i64t = LLVMInt64TypeInContext(self.context);
-            let mut argts = [i64t, i64t, i64t];
             let function_type = LLVMFunctionType(
-                i64t,
-                argts.as_mut_ptr(),
-                argts.len() as u32,
+                llvm_return_type,
+                params.as_mut_ptr(),
+                params.len() as u32,
                 0);
 
             self.function = LLVMAddFunction(self.module, self.fct_name.as_ptr(), function_type);
+        }
+
+        Err(())
+    }
+
+    fn ty(&self, id: NodeId) -> BuiltinType {
+        let ty = self.src.ty(id);
+        self.specialize_type(ty)
+    }
+
+    fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
+        match ty {
+            BuiltinType::ClassTypeParam(cls_id, id) => {
+                assert!(self.fct.parent == FctParent::Class(cls_id));
+                self.cls_type_params[id.idx()]
+            }
+
+            BuiltinType::FctTypeParam(fct_id, id) => {
+                assert!(self.fct.id == fct_id);
+                self.fct_type_params[id.idx()]
+            }
+
+            BuiltinType::Class(cls_id, list_id) => {
+                let params = self.ctxt.lists.borrow().get(list_id);
+
+                let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
+
+                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+
+                BuiltinType::Class(cls_id, list_id)
+            }
+
+            BuiltinType::Lambda(_) => unimplemented!(),
+
+            _ => ty,
+        }
+    }
+
+    fn llvm_ty(&self, ty: BuiltinType) -> *mut llvm::LLVMType {
+        let mode = ty.mode();
+
+        unsafe {
+            match mode {
+                MachineMode::Int64 => LLVMInt64TypeInContext(self.context),
+                MachineMode::Int32 => LLVMInt32TypeInContext(self.context),
+                MachineMode::Int8 => LLVMInt8TypeInContext(self.context),
+                MachineMode::Float32 => LLVMFloatTypeInContext(self.context),
+                MachineMode::Float64 => LLVMDoubleTypeInContext(self.context),
+                MachineMode::Ptr => unimplemented!(),
+            }
         }
     }
 }
