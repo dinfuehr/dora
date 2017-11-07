@@ -6,6 +6,8 @@ use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext};
 use ty::{BuiltinType, MachineMode};
 
 use dora_parser::ast::*;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::Stmt::*;
 
 use llvm;
 use llvm::core::*;
@@ -53,6 +55,16 @@ pub fn generate_fct<'ast>(
     cg.generate()
 }
 
+type EmitResult<T> = Result<T, ()>;
+
+fn fail<T>() -> EmitResult<T> {
+    Err(())
+}
+
+fn ok<T>(value: T) -> EmitResult<T> {
+    Ok(value)
+}
+
 struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
@@ -76,6 +88,9 @@ where
     fn generate(&mut self) -> Result<*const u8, ()> {
         self.init();
         self.create_function()?;
+
+        let block = self.ast.block.as_ref().unwrap();
+        self.emit_stmt(block)?;
 
         Err(())
     }
@@ -113,6 +128,72 @@ where
         }
 
         Err(())
+    }
+
+    fn emit_stmt(&mut self, s: &'ast Stmt) -> EmitResult<()> {
+        match *s {
+            StmtExpr(ref stmt) => {
+                self.emit_expr(&stmt.expr)?;
+
+                Ok(())
+            }
+
+            StmtIf(_) => fail(),
+            StmtLoop(_) => fail(),
+            StmtWhile(_) => fail(),
+            StmtFor(_) => fail(),
+            StmtReturn(ref stmt) => self.emit_return(stmt),
+            StmtBreak(_) => fail(),
+            StmtContinue(_) => fail(),
+            StmtBlock(_) => fail(),
+            StmtVar(_) => fail(),
+            StmtThrow(_) => fail(),
+            StmtDefer(_) => fail(),
+            StmtDo(_) => fail(),
+            StmtSpawn(_) => fail(),
+        }
+    }
+
+    fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<*mut llvm::LLVMValue> {
+        match *e {
+            ExprLitChar(_) => fail(),
+            ExprLitInt(_) => fail(),
+            ExprLitFloat(_) => fail(),
+            ExprLitBool(_) => fail(),
+            ExprLitStr(_) => fail(),
+            ExprLitStruct(_) => fail(),
+            ExprUn(_) => fail(),
+            ExprIdent(_) => fail(),
+            ExprAssign(_) => fail(),
+            ExprBin(_) => fail(),
+            ExprCall(_) => fail(),
+            ExprDelegation(_) => fail(),
+            ExprField(_) => fail(),
+            ExprSelf(_) => fail(),
+            ExprSuper(_) => fail(),
+            ExprNil(_) => fail(),
+            ExprArray(_) => fail(),
+            ExprConv(_) => fail(),
+            ExprTry(_) => fail(),
+            ExprLambda(_) => fail(),
+        }
+    }
+
+    fn emit_return(&mut self, s: &'ast StmtReturnType) -> EmitResult<()> {
+        if let Some(ref expr) = s.expr {
+            let value = self.emit_expr(expr)?;
+
+            unsafe {
+                LLVMBuildRet(self.builder, value);
+            }
+
+        } else {
+            unsafe {
+                LLVMBuildRetVoid(self.builder);
+            }
+        }
+
+        ok(())
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
