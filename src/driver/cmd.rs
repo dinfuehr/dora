@@ -20,6 +20,7 @@ Options:
     -h, --help              Shows this text
     --version               Shows version
     --emit-ast              Emits AST to stdout
+    --emit-llvm             Emits initial LLVM IR to stdout
     --emit-asm=<fct>        Emits assembly code to stdout
     --emit-asm-file         Emits assembly code into file dora-<pid>.asm
     --emit-stubs            Emits generated stubs
@@ -45,6 +46,7 @@ pub struct Args {
     pub flag_emit_ast: bool,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
+    pub flag_emit_llvm: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
@@ -70,6 +72,7 @@ impl Default for Args {
             flag_emit_ast: false,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
+            flag_emit_llvm: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
             flag_enable_perf: false,

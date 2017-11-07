@@ -8,8 +8,10 @@ use ty::{BuiltinType, MachineMode};
 use dora_parser::ast::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
+use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use llvm;
+use llvm::analysis::*;
 use llvm::core::*;
 // use llvm::execution_engine::*;
 // use llvm::target::*;
@@ -93,6 +95,18 @@ where
         let block = self.ast.block.as_ref().unwrap();
         self.emit_stmt(block)?;
 
+        unsafe {
+            LLVMDisposeBuilder(self.builder);
+        }
+
+        self.verify()?;
+
+        if self.ctxt.args.flag_emit_llvm {
+            unsafe {
+                LLVMDumpModule(self.module);
+            }
+        }
+
         fail()
     }
 
@@ -142,6 +156,18 @@ where
         }
     }
 
+    fn verify(&mut self) -> EmitResult<()> {
+        unsafe {
+            if LLVMVerifyFunction(self.function,
+                                  LLVMVerifierFailureAction::LLVMPrintMessageAction) == 1 {
+                println!("invalid llvm function!");
+                fail()
+            } else {
+                ok(())
+            }
+        }
+    }
+
     fn emit_stmt(&mut self, s: &'ast Stmt) -> EmitResult<()> {
         match *s {
             StmtExpr(ref stmt) => {
@@ -166,11 +192,29 @@ where
         }
     }
 
+    fn emit_return(&mut self, s: &'ast StmtReturnType) -> EmitResult<()> {
+        if let Some(ref expr) = s.expr {
+            let value = self.emit_expr(expr)?;
+
+            unsafe {
+                LLVMBuildRet(self.builder, value);
+            }
+
+        } else {
+            unsafe {
+                LLVMBuildRetVoid(self.builder);
+            }
+        }
+
+        ok(())
+    }
+
+
     fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<*mut llvm::LLVMValue> {
         match *e {
-            ExprLitChar(_) => fail(),
-            ExprLitInt(_) => fail(),
-            ExprLitFloat(_) => fail(),
+            ExprLitChar(ref lit) => self.emit_lit_char(lit),
+            ExprLitInt(ref lit) => self.emit_lit_int(lit),
+            ExprLitFloat(ref lit) => self.emit_lit_float(lit),
             ExprLitBool(_) => fail(),
             ExprLitStr(_) => fail(),
             ExprLitStruct(_) => fail(),
@@ -191,21 +235,37 @@ where
         }
     }
 
-    fn emit_return(&mut self, s: &'ast StmtReturnType) -> EmitResult<()> {
-        if let Some(ref expr) = s.expr {
-            let value = self.emit_expr(expr)?;
-
-            unsafe {
-                LLVMBuildRet(self.builder, value);
-            }
-
-        } else {
-            unsafe {
-                LLVMBuildRetVoid(self.builder);
-            }
+    fn emit_lit_char(&mut self, e: &'ast ExprLitCharType) -> EmitResult<*mut llvm::LLVMValue> {
+        unsafe {
+            let ty = LLVMInt32TypeInContext(self.context);
+            let value = LLVMConstInt(ty, e.value as u64, 0);
+            ok(value)
         }
+    }
 
-        ok(())
+    fn emit_lit_int(&mut self, e: &'ast ExprLitIntType) -> EmitResult<*mut llvm::LLVMValue> {
+        unsafe {
+            let ty = match e.suffix {
+                IntSuffix::Byte => LLVMInt8TypeInContext(self.context),
+                IntSuffix::Int => LLVMInt32TypeInContext(self.context),
+                IntSuffix::Long => LLVMInt64TypeInContext(self.context),
+            };
+
+            let value = LLVMConstInt(ty, e.value, 0);
+            ok(value)
+        }
+    }
+
+    fn emit_lit_float(&mut self, e: &'ast ExprLitFloatType) -> EmitResult<*mut llvm::LLVMValue> {
+        unsafe {
+            let ty = match e.suffix {
+                FloatSuffix::Float => LLVMFloatTypeInContext(self.context),
+                FloatSuffix::Double => LLVMDoubleTypeInContext(self.context),
+            };
+
+            let value = LLVMConstReal(ty, e.value);
+            ok(value)
+        }
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
