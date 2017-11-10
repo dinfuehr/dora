@@ -2,7 +2,6 @@ use std::ffi::CStr;
 use std::ptr;
 
 use llvm::core::*;
-use llvm::execution_engine::*;
 use llvm::orc::*;
 use llvm::target::*;
 use llvm::target_machine::*;
