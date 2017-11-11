@@ -1,0 +1,10 @@
+//= vm-args "--opt=foo"
+//= ignore
+
+fun main() {
+    assert(foo() == 2);
+}
+
+fun foo() -> int {
+    return 2;
+}

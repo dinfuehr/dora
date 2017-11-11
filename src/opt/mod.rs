@@ -2,7 +2,7 @@ use std::ffi::CString;
 use std::ptr;
 
 use class::TypeParams;
-use ctxt::{Fct, FctId, FctParent, FctSrc, SemContext};
+use ctxt::{Fct, FctParent, FctSrc, SemContext};
 use ty::{BuiltinType, MachineMode};
 
 use dora_parser::ast::*;
@@ -17,19 +17,6 @@ use llvm::core::*;
 // use llvm::target::*;
 
 pub mod util;
-
-pub fn generate<'ast>(
-    ctxt: &SemContext<'ast>,
-    id: FctId,
-    cls_type_params: &TypeParams,
-    fct_type_params: &TypeParams,
-) -> Result<*const u8, ()> {
-    let fct = ctxt.fcts[id].borrow();
-    let src = fct.src();
-    let mut src = src.borrow_mut();
-
-    generate_fct(ctxt, &fct, &mut src, cls_type_params, fct_type_params)
-}
 
 pub fn generate_fct<'ast>(
     ctxt: &SemContext<'ast>,
