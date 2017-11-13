@@ -1,5 +1,7 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ptr;
+
+use libc;
 
 use class::TypeParams;
 use ctxt::{Fct, FctParent, FctSrc, SemContext};
@@ -102,6 +104,7 @@ where
 
         unsafe {
             // add eagerly compiled IR
+            LLVMOrcAddEagerlyCompiledIR(orc, ptr::null_mut(), self.module, resolver, self.ctxt as *const _ as *mut _);
 
             if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) == LLVMOrcErrorCode::LLVMOrcErrSuccess {
                 assert!(ptr != 0);
@@ -328,4 +331,9 @@ where
             }
         }
     }
+}
+
+extern "C" fn resolver(name: *const i8, _: *mut libc::c_void) -> u64 {
+    let name = unsafe { CStr::from_ptr(name) };
+    panic!("resolver unimplemented: {:?}", name);
 }
