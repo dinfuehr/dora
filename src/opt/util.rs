@@ -25,30 +25,32 @@ impl LlvmJit {
             let mut target_ref = ptr::null_mut();
 
             if LLVMGetTargetFromTriple(default_triple, &mut target_ref, &mut error) != 0 {
-                panic!("couldn't get target from triple: {:?}.", CStr::from_ptr(error));
+                panic!(
+                    "couldn't get target from triple: {:?}.",
+                    CStr::from_ptr(error)
+                );
             }
 
             if LLVMTargetHasJIT(target_ref) == 0 {
                 panic!("target doesn't support JIT.");
             }
 
-            let tm = LLVMCreateTargetMachine(target_ref,
-                        default_triple,
-                        ptr::null(),
-                        ptr::null(),
-                        LLVMCodeGenLevelDefault,
-                        LLVMRelocDefault,
-                        LLVMCodeModelJITDefault);
+            let tm = LLVMCreateTargetMachine(
+                target_ref,
+                default_triple,
+                ptr::null(),
+                ptr::null(),
+                LLVMCodeGenLevelDefault,
+                LLVMRelocDefault,
+                LLVMCodeModelJITDefault,
+            );
 
             assert!(!tm.is_null());
             LLVMDisposeMessage(default_triple);
 
             let orc = LLVMOrcCreateInstance(tm);
 
-            LlvmJit {
-                tm: tm,
-                orc: orc,
-            }
+            LlvmJit { tm: tm, orc: orc }
         }
     }
 }

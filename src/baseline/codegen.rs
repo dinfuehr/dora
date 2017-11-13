@@ -71,7 +71,10 @@ pub fn generate_fct<'ast>(
             return ptr;
         }
 
-        panic!("optimizing compiler cannot compile function {:?}", fct.full_name(ctxt));
+        panic!(
+            "optimizing compiler cannot compile function {:?}",
+            fct.full_name(ctxt)
+        );
     }
 
     let ast = fct.ast;

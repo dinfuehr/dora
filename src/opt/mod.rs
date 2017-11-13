@@ -13,6 +13,7 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
 use llvm;
+use llvm::prelude::*;
 use llvm::analysis::*;
 use llvm::core::*;
 use llvm::orc::*;
@@ -42,6 +43,7 @@ pub fn generate_fct<'ast>(
 
         context: ptr::null_mut(),
         module: ptr::null_mut(),
+        shared_module: ptr::null_mut(),
         builder: ptr::null_mut(),
         function: ptr::null_mut(),
     };
@@ -69,10 +71,11 @@ struct CodeGen<'a, 'ast: 'a> {
 
     fct_name: CString,
 
-    context: *mut llvm::LLVMContext,
-    module: *mut llvm::LLVMModule,
-    builder: *mut llvm::LLVMBuilder,
-    function: *mut llvm::LLVMValue,
+    context: LLVMContextRef,
+    module: LLVMModuleRef,
+    shared_module: LLVMSharedModuleRef,
+    builder: LLVMBuilderRef,
+    function: LLVMValueRef,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -104,9 +107,20 @@ where
 
         unsafe {
             // add eagerly compiled IR
-            LLVMOrcAddEagerlyCompiledIR(orc, ptr::null_mut(), self.module, resolver, self.ctxt as *const _ as *mut _);
+            let mut handle = 0;
+            let res = LLVMOrcAddEagerlyCompiledIR(
+                orc,
+                &mut handle,
+                self.shared_module as *mut _,
+                resolver,
+                ptr::null_mut(),
+            );
+            assert!(res == LLVMOrcErrorCode::LLVMOrcErrSuccess);
+            println!("handle = {}", handle);
 
-            if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) == LLVMOrcErrorCode::LLVMOrcErrSuccess {
+            if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) ==
+                LLVMOrcErrorCode::LLVMOrcErrSuccess
+            {
                 assert!(ptr != 0);
 
                 ok(ptr as *const u8)
@@ -119,10 +133,8 @@ where
     fn init(&mut self) {
         unsafe {
             self.context = LLVMContextCreate();
-            self.module = LLVMModuleCreateWithNameInContext(
-                self.fct_name.as_ptr(),
-                self.context,
-            );
+            self.module = LLVMModuleCreateWithNameInContext(self.fct_name.as_ptr(), self.context);
+            self.shared_module = LLVMOrcMakeSharedModule(self.module);
             self.builder = LLVMCreateBuilderInContext(self.context);
         }
     }
@@ -143,7 +155,8 @@ where
                 llvm_return_type,
                 params.as_mut_ptr(),
                 params.len() as u32,
-                0);
+                0,
+            );
 
             self.function = LLVMAddFunction(self.module, self.fct_name.as_ptr(), function_type);
         }
@@ -156,7 +169,8 @@ where
             let bb = LLVMAppendBasicBlockInContext(
                 self.context,
                 self.function,
-                b"entry\0".as_ptr() as *const _);
+                b"entry\0".as_ptr() as *const _,
+            );
 
             LLVMPositionBuilderAtEnd(self.builder, bb);
         }
@@ -164,8 +178,11 @@ where
 
     fn verify(&mut self) -> EmitResult<()> {
         unsafe {
-            if LLVMVerifyFunction(self.function,
-                                  LLVMVerifierFailureAction::LLVMPrintMessageAction) == 1 {
+            if LLVMVerifyFunction(
+                self.function,
+                LLVMVerifierFailureAction::LLVMPrintMessageAction,
+            ) == 1
+            {
                 println!("invalid llvm function!");
                 fail()
             } else {
