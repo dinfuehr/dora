@@ -10,8 +10,8 @@ use llvm::target_machine::LLVMCodeModel::LLVMCodeModelJITDefault;
 use llvm::target_machine::LLVMRelocMode::LLVMRelocDefault;
 
 pub struct LlvmJit {
-    tm: *mut LLVMOpaqueTargetMachine,
-    orc: *mut LLVMOrcOpaqueJITStack,
+    pub tm: *mut LLVMOpaqueTargetMachine,
+    pub orc: *mut LLVMOrcOpaqueJITStack,
 }
 
 impl LlvmJit {

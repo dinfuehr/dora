@@ -13,6 +13,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use llvm;
 use llvm::analysis::*;
 use llvm::core::*;
+use llvm::orc::*;
 // use llvm::execution_engine::*;
 // use llvm::target::*;
 
@@ -96,7 +97,20 @@ where
             }
         }
 
-        fail()
+        let orc = self.ctxt.llvm_jit.orc;
+        let mut ptr = 0;
+
+        unsafe {
+            // add eagerly compiled IR
+
+            if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) == LLVMOrcErrorCode::LLVMOrcErrSuccess {
+                assert!(ptr != 0);
+
+                ok(ptr as *const u8)
+            } else {
+                fail()
+            }
+        }
     }
 
     fn init(&mut self) {
@@ -172,7 +186,7 @@ where
             StmtReturn(ref stmt) => self.emit_return(stmt),
             StmtBreak(_) => fail(),
             StmtContinue(_) => fail(),
-            StmtBlock(_) => fail(),
+            StmtBlock(ref stmt) => self.emit_block(stmt),
             StmtVar(_) => fail(),
             StmtThrow(_) => fail(),
             StmtDefer(_) => fail(),
@@ -198,6 +212,13 @@ where
         ok(())
     }
 
+    fn emit_block(&mut self, s: &'ast StmtBlockType) -> EmitResult<()> {
+        for stmt in &s.stmts {
+            self.emit_stmt(stmt)?;
+        }
+
+        ok(())
+    }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<*mut llvm::LLVMValue> {
         match *e {
