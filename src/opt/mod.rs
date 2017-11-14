@@ -110,7 +110,7 @@ where
             let res = LLVMOrcAddEagerlyCompiledIR(
                 orc,
                 &mut handle,
-                self.shared_module as *mut _,
+                self.shared_module,
                 resolver,
                 ptr::null_mut(),
             );
