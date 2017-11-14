@@ -1,5 +1,4 @@
 //= vm-args "--opt=foo"
-//= ignore
 
 fun main() {
     assert(foo() == 2);

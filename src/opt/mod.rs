@@ -12,7 +12,6 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
-use llvm;
 use llvm::prelude::*;
 use llvm::analysis::*;
 use llvm::core::*;
@@ -116,7 +115,6 @@ where
                 ptr::null_mut(),
             );
             assert!(res == LLVMOrcErrorCode::LLVMOrcErrSuccess);
-            println!("handle = {}", handle);
 
             if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) ==
                 LLVMOrcErrorCode::LLVMOrcErrSuccess
@@ -133,7 +131,8 @@ where
     fn init(&mut self) {
         unsafe {
             self.context = LLVMContextCreate();
-            self.module = LLVMModuleCreateWithNameInContext(self.fct_name.as_ptr(), self.context);
+            self.module =
+                LLVMModuleCreateWithNameInContext(b"\0".as_ptr() as *const _, self.context);
             self.shared_module = LLVMOrcMakeSharedModule(self.module);
             self.builder = LLVMCreateBuilderInContext(self.context);
         }
@@ -240,7 +239,7 @@ where
         ok(())
     }
 
-    fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<*mut llvm::LLVMValue> {
+    fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<LLVMValueRef> {
         match *e {
             ExprLitChar(ref lit) => self.emit_lit_char(lit),
             ExprLitInt(ref lit) => self.emit_lit_int(lit),
@@ -265,7 +264,7 @@ where
         }
     }
 
-    fn emit_lit_char(&mut self, e: &'ast ExprLitCharType) -> EmitResult<*mut llvm::LLVMValue> {
+    fn emit_lit_char(&mut self, e: &'ast ExprLitCharType) -> EmitResult<LLVMValueRef> {
         unsafe {
             let ty = LLVMInt32TypeInContext(self.context);
             let value = LLVMConstInt(ty, e.value as u64, 0);
@@ -273,7 +272,7 @@ where
         }
     }
 
-    fn emit_lit_int(&mut self, e: &'ast ExprLitIntType) -> EmitResult<*mut llvm::LLVMValue> {
+    fn emit_lit_int(&mut self, e: &'ast ExprLitIntType) -> EmitResult<LLVMValueRef> {
         unsafe {
             let ty = match e.suffix {
                 IntSuffix::Byte => LLVMInt8TypeInContext(self.context),
@@ -286,7 +285,7 @@ where
         }
     }
 
-    fn emit_lit_float(&mut self, e: &'ast ExprLitFloatType) -> EmitResult<*mut llvm::LLVMValue> {
+    fn emit_lit_float(&mut self, e: &'ast ExprLitFloatType) -> EmitResult<LLVMValueRef> {
         unsafe {
             let ty = match e.suffix {
                 FloatSuffix::Float => LLVMFloatTypeInContext(self.context),
@@ -331,7 +330,7 @@ where
         }
     }
 
-    fn llvm_ty(&self, ty: BuiltinType) -> *mut llvm::LLVMType {
+    fn llvm_ty(&self, ty: BuiltinType) -> LLVMTypeRef {
         let mode = ty.mode();
 
         unsafe {
