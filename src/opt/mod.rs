@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr;
 
 use libc;
 
 use class::TypeParams;
-use ctxt::{Fct, FctParent, FctSrc, SemContext};
+use ctxt::{Fct, FctParent, FctSrc, IdentType, SemContext, VarId};
 use ty::{BuiltinType, MachineMode};
 
 use dora_parser::ast::*;
@@ -45,6 +46,8 @@ pub fn generate_fct<'ast>(
         shared_module: ptr::null_mut(),
         builder: ptr::null_mut(),
         function: ptr::null_mut(),
+
+        map_vars: HashMap::new(),
     };
 
     cg.generate()
@@ -75,6 +78,8 @@ struct CodeGen<'a, 'ast: 'a> {
     shared_module: LLVMSharedModuleRef,
     builder: LLVMBuilderRef,
     function: LLVMValueRef,
+
+    map_vars: HashMap<VarId, LLVMValueRef>,
 }
 
 impl<'a, 'ast> CodeGen<'a, 'ast>
@@ -85,6 +90,7 @@ where
         self.init();
         self.create_function()?;
         self.add_entry_bb();
+        self.add_params();
 
         let block = self.ast.block.as_ref().unwrap();
         self.emit_stmt(block)?;
@@ -142,7 +148,8 @@ where
         let mut params = Vec::with_capacity(self.ast.params.len());
 
         for param in &self.ast.params {
-            let ty = self.ty(param.id);
+            let varid = *self.src.map_vars.get(param.id).unwrap();
+            let ty = self.ty_var(varid);
             params.push(self.llvm_ty(ty));
         }
 
@@ -172,6 +179,18 @@ where
             );
 
             LLVMPositionBuilderAtEnd(self.builder, bb);
+        }
+    }
+
+    fn add_params(&mut self) {
+        for (ind, param) in self.ast.params.iter().enumerate() {
+            let varid = *self.src.map_vars.get(param.id).unwrap();
+
+            let value = unsafe {
+                LLVMGetParam(self.function, ind as u32)
+            };
+
+            self.map_vars.insert(varid, value);
         }
     }
 
@@ -248,7 +267,7 @@ where
             ExprLitStr(_) => fail(),
             ExprLitStruct(_) => fail(),
             ExprUn(_) => fail(),
-            ExprIdent(_) => fail(),
+            ExprIdent(ref ident) => self.emit_ident(ident),
             ExprAssign(_) => fail(),
             ExprBin(_) => fail(),
             ExprCall(_) => fail(),
@@ -297,8 +316,27 @@ where
         }
     }
 
+    fn emit_ident(&mut self, e: &'ast ExprIdentType) -> EmitResult<LLVMValueRef> {
+        let &ident = self.src.map_idents.get(e.id).unwrap();
+
+        match ident {
+            IdentType::Var(varid) => {
+                let value = self.map_vars[&varid];
+
+                ok(value)
+            }
+
+            _ => fail()
+        }
+    }
+
     fn ty(&self, id: NodeId) -> BuiltinType {
         let ty = self.src.ty(id);
+        self.specialize_type(ty)
+    }
+
+    fn ty_var(&self, id: VarId) -> BuiltinType {
+        let ty = self.src.vars[id].ty;
         self.specialize_type(ty)
     }
 
