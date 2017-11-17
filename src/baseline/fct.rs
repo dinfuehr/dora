@@ -9,6 +9,7 @@ use cpu::flush_icache;
 use ctxt::{FctId, FctSrc, GlobalId, SemContext, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
+use opt::fct::JitOptFct;
 use utils::GrowableVec;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -38,7 +39,35 @@ impl From<usize> for JitFctId {
     }
 }
 
-pub struct JitFct {
+pub enum JitFct {
+    Base(JitBaselineFct),
+    Opt(JitOptFct),
+}
+
+impl JitFct {
+    pub fn fct_id(&self) -> FctId {
+        match self {
+            &JitFct::Base(ref base) => base.fct_id,
+            &JitFct::Opt(ref opt) => opt.fct_id(),
+        }
+    }
+
+    pub fn fct_ptr(&self) -> *const u8 {
+        match self {
+            &JitFct::Base(ref base) => base.fct_ptr(),
+            &JitFct::Opt(ref opt) => opt.fct_ptr(),
+        }
+    }
+
+    pub fn to_base(&self) -> Option<&JitBaselineFct> {
+        match self {
+            &JitFct::Base(ref base) => Some(base),
+            _ => None,
+        }
+    }
+}
+
+pub struct JitBaselineFct {
     code_start: *const u8,
     code_end: *const u8,
 
@@ -60,7 +89,7 @@ pub struct JitFct {
     pub exception_handlers: Vec<ExHandler>,
 }
 
-impl JitFct {
+impl JitBaselineFct {
     pub fn from_buffer(
         ctxt: &SemContext,
         dseg: &DSeg,
@@ -74,7 +103,7 @@ impl JitFct {
         fct_id: FctId,
         throws: bool,
         mut exception_handlers: Vec<ExHandler>,
-    ) -> JitFct {
+    ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
         let ptr = ctxt.gc.alloc_code(size);
 
@@ -97,7 +126,7 @@ impl JitFct {
             handler.catch = fct_start + handler.catch;
         }
 
-        JitFct {
+        JitBaselineFct {
             code_start: ptr,
             code_end: unsafe { ptr.offset(size as isize) },
             bailouts: bailouts,
@@ -151,11 +180,11 @@ impl JitFct {
     }
 }
 
-impl fmt::Debug for JitFct {
+impl fmt::Debug for JitBaselineFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "JitFct {{ start: {:?}, end: {:?}, fct_id: {:?} }}",
+            "JitBaselineFct {{ start: {:?}, end: {:?}, fct_id: {:?} }}",
             self.ptr_start(),
             self.ptr_end(),
             self.fct_id,

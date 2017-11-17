@@ -30,7 +30,7 @@ impl Stacktrace {
     pub fn dump(&self, ctxt: &SemContext) {
         for (ind, elem) in self.elems.iter().enumerate() {
             let jit_fct = ctxt.jit_fcts[elem.fct_id].borrow();
-            let fct_id = jit_fct.fct_id;
+            let fct_id = jit_fct.fct_id();
             let fct = ctxt.fcts[fct_id].borrow();
             let name = fct.full_name(ctxt);
             print!("{}: {}: ", ind, name);
@@ -124,6 +124,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
+            let jit_fct = jit_fct.to_base().expect("baseline expected");
             let lineno = jit_fct.lineno_for_offset(offset as i32);
 
             if lineno == 0 {
@@ -137,7 +138,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
 
         Some(CodeData::NativeStub(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-            let fct = ctxt.fcts[jit_fct.fct_id].borrow();
+            let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
 
             stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
 
@@ -194,6 +195,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
         Some(CodeData::Fct(fct_id)) |
         Some(CodeData::NativeStub(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
 
             for entry in &jit_fct.exception_handlers {
@@ -251,7 +253,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
     let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
+    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
     let name = fct.full_name(ctxt);
     ste.name = Str::from_buffer(ctxt, name.as_bytes());
 

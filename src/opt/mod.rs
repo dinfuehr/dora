@@ -4,8 +4,10 @@ use std::ptr;
 
 use libc;
 
+use baseline::fct::JitFct;
 use class::TypeParams;
 use ctxt::{Fct, FctParent, FctSrc, IdentType, SemContext, VarId};
+use opt::fct::JitOptFct;
 use ty::{BuiltinType, MachineMode};
 
 use dora_parser::ast::*;
@@ -17,10 +19,9 @@ use llvm::prelude::*;
 use llvm::analysis::*;
 use llvm::core::*;
 use llvm::orc::*;
-// use llvm::execution_engine::*;
-// use llvm::target::*;
 
 pub mod util;
+pub mod fct;
 
 pub fn generate_fct<'ast>(
     ctxt: &SemContext<'ast>,
@@ -31,26 +32,41 @@ pub fn generate_fct<'ast>(
 ) -> Result<*const u8, ()> {
     let name = fct.full_name(ctxt);
 
-    let mut cg = CodeGen {
-        ctxt: ctxt,
-        fct: fct,
-        ast: fct.ast,
-        src: src,
-        cls_type_params,
-        fct_type_params,
+    let jit_fct = {
+        let mut cg = CodeGen {
+            ctxt: ctxt,
+            fct: fct,
+            ast: fct.ast,
+            src: src,
+            cls_type_params,
+            fct_type_params,
 
-        fct_name: CString::new(name).unwrap(),
+            fct_name: CString::new(name).unwrap(),
 
-        context: ptr::null_mut(),
-        module: ptr::null_mut(),
-        shared_module: ptr::null_mut(),
-        builder: ptr::null_mut(),
-        function: ptr::null_mut(),
+            context: ptr::null_mut(),
+            module: ptr::null_mut(),
+            shared_module: ptr::null_mut(),
+            builder: ptr::null_mut(),
+            function: ptr::null_mut(),
 
-        map_vars: HashMap::new(),
+            map_vars: HashMap::new(),
+        };
+
+        cg.generate()?
     };
 
-    cg.generate()
+    let fct_start = jit_fct.fct_ptr();
+
+    {
+        let mut specials = src.specializations.write().unwrap();
+        let key = (cls_type_params.clone(), fct_type_params.clone());
+
+        let jit_fct_id = ctxt.jit_fcts.len().into();
+        ctxt.jit_fcts.push(JitFct::Opt(jit_fct));
+        specials.insert(key, jit_fct_id);
+    }
+
+    Ok(fct_start)
 }
 
 type EmitResult<T> = Result<T, ()>;
@@ -86,7 +102,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    fn generate(&mut self) -> EmitResult<*const u8> {
+    fn generate(&mut self) -> EmitResult<JitOptFct> {
         self.init();
         self.create_function()?;
         self.add_entry_bb();
@@ -127,7 +143,12 @@ where
             {
                 assert!(ptr != 0);
 
-                ok(ptr as *const u8)
+                let jit_fct = JitOptFct {
+                    fct_id: self.fct.id,
+                    fct_start: ptr as *const _,
+                };
+
+                ok(jit_fct)
             } else {
                 fail()
             }

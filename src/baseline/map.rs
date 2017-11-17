@@ -24,7 +24,7 @@ impl CodeMap {
                 &CodeData::VirtCompileStub => println!("virtual compile stub"),
                 &CodeData::Fct(jit_fct_id) => {
                     let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-                    let fct = ctxt.fcts[jit_fct.fct_id].borrow();
+                    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
 
                     println!("{}", fct.full_name(ctxt));
                 }

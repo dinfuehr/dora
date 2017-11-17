@@ -1991,13 +1991,14 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
 
     if let Some(jit_fct_id) = native_fcts.find_fct(ptr) {
         let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-        jit_fct.fct_start
+        jit_fct.fct_ptr()
     } else {
         let fct = ctxt.fcts[fct_id].borrow();
         let dbg = should_emit_debug(ctxt, &*fct);
 
         let jit_fct_id = native::generate(ctxt, internal_fct, dbg);
         let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = jit_fct.to_base().expect("baseline expected");
 
         {
             use baseline::map::CodeData;

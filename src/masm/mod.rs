@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use baseline::expr::ExprStore;
 use baseline::fct::{BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint,
-                    GcPoints, JitFct, LineNumberTable};
+                    GcPoints, JitBaselineFct, LineNumberTable};
 use baseline::codegen::CondCode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Reg, SCRATCH};
@@ -60,13 +60,13 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(mut self, ctxt: &SemContext, stacksize: i32, fct_id: FctId, throws: bool) -> JitFct {
+    pub fn jit(mut self, ctxt: &SemContext, stacksize: i32, fct_id: FctId, throws: bool) -> JitBaselineFct {
         // align data such that code starts at address that is
         // aligned to 16
         self.dseg.align(16);
         self.finish();
 
-        JitFct::from_buffer(
+        JitBaselineFct::from_buffer(
             ctxt,
             &self.dseg,
             &self.data,

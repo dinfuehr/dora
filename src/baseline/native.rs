@@ -1,7 +1,7 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use baseline::fct::{JitFct, JitFctId};
+use baseline::fct::{JitBaselineFct, JitFctId, JitFct};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use masm::MacroAssembler;
@@ -47,7 +47,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg:
     let jit_fct = ngen.generate();
 
     let jit_fct_id = ctxt.jit_fcts.len().into();
-    ctxt.jit_fcts.push(jit_fct);
+    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
 
     jit_fct_id
 }
@@ -64,7 +64,7 @@ impl<'a, 'ast> NativeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitFct {
+    pub fn generate(mut self) -> JitBaselineFct {
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let args = self.fct.args.len();
 

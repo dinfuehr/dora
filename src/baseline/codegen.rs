@@ -14,7 +14,7 @@ use dora_parser::ast::visit::*;
 use dora_parser::lexer::position::Position;
 
 use baseline::expr::*;
-use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitFct};
+use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitBaselineFct, JitFct};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use class::{ClassDef, TypeParams};
@@ -131,7 +131,7 @@ pub fn generate_fct<'ast>(
         ptr_end = jit_fct.ptr_end();
 
         let jit_fct_id = ctxt.jit_fcts.len().into();
-        ctxt.jit_fcts.push(jit_fct);
+        ctxt.jit_fcts.push(JitFct::Base(jit_fct));
         specials.insert(key, jit_fct_id);
 
         jit_fct_id
@@ -163,7 +163,7 @@ fn get_engine() -> Result<Engine, Error> {
 pub fn dump_asm<'ast>(
     ctxt: &SemContext<'ast>,
     fct: &Fct<'ast>,
-    jit_fct: &JitFct,
+    jit_fct: &JitBaselineFct,
     fct_src: Option<&FctSrc>,
     asm_syntax: AsmSyntax,
 ) {
@@ -307,7 +307,7 @@ impl<'a, 'ast> CodeGen<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn generate(mut self) -> JitFct {
+    pub fn generate(mut self) -> JitBaselineFct {
         if should_emit_debug(self.ctxt, self.fct) {
             self.masm.debug();
         }

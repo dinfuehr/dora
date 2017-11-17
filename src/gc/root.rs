@@ -80,6 +80,7 @@ fn determine_rootset(
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
+            let jit_fct = jit_fct.to_base().expect("baseline expected");
             let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect(
                 "no gcpoint",
             );

@@ -210,6 +210,7 @@ fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
         let jit_fct = ctxt.jit_fcts[fid].borrow();
         let offset = pc - (jit_fct.fct_ptr() as usize);
 
+        let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct.nil_check_for_offset(offset as i32)
     } else {
         false
@@ -240,6 +241,7 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
         let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
         let offset = ra - jit_fct.fct_ptr() as usize;
+        let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct
             .bailouts
             .get(offset as i32)
