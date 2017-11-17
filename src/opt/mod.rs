@@ -185,12 +185,16 @@ where
     fn add_params(&mut self) {
         for (ind, param) in self.ast.params.iter().enumerate() {
             let varid = *self.src.map_vars.get(param.id).unwrap();
+            let ty = self.ty_var(varid);
+            let ty = self.llvm_ty(ty);
 
-            let value = unsafe {
-                LLVMGetParam(self.function, ind as u32)
-            };
+            unsafe {
+                let value = LLVMGetParam(self.function, ind as u32);
+                let ptr = LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _);
 
-            self.map_vars.insert(varid, value);
+                LLVMBuildStore(self.builder, value, ptr);
+                self.map_vars.insert(varid, ptr);
+            }
         }
     }
 
@@ -225,7 +229,7 @@ where
             StmtBreak(_) => fail(),
             StmtContinue(_) => fail(),
             StmtBlock(ref stmt) => self.emit_block(stmt),
-            StmtVar(_) => fail(),
+            StmtVar(ref stmt) => self.emit_var(stmt),
             StmtThrow(_) => fail(),
             StmtDefer(_) => fail(),
             StmtDo(_) => fail(),
@@ -258,17 +262,38 @@ where
         ok(())
     }
 
+    fn emit_var(&mut self, s: &'ast StmtVarType) -> EmitResult<()> {
+        let var = *self.src.map_vars.get(s.id).unwrap();
+        let ty = self.ty_var(var);
+        let ty = self.llvm_ty(ty);
+
+        let ptr = unsafe {
+            LLVMBuildAlloca(self.builder, ty, ptr::null())
+        };
+
+        self.map_vars.insert(var, ptr);
+
+        if let Some(ref expr) = s.expr {
+            let value = self.emit_expr(expr)?;
+            unsafe {
+                LLVMBuildStore(self.builder, value, ptr);
+            }
+        }
+
+        ok(())
+    }
+
     fn emit_expr(&mut self, e: &'ast Expr) -> EmitResult<LLVMValueRef> {
         match *e {
             ExprLitChar(ref lit) => self.emit_lit_char(lit),
             ExprLitInt(ref lit) => self.emit_lit_int(lit),
             ExprLitFloat(ref lit) => self.emit_lit_float(lit),
-            ExprLitBool(_) => fail(),
+            ExprLitBool(ref lit) => self.emit_lit_bool(lit),
             ExprLitStr(_) => fail(),
             ExprLitStruct(_) => fail(),
             ExprUn(_) => fail(),
             ExprIdent(ref ident) => self.emit_ident(ident),
-            ExprAssign(_) => fail(),
+            ExprAssign(ref expr) => self.emit_assign(expr),
             ExprBin(_) => fail(),
             ExprCall(_) => fail(),
             ExprDelegation(_) => fail(),
@@ -316,14 +341,50 @@ where
         }
     }
 
+    fn emit_lit_bool(&mut self, e: &'ast ExprLitBoolType) -> EmitResult<LLVMValueRef> {
+        unsafe {
+            let ty = LLVMInt8TypeInContext(self.context);
+            let value = if e.value { 1 } else { 0 };
+            let value = LLVMConstInt(ty, value, 0);
+
+            ok(value)
+        }
+    }
+
     fn emit_ident(&mut self, e: &'ast ExprIdentType) -> EmitResult<LLVMValueRef> {
         let &ident = self.src.map_idents.get(e.id).unwrap();
 
         match ident {
             IdentType::Var(varid) => {
-                let value = self.map_vars[&varid];
+                let ptr = self.map_vars[&varid];
+                let value = unsafe {
+                    LLVMBuildLoad(self.builder, ptr, b"\0".as_ptr() as *const _)
+                };
 
                 ok(value)
+            }
+
+            _ => fail()
+        }
+    }
+
+    fn emit_assign(&mut self, e: &'ast ExprAssignType) -> EmitResult<LLVMValueRef> {
+        if e.lhs.is_array() {
+            return fail();
+        }
+
+        let &ident_type = self.src.map_idents.get(e.lhs.id()).unwrap();
+
+        match ident_type {
+            IdentType::Var(varid) => {
+                let ptr = self.map_vars[&varid];
+                let value = self.emit_expr(&e.rhs)?;
+
+                unsafe {
+                    LLVMBuildStore(self.builder, value, ptr);
+                }
+
+                ok(ptr::null_mut())
             }
 
             _ => fail()
