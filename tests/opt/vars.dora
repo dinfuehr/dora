@@ -1,10 +1,19 @@
-//= vm-args "--opt=foo"
+//= vm-args "--opt=foo,bar"
 
 fun main() {
     assert(foo() == 2);
+    assert(bar() == 4);
 }
 
 fun foo() -> int {
     let a = 2;
     return a;
+}
+
+fun bar() -> int {
+    let a = 4;
+    let b = a;
+    let c = b;
+    let d = c;
+    return d;
 }
