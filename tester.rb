@@ -29,7 +29,18 @@ end
 
 def test_files
   if $ARGS.length > 0
-    $ARGS
+    files = []
+
+    for arg in $ARGS
+      if File.directory?(arg)
+        files.concat(Dir["#{arg}/**/*.dora"])
+      else
+        files.push(arg)
+      end
+    end
+
+    files
+
   else
     Dir["tests/**/*.dora"]
   end
