@@ -1,17 +1,9 @@
-//= vm-args "--opt=foo,int_id"
+//= vm-args "--opt=foo"
 
 fun main() {
     assert(foo() == 2);
-
-    assert(int_id(1) == 1);
-    assert(int_id(-100) == -100);
-    assert(int_id(0) == 0);
 }
 
 fun foo() -> int {
     return 2;
-}
-
-fun int_id(a: int) -> int {
-    return a;
 }

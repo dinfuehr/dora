@@ -1,0 +1,11 @@
+//= vm-args "--opt=int_id"
+
+fun main() {
+    assert(int_id(1) == 1);
+    assert(int_id(-100) == -100);
+    assert(int_id(0) == 0);
+}
+
+fun int_id(a: int) -> int {
+    return a;
+}
