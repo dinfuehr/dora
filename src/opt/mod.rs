@@ -299,7 +299,7 @@ where
         let ty = self.llvm_ty(ty);
 
         let ptr = unsafe {
-            LLVMBuildAlloca(self.builder, ty, ptr::null())
+            LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _)
         };
 
         self.map_vars.insert(var, ptr);
