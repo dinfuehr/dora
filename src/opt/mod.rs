@@ -19,6 +19,7 @@ use llvm::prelude::*;
 use llvm::analysis::*;
 use llvm::core::*;
 use llvm::orc::*;
+use llvm::transforms::scalar::*;
 
 pub mod util;
 pub mod fct;
@@ -137,6 +138,15 @@ where
                 ptr::null_mut(),
             );
             assert!(res == LLVMOrcErrorCode::LLVMOrcErrSuccess);
+
+            let pm = LLVMCreateFunctionPassManagerForModule(self.module);
+            LLVMAddScalarReplAggregatesPassSSA(pm);
+            LLVMInitializeFunctionPassManager(pm);
+            LLVMRunFunctionPassManager(pm, self.function);
+
+            if self.ctxt.args.flag_emit_llvm {
+                LLVMDumpModule(self.module);
+            }
 
             if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) ==
                 LLVMOrcErrorCode::LLVMOrcErrSuccess
