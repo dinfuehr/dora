@@ -1,4 +1,4 @@
-# Dora [![Build Status](https://travis-ci.org/dinfuehr/dora.svg?branch=master)](https://travis-ci.org/dinfuehr/dora)
+# Dora
 
 JIT-compiler for the programming language Dora implemented in Rust.
 Works on Linux (x86\_64, aarch64) and macOS (x86\_64).
