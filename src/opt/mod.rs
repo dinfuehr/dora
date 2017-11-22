@@ -112,17 +112,25 @@ where
         let block = self.ast.block.as_ref().unwrap();
         self.emit_stmt(block)?;
 
+        let always_returns = self.src.always_returns;
+
+        unsafe {
+            if !always_returns {
+                LLVMBuildRetVoid(self.builder);
+            }
+        }
+
         unsafe {
             LLVMDisposeBuilder(self.builder);
         }
-
-        self.verify()?;
 
         if self.ctxt.args.flag_emit_llvm {
             unsafe {
                 LLVMDumpModule(self.module);
             }
         }
+
+        self.verify()?;
 
         let orc = self.ctxt.llvm_jit.orc;
         let mut ptr = 0;
@@ -252,9 +260,9 @@ where
                 Ok(())
             }
 
-            StmtIf(_) => fail(),
-            StmtLoop(_) => fail(),
-            StmtWhile(_) => fail(),
+            StmtIf(ref stmt) => self.emit_if(stmt),
+            StmtLoop(ref stmt) => self.emit_loop(stmt),
+            StmtWhile(ref stmt) => self.emit_while(stmt),
             StmtFor(_) => fail(),
             StmtReturn(ref stmt) => self.emit_return(stmt),
             StmtBreak(_) => fail(),
@@ -266,6 +274,69 @@ where
             StmtDo(_) => fail(),
             StmtSpawn(_) => fail(),
         }
+    }
+
+    fn emit_if(&mut self, s: &'ast StmtIfType) -> EmitResult<()> {
+        unsafe {
+            let then_block = LLVMAppendBasicBlock(self.function, b"if_then\0".as_ptr() as *const _);
+            let else_block = LLVMAppendBasicBlock(self.function, b"if_else\0".as_ptr() as *const _);
+            let merge_block = LLVMAppendBasicBlock(self.function, b"if_merge\0".as_ptr() as *const _);
+
+            let value = self.emit_expr(&s.cond)?;
+            LLVMBuildCondBr(self.builder, value, then_block, else_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, then_block);
+            self.emit_stmt(&s.then_block)?;
+            LLVMBuildBr(self.builder, merge_block);
+
+            if let Some(ref stmt_else_block) = s.else_block {
+                LLVMPositionBuilderAtEnd(self.builder, else_block);
+                self.emit_stmt(stmt_else_block)?;
+                LLVMBuildBr(self.builder, merge_block);
+            }
+
+            LLVMPositionBuilderAtEnd(self.builder, merge_block);
+        }
+
+        ok(())
+    }
+
+    fn emit_loop(&mut self, s: &'ast StmtLoopType) -> EmitResult<()> {
+        unsafe {
+            let loop_block = LLVMAppendBasicBlock(self.function, b"loop_body\0".as_ptr() as *const _);
+            let merge_block = LLVMAppendBasicBlock(self.function, b"loop_merge\0".as_ptr() as *const _);
+
+            LLVMBuildBr(self.builder, loop_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, loop_block);
+            self.emit_stmt(&s.block)?;
+
+            LLVMBuildBr(self.builder, loop_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, merge_block);
+        }
+
+        ok(())
+    }
+
+    fn emit_while(&mut self, s: &'ast StmtWhileType) -> EmitResult<()> {
+        unsafe {
+            let cond_block = LLVMAppendBasicBlock(self.function, b"while_cond\0".as_ptr() as *const _);
+            let loop_block = LLVMAppendBasicBlock(self.function, b"while_body\0".as_ptr() as *const _);
+            let merge_block = LLVMAppendBasicBlock(self.function, b"while_merge\0".as_ptr() as *const _);
+
+            LLVMBuildBr(self.builder, cond_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, cond_block);
+            let value = self.emit_expr(&s.cond)?;
+            LLVMBuildCondBr(self.builder, value, loop_block, merge_block);
+
+            LLVMBuildBr(self.builder, loop_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, merge_block);
+        }
+
+        ok(())
     }
 
     fn emit_return(&mut self, s: &'ast StmtReturnType) -> EmitResult<()> {
@@ -374,7 +445,7 @@ where
 
     fn emit_lit_bool(&mut self, e: &'ast ExprLitBoolType) -> EmitResult<LLVMValueRef> {
         unsafe {
-            let ty = LLVMInt8TypeInContext(self.context);
+            let ty = LLVMInt1TypeInContext(self.context);
             let value = if e.value { 1 } else { 0 };
             let value = LLVMConstInt(ty, value, 0);
 
