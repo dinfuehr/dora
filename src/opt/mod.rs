@@ -214,13 +214,9 @@ where
     }
 
     fn add_entry_bb(&mut self) {
-        unsafe {
-            let bb = LLVMAppendBasicBlockInContext(
-                self.context,
-                self.function,
-                b"entry\0".as_ptr() as *const _,
-            );
+        let bb = self.append_block(b"entry\0");
 
+        unsafe {
             LLVMPositionBuilderAtEnd(self.builder, bb);
         }
     }
@@ -281,11 +277,11 @@ where
     }
 
     fn emit_if(&mut self, s: &'ast StmtIfType) -> EmitResult<()> {
-        unsafe {
-            let then_block = LLVMAppendBasicBlock(self.function, b"if_then\0".as_ptr() as *const _);
-            let else_block = LLVMAppendBasicBlock(self.function, b"if_else\0".as_ptr() as *const _);
-            let merge_block = LLVMAppendBasicBlock(self.function, b"if_merge\0".as_ptr() as *const _);
+        let then_block = self.append_block(b"if_then\0");
+        let else_block = self.append_block(b"if_else\0");
+        let merge_block = self.append_block(b"if_merge\0");
 
+        unsafe {
             let value = self.emit_expr(&s.cond)?;
             LLVMBuildCondBr(self.builder, value, then_block, else_block);
 
@@ -311,10 +307,10 @@ where
     }
 
     fn emit_loop(&mut self, s: &'ast StmtLoopType) -> EmitResult<()> {
-        unsafe {
-            let loop_block = LLVMAppendBasicBlock(self.function, b"loop_body\0".as_ptr() as *const _);
-            let merge_block = LLVMAppendBasicBlock(self.function, b"loop_merge\0".as_ptr() as *const _);
+        let loop_block = self.append_block(b"loop_body\0");
+        let merge_block = self.append_block(b"loop_merge\0");
 
+        unsafe {
             LLVMBuildBr(self.builder, loop_block);
 
             LLVMPositionBuilderAtEnd(self.builder, loop_block);
@@ -329,11 +325,11 @@ where
     }
 
     fn emit_while(&mut self, s: &'ast StmtWhileType) -> EmitResult<()> {
-        unsafe {
-            let cond_block = LLVMAppendBasicBlock(self.function, b"while_cond\0".as_ptr() as *const _);
-            let loop_block = LLVMAppendBasicBlock(self.function, b"while_body\0".as_ptr() as *const _);
-            let merge_block = LLVMAppendBasicBlock(self.function, b"while_merge\0".as_ptr() as *const _);
+        let cond_block = self.append_block(b"while_cond\0");
+        let loop_block = self.append_block(b"while_body\0");
+        let merge_block = self.append_block(b"while_merge\0");
 
+        unsafe {
             LLVMBuildBr(self.builder, cond_block);
 
             LLVMPositionBuilderAtEnd(self.builder, cond_block);
@@ -537,6 +533,16 @@ where
             BuiltinType::Lambda(_) => unimplemented!(),
 
             _ => ty,
+        }
+    }
+
+    fn append_block(&mut self, name: &[u8]) -> LLVMBasicBlockRef {
+        unsafe {
+            LLVMAppendBasicBlockInContext(
+                self.context,
+                self.function,
+                name.as_ptr() as *const _,
+            )
         }
     }
 
