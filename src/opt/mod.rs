@@ -50,6 +50,9 @@ pub fn generate_fct<'ast>(
             builder: ptr::null_mut(),
             function: ptr::null_mut(),
 
+            break_label: ptr::null_mut(),
+            continue_label: ptr::null_mut(),
+
             map_vars: HashMap::new(),
         };
 
@@ -95,6 +98,9 @@ struct CodeGen<'a, 'ast: 'a> {
     shared_module: LLVMSharedModuleRef,
     builder: LLVMBuilderRef,
     function: LLVMValueRef,
+
+    break_label: LLVMBasicBlockRef,
+    continue_label: LLVMBasicBlockRef,
 
     map_vars: HashMap<VarId, LLVMValueRef>,
 }
@@ -313,12 +319,23 @@ where
         unsafe {
             LLVMBuildBr(self.builder, loop_block);
 
+            let saved_break_label = self.break_label;
+            let saved_continue_label = self.continue_label;
+
+            self.break_label = merge_block;
+            self.continue_label = loop_block;
+
             LLVMPositionBuilderAtEnd(self.builder, loop_block);
             self.emit_stmt(&s.block)?;
 
-            LLVMBuildBr(self.builder, loop_block);
+            if !self.block_has_terminator() {
+                LLVMBuildBr(self.builder, loop_block);
+            }
 
             LLVMPositionBuilderAtEnd(self.builder, merge_block);
+
+            self.break_label = saved_break_label;
+            self.continue_label = saved_continue_label;
         }
 
         ok(())
@@ -336,9 +353,23 @@ where
             let value = self.emit_expr(&s.cond)?;
             LLVMBuildCondBr(self.builder, value, loop_block, merge_block);
 
-            LLVMBuildBr(self.builder, loop_block);
+            let saved_break_label = self.break_label;
+            let saved_continue_label = self.continue_label;
+
+            self.break_label = merge_block;
+            self.continue_label = cond_block;
+
+            LLVMPositionBuilderAtEnd(self.builder, loop_block);
+            self.emit_stmt(&s.block)?;
+
+            if !self.block_has_terminator() {
+                LLVMBuildBr(self.builder, cond_block);
+            }
 
             LLVMPositionBuilderAtEnd(self.builder, merge_block);
+
+            self.break_label = saved_break_label;
+            self.continue_label = saved_continue_label;
         }
 
         ok(())

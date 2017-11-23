@@ -1,0 +1,16 @@
+//= vm-flags "--opt=while1,while2"
+
+fun main() {
+    assert(while1() == 1);
+    assert(while2() == 1);
+}
+
+fun while1() -> int {
+    while true { return 1; }
+    return 0;
+}
+
+fun while2() -> int {
+    while false { return 0; }
+    return 1;
+}
