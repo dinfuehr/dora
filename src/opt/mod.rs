@@ -112,11 +112,15 @@ where
         let block = self.ast.block.as_ref().unwrap();
         self.emit_stmt(block)?;
 
-        let always_returns = self.src.always_returns;
+        if !self.block_has_terminator() {
+            let always_returns = self.src.always_returns;
 
-        unsafe {
-            if !always_returns {
-                LLVMBuildRetVoid(self.builder);
+            unsafe {
+                if always_returns {
+                    LLVMBuildUnreachable(self.builder);
+                } else {
+                    LLVMBuildRetVoid(self.builder);
+                }
             }
         }
 
@@ -287,12 +291,17 @@ where
 
             LLVMPositionBuilderAtEnd(self.builder, then_block);
             self.emit_stmt(&s.then_block)?;
-            LLVMBuildBr(self.builder, merge_block);
+
+            if !self.block_has_terminator() {
+                LLVMBuildBr(self.builder, merge_block);
+            }
 
             if let Some(ref stmt_else_block) = s.else_block {
                 LLVMPositionBuilderAtEnd(self.builder, else_block);
                 self.emit_stmt(stmt_else_block)?;
-                LLVMBuildBr(self.builder, merge_block);
+                if !self.block_has_terminator() {
+                    LLVMBuildBr(self.builder, merge_block);
+                }
             }
 
             LLVMPositionBuilderAtEnd(self.builder, merge_block);
@@ -528,6 +537,15 @@ where
             BuiltinType::Lambda(_) => unimplemented!(),
 
             _ => ty,
+        }
+    }
+
+    fn block_has_terminator(&self) -> bool {
+        unsafe {
+            let block = LLVMGetInsertBlock(self.builder);
+            let term = LLVMGetBasicBlockTerminator(block);
+
+            !term.is_null()
         }
     }
 
