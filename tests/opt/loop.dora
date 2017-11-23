@@ -1,0 +1,11 @@
+//= vm-args "--opt=loop1"
+
+fun main() {
+    assert(loop1() == 1);
+}
+
+fun loop1() -> int {
+    loop {
+        return 1;
+    }
+}
