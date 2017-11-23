@@ -532,6 +532,12 @@ where
     }
 
     fn llvm_ty(&self, ty: BuiltinType) -> LLVMTypeRef {
+        if ty.is_bool() {
+            unsafe {
+                return LLVMInt1TypeInContext(self.context);
+            }
+        }
+
         let mode = ty.mode();
 
         unsafe {

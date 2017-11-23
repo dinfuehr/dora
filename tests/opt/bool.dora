@@ -1,0 +1,26 @@
+//= vm-args "--opt=ftrue,ffalse,ftrue2,ffalse2"
+
+fun main() {
+    assert(ftrue());
+    assert(!ffalse());
+    assert(ftrue2());
+    assert(!ffalse2());
+}
+
+fun ftrue() -> bool {
+    return true;
+}
+
+fun ffalse() -> bool {
+    return false;
+}
+
+fun ftrue2() -> bool {
+    let value = true;
+    return value;
+}
+
+fun ffalse2() -> bool {
+    let value = false;
+    return value;
+}

@@ -88,6 +88,13 @@ impl BuiltinType {
         }
     }
 
+    pub fn is_bool(&self) -> bool {
+        match self {
+            &BuiltinType::Bool => true,
+            _ => false,
+        }
+    }
+
     pub fn is_type_param(&self) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
