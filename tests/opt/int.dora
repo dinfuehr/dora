@@ -1,4 +1,4 @@
-//= vm-args "--opt=int_add,int_sub,int_mul,int_div,int_mod,int_shl,int_ashr,int_lshr"
+//= vm-args "--opt=int_add,int_sub,int_mul,int_div,int_mod,int_shl,int_ashr,int_lshr,int_or,int_and,int_xor"
 
 fun main() {
     assert(int_add(-2, 5) == 3);
@@ -32,6 +32,15 @@ fun main() {
     assert(int_lshr(1, 1) == 0);
     assert(int_lshr(4, 1) == 2);
     assert(int_lshr(-4, 1) == 2147483646);
+
+    assert(int_and(5, 2) == 0);
+    assert(int_and(3, 1) == 1);
+
+    assert(int_or(5, 2) == 7);
+    assert(int_or(3, 1) == 3);
+
+    assert(int_xor(5, 2) == 7);
+    assert(int_xor(3, 1) == 2);
 }
 
 fun int_add(a: int, b: int) -> int {
@@ -64,4 +73,16 @@ fun int_lshr(a: int, b: int) -> int {
 
 fun int_ashr(a: int, b: int) -> int {
     return a >> b;
+}
+
+fun int_and(a: int, b: int) -> int {
+    return a & b;
+}
+
+fun int_or(a: int, b: int) -> int {
+    return a | b;
+}
+
+fun int_xor(a: int, b: int) -> int {
+    return a ^ b;
 }

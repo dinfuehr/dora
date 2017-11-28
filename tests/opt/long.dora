@@ -1,4 +1,4 @@
-//= vm-args "--opt=long_add,long_sub,long_mul,long_div,long_mod,long_shl,long_lshr,long_ashr"
+//= vm-args "--opt=long_add,long_sub,long_mul,long_div,long_mod,long_shl,long_lshr,long_ashr,long_and,long_or,long_xor"
 
 fun main() {
     assert(long_add(-2L, 5L) == 3L);
@@ -32,6 +32,15 @@ fun main() {
     assert(long_lshr(1L, 1L) == 0L);
     assert(long_lshr(4L, 1L) == 2L);
     assert(long_lshr(-4L, 1L) == (-4L >>> 1L));
+
+    assert(long_and(5L, 2L) == 0L);
+    assert(long_and(3L, 1L) == 1L);
+
+    assert(long_or(5L, 2L) == 7L);
+    assert(long_or(3L, 1L) == 3L);
+
+    assert(long_xor(5L, 2L) == 7L);
+    assert(long_xor(3L, 1L) == 2L);
 }
 
 fun long_add(a: long, b: long) -> long {
@@ -64,4 +73,16 @@ fun long_lshr(a: long, b: long) -> long {
 
 fun long_ashr(a: long, b: long) -> long {
     return a >> b;
+}
+
+fun long_and(a: long, b: long) -> long {
+    return a & b;
+}
+
+fun long_or(a: long, b: long) -> long {
+    return a | b;
+}
+
+fun long_xor(a: long, b: long) -> long {
+    return a ^ b;
 }
