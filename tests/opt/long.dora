@@ -1,0 +1,43 @@
+//= vm-args "--opt=long_add,long_sub,long_mul,long_div,long_mod"
+
+fun main() {
+    assert(long_add(-2L, 5L) == 3L);
+    assert(long_add(0L, 3L) == 3L);
+    assert(long_add(2L, 7L) == 9L);
+
+    assert(long_sub(-2L, 5L) == -7L);
+    assert(long_sub(0L, 3L) == -3L);
+    assert(long_sub(7L, 2L) == 5L);
+
+    assert(long_mul(-2L, 5L) == -10L);
+    assert(long_mul(0L, 3L) == 0L);
+    assert(long_mul(7L, 2L) == 14L);
+
+    assert(long_div(100L, 5L) == 20L);
+    assert(long_div(10L, 3L) == 3L);
+    assert(long_div(-3L, -1L) == 3L);
+
+    assert(long_mod(-4L, 3L) == -1L);
+    assert(long_mod(10L, 3L) == 1L);
+    assert(long_mod(-3L, -1L) == 0L);
+}
+
+fun long_add(a: long, b: long) -> long {
+    return a + b;
+}
+
+fun long_sub(a: long, b: long) -> long {
+    return a - b;
+}
+
+fun long_mul(a: long, b: long) -> long {
+    return a * b;
+}
+
+fun long_div(a: long, b: long) -> long {
+    return a / b;
+}
+
+fun long_mod(a: long, b: long) -> long {
+    return a % b;
+}

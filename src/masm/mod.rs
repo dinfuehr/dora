@@ -60,7 +60,13 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jit(mut self, ctxt: &SemContext, stacksize: i32, fct_id: FctId, throws: bool) -> JitBaselineFct {
+    pub fn jit(
+        mut self,
+        ctxt: &SemContext,
+        stacksize: i32,
+        fct_id: FctId,
+        throws: bool,
+    ) -> JitBaselineFct {
         // align data such that code starts at address that is
         // aligned to 16
         self.dseg.align(16);

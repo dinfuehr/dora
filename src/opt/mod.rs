@@ -6,7 +6,7 @@ use libc;
 
 use baseline::fct::JitFct;
 use class::TypeParams;
-use ctxt::{Fct, FctParent, FctSrc, IdentType, SemContext, VarId};
+use ctxt::{Fct, FctKind, FctParent, FctSrc, IdentType, Intrinsic, SemContext, VarId};
 use opt::fct::JitOptFct;
 use ty::{BuiltinType, MachineMode};
 
@@ -15,6 +15,7 @@ use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 
+use llvm::*;
 use llvm::prelude::*;
 use llvm::analysis::*;
 use llvm::core::*;
@@ -405,9 +406,7 @@ where
         let ty = self.ty_var(var);
         let ty = self.llvm_ty(ty);
 
-        let ptr = unsafe {
-            LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _)
-        };
+        let ptr = unsafe { LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _) };
 
         self.map_vars.insert(var, ptr);
 
@@ -432,7 +431,7 @@ where
             ExprUn(_) => fail(),
             ExprIdent(ref ident) => self.emit_ident(ident),
             ExprAssign(ref expr) => self.emit_assign(expr),
-            ExprBin(_) => fail(),
+            ExprBin(ref expr) => self.emit_bin(expr),
             ExprCall(_) => fail(),
             ExprDelegation(_) => fail(),
             ExprField(_) => fail(),
@@ -495,14 +494,12 @@ where
         match ident {
             IdentType::Var(varid) => {
                 let ptr = self.map_vars[&varid];
-                let value = unsafe {
-                    LLVMBuildLoad(self.builder, ptr, b"\0".as_ptr() as *const _)
-                };
+                let value = unsafe { LLVMBuildLoad(self.builder, ptr, b"\0".as_ptr() as *const _) };
 
                 ok(value)
             }
 
-            _ => fail()
+            _ => fail(),
         }
     }
 
@@ -525,8 +522,49 @@ where
                 ok(ptr::null_mut())
             }
 
-            _ => fail()
+            _ => fail(),
         }
+    }
+
+    fn emit_bin(&mut self, e: &'ast ExprBinType) -> EmitResult<LLVMValueRef> {
+        if let Some(intrinsic) = self.get_intrinsic(e.id) {
+            self.emit_bin_intrinsic(&e.lhs, &e.rhs, intrinsic)
+        } else {
+            fail()
+        }
+    }
+
+    fn emit_bin_intrinsic(
+        &mut self,
+        lhs: &'ast Expr,
+        rhs: &'ast Expr,
+        intrinsic: Intrinsic,
+    ) -> EmitResult<LLVMValueRef> {
+        let lhs_value = self.emit_expr(lhs)?;
+        let rhs_value = self.emit_expr(rhs)?;
+
+        let op = match intrinsic {
+            Intrinsic::IntAdd | Intrinsic::LongAdd => LLVMOpcode::LLVMAdd,
+            Intrinsic::IntSub | Intrinsic::LongSub => LLVMOpcode::LLVMSub,
+            Intrinsic::IntMul | Intrinsic::LongMul => LLVMOpcode::LLVMMul,
+            Intrinsic::IntDiv | Intrinsic::LongDiv => LLVMOpcode::LLVMSDiv,
+            Intrinsic::IntMod | Intrinsic::LongMod => LLVMOpcode::LLVMSRem,
+            _ => {
+                return fail();
+            }
+        };
+
+        let value = unsafe {
+            LLVMBuildBinOp(
+                self.builder,
+                op,
+                lhs_value,
+                rhs_value,
+                b"\0".as_ptr() as *const _,
+            )
+        };
+
+        ok(value)
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
@@ -569,11 +607,7 @@ where
 
     fn append_block(&mut self, name: &[u8]) -> LLVMBasicBlockRef {
         unsafe {
-            LLVMAppendBasicBlockInContext(
-                self.context,
-                self.function,
-                name.as_ptr() as *const _,
-            )
+            LLVMAppendBasicBlockInContext(self.context, self.function, name.as_ptr() as *const _)
         }
     }
 
@@ -607,6 +641,22 @@ where
                     LLVMPointerType(int8, 1)
                 }
             }
+        }
+    }
+
+    fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
+        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+
+        // the function we compile right now is never an intrinsic
+        if self.fct.id == fid {
+            return None;
+        }
+
+        let fct = self.ctxt.fcts[fid].borrow();
+
+        match fct.kind {
+            FctKind::Builtin(intr) => Some(intr),
+            _ => None,
         }
     }
 }

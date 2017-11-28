@@ -1,0 +1,43 @@
+//= vm-args "--opt=int_add,int_sub,int_mul,int_div,int_mod"
+
+fun main() {
+    assert(int_add(-2, 5) == 3);
+    assert(int_add(0, 3) == 3);
+    assert(int_add(2, 7) == 9);
+
+    assert(int_sub(-2, 5) == -7);
+    assert(int_sub(0, 3) == -3);
+    assert(int_sub(7, 2) == 5);
+
+    assert(int_mul(-2, 5) == -10);
+    assert(int_mul(0, 3) == 0);
+    assert(int_mul(7, 2) == 14);
+
+    assert(int_div(100, 5) == 20);
+    assert(int_div(10, 3) == 3);
+    assert(int_div(-3, -1) == 3);
+
+    assert(int_mod(-4, 3) == -1);
+    assert(int_mod(10, 3) == 1);
+    assert(int_mod(-3, -1) == 0);
+}
+
+fun int_add(a: int, b: int) -> int {
+    return a + b;
+}
+
+fun int_sub(a: int, b: int) -> int {
+    return a - b;
+}
+
+fun int_mul(a: int, b: int) -> int {
+    return a * b;
+}
+
+fun int_div(a: int, b: int) -> int {
+    return a / b;
+}
+
+fun int_mod(a: int, b: int) -> int {
+    return a % b;
+}
