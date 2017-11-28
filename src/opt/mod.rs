@@ -549,6 +549,9 @@ where
             Intrinsic::IntMul | Intrinsic::LongMul => LLVMOpcode::LLVMMul,
             Intrinsic::IntDiv | Intrinsic::LongDiv => LLVMOpcode::LLVMSDiv,
             Intrinsic::IntMod | Intrinsic::LongMod => LLVMOpcode::LLVMSRem,
+            Intrinsic::IntShl | Intrinsic::LongShl => LLVMOpcode::LLVMShl,
+            Intrinsic::IntSar | Intrinsic::LongSar => LLVMOpcode::LLVMAShr,
+            Intrinsic::IntShr | Intrinsic::LongShr => LLVMOpcode::LLVMLShr,
             _ => {
                 return fail();
             }
