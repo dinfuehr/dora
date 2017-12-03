@@ -479,12 +479,16 @@ where
     }
 
     fn emit_lit_bool(&mut self, e: &'ast ExprLitBoolType) -> EmitResult<LLVMValueRef> {
+        ok(self.llvm_lit_bool(e.value))
+    }
+
+    fn llvm_lit_bool(&mut self, value: bool) -> LLVMValueRef {
         unsafe {
             let ty = LLVMInt1TypeInContext(self.context);
-            let value = if e.value { 1 } else { 0 };
+            let value = if value { 1 } else { 0 };
             let value = LLVMConstInt(ty, value, 0);
 
-            ok(value)
+            value
         }
     }
 
@@ -529,6 +533,12 @@ where
     fn emit_bin(&mut self, e: &'ast ExprBinType) -> EmitResult<LLVMValueRef> {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_bin_intrinsic(&e.lhs, &e.rhs, intrinsic)
+        } else if e.op == BinOp::Or {
+            self.emit_or(&e.lhs, &e.rhs)
+
+        } else if e.op == BinOp::And {
+            self.emit_and(&e.lhs, &e.rhs)
+
         } else {
             fail()
         }
@@ -571,6 +581,74 @@ where
         };
 
         ok(value)
+    }
+
+    fn emit_or(&mut self, lhs: &'ast Expr, rhs: &'ast Expr) -> EmitResult<LLVMValueRef> {
+        let true_block = self.append_block(b"or_true\0");
+        let next_block = self.append_block(b"or_next\0");
+        let false_block = self.append_block(b"or_false\0");
+        let merge_block = self.append_block(b"or_merge\0");
+
+        let lhs_value = self.emit_expr(lhs)?;
+
+        unsafe {
+            LLVMBuildCondBr(self.builder, lhs_value, true_block, next_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, next_block);
+            let rhs_value = self.emit_expr(rhs)?;
+            LLVMBuildCondBr(self.builder, rhs_value, true_block, false_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, true_block);
+            LLVMBuildBr(self.builder, merge_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, false_block);
+            LLVMBuildBr(self.builder, merge_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, merge_block);
+            let result = LLVMBuildPhi(self.builder,
+                                      self.llvm_ty(BuiltinType::Bool),
+                                      b"and_result\0".as_ptr() as *const _);
+
+            let mut values = [self.llvm_lit_bool(true), self.llvm_lit_bool(false)];
+            let mut blocks = [true_block, false_block];
+            LLVMAddIncoming(result, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
+
+            ok(result)
+        }
+    }
+
+    fn emit_and(&mut self, lhs: &'ast Expr, rhs: &'ast Expr) -> EmitResult<LLVMValueRef> {
+        let true_block = self.append_block(b"and_true\0");
+        let next_block = self.append_block(b"and_next\0");
+        let false_block = self.append_block(b"and_false\0");
+        let merge_block = self.append_block(b"and_merge\0");
+
+        let lhs_value = self.emit_expr(lhs)?;
+
+        unsafe {
+            LLVMBuildCondBr(self.builder, lhs_value, next_block, false_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, next_block);
+            let rhs_value = self.emit_expr(rhs)?;
+            LLVMBuildCondBr(self.builder, rhs_value, true_block, false_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, true_block);
+            LLVMBuildBr(self.builder, merge_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, false_block);
+            LLVMBuildBr(self.builder, merge_block);
+
+            LLVMPositionBuilderAtEnd(self.builder, merge_block);
+            let result = LLVMBuildPhi(self.builder,
+                                      self.llvm_ty(BuiltinType::Bool),
+                                      b"and_result\0".as_ptr() as *const _);
+
+            let mut values = [self.llvm_lit_bool(true), self.llvm_lit_bool(false)];
+            let mut blocks = [true_block, false_block];
+            LLVMAddIncoming(result, values.as_mut_ptr(), blocks.as_mut_ptr(), 2);
+
+            ok(result)
+        }
     }
 
     fn ty(&self, id: NodeId) -> BuiltinType {
@@ -651,7 +729,13 @@ where
     }
 
     fn get_intrinsic(&self, id: NodeId) -> Option<Intrinsic> {
-        let fid = self.src.map_calls.get(id).unwrap().fct_id();
+        let call = self.src.map_calls.get(id);
+
+        if call.is_none() {
+            return None;
+        }
+
+        let fid = call.unwrap().fct_id();
 
         // the function we compile right now is never an intrinsic
         if self.fct.id == fid {

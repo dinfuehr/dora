@@ -1,0 +1,12 @@
+//= vm-args "--opt=test_and"
+
+fun main() {
+    assert(!test_and(true, false));
+    assert(!test_and(false, true));
+    assert(!test_and(false, false));
+    assert(test_and(true, true));
+}
+
+fun test_and(lhs: bool, rhs: bool) -> bool {
+    return lhs && rhs;
+}

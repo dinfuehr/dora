@@ -1,0 +1,12 @@
+//= vm-args "--opt=test_or"
+
+fun main() {
+    assert(test_or(true, false));
+    assert(test_or(false, true));
+    assert(!test_or(false, false));
+    assert(test_or(true, true));
+}
+
+fun test_or(lhs: bool, rhs: bool) -> bool {
+    return lhs || rhs;
+}
