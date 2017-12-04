@@ -1,0 +1,49 @@
+//= vm-args "--opt=is_eq,is_ne,is_lt,is_le,is_gt,is_ge"
+
+fun main() {
+    assert(!is_eq(4, 5));
+    assert(is_eq(4, 4));
+
+    assert(is_ne(2, 3));
+    assert(!is_ne(2, 2));
+
+    assert(is_lt(2, 4));
+    assert(!is_lt(4, 4));
+    assert(!is_lt(5, 4));
+
+    assert(is_le(2, 4));
+    assert(is_le(4, 4));
+    assert(!is_le(5, 4));
+
+    assert(!is_gt(2, 4));
+    assert(!is_gt(4, 4));
+    assert(is_gt(5, 4));
+
+    assert(!is_ge(2, 4));
+    assert(is_ge(4, 4));
+    assert(is_ge(5, 4));
+}
+
+fun is_eq(a: int, b: int) -> bool {
+    return a == b;
+}
+
+fun is_ne(a: int, b: int) -> bool {
+    return a != b;
+}
+
+fun is_lt(a: int, b: int) -> bool {
+    return a < b;
+}
+
+fun is_le(a: int, b: int) -> bool {
+    return a <= b;
+}
+
+fun is_gt(a: int, b: int) -> bool {
+    return a > b;
+}
+
+fun is_ge(a: int, b: int) -> bool {
+    return a >= b;
+}

@@ -532,7 +532,7 @@ where
 
     fn emit_bin(&mut self, e: &'ast ExprBinType) -> EmitResult<LLVMValueRef> {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
-            self.emit_bin_intrinsic(&e.lhs, &e.rhs, intrinsic)
+            self.emit_bin_intrinsic(e.op, &e.lhs, &e.rhs, intrinsic)
 
         } else if e.op == BinOp::Or {
             self.emit_or(&e.lhs, &e.rhs)
@@ -569,6 +569,7 @@ where
 
     fn emit_bin_intrinsic(
         &mut self,
+        op: BinOp,
         lhs: &'ast Expr,
         rhs: &'ast Expr,
         intrinsic: Intrinsic,
@@ -588,6 +589,40 @@ where
             Intrinsic::IntAnd | Intrinsic::LongAnd => LLVMOpcode::LLVMAnd,
             Intrinsic::IntOr | Intrinsic::LongOr => LLVMOpcode::LLVMOr,
             Intrinsic::IntXor | Intrinsic::LongXor => LLVMOpcode::LLVMXor,
+            Intrinsic::ByteEq |
+            Intrinsic::BoolEq |
+            Intrinsic::CharEq |
+            Intrinsic::IntEq |
+            Intrinsic::LongEq => {
+                let predicate = if op == BinOp::Cmp(CmpOp::Eq) {
+                    LLVMIntPredicate::LLVMIntEQ
+                } else {
+                    LLVMIntPredicate::LLVMIntNE
+                };
+
+                let value = unsafe {
+                    LLVMBuildICmp(self.builder, predicate, lhs_value, rhs_value, noname())
+                };
+
+                return ok(value);
+            }
+            Intrinsic::IntCmp |
+            Intrinsic::LongCmp => {
+                let predicate = match op {
+                    BinOp::Cmp(CmpOp::Lt) => LLVMIntPredicate::LLVMIntSLT,
+                    BinOp::Cmp(CmpOp::Le) => LLVMIntPredicate::LLVMIntSLE,
+                    BinOp::Cmp(CmpOp::Gt) => LLVMIntPredicate::LLVMIntSGT,
+                    BinOp::Cmp(CmpOp::Ge) => LLVMIntPredicate::LLVMIntSGE,
+                    _ => unreachable!()
+                };
+
+                let value = unsafe {
+                    LLVMBuildICmp(self.builder, predicate, lhs_value, rhs_value, noname())
+                };
+
+                return ok(value);
+            }
+
             _ => {
                 return fail();
             }
