@@ -188,7 +188,7 @@ where
         unsafe {
             self.context = LLVMContextCreate();
             self.module =
-                LLVMModuleCreateWithNameInContext(b"\0".as_ptr() as *const _, self.context);
+                LLVMModuleCreateWithNameInContext(noname(), self.context);
             self.shared_module = LLVMOrcMakeSharedModule(self.module);
             self.builder = LLVMCreateBuilderInContext(self.context);
         }
@@ -236,7 +236,7 @@ where
 
             unsafe {
                 let value = LLVMGetParam(self.function, ind as u32);
-                let ptr = LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _);
+                let ptr = LLVMBuildAlloca(self.builder, ty, noname());
 
                 LLVMBuildStore(self.builder, value, ptr);
                 self.map_vars.insert(varid, ptr);
@@ -406,7 +406,7 @@ where
         let ty = self.ty_var(var);
         let ty = self.llvm_ty(ty);
 
-        let ptr = unsafe { LLVMBuildAlloca(self.builder, ty, b"\0".as_ptr() as *const _) };
+        let ptr = unsafe { LLVMBuildAlloca(self.builder, ty, noname()) };
 
         self.map_vars.insert(var, ptr);
 
@@ -498,7 +498,7 @@ where
         match ident {
             IdentType::Var(varid) => {
                 let ptr = self.map_vars[&varid];
-                let value = unsafe { LLVMBuildLoad(self.builder, ptr, b"\0".as_ptr() as *const _) };
+                let value = unsafe { LLVMBuildLoad(self.builder, ptr, noname()) };
 
                 ok(value)
             }
@@ -533,11 +533,34 @@ where
     fn emit_bin(&mut self, e: &'ast ExprBinType) -> EmitResult<LLVMValueRef> {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_bin_intrinsic(&e.lhs, &e.rhs, intrinsic)
+
         } else if e.op == BinOp::Or {
             self.emit_or(&e.lhs, &e.rhs)
 
         } else if e.op == BinOp::And {
             self.emit_and(&e.lhs, &e.rhs)
+
+        } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
+            let lhs_value = self.emit_expr(&e.lhs)?;
+            let rhs_value = self.emit_expr(&e.rhs)?;
+
+            let predicate = if e.op == BinOp::Cmp(CmpOp::Is) {
+                LLVMIntPredicate::LLVMIntEQ
+            } else {
+                LLVMIntPredicate::LLVMIntNE
+            };
+
+            let value = unsafe {
+                LLVMBuildICmp(
+                    self.builder,
+                    predicate,
+                    lhs_value,
+                    rhs_value,
+                    noname(),
+                )
+            };
+
+            ok(value)
 
         } else {
             fail()
@@ -576,7 +599,7 @@ where
                 op,
                 lhs_value,
                 rhs_value,
-                b"\0".as_ptr() as *const _,
+                noname(),
             )
         };
 
@@ -749,6 +772,10 @@ where
             _ => None,
         }
     }
+}
+
+fn noname() -> *const i8 {
+    b"\0".as_ptr() as *const _
 }
 
 extern "C" fn resolver(name: *const i8, _: *mut libc::c_void) -> u64 {

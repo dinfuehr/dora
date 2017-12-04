@@ -1,0 +1,20 @@
+//= vm-args "--opt=same,not_same"
+
+fun main() {
+    let a = A();
+    let b = A();
+
+    assert(same(a, a));
+    assert(same(b, b));
+    assert(not_same(a, b));
+}
+
+fun same(a: A, b: A) -> bool {
+    return a === b;
+}
+
+fun not_same(a: A, b: A) -> bool {
+    return a !== b;
+}
+
+class A
