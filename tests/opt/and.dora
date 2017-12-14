@@ -1,12 +1,21 @@
-//= vm-args "--opt=test_and"
+//= vm-args "--opt=test_and,in_between"
 
 fun main() {
     assert(!test_and(true, false));
     assert(!test_and(false, true));
     assert(!test_and(false, false));
     assert(test_and(true, true));
+
+    assert(in_between(1, 1, 10));
+    assert(!in_between(0, 1, 10));
+    assert(in_between(10, 1, 10));
+    assert(!in_between(11, 1, 10));
 }
 
 fun test_and(lhs: bool, rhs: bool) -> bool {
     return lhs && rhs;
+}
+
+fun in_between(val: int, min: int, max: int) -> bool {
+    return val >= min && val <= max;
 }

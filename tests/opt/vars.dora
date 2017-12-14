@@ -1,8 +1,10 @@
-//= vm-args "--opt=foo,bar"
+//= vm-args "--opt=foo,bar,my_true,my_false"
 
 fun main() {
     assert(foo() == 2);
     assert(bar() == 4);
+    assert(my_true());
+    assert(!my_false());
 }
 
 fun foo() -> int {
@@ -16,4 +18,12 @@ fun bar() -> int {
     let c = b;
     let d = c;
     return d;
+}
+
+fun my_true() -> bool {
+    return true;
+}
+
+fun my_false() -> bool {
+    return false;
 }

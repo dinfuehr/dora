@@ -1,8 +1,9 @@
-//= vm-flags "--opt=while1,while2"
+//= vm-flags "--opt=while1,while2,while3"
 
 fun main() {
     assert(while1() == 1);
     assert(while2() == 1);
+    assert(while3() == 10);
 }
 
 fun while1() -> int {
@@ -13,4 +14,12 @@ fun while1() -> int {
 fun while2() -> int {
     while false { return 0; }
     return 1;
+}
+
+fun while3() -> int {
+    var i = 0;
+    while i < 10 {
+        i = i + 1;
+    }
+    return i;
 }
