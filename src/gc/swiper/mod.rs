@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
@@ -35,7 +37,7 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     card_table: CardTable,
-    crossing_map: CrossingMap,
+    crossing_map: Rc<CrossingMap>,
 
     card_table_offset: usize,
 }
@@ -65,16 +67,6 @@ impl Swiper {
         let heap_start = ptr;
         let heap_end = ptr.offset(heap_size);
 
-        // determine boundaries of young generation
-        let young_start = heap_start;
-        let young_end = young_start.offset(young_size);
-        let young = YoungGen::new(young_start, young_end);
-
-        // determine boundaries of old generation
-        let old_start = heap_start.offset(young_size);
-        let old_end = heap_end;
-        let old = OldGen::new(old_start, old_end);
-
         // determine offset to card table (card table starts right after heap)
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
         let card_table_offset = heap_end.to_usize() - (heap_start.to_usize() >> CARD_SIZE_BITS);
@@ -87,7 +79,17 @@ impl Swiper {
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
-        let crossing_map = CrossingMap::new(crossing_start, crossing_end);
+        let crossing_map = Rc::new(CrossingMap::new(crossing_start, crossing_end));
+
+        // determine boundaries of young generation
+        let young_start = heap_start;
+        let young_end = young_start.offset(young_size);
+        let young = YoungGen::new(young_start, young_end);
+
+        // determine boundaries of old generation
+        let old_start = heap_start.offset(young_size);
+        let old_end = heap_end;
+        let old = OldGen::new(old_start, old_end);
 
         Swiper {
             heap: Region::new(heap_start, heap_end),
@@ -115,7 +117,7 @@ impl Collector for Swiper {
             ctxt,
             rootset,
             &self.card_table,
-            &self.crossing_map,
+            &*self.crossing_map,
             &self.old,
         );
 

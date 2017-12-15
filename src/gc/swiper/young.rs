@@ -276,6 +276,7 @@ pub fn copy(obj: *mut Obj, free: &mut Address, old: &OldGen) -> *mut Obj {
 
     if is_forwarding_address(addr) {
         unmark_forwarding_address(addr).to_mut_ptr::<Obj>()
+
     } else {
         let obj_size = obj.size();
         let age = obj.header_mut().increase_age();
