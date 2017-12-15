@@ -79,8 +79,8 @@ impl Gc {
         self.perm_space.lock().unwrap().alloc(size)
     }
 
-    pub fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
-        self.collector.alloc(ctxt, size)
+    pub fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+        self.collector.alloc_obj(ctxt, size)
     }
 
     pub fn collect(&self, ctxt: &SemContext) {
@@ -89,7 +89,8 @@ impl Gc {
 }
 
 trait Collector {
-    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8;
+    fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8;
+
     fn collect(&self, ctxt: &SemContext);
 
     // decides whether to emit write barriers needed for

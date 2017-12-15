@@ -38,20 +38,20 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+    fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
         let mut spaces = self.spaces.lock().unwrap();
         let spaces = &mut *spaces;
 
         if ctxt.args.flag_gc_stress {
             let rootset = get_rootset(ctxt);
-            minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+            collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
         }
 
         let mut ptr = spaces.from_space.allocate(size);
 
         if ptr.is_null() {
             let rootset = get_rootset(ctxt);
-            minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+            collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
 
             ptr = spaces.from_space.allocate(size);
         }
@@ -64,7 +64,7 @@ impl Collector for CopyCollector {
         let spaces = &mut *spaces;
 
         let rootset = get_rootset(ctxt);
-        minor_collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
+        collect(ctxt, &mut spaces.from_space, &mut spaces.to_space, rootset);
     }
 }
 
@@ -133,7 +133,7 @@ impl Drop for SemiSpace {
     }
 }
 
-pub fn minor_collect(
+pub fn collect(
     ctxt: &SemContext,
     from_space: &mut SemiSpace,
     to_space: &mut SemiSpace,

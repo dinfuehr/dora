@@ -28,7 +28,7 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc(&self, _: &SemContext, size: usize) -> *const u8 {
+    fn alloc_obj(&self, _: &SemContext, size: usize) -> *const u8 {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 

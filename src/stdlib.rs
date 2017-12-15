@@ -160,7 +160,7 @@ pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usi
 
 pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     let ctxt = get_ctxt();
-    ctxt.gc.alloc(ctxt, size) as *mut Obj
+    ctxt.gc.alloc_obj(ctxt, size) as *mut Obj
 }
 
 pub extern "C" fn gc_collect() {
