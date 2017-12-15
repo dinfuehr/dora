@@ -59,6 +59,10 @@ impl Collector for CopyCollector {
         ptr
     }
 
+    fn alloc_array(&self, _ctxt: &SemContext, _elements: usize, _element_size: usize, _is_ref: bool) -> *const u8 {
+        unimplemented!()
+    }
+
     fn collect(&self, ctxt: &SemContext) {
         let mut spaces = self.spaces.lock().unwrap();
         let spaces = &mut *spaces;

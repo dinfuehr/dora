@@ -55,6 +55,10 @@ impl Collector for ZeroCollector {
         old
     }
 
+    fn alloc_array(&self, _ctxt: &SemContext, _elements: usize, _element_size: usize, _is_ref: bool) -> *const u8 {
+        unimplemented!()
+    }
+
     fn collect(&self, _: &SemContext) {
         // do nothing
     }
