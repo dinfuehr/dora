@@ -3,18 +3,21 @@ use std::ptr;
 
 use gc::Address;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::swiper::crossing::{Card, CrossingMap};
 use gc::swiper::Region;
 
 pub struct OldGen {
     pub total: Region,
     pub free: AtomicUsize,
+    crossing_map: CrossingMap,
 }
 
 impl OldGen {
-    pub fn new(old_start: Address, old_end: Address) -> OldGen {
+    pub fn new(old_start: Address, old_end: Address, crossing_map: CrossingMap) -> OldGen {
         OldGen {
             total: Region::new(old_start, old_end),
             free: AtomicUsize::new(old_start.to_usize()),
+            crossing_map: crossing_map,
         }
     }
 
@@ -44,18 +47,20 @@ impl OldGen {
 
         if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
             if (old & (CARD_SIZE - 1)) == 0 {
-                // card_crossing.set_first_object(old, 0);
+                let card = self.card_from(old);
+                self.crossing_map.set_first_object(card, 0);
             }
         } else {
-            // card_crossing.set_first_object(card_start(new), new - card_start);
+            let card = self.card_from(new);
+            let card_start = self.crossing_map.address_of_card(card).to_usize();
+            self.crossing_map.set_first_object(card, new - card_start);
         }
 
         old as *const u8
     }
 
-    fn card_from_address(&self, addr: Address) -> usize {
-        debug_assert!(self.total.contains(addr));
-
-        addr.offset_from(self.total.start) / CARD_SIZE
+    #[inline(always)]
+    fn card_from(&self, addr: usize) -> Card {
+        self.crossing_map.card_from_address(Address::from(addr))
     }
 }

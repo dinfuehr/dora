@@ -1,6 +1,7 @@
 use std::ptr;
 
 use gc::Address;
+use gc::swiper::crossing::Card;
 
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)
@@ -39,18 +40,18 @@ impl CardTable {
     // visits all dirty cards
     pub fn visit_dirty<F>(&self, mut f: F)
     where
-        F: FnMut(usize),
+        F: FnMut(Card),
     {
-        let mut ptr = self.start.to_usize();
+        let mut ptr = self.start;
 
-        while ptr < self.end.to_usize() {
-            let val = unsafe { *(ptr as *const u8) };
+        while ptr < self.end {
+            let val: u8 = unsafe { *ptr.to_ptr() };
 
             if val == 0 {
-                f(ptr - self.start.to_usize());
+                f(Card::from(ptr.offset_from(self.start)));
             }
 
-            ptr += 1;
+            ptr = ptr.offset(1);
         }
     }
 }

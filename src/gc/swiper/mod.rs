@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
@@ -33,7 +31,7 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     card_table: CardTable,
-    crossing_map: Rc<CrossingMap>,
+    crossing_map: CrossingMap,
 
     card_table_offset: usize,
 }
@@ -75,7 +73,7 @@ impl Swiper {
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
-        let crossing_map = Rc::new(CrossingMap::new(crossing_start, crossing_end));
+        let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
         // determine boundaries of young generation
         let young_start = heap_start;
@@ -85,7 +83,7 @@ impl Swiper {
         // determine boundaries of old generation
         let old_start = heap_start.offset(young_size);
         let old_end = heap_end;
-        let old = OldGen::new(old_start, old_end);
+        let old = OldGen::new(old_start, old_end, crossing_map.clone());
 
         Swiper {
             heap: Region::new(heap_start, heap_end),
@@ -113,7 +111,7 @@ impl Collector for Swiper {
             ctxt,
             rootset,
             &self.card_table,
-            &*self.crossing_map,
+            &self.crossing_map,
             &self.old,
         );
 

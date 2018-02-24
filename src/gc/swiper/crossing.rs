@@ -11,6 +11,22 @@ use gc::swiper::CARD_SIZE;
 // 64 < v < 128
 //     there are -v references before first object
 
+#[derive(Copy, Clone)]
+pub struct Card(usize);
+
+impl Card {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for Card {
+    fn from(val: usize) -> Card {
+        Card(val)
+    }
+}
+
+#[derive(Clone)]
 pub struct CrossingMap {
     // boundaries for crossing map
     start: Address,
@@ -25,28 +41,28 @@ impl CrossingMap {
         }
     }
 
-    pub fn set_no_references(&self, card: usize) {
+    pub fn set_no_references(&self, card: Card) {
         self.set(card, 64);
     }
 
-    pub fn set_first_object(&self, card: usize, words: usize) {
+    pub fn set_first_object(&self, card: Card, words: usize) {
         assert!(words < 64);
         self.set(card, words as u8);
     }
 
-    pub fn set_references_at_start(&self, card: usize, refs: usize) {
+    pub fn set_references_at_start(&self, card: Card, refs: usize) {
         assert!(refs > 0 && refs <= 64);
         self.set(card, 64 + (refs as u8));
     }
 
-    fn set(&self, card: usize, val: u8) {
+    fn set(&self, card: Card, val: u8) {
         unsafe {
-            *self.start.offset(card).to_mut_ptr::<u8>() = val;
+            *self.start.offset(card.to_usize()).to_mut_ptr::<u8>() = val;
         }
     }
 
-    pub fn get(&self, card: usize) -> CrossingEntry {
-        let val = unsafe { *self.start.offset(card).to_ptr::<u8>() };
+    pub fn get(&self, card: Card) -> CrossingEntry {
+        let val = unsafe { *self.start.offset(card.to_usize()).to_ptr::<u8>() };
 
         if val < 64 {
             CrossingEntry::FirstObjectOffset(val)
@@ -57,8 +73,14 @@ impl CrossingMap {
         }
     }
 
-    pub fn address_of_card(&self, card: usize) -> Address {
-        self.start.offset(card * CARD_SIZE)
+    #[inline(always)]
+    pub fn address_of_card(&self, card: Card) -> Address {
+        self.start.offset(card.to_usize() * CARD_SIZE)
+    }
+
+    #[inline(always)]
+    pub fn card_from_address(&self, addr: Address) -> Card {
+        Card(addr.offset_from(self.start) / CARD_SIZE)
     }
 }
 
