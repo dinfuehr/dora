@@ -21,15 +21,11 @@ pub mod card;
 // young generation size = heap size / YOUNG_RATIO
 const YOUNG_RATIO: u32 = 5;
 
-// size of card is 128 bytes
-// although stored in constant
-// it is not really expected to change
+// heap is divided into cards of size CARD_SIZE.
+// card entry determines whether this part of the heap was modified
+// in minor collections those parts of the heap need to be analyzed
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
-
-// the number of collections an object remains in
-// young generation
-pub const PROMOTION_AGE: u32 = 4;
 
 pub struct Swiper {
     heap: Region,

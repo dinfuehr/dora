@@ -17,11 +17,6 @@ use vtable::VTable;
 pub struct Header {
     // ptr to class
     vtable: *mut VTable,
-
-    // additional information>
-    // bit 0 - marked flag
-    // bit 1-4 - age (4 bits)
-    info: usize,
 }
 
 impl Header {
@@ -36,88 +31,6 @@ impl Header {
     pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtable }
     }
-
-    pub fn set_mark(&mut self, value: bool) {
-        self.info = if value {
-            self.info | 1
-        } else {
-            self.info & (!1)
-        };
-    }
-
-    pub fn marked(&self) -> bool {
-        if (self.info & 1) != 0 { true } else { false }
-    }
-
-    pub fn age(&self) -> u32 {
-        (self.info & 0x1E) as u32 >> 1
-    }
-
-    pub fn set_age(&mut self, age: u32) {
-        assert!(age <= 15);
-        self.info = (self.info & !0x1E) | (age << 1) as usize;
-    }
-
-    pub fn increase_age(&mut self) -> u32 {
-        let age = self.age() + 1;
-        self.set_age(age);
-
-        age
-    }
-}
-
-#[test]
-fn test_age() {
-    let hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 3 << 1,
-    };
-    assert_eq!(3, hdr.age());
-
-    let hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 15 << 1,
-    };
-    assert_eq!(15, hdr.age());
-
-    let hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 0,
-    };
-    assert_eq!(0, hdr.age());
-
-    let hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 0xFFFF,
-    };
-    assert_eq!(15, hdr.age());
-}
-
-#[test]
-fn test_set_age() {
-    let mut hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 0,
-    };
-
-    hdr.set_age(15);
-    assert_eq!(15, hdr.age());
-
-    hdr.set_age(0);
-    assert_eq!(0, hdr.age());
-
-    hdr.set_age(2);
-    assert_eq!(2, hdr.age());
-}
-
-#[test]
-#[should_panic]
-fn test_set_age_over_15() {
-    let mut hdr = Header {
-        vtable: ptr::null_mut(),
-        info: 0,
-    };
-    hdr.set_age(16);
 }
 
 // is used to reference any object
