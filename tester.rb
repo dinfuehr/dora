@@ -2,13 +2,21 @@
 
 require 'pathname'
 require 'tempfile'
+require 'thread'
 
 $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
 $no_capture = $ARGS.delete("--no-capture") != nil
+$processors = 0
 
-$temp_out = Tempfile.new('runner_out')
-$temp_err = Tempfile.new('runner_err')
+$ARGS.delete_if do |arg|
+  if (m = /\A\-j(\d)+\z/.match(arg))
+    $processors = m[1].to_i
+    true
+  else
+    false
+  end
+end
 
 class TestExpectation
   attr_accessor :fail,
@@ -25,6 +33,18 @@ class TestExpectation
 
     self.fail = fail
   end
+end
+
+def number_processors
+  return $processors if $processors > 0
+
+  num = `nproc --all`.to_i
+  return num if num > 0
+
+  num = `grep -c ^processor /proc/cpuinfo`.to_i
+  return num if num > 0
+
+  1
 end
 
 def test_files
@@ -52,32 +72,47 @@ def run_tests
   failed = 0
   ignore = 0
 
-  for file in test_files
-    file = Pathname.new(file)
-    tests += 1
+  mutex = Mutex.new
+  threads = []
+  worklist = test_files.dup
 
-    print "test #{file} ... "
-    puts if $no_capture
+  number_processors.times do
+    thread = Thread.new do
+      loop do
+        file = mutex.synchronize { worklist.pop }
+        break unless file
 
-    res = run_test(file)
-    if res == true
-      puts "ok"
-      passed += 1
+        file = Pathname.new(file)
+        res = run_test(file)
 
-    elsif res == :ignore
-      puts "ignore"
-      ignore += 1
+        mutex.synchronize do
+          print "#{file} ... "
 
-    else
-      print "failed"
-      print " (#{res})" if res != false
-      puts
+          if res == true
+            puts "ok"
+            passed += 1
 
-      failed += 1
+          elsif res == :ignore
+            puts "ignore"
+            ignore += 1
+
+          else
+            print "failed"
+            print " (#{res})" if res != false
+            puts
+
+            failed += 1
+          end
+        end
+      end
     end
+
+    threads.push(thread)
   end
 
-  puts
+  for thread in threads do
+    thread.join
+  end
 
   ret = failed == 0
 
@@ -102,6 +137,8 @@ def run_test(file)
   expectation = test_case_expectation(file)
   return :ignore if expectation == :ignore
 
+  temp_out = Tempfile.new('dora-test-runner')
+
   args = ""
   args = expectation.args.join(" ") if expectation.args
 
@@ -111,22 +148,21 @@ def run_test(file)
   target = $release ? "release" : "debug"
   testfile = expectation.file || file
 
-  if $no_capture
-    out_args = "2>&1 | tee #{$temp_out.path}"
-  else
-    out_args = ">#{$temp_out.path} 2>&1"
-  end
+  out_args = ">#{temp_out.path} 2>&1"
 
   system("target/#{target}/dora #{vm_args} #{testfile} #{args} #{out_args}")
   process = $?
   exit_code = process.exitstatus
+
+  temp_out_content = IO.read(temp_out.path)
+  temp_out.close
 
   if expectation.fail
     return "expected failure (test exited with 0)" if exit_code == 0
     return "expected failure (#{expectation.code} expected but test returned #{exit_code})" if
       expectation.code && exit_code != expectation.code
 
-    position, message = read_error_message($temp_out)
+    position, message = read_error_message(temp_out_content)
     return "position does not match (#{position.inspect} != #{expectation.position.inspect})" if
       expectation.position && position != expectation.position
     return "message does not match (#{message.inspect} != #{expectation.message.inspect})" if
@@ -138,16 +174,16 @@ def run_test(file)
   end
 
   return "output does not match" if
-    expectation.output && expectation.output != IO.read($temp_out.path)
+    expectation.output && expectation.output != temp_out_content
 
   true
 end
 
-def read_error_message(file)
+def read_error_message(content)
   position = nil
   message = nil
 
-  for line in File.read(file).lines
+  content.each_line do |line|
     line = line.strip
 
     if line == "1 error found."
