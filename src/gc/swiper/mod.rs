@@ -151,7 +151,7 @@ impl Region {
     }
 
     #[inline(always)]
-    fn includes(&self, addr: Address) -> bool {
+    fn contains(&self, addr: Address) -> bool {
         self.start <= addr && addr < self.end
     }
 

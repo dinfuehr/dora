@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
 
 use gc::Address;
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::Region;
 
 pub struct OldGen {
@@ -41,6 +42,20 @@ impl OldGen {
             }
         }
 
+        if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
+            if (old & (CARD_SIZE - 1)) == 0 {
+                // card_crossing.set_first_object(old, 0);
+            }
+        } else {
+            // card_crossing.set_first_object(card_start(new), new - card_start);
+        }
+
         old as *const u8
+    }
+
+    fn card_from_address(&self, addr: Address) -> usize {
+        debug_assert!(self.total.contains(addr));
+
+        addr.offset_from(self.total.start) / CARD_SIZE
     }
 }

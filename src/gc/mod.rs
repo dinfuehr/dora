@@ -118,6 +118,13 @@ pub struct Address(usize);
 
 impl Address {
     #[inline(always)]
+    fn offset_from(self, base: Address) -> usize {
+        debug_assert!(self > base);
+
+        self.to_usize() - base.to_usize()
+    }
+
+    #[inline(always)]
     fn offset(self, offset: usize) -> Address {
         Address(self.0 + offset)
     }

@@ -7,7 +7,7 @@ use gc::Address;
 use gc::root::IndirectObj;
 use gc::swiper::{CARD_SIZE, Region};
 use gc::swiper::card::CardTable;
-use gc::swiper::crossing::CrossingMap;
+use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::old::OldGen;
 use mem;
 use os::{self, ProtType};
@@ -49,6 +49,16 @@ impl YoungGen {
             free: AtomicUsize::new(young_start.to_usize()),
             end: AtomicUsize::new(half_address.to_usize()),
         }
+    }
+
+    pub fn contains(&self, addr: Address) -> bool {
+        self.total.contains(addr)
+    }
+
+    pub fn should_be_promoted(&self, addr: Address) -> bool {
+        debug_assert!(self.contains(addr));
+
+        addr.to_usize() < self.age_marker.load(Ordering::Relaxed)
     }
 
     pub fn alloc(&self, size: usize) -> *const u8 {
@@ -111,19 +121,17 @@ impl YoungGen {
             os::mprotect(free.to_ptr::<u8>(), self.size, ProtType::Writable);
         }
 
-        let age_marker = self.age_marker.load(Ordering::Relaxed);
-
         // detect all references from roots into young generation
         for &root in &rootset {
             let root_ptr = root.get();
 
-            if self.total.includes(Address::from_ptr(root_ptr)) {
-                root.set(copy(root_ptr, &mut free, age_marker, old));
+            if self.total.contains(Address::from_ptr(root_ptr)) {
+                root.set(copy(root_ptr, &mut free, self, old));
             }
         }
 
         // detect references from old generation (dirty cards) into young generation
-        copy_dirty_cards(card_table, crossing_map, &mut free, &self.total, age_marker, old);
+        copy_dirty_cards(card_table, crossing_map, &mut free, self, old);
 
         // visit all fields in copied objects
         while scan < free {
@@ -132,8 +140,8 @@ impl YoungGen {
             object.visit_reference_fields(|child| {
                 let child_ptr = child.get();
 
-                if self.total.includes(Address::from_ptr(child_ptr)) {
-                    child.set(copy(child_ptr, &mut free, age_marker, old));
+                if self.total.contains(Address::from_ptr(child_ptr)) {
+                    child.set(copy(child_ptr, &mut free, self, old));
                 }
             });
 
@@ -170,97 +178,45 @@ fn copy_dirty_cards(
     card_table: &CardTable,
     crossing_map: &CrossingMap,
     mut free: &mut Address,
-    young: &Region,
-    age_marker: usize,
+    young: &YoungGen,
     old: &OldGen,
 ) {
     card_table.visit_dirty(|card| {
         let crossing_entry = crossing_map.get(card);
+        let card_start = crossing_map.address_of_card(card);
+        let card_end = card_start.offset(CARD_SIZE);
 
-        // card contains: any data but no references, then first object
-        if crossing_entry.is_first_object() {
-            let card_address = crossing_map.address_of_card(card);
+        match crossing_entry {
+            CrossingEntry::NoRefs => panic!("card dirty without any refs"),
+            CrossingEntry::LeadingRefs(refs) => {
+                let mut ptr = card_start;
 
-            // first_object() returns number of words before end of card
-            let offset_from_end = crossing_entry.first_object() as usize * ptr_width();
-            let ptr = card_address.offset(CARD_SIZE - offset_from_end);
+                for _ in 0..refs {
+                    let ind_ptr = IndirectObj::from_address(ptr);
+                    let dir_ptr = ind_ptr.get();
 
-            let end = card_address.offset(CARD_SIZE);
+                    if young.contains(Address::from_ptr(dir_ptr)) {
+                        ind_ptr.set(copy(dir_ptr, &mut free, young, old));
+                    }
 
-            // copy all objects from this card
-            copy_card(ptr, end, free, young, age_marker, old);
-
-        // card contains: references, then first object
-        } else if crossing_entry.is_references_at_start() {
-            let number_references = crossing_entry.references_at_start() as usize;
-            let card_address = crossing_map.address_of_card(card);
-            let mut ptr = card_address;
-
-            for _ in 0..number_references {
-                let ind_ptr = IndirectObj::from_address(ptr);
-                let dir_ptr = ind_ptr.get();
-
-                if young.includes(Address::from_ptr(dir_ptr)) {
-                    ind_ptr.set(copy(dir_ptr, &mut free, age_marker, old));
+                    ptr = ptr.offset(ptr_width());
                 }
 
-                ptr = ptr.offset(ptr_width());
+                // copy all objects from this card
+                copy_card(ptr, card_end, free, young, old);
             }
 
-            let end = card_address.offset(CARD_SIZE);
+            CrossingEntry::FirstObjectOffset(offset) => {
+                let ptr = card_start.offset(offset as usize * ptr_width());
 
-            // copy all objects from this card
-            copy_card(ptr, end, free, young, age_marker, old);
-
-        // object spans multiple cards
-        } else if crossing_entry.is_previous_card() {
-            let mut previous = card - crossing_entry.previous_card() as usize;
-            let mut crossing_entry = crossing_map.get(previous);
-
-            while crossing_entry.is_previous_card() {
-                previous = previous - crossing_entry.previous_card() as usize;
-                crossing_entry = crossing_map.get(previous);
+                // copy all objects from this card
+                copy_card(ptr, card_end, free, young, old);
             }
-
-            let previous_address = crossing_map.address_of_card(previous);
-            let mut ptr;
-
-            if crossing_entry.is_references_at_start() {
-                let number_references = crossing_entry.references_at_start() as usize;
-                ptr = previous_address.offset(number_references * ptr_width());
-
-            } else if crossing_entry.is_first_object() {
-                let offset_from_end = crossing_entry.first_object() as usize * ptr_width();
-                ptr = previous_address.offset(CARD_SIZE - offset_from_end);
-
-            } else {
-                assert!(crossing_entry.is_no_references());
-                panic!("dirty card without references: is this allowed to happen?");
-            }
-
-            let card_address = crossing_map.address_of_card(card);
-            let mut last_object = ptr;
-
-            while ptr < card_address {
-                let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
-
-                last_object = ptr;
-                ptr = ptr.offset(object.size());
-            }
-
-            // last_object now stores pointer that reaches into current card
-            // TODO: handle fields in last_object
-
-            copy_card(ptr, card_address.offset(CARD_SIZE), free, young, age_marker, old);
-
-        } else {
-            assert!(crossing_entry.is_no_references());
-            panic!("dirty card without references: is this allowed to happen?");
         }
     });
 }
 
-fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Region, age_marker: usize, old: &OldGen) {
+fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &YoungGen, old: &OldGen) {
     let old_end: Address = old.free.load(Ordering::Relaxed).into();
     let end = cmp::min(end, old_end);
 
@@ -270,8 +226,8 @@ fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Reg
         object.visit_reference_fields(|child| {
             let child_ptr = child.get();
 
-            if young.includes(Address::from_ptr(child_ptr)) {
-                child.set(copy(child_ptr, &mut free, age_marker, old));
+            if young.contains(Address::from_ptr(child_ptr)) {
+                child.set(copy(child_ptr, &mut free, young, old));
             }
         });
 
@@ -279,7 +235,7 @@ fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &Reg
     }
 }
 
-pub fn copy(obj: *mut Obj, free: &mut Address, age_marker: usize, old: &OldGen) -> *mut Obj {
+pub fn copy(obj: *mut Obj, free: &mut Address, young: &YoungGen, old: &OldGen) -> *mut Obj {
     let obj = unsafe { &mut *obj };
     let fwaddr = get_forwarding_address(obj);
 
@@ -292,7 +248,7 @@ pub fn copy(obj: *mut Obj, free: &mut Address, age_marker: usize, old: &OldGen) 
         let addr: Address;
 
         // if object is old enough we copy it into the old generation
-        if fwaddr.to_usize() < age_marker {
+        if young.should_be_promoted(fwaddr) {
             addr = Address::from_ptr(old.alloc(obj_size));
             copy_object(obj, addr, obj_size);
 
