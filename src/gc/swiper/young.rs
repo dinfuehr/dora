@@ -183,7 +183,7 @@ fn copy_dirty_cards(
 ) {
     card_table.visit_dirty(|card| {
         let crossing_entry = crossing_map.get(card);
-        let card_start = crossing_map.address_of_card(card);
+        let card_start = old.address_from_card(card);
         let card_end = card_start.offset(CARD_SIZE);
 
         match crossing_entry {

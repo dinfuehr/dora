@@ -52,11 +52,18 @@ impl OldGen {
             }
         } else {
             let card = self.card_from(new);
-            let card_start = self.crossing_map.address_of_card(card).to_usize();
+            let card_start = self.address_from_card(card).to_usize();
             self.crossing_map.set_first_object(card, new - card_start);
         }
 
         old as *const u8
+    }
+
+    #[inline(always)]
+    pub fn address_from_card(&self, card: Card) -> Address {
+        let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
+
+        addr.into()
     }
 
     #[inline(always)]
@@ -67,7 +74,7 @@ impl OldGen {
     #[inline(always)]
     pub fn card_from_address(&self, addr: Address) -> Card {
         debug_assert!(self.contains(addr));
-        let idx = addr.offset_from(self.total.start) / CARD_SIZE;
+        let idx = addr.offset_from(self.total.start) >> CARD_SIZE_BITS;
 
         idx.into()
     }
