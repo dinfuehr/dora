@@ -61,6 +61,18 @@ impl OldGen {
 
     #[inline(always)]
     fn card_from(&self, addr: usize) -> Card {
-        self.crossing_map.card_from_address(Address::from(addr))
+        self.card_from_address(Address::from(addr))
+    }
+
+    #[inline(always)]
+    pub fn card_from_address(&self, addr: Address) -> Card {
+        debug_assert!(self.contains(addr));
+        let idx = addr.offset_from(self.total.start) / CARD_SIZE;
+
+        idx.into()
+    }
+
+    pub fn contains(&self, addr: Address) -> bool {
+        self.total.contains(addr)
     }
 }

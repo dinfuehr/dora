@@ -77,11 +77,6 @@ impl CrossingMap {
     pub fn address_of_card(&self, card: Card) -> Address {
         self.start.offset(card.to_usize() * CARD_SIZE)
     }
-
-    #[inline(always)]
-    pub fn card_from_address(&self, addr: Address) -> Card {
-        Card(addr.offset_from(self.start) / CARD_SIZE)
-    }
 }
 
 #[derive(Copy, Clone)]
