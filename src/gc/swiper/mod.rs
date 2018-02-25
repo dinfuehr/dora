@@ -55,8 +55,8 @@ impl Swiper {
 
         let alloc_size = heap_size + card_size + crossing_size;
 
-        let ptr = arena::reserve(alloc_size).expect("could not reserve memory");
-        let ptr = Address::from_ptr(ptr);
+        let ptr = arena::reserve(alloc_size).expect("could not reserve heap.");
+        arena::commit(ptr, alloc_size).expect("could not commit heap.");
 
         let heap_start = ptr;
         let heap_end = ptr.offset(heap_size);
@@ -96,6 +96,17 @@ impl Swiper {
             card_table_offset: card_table_offset,
         }
     }
+
+    fn minor_collect(&self, ctxt: &SemContext) {
+        let rootset = get_rootset(ctxt);
+        self.young.collect(
+            ctxt,
+            rootset,
+            &self.card_table,
+            &self.crossing_map,
+            &self.old,
+        );
+    }
 }
 
 impl Collector for Swiper {
@@ -106,14 +117,7 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        let rootset = get_rootset(ctxt);
-        self.young.collect(
-            ctxt,
-            rootset,
-            &self.card_table,
-            &self.crossing_map,
-            &self.old,
-        );
+        self.minor_collect(ctxt);
 
         self.young.alloc(size)
     }
@@ -122,8 +126,8 @@ impl Collector for Swiper {
         unimplemented!()
     }
 
-    fn collect(&self, _: &SemContext) {
-        unimplemented!();
+    fn collect(&self, ctxt: &SemContext) {
+        self.minor_collect(ctxt);
     }
 
     fn needs_write_barrier(&self) -> bool {

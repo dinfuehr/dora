@@ -1,6 +1,7 @@
 use std::ptr;
 
 use gc::Address;
+use gc::swiper::CARD_SIZE_BITS;
 use gc::swiper::crossing::Card;
 
 pub struct CardTable {
@@ -15,7 +16,7 @@ impl CardTable {
     pub fn new(start: Address, end: Address, young_size: usize) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
-        let start = start.offset(young_size);
+        let start = start.offset(young_size >> CARD_SIZE_BITS);
 
         let card = CardTable {
             start: start,
@@ -30,11 +31,15 @@ impl CardTable {
 
     // reset card table entries to 1 (not dirty)
     fn reset(&self) {
-        let size = self.end.to_usize() - self.start.to_usize();
+        let size = self.size();
 
         unsafe {
             ptr::write_bytes(self.start.to_mut_ptr::<u8>(), 1, size);
         }
+    }
+
+    fn size(&self) -> usize {
+        self.end.offset_from(self.start)
     }
 
     // visits all dirty cards

@@ -113,13 +113,13 @@ trait Collector {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Address(usize);
 
 impl Address {
     #[inline(always)]
     fn offset_from(self, base: Address) -> usize {
-        debug_assert!(self > base);
+        debug_assert!(self >= base);
 
         self.to_usize() - base.to_usize()
     }

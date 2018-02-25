@@ -1,15 +1,16 @@
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
 
 use ctxt::SemContext;
 use driver::cmd::Args;
+use gc::Address;
 use gc::{arena, Collector};
 
 
 pub struct ZeroCollector {
-    start: *const u8,
-    end: *const u8,
-    next: AtomicPtr<u8>,
+    start: Address,
+    end: Address,
+    next: AtomicUsize,
 }
 
 impl ZeroCollector {
@@ -21,8 +22,8 @@ impl ZeroCollector {
 
         ZeroCollector {
             start: ptr,
-            end: unsafe { ptr.offset(heap_size as isize) },
-            next: AtomicPtr::new(ptr),
+            end: ptr.offset(heap_size),
+            next: AtomicUsize::new(ptr.to_usize()),
         }
     }
 }
@@ -33,9 +34,9 @@ impl Collector for ZeroCollector {
         let mut new;
 
         loop {
-            new = unsafe { old.offset(size as isize) };
+            new = old + size;
 
-            if new as *const u8 >= self.end {
+            if new >= self.end.to_usize() {
                 return ptr::null();
             }
 
@@ -52,7 +53,7 @@ impl Collector for ZeroCollector {
             }
         }
 
-        old
+        old as *const u8
     }
 
     fn alloc_array(&self, _ctxt: &SemContext, _elements: usize, _element_size: usize, _is_ref: bool) -> *const u8 {
