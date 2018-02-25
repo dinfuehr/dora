@@ -581,7 +581,7 @@ impl MacroAssembler {
 
         } else {
             let scratch = self.get_scratch();
-            self.load_int_const(MachineMode::Int32, *scratch, card_table_offset as i64);
+            self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
             asm::emit_movb_imm_memscaleq(self, 0, src, *scratch, 0);
         }
     }
