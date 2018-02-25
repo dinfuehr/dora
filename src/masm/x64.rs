@@ -7,7 +7,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
-use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
 use mem::{ptr_width, fits_i32};
 use object::{offset_of_array_data, offset_of_array_length, Header};
@@ -560,16 +560,13 @@ impl MacroAssembler {
         line: i32,
         write_barrier: bool,
         card_table_offset: usize,
+        is_ref: bool,
     ) {
-        // TODO: for offsets >= CARD_SIZE we need to mark the field instead of
-        // the start of the object, this costs an additional add instruction
-        assert!(!write_barrier || card_table_offset < CARD_SIZE);
-
         self.emit_nil_check();
         self.emit_lineno_if_missing(line);
         self.store_mem(mode, Mem::Base(base, offset), src);
 
-        if write_barrier {
+        if write_barrier && is_ref {
             self.emit_barrier(base, card_table_offset);
         }
     }
@@ -583,11 +580,9 @@ impl MacroAssembler {
             asm::emit_movb_imm_memq(self, 0, src, card_table_offset as i32);
 
         } else {
-            // TODO: emit instructions for large card table offset
-
-            // temp = card_table_offset
-            // mov [temp + base], 0
-            unimplemented!();
+            let scratch = self.get_scratch();
+            self.load_int_const(MachineMode::Int32, *scratch, card_table_offset as i64);
+            asm::emit_movb_imm_memscaleq(self, 0, src, *scratch, 0);
         }
     }
 

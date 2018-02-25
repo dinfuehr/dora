@@ -127,6 +127,17 @@ pub fn emit_movb_imm_memq(buf: &mut MacroAssembler, imm: u8, dest: Reg, disp: i3
     emit_u8(buf, imm);
 }
 
+pub fn emit_movb_imm_memscaleq(buf: &mut MacroAssembler, imm: u8, base: Reg, index: Reg, scale: u8) {
+    if index.msb() != 0 || base.msb() != 0 {
+        emit_rex(buf, 0, 0, index.msb(), base.msb());
+    }
+
+    emit_op(buf, 0xC6);
+    emit_modrm(buf, 0b00, 0b000, 0b100);
+    emit_sib(buf, scale, index.and7(), base.and7());
+    emit_u8(buf, imm);
+}
+
 pub fn emit_movq_ar(buf: &mut MacroAssembler, base: Reg, index: Reg, scale: u8, dest: Reg) {
     emit_mov_ar(buf, 1, 0x8b, base, index, scale, dest);
 }
@@ -2195,5 +2206,15 @@ mod tests {
                      emit_movb_imm_memq(0, R8, 0x11223344));
         assert_emit!(0x41, 0xC6, 0x87, 0x44, 0x33, 0x22, 0x11, 0xFF;
                      emit_movb_imm_memq(0xFF, R15, 0x11223344));
+    }
+
+    #[test]
+    fn test_emit_movb_imm_memscaleq() {
+        assert_emit!(0xC6, 0x04, 0x37, 0x00;
+                     emit_movb_imm_memscaleq(0, RDI, RSI, 0));
+        assert_emit!(0x41, 0xC6, 0x04, 0x30, 0x00;
+                     emit_movb_imm_memscaleq(0, R8, RSI, 0));
+        assert_emit!(0x42, 0xC6, 0x04, 0x0F, 0x00;
+                     emit_movb_imm_memscaleq(0, RDI, R9, 0));
     }
 }

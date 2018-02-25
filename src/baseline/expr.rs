@@ -778,6 +778,7 @@ where
                     e.pos.line as i32,
                     write_barrier,
                     card_table_offset,
+                    field.ty.reference_type(),
                 );
                 self.free_temp_for_node(temp, temp_offset);
             }
