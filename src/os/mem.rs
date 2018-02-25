@@ -3,6 +3,7 @@ pub use self::ProtType::*;
 use libc;
 
 use std::ptr;
+use mem;
 
 static mut PAGE_SIZE: u32 = 0;
 static mut PAGE_SIZE_BITS: u32 = 0;
@@ -162,6 +163,9 @@ pub fn munmap(ptr: *const u8, size: usize) {
 
 #[cfg(target_family = "unix")]
 pub fn mprotect(ptr: *const u8, size: usize, prot: ProtType) {
+    debug_assert!(mem::is_page_aligned(ptr as usize));
+    debug_assert!(mem::is_page_aligned(size));
+
     let res = unsafe { libc::mprotect(ptr as *mut libc::c_void, size, prot.to_libc()) };
 
     if res != 0 {

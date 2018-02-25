@@ -38,7 +38,7 @@ pub struct YoungGen {
 
 impl YoungGen {
     pub fn new(young_start: Address, young_end: Address) -> YoungGen {
-        let half_size = (young_end.to_usize() - young_start.to_usize()) / 2;
+        let half_size = young_end.offset_from(young_start) / 2;
         let half_address = young_start.offset(half_size);
 
         YoungGen {
