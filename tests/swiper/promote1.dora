@@ -1,0 +1,10 @@
+//= vm-args "--gc=swiper"
+
+fun main() {
+  let x = Foo(1);
+  forceCollect();
+  forceCollect();
+  assert(x.a == 1);
+}
+
+class Foo(let a: int)
