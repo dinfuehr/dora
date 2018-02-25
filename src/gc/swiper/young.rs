@@ -125,7 +125,8 @@ impl YoungGen {
             let root_ptr = root.get();
 
             if self.contains(Address::from_ptr(root_ptr)) {
-                root.set(copy(root_ptr, &mut free, self, old));
+                let copied = copy(root_ptr, &mut free, self, old);
+                root.set(copied);
             }
         }
 
@@ -158,9 +159,9 @@ impl YoungGen {
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) {
             let start = if new_end == self.separator {
-                self.total.start
-            } else {
                 self.separator
+            } else {
+                self.total.start
             };
 
             os::mprotect(start.to_ptr::<u8>(), self.size, ProtType::None);
