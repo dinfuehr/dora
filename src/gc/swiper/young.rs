@@ -252,6 +252,12 @@ pub fn copy(obj: *mut Obj, free: &mut Address, young: &YoungGen, old: &OldGen) -
         if young.should_be_promoted(obj_addr) {
             copy_addr = Address::from_ptr(old.alloc(obj_size));
 
+            // assume for now that we can promote each object into the
+            // old generation
+            if copy_addr.is_null() {
+                panic!("couldn't promote object into old generation.");
+            }
+
         // otherwise the object remains in the young generation for now
         } else {
             copy_addr = *free;

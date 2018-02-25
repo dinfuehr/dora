@@ -153,6 +153,11 @@ impl Address {
     pub fn null() -> Address {
         Address(0)
     }
+
+    #[inline(always)]
+    pub fn is_null(self) -> bool {
+        self.0 == 0
+    }
 }
 
 impl PartialOrd for Address {
