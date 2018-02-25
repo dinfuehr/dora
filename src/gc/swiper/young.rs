@@ -98,21 +98,20 @@ impl YoungGen {
     ) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
-        let mut scan;
-        let mut free;
-
-        let new_end;
+        let mut scan: Address;
+        let new_end: Address;
 
         if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
-            scan = self.total.start;
-            free = self.separator;
+            scan = self.separator;
             new_end = self.total.end;
 
         } else {
-            scan = self.separator;
-            free = self.total.start;
+            // self.end == self.total.end
+            scan = self.total.start;
             new_end = self.separator;
         }
+
+        let mut free = scan;
 
         if cfg!(debug_assertions) {
             // make memory readable & writable again, so that we
@@ -125,7 +124,7 @@ impl YoungGen {
         for &root in &rootset {
             let root_ptr = root.get();
 
-            if self.total.contains(Address::from_ptr(root_ptr)) {
+            if self.contains(Address::from_ptr(root_ptr)) {
                 root.set(copy(root_ptr, &mut free, self, old));
             }
         }
@@ -140,7 +139,7 @@ impl YoungGen {
             object.visit_reference_fields(|child| {
                 let child_ptr = child.get();
 
-                if self.total.contains(Address::from_ptr(child_ptr)) {
+                if self.contains(Address::from_ptr(child_ptr)) {
                     child.set(copy(child_ptr, &mut free, self, old));
                 }
             });
@@ -236,6 +235,7 @@ fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &You
 }
 
 pub fn copy(obj: *mut Obj, free: &mut Address, young: &YoungGen, old: &OldGen) -> *mut Obj {
+    let obj_addr = Address::from_ptr(obj);
     let obj = unsafe { &mut *obj };
     let fwaddr = get_forwarding_address(obj);
 
@@ -245,23 +245,22 @@ pub fn copy(obj: *mut Obj, free: &mut Address, young: &YoungGen, old: &OldGen) -
     } else {
         let obj_size = obj.size();
 
-        let addr: Address;
+        let copy_addr: Address;
 
         // if object is old enough we copy it into the old generation
-        if young.should_be_promoted(fwaddr) {
-            addr = Address::from_ptr(old.alloc(obj_size));
-            copy_object(obj, addr, obj_size);
+        if young.should_be_promoted(obj_addr) {
+            copy_addr = Address::from_ptr(old.alloc(obj_size));
 
         // otherwise the object remains in the young generation for now
         } else {
-            addr = *free;
-            copy_object(obj, addr, obj_size);
-            *free = addr.offset(obj_size);
+            copy_addr = *free;
+            *free = copy_addr.offset(obj_size);
         }
 
-        set_forwarding_address(obj, addr);
+        copy_object(obj, copy_addr, obj_size);
+        set_forwarding_address(obj, copy_addr);
 
-        addr.to_mut_ptr::<Obj>()
+        copy_addr.to_mut_ptr::<Obj>()
     }
 }
 
