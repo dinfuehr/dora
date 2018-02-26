@@ -52,7 +52,10 @@ impl YoungGen {
     }
 
     pub fn used_region(&self) -> Region {
-        Region::new(self.start_address(), self.free.load(Ordering::Relaxed).into())
+        Region::new(
+            self.start_address(),
+            self.free.load(Ordering::Relaxed).into(),
+        )
     }
 
     fn start_address(&self) -> Address {
@@ -228,7 +231,13 @@ fn copy_dirty_cards(
     });
 }
 
-fn copy_card(mut ptr: Address, end: Address, mut free: &mut Address, young: &YoungGen, old: &OldGen) {
+fn copy_card(
+    mut ptr: Address,
+    end: Address,
+    mut free: &mut Address,
+    young: &YoungGen,
+    old: &OldGen,
+) {
     let old_end: Address = old.free.load(Ordering::Relaxed).into();
     let end = cmp::min(end, old_end);
 

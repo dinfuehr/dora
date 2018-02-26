@@ -682,7 +682,14 @@ where
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let ty = self.ty(array.id);
-                        self.emit_array_set(e.pos, ty, ty.mode(), &array.object, &array.index, &e.rhs)
+                        self.emit_array_set(
+                            e.pos,
+                            ty,
+                            ty.mode(),
+                            &array.object,
+                            &array.index,
+                            &e.rhs,
+                        )
                     }
 
                     Intrinsic::StrSet => {
@@ -1156,7 +1163,14 @@ where
         let write_barrier = self.ctxt.gc.needs_write_barrier() && element_type.reference_type();
         let card_table_offset = self.ctxt.gc.card_table_offset();
 
-        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, res, write_barrier, card_table_offset);
+        self.masm.store_array_elem(
+            mode,
+            REG_TMP1,
+            REG_TMP2,
+            res,
+            write_barrier,
+            card_table_offset,
+        );
 
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);

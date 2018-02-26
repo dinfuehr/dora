@@ -63,8 +63,20 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        println!("YNG: {:x}-{:x} active {:x}-{:x}", self.young.total.start.to_usize(), self.young.total.start.to_usize(), self.young_region.start.to_usize(), self.young_region.end.to_usize());
-        println!("OLD: {:x}-{:x} active {:x}-{:x}", self.old.total.start.to_usize(), self.old.total.end.to_usize(), self.old_region.start.to_usize(), self.old_region.end.to_usize());
+        println!(
+            "YNG: {:x}-{:x} active {:x}-{:x}",
+            self.young.total.start.to_usize(),
+            self.young.total.start.to_usize(),
+            self.young_region.start.to_usize(),
+            self.young_region.end.to_usize()
+        );
+        println!(
+            "OLD: {:x}-{:x} active {:x}-{:x}",
+            self.old.total.start.to_usize(),
+            self.old.total.end.to_usize(),
+            self.old_region.start.to_usize(),
+            self.old_region.end.to_usize()
+        );
         println!("found reference: {:x}", addr.to_usize());
 
         panic!("reference neither pointing into young or old generation.");

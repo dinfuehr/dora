@@ -307,11 +307,9 @@ impl Str {
 }
 
 fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
-    str_alloc(
-        ctxt,
-        len,
-        |ctxt, size| ctxt.gc.alloc_obj(ctxt, size) as *const u8,
-    )
+    str_alloc(ctxt, len, |ctxt, size| {
+        ctxt.gc.alloc_obj(ctxt, size) as *const u8
+    })
 }
 
 fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {

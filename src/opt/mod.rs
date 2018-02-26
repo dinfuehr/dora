@@ -187,8 +187,7 @@ where
     fn init(&mut self) {
         unsafe {
             self.context = LLVMContextCreate();
-            self.module =
-                LLVMModuleCreateWithNameInContext(noname(), self.context);
+            self.module = LLVMModuleCreateWithNameInContext(noname(), self.context);
             self.shared_module = LLVMOrcMakeSharedModule(self.module);
             self.builder = LLVMCreateBuilderInContext(self.context);
         }
@@ -550,15 +549,8 @@ where
                 LLVMIntPredicate::LLVMIntNE
             };
 
-            let value = unsafe {
-                LLVMBuildICmp(
-                    self.builder,
-                    predicate,
-                    lhs_value,
-                    rhs_value,
-                    noname(),
-                )
-            };
+            let value =
+                unsafe { LLVMBuildICmp(self.builder, predicate, lhs_value, rhs_value, noname()) };
 
             ok(value)
 
@@ -589,10 +581,7 @@ where
             Intrinsic::IntAnd | Intrinsic::LongAnd => LLVMOpcode::LLVMAnd,
             Intrinsic::IntOr | Intrinsic::LongOr => LLVMOpcode::LLVMOr,
             Intrinsic::IntXor | Intrinsic::LongXor => LLVMOpcode::LLVMXor,
-            Intrinsic::ByteEq |
-            Intrinsic::BoolEq |
-            Intrinsic::CharEq |
-            Intrinsic::IntEq |
+            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::CharEq | Intrinsic::IntEq |
             Intrinsic::LongEq => {
                 let predicate = if op == BinOp::Cmp(CmpOp::Eq) {
                     LLVMIntPredicate::LLVMIntEQ
@@ -606,14 +595,13 @@ where
 
                 return ok(value);
             }
-            Intrinsic::IntCmp |
-            Intrinsic::LongCmp => {
+            Intrinsic::IntCmp | Intrinsic::LongCmp => {
                 let predicate = match op {
                     BinOp::Cmp(CmpOp::Lt) => LLVMIntPredicate::LLVMIntSLT,
                     BinOp::Cmp(CmpOp::Le) => LLVMIntPredicate::LLVMIntSLE,
                     BinOp::Cmp(CmpOp::Gt) => LLVMIntPredicate::LLVMIntSGT,
                     BinOp::Cmp(CmpOp::Ge) => LLVMIntPredicate::LLVMIntSGE,
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
 
                 let value = unsafe {
@@ -628,15 +616,7 @@ where
             }
         };
 
-        let value = unsafe {
-            LLVMBuildBinOp(
-                self.builder,
-                op,
-                lhs_value,
-                rhs_value,
-                noname(),
-            )
-        };
+        let value = unsafe { LLVMBuildBinOp(self.builder, op, lhs_value, rhs_value, noname()) };
 
         ok(value)
     }
@@ -663,9 +643,11 @@ where
             LLVMBuildBr(self.builder, merge_block);
 
             LLVMPositionBuilderAtEnd(self.builder, merge_block);
-            let result = LLVMBuildPhi(self.builder,
-                                      self.llvm_ty(BuiltinType::Bool),
-                                      b"and_result\0".as_ptr() as *const _);
+            let result = LLVMBuildPhi(
+                self.builder,
+                self.llvm_ty(BuiltinType::Bool),
+                b"and_result\0".as_ptr() as *const _,
+            );
 
             let mut values = [self.llvm_lit_bool(true), self.llvm_lit_bool(false)];
             let mut blocks = [true_block, false_block];
@@ -697,9 +679,11 @@ where
             LLVMBuildBr(self.builder, merge_block);
 
             LLVMPositionBuilderAtEnd(self.builder, merge_block);
-            let result = LLVMBuildPhi(self.builder,
-                                      self.llvm_ty(BuiltinType::Bool),
-                                      b"and_result\0".as_ptr() as *const _);
+            let result = LLVMBuildPhi(
+                self.builder,
+                self.llvm_ty(BuiltinType::Bool),
+                b"and_result\0".as_ptr() as *const _,
+            );
 
             let mut values = [self.llvm_lit_bool(true), self.llvm_lit_bool(false)];
             let mut blocks = [true_block, false_block];

@@ -127,7 +127,13 @@ pub fn emit_movb_imm_memq(buf: &mut MacroAssembler, imm: u8, dest: Reg, disp: i3
     emit_u8(buf, imm);
 }
 
-pub fn emit_movb_imm_memscaleq(buf: &mut MacroAssembler, imm: u8, base: Reg, index: Reg, scale: u8) {
+pub fn emit_movb_imm_memscaleq(
+    buf: &mut MacroAssembler,
+    imm: u8,
+    base: Reg,
+    index: Reg,
+    scale: u8,
+) {
     if index.msb() != 0 || base.msb() != 0 {
         emit_rex(buf, 0, 0, index.msb(), base.msb());
     }
