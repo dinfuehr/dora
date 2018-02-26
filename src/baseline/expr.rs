@@ -682,12 +682,13 @@ where
                 match intrinsic {
                     Intrinsic::GenericArraySet => {
                         let ty = self.ty(array.id);
-                        self.emit_array_set(e.pos, ty.mode(), &array.object, &array.index, &e.rhs)
+                        self.emit_array_set(e.pos, ty, ty.mode(), &array.object, &array.index, &e.rhs)
                     }
 
                     Intrinsic::StrSet => {
                         self.emit_array_set(
                             e.pos,
+                            BuiltinType::Byte,
                             MachineMode::Int8,
                             &array.object,
                             &array.index,
@@ -778,7 +779,6 @@ where
                     e.pos.line as i32,
                     write_barrier,
                     card_table_offset,
-                    field.ty.reference_type(),
                 );
                 self.free_temp_for_node(temp, temp_offset);
             }
@@ -1106,6 +1106,7 @@ where
     fn emit_array_set(
         &mut self,
         pos: Position,
+        element_type: BuiltinType,
         mode: MachineMode,
         object: &'ast Expr,
         index: &'ast Expr,
@@ -1151,7 +1152,11 @@ where
         }
 
         self.masm.load_mem(mode, res, Mem::Local(offset_value));
-        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, res);
+
+        let write_barrier = self.ctxt.gc.needs_write_barrier() && element_type.reference_type();
+        let card_table_offset = self.ctxt.gc.card_table_offset();
+
+        self.masm.store_array_elem(mode, REG_TMP1, REG_TMP2, res, write_barrier, card_table_offset);
 
         self.free_temp_for_node(object, offset_object);
         self.free_temp_for_node(index, offset_index);

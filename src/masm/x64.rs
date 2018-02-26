@@ -103,12 +103,18 @@ impl MacroAssembler {
         array: Reg,
         index: Reg,
         value: ExprStore,
+        write_barrier: bool,
+        card_table_offset: usize,
     ) {
         self.store_mem(
             mode,
             Mem::Index(array, index, mode.size(), offset_of_array_data()),
             value,
         );
+
+        if write_barrier {
+            self.emit_barrier(array, card_table_offset);
+        }
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -560,13 +566,12 @@ impl MacroAssembler {
         line: i32,
         write_barrier: bool,
         card_table_offset: usize,
-        is_ref: bool,
     ) {
         self.emit_nil_check();
         self.emit_lineno_if_missing(line);
         self.store_mem(mode, Mem::Base(base, offset), src);
 
-        if write_barrier && is_ref {
+        if write_barrier {
             self.emit_barrier(base, card_table_offset);
         }
     }

@@ -1,0 +1,12 @@
+//= vm-args "--gc=swiper"
+
+fun main() {
+  let x = Array::<Foo>(2);
+  forceCollect();
+  forceCollect();
+  x[0] = Foo(2);
+  forceCollect();
+  assert(x[0].a == 2);
+}
+
+class Foo(let a: int)
