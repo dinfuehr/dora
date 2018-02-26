@@ -8,12 +8,14 @@ use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
+use gc::swiper::verify::Verifier;
 use mem;
 
 mod crossing;
 pub mod young;
 pub mod old;
 pub mod card;
+mod verify;
 
 // determines size of young generation in heap
 // young generation size = heap size / YOUNG_RATIO
@@ -106,6 +108,11 @@ impl Swiper {
             &self.crossing_map,
             &self.old,
         );
+
+        if cfg!(debug_assertions) {
+            let verifier = Verifier::new(&self.young, &self.old);
+            verifier.verify();
+        }
     }
 }
 
