@@ -13,10 +13,10 @@ pub struct OldGen {
 }
 
 impl OldGen {
-    pub fn new(old_start: Address, old_end: Address, crossing_map: CrossingMap) -> OldGen {
+    pub fn new(start: Address, end: Address, crossing_map: CrossingMap) -> OldGen {
         OldGen {
-            total: Region::new(old_start, old_end),
-            free: AtomicUsize::new(old_start.to_usize()),
+            total: Region::new(start, end),
+            free: AtomicUsize::new(start.to_usize()),
             crossing_map: crossing_map,
         }
     }
