@@ -16,7 +16,7 @@ use timer::{in_ms, Timer};
 
 pub struct YoungGen {
     // bounds of from- & to-space
-    total: Region,
+    pub total: Region,
 
     // size of both from- or to-space.
     // Not combined, use total.size() for that.
@@ -48,6 +48,18 @@ impl YoungGen {
             age_marker: AtomicUsize::new(young_start.to_usize()),
             free: AtomicUsize::new(young_start.to_usize()),
             end: AtomicUsize::new(half_address.to_usize()),
+        }
+    }
+
+    pub fn used_region(&self) -> Region {
+        Region::new(self.start_address(), self.free.load(Ordering::Relaxed).into())
+    }
+
+    fn start_address(&self) -> Address {
+        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
+            self.total.start
+        } else {
+            self.separator
         }
     }
 

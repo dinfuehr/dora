@@ -21,6 +21,10 @@ impl OldGen {
         }
     }
 
+    pub fn used_region(&self) -> Region {
+        Region::new(self.total.start, self.free.load(Ordering::Relaxed).into())
+    }
+
     pub fn alloc(&self, size: usize) -> *const u8 {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;

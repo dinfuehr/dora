@@ -110,7 +110,7 @@ impl Swiper {
         );
 
         if cfg!(debug_assertions) {
-            let verifier = Verifier::new(&self.young, &self.old);
+            let mut verifier = Verifier::new(&self.young, &self.old);
             verifier.verify();
         }
     }
@@ -146,6 +146,7 @@ impl Collector for Swiper {
     }
 }
 
+#[derive(Clone)]
 pub struct Region {
     pub start: Address,
     pub end: Address,
