@@ -110,7 +110,7 @@ impl Swiper {
         );
 
         if cfg!(debug_assertions) {
-            let mut verifier = Verifier::new(&self.young, &self.old);
+            let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map);
             verifier.verify();
         }
     }

@@ -59,4 +59,23 @@ impl CardTable {
             ptr = ptr.offset(1);
         }
     }
+
+    pub fn get(&self, card: Card) -> CardEntry {
+        let ptr = self.start.offset(card.to_usize());
+        debug_assert!(ptr < self.end);
+
+        let val: u8 = unsafe { *ptr.to_ptr() };
+
+        if val == 0 {
+            CardEntry::Dirty
+        } else {
+            CardEntry::Clean
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum CardEntry {
+    Clean,
+    Dirty,
 }
