@@ -59,19 +59,28 @@ impl<'a> Verifier<'a> {
     fn verify_reference(&mut self, obj: *mut Obj) {
         let addr = Address::from_ptr(obj);
 
-        if obj.is_null() || self.old_region.contains(addr) || self.young_region.contains(addr) {
+        if obj.is_null() {
+            return;
+        }
+
+        if self.old_region.contains(addr) || self.young_region.contains(addr) {
+            let object = unsafe { &mut *obj };
+
+            // Verify that the address is the start of an object, for this access its size.
+            // To make sure this isn't optimized out by the compiler, make sure that the size doesn't equal 1.
+            assert!(object.size() != 1, "object size shouldn't be 1");
             return;
         }
 
         println!(
-            "YNG: {:x}-{:x} active {:x}-{:x}",
+            "YNG: {:x}-{:x}; active: {:x}-{:x}",
             self.young.total.start.to_usize(),
-            self.young.total.start.to_usize(),
+            self.young.total.end.to_usize(),
             self.young_region.start.to_usize(),
             self.young_region.end.to_usize()
         );
         println!(
-            "OLD: {:x}-{:x} active {:x}-{:x}",
+            "OLD: {:x}-{:x}; active: {:x}-{:x}",
             self.old.total.start.to_usize(),
             self.old.total.end.to_usize(),
             self.old_region.start.to_usize(),
@@ -79,6 +88,6 @@ impl<'a> Verifier<'a> {
         );
         println!("found reference: {:x}", addr.to_usize());
 
-        panic!("reference neither pointing into young or old generation.");
+        panic!("reference neither pointing into young nor old generation.");
     }
 }
