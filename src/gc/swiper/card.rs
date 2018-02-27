@@ -72,10 +72,34 @@ impl CardTable {
             CardEntry::Clean
         }
     }
+
+    pub fn set(&self, card: Card, entry: CardEntry) {
+        let ptr = self.start.offset(card.to_usize());
+        debug_assert!(ptr < self.end);
+
+        let val: u8 = match entry {
+            CardEntry::Clean => 1,
+            CardEntry::Dirty => 0,
+        };
+
+        unsafe {
+            *ptr.to_mut_ptr() = val;
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum CardEntry {
     Clean,
     Dirty,
+}
+
+impl CardEntry {
+    pub fn is_clean(self) -> bool {
+        self == CardEntry::Clean
+    }
+
+    pub fn is_dirty(self) -> bool {
+        self == CardEntry::Dirty
+    }
 }

@@ -100,6 +100,8 @@ impl Swiper {
     }
 
     fn minor_collect(&self, ctxt: &SemContext) {
+        self.verify("pre-minor");
+
         let rootset = get_rootset(ctxt);
         self.young.collect(
             ctxt,
@@ -109,7 +111,12 @@ impl Swiper {
             &self.old,
         );
 
+        self.verify("post-minor");
+    }
+
+    fn verify(&self, _name: &str) {
         if cfg!(debug_assertions) {
+            // println!("VERIFY: {}", name);
             let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map);
             verifier.verify();
         }
