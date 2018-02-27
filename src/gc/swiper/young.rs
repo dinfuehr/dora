@@ -7,7 +7,7 @@ use gc::Address;
 use gc::root::IndirectObj;
 use gc::swiper::{CARD_SIZE, Region};
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::old::OldGen;
 use mem;
 use os::{self, ProtType};
@@ -218,20 +218,21 @@ fn copy_dirty_cards(
                 }
 
                 // copy all objects from this card
-                copy_card(ptr, card_end, free, young, old, card_table);
+                copy_card(card, ptr, card_end, free, young, old, card_table);
             }
 
             CrossingEntry::FirstObjectOffset(offset) => {
                 let ptr = card_start.offset(offset as usize * ptr_width());
 
                 // copy all objects from this card
-                copy_card(ptr, card_end, free, young, old, card_table);
+                copy_card(card, ptr, card_end, free, young, old, card_table);
             }
         }
     });
 }
 
 fn copy_card(
+    card: Card,
     mut ptr: Address,
     end: Address,
     mut free: &mut Address,
@@ -241,6 +242,7 @@ fn copy_card(
 ) {
     let old_end: Address = old.free.load(Ordering::Relaxed).into();
     let end = cmp::min(end, old_end);
+    let mut ref_to_young_gen = false;
 
     while ptr < end {
         let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
@@ -249,11 +251,23 @@ fn copy_card(
             let child_ptr = child.get();
 
             if young.contains(Address::from_ptr(child_ptr)) {
-                child.set(copy(child_ptr, &mut free, young, old, card_table));
+                let copied_obj = copy(child_ptr, &mut free, young, old, card_table);
+                child.set(copied_obj);
+
+                // determine if copied object is still in young generation
+                if young.contains(Address::from_ptr(copied_obj)) {
+                    ref_to_young_gen = true;
+                }
             }
         });
 
         ptr = ptr.offset(object.size());
+    }
+
+    // if there are no references to the young generation in this card,
+    // set the card to clean.
+    if !ref_to_young_gen {
+        card_table.set(card, CardEntry::Clean);
     }
 }
 
