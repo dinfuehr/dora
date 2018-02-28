@@ -178,25 +178,25 @@ impl<'a> Verifier<'a> {
         }
 
         println!(
-            "YNG: {:x}-{:x}; active: {:x}-{:x}",
-            self.young.total.start.to_usize(),
-            self.young.total.end.to_usize(),
-            self.young_region.start.to_usize(),
-            self.young_region.end.to_usize()
+            "YNG: {}-{}; active: {}-{}",
+            self.young.total.start,
+            self.young.total.end,
+            self.young_region.start,
+            self.young_region.end
         );
         println!(
-            "OLD: {:x}-{:x}; active: {:x}-{:x}",
-            self.old.total.start.to_usize(),
-            self.old.total.end.to_usize(),
-            self.old_region.start.to_usize(),
-            self.old_region.end.to_usize()
+            "OLD: {}-{}; active: {}-{}",
+            self.old.total.start,
+            self.old.total.end,
+            self.old_region.start,
+            self.old_region.end
         );
         println!(
-            "found invalid reference to {:x} in {} (at {:x}, in object {:x}).",
-            addr.to_usize(),
+            "found invalid reference to {} in {} (at {}, in object {}).",
+            addr,
             name,
-            ref_addr.to_usize(),
-            obj_addr.to_usize()
+            ref_addr,
+            obj_addr
         );
 
         if self.young.contains(addr) && !self.young_region.contains(addr) {

@@ -122,7 +122,10 @@ impl Swiper {
 
     fn verify(&self, ctxt: &SemContext, _name: &str, rootset: &[IndirectObj]) {
         if ctxt.args.flag_gc_verify {
-            // println!("VERIFY: {}", _name);
+            if ctxt.args.flag_gc_verbose {
+                println!("VERIFY: {}", _name);
+            }
+
             let mut verifier = Verifier::new(
                 &self.young,
                 &self.old,
