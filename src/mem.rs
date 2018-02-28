@@ -5,6 +5,7 @@ use os;
 
 /// return pointer width: either 4 or 8
 /// (although only 64bit architectures are supported right now)
+#[inline(always)]
 pub fn ptr_width() -> i32 {
     size_of::<*const u8>() as i32
 }

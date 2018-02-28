@@ -107,6 +107,10 @@ impl IndirectObj {
         IndirectObj(addr.to_usize() as *mut *mut Obj)
     }
 
+    pub fn to_address(self) -> Address {
+        Address::from_ptr(self.0)
+    }
+
     pub fn get(self) -> *mut Obj {
         unsafe { *self.0 }
     }

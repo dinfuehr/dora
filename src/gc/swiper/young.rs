@@ -234,34 +234,45 @@ fn copy_dirty_cards(
 fn copy_card(
     card: Card,
     mut ptr: Address,
-    end: Address,
+    card_end: Address,
     mut free: &mut Address,
     young: &YoungGen,
     old: &OldGen,
     card_table: &CardTable,
 ) {
     let old_end: Address = old.free.load(Ordering::Relaxed).into();
-    let end = cmp::min(end, old_end);
+    let mut end = cmp::min(card_end, old_end);
     let mut ref_to_young_gen = false;
 
-    while ptr < end {
-        let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
+    loop {
+        while ptr < end {
+            let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
 
-        object.visit_reference_fields(|child| {
-            let child_ptr = child.get();
+            object.visit_reference_fields(|child| {
+                let child_ptr = child.get();
 
-            if young.contains(Address::from_ptr(child_ptr)) {
-                let copied_obj = copy(child_ptr, &mut free, young, old, card_table);
-                child.set(copied_obj);
+                if young.contains(Address::from_ptr(child_ptr)) {
+                    let copied_obj = copy(child_ptr, &mut free, young, old, card_table);
+                    child.set(copied_obj);
 
-                // determine if copied object is still in young generation
-                if young.contains(Address::from_ptr(copied_obj)) {
-                    ref_to_young_gen = true;
+                    // determine if copied object is still in young generation
+                    if young.contains(Address::from_ptr(copied_obj)) {
+                        ref_to_young_gen = true;
+                    }
                 }
-            }
-        });
+            });
 
-        ptr = ptr.offset(object.size());
+            ptr = ptr.offset(object.size());
+        }
+
+        let old_end = old.free.load(Ordering::Relaxed).into();
+        let next_end = cmp::min(card_end, old_end);
+
+        if end != next_end {
+            end = next_end;
+        } else {
+            break;
+        }
     }
 
     // if there are no references to the young generation in this card,

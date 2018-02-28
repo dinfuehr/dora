@@ -116,7 +116,7 @@ impl Swiper {
 
     fn verify(&self, _name: &str) {
         if cfg!(debug_assertions) {
-            // println!("VERIFY: {}", name);
+            // println!("VERIFY: {}", _name);
             let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map);
             verifier.verify();
         }

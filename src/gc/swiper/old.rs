@@ -64,6 +64,11 @@ impl OldGen {
     }
 
     #[inline(always)]
+    pub fn is_card_aligned(&self, addr: Address) -> bool {
+        (addr.offset_from(self.total.start) & !(CARD_SIZE-1)) == 0
+    }
+
+    #[inline(always)]
     pub fn address_from_card(&self, card: Card) -> Address {
         let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
 

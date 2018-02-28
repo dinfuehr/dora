@@ -1,18 +1,19 @@
 use gc::Address;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::swiper::crossing::CrossingMap;
+use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::old::OldGen;
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 
+use mem;
 use object::Obj;
 
 pub struct Verifier<'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
-    card: &'a CardTable,
-    crossing: &'a CrossingMap,
+    card_table: &'a CardTable,
+    crossing_map: &'a CrossingMap,
 
     refs_to_young_gen: usize,
     in_old: bool,
@@ -25,14 +26,14 @@ impl<'a> Verifier<'a> {
     pub fn new(
         young: &'a YoungGen,
         old: &'a OldGen,
-        card: &'a CardTable,
-        crossing: &'a CrossingMap,
+        card_table: &'a CardTable,
+        crossing_map: &'a CrossingMap,
     ) -> Verifier<'a> {
         Verifier {
             young: young,
             old: old,
-            card: card,
-            crossing: crossing,
+            card_table: card_table,
+            crossing_map: crossing_map,
 
             refs_to_young_gen: 0,
             in_old: false,
@@ -49,32 +50,39 @@ impl<'a> Verifier<'a> {
 
     fn verify_young(&mut self) {
         let region = self.young_region.clone();
-        self.verify_objects(region);
+        self.verify_objects(region, "young");
     }
 
     fn verify_old(&mut self) {
         let region = self.old_region.clone();
         self.in_old = true;
-        self.verify_objects(region);
+        self.verify_objects(region, "old");
         self.in_old = false;
     }
 
-    fn verify_objects(&mut self, region: Region) {
+    fn verify_objects(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
+
+        if self.in_old {
+            // we should start at card start
+            assert!(self.old.is_card_aligned(curr));
+            self.verify_crossing(curr);
+        }
 
         while curr < region.end {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
             object.visit_reference_fields(|child| {
                 let child_ptr = child.get();
-                self.verify_reference(child_ptr);
+                self.verify_reference(child_ptr, child.to_address(), curr, name);
             });
 
             let next = curr.offset(object.size());
 
             if self.in_old && on_different_cards(curr, next) {
                 self.verify_card(curr);
+                self.verify_crossing(next);
             }
 
             curr = next;
@@ -90,7 +98,7 @@ impl<'a> Verifier<'a> {
     fn verify_card(&mut self, curr: Address) {
         let curr_card = self.old.card_from_address(curr);
 
-        let card_entry = self.card.get(curr_card);
+        let card_entry = self.card_table.get(curr_card);
         let expected_card_entry = if self.refs_to_young_gen > 0 {
             CardEntry::Dirty
         } else {
@@ -118,7 +126,17 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_reference(&mut self, obj: *mut Obj) {
+    fn verify_crossing(&mut self, addr: Address) {
+        let card = self.old.card_from_address(addr);
+        let card_start = self.old.address_from_card(card);
+        let offset = addr.offset_from(card_start);
+        let offset_words = offset / (mem::ptr_width() as usize);
+
+        let crossing = self.crossing_map.get(card);
+        assert!(crossing == CrossingEntry::FirstObjectOffset(offset_words as u8));
+    }
+
+    fn verify_reference(&mut self, obj: *mut Obj, ref_addr: Address, obj_addr: Address, name: &str) {
         let addr = Address::from_ptr(obj);
 
         if obj.is_null() {
@@ -155,7 +173,12 @@ impl<'a> Verifier<'a> {
             self.old_region.start.to_usize(),
             self.old_region.end.to_usize()
         );
-        println!("found reference: {:x}", addr.to_usize());
+        println!("found invalid reference to {:x} in {} generation ({:x}, object {:x}).",
+            addr.to_usize(), name, ref_addr.to_usize(), obj_addr.to_usize());
+
+        if self.young.contains(addr) && !self.young_region.contains(addr) {
+            println!("reference points into young generation but not into the active semi-space.");
+        }
 
         panic!("reference neither pointing into young nor old generation.");
     }
