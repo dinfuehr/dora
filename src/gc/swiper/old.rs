@@ -65,7 +65,7 @@ impl OldGen {
 
     #[inline(always)]
     pub fn is_card_aligned(&self, addr: Address) -> bool {
-        (addr.offset_from(self.total.start) & !(CARD_SIZE-1)) == 0
+        (addr.offset_from(self.total.start) & !(CARD_SIZE - 1)) == 0
     }
 
     #[inline(always)]

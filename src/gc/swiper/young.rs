@@ -282,7 +282,13 @@ fn copy_card(
     }
 }
 
-pub fn copy(obj: *mut Obj, free: &mut Address, young: &YoungGen, old: &OldGen, card_table: &CardTable) -> *mut Obj {
+pub fn copy(
+    obj: *mut Obj,
+    free: &mut Address,
+    young: &YoungGen,
+    old: &OldGen,
+    card_table: &CardTable,
+) -> *mut Obj {
     let obj_addr = Address::from_ptr(obj);
     let obj = unsafe { &mut *obj };
     let fwaddr = get_forwarding_address(obj);

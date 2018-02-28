@@ -68,7 +68,7 @@ impl<'a> Verifier<'a> {
     fn verify_roots(&mut self) {
         for root in self.rootset {
             let root_ptr = root.get();
-            self.verify_reference(root_ptr, root.to_address(), Address::null(), "root");
+            self.verify_reference(root_ptr, root.to_address(), Address::null(), "root set");
         }
     }
 
@@ -148,7 +148,13 @@ impl<'a> Verifier<'a> {
         assert!(crossing == CrossingEntry::FirstObjectOffset(offset_words as u8));
     }
 
-    fn verify_reference(&mut self, obj: *mut Obj, ref_addr: Address, obj_addr: Address, name: &str) {
+    fn verify_reference(
+        &mut self,
+        obj: *mut Obj,
+        ref_addr: Address,
+        obj_addr: Address,
+        name: &str,
+    ) {
         let addr = Address::from_ptr(obj);
 
         if obj.is_null() {
@@ -185,8 +191,13 @@ impl<'a> Verifier<'a> {
             self.old_region.start.to_usize(),
             self.old_region.end.to_usize()
         );
-        println!("found invalid reference to {:x} in {} (at {:x}, in object {:x}).",
-            addr.to_usize(), name, ref_addr.to_usize(), obj_addr.to_usize());
+        println!(
+            "found invalid reference to {:x} in {} (at {:x}, in object {:x}).",
+            addr.to_usize(),
+            name,
+            ref_addr.to_usize(),
+            obj_addr.to_usize()
+        );
 
         if self.young.contains(addr) && !self.young_region.contains(addr) {
             println!("reference points into young generation but not into the active semi-space.");
@@ -201,5 +212,5 @@ fn on_different_cards(curr: Address, next: Address) -> bool {
 }
 
 fn start_of_card(addr: Address) -> bool {
-    (addr.to_usize() & (CARD_SIZE-1)) == addr.to_usize()
+    (addr.to_usize() & (CARD_SIZE - 1)) == addr.to_usize()
 }
