@@ -1,4 +1,4 @@
-//= vm-args "--gc=swiper"
+//= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
   let x = Foo(1);
