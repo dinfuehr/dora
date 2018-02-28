@@ -34,6 +34,8 @@ Options:
     --gc-events             Dump GC events
     --gc-stress             Collect garbage at every allocation
     --gc-stats              Print GC statistics
+    --gc-verbose            Verbose GC
+    --gc-verify             Verify heap before and after collections
     --gc=<name>             Switch GC. Possible values: zero, copy (default), swiper
 
     --heap-size=<SIZE>       Set heap size
@@ -58,6 +60,8 @@ pub struct Args {
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stats: bool,
+    pub flag_gc_verbose: bool,
+    pub flag_gc_verify: bool,
     pub flag_gc: Option<CollectorName>,
     pub flag_heap_size: Option<MemSize>,
     pub flag_check: bool,
@@ -85,6 +89,8 @@ impl Default for Args {
             flag_gc_events: false,
             flag_gc_stress: false,
             flag_gc_stats: false,
+            flag_gc_verbose: false,
+            flag_gc_verify: false,
             flag_gc: None,
             flag_heap_size: None,
             flag_check: false,

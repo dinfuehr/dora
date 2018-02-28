@@ -1,4 +1,5 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
+use std::fmt;
 use std::sync::Mutex;
 
 use ctxt::SemContext;
@@ -174,6 +175,12 @@ impl Address {
     #[inline(always)]
     pub fn is_null(self) -> bool {
         self.0 == 0
+    }
+}
+
+impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "0x{:x}", self.to_usize())
     }
 }
 

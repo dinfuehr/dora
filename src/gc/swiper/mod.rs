@@ -87,6 +87,11 @@ impl Swiper {
         let old_end = heap_end;
         let old = OldGen::new(old_start, old_end, crossing_map.clone());
 
+        if args.flag_gc_verbose {
+            println!("OLD: {}-{}", old_start, old_end);
+            println!("YNG: {}-{}", young_start, young_end);
+        }
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
 
@@ -100,9 +105,10 @@ impl Swiper {
     }
 
     fn minor_collect(&self, ctxt: &SemContext) {
-        self.verify("pre-minor");
-
         let rootset = get_rootset(ctxt);
+
+        self.verify(ctxt, "pre-minor");
+
         self.young.collect(
             ctxt,
             rootset,
@@ -111,11 +117,11 @@ impl Swiper {
             &self.old,
         );
 
-        self.verify("post-minor");
+        self.verify(ctxt, "post-minor");
     }
 
-    fn verify(&self, _name: &str) {
-        if cfg!(debug_assertions) {
+    fn verify(&self, ctxt: &SemContext, _name: &str) {
+        if ctxt.args.flag_gc_verify {
             // println!("VERIFY: {}", _name);
             let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map);
             verifier.verify();
