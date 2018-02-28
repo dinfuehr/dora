@@ -3,7 +3,7 @@ use driver::cmd::Args;
 use gc::arena;
 use gc::Address;
 use gc::Collector;
-use gc::root::get_rootset;
+use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::young::YoungGen;
@@ -107,23 +107,23 @@ impl Swiper {
     fn minor_collect(&self, ctxt: &SemContext) {
         let rootset = get_rootset(ctxt);
 
-        self.verify(ctxt, "pre-minor");
+        self.verify(ctxt, "pre-minor", &rootset);
 
         self.young.collect(
             ctxt,
-            rootset,
+            &rootset,
             &self.card_table,
             &self.crossing_map,
             &self.old,
         );
 
-        self.verify(ctxt, "post-minor");
+        self.verify(ctxt, "post-minor", &rootset);
     }
 
-    fn verify(&self, ctxt: &SemContext, _name: &str) {
+    fn verify(&self, ctxt: &SemContext, _name: &str, rootset: &[IndirectObj]) {
         if ctxt.args.flag_gc_verify {
             // println!("VERIFY: {}", _name);
-            let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map);
+            let mut verifier = Verifier::new(&self.young, &self.old, &self.card_table, &self.crossing_map, rootset);
             verifier.verify();
         }
     }

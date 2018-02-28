@@ -1,4 +1,5 @@
 use gc::Address;
+use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -14,6 +15,7 @@ pub struct Verifier<'a> {
     old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
+    rootset: &'a [IndirectObj],
 
     refs_to_young_gen: usize,
     in_old: bool,
@@ -28,12 +30,14 @@ impl<'a> Verifier<'a> {
         old: &'a OldGen,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
+        rootset: &'a [IndirectObj],
     ) -> Verifier<'a> {
         Verifier {
             young: young,
             old: old,
             card_table: card_table,
             crossing_map: crossing_map,
+            rootset: rootset,
 
             refs_to_young_gen: 0,
             in_old: false,
@@ -44,20 +48,28 @@ impl<'a> Verifier<'a> {
     }
 
     pub fn verify(&mut self) {
+        self.verify_roots();
         self.verify_young();
         self.verify_old();
     }
 
     fn verify_young(&mut self) {
         let region = self.young_region.clone();
-        self.verify_objects(region, "young");
+        self.verify_objects(region, "young gen");
     }
 
     fn verify_old(&mut self) {
         let region = self.old_region.clone();
         self.in_old = true;
-        self.verify_objects(region, "old");
+        self.verify_objects(region, "old gen");
         self.in_old = false;
+    }
+
+    fn verify_roots(&mut self) {
+        for root in self.rootset {
+            let root_ptr = root.get();
+            self.verify_reference(root_ptr, root.to_address(), Address::null(), "root");
+        }
     }
 
     fn verify_objects(&mut self, region: Region, name: &str) {
@@ -173,7 +185,7 @@ impl<'a> Verifier<'a> {
             self.old_region.start.to_usize(),
             self.old_region.end.to_usize()
         );
-        println!("found invalid reference to {:x} in {} generation ({:x}, object {:x}).",
+        println!("found invalid reference to {:x} in {} (at {:x}, in object {:x}).",
             addr.to_usize(), name, ref_addr.to_usize(), obj_addr.to_usize());
 
         if self.young.contains(addr) && !self.young_region.contains(addr) {

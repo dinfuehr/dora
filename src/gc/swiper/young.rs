@@ -106,7 +106,7 @@ impl YoungGen {
     pub fn collect(
         &self,
         ctxt: &SemContext,
-        rootset: Vec<IndirectObj>,
+        rootset: &[IndirectObj],
         card_table: &CardTable,
         crossing_map: &CrossingMap,
         old: &OldGen,
@@ -136,7 +136,7 @@ impl YoungGen {
         }
 
         // detect all references from roots into young generation
-        for &root in &rootset {
+        for &root in rootset {
             let root_ptr = root.get();
 
             if self.contains(Address::from_ptr(root_ptr)) {
