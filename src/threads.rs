@@ -1,18 +1,19 @@
-use std::cell::RefCell;
 use std::ptr;
 
 use exception::DoraToNativeInfo;
 
-thread_local! {
-    pub static THREAD: RefCell<ThreadLocalData> = RefCell::new(ThreadLocalData::new());
-}
-
 pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,
+    tlab_start: usize,
+    tlab_end: usize,
 }
 
 impl ThreadLocalData {
     pub fn new() -> ThreadLocalData {
-        ThreadLocalData { d2n: ptr::null() }
+        ThreadLocalData {
+            d2n: ptr::null(),
+            tlab_start: 0,
+            tlab_end: 0,
+        }
     }
 }
