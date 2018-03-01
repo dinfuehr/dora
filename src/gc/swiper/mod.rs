@@ -1,3 +1,5 @@
+use std::fmt;
+
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
@@ -6,16 +8,18 @@ use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
+use gc::swiper::minor::MinorCollector;
 use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
 use gc::swiper::verify::Verifier;
 use mem;
 
-mod crossing;
-pub mod young;
-pub mod old;
 pub mod card;
+mod crossing;
+mod minor;
+pub mod old;
 mod verify;
+pub mod young;
 
 // determines size of young generation in heap
 // young generation size = heap size / YOUNG_RATIO
@@ -109,13 +113,15 @@ impl Swiper {
 
         self.verify(ctxt, "pre-minor", &rootset);
 
-        self.young.collect(
+        let mut collector = MinorCollector::new(
             ctxt,
-            &rootset,
+            &self.young,
+            &self.old,
             &self.card_table,
             &self.crossing_map,
-            &self.old,
+            &rootset,
         );
+        collector.collect();
 
         self.verify(ctxt, "post-minor", &rootset);
     }
@@ -196,5 +202,11 @@ impl Region {
     #[inline(always)]
     fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
+    }
+}
+
+impl fmt::Display for Region {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}-{}", self.start, self.end)
     }
 }

@@ -22,7 +22,11 @@ impl OldGen {
     }
 
     pub fn used_region(&self) -> Region {
-        Region::new(self.total.start, self.free.load(Ordering::Relaxed).into())
+        Region::new(self.total.start, self.free())
+    }
+
+    pub fn free(&self) -> Address {
+        self.free.load(Ordering::Relaxed).into()
     }
 
     pub fn alloc(&self, size: usize) -> *const u8 {
