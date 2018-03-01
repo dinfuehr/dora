@@ -410,6 +410,12 @@ where
         offset
     }
 
+    fn reserve_temp_for_self(&mut self, arg: &Arg<'ast>) -> i32 {
+        let offset = -(self.jit_info.localsize + arg.offset());
+
+        offset
+    }
+
     fn free_temp_for_node(&mut self, expr: &Expr, offset: i32) {
         let ty = self.ty(expr.id());
 
@@ -1617,7 +1623,11 @@ where
 
                 Arg::SelfieNew(ty, _) => {
                     let cls_id = specialize_class_ty(self.ctxt, ty);
-                    let offset = self.reserve_temp_for_arg(arg);
+                    // do NOT invoke `reserve_temp_for_arg` here, since
+                    // this would also add it to the set of temporaries, which
+                    // leads to this address being part of the gc point for
+                    // the collection of the object.
+                    let offset = self.reserve_temp_for_self(arg);
                     temps.push((ty, offset, Some(cls_id)));
                     continue;
                 }
@@ -1647,6 +1657,11 @@ where
                 if let Some(cls_id) = temps[idx].2 {
                     let reg = REG_PARAMS[reg_idx];
                     self.emit_allocation(pos, &temps, cls_id, offset, reg);
+
+                    // after the allocation `offset` is initialized,
+                    // add it to the set of temporaries such that it is part
+                    // of the gc point
+                    self.temps.insert(offset);
 
                     reg_idx += 1;
                     idx += 1;

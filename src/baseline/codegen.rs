@@ -229,7 +229,11 @@ pub fn dump_asm<'ast>(
                     write!(&mut w, ", ").unwrap();
                 }
 
-                write!(&mut w, "{}", offset).unwrap();
+                if offset < 0 {
+                    write!(&mut w, "-").unwrap();
+                }
+
+                write!(&mut w, "{:x}", offset.abs()).unwrap();
                 first = false;
             }
 
