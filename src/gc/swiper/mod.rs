@@ -11,7 +11,7 @@ use gc::swiper::crossing::CrossingMap;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
-use gc::swiper::verify::Verifier;
+use gc::swiper::verify::{Verifier, VerifierPhase};
 use mem;
 
 pub mod card;
@@ -111,7 +111,7 @@ impl Swiper {
     fn minor_collect(&self, ctxt: &SemContext) {
         let rootset = get_rootset(ctxt);
 
-        self.verify(ctxt, "pre-minor", &rootset);
+        self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
 
         let mut collector = MinorCollector::new(
             ctxt,
@@ -123,10 +123,10 @@ impl Swiper {
         );
         collector.collect();
 
-        self.verify(ctxt, "post-minor", &rootset);
+        self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
     }
 
-    fn verify(&self, ctxt: &SemContext, _name: &str, rootset: &[IndirectObj]) {
+    fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[IndirectObj]) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_verbose {
                 println!("VERIFY: {}", _name);
@@ -141,6 +141,7 @@ impl Swiper {
                 &self.crossing_map,
                 rootset,
                 &*perm_space,
+                phase,
             );
             verifier.verify();
         }

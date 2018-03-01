@@ -11,6 +11,21 @@ use gc::swiper::young::YoungGen;
 use mem;
 use object::Obj;
 
+#[derive(Copy, Clone)]
+pub enum VerifierPhase {
+    PreMinor,
+    PostMinor,
+}
+
+impl VerifierPhase {
+    fn is_pre(self) -> bool {
+        match self {
+            VerifierPhase::PreMinor => true,
+            VerifierPhase::PostMinor => false,
+        }
+    }
+}
+
 pub struct Verifier<'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -24,6 +39,8 @@ pub struct Verifier<'a> {
 
     old_region: Region,
     young_region: Region,
+
+    phase: VerifierPhase,
 }
 
 impl<'a> Verifier<'a> {
@@ -34,6 +51,7 @@ impl<'a> Verifier<'a> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
         perm_space: &'a Space,
+        phase: VerifierPhase,
     ) -> Verifier<'a> {
         Verifier {
             young: young,
@@ -48,6 +66,8 @@ impl<'a> Verifier<'a> {
 
             young_region: young.used_region(),
             old_region: old.used_region(),
+
+            phase: phase,
         }
     }
 
@@ -112,6 +132,11 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_card(&mut self, curr: Address) {
+        if self.phase.is_pre() {
+            self.refs_to_young_gen = 0;
+            return;
+        }
+
         let curr_card = self.old.card_from_address(curr);
 
         let card_entry = self.card_table.get(curr_card);
