@@ -1811,6 +1811,7 @@ where
                     REG_PARAMS[0],
                     REG_TMP1,
                     esize,
+                    true,
                 );
 
                 store_length = true;
@@ -1827,6 +1828,7 @@ where
                     REG_PARAMS[0],
                     REG_TMP1,
                     mem::ptr_width(),
+                    true,
                 );
 
                 store_length = true;
@@ -1839,7 +1841,12 @@ where
                     Mem::Local(temps[1].1),
                 );
 
-                self.masm.determine_array_size(REG_PARAMS[0], REG_TMP1, 1);
+                self.masm.determine_array_size(
+                    REG_PARAMS[0],
+                    REG_TMP1,
+                    1,
+                    true,
+                );
 
                 store_length = true;
             }
@@ -1853,6 +1860,8 @@ where
                     REG_PARAMS[0],
                     size,
                 );
+
+                store_length = true;
             }
         }
 
@@ -1880,27 +1889,125 @@ where
         let disp = self.masm.add_addr(cptr);
         let pos = self.masm.pos() as i32;
 
+        let temp = if dest == REG_TMP1 {
+            REG_TMP2
+        } else {
+            REG_TMP1
+        };
+
         self.masm.emit_comment(Comment::StoreVTable(cls_id));
-        self.masm.load_constpool(REG_TMP1, disp + pos);
+        self.masm.load_constpool(temp, disp + pos);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(dest, 0),
-            REG_TMP1.into(),
+            temp.into(),
         );
 
         // store length in object
         if store_length {
-            self.masm.load_mem(
-                MachineMode::Int32,
-                REG_TMP1.into(),
-                Mem::Local(temps[1].1),
-            );
+            if temps.len() > 1 {
+                self.masm.load_mem(
+                    MachineMode::Int32,
+                    temp.into(),
+                    Mem::Local(temps[1].1),
+                );
+            } else {
+                self.masm.load_int_const(MachineMode::Ptr, temp, 0);
+            }
+
             self.masm.store_mem(
                 MachineMode::Ptr,
                 Mem::Base(dest, Header::size()),
-                REG_TMP1.into(),
+                temp.into(),
             );
         }
+
+        match cls.size {
+            ClassSize::Fixed(size) => {
+                self.emit_fill_zero(dest, size as usize);
+            }
+
+            _ if temps.len() > 1 => {
+                self.masm.int_add_imm(MachineMode::Ptr, dest, dest, Header::size() + mem::ptr_width());
+
+                let element_size = match cls.size {
+                    ClassSize::Array(esize) => esize,
+                    ClassSize::ObjArray => mem::ptr_width(),
+                    ClassSize::Str => 1,
+                    ClassSize::Fixed(_) => unreachable!(),
+                };
+
+                self.masm.determine_array_size(temp, temp, element_size, false);
+                self.masm.int_add(MachineMode::Ptr, temp, temp, dest);
+                self.emit_fill_zero_dynamic(dest, temp);
+            }
+
+            // arrays with length 0 do not need to clear any data
+            _ => {}
+        }
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            dest.into(),
+            Mem::Local(offset),
+        );
+    }
+
+    fn emit_fill_zero(&mut self, obj: Reg, size: usize) {
+        debug_assert!(size >= (Header::size() as usize));
+        debug_assert!(size % mem::ptr_width_usize() == 0);
+        let size = size - (Header::size() as usize);
+        let size_words = size / mem::ptr_width_usize();
+
+        let temp_reg = if obj == REG_TMP1 {
+            REG_TMP2
+        } else {
+            REG_TMP1
+        };
+
+        if size_words == 0 {
+            // nothing to fill zero
+
+        } else if size_words <= 8 {
+            self.masm.load_int_const(MachineMode::Int32, temp_reg, 0);
+
+            for offset in 0..size_words {
+                let offset = Header::size() + offset as i32 * mem::ptr_width();
+                self.masm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Base(obj, offset),
+                    temp_reg.into(),
+                );
+            }
+
+        } else {
+            self.masm.copy_reg(MachineMode::Ptr, temp_reg, obj);
+            let offset = Header::size() + (size_words as i32) * mem::ptr_width();
+            self.masm.int_add_imm(MachineMode::Ptr, temp_reg, temp_reg, offset);
+            self.emit_fill_zero_dynamic(obj, temp_reg);
+        }
+    }
+
+    fn emit_fill_zero_dynamic(&mut self, obj: Reg, obj_end: Reg) {
+        let done = self.masm.create_label();
+        let start = self.masm.create_label();
+
+        let zero = self.masm.get_scratch();
+        self.masm.load_int_const(MachineMode::Ptr, *zero, 0);
+
+        self.masm.bind_label(start);
+        // loop until end of object reached
+        self.masm.cmp_reg(MachineMode::Ptr, obj, obj_end);
+        self.masm.jump_if(CondCode::Equal, done);
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, 0),
+            (*zero).into(),
+        );
+        self.masm.int_add_imm(MachineMode::Ptr, obj, obj, mem::ptr_width());
+        // jump to begin of loop
+        self.masm.jump(start);
+        self.masm.bind_label(done);
     }
 
     fn emit_native_call_insn(&mut self, pos: Position, internal_fct: InternalFct, dest: ExprStore) {

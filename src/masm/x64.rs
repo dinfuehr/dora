@@ -289,11 +289,26 @@ impl MacroAssembler {
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
             _ => unimplemented!(),
         };
 
         asm::emit_add_reg_reg(self, x64, rhs, lhs);
+
+        if dest != lhs {
+            asm::emit_mov_reg_reg(self, x64, lhs, dest);
+        }
+    }
+
+    pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i32) {
+        let x64 = match mode {
+            MachineMode::Int64 |
+            MachineMode::Ptr => 1,
+            _ => unimplemented!()
+        };
+
+        asm::emit_addq_imm_reg(self, value, lhs);
 
         if dest != lhs {
             asm::emit_mov_reg_reg(self, x64, lhs, dest);
@@ -463,10 +478,12 @@ impl MacroAssembler {
         asm::cvtsd2ss(self, dest, src);
     }
 
-    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
+    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32, with_header: bool) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        let size = Header::size() + ptr_width() +
+        let header_size = if with_header { Header::size() + ptr_width() } else { 0 };
+
+        let size = header_size +
             if element_size != ptr_width() {
                 ptr_width() - 1
             } else {
