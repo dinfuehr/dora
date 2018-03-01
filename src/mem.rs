@@ -10,6 +10,11 @@ pub fn ptr_width() -> i32 {
     size_of::<*const u8>() as i32
 }
 
+#[inline(always)]
+pub fn ptr_width_usize() -> usize {
+    size_of::<*const u8>() as usize
+}
+
 /// returns true if given value is a multiple of a page size.
 pub fn is_page_aligned(val: usize) -> bool {
     let align = os::page_size_bits();

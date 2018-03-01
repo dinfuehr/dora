@@ -138,7 +138,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 }
 
                 CrossingEntry::FirstObjectOffset(offset) => {
-                    let ptr = card_start.offset(offset as usize * mem::ptr_width() as usize);
+                    let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
                     self.copy_card(card, ptr, card_end);

@@ -5,6 +5,7 @@ use gc::Address;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::{Card, CrossingMap};
 use gc::swiper::Region;
+use mem;
 
 pub struct OldGen {
     pub total: Region,
@@ -61,7 +62,7 @@ impl OldGen {
         } else {
             let card = self.card_from(new);
             let card_start = self.address_from_card(card).to_usize();
-            self.crossing_map.set_first_object(card, new - card_start);
+            self.crossing_map.set_first_object(card, (new - card_start) / mem::ptr_width_usize());
         }
 
         old as *const u8
