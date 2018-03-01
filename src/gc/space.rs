@@ -1,5 +1,6 @@
 use std::cmp::max;
 
+use gc::Address;
 use gc::chunk::Chunk;
 use mem;
 use os;
@@ -68,5 +69,15 @@ impl Space {
         self.size += chunk.size();
 
         self.chunks.push(chunk);
+    }
+
+    pub fn contains(&self, addr: Address) -> bool {
+        for chunk in &self.chunks {
+            if chunk.contains(addr) {
+                return true;
+            }
+        }
+
+        false
     }
 }

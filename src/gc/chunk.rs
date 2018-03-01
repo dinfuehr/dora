@@ -1,15 +1,16 @@
 use std::ptr;
 
+use gc::Address;
 use mem;
 use os;
 
 /// Chunk is a contiguous space of memory allocated with `mmap`.
 /// Deallocation happens in the destructor with `munmap`.
 pub struct Chunk {
-    start: *const u8,
-    end: *const u8,
+    start: Address,
+    end: Address,
 
-    next: *const u8,
+    next: Address,
 }
 
 impl Chunk {
@@ -21,33 +22,35 @@ impl Chunk {
             panic!("could not allocate chunk of size {} bytes", size);
         }
 
+        let addr = Address::from_ptr(ptr);
+
         Chunk {
-            start: ptr,
-            end: unsafe { ptr.offset(size as isize) },
-            next: ptr,
+            start: addr,
+            end: addr.offset(size),
+            next: addr,
         }
     }
 
     pub fn alloc(&mut self, size: usize) -> *const u8 {
         let size = mem::align_usize(size, 64);
 
-        if self.end as usize - self.next as usize > size {
-            let next = unsafe { self.next.offset(size as isize) };
+        if self.end.offset_from(self.next) > size {
+            let next = self.next.offset(size);
             let addr = self.next;
             self.next = next;
 
-            addr
+            addr.to_ptr()
         } else {
             ptr::null()
         }
     }
 
     pub fn size(&self) -> usize {
-        self.end as usize - self.start as usize
+        self.end.offset_from(self.start)
     }
 
-    pub fn includes(&self, ptr: *const u8) -> bool {
-        self.start <= ptr && ptr < self.end
+    pub fn contains(&self, addr: Address) -> bool {
+        self.start <= addr && addr < self.end
     }
 }
 
@@ -58,36 +61,36 @@ mod tests {
     #[test]
     fn test_chunk_size() {
         let mut chunk = Chunk {
-            start: 10 as *const u8,
-            end: 14 as *const u8,
-            next: 0 as *const u8,
+            start: 10.into(),
+            end: 14.into(),
+            next: 0.into(),
         };
 
         assert_eq!(4, chunk.size());
 
-        chunk.end = 20 as *const u8;
+        chunk.end = 20.into();
         assert_eq!(10, chunk.size());
 
         drop(chunk);
     }
 
     #[test]
-    fn test_chunk_includes() {
+    fn test_chunk_contains() {
         let mut chunk = Chunk {
-            start: 10 as *const u8,
-            end: 14 as *const u8,
-            next: 0 as *const u8,
+            start: 10.into(),
+            end: 14.into(),
+            next: 0.into(),
         };
 
-        assert_eq!(false, chunk.includes(9 as *const u8));
-        assert_eq!(true, chunk.includes(10 as *const u8));
-        assert_eq!(true, chunk.includes(13 as *const u8));
-        assert_eq!(false, chunk.includes(14 as *const u8));
-        assert_eq!(false, chunk.includes(15 as *const u8));
+        assert_eq!(false, chunk.contains(9.into()));
+        assert_eq!(true, chunk.contains(10.into()));
+        assert_eq!(true, chunk.contains(13.into()));
+        assert_eq!(false, chunk.contains(14.into()));
+        assert_eq!(false, chunk.contains(15.into()));
 
-        chunk.end = 20 as *const u8;
-        assert_eq!(true, chunk.includes(19 as *const u8));
-        assert_eq!(false, chunk.includes(20 as *const u8));
+        chunk.end = 20.into();
+        assert_eq!(true, chunk.contains(19.into()));
+        assert_eq!(false, chunk.contains(20.into()));
 
         drop(chunk);
     }

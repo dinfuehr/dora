@@ -1,5 +1,4 @@
 //= vm-args "--gc=swiper --gc-verify"
-//= ignore
 
 fun main() {
   let x = "perm";

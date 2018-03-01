@@ -1,5 +1,6 @@
 use gc::Address;
 use gc::root::IndirectObj;
+use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -16,6 +17,7 @@ pub struct Verifier<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [IndirectObj],
+    perm_space: &'a Space,
 
     refs_to_young_gen: usize,
     in_old: bool,
@@ -31,6 +33,7 @@ impl<'a> Verifier<'a> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
+        perm_space: &'a Space,
     ) -> Verifier<'a> {
         Verifier {
             young: young,
@@ -38,6 +41,7 @@ impl<'a> Verifier<'a> {
             card_table: card_table,
             crossing_map: crossing_map,
             rootset: rootset,
+            perm_space: perm_space,
 
             refs_to_young_gen: 0,
             in_old: false,
@@ -161,7 +165,7 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_region.contains(addr) || self.young_region.contains(addr) {
+        if self.old_region.contains(addr) || self.young_region.contains(addr) || self.perm_space.contains(addr) {
             let object = unsafe { &mut *obj };
 
             // Verify that the address is the start of an object,

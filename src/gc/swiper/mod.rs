@@ -132,12 +132,15 @@ impl Swiper {
                 println!("VERIFY: {}", _name);
             }
 
+            let perm_space = ctxt.gc.perm_space.lock().unwrap();
+
             let mut verifier = Verifier::new(
                 &self.young,
                 &self.old,
                 &self.card_table,
                 &self.crossing_map,
                 rootset,
+                &*perm_space,
             );
             verifier.verify();
         }

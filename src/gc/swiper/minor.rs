@@ -173,6 +173,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 ptr = ptr.offset(object.size());
             }
 
+            // if we are in the last card of the old generation, promoted objects
+            // will increase `end` towards `card_end`. Those newly promoted objects
+            // need also be handled.
+            if end == card_end {
+                break;
+            }
+
             let old_end = self.old.free();
             let next_end = cmp::min(card_end, old_end);
 
