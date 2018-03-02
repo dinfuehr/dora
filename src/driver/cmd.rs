@@ -69,6 +69,12 @@ pub struct Args {
     pub cmd_test: bool,
 }
 
+impl Args {
+    pub fn heap_size(&self) -> usize {
+        self.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024)
+    }
+}
+
 impl Default for Args {
     fn default() -> Args {
         Args {

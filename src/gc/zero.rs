@@ -15,7 +15,7 @@ pub struct ZeroCollector {
 
 impl ZeroCollector {
     pub fn new(args: &Args) -> ZeroCollector {
-        let heap_size: usize = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024);
+        let heap_size: usize = args.heap_size();
 
         let ptr = arena::reserve(heap_size).expect("could not reserve memory");
         arena::commit(ptr, heap_size, false).expect("could not commit memory");
