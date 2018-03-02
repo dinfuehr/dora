@@ -89,7 +89,7 @@ impl YoungGen {
         loop {
             new = old + size;
 
-            if new >= self.end.load(Ordering::Relaxed) {
+            if new > self.end.load(Ordering::Relaxed) {
                 return ptr::null();
             }
 

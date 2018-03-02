@@ -33,7 +33,7 @@ pub struct Space {
     config: SpaceConfig,
     total: Region,
 
-    free: AtomicUsize,
+    top: AtomicUsize,
     end: AtomicUsize,
 
     allocate: Mutex<()>,
@@ -55,7 +55,7 @@ impl Space {
             config: config,
             total: Region::new(space_start, space_end),
 
-            free: AtomicUsize::new(space_start.to_usize()),
+            top: AtomicUsize::new(space_start.to_usize()),
             end: AtomicUsize::new(end.to_usize()),
 
             allocate: Mutex::new(()),
@@ -73,24 +73,24 @@ impl Space {
             let ptr = self.raw_alloc(size);
             if !ptr.is_null() { return ptr; }
 
-            if !self.add_chunk(size) {
+            if !self.extend(size) {
                 return ptr::null_mut();
             }
         }
     }
 
     fn raw_alloc(&self, size: usize) -> *mut u8 {
-        let mut old = self.free.load(Ordering::Relaxed);
+        let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 
         loop {
             new = old + size;
 
-            if new >= self.end.load(Ordering::Relaxed) {
+            if new > self.end.load(Ordering::Relaxed) {
                 return ptr::null_mut();
             }
 
-            let res = self.free.compare_exchange_weak(
+            let res = self.top.compare_exchange_weak(
                 old,
                 new,
                 Ordering::SeqCst,
@@ -106,17 +106,17 @@ impl Space {
         old as *mut u8
     }
 
-    fn add_chunk(&self, size: usize) -> bool {
+    fn extend(&self, size: usize) -> bool {
         let _lock = self.allocate.lock().expect("couldn't take lock.");
 
-        let free = self.free.load(Ordering::Relaxed);
+        let top = self.top.load(Ordering::Relaxed);
         let end = self.end.load(Ordering::Relaxed);
 
-        if free + size <= end {
+        if top + size <= end {
             return true;
         }
 
-        let size = size - (end - free);
+        let size = size - (end - top);
         let size = mem::align_usize(size, self.config.chunk);
 
         let new_end = end + size;
