@@ -62,7 +62,7 @@ impl Swiper {
         let alloc_size = heap_size + card_size + crossing_size;
 
         let ptr = arena::reserve(alloc_size).expect("could not reserve heap.");
-        arena::commit(ptr, alloc_size).expect("could not commit heap.");
+        arena::commit(ptr, alloc_size, false).expect("could not commit heap.");
 
         let heap_start = ptr;
         let heap_end = ptr.offset(heap_size);
@@ -132,7 +132,7 @@ impl Swiper {
                 println!("VERIFY: {}", _name);
             }
 
-            let perm_space = ctxt.gc.perm_space.lock().unwrap();
+            let perm_space = &ctxt.gc.perm_space;
 
             let mut verifier = Verifier::new(
                 &self.young,
@@ -191,7 +191,7 @@ pub struct Region {
 }
 
 impl Region {
-    fn new(start: Address, end: Address) -> Region {
+    pub fn new(start: Address, end: Address) -> Region {
         Region {
             start: start,
             end: end,
@@ -199,12 +199,12 @@ impl Region {
     }
 
     #[inline(always)]
-    fn contains(&self, addr: Address) -> bool {
+    pub fn contains(&self, addr: Address) -> bool {
         self.start <= addr && addr < self.end
     }
 
     #[inline(always)]
-    fn size(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
     }
 }

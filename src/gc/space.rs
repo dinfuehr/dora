@@ -1,18 +1,29 @@
-use std::cmp::max;
+use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 
+use gc::arena;
 use gc::Address;
-use gc::chunk::Chunk;
+use gc::swiper::Region;
 use mem;
-use os;
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
 /// code space and the permanent space.
 pub struct SpaceConfig {
-    pub prot: os::ProtType,
-    pub chunk_size: usize,
+    pub executable: bool,
+    pub chunk: usize,
     pub limit: usize,
     pub align: usize,
+}
+
+fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {
+    SpaceConfig {
+        executable: config.executable,
+        chunk: mem::page_align(config.chunk),
+        limit: mem::page_align(config.limit),
+        align: config.align,
+    }
 }
 
 /// Non-contiguous space of memory. Used for permanent space
@@ -20,64 +31,108 @@ pub struct SpaceConfig {
 pub struct Space {
     name: &'static str,
     config: SpaceConfig,
-    chunks: Vec<Chunk>,
-    size: usize,
+    total: Region,
+
+    free: AtomicUsize,
+    end: AtomicUsize,
+
+    allocate: Mutex<()>,
 }
 
 impl Space {
-    /// initializes `Space` and allocates the first chunk immediately.
+    /// initializes `Space` and reserves the maximum size.
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
-        let mut code = Space {
+        let config = adapt_to_page_size(config);
+
+        let space_start = arena::reserve(config.limit).expect("could not reserve space.");
+        let space_end = space_start.offset(config.limit);
+
+        arena::commit(space_start, config.chunk, config.executable).expect("could not commit first chunk.");
+        let end = space_start.offset(config.chunk);
+
+        Space {
             name: name,
             config: config,
-            chunks: Vec::new(),
-            size: 0,
-        };
+            total: Region::new(space_start, space_end),
 
-        code.add_chunk(0);
+            free: AtomicUsize::new(space_start.to_usize()),
+            end: AtomicUsize::new(end.to_usize()),
 
-        code
+            allocate: Mutex::new(()),
+        }
     }
 
     /// allocate memory in this space. This first tries to allocate space
     /// in the current chunk. If this fails a new chunk is allocated.
     /// Doesn't use a freelist right now so memory at the end of a chunk
     /// is probably lost.
-    pub fn alloc(&mut self, size: usize) -> *mut u8 {
+    pub fn alloc(&self, size: usize) -> *mut u8 {
         let size = mem::align_usize(size, self.config.align);
-        let mut ptr = self.chunks.last_mut().unwrap().alloc(size);
 
-        if ptr.is_null() {
-            self.add_chunk(size);
-            ptr = self.chunks.last_mut().unwrap().alloc(size);
+        loop {
+            let ptr = self.raw_alloc(size);
+            if !ptr.is_null() { return ptr; }
+
+            if !self.add_chunk(size) {
+                return ptr::null_mut();
+            }
         }
-
-        ptr as *mut u8
     }
 
-    /// adds another chunk to the space. Checks if allocation of chunk
-    /// would violate the size limit for this space.
-    pub fn add_chunk(&mut self, size: usize) {
-        let size = max(size, self.config.chunk_size);
-        let size = mem::align_usize(size, os::page_size() as usize);
+    fn raw_alloc(&self, size: usize) -> *mut u8 {
+        let mut old = self.free.load(Ordering::Relaxed);
+        let mut new;
 
-        if self.size + size > self.config.limit {
-            panic!("{} space full", self.name);
-        }
+        loop {
+            new = old + size;
 
-        let chunk = Chunk::new(size, self.config.prot);
-        self.size += chunk.size();
+            if new >= self.end.load(Ordering::Relaxed) {
+                return ptr::null_mut();
+            }
 
-        self.chunks.push(chunk);
-    }
+            let res = self.free.compare_exchange_weak(
+                old,
+                new,
+                Ordering::SeqCst,
+                Ordering::Relaxed,
+            );
 
-    pub fn contains(&self, addr: Address) -> bool {
-        for chunk in &self.chunks {
-            if chunk.contains(addr) {
-                return true;
+            match res {
+                Ok(_) => break,
+                Err(x) => old = x,
             }
         }
 
-        false
+        old as *mut u8
+    }
+
+    fn add_chunk(&self, size: usize) -> bool {
+        let _lock = self.allocate.lock().expect("couldn't take lock.");
+
+        let free = self.free.load(Ordering::Relaxed);
+        let end = self.end.load(Ordering::Relaxed);
+
+        if free + size <= end {
+            return true;
+        }
+
+        let size = size - (end - free);
+        let size = mem::align_usize(size, self.config.chunk);
+
+        let new_end = end + size;
+
+        if new_end <= self.total.end.to_usize() {
+            arena::commit(end.into(), size, self.config.executable).expect("couldn't commit chunk.");
+            self.end.store(new_end, Ordering::SeqCst);
+
+            true
+
+        } else {
+            false
+        }
+    }
+
+    pub fn contains(&self, addr: Address) -> bool {
+        self.total.contains(addr)
     }
 }

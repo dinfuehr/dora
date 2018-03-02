@@ -1,6 +1,7 @@
 use std::ptr;
 
 use gc::Address;
+use mem;
 
 pub fn reserve(size: usize) -> Result<Address, ()> {
     use libc;
@@ -23,14 +24,23 @@ pub fn reserve(size: usize) -> Result<Address, ()> {
     }
 }
 
-pub fn commit(ptr: Address, size: usize) -> Result<(), ()> {
+pub fn commit(ptr: Address, size: usize, executable: bool) -> Result<(), ()> {
+    debug_assert!(mem::is_page_aligned(ptr.to_usize()));
+    debug_assert!(mem::is_page_aligned(size));
+
     use libc;
+
+    let mut prot = libc::PROT_READ | libc::PROT_WRITE;
+
+    if executable {
+        prot |= libc::PROT_EXEC;
+    }
 
     let val = unsafe {
         libc::mmap(
             ptr.to_mut_ptr(),
             size,
-            libc::PROT_READ | libc::PROT_WRITE,
+            prot,
             libc::MAP_PRIVATE | libc::MAP_ANON | libc::MAP_FIXED,
             -1,
             0,

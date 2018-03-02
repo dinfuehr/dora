@@ -1,6 +1,5 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
-use std::sync::Mutex;
 
 use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
@@ -8,7 +7,6 @@ use gc::copy::CopyCollector;
 use gc::swiper::Swiper;
 use gc::space::{Space, SpaceConfig};
 use gc::zero::ZeroCollector;
-use os;
 
 pub mod arena;
 pub mod chunk;
@@ -28,22 +26,22 @@ const PERM_SPACE_LIMIT: usize = 64 * 1024;
 pub struct Gc {
     collector: Box<Collector>,
 
-    code_space: Mutex<Space>,
-    perm_space: Mutex<Space>,
+    code_space: Space,
+    perm_space: Space,
 }
 
 impl Gc {
     pub fn new(args: &Args) -> Gc {
         let code_config = SpaceConfig {
-            prot: os::Executable,
-            chunk_size: CHUNK_SIZE,
+            executable: true,
+            chunk: CHUNK_SIZE,
             limit: CODE_SPACE_LIMIT,
             align: 64,
         };
 
         let perm_config = SpaceConfig {
-            prot: os::Writable,
-            chunk_size: CHUNK_SIZE,
+            executable: false,
+            chunk: CHUNK_SIZE,
             limit: PERM_SPACE_LIMIT,
             align: 8,
         };
@@ -59,8 +57,8 @@ impl Gc {
         Gc {
             collector: collector,
 
-            code_space: Mutex::new(Space::new(code_config, "code")),
-            perm_space: Mutex::new(Space::new(perm_config, "perm")),
+            code_space: Space::new(code_config, "code"),
+            perm_space: Space::new(perm_config, "perm"),
         }
     }
 
@@ -73,11 +71,11 @@ impl Gc {
     }
 
     pub fn alloc_code(&self, size: usize) -> *mut u8 {
-        self.code_space.lock().unwrap().alloc(size)
+        self.code_space.alloc(size)
     }
 
     pub fn alloc_perm(&self, size: usize) -> *mut u8 {
-        self.perm_space.lock().unwrap().alloc(size)
+        self.perm_space.alloc(size)
     }
 
     pub fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {

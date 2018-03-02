@@ -18,7 +18,7 @@ impl ZeroCollector {
         let heap_size: usize = args.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024);
 
         let ptr = arena::reserve(heap_size).expect("could not reserve memory");
-        arena::commit(ptr, heap_size).expect("could not commit memory");
+        arena::commit(ptr, heap_size, false).expect("could not commit memory");
 
         ZeroCollector {
             start: ptr,
