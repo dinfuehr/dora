@@ -2,7 +2,7 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
 use baseline::fct::{JitBaselineFct, JitFctId, JitFct};
-use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP};
+use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use masm::MacroAssembler;
 use mem;
@@ -68,20 +68,31 @@ where
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let args = self.fct.args.len();
 
-        let framesize = size_of::<DoraToNativeInfo>() as i32 + if save_return { 8 } else { 0 } +
-            (args * 8) as i32;
+        let framesize =
+            size_of::<DoraToNativeInfo>() as i32 +          // save d2n structure on stack
+            mem::ptr_width() +                              // store thread register
+            (args as i32 * mem::ptr_width()) +              // store arguments on stack
+            if save_return { mem::ptr_width() } else { 0 }; // save return value on stack
 
         let framesize = mem::align_i32(framesize, 16);
 
         let offset_return = 0;
-        let offset_args = offset_return + if save_return { 8 } else { 0 };
-        // let offset_dtn = offset_args + self.args * 8;
+        let offset_args = offset_return + if save_return { mem::ptr_width() } else { 0 };
+        let offset_thread = offset_args + mem::ptr_width();
+
+        // `start_native_call` assumes that offset_dtn is on top of current stack frame.
 
         if self.dbg {
             self.masm.debug();
         }
 
         self.masm.prolog(framesize);
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_thread),
+            REG_THREAD.into(),
+        );
 
         save_params(&mut self.masm, self.fct.args, offset_args);
 
@@ -98,7 +109,7 @@ where
         if save_return {
             self.masm.store_mem(
                 MachineMode::Ptr,
-                Mem::Base(REG_SP, 0),
+                Mem::Base(REG_SP, offset_return),
                 REG_RESULT.into(),
             );
         }
@@ -113,9 +124,15 @@ where
             self.masm.load_mem(
                 MachineMode::Ptr,
                 REG_RESULT.into(),
-                Mem::Base(REG_SP, 0),
+                Mem::Base(REG_SP, offset_return),
             );
         }
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_THREAD.into(),
+            Mem::Base(REG_SP, offset_thread),
+        );
 
         self.masm.epilog(framesize, self.ctxt.polling_page.addr());
 
