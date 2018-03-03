@@ -171,22 +171,20 @@ impl CopyCollector {
 
     fn copy(&self, obj: *mut Obj, top: &mut Address) -> *mut Obj {
         let obj = unsafe { &mut *obj };
-        let addr = get_forwarding_address(obj);
 
-        if is_forwarding_address(addr) {
-            unmark_forwarding_address(addr).to_mut_ptr()
-
-        } else {
-            let addr = *top;
-            let obj_size = obj.size();
-
-            copy_object(obj, addr, obj_size);
-            *top = top.offset(obj_size);
-
-            set_forwarding_address(obj, addr);
-
-            addr.to_mut_ptr()
+        if let Some(fwd) = obj.header().forwarded() {
+            return fwd.to_mut_ptr();
         }
+
+        let addr = *top;
+        let obj_size = obj.size();
+
+        copy_object(obj, addr, obj_size);
+        *top = top.offset(obj_size);
+
+        obj.header_mut().forward_to(addr);
+
+        addr.to_mut_ptr()
     }
 
     pub fn from_space(&self) -> Region {
@@ -213,52 +211,5 @@ fn copy_object(obj: &Obj, addr: Address, size: usize) {
             addr.to_mut_ptr::<u8>(),
             size,
         );
-    }
-}
-
-pub fn is_forwarding_address(obj: Address) -> bool {
-    obj.to_usize() & 1 == 1
-}
-
-pub fn mark_forwarding_address(obj: Address) -> Address {
-    (obj.to_usize() | 1).into()
-}
-
-pub fn unmark_forwarding_address(obj: Address) -> Address {
-    (obj.to_usize() & !1).into()
-}
-
-pub fn get_forwarding_address(obj: &Obj) -> Address {
-    unsafe { *(obj as *const Obj as *const usize) }.into()
-}
-
-pub fn set_forwarding_address(obj: &mut Obj, addr: Address) {
-    unsafe {
-        *(obj as *mut Obj as *mut usize) = mark_forwarding_address(addr).to_usize();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_mark_forwarding_address() {
-        assert_eq!(Address::from(9), mark_forwarding_address(8.into()));
-        assert_eq!(Address::from(13), mark_forwarding_address(12.into()));
-    }
-
-    #[test]
-    fn test_unmark_forwarding_address() {
-        assert_eq!(Address::from(8), unmark_forwarding_address(9.into()));
-        assert_eq!(Address::from(12), unmark_forwarding_address(13.into()));
-    }
-
-    #[test]
-    fn test_is_forwarding_address() {
-        assert_eq!(false, is_forwarding_address(8.into()));
-        assert_eq!(true, is_forwarding_address(9.into()));
-        assert_eq!(false, is_forwarding_address(12.into()));
-        assert_eq!(true, is_forwarding_address(13.into()));
     }
 }

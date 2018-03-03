@@ -8,6 +8,7 @@ use std::str;
 
 use class::{ClassDefId, ClassSize};
 use ctxt::SemContext;
+use gc::Address;
 use gc::root::IndirectObj;
 use handle::Rooted;
 use mem;
@@ -30,6 +31,20 @@ impl Header {
 
     pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtable }
+    }
+
+    pub fn forward_to(&mut self, address: Address) {
+        self.vtable = (address.to_usize() | 1) as *mut VTable;
+    }
+
+    pub fn forwarded(&self) -> Option<Address> {
+        let addr = self.vtable as usize;
+
+        if (addr & 1) == 1 {
+            Some((addr & !1).into())
+        } else {
+            None
+        }
     }
 }
 

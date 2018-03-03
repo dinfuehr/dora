@@ -200,44 +200,42 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     fn copy(&mut self, obj: *mut Obj) -> *mut Obj {
         let obj_addr = Address::from_ptr(obj);
         let obj = unsafe { &mut *obj };
-        let fwaddr = get_forwarding_address(obj);
 
-        if is_forwarding_address(fwaddr) {
-            unmark_forwarding_address(fwaddr).to_mut_ptr::<Obj>()
+        if let Some(fwd) = obj.header().forwarded() {
+            return fwd.to_mut_ptr();
+        }
 
-        } else {
-            let obj_size = obj.size();
+        let obj_size = obj.size();
 
-            let copy_addr: Address;
+        let copy_addr: Address;
 
-            // if object is old enough we copy it into the old generation
-            if self.young.should_be_promoted(obj_addr) {
-                copy_addr = Address::from_ptr(self.old.alloc(obj_size));
+        // if object is old enough we copy it into the old generation
+        if self.young.should_be_promoted(obj_addr) {
+            copy_addr = Address::from_ptr(self.old.alloc(obj_size));
 
-                // assume for now that we can promote each object into the
-                // old generation
-                if copy_addr.is_null() {
-                    panic!("couldn't promote object into old generation.");
-                }
-
-                copy_object(obj, copy_addr, obj_size);
-
-                // Promoted object can have references to the young generation.
-                // Set the card table entry to dirty if this is the case.
-                self.handle_promoted_object(copy_addr);
-
-            // otherwise the object remains in the young generation for now
-            } else {
-                copy_addr = self.free;
-                self.free = copy_addr.offset(obj_size);
-
-                copy_object(obj, copy_addr, obj_size);
+            // assume for now that we can promote each object into the
+            // old generation
+            if copy_addr.is_null() {
+                panic!("couldn't promote object into old generation.");
             }
 
-            set_forwarding_address(obj, copy_addr);
+            copy_object(obj, copy_addr, obj_size);
 
-            copy_addr.to_mut_ptr::<Obj>()
+            // Promoted object can have references to the young generation.
+            // Set the card table entry to dirty if this is the case.
+            self.handle_promoted_object(copy_addr);
+
+        // otherwise the object remains in the young generation for now
+        } else {
+            copy_addr = self.free;
+            self.free = copy_addr.offset(obj_size);
+
+            copy_object(obj, copy_addr, obj_size);
         }
+
+        obj.header_mut().forward_to(copy_addr);
+
+        copy_addr.to_mut_ptr()
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {
@@ -272,27 +270,5 @@ fn copy_object(obj: &Obj, addr: Address, size: usize) {
             addr.to_mut_ptr::<u8>(),
             size,
         );
-    }
-}
-
-pub fn is_forwarding_address(obj: Address) -> bool {
-    (obj.to_usize() & 1) == 1
-}
-
-pub fn mark_forwarding_address(obj: Address) -> Address {
-    (obj.to_usize() | 1).into()
-}
-
-pub fn unmark_forwarding_address(obj: Address) -> Address {
-    (obj.to_usize() & !1).into()
-}
-
-pub fn get_forwarding_address(obj: &Obj) -> Address {
-    unsafe { *(obj as *const Obj as *const Address) }
-}
-
-pub fn set_forwarding_address(obj: &mut Obj, addr: Address) {
-    unsafe {
-        *(obj as *mut Obj as *mut Address) = mark_forwarding_address(addr);
     }
 }
