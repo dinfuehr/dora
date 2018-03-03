@@ -15,6 +15,8 @@ use object::Obj;
 pub enum VerifierPhase {
     PreMinor,
     PostMinor,
+    PreFull,
+    PostFull,
 }
 
 impl VerifierPhase {
@@ -22,6 +24,8 @@ impl VerifierPhase {
         match self {
             VerifierPhase::PreMinor => true,
             VerifierPhase::PostMinor => false,
+            VerifierPhase::PreFull => true,
+            VerifierPhase::PostFull => false,
         }
     }
 }

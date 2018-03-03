@@ -8,6 +8,7 @@ use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
+use gc::swiper::full::FullCollector;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
@@ -16,6 +17,7 @@ use mem;
 
 pub mod card;
 mod crossing;
+mod full;
 mod minor;
 pub mod old;
 mod verify;
@@ -124,6 +126,24 @@ impl Swiper {
         collector.collect();
 
         self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
+    }
+
+    fn full_collect(&self, ctxt: &SemContext) {
+        let rootset = get_rootset(ctxt);
+
+        self.verify(ctxt, VerifierPhase::PreFull, "pre-full", &rootset);
+
+        let mut collector = FullCollector::new(
+            ctxt,
+            &self.young,
+            &self.old,
+            &self.card_table,
+            &self.crossing_map,
+            &rootset,
+        );
+        collector.collect();
+
+        self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
     fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[IndirectObj]) {
