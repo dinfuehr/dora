@@ -188,7 +188,13 @@ impl Collector for Swiper {
             self.minor_collect(ctxt);
         }
 
-        self.young.alloc(size)
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.old.alloc(size)
     }
 
     fn alloc_array(

@@ -49,23 +49,56 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) {
-        let mut timer = Timer::new(self.ctxt.args.flag_gc_events);
+        let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
         let to_space = self.young.to_space();
 
         let mut scan = to_space.start;
         self.free = scan;
 
+        self.unprotect_to_space();
+
+        self.visit_roots();
+        self.copy_dirty_cards();
+        self.visit_copied_objects();
+        self.young.swap_spaces(self.free);
+
+        self.protect_to_space();
+
+        timer.stop_with(|dur| {
+            println!("GC: Minor GC ({} ms)", in_ms(dur));
+        });
+    }
+
+    fn unprotect_to_space(&mut self) {
+        // make memory writable again, so that we
+        // can copy objects to the to-space.
+        // Since this has some overhead, do it only in debug builds.
+
         if cfg!(debug_assertions) {
-            // make memory readable & writable again, so that we
-            // can copy objects to the to-space.
-            // Since this has some overhead, do it only in debug builds.
+            let to_space = self.young.to_space();
+
             os::mprotect(
                 to_space.start.to_ptr::<u8>(),
                 to_space.size(),
                 ProtType::Writable,
             );
         }
+    }
 
+    fn protect_to_space(&mut self) {
+        // Make from-space unaccessible both from read/write.
+        // Since this has some overhead, do it only in debug builds.
+        if cfg!(debug_assertions) {
+            let to_space = self.young.to_space();
+            os::mprotect(
+                to_space.start.to_ptr::<u8>(),
+                to_space.size(),
+                ProtType::None,
+            );
+        }
+    }
+
+    fn visit_roots(&mut self) {
         // detect all references from roots into young generation
         for &root in self.rootset {
             let root_ptr = root.get();
@@ -74,10 +107,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 root.set(self.copy(root_ptr));
             }
         }
+    }
 
-        // detect references from old generation (dirty cards) into young generation
-        self.copy_dirty_cards();
-
+    fn visit_copied_objects(&mut self) {
         // visit all fields in copied objects
         while scan < self.free {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
@@ -92,23 +124,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             scan = scan.offset(object.size());
         }
-
-        self.young.swap_spaces(self.free);
-
-        // Make from-space unaccessible both from read/write.
-        // Since this has some overhead, do it only in debug builds.
-        if cfg!(debug_assertions) {
-            let to_space = self.young.to_space();
-            os::mprotect(
-                to_space.start.to_ptr::<u8>(),
-                to_space.size(),
-                ProtType::None,
-            );
-        }
-
-        timer.stop_with(|dur| if self.ctxt.args.flag_gc_events {
-            println!("GC minor: collect garbage ({} ms)", in_ms(dur));
-        });
     }
 
     // copy all references from old- into young-generation.

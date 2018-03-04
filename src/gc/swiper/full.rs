@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
-use gc::swiper::card::CardTable;
+use gc::swiper::card::{CardEntry, CardTable};
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
 use gc::swiper::Region;
@@ -13,6 +14,7 @@ use gc::swiper::young::YoungGen;
 use mem;
 use object::Obj;
 use os;
+use timer::{in_ms, Timer};
 
 pub struct FullCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
@@ -26,6 +28,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     marking_bitmap: MarkingBitmap,
     fwd_table: HashMap<Address, Address>,
+    young_refs_set: HashSet<Address>,
     old_top: Address,
 }
 
@@ -54,17 +57,26 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             marking_bitmap: marking_bitmap,
             fwd_table: HashMap::new(),
+            young_refs_set: HashSet::new(),
             old_top: Address::null(),
         }
     }
 
     pub fn collect(&mut self) {
+        let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
+        let init_size = self.old.used_region().size();
+
         self.mark_live();
         self.compute_forward();
         self.update_references();
         self.relocate();
 
         self.old.free.store(self.old_top.to_usize(), Ordering::SeqCst);
+        let new_size = self.old.used_region().size();
+
+        timer.stop_with(|dur| {
+            println!("GC: Full GC ({} ms, {} -> {} size)", in_ms(dur), init_size, new_size);
+        });
     }
 
     fn mark_live(&mut self) {
@@ -136,14 +148,23 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let object_size = object.size();
 
             if self.is_marked(object) {
+                let mut young_refs = true;
+
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
                     if self.old.contains(field_addr) {
                         let fwd_addr = self.fwd_table.get(&field_addr).expect("forwarding address not found.");
                         field.set(fwd_addr.to_mut_ptr());
+
+                    } else if self.young.contains(field_addr) {
+                        young_refs = true;
                     }
                 });
+
+                if young_refs {
+                    self.young_refs_set.insert(scan);
+                }
             }
 
             scan = scan.offset(object_size);
@@ -165,6 +186,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let mut scan = used_region.start;
         let end = used_region.end;
 
+        self.crossing_map.set_first_object(0.into(), 0);
+        let mut young_refs = false;
+
         while scan < end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
             let object_size = object.size();
@@ -172,10 +196,43 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             if self.is_marked(object) {
                 let &dest = self.fwd_table.get(&scan).expect("forwarding address not found.");
                 object.copy_to(dest, object_size);
+
+                if !young_refs {
+                    young_refs = self.young_refs_set.contains(&scan);
+                }
+
+                let next = dest.offset(object_size);
+
+                if on_different_cards(dest, next) {
+                    self.update_crossing(next);
+                    self.update_card(scan, &mut young_refs);
+                }
             }
 
             scan = scan.offset(object_size);
         }
+
+        if !start_of_card(scan) {
+            self.update_card(scan, &mut young_refs);
+        }
+    }
+
+    fn update_crossing(&mut self, addr: Address) {
+        let offset = addr.to_usize() & (CARD_SIZE - 1);
+        let offset_words = offset / (mem::ptr_width() as usize);
+
+        let card = self.old.card_from_address(addr);
+
+        self.crossing_map.set_first_object(card, offset_words);
+    }
+
+    fn update_card(&mut self, addr: Address, young_refs: &mut bool) {
+        let card = self.old.card_from_address(addr);
+
+        let card_entry = if *young_refs { CardEntry::Dirty } else { CardEntry:: Clean };
+        self.card_table.set(card, card_entry);
+
+        *young_refs = false;
     }
 
     fn is_marked(&self, obj: &Obj) -> bool {
@@ -189,6 +246,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn mark(&mut self, addr: Address) {
         self.marking_bitmap.mark(addr);
     }
+}
+
+fn on_different_cards(curr: Address, next: Address) -> bool {
+    (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
+}
+
+fn start_of_card(addr: Address) -> bool {
+    (addr.to_usize() & (CARD_SIZE - 1)) == addr.to_usize()
 }
 
 pub struct MarkingBitmap {
