@@ -24,6 +24,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     crossing_map: &'a CrossingMap,
 
     free: Address,
+    promotion_failed: bool,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -43,6 +44,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             card_table: card_table,
             crossing_map: crossing_map,
             free: Address::null(),
+            promotion_failed: false,
         }
     }
 
@@ -206,35 +208,38 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let obj_size = obj.size();
 
-        let copy_addr: Address;
-
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {
-            copy_addr = Address::from_ptr(self.old.alloc(obj_size));
+            let copy_addr = Address::from_ptr(self.old.alloc(obj_size));
 
-            // assume for now that we can promote each object into the
-            // old generation
+            // if there isn't enough space in old gen keep it in the
+            // young generation for now
             if copy_addr.is_null() {
-                panic!("couldn't promote object into old generation.");
+                self.promotion_failed = true;
+
+            } else {
+                self.promote_object(obj, copy_addr, obj_size);
+                return copy_addr.to_mut_ptr();
             }
-
-            obj.copy_to(copy_addr, obj_size);
-
-            // Promoted object can have references to the young generation.
-            // Set the card table entry to dirty if this is the case.
-            self.handle_promoted_object(copy_addr);
-
-        // otherwise the object remains in the young generation for now
-        } else {
-            copy_addr = self.free;
-            self.free = copy_addr.offset(obj_size);
-
-            obj.copy_to(copy_addr, obj_size);
         }
 
+        copy_addr = self.free;
+        self.free = copy_addr.offset(obj_size);
+
+        obj.copy_to(copy_addr, obj_size);
         obj.header_mut().forward_to(copy_addr);
 
         copy_addr.to_mut_ptr()
+    }
+
+    fn promote_object(&mut self, obj: &mut Obj, copy_addr: Address, obj_size: usize) {
+        obj.copy_to(copy_addr, obj_size);
+
+        // Promoted object can have references to the young generation.
+        // Set the card table entry to dirty if this is the case.
+        self.handle_promoted_object(copy_addr);
+
+        obj.header_mut().forward_to(copy_addr);
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {
@@ -259,5 +264,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         if old_to_young_ref {
             self.card_table.set(card, CardEntry::Dirty);
         }
+    }
+
+    pub fn promotion_failed(&self) -> bool {
+        self.promotion_failed
     }
 }

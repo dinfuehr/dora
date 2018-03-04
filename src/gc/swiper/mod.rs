@@ -110,7 +110,7 @@ impl Swiper {
         }
     }
 
-    fn minor_collect(&self, ctxt: &SemContext) {
+    fn minor_collect(&self, ctxt: &SemContext) -> bool {
         let rootset = get_rootset(ctxt);
 
         self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
@@ -125,7 +125,10 @@ impl Swiper {
         );
         collector.collect();
 
+        let promotion_failed = collector.promotion_failed();
         self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
+
+        promotion_failed
     }
 
     fn full_collect(&self, ctxt: &SemContext) {
@@ -178,7 +181,12 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        self.minor_collect(ctxt);
+        let promotion_failed = self.minor_collect(ctxt);
+
+        if promotion_failed {
+            self.full_collect(ctxt);
+            self.minor_collect(ctxt);
+        }
 
         self.young.alloc(size)
     }
