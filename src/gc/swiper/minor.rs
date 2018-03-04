@@ -50,10 +50,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
-        let to_space = self.young.to_space();
-
-        let mut scan = to_space.start;
-        self.free = scan;
+        self.free = self.young.to_space().start;
 
         self.unprotect_to_space();
 
@@ -110,6 +107,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_copied_objects(&mut self) {
+        let mut scan = self.young.to_space().start;
+
         // visit all fields in copied objects
         while scan < self.free {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
