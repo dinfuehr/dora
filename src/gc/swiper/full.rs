@@ -75,7 +75,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let new_size = self.old.used_region().size();
 
         timer.stop_with(|dur| {
-            println!("GC: Full GC ({} ms, {} -> {} size)", in_ms(dur), init_size, new_size);
+            println!("GC: Full GC ({} ms, {}K -> {}K size)",
+                in_ms(dur), init_size / 1024, new_size / 1024);
         });
     }
 
