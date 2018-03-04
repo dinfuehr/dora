@@ -73,35 +73,30 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if root_ptr.is_null() {
-                // do nothing
-
-            } else if self.heap.contains(root_ptr) {
+            if self.heap.contains(root_ptr) {
                 marking_stack.push(root_ptr);
 
             } else {
-                debug_assert!(self.perm_space.contains(root_ptr));
+                debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
             }
         }
 
         while marking_stack.len() > 0 {
             let object_addr = marking_stack.pop().expect("stack already empty");
             let object = unsafe { &mut *object_addr.to_mut_ptr::<Obj>() };
+            self.mark(object_addr);
 
             object.visit_reference_fields(|field| {
                 let field_addr = Address::from_ptr(field.get());
 
-                if field_addr.is_null() {
-                    // do nothing
-
-                } else if self.heap.contains(field_addr) {
+                if self.heap.contains(field_addr) {
                     if !self.is_marked_addr(field_addr) {
                         marking_stack.push(field_addr);
                         self.mark(field_addr);
                     }
 
                 } else {
-                    debug_assert!(self.perm_space.contains(field_addr));
+                    debug_assert!(field_addr.is_null() || self.perm_space.contains(field_addr));
                 }
             });
         }
@@ -144,7 +139,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if self.heap.contains(field_addr) {
+                    if self.old.contains(field_addr) {
                         let fwd_addr = self.fwd_table.get(&field_addr).expect("forwarding address not found.");
                         field.set(fwd_addr.to_mut_ptr());
                     }
@@ -152,6 +147,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             }
 
             scan = scan.offset(object_size);
+        }
+
+        for root in self.rootset {
+            let root_ptr = Address::from_ptr(root.get());
+
+            if self.old.contains(root_ptr) {
+                let fwd_addr = self.fwd_table.get(&root_ptr).expect("forwarding address not found.");
+                root.set(fwd_addr.to_mut_ptr());
+            }
         }
     }
 
