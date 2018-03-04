@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
+use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::old::OldGen;
@@ -20,6 +21,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     rootset: &'a [IndirectObj],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
+    perm_space: &'a Space,
 
     marking_bitmap: MarkingBitmap,
     fwd_table: HashMap<Address, Address>,
@@ -33,6 +35,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         old: &'a OldGen,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
+        perm_space: &'a Space,
         rootset: &'a [IndirectObj],
     ) -> FullCollector<'a, 'ast> {
         let marking_bitmap = MarkingBitmap::new(heap.clone());
@@ -45,6 +48,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             rootset: rootset,
             card_table: card_table,
             crossing_map: crossing_map,
+            perm_space: perm_space,
 
             marking_bitmap: marking_bitmap,
             fwd_table: HashMap::new(),
@@ -59,7 +63,35 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn mark_live(&mut self) {
-        unimplemented!();
+        let mut marking_stack: Vec<Address> = Vec::new();
+
+        for root in self.rootset {
+            let root_ptr = Address::from_ptr(root.get());
+
+            if self.heap.contains(root_ptr) {
+                marking_stack.push(root_ptr);
+            } else {
+                debug_assert!(self.perm_space.contains(root_ptr));
+            }
+        }
+
+        while marking_stack.len() > 0 {
+            let object_addr = marking_stack.pop().expect("stack already empty");
+            let object = unsafe { &mut *object_addr.to_mut_ptr::<Obj>() };
+
+            object.visit_reference_fields(|field| {
+                let field_addr = Address::from_ptr(field.get());
+
+                if self.heap.contains(field_addr) {
+                    if !self.is_marked_addr(field_addr) {
+                        marking_stack.push(field_addr);
+                        self.mark(field_addr);
+                    }
+                } else {
+                    debug_assert!(self.perm_space.contains(field_addr));
+                }
+            });
+        }
     }
 
     fn compute_forward(&mut self) {
@@ -129,6 +161,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn is_marked(&self, obj: &Obj) -> bool {
         self.marking_bitmap.is_marked(Address::from_ptr(obj as *const _))
+    }
+
+    fn is_marked_addr(&self, addr: Address) -> bool {
+        self.marking_bitmap.is_marked(addr)
+    }
+
+    fn mark(&mut self, addr: Address) {
+        self.marking_bitmap.mark(addr);
     }
 }
 

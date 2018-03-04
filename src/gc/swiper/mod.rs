@@ -140,6 +140,7 @@ impl Swiper {
             &self.old,
             &self.card_table,
             &self.crossing_map,
+            &ctxt.gc.perm_space,
             &rootset,
         );
         collector.collect();
