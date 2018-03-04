@@ -148,7 +148,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let object_size = object.size();
 
             if self.is_marked(object) {
-                let mut young_refs = true;
+                let mut young_refs = false;
 
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
@@ -188,6 +188,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.crossing_map.set_first_object(0.into(), 0);
         let mut young_refs = false;
+        let mut last_dest = Address::null();
 
         while scan < end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
@@ -201,19 +202,21 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     young_refs = self.young_refs_set.contains(&scan);
                 }
 
-                let next = dest.offset(object_size);
+                let next_dest = dest.offset(object_size);
 
-                if on_different_cards(dest, next) {
-                    self.update_crossing(next);
-                    self.update_card(scan, &mut young_refs);
+                if on_different_cards(dest, next_dest) {
+                    self.update_crossing(next_dest);
+                    self.update_card(dest, &mut young_refs);
                 }
+
+                last_dest = next_dest;
             }
 
             scan = scan.offset(object_size);
         }
 
-        if !start_of_card(scan) {
-            self.update_card(scan, &mut young_refs);
+        if !last_dest.is_null() && !start_of_card(last_dest) {
+            self.update_card(last_dest, &mut young_refs);
         }
     }
 
