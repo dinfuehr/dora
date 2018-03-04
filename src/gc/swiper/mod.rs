@@ -135,6 +135,7 @@ impl Swiper {
 
         let mut collector = FullCollector::new(
             ctxt,
+            self.heap.clone(),
             &self.young,
             &self.old,
             &self.card_table,
