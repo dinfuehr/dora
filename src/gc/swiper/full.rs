@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
 use gc::Address;
@@ -25,6 +26,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     marking_bitmap: MarkingBitmap,
     fwd_table: HashMap<Address, Address>,
+    old_top: Address,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -52,6 +54,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             marking_bitmap: marking_bitmap,
             fwd_table: HashMap::new(),
+            old_top: Address::null(),
         }
     }
 
@@ -60,6 +63,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.compute_forward();
         self.update_references();
         self.relocate();
+
+        self.old.free.store(self.old_top.to_usize(), Ordering::SeqCst);
     }
 
     fn mark_live(&mut self) {
@@ -68,8 +73,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if self.heap.contains(root_ptr) {
+            if root_ptr.is_null() {
+                // do nothing
+
+            } else if self.heap.contains(root_ptr) {
                 marking_stack.push(root_ptr);
+
             } else {
                 debug_assert!(self.perm_space.contains(root_ptr));
             }
@@ -82,11 +91,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             object.visit_reference_fields(|field| {
                 let field_addr = Address::from_ptr(field.get());
 
-                if self.heap.contains(field_addr) {
+                if field_addr.is_null() {
+                    // do nothing
+
+                } else if self.heap.contains(field_addr) {
                     if !self.is_marked_addr(field_addr) {
                         marking_stack.push(field_addr);
                         self.mark(field_addr);
                     }
+
                 } else {
                     debug_assert!(self.perm_space.contains(field_addr));
                 }
@@ -113,6 +126,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             scan = scan.offset(obj_size);
         }
+
+        self.old_top = fwd;
     }
 
     fn update_references(&mut self) {
@@ -193,18 +208,27 @@ impl MarkingBitmap {
     }
 
     pub fn mark(&mut self, addr: Address) {
-        debug_assert!(self.heap.contains(addr));
-        let offset = addr.offset_from(self.heap.start) / mem::ptr_width_usize();
-        let byte_offset = offset / 8;
-        let bit_offset = offset % 8;
+        let (byte_offset, bit_offset) = self.mark_offset(addr);
 
         let byte = self.mark_byte(byte_offset);
         let modified_byte = byte | (1 << bit_offset);
         self.set_mark_byte(byte_offset, modified_byte);
     }
 
-    pub fn is_marked(&self, _addr: Address) -> bool {
-        unimplemented!()
+    pub fn is_marked(&self, addr: Address) -> bool {
+        let (byte_offset, bit_offset) = self.mark_offset(addr);
+        let byte = self.mark_byte(byte_offset);
+
+        byte & (1 << bit_offset) != 0
+    }
+
+    fn mark_offset(&self, addr: Address) -> (usize, u8) {
+        debug_assert!(self.heap.contains(addr));
+        let offset = addr.offset_from(self.heap.start) / mem::ptr_width_usize();
+        let byte = offset / 8;
+        let bit = offset % 8;
+
+        (byte, bit as u8)
     }
 
     fn mark_byte(&self, offset: usize) -> u8 {
