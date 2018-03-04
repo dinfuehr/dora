@@ -1,5 +1,4 @@
 use std::cmp;
-use std::ptr;
 
 use ctxt::SemContext;
 
@@ -219,7 +218,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 panic!("couldn't promote object into old generation.");
             }
 
-            copy_object(obj, copy_addr, obj_size);
+            obj.copy_to(copy_addr, obj_size);
 
             // Promoted object can have references to the young generation.
             // Set the card table entry to dirty if this is the case.
@@ -230,7 +229,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             copy_addr = self.free;
             self.free = copy_addr.offset(obj_size);
 
-            copy_object(obj, copy_addr, obj_size);
+            obj.copy_to(copy_addr, obj_size);
         }
 
         obj.header_mut().forward_to(copy_addr);
@@ -260,15 +259,5 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         if old_to_young_ref {
             self.card_table.set(card, CardEntry::Dirty);
         }
-    }
-}
-
-fn copy_object(obj: &Obj, addr: Address, size: usize) {
-    unsafe {
-        ptr::copy_nonoverlapping(
-            obj as *const Obj as *const u8,
-            addr.to_mut_ptr::<u8>(),
-            size,
-        );
     }
 }

@@ -179,7 +179,7 @@ impl CopyCollector {
         let addr = *top;
         let obj_size = obj.size();
 
-        copy_object(obj, addr, obj_size);
+        obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
         obj.header_mut().forward_to(addr);
@@ -201,15 +201,5 @@ impl CopyCollector {
         } else {
             Region::new(self.total.start, self.separator)
         }
-    }
-}
-
-fn copy_object(obj: &Obj, addr: Address, size: usize) {
-    unsafe {
-        ptr::copy_nonoverlapping(
-            obj as *const Obj as *const u8,
-            addr.to_mut_ptr::<u8>(),
-            size,
-        );
     }
 }

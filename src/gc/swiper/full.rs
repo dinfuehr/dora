@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
@@ -7,6 +9,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 use mem;
+use object::Obj;
 use os;
 
 pub struct FullCollector<'a, 'ast: 'a> {
@@ -19,6 +22,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     crossing_map: &'a CrossingMap,
 
     marking_bitmap: MarkingBitmap,
+    fwd_table: HashMap<Address, Address>,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -43,11 +47,88 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             crossing_map: crossing_map,
 
             marking_bitmap: marking_bitmap,
+            fwd_table: HashMap::new(),
         }
     }
 
     pub fn collect(&mut self) {
-        // TODO
+        self.mark_live();
+        self.compute_forward();
+        self.update_references();
+        self.relocate();
+    }
+
+    fn mark_live(&mut self) {
+        unimplemented!();
+    }
+
+    fn compute_forward(&mut self) {
+        let used_region = self.old.used_region();
+
+        let mut scan = used_region.start;
+        let end = used_region.end;
+
+        let mut fwd = self.old.total.start;
+
+        while scan < end {
+            let obj = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+            let obj_size = obj.size();
+
+            if self.is_marked(obj) {
+                self.fwd_table.insert(scan, fwd);
+                fwd = fwd.offset(obj_size);
+            }
+
+            scan = scan.offset(obj_size);
+        }
+    }
+
+    fn update_references(&mut self) {
+        let used_region = self.old.used_region();
+
+        let mut scan = used_region.start;
+        let end = used_region.end;
+
+        while scan < end {
+            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+            let object_size = object.size();
+
+            if self.is_marked(object) {
+                object.visit_reference_fields(|field| {
+                    let field_addr = Address::from_ptr(field.get());
+
+                    if self.heap.contains(field_addr) {
+                        let fwd_addr = self.fwd_table.get(&field_addr).expect("forwarding address not found.");
+                        field.set(fwd_addr.to_mut_ptr());
+                    }
+                });
+            }
+
+            scan = scan.offset(object_size);
+        }
+    }
+
+    fn relocate(&mut self) {
+        let used_region = self.old.used_region();
+
+        let mut scan = used_region.start;
+        let end = used_region.end;
+
+        while scan < end {
+            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+            let object_size = object.size();
+
+            if self.is_marked(object) {
+                let &dest = self.fwd_table.get(&scan).expect("forwarding address not found.");
+                object.copy_to(dest, object_size);
+            }
+
+            scan = scan.offset(object_size);
+        }
+    }
+
+    fn is_marked(&self, obj: &Obj) -> bool {
+        self.marking_bitmap.is_marked(Address::from_ptr(obj as *const _))
     }
 }
 
@@ -80,6 +161,10 @@ impl MarkingBitmap {
         let byte = self.mark_byte(byte_offset);
         let modified_byte = byte | (1 << bit_offset);
         self.set_mark_byte(byte_offset, modified_byte);
+    }
+
+    pub fn is_marked(&self, _addr: Address) -> bool {
+        unimplemented!()
     }
 
     fn mark_byte(&self, offset: usize) -> u8 {

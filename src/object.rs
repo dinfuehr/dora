@@ -113,6 +113,16 @@ impl Obj {
             f(obj.into());
         }
     }
+
+    pub fn copy_to(&self, dest: Address, size: usize) {
+        unsafe {
+            ptr::copy_nonoverlapping(
+                self as *const Obj as *const u8,
+                dest.to_mut_ptr::<u8>(),
+                size,
+            );
+        }
+    }
 }
 
 fn determine_array_size(obj: &Obj, element_size: i32) -> usize {

@@ -129,7 +129,7 @@ trait Collector {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Address(usize);
 
 impl Address {
