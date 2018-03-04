@@ -223,7 +223,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             }
         }
 
-        copy_addr = self.free;
+        let copy_addr = self.free;
         self.free = copy_addr.offset(obj_size);
 
         obj.copy_to(copy_addr, obj_size);
