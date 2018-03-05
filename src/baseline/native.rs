@@ -78,7 +78,7 @@ where
 
         let offset_return = 0;
         let offset_args = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let offset_thread = offset_args + mem::ptr_width();
+        let offset_thread = offset_args + args as i32 * mem::ptr_width();
 
         // `start_native_call` assumes that offset_dtn is on top of current stack frame.
 
