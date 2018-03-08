@@ -3,6 +3,7 @@ use std::ptr;
 
 use gc::Address;
 use gc::swiper::Region;
+use os::{self, ProtType};
 
 pub struct YoungGen {
     // bounds of from- & to-space
@@ -117,5 +118,34 @@ impl YoungGen {
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);
+    }
+
+    pub fn unprotect_to_space(&self) {
+        // make memory writable again, so that we
+        // can copy objects to the to-space.
+        // Since this has some overhead, do it only in debug builds.
+
+        if cfg!(debug_assertions) {
+            let to_space = self.to_space();
+
+            os::mprotect(
+                to_space.start.to_ptr::<u8>(),
+                to_space.size(),
+                ProtType::Writable,
+            );
+        }
+    }
+
+    pub fn protect_to_space(&self) {
+        // Make from-space unaccessible both from read/write.
+        // Since this has some overhead, do it only in debug builds.
+        if cfg!(debug_assertions) {
+            let to_space = self.to_space();
+            os::mprotect(
+                to_space.start.to_ptr::<u8>(),
+                to_space.size(),
+                ProtType::None,
+            );
+        }
     }
 }

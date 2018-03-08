@@ -14,6 +14,7 @@ use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use mem;
+use os;
 
 pub mod card;
 mod crossing;
@@ -25,13 +26,15 @@ pub mod young;
 
 // determines size of young generation in heap
 // young generation size = heap size / YOUNG_RATIO
-const YOUNG_RATIO: u32 = 4;
+const YOUNG_RATIO: usize = 4;
 
 // heap is divided into cards of size CARD_SIZE.
 // card entry determines whether this part of the heap was modified
 // in minor collections those parts of the heap need to be analyzed
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
+
+pub const LARGE_OBJECT: usize = 16 * 1024;
 
 pub struct Swiper {
     heap: Region,
@@ -52,7 +55,8 @@ impl Swiper {
         let heap_size = mem::page_align(heap_size);
 
         // determine sizes of young/old-gen
-        let young_size = mem::page_align(heap_size / (YOUNG_RATIO as usize));
+        let alignment = os::page_size() as usize * 2;
+        let young_size = mem::align_usize(heap_size / YOUNG_RATIO, alignment);
         let old_size = heap_size - young_size;
 
         // determine size for card table
@@ -175,26 +179,11 @@ impl Swiper {
 
 impl Collector for Swiper {
     fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
+        if size < LARGE_OBJECT {
+            self.alloc_normal(ctxt, size)
+        } else {
+            self.alloc_large(ctxt, size)
         }
-
-        let promotion_failed = self.minor_collect(ctxt);
-
-        if promotion_failed {
-            self.full_collect(ctxt);
-            self.minor_collect(ctxt);
-        }
-
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
-        }
-
-        self.old.alloc(size)
     }
 
     fn alloc_array(
@@ -217,6 +206,42 @@ impl Collector for Swiper {
 
     fn card_table_offset(&self) -> usize {
         self.card_table_offset
+    }
+}
+
+impl Swiper {
+    fn alloc_normal(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        let promotion_failed = self.minor_collect(ctxt);
+
+        if promotion_failed {
+            self.full_collect(ctxt);
+        }
+
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.old.alloc(size)
+    }
+
+    fn alloc_large(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+        let ptr = self.old.alloc(size);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.full_collect(ctxt);
+
+        self.old.alloc(size)
     }
 }
 

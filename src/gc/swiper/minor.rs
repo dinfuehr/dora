@@ -12,7 +12,6 @@ use gc::swiper::young::YoungGen;
 
 use mem;
 use object::Obj;
-use os::{self, ProtType};
 use timer::{in_ms, Timer};
 
 pub struct MinorCollector<'a, 'ast: 'a> {
@@ -52,47 +51,18 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
         self.free = self.young.to_space().start;
 
-        self.unprotect_to_space();
+        self.young.unprotect_to_space();
 
         self.visit_roots();
         self.copy_dirty_cards();
         self.visit_copied_objects();
         self.young.swap_spaces(self.free);
 
-        self.protect_to_space();
+        self.young.protect_to_space();
 
         timer.stop_with(|dur| {
             println!("GC: Minor GC ({} ms)", in_ms(dur));
         });
-    }
-
-    fn unprotect_to_space(&mut self) {
-        // make memory writable again, so that we
-        // can copy objects to the to-space.
-        // Since this has some overhead, do it only in debug builds.
-
-        if cfg!(debug_assertions) {
-            let to_space = self.young.to_space();
-
-            os::mprotect(
-                to_space.start.to_ptr::<u8>(),
-                to_space.size(),
-                ProtType::Writable,
-            );
-        }
-    }
-
-    fn protect_to_space(&mut self) {
-        // Make from-space unaccessible both from read/write.
-        // Since this has some overhead, do it only in debug builds.
-        if cfg!(debug_assertions) {
-            let to_space = self.young.to_space();
-            os::mprotect(
-                to_space.start.to_ptr::<u8>(),
-                to_space.size(),
-                ProtType::None,
-            );
-        }
     }
 
     fn visit_roots(&mut self) {

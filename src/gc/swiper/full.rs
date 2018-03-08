@@ -29,6 +29,9 @@ pub struct FullCollector<'a, 'ast: 'a> {
     marking_bitmap: MarkingBitmap,
     fwd_table: HashMap<Address, Address>,
     young_refs_set: HashSet<Address>,
+
+    fwd: Address,
+    fwd_end: Address,
     old_top: Address,
 }
 
@@ -58,6 +61,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             marking_bitmap: marking_bitmap,
             fwd_table: HashMap::new(),
             young_refs_set: HashSet::new(),
+
+            fwd: Address::null(),
+            fwd_end: Address::null(),
             old_top: Address::null(),
         }
     }
@@ -71,10 +77,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.update_references();
         self.relocate();
 
-        self.old.free.store(self.old_top.to_usize(), Ordering::SeqCst);
-        let new_size = self.old.used_region().size();
-
         timer.stop_with(|dur| {
+            let new_size = self.old.used_region().size();
             println!("GC: Full GC ({} ms, {}K->{}K size)",
                 in_ms(dur), init_size / 1024, new_size / 1024);
         });
@@ -116,65 +120,42 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn compute_forward(&mut self) {
-        let used_region = self.old.used_region();
-
-        let mut scan = used_region.start;
-        let end = used_region.end;
-
-        let mut fwd = self.old.total.start;
-
-        while scan < end {
-            let obj = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
-            let obj_size = obj.size();
-
-            if self.is_marked(obj) {
-                self.fwd_table.insert(scan, fwd);
-                fwd = fwd.offset(obj_size);
+        self.walk_old_and_young(|full, object, address, object_size| {
+            if full.is_marked(object) {
+                let fwd = full.allocate(object_size);
+                full.fwd_table.insert(address, fwd);
             }
-
-            scan = scan.offset(obj_size);
-        }
-
-        self.old_top = fwd;
+        });
     }
 
     fn update_references(&mut self) {
-        let used_region = self.old.used_region();
-
-        let mut scan = used_region.start;
-        let end = used_region.end;
-
-        while scan < end {
-            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
-            let object_size = object.size();
-
-            if self.is_marked(object) {
+        self.walk_old_and_young(|full, object, address, _| {
+            if full.is_marked(object) {
                 let mut young_refs = false;
 
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if self.old.contains(field_addr) {
-                        let fwd_addr = self.fwd_table.get(&field_addr).expect("forwarding address not found.");
+                    if !field_addr.is_null() && !full.perm_space.contains(field_addr) {
+                        let fwd_addr = full.fwd_table.get(&field_addr).expect("forwarding address not found.");
                         field.set(fwd_addr.to_mut_ptr());
 
-                    } else if self.young.contains(field_addr) {
-                        young_refs = true;
+                        if full.young.contains(field_addr) {
+                            young_refs = true;
+                        }
                     }
                 });
 
                 if young_refs {
-                    self.young_refs_set.insert(scan);
+                    full.young_refs_set.insert(address);
                 }
             }
-
-            scan = scan.offset(object_size);
-        }
+        });
 
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if self.old.contains(root_ptr) {
+            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) {
                 let fwd_addr = self.fwd_table.get(&root_ptr).expect("forwarding address not found.");
                 root.set(fwd_addr.to_mut_ptr());
             }
@@ -182,43 +163,85 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn relocate(&mut self) {
-        let used_region = self.old.used_region();
-
-        let mut scan = used_region.start;
-        let end = used_region.end;
+        self.young.unprotect_to_space();
 
         self.crossing_map.set_first_object(0.into(), 0);
         let mut young_refs = false;
         let mut last_dest = Address::null();
 
-        while scan < end {
-            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
-            let object_size = object.size();
-
-            if self.is_marked(object) {
-                let &dest = self.fwd_table.get(&scan).expect("forwarding address not found.");
+        self.walk_old_and_young(|full, object, address, object_size| {
+            if full.is_marked(object) {
+                let &dest = full.fwd_table.get(&address).expect("forwarding address not found.");
                 object.copy_to(dest, object_size);
 
                 if !young_refs {
-                    young_refs = self.young_refs_set.contains(&scan);
+                    young_refs = full.young_refs_set.contains(&address);
                 }
 
                 let next_dest = dest.offset(object_size);
 
-                if on_different_cards(dest, next_dest) {
-                    self.update_crossing(next_dest);
-                    self.update_card(dest, &mut young_refs);
+                if on_different_cards(dest, next_dest) && full.old.contains(dest) {
+                    full.update_crossing(next_dest);
+                    full.update_card(dest, &mut young_refs);
                 }
 
                 last_dest = next_dest;
             }
-
-            scan = scan.offset(object_size);
-        }
+        });
 
         if !last_dest.is_null() && !start_of_card(last_dest) {
             self.update_card(last_dest, &mut young_refs);
         }
+
+        self.young.swap_spaces(self.fwd);
+        self.young.protect_to_space();
+
+        self.old.free.store(self.old_top.to_usize(), Ordering::SeqCst);
+    }
+
+    fn walk_old_and_young<F>(&mut self, mut fct: F) where F: FnMut(&mut FullCollector, &mut Obj, Address, usize) {
+        let used_region = self.old.used_region();
+        self.walk_region(used_region.start, used_region.end, &mut fct);
+
+        let used_region = self.young.used_region();
+        self.walk_region(used_region.start, used_region.end, &mut fct);
+    }
+
+    fn walk_region<F>(&mut self, start: Address, end: Address, fct: &mut F) where F: FnMut(&mut FullCollector, &mut Obj, Address, usize) {
+        let mut scan = start;
+
+        while scan < end {
+            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+            let object_size = object.size();
+
+            fct(self, object, scan, object_size);
+
+            scan = scan.offset(object_size);
+        }
+    }
+
+    fn allocate(&mut self, object_size: usize) -> Address {
+        if self.fwd.is_null() {
+            self.fwd = self.old.total.start;
+            self.fwd_end = self.old.total.end;
+        }
+
+        let addr = self.fwd;
+        let next = self.fwd.offset(object_size);
+
+        if next <= self.fwd_end {
+            self.fwd = next;
+            return addr;
+        }
+
+        assert!(self.fwd_end == self.old.total.end);
+        self.old_top = self.fwd;
+
+        let young = self.young.to_space();
+        self.fwd = young.start.offset(object_size);
+        self.fwd_end = young.end;
+
+        young.start
     }
 
     fn update_crossing(&mut self, addr: Address) {
