@@ -79,8 +79,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         timer.stop_with(|dur| {
             let new_size = self.old.used_region().size();
+
             println!("GC: Full GC ({} ms, {}K->{}K size)",
-                in_ms(dur), init_size / 1024, new_size / 1024);
+                in_ms(dur), in_kilo(init_size), in_kilo(new_size));
         });
     }
 
@@ -285,6 +286,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn mark(&mut self, addr: Address) {
         self.marking_bitmap.mark(addr);
     }
+}
+
+fn in_kilo(size: usize) -> usize {
+    (size + 1023) / 1024
 }
 
 fn on_different_cards(curr: Address, next: Address) -> bool {
