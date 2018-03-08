@@ -62,8 +62,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             fwd_table: HashMap::new(),
             young_refs_set: HashSet::new(),
 
-            fwd: Address::null(),
-            fwd_end: Address::null(),
+            fwd: old.total.start,
+            fwd_end: old.total.end,
             old_top: Address::null(),
         }
     }
@@ -137,10 +137,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     let field_addr = Address::from_ptr(field.get());
 
                     if !field_addr.is_null() && !full.perm_space.contains(field_addr) {
-                        let fwd_addr = full.fwd_table.get(&field_addr).expect("forwarding address not found.");
+                        let &fwd_addr = full.fwd_table.get(&field_addr).expect("forwarding address not found.");
                         field.set(fwd_addr.to_mut_ptr());
 
-                        if full.young.contains(field_addr) {
+                        if full.young.contains(fwd_addr) {
                             young_refs = true;
                         }
                     }
@@ -189,14 +189,31 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             }
         });
 
-        if !last_dest.is_null() && !start_of_card(last_dest) {
+        if !last_dest.is_null() && !start_of_card(last_dest) && self.old.contains(last_dest) {
             self.update_card(last_dest, &mut young_refs);
         }
 
-        self.young.swap_spaces(self.fwd);
+        let young_top;
+        let old_top;
+
+        // check if we have left the old-generation into
+        // the young generation for copying objects
+        if self.old_top.is_null() {
+            // if not, young gen is empty
+            young_top = self.young.to_space().start;
+            old_top = self.fwd;
+
+        } else {
+            young_top = self.fwd;
+            old_top = self.old_top;
+        }
+
+        debug_assert!(self.young.contains(young_top));
+        self.young.swap_spaces(young_top);
         self.young.protect_to_space();
 
-        self.old.free.store(self.old_top.to_usize(), Ordering::SeqCst);
+        debug_assert!(self.old.contains(old_top));
+        self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
     }
 
     fn walk_old_and_young<F>(&mut self, mut fct: F) where F: FnMut(&mut FullCollector, &mut Obj, Address, usize) {
@@ -221,11 +238,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {
-        if self.fwd.is_null() {
-            self.fwd = self.old.total.start;
-            self.fwd_end = self.old.total.end;
-        }
-
         let addr = self.fwd;
         let next = self.fwd.offset(object_size);
 

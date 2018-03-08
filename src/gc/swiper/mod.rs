@@ -34,7 +34,7 @@ const YOUNG_RATIO: usize = 4;
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
 
-pub const LARGE_OBJECT: usize = 16 * 1024;
+pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
 
 pub struct Swiper {
     heap: Region,
@@ -179,7 +179,11 @@ impl Swiper {
 
 impl Collector for Swiper {
     fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
-        if size < LARGE_OBJECT {
+        if ctxt.args.flag_gc_stress {
+            self.full_collect(ctxt);
+        }
+
+        if size < LARGE_OBJECT_SIZE {
             self.alloc_normal(ctxt, size)
         } else {
             self.alloc_large(ctxt, size)
