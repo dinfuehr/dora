@@ -31,8 +31,8 @@ impl Timer {
     }
 }
 
-pub fn in_ms(ns: u64) -> u64 {
-    ns / 1000 / 1000
+pub fn in_ms(ns: u64) -> f64 {
+    (ns as f64) / 1000.0 / 1000.0
 }
 
 fn timestamp() -> u64 {

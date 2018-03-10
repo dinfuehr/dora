@@ -70,7 +70,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
-        let init_size = self.old.used_region().size();
+        let init_size = self.heap_size();
 
         self.mark_live();
         self.compute_forward();
@@ -78,11 +78,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.relocate();
 
         timer.stop_with(|dur| {
-            let new_size = self.old.used_region().size();
+            let new_size = self.heap_size();
+            let garbage = init_size - new_size;
+            let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
 
-            println!("GC: Full GC ({} ms, {}K->{}K size)",
-                in_ms(dur), in_kilo(init_size), in_kilo(new_size));
+            println!("GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage)",
+                in_ms(dur), in_kilo(init_size), in_kilo(new_size),
+                in_kilo(garbage), garbage_ratio);
         });
+    }
+
+    fn heap_size(&self) -> usize {
+        self.young.used_region().size() + self.old.used_region().size()
     }
 
     fn mark_live(&mut self) {
@@ -288,8 +295,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 }
 
-fn in_kilo(size: usize) -> usize {
-    (size + 1023) / 1024
+fn in_kilo(size: usize) -> f64 {
+    (size as f64) / 1024.0
 }
 
 fn on_different_cards(curr: Address, next: Address) -> bool {

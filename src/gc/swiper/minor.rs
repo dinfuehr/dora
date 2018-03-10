@@ -24,6 +24,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     free: Address,
     promotion_failed: bool,
+    promoted_size: usize,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -44,11 +45,14 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             crossing_map: crossing_map,
             free: Address::null(),
             promotion_failed: false,
+            promoted_size: 0,
         }
     }
 
     pub fn collect(&mut self) {
         let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
+        let init_size = self.heap_size();
+        let young_init_size = self.young.used_region().size();
         self.free = self.young.to_space().start;
 
         self.young.unprotect_to_space();
@@ -61,8 +65,21 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.young.protect_to_space();
 
         timer.stop_with(|dur| {
-            println!("GC: Minor GC ({} ms)", in_ms(dur));
+            let new_size = self.heap_size();
+            let young_new_size = self.young.used_region().size();
+            let garbage = young_init_size - young_new_size - self.promoted_size;
+            let garbage_ratio = (garbage as f64 / young_init_size as f64) * 100f64;
+
+            println!("GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, {:.1}K promoted, {:.1}K/{:.0}% garbage)",
+                in_ms(dur), in_kilo(init_size), in_kilo(new_size),
+                in_kilo(young_init_size), in_kilo(young_new_size),
+                in_kilo(self.promoted_size),
+                in_kilo(garbage), garbage_ratio);
         });
+    }
+
+    fn heap_size(&self) -> usize {
+        self.young.used_region().size() + self.old.used_region().size()
     }
 
     fn visit_roots(&mut self) {
@@ -218,6 +235,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     fn promote_object(&mut self, obj: &mut Obj, copy_addr: Address, obj_size: usize) {
         obj.copy_to(copy_addr, obj_size);
+        self.promoted_size += obj_size;
 
         // Promoted object can have references to the young generation.
         // Set the card table entry to dirty if this is the case.
@@ -253,4 +271,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     pub fn promotion_failed(&self) -> bool {
         self.promotion_failed
     }
+}
+
+fn in_kilo(size: usize) -> f64 {
+    (size as f64) / 1024.0
 }
