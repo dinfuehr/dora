@@ -96,4 +96,8 @@ impl OldGen {
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
     }
+
+    pub fn valid_top(&self, addr: Address) -> bool {
+        addr >= self.total.start && addr <= self.total.end
+    }
 }

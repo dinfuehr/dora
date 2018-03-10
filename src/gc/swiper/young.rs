@@ -77,6 +77,10 @@ impl YoungGen {
         self.total.contains(addr)
     }
 
+    pub fn valid_top(&self, addr: Address) -> bool {
+        addr >= self.total.start && addr <= self.total.end
+    }
+
     pub fn should_be_promoted(&self, addr: Address) -> bool {
         debug_assert!(self.contains(addr));
 

@@ -216,11 +216,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             old_top = self.old_top;
         }
 
-        debug_assert!(self.young.contains(young_top));
+        debug_assert!(self.young.valid_top(young_top));
         self.young.swap_spaces(young_top);
         self.young.protect_to_space();
 
-        debug_assert!(self.old.contains(old_top));
+        debug_assert!(self.old.valid_top(old_top));
         self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
     }
 
