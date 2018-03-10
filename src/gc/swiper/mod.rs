@@ -274,6 +274,11 @@ impl Region {
     }
 
     #[inline(always)]
+    pub fn valid_top(&self, addr: Address) -> bool {
+        self.start <= addr && addr <= self.end
+    }
+
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.end.to_usize() - self.start.to_usize()
     }

@@ -98,6 +98,6 @@ impl OldGen {
     }
 
     pub fn valid_top(&self, addr: Address) -> bool {
-        addr >= self.total.start && addr <= self.total.end
+        self.total.valid_top(addr)
     }
 }

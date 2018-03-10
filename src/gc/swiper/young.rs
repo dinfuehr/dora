@@ -78,7 +78,7 @@ impl YoungGen {
     }
 
     pub fn valid_top(&self, addr: Address) -> bool {
-        addr >= self.total.start && addr <= self.total.end
+        self.total.valid_top(addr)
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
