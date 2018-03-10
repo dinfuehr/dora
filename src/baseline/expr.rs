@@ -7,7 +7,7 @@ use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
-use cpu::{FREG_TMP1, FReg, Mem, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
+use cpu::{FREG_TMP1, FReg, Mem, REG_THREAD, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
           REG_RESULT};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
@@ -19,6 +19,7 @@ use object::{Header, Str};
 use os::signal::Trap;
 use semck::specialize::{specialize_class_id, specialize_class_ty};
 use stdlib;
+use threads::ThreadLocalData;
 use ty::{BuiltinType, MachineMode};
 use vtable::{VTable, DISPLAY_SIZE};
 
@@ -2009,6 +2010,41 @@ where
                 }
             }
         }
+    }
+
+    pub fn allocate(&mut self, dest: Reg, size: usize) {
+        let tlab_next = self.masm.get_scratch();
+        let tlab_end = self.masm.get_scratch();
+
+        let done = self.masm.create_label();
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            dest.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset())
+        );
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            (*tlab_end).into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset())
+        );
+
+        self.masm.copy_reg(MachineMode::Ptr, *tlab_next, dest);
+        self.masm.int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i32);
+
+        self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
+        self.masm.jump_if(CondCode::LessEq, done);
+
+        // TODO: call slow path function
+
+        self.masm.bind_label(done);
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
+            (*tlab_next).into(),
+        );
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {

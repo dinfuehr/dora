@@ -8,14 +8,13 @@ use baseline::fct::{BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandl
                     GcPoints, JitBaselineFct, LineNumberTable};
 use baseline::codegen::CondCode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-use cpu::{Mem, Reg, REG_THREAD, SCRATCH};
+use cpu::{Mem, Reg, SCRATCH};
 use ctxt::{FctId, SemContext};
 use dseg::DSeg;
 use dora_parser::lexer::position::Position;
 use mem;
 use object::Header;
 use os::signal::Trap;
-use threads::ThreadLocalData;
 use ty::MachineMode;
 
 #[cfg(target_arch = "x86_64")]
@@ -308,41 +307,6 @@ impl MacroAssembler {
         // jump to begin of loop
         self.jump(start);
         self.bind_label(done);
-    }
-
-    pub fn allocate(&mut self, dest: Reg, size: usize) {
-        let tlab_next = self.get_scratch();
-        let tlab_end = self.get_scratch();
-
-        let done = self.create_label();
-
-        self.load_mem(
-            MachineMode::Ptr,
-            dest.into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset())
-        );
-
-        self.load_mem(
-            MachineMode::Ptr,
-            (*tlab_end).into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset())
-        );
-
-        self.copy_reg(MachineMode::Ptr, *tlab_next, dest);
-        self.int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i32);
-
-        self.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.jump_if(CondCode::LessEq, done);
-
-        // TODO: call slow path function
-
-        self.bind_label(done);
-
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
-            (*tlab_next).into(),
-        );
     }
 }
 
