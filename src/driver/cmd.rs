@@ -33,6 +33,7 @@ Options:
     --enable-perf           Enable dump for perf
     --gc-events             Dump GC events
     --gc-stress             Collect garbage at every allocation
+    --gc-stress-minor       Minor collection at every allocation
     --gc-stats              Print GC statistics
     --gc-verbose            Verbose GC
     --gc-verify             Verify heap before and after collections
@@ -59,6 +60,7 @@ pub struct Args {
     pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
+    pub flag_gc_stress_minor: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_verbose: bool,
     pub flag_gc_verify: bool,
@@ -94,6 +96,7 @@ impl Default for Args {
             flag_asm_syntax: None,
             flag_gc_events: false,
             flag_gc_stress: false,
+            flag_gc_stress_minor: false,
             flag_gc_stats: false,
             flag_gc_verbose: false,
             flag_gc_verify: false,

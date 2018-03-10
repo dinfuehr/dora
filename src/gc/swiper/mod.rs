@@ -179,6 +179,10 @@ impl Swiper {
 
 impl Collector for Swiper {
     fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+        if ctxt.args.flag_gc_stress_minor {
+            self.minor_collect(ctxt);
+        }
+
         if ctxt.args.flag_gc_stress {
             self.full_collect(ctxt);
         }
