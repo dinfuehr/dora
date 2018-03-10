@@ -98,8 +98,9 @@ impl Swiper {
         let old = OldGen::new(old_start, old_end, crossing_map.clone());
 
         if args.flag_gc_verbose {
-            println!("OLD: {}-{}", old_start, old_end);
-            println!("YNG: {}-{}", young_start, young_end);
+            println!("GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
+                in_kilo(heap_size), in_kilo(old_size), in_kilo(young_size),
+                in_kilo(card_size), in_kilo(crossing_size));
         }
 
         Swiper {
@@ -282,4 +283,16 @@ impl fmt::Display for Region {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}-{}", self.start, self.end)
     }
+}
+
+fn in_kilo(size: usize) -> f64 {
+    (size as f64) / 1024.0
+}
+
+fn on_different_cards(curr: Address, next: Address) -> bool {
+    (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
+}
+
+fn start_of_card(addr: Address) -> bool {
+    (addr.to_usize() & (CARD_SIZE - 1)) == addr.to_usize()
 }

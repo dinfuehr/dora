@@ -6,8 +6,9 @@ use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::swiper::CARD_SIZE;
 use gc::swiper::crossing::CrossingMap;
+use gc::swiper::{in_kilo, on_different_cards, start_of_card};
 use gc::swiper::old::OldGen;
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
@@ -294,18 +295,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn mark(&mut self, addr: Address) {
         self.marking_bitmap.mark(addr);
     }
-}
-
-fn in_kilo(size: usize) -> f64 {
-    (size as f64) / 1024.0
-}
-
-fn on_different_cards(curr: Address, next: Address) -> bool {
-    (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
-}
-
-fn start_of_card(addr: Address) -> bool {
-    (addr.to_usize() & (CARD_SIZE - 1)) == addr.to_usize()
 }
 
 pub struct MarkingBitmap {

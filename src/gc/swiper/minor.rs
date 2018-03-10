@@ -7,6 +7,7 @@ use gc::root::IndirectObj;
 use gc::swiper::CARD_SIZE;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
+use gc::swiper::in_kilo;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 
@@ -70,7 +71,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let garbage = young_init_size - young_new_size - self.promoted_size;
             let garbage_ratio = (garbage as f64 / young_init_size as f64) * 100f64;
 
-            println!("GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, {:.1}K promoted, {:.1}K/{:.0}% garbage)",
+            println!("GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
+                      {:.1}K promoted, {:.1}K/{:.0}% garbage)",
                 in_ms(dur), in_kilo(init_size), in_kilo(new_size),
                 in_kilo(young_init_size), in_kilo(young_new_size),
                 in_kilo(self.promoted_size),
@@ -271,8 +273,4 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     pub fn promotion_failed(&self) -> bool {
         self.promotion_failed
     }
-}
-
-fn in_kilo(size: usize) -> f64 {
-    (size as f64) / 1024.0
 }
