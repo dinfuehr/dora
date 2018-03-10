@@ -255,6 +255,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         assert!(self.fwd_end == self.old.total.end);
+        assert!(self.old_top.is_null());
         self.old_top = self.fwd;
 
         let young = self.young.to_space();
