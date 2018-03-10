@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
@@ -28,8 +28,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     perm_space: &'a Space,
 
     marking_bitmap: MarkingBitmap,
-    fwd_table: HashMap<Address, Address>,
-    young_refs_set: HashSet<Address>,
+    fwd_table: ForwardTable,
 
     fwd: Address,
     fwd_end: Address,
@@ -60,8 +59,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             perm_space: perm_space,
 
             marking_bitmap: marking_bitmap,
-            fwd_table: HashMap::new(),
-            young_refs_set: HashSet::new(),
+            fwd_table: ForwardTable::new(),
 
             fwd: old.total.start,
             fwd_end: old.total.end,
@@ -132,7 +130,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.walk_old_and_young(|full, object, address, object_size| {
             if full.is_marked(object) {
                 let fwd = full.allocate(object_size);
-                full.fwd_table.insert(address, fwd);
+                full.fwd_table.forward_to(address, fwd);
             }
         });
     }
@@ -146,7 +144,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     let field_addr = Address::from_ptr(field.get());
 
                     if !field_addr.is_null() && !full.perm_space.contains(field_addr) {
-                        let &fwd_addr = full.fwd_table.get(&field_addr).expect("forwarding address not found.");
+                        let fwd_addr = full.fwd_table.forward_address(field_addr);
                         field.set(fwd_addr.to_mut_ptr());
 
                         if full.young.contains(fwd_addr) {
@@ -156,7 +154,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 });
 
                 if young_refs {
-                    full.young_refs_set.insert(address);
+                    full.fwd_table.set_young_refs(address);
                 }
             }
         });
@@ -165,7 +163,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let root_ptr = Address::from_ptr(root.get());
 
             if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) {
-                let fwd_addr = self.fwd_table.get(&root_ptr).expect("forwarding address not found.");
+                let fwd_addr = self.fwd_table.forward_address(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
         }
@@ -180,11 +178,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.walk_old_and_young(|full, object, address, object_size| {
             if full.is_marked(object) {
-                let &dest = full.fwd_table.get(&address).expect("forwarding address not found.");
+                let dest = full.fwd_table.forward_address(address);
                 object.copy_to(dest, object_size);
 
                 if !young_refs {
-                    young_refs = full.young_refs_set.contains(&address);
+                    young_refs = full.fwd_table.has_young_refs(address);
                 }
 
                 let next_dest = dest.offset(object_size);
@@ -361,5 +359,61 @@ impl MarkingBitmap {
 impl Drop for MarkingBitmap {
     fn drop(&mut self) {
         os::munmap(self.bitmap.start.to_ptr(), self.bitmap.size());
+    }
+}
+
+struct ForwardTable {
+    data: HashMap<Address, AddressWithYoungRefs>,
+}
+
+impl ForwardTable {
+    fn new() -> ForwardTable {
+        ForwardTable {
+            data: HashMap::new(),
+        }
+    }
+
+    fn forward_to(&mut self, addr: Address, fwd: Address) {
+        self.data.insert(addr, AddressWithYoungRefs::new(fwd));
+    }
+
+    fn forward_address(&mut self, addr: Address) -> Address {
+        self.data.get(&addr).expect("no forward address found.").address()
+    }
+
+    fn has_young_refs(&mut self, addr: Address) -> bool {
+        self.data.get(&addr).expect("no forward address found.").has_young_refs()
+    }
+
+    fn set_young_refs(&mut self, addr: Address) {
+        let value = self.data.get_mut(&addr).expect("no forward address found.");
+        *value = value.set_young_refs();
+    }
+}
+
+#[derive(Copy, Clone)]
+struct AddressWithYoungRefs {
+    data: usize,
+}
+
+impl AddressWithYoungRefs {
+    fn new(addr: Address) -> AddressWithYoungRefs {
+        AddressWithYoungRefs {
+            data: addr.to_usize()
+        }
+    }
+
+    fn address(self) -> Address {
+        (self.data & !1).into()
+    }
+
+    fn has_young_refs(self) -> bool {
+        (self.data & 1) != 0
+    }
+
+    fn set_young_refs(self) -> AddressWithYoungRefs {
+        AddressWithYoungRefs {
+            data: self.data | 1
+        }
     }
 }
