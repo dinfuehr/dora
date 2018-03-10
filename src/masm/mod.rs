@@ -8,10 +8,12 @@ use baseline::fct::{BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandl
                     GcPoints, JitBaselineFct, LineNumberTable};
 use baseline::codegen::CondCode;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-use cpu::{Reg, SCRATCH};
+use cpu::{Mem, Reg, SCRATCH};
 use ctxt::{FctId, SemContext};
 use dseg::DSeg;
 use dora_parser::lexer::position::Position;
+use mem;
+use object::Header;
 use os::signal::Trap;
 use ty::MachineMode;
 
@@ -249,6 +251,62 @@ impl MacroAssembler {
         } else {
             self.copy_freg(mode, dest.freg(), src.freg());
         }
+    }
+
+    pub fn fill_zero(&mut self, obj: Reg, size: usize) {
+        debug_assert!(size >= (Header::size() as usize));
+        debug_assert!(size % mem::ptr_width_usize() == 0);
+        let size = size - (Header::size() as usize);
+        let size_words = size / mem::ptr_width_usize();
+
+        if size_words == 0 {
+            // nothing to fill zero
+
+        } else if size_words <= 8 {
+            let zero = self.get_scratch();
+            self.load_int_const(MachineMode::Int32, *zero, 0);
+
+            for offset in 0..size_words {
+                let offset = Header::size() + offset as i32 * mem::ptr_width();
+                self.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Base(obj, offset),
+                    (*zero).into(),
+                );
+            }
+
+        } else {
+            let obj_end = self.get_scratch();
+            self.copy_reg(MachineMode::Ptr, *obj_end, obj);
+            let offset = Header::size() + (size_words as i32) * mem::ptr_width();
+            self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset);
+            self.fill_zero_dynamic(obj, *obj_end);
+        }
+    }
+
+    pub fn fill_zero_dynamic(&mut self, obj: Reg, obj_end: Reg) {
+        let done = self.create_label();
+        let start = self.create_label();
+
+        let zero = self.get_scratch();
+        self.load_int_const(MachineMode::Ptr, *zero, 0);
+
+        let curr = self.get_scratch();
+        self.copy_reg(MachineMode::Ptr, *curr, obj);
+
+        self.bind_label(start);
+        // loop until end of object reached
+        self.cmp_reg(MachineMode::Ptr, *curr, obj_end);
+        self.jump_if(CondCode::Equal, done);
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(*curr, 0),
+            (*zero).into(),
+        );
+        self.int_add_imm(MachineMode::Ptr, *curr, *curr, mem::ptr_width());
+        // jump to begin of loop
+        self.jump(start);
+        self.bind_label(done);
     }
 }
 

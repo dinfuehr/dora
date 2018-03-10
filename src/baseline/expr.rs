@@ -1924,7 +1924,7 @@ where
 
         match cls.size {
             ClassSize::Fixed(size) => {
-                self.emit_fill_zero(dest, size as usize);
+                self.masm.fill_zero(dest, size as usize);
             }
 
             _ if temps.len() > 1 => {
@@ -1939,7 +1939,7 @@ where
 
                 self.masm.determine_array_size(temp, temp, element_size, false);
                 self.masm.int_add(MachineMode::Ptr, temp, temp, dest);
-                self.emit_fill_zero_dynamic(dest, temp);
+                self.masm.fill_zero_dynamic(dest, temp);
             }
 
             // arrays with length 0 do not need to clear any data
@@ -1951,63 +1951,6 @@ where
             dest.into(),
             Mem::Local(offset),
         );
-    }
-
-    fn emit_fill_zero(&mut self, obj: Reg, size: usize) {
-        debug_assert!(size >= (Header::size() as usize));
-        debug_assert!(size % mem::ptr_width_usize() == 0);
-        let size = size - (Header::size() as usize);
-        let size_words = size / mem::ptr_width_usize();
-
-        let temp_reg = if obj == REG_TMP1 {
-            REG_TMP2
-        } else {
-            REG_TMP1
-        };
-
-        if size_words == 0 {
-            // nothing to fill zero
-
-        } else if size_words <= 8 {
-            self.masm.load_int_const(MachineMode::Int32, temp_reg, 0);
-
-            for offset in 0..size_words {
-                let offset = Header::size() + offset as i32 * mem::ptr_width();
-                self.masm.store_mem(
-                    MachineMode::Ptr,
-                    Mem::Base(obj, offset),
-                    temp_reg.into(),
-                );
-            }
-
-        } else {
-            self.masm.copy_reg(MachineMode::Ptr, temp_reg, obj);
-            let offset = Header::size() + (size_words as i32) * mem::ptr_width();
-            self.masm.int_add_imm(MachineMode::Ptr, temp_reg, temp_reg, offset);
-            self.emit_fill_zero_dynamic(obj, temp_reg);
-        }
-    }
-
-    fn emit_fill_zero_dynamic(&mut self, obj: Reg, obj_end: Reg) {
-        let done = self.masm.create_label();
-        let start = self.masm.create_label();
-
-        let zero = self.masm.get_scratch();
-        self.masm.load_int_const(MachineMode::Ptr, *zero, 0);
-
-        self.masm.bind_label(start);
-        // loop until end of object reached
-        self.masm.cmp_reg(MachineMode::Ptr, obj, obj_end);
-        self.masm.jump_if(CondCode::Equal, done);
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(obj, 0),
-            (*zero).into(),
-        );
-        self.masm.int_add_imm(MachineMode::Ptr, obj, obj, mem::ptr_width());
-        // jump to begin of loop
-        self.masm.jump(start);
-        self.masm.bind_label(done);
     }
 
     fn emit_native_call_insn(&mut self, pos: Position, internal_fct: InternalFct, dest: ExprStore) {

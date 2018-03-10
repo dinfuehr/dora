@@ -2,7 +2,7 @@ use cpu::{FReg, Reg};
 
 pub const REG_COUNT: usize = 16;
 pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
-pub static SCRATCH: [Reg; 1] = [R9];
+pub static SCRATCH: [Reg; 3] = [R9, R8, RDI];
 
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;
