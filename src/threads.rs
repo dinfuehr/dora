@@ -16,4 +16,12 @@ impl ThreadLocalData {
             tlab_end: 0,
         }
     }
+
+    pub fn tlab_top_offset() -> i32 {
+        offset_of!(ThreadLocalData, tlab_top) as i32
+    }
+
+    pub fn tlab_end_offset() -> i32 {
+        offset_of!(ThreadLocalData, tlab_end) as i32
+    }
 }
