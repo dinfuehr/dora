@@ -93,12 +93,17 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn mark_live(&mut self) {
         let mut marking_stack: Vec<Address> = Vec::new();
+        let mut live_objects = 0;
 
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
             if self.heap.contains(root_ptr) {
-                marking_stack.push(root_ptr);
+                if !self.is_marked_addr(root_ptr) {
+                    marking_stack.push(root_ptr);
+                    self.mark(root_ptr);
+                    live_objects += 1;
+                }
 
             } else {
                 debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
@@ -108,7 +113,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         while marking_stack.len() > 0 {
             let object_addr = marking_stack.pop().expect("stack already empty");
             let object = unsafe { &mut *object_addr.to_mut_ptr::<Obj>() };
-            self.mark(object_addr);
 
             object.visit_reference_fields(|field| {
                 let field_addr = Address::from_ptr(field.get());
@@ -117,6 +121,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     if !self.is_marked_addr(field_addr) {
                         marking_stack.push(field_addr);
                         self.mark(field_addr);
+                        live_objects += 1;
                     }
 
                 } else {
@@ -124,6 +129,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
+
+        self.fwd_table.reserve_capacity(live_objects);
     }
 
     fn compute_forward(&mut self) {
@@ -371,6 +378,10 @@ impl ForwardTable {
         ForwardTable {
             data: HashMap::new(),
         }
+    }
+
+    fn reserve_capacity(&mut self, count: usize) {
+        self.data.reserve(count);
     }
 
     fn forward_to(&mut self, addr: Address, fwd: Address) {
