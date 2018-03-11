@@ -4,7 +4,7 @@ use ctxt::SemContext;
 
 use gc::Address;
 use gc::root::IndirectObj;
-use gc::swiper::CARD_SIZE;
+use gc::swiper::{CARD_SIZE, Region};
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
@@ -26,6 +26,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     free: Address,
     promotion_failed: bool,
     promoted_size: usize,
+    young_from: Region,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -47,6 +48,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             free: Address::null(),
             promotion_failed: false,
             promoted_size: 0,
+            young_from: young.from_space(),
         }
     }
 
@@ -130,7 +132,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                         let ind_ptr = IndirectObj::from_address(ptr);
                         let dir_ptr = ind_ptr.get();
 
-                        if self.young.from_space().contains(Address::from_ptr(dir_ptr)) {
+                        if self.young_from.contains(Address::from_ptr(dir_ptr)) {
                             ind_ptr.set(self.copy(dir_ptr));
                         }
 
@@ -163,7 +165,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 object.visit_reference_fields_within(end, |field| {
                     let field_ptr = field.get();
 
-                    if self.young.from_space().contains(Address::from_ptr(field_ptr)) {
+                    if self.young_from.contains(Address::from_ptr(field_ptr)) {
                         let copied_obj = self.copy(field_ptr);
                         field.set(copied_obj);
 
@@ -210,7 +212,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
 
         let obj_size = obj.size();
-        debug_assert!(self.young.from_space().contains(obj_addr), "copy objects only from from-space.");
+        debug_assert!(self.young_from.contains(obj_addr), "copy objects only from from-space.");
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {
