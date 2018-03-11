@@ -29,7 +29,7 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc_obj(&self, _: &SemContext, size: usize) -> *const u8 {
+    fn alloc(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> *const u8 {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 
@@ -54,16 +54,6 @@ impl Collector for ZeroCollector {
         }
 
         old as *const u8
-    }
-
-    fn alloc_array(
-        &self,
-        _ctxt: &SemContext,
-        _elements: usize,
-        _element_size: usize,
-        _is_ref: bool,
-    ) -> *const u8 {
-        unimplemented!()
     }
 
     fn collect(&self, _: &SemContext) {

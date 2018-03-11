@@ -44,29 +44,19 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> *const u8 {
         if ctxt.args.flag_gc_stress {
             self.collect(ctxt);
         }
 
-        let mut ptr = self.alloc(size);
+        let mut ptr = self.alloc_inner(size);
 
         if ptr.is_null() {
             self.collect(ctxt);
-            ptr = self.alloc(size);
+            ptr = self.alloc_inner(size);
         }
 
         ptr
-    }
-
-    fn alloc_array(
-        &self,
-        _ctxt: &SemContext,
-        _elements: usize,
-        _element_size: usize,
-        _is_ref: bool,
-    ) -> *const u8 {
-        unimplemented!()
     }
 
     fn collect(&self, ctxt: &SemContext) {
@@ -82,7 +72,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn alloc(&self, size: usize) -> *const u8 {
+    fn alloc_inner(&self, size: usize) -> *const u8 {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 

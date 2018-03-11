@@ -179,7 +179,7 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc_obj(&self, ctxt: &SemContext, size: usize) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> *const u8 {
         if ctxt.args.flag_gc_stress_minor {
             self.minor_collect(ctxt);
         }
@@ -193,16 +193,6 @@ impl Collector for Swiper {
         } else {
             self.alloc_large(ctxt, size)
         }
-    }
-
-    fn alloc_array(
-        &self,
-        _ctxt: &SemContext,
-        _elements: usize,
-        _element_size: usize,
-        _is_ref: bool,
-    ) -> *const u8 {
-        unimplemented!()
     }
 
     fn collect(&self, ctxt: &SemContext) {

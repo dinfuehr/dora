@@ -333,7 +333,7 @@ impl Str {
 
 fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
     str_alloc(ctxt, len, |ctxt, size| {
-        ctxt.gc.alloc_obj(ctxt, size) as *const u8
+        ctxt.gc.alloc(ctxt, size, false) as *const u8
     })
 }
 
@@ -414,7 +414,7 @@ where
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = ctxt.gc.alloc_obj(ctxt, size) as usize;
+        let ptr = ctxt.gc.alloc(ctxt, size, false) as usize;
         let cls = ctxt.class_defs[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
@@ -458,7 +458,7 @@ pub fn alloc(ctxt: &SemContext, clsid: ClassDefId) -> Handle<Obj> {
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
 
-    let ptr = ctxt.gc.alloc_obj(ctxt, size) as usize;
+    let ptr = ctxt.gc.alloc(ctxt, size, false) as usize;
     let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
     let mut handle: Handle<Obj> = ptr.into();
     handle.header_mut().vtable = vtable as *mut VTable;

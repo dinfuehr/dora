@@ -2012,11 +2012,12 @@ where
         }
     }
 
-    pub fn allocate(&mut self, dest: Reg, size: usize) {
+    pub fn allocate_in_tlab(&mut self, dest: Reg, size: usize, pos: Position) {
         let tlab_next = self.masm.get_scratch();
         let tlab_end = self.masm.get_scratch();
 
-        let done = self.masm.create_label();
+        let success = self.masm.create_label();
+        let end = self.masm.create_label();
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -2031,20 +2032,35 @@ where
         );
 
         self.masm.copy_reg(MachineMode::Ptr, *tlab_next, dest);
-        self.masm.int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i32);
+        let size_reg = self.masm.get_scratch();
+        self.masm.load_int_const(MachineMode::Ptr, *size_reg, size as i64);
+        self.masm.int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
 
         self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.masm.jump_if(CondCode::LessEq, done);
+        self.masm.jump_if(CondCode::LessEq, success);
 
-        // TODO: call slow path function
+        self.masm.load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
 
-        self.masm.bind_label(done);
+        let internal_fct = InternalFct {
+            ptr: stdlib::gc_alloc as *mut u8,
+            args: &[BuiltinType::Ptr],
+            return_type: BuiltinType::Ptr,
+            throws: false,
+            id: FctId(0),
+        };
+
+        self.emit_native_call_insn(pos, internal_fct, dest.into());
+        self.masm.jump(end);
+
+        self.masm.bind_label(success);
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
             (*tlab_next).into(),
         );
+
+        self.masm.bind_label(end);
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
