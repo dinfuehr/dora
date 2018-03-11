@@ -130,7 +130,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                         let ind_ptr = IndirectObj::from_address(ptr);
                         let dir_ptr = ind_ptr.get();
 
-                        if self.young.contains(Address::from_ptr(dir_ptr)) {
+                        if self.young.from_space().contains(Address::from_ptr(dir_ptr)) {
                             ind_ptr.set(self.copy(dir_ptr));
                         }
 
@@ -163,7 +163,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_ptr = field.get();
 
-                    if self.young.contains(Address::from_ptr(field_ptr)) {
+                    if self.young.from_space().contains(Address::from_ptr(field_ptr)) {
                         let copied_obj = self.copy(field_ptr);
                         field.set(copied_obj);
 
@@ -210,6 +210,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
 
         let obj_size = obj.size();
+        debug_assert!(self.young.from_space().contains(obj_addr), "copy objects only from from-space.");
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {

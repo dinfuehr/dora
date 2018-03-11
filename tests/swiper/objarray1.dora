@@ -1,8 +1,8 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
-  let x = Object();
-  let y = Object();
+  let x = Foo(100);
+  let y = Foo(101);
   let z = Array::<Foo>(512);
   forceCollect();
   forceCollect();

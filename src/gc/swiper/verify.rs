@@ -107,7 +107,7 @@ impl<'a> Verifier<'a> {
         if self.in_old {
             // we should start at card start
             assert!(self.old.is_card_aligned(curr));
-            self.verify_crossing(curr);
+            self.verify_crossing(curr, false);
         }
 
         while curr < region.end {
@@ -122,7 +122,7 @@ impl<'a> Verifier<'a> {
 
             if self.in_old && on_different_cards(curr, next) {
                 self.verify_card(curr);
-                self.verify_crossing(next);
+                self.verify_crossing(next, object.is_array_ref());
             }
 
             curr = next;
@@ -171,14 +171,19 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, addr: Address) {
+    fn verify_crossing(&mut self, addr: Address, array_ref: bool) {
         let card = self.old.card_from_address(addr);
         let card_start = self.old.address_from_card(card);
         let offset = addr.offset_from(card_start);
         let offset_words = offset / (mem::ptr_width() as usize);
 
         let crossing = self.crossing_map.get(card);
-        assert!(crossing == CrossingEntry::FirstObjectOffset(offset_words as u8));
+
+        if array_ref {
+            assert!(crossing == CrossingEntry::LeadingRefs(offset_words as u8));
+        } else {
+            assert!(crossing == CrossingEntry::FirstObjectOffset(offset_words as u8));
+        }
     }
 
     fn verify_reference(

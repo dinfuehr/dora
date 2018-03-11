@@ -113,7 +113,9 @@ impl MacroAssembler {
         );
 
         if write_barrier {
-            self.emit_barrier(array, card_table_offset);
+            let scratch = self.get_scratch();
+            asm::lea(self, *scratch, Mem::Index(array, index, mode.size(), offset_of_array_data()));
+            self.emit_barrier(*scratch, card_table_offset);
         }
     }
 
