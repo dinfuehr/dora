@@ -213,7 +213,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {
-            let copy_addr = Address::from_ptr(self.old.alloc(obj_size));
+            let copy_addr = Address::from_ptr(self.old.alloc(obj_size, obj.is_array_ref()));
 
             // if there isn't enough space in old gen keep it in the
             // young generation for now

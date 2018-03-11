@@ -1866,6 +1866,13 @@ where
             }
         }
 
+        let array_ref = match cls.size {
+            ClassSize::ObjArray => 1,
+            _ => 0,
+        };
+
+        self.masm.load_int_const(MachineMode::Int8, REG_PARAMS[1], array_ref);
+
         let internal_fct = InternalFct {
             ptr: stdlib::gc_alloc as *mut u8,
             args: &[BuiltinType::Int],

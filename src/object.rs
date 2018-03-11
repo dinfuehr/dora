@@ -68,6 +68,15 @@ impl Obj {
         &self.data as *const u8
     }
 
+    pub fn is_array_ref(&self) -> bool {
+        let cls = self.header().vtbl().class();
+
+        match cls.size {
+            ClassSize::ObjArray => true,
+            _ => false,
+        }
+    }
+
     pub fn size(&self) -> usize {
         let cls = self.header().vtbl().class();
 

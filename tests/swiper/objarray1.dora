@@ -1,0 +1,17 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fun main() {
+  let x = Object();
+  let y = Object();
+  let z = Array::<Foo>(512);
+  forceCollect();
+  forceCollect();
+  // write into old object x reference to young object
+  z[0] = Foo(2);
+  z[511] = Foo(3);
+  forceCollect();
+  assert(z[0].a == 2);
+  assert(z[511].a == 3);
+}
+
+class Foo(let a: int)

@@ -30,7 +30,7 @@ impl OldGen {
         self.free.load(Ordering::Relaxed).into()
     }
 
-    pub fn alloc(&self, size: usize) -> *const u8 {
+    pub fn alloc(&self, size: usize, array_ref: bool) -> *const u8 {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
@@ -59,6 +59,21 @@ impl OldGen {
                 let card = self.card_from(old);
                 self.crossing_map.set_first_object(card, 0);
             }
+
+        } else if array_ref {
+            let card = self.card_from(new);
+            let card_start = self.address_from_card(card).to_usize();
+
+            let old_card = self.card_from(old).to_usize();
+            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
+
+            // all cards between ]old_card; new_card[ are full with references
+            for c in old_card+1 .. card.to_usize() {
+                self.crossing_map.set_references_at_start(c.into(), refs_per_card);
+            }
+
+            self.crossing_map.set_references_at_start(card, (new - card_start) / mem::ptr_width_usize());
+
         } else {
             let card = self.card_from(new);
             let card_start = self.address_from_card(card).to_usize();
