@@ -160,7 +160,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             while ptr < end {
                 let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
 
-                object.visit_reference_fields(|field| {
+                object.visit_reference_fields_within(end, |field| {
                     let field_ptr = field.get();
 
                     if self.young.from_space().contains(Address::from_ptr(field_ptr)) {

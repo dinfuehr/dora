@@ -1,4 +1,5 @@
 use std;
+use std::cmp;
 use std::ffi::CString;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
@@ -117,6 +118,39 @@ impl Obj {
             return;
         }
 
+        for &offset in &cls.ref_fields {
+            let obj = (self as *mut Obj as usize) + offset as usize;
+            f(obj.into());
+        }
+    }
+
+    pub fn visit_reference_fields_within<F>(&mut self, limit: Address, mut f: F)
+    where
+        F: FnMut(IndirectObj),
+    {
+        let classptr = self.header().vtbl().classptr;
+        let cls = unsafe { &*classptr };
+
+        if let ClassSize::ObjArray = cls.size {
+            let array = unsafe { &*(self as *const _ as *const StrArray) };
+
+            // walk through all objects in array
+            let mut ptr = array.data() as *mut *mut Obj;
+            let last = unsafe { ptr.offset(array.len() as isize) };
+
+            // visit elements until `limit` reached
+            let limit = cmp::min(last, limit.to_mut_ptr());
+
+            while ptr < limit {
+                f((ptr as usize).into());
+
+                unsafe { ptr = ptr.offset(1) }
+            }
+
+            return;
+        }
+
+        // visit the whole object all the time
         for &offset in &cls.ref_fields {
             let obj = (self as *mut Obj as usize) + offset as usize;
             f(obj.into());
