@@ -280,6 +280,7 @@ impl MacroAssembler {
             self.copy_reg(MachineMode::Ptr, *obj_end, obj);
             let offset = Header::size() + (size_words as i32) * mem::ptr_width();
             self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset);
+            self.int_add_imm(MachineMode::Ptr, obj, obj, Header::size());
             self.fill_zero_dynamic(obj, *obj_end);
         }
     }

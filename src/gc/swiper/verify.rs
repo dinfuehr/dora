@@ -182,22 +182,24 @@ impl<'a> Verifier<'a> {
         let old_card = self.old.card_from_address(old).to_usize();
 
         let expected;
+        let crossing_middle;
 
         if array_ref {
             let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
-            let crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
 
-            for c in old_card+1 .. card.to_usize() {
-                assert!(self.crossing_map.get(c.into()) == crossing_middle);
-            }
-
+            crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
             expected = CrossingEntry::LeadingRefs(offset_words);
 
         } else {
+            crossing_middle = CrossingEntry::NoRefs;
             expected = CrossingEntry::FirstObjectOffset(offset_words);
         }
 
-        assert!(crossing == expected);
+        for c in old_card+1 .. card.to_usize() {
+            assert!(self.crossing_map.get(c.into()) == crossing_middle, "middle crossing not correct.");
+        }
+
+        assert!(crossing == expected, "crossing at end not correct.");
     }
 
     fn verify_reference(

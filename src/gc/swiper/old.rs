@@ -77,6 +77,14 @@ impl OldGen {
         } else {
             let card = self.card_from(new);
             let card_start = self.address_from_card(card).to_usize();
+
+            let old_card = self.card_from(old).to_usize();
+
+            // all cards between ]old_card; new_card[ are set to NoRefs
+            for c in old_card+1 .. card.to_usize() {
+                self.crossing_map.set_no_references(c.into());
+            }
+
             self.crossing_map.set_first_object(card, (new - card_start) / mem::ptr_width_usize());
         }
 
