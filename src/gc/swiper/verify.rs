@@ -10,7 +10,7 @@ use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 
 use mem;
-use object::Obj;
+use object::{Obj, offset_of_array_data};
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -122,7 +122,7 @@ impl<'a> Verifier<'a> {
             let next = curr.offset(object.size());
 
             if self.in_old && on_different_cards(curr, next) {
-                self.verify_card(curr);
+                // self.verify_card(curr);
                 self.verify_crossing(curr, next, object.is_array_ref());
             }
 
@@ -132,7 +132,7 @@ impl<'a> Verifier<'a> {
         assert!(curr == region.end, "object doesn't end at region end");
 
         if self.in_old && !start_of_card(curr) {
-            self.verify_card(curr);
+            // self.verify_card(curr);
         }
     }
 
@@ -176,30 +176,49 @@ impl<'a> Verifier<'a> {
         let card = self.old.card_from_address(addr);
         let card_start = self.old.address_from_card(card);
         let offset = addr.offset_from(card_start);
-        let offset_words = (offset / (mem::ptr_width() as usize)) as u8;
+        let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
-        let crossing = self.crossing_map.get(card);
-        let old_card = self.old.card_from_address(old).to_usize();
+        let old_card = self.old.card_from_address(old);
+        let old_card_end = self.old.address_from_card(old_card).offset(CARD_SIZE);
 
-        let expected;
         let crossing_middle;
+        let loop_start;
 
         if array_ref {
             let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
 
             crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
-            expected = CrossingEntry::LeadingRefs(offset_words);
+
+            if old.offset(offset_of_array_data() as usize) > old_card_end {
+                loop_start = old_card.to_usize() + 2;
+
+                let old_next = old_card.to_usize() + 1;
+                let crossing = self.crossing_map.get(old_next.into());
+                let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
+                assert!(crossing == CrossingEntry::ArrayStart(diff_words as u8));
+
+            } else {
+                loop_start = old_card.to_usize() + 1;
+            }
+
+            if card.to_usize() > loop_start {
+                let crossing = self.crossing_map.get(card);
+                let expected = CrossingEntry::LeadingRefs(offset_words);
+                assert!(crossing == expected, "array crossing at end not correct.");
+            }
 
         } else {
             crossing_middle = CrossingEntry::NoRefs;
-            expected = CrossingEntry::FirstObjectOffset(offset_words);
+            loop_start = old_card.to_usize() + 1;
+
+            let crossing = self.crossing_map.get(card);
+            let expected = CrossingEntry::FirstObjectOffset(offset_words);
+            assert!(crossing == expected, "crossing at end not correct.");
         }
 
-        for c in old_card+1 .. card.to_usize() {
+        for c in loop_start .. card.to_usize() {
             assert!(self.crossing_map.get(c.into()) == crossing_middle, "middle crossing not correct.");
         }
-
-        assert!(crossing == expected, "crossing at end not correct.");
     }
 
     fn verify_reference(

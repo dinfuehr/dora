@@ -149,6 +149,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                     // copy all objects from this card
                     self.copy_card(card, ptr, card_end);
                 }
+
+                CrossingEntry::ArrayStart(offset) => {
+                    let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
+
+                    // copy all objects from this card
+                    self.copy_card(card, ptr.into(), card_end);
+                }
             }
         });
     }

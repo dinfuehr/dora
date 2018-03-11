@@ -49,6 +49,10 @@ impl CrossingMap {
         self.set(card, words as u8);
     }
 
+    pub fn set_array_start(&self, card: Card, words: usize) {
+        self.set(card, (129 + words) as u8);
+    }
+
     pub fn set_references_at_start(&self, card: Card, refs: usize) {
         assert!(refs > 0 && refs <= 64);
         self.set(card, 64 + (refs as u8));
@@ -65,8 +69,10 @@ impl CrossingMap {
 
         if val < 64 {
             CrossingEntry::FirstObjectOffset(val)
-        } else if val > 64 {
+        } else if val > 64 && val <= 128 {
             CrossingEntry::LeadingRefs(val - 64)
+        } else if val > 128 {
+            CrossingEntry::ArrayStart(val - 129)
         } else {
             CrossingEntry::NoRefs
         }
@@ -78,4 +84,5 @@ pub enum CrossingEntry {
     NoRefs,
     LeadingRefs(u8),
     FirstObjectOffset(u8),
+    ArrayStart(u8),
 }

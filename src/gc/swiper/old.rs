@@ -6,6 +6,7 @@ use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::{Card, CrossingMap};
 use gc::swiper::Region;
 use mem;
+use object::offset_of_array_data;
 
 pub struct OldGen {
     pub total: Region,
@@ -64,24 +65,40 @@ impl OldGen {
             let card = self.card_from(new);
             let card_start = self.address_from_card(card).to_usize();
 
-            let old_card = self.card_from(old).to_usize();
+            let old = Address::from(old);
+            let old_card = self.card_from(old.to_usize());
+            let old_card_end = self.address_from_card(old_card).offset(CARD_SIZE);
+
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
+            let mut loop_card_start = old_card.to_usize() + 1;
+
+            // If you allocate an object array just before the card end,
+            // it could happen that the card starts with part of the header
+            // or the length-field.
+            if old.offset(offset_of_array_data() as usize) > old_card_end {
+                let diff = old_card_end.offset_from(old) / mem::ptr_width_usize();
+                self.crossing_map.set_array_start(loop_card_start.into(), diff);
+
+                loop_card_start += 1;
+            }
 
             // all cards between ]old_card; new_card[ are full with references
-            for c in old_card+1 .. card.to_usize() {
+            for c in loop_card_start .. card.to_usize() {
                 self.crossing_map.set_references_at_start(c.into(), refs_per_card);
             }
 
-            self.crossing_map.set_references_at_start(card, (new - card_start) / mem::ptr_width_usize());
+            if card.to_usize() > loop_card_start {
+                self.crossing_map.set_references_at_start(card, (new - card_start) / mem::ptr_width_usize());
+            }
 
         } else {
             let card = self.card_from(new);
             let card_start = self.address_from_card(card).to_usize();
 
-            let old_card = self.card_from(old).to_usize();
+            let old_card = self.card_from(old);
 
             // all cards between ]old_card; new_card[ are set to NoRefs
-            for c in old_card+1 .. card.to_usize() {
+            for c in old_card.to_usize()+1 .. card.to_usize() {
                 self.crossing_map.set_no_references(c.into());
             }
 
