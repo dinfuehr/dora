@@ -370,6 +370,42 @@ where
     handle
 }
 
+pub trait ArrayElement {
+    const REF: bool;
+}
+
+impl ArrayElement for bool {
+    const REF: bool = false;
+}
+
+impl ArrayElement for u8 {
+    const REF: bool = false;
+}
+
+impl ArrayElement for char {
+    const REF: bool = false;
+}
+
+impl ArrayElement for i32 {
+    const REF: bool = false;
+}
+
+impl ArrayElement for i64 {
+    const REF: bool = false;
+}
+
+impl ArrayElement for f32 {
+    const REF: bool = false;
+}
+
+impl ArrayElement for f64 {
+    const REF: bool = false;
+}
+
+impl ArrayElement for Handle<Str> {
+    const REF: bool = true;
+}
+
 #[repr(C)]
 pub struct Array<T: Copy> {
     header: Header,
@@ -380,7 +416,7 @@ pub struct Array<T: Copy> {
 
 impl<T> Array<T>
 where
-    T: Copy,
+    T: Copy + ArrayElement,
 {
     pub fn header(&self) -> &Header {
         &self.header
@@ -423,7 +459,7 @@ where
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = ctxt.gc.alloc(ctxt, size, false) as usize;
+        let ptr = ctxt.gc.alloc(ctxt, size, T::REF) as usize;
         let cls = ctxt.class_defs[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
