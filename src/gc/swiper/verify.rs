@@ -1,6 +1,7 @@
 use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
+use gc::swiper::CARD_SIZE;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::old::OldGen;
@@ -107,7 +108,7 @@ impl<'a> Verifier<'a> {
         if self.in_old {
             // we should start at card start
             assert!(self.old.is_card_aligned(curr));
-            self.verify_crossing(curr, false);
+            self.verify_crossing(curr, curr, false);
         }
 
         while curr < region.end {
@@ -122,7 +123,7 @@ impl<'a> Verifier<'a> {
 
             if self.in_old && on_different_cards(curr, next) {
                 self.verify_card(curr);
-                self.verify_crossing(next, object.is_array_ref());
+                self.verify_crossing(curr, next, object.is_array_ref());
             }
 
             curr = next;
@@ -171,19 +172,32 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, addr: Address, array_ref: bool) {
+    fn verify_crossing(&mut self, old: Address, addr: Address, array_ref: bool) {
         let card = self.old.card_from_address(addr);
         let card_start = self.old.address_from_card(card);
         let offset = addr.offset_from(card_start);
-        let offset_words = offset / (mem::ptr_width() as usize);
+        let offset_words = (offset / (mem::ptr_width() as usize)) as u8;
 
         let crossing = self.crossing_map.get(card);
+        let old_card = self.old.card_from_address(old).to_usize();
+
+        let expected;
 
         if array_ref {
-            assert!(crossing == CrossingEntry::LeadingRefs(offset_words as u8));
+            let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
+            let crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
+
+            for c in old_card+1 .. card.to_usize() {
+                assert!(self.crossing_map.get(c.into()) == crossing_middle);
+            }
+
+            expected = CrossingEntry::LeadingRefs(offset_words);
+
         } else {
-            assert!(crossing == CrossingEntry::FirstObjectOffset(offset_words as u8));
+            expected = CrossingEntry::FirstObjectOffset(offset_words);
         }
+
+        assert!(crossing == expected);
     }
 
     fn verify_reference(
