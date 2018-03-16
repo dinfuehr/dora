@@ -145,9 +145,9 @@ impl<'a> Verifier<'a> {
             self.verify_reference(child_ptr, child.to_address(), object_address, name);
         });
 
-        let next = curr.offset(object.size());
+        let next = object_address.offset(object.size());
 
-        if self.in_old && on_different_cards(curr, next) {
+        if self.in_old && on_different_cards(object_address, next) {
             self.verify_crossing(object_address, next, true);
         }
 
