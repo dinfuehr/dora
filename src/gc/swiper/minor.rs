@@ -127,43 +127,48 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 CrossingEntry::NoRefs => panic!("card dirty without any refs"),
                 CrossingEntry::LeadingRefs(refs) => {
                     let mut ptr = card_start;
+                    let mut ref_to_young_gen = false;
 
                     for _ in 0..refs {
                         let ind_ptr = IndirectObj::from_address(ptr);
                         let dir_ptr = ind_ptr.get();
 
                         if self.young_from.contains(Address::from_ptr(dir_ptr)) {
-                            ind_ptr.set(self.copy(dir_ptr));
+                            let copied_obj = self.copy(dir_ptr);
+                            ind_ptr.set(copied_obj);
+
+                            if self.young.contains(Address::from_ptr(copied_obj)) {
+                                ref_to_young_gen = true;
+                            }
                         }
 
                         ptr = ptr.offset(mem::ptr_width() as usize);
                     }
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end);
+                    self.copy_card(card, ptr, card_end, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObjectOffset(offset) => {
                     let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end);
+                    self.copy_card(card, ptr, card_end, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
                     let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr.into(), card_end);
+                    self.copy_card(card, ptr.into(), card_end, false);
                 }
             }
         });
     }
 
-    fn copy_card(&mut self, card: Card, mut ptr: Address, card_end: Address) {
+    fn copy_card(&mut self, card: Card, mut ptr: Address, card_end: Address, mut ref_to_young_gen: bool) {
         let old_end: Address = self.old.free();
         let mut end = cmp::min(card_end, old_end);
-        let mut ref_to_young_gen = false;
 
         loop {
             while ptr < end {

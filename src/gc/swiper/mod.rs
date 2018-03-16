@@ -115,7 +115,7 @@ impl Swiper {
         }
     }
 
-    fn minor_collect(&self, ctxt: &SemContext) -> bool {
+    fn minor_collect_inner(&self, ctxt: &SemContext) -> bool {
         let rootset = get_rootset(ctxt);
 
         self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
@@ -196,7 +196,11 @@ impl Collector for Swiper {
     }
 
     fn collect(&self, ctxt: &SemContext) {
-        self.minor_collect(ctxt);
+        self.full_collect(ctxt);
+    }
+
+    fn minor_collect(&self, ctxt: &SemContext) {
+        self.minor_collect_inner(ctxt);
     }
 
     fn needs_write_barrier(&self) -> bool {
@@ -216,7 +220,7 @@ impl Swiper {
             return ptr;
         }
 
-        let promotion_failed = self.minor_collect(ctxt);
+        let promotion_failed = self.minor_collect_inner(ctxt);
 
         if promotion_failed {
             self.full_collect(ctxt);

@@ -16,6 +16,7 @@ internal fun assert(val: bool);
 internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();
+internal fun forceMinorCollect();
 
 internal fun call(fct: Str);
 internal fun throwFromNative(val: bool) throws;

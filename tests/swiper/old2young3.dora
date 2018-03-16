@@ -2,12 +2,12 @@
 
 fun main() {
   let x = Foo(1, nil);
-  forceCollect();
+  forceMinorCollect();
   x.next = Foo(2, nil);
   // Promote x to old generation. Make sure that
   // promoted objects with references to young generations
   // are updated too.
-  forceCollect();
+  forceMinorCollect();
   assert(x.next.a == 2);
 }
 

@@ -2,11 +2,11 @@
 
 fun main() {
   let x = Foo(1, nil);
-  forceCollect();
-  forceCollect();
+  forceMinorCollect();
+  forceMinorCollect();
   // write into old object x reference to young object
   x.next = Foo(2, nil);
-  forceCollect();
+  forceMinorCollect();
   assert(x.next.a == 2);
 }
 

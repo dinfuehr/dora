@@ -85,13 +85,22 @@ impl Gc {
     pub fn collect(&self, ctxt: &SemContext) {
         self.collector.collect(ctxt);
     }
+
+    pub fn minor_collect(&self, ctxt: &SemContext) {
+        self.collector.minor_collect(ctxt);
+    }
 }
 
 trait Collector {
     // allocate object of given size
     fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8;
 
+    // collect garbage
     fn collect(&self, ctxt: &SemContext);
+
+    // collect young generation if supported, otherwise
+    // collects whole heap
+    fn minor_collect(&self, ctxt: &SemContext);
 
     // decides whether to emit write barriers needed for
     // generational GC to write into card table

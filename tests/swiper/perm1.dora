@@ -2,6 +2,6 @@
 
 fun main() {
   let x = "perm";
-  forceCollect();
+  forceMinorCollect();
   assert(x.len() == 4);
 }

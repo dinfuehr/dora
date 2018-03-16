@@ -63,6 +63,10 @@ impl Collector for CopyCollector {
         let rootset = get_rootset(ctxt);
         self.collect_from(ctxt, &rootset);
     }
+
+    fn minor_collect(&self, ctxt: &SemContext) {
+        self.collect(ctxt);
+    }
 }
 
 impl Drop for CopyCollector {

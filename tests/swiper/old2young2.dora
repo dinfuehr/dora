@@ -2,12 +2,12 @@
 
 fun main() {
   let x = Array::<Foo>(2);
-  forceCollect();
-  forceCollect();
+  forceMinorCollect();
+  forceMinorCollect();
   // array in old generation references object in
   // young generation.
   x[0] = Foo(2);
-  forceCollect();
+  forceMinorCollect();
   assert(x[0].a == 2);
 }
 

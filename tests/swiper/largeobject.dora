@@ -4,8 +4,8 @@ fun main() {
     let x = LargeObject();
     x.val1 = 1L;
     x.val512 = 512L;
-    forceCollect();
-    forceCollect();
+    forceMinorCollect();
+    forceMinorCollect();
     assert(x.val1 + x.val512 == 513L);
 }
 

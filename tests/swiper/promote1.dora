@@ -2,8 +2,8 @@
 
 fun main() {
   let x = Foo(1);
-  forceCollect();
-  forceCollect();
+  forceMinorCollect();
+  forceMinorCollect();
   assert(x.a == 1);
 }
 

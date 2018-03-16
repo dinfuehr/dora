@@ -1,14 +1,13 @@
 //= vm-args "--gc=swiper --gc-verify"
-//= ignore
 
 fun main() {
     let a = Array::<Foo>(61);
     let b = Array::<Foo>(61);
-    forceCollect();
-    forceCollect();
+    forceMinorCollect();
+    forceMinorCollect();
     // a[5] = Foo(2);
     b[5] = Foo(1);
-    forceCollect();
+    forceMinorCollect();
     // assert(a[5].a == 2);
     assert(b[5].a == 1);
 }

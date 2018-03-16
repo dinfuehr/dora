@@ -172,6 +172,11 @@ pub extern "C" fn gc_collect() {
     ctxt.gc.collect(ctxt);
 }
 
+pub extern "C" fn gc_minor_collect() {
+    let ctxt = get_ctxt();
+    ctxt.gc.minor_collect(ctxt);
+}
+
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
     s.len() as i32
 }

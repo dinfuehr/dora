@@ -59,4 +59,8 @@ impl Collector for ZeroCollector {
     fn collect(&self, _: &SemContext) {
         // do nothing
     }
+
+    fn minor_collect(&self, _: &SemContext) {
+        // do nothing
+    }
 }
