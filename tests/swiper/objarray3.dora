@@ -1,0 +1,10 @@
+//= vm-args "--gc=swiper --gc-verify"
+//= ignore
+
+fun main() {
+    let a = Array::<Foo>(16 * 1024);
+    a[16 * 1024 - 1] = Foo();
+    forceCollect();
+}
+
+class Foo()
