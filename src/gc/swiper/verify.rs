@@ -114,17 +114,12 @@ impl<'a> Verifier<'a> {
         while curr < region.end {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
-            object.visit_reference_fields(|child| {
-                let child_ptr = child.get();
-                self.verify_reference(child_ptr, child.to_address(), curr, name);
-            });
+            let next = if object.is_array_ref() {
+                self.verify_array_ref(object, curr, name)
 
-            let next = curr.offset(object.size());
-
-            if self.in_old && on_different_cards(curr, next) {
-                // self.verify_card(curr);
-                self.verify_crossing(curr, next, object.is_array_ref());
-            }
+            } else {
+                self.verify_object(object, curr, name)
+            };
 
             curr = next;
         }
@@ -132,16 +127,50 @@ impl<'a> Verifier<'a> {
         assert!(curr == region.end, "object doesn't end at region end");
 
         if self.in_old && !start_of_card(curr) {
-            // self.verify_card(curr);
+            self.verify_card(curr);
         }
     }
 
-    fn verify_card(&mut self, curr: Address) {
-        if self.phase.is_pre() {
-            self.refs_to_young_gen = 0;
-            return;
+    fn verify_array_ref(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
+        let object_address = curr;
+
+        object.visit_reference_fields(|child| {
+            let child_ptr = child.get();
+
+            if self.in_old && on_different_cards(curr, child.to_address()) {
+                self.verify_card(curr);
+                curr = child.to_address();
+            }
+
+            self.verify_reference(child_ptr, child.to_address(), object_address, name);
+        });
+
+        let next = curr.offset(object.size());
+
+        if self.in_old && on_different_cards(curr, next) {
+            self.verify_crossing(object_address, next, true);
         }
 
+        next
+    }
+
+    fn verify_object(&mut self, object: &mut Obj, curr: Address, name: &str) -> Address {
+        object.visit_reference_fields(|child| {
+            let child_ptr = child.get();
+            self.verify_reference(child_ptr, child.to_address(), curr, name);
+        });
+
+        let next = curr.offset(object.size());
+
+        if self.in_old && on_different_cards(curr, next) {
+            self.verify_card(curr);
+            self.verify_crossing(curr, next, false);
+        }
+
+        next
+    }
+
+    fn verify_card(&mut self, curr: Address) {
         let curr_card = self.old.card_from_address(curr);
 
         let card_entry = self.card_table.get(curr_card);
@@ -150,6 +179,15 @@ impl<'a> Verifier<'a> {
         } else {
             CardEntry::Clean
         };
+
+        // In the verify-phase before the collection the card's dirty-entry isn't
+        // guaranteed to be exact. It could be `dirty` although this card doesn't
+        // actually contain any references into the young generation. But it is never
+        // clean when there are actual references into the young generation.
+        if self.phase.is_pre() && expected_card_entry == CardEntry::Clean {
+            self.refs_to_young_gen = 0;
+            return;
+        }
 
         if card_entry != expected_card_entry {
             let card_text = match card_entry {
