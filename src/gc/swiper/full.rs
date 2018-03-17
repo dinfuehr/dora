@@ -195,7 +195,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let next_dest = dest.offset(object_size);
 
                 if on_different_cards(dest, next_dest) && full.old.contains(dest) {
-                    full.update_crossing(next_dest);
+                    full.update_crossing(dest, next_dest, object.is_array_ref());
                     full.update_card(dest, &mut young_refs);
                 }
 
@@ -271,9 +271,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         young.start
     }
 
-    fn update_crossing(&mut self, addr: Address) {
+    fn update_crossing(&mut self, _last: Address, addr: Address, _array_ref: bool) {
         let offset = addr.to_usize() & (CARD_SIZE - 1);
-        let offset_words = offset / (mem::ptr_width() as usize);
+        let offset_words = offset / mem::ptr_width_usize();
 
         let card = self.old.card_from_address(addr);
 
