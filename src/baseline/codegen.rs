@@ -50,12 +50,16 @@ pub fn generate_fct<'ast>(
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
 ) -> *const u8 {
-    debug_assert!(cls_type_params.iter().all(
-        |ty| !ty.contains_type_param(ctxt),
-    ));
-    debug_assert!(fct_type_params.iter().all(
-        |ty| !ty.contains_type_param(ctxt),
-    ));
+    debug_assert!(
+        cls_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(ctxt),)
+    );
+    debug_assert!(
+        fct_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(ctxt),)
+    );
 
     {
         let specials = src.specializations.read().unwrap();
@@ -198,9 +202,9 @@ pub fn dump_asm<'ast>(
     let start_addr = jit_fct.fct_ptr() as u64;
     let end_addr = jit_fct.fct_end() as u64;
 
-    let instrs = engine.disasm(buf, start_addr, jit_fct.fct_len()).expect(
-        "could not disassemble code",
-    );
+    let instrs = engine
+        .disasm(buf, start_addr, jit_fct.fct_len())
+        .expect("could not disassemble code");
 
     let name = fct.full_name(ctxt);
 
@@ -260,9 +264,7 @@ pub fn dump_asm<'ast>(
         writeln!(
             &mut w,
             "  {:#06x}: {}\t\t{}",
-            instr.addr,
-            instr.mnemonic,
-            instr.op_str
+            instr.addr, instr.mnemonic, instr.op_str
         ).unwrap();
     }
 
@@ -407,10 +409,8 @@ where
     fn emit_epilog(&mut self) {
         self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
-        self.masm.epilog(
-            self.jit_info.stacksize(),
-            self.ctxt.polling_page.addr(),
-        );
+        self.masm
+            .epilog(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -423,11 +423,8 @@ where
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.store_mem(
-                    rmode,
-                    Mem::Local(offset),
-                    register_for_mode(rmode),
-                );
+                self.masm
+                    .store_mem(rmode, Mem::Local(offset), register_for_mode(rmode));
             }
         }
 
@@ -453,11 +450,8 @@ where
             if s.expr.is_some() {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.load_mem(
-                    rmode,
-                    register_for_mode(rmode),
-                    Mem::Local(offset),
-                );
+                self.masm
+                    .load_mem(rmode, register_for_mode(rmode), Mem::Local(offset));
             }
 
             self.lbl_return = None;
@@ -482,11 +476,8 @@ where
             // execute condition, when condition is false jump to
             // end of while
             self.emit_expr(&s.cond);
-            self.masm.test_and_jump_if(
-                CondCode::Zero,
-                REG_RESULT,
-                lbl_end,
-            );
+            self.masm
+                .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
 
         self.save_label_state(lbl_end, lbl_start, |this| {
@@ -509,11 +500,8 @@ where
 
         // offset of iterator storage
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Local(offset),
-            dest,
-        );
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
         let lbl_start = self.masm.create_label();
         let lbl_end = self.masm.create_label();
@@ -525,11 +513,8 @@ where
 
         // emit: iterator.hasNext() & jump to lbl_end if false
         let dest = self.emit_call_site(&for_info.has_next, s.pos);
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            dest.reg(),
-            lbl_end,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
 
         // emit: <for_var> = iterator.next()
         let dest = self.emit_call_site(&for_info.next, s.pos);
@@ -603,11 +588,8 @@ where
         };
 
         self.emit_expr(&s.cond);
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            REG_RESULT,
-            lbl_else,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
         self.visit_stmt(&s.then_block);
 
@@ -725,12 +707,8 @@ where
 
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-            self.masm.emit_exception_handler(
-                do_span,
-                finally_start,
-                Some(offset),
-                CatchType::Any,
-            );
+            self.masm
+                .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
                 self.masm.emit_exception_handler(
@@ -768,12 +746,8 @@ where
             let cls_def = self.ctxt.class_defs[cls_def_id].borrow();
 
             let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
-            self.masm.emit_exception_handler(
-                try_span,
-                catch_span.0,
-                Some(offset),
-                catch_type,
-            );
+            self.masm
+                .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
             ret.push(catch_span);
         }
@@ -826,11 +800,8 @@ where
 
         self.visit_stmt(&finally_block.block);
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_RESULT.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
         self.masm.trap(Trap::THROW);
 
         self.scopes.pop_scope();
@@ -839,9 +810,11 @@ where
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> ExprStore {
-        let ty = self.src.map_tys.get(e.id()).map(|ty| *ty).unwrap_or(
-            BuiltinType::Int,
-        );
+        let ty = self.src
+            .map_tys
+            .get(e.id())
+            .map(|ty| *ty)
+            .unwrap_or(BuiltinType::Int);
 
         let ty = self.specialize_type(ty);
 
@@ -987,7 +960,9 @@ pub struct Scopes {
 
 impl Scopes {
     pub fn new() -> Scopes {
-        Scopes { scopes: vec![Scope::new()] }
+        Scopes {
+            scopes: vec![Scope::new()],
+        }
     }
 
     pub fn push_scope(&mut self) {
@@ -1030,7 +1005,9 @@ pub struct TempOffsets {
 
 impl TempOffsets {
     pub fn new() -> TempOffsets {
-        TempOffsets { offsets: HashSet::new() }
+        TempOffsets {
+            offsets: HashSet::new(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {

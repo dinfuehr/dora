@@ -7,8 +7,8 @@ use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
-use cpu::{FREG_TMP1, FReg, Mem, REG_THREAD, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
-          REG_RESULT};
+use cpu::{FREG_TMP1, FReg, Mem, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
+          REG_RESULT, REG_THREAD};
 use ctxt::*;
 use driver::cmd::AsmSyntax;
 use dora_parser::lexer::position::Position;
@@ -175,12 +175,8 @@ where
                     (start, end)
                 };
 
-                self.masm.emit_exception_handler(
-                    try_span,
-                    catch_span.0,
-                    None,
-                    CatchType::Any,
-                );
+                self.masm
+                    .emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
                 self.masm.bind_label(lbl_after);
             }
 
@@ -205,12 +201,8 @@ where
                     (start, end)
                 };
 
-                self.masm.emit_exception_handler(
-                    try_span,
-                    catch_span.0,
-                    None,
-                    CatchType::Any,
-                );
+                self.masm
+                    .emit_exception_handler(try_span, catch_span.0, None, CatchType::Any);
                 self.masm.bind_label(lbl_after);
             }
 
@@ -244,11 +236,8 @@ where
             } else {
                 // reserve temp variable for object
                 let offset = self.reserve_temp_for_node(&e.object);
-                self.masm.store_mem(
-                    MachineMode::Ptr,
-                    Mem::Local(offset),
-                    dest.into(),
-                );
+                self.masm
+                    .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
 
                 offset
             };
@@ -256,11 +245,8 @@ where
             // object instanceof T
 
             // tmp1 = <vtable of object>
-            self.masm.load_mem(
-                MachineMode::Ptr,
-                REG_TMP1.into(),
-                Mem::Base(dest, 0),
-            );
+            self.masm
+                .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(dest, 0));
 
             let disp = self.masm.add_addr(vtable as *const _ as *mut u8);
             let pos = self.masm.pos() as i32;
@@ -287,8 +273,8 @@ where
                     Mem::Base(REG_TMP1, VTable::offset_of_overflow()),
                 );
 
-                let overflow_offset = mem::ptr_width() *
-                    (vtable.subtype_depth - DISPLAY_SIZE as i32);
+                let overflow_offset =
+                    mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE as i32);
 
                 // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
                 self.masm.cmp_mem(
@@ -305,11 +291,8 @@ where
                     self.masm.jump_if(CondCode::NonZero, lbl_false);
 
                     // otherwise load temp variable again
-                    self.masm.load_mem(
-                        MachineMode::Ptr,
-                        dest.into(),
-                        Mem::Local(offset),
-                    );
+                    self.masm
+                        .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
                 }
 
                 // jmp lbl_finished
@@ -330,8 +313,8 @@ where
                 // lbl_finished:
                 self.masm.bind_label(lbl_finished);
             } else {
-                let display_entry = VTable::offset_of_display() +
-                    vtable.subtype_depth * mem::ptr_width();
+                let display_entry =
+                    VTable::offset_of_display() + vtable.subtype_depth * mem::ptr_width();
 
                 // tmp1 = vtable of object
                 // tmp2 = vtable of T
@@ -349,11 +332,8 @@ where
                     self.masm.jump_if(CondCode::NotEqual, lbl_bailout);
                     self.masm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
 
-                    self.masm.load_mem(
-                        MachineMode::Ptr,
-                        dest.into(),
-                        Mem::Local(offset),
-                    );
+                    self.masm
+                        .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
                 }
             }
 
@@ -441,11 +421,8 @@ where
         self.masm.emit_comment(Comment::LoadSelf(var.id));
 
         let offset = self.jit_info.offset(var.id);
-        self.masm.load_mem(
-            var.ty.mode(),
-            dest.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(var.ty.mode(), dest.into(), Mem::Local(offset));
     }
 
     fn emit_nil(&mut self, dest: Reg) {
@@ -481,21 +458,13 @@ where
         let field = &cls.fields[fieldid.idx()];
 
         self.masm.emit_comment(Comment::LoadField(cls_id, fieldid));
-        self.masm.load_field(
-            field.ty.mode(),
-            dest,
-            src,
-            field.offset,
-            pos.line as i32,
-        );
+        self.masm
+            .load_field(field.ty.mode(), dest, src, field.offset, pos.line as i32);
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
-        self.masm.load_int_const(
-            MachineMode::Int32,
-            dest,
-            lit.value as i64,
-        );
+        self.masm
+            .load_int_const(MachineMode::Int32, dest, lit.value as i64);
     }
 
     fn emit_lit_int(&mut self, lit: &'ast ExprLitIntType, dest: Reg) {
@@ -557,11 +526,8 @@ where
                 self.masm.emit_comment(Comment::LoadGlobal(gid));
                 self.masm.load_constpool(REG_TMP1, disp + pos);
 
-                self.masm.load_mem(
-                    glob.ty.mode(),
-                    dest,
-                    Mem::Base(REG_TMP1, 0),
-                );
+                self.masm
+                    .load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
             }
 
             IdentType::Field(cls, field) => {
@@ -601,19 +567,13 @@ where
             }
 
             BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => {
-                self.masm.load_int_const(
-                    ty.mode(),
-                    dest.reg(),
-                    xconst.value.to_int(),
-                );
+                self.masm
+                    .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
 
             BuiltinType::Float | BuiltinType::Double => {
-                self.masm.load_float_const(
-                    ty.mode(),
-                    dest.freg(),
-                    xconst.value.to_float(),
-                );
+                self.masm
+                    .load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
             }
 
             _ => unimplemented!(),
@@ -625,8 +585,10 @@ where
             self.emit_expr(&e.opnd, dest);
 
             match intrinsic {
-                Intrinsic::IntPlus | Intrinsic::LongPlus | Intrinsic::FloatPlus |
-                Intrinsic::DoublePlus => {}
+                Intrinsic::IntPlus
+                | Intrinsic::LongPlus
+                | Intrinsic::FloatPlus
+                | Intrinsic::DoublePlus => {}
 
                 Intrinsic::IntNeg | Intrinsic::LongNeg => {
                     let dest = dest.reg();
@@ -699,16 +661,14 @@ where
                         )
                     }
 
-                    Intrinsic::StrSet => {
-                        self.emit_array_set(
-                            e.pos,
-                            BuiltinType::Byte,
-                            MachineMode::Int8,
-                            &array.object,
-                            &array.index,
-                            &e.rhs,
-                        )
-                    }
+                    Intrinsic::StrSet => self.emit_array_set(
+                        e.pos,
+                        BuiltinType::Byte,
+                        MachineMode::Int8,
+                        &array.object,
+                        &array.index,
+                        &e.rhs,
+                    ),
 
                     _ => panic!("unexpected intrinsic {:?}", intrinsic),
                 }
@@ -742,11 +702,8 @@ where
                 self.masm.emit_comment(Comment::StoreGlobal(gid));
                 self.masm.load_constpool(REG_TMP1, disp + pos);
 
-                self.masm.store_mem(
-                    glob.ty.mode(),
-                    Mem::Base(REG_TMP1, 0),
-                    dest,
-                );
+                self.masm
+                    .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), dest);
             }
 
             IdentType::Field(ty, fieldid) => {
@@ -766,19 +723,13 @@ where
                 };
 
                 let temp_offset = self.reserve_temp_for_node(temp);
-                self.masm.store_mem(
-                    MachineMode::Ptr,
-                    Mem::Local(temp_offset),
-                    REG_RESULT.into(),
-                );
+                self.masm
+                    .store_mem(MachineMode::Ptr, Mem::Local(temp_offset), REG_RESULT.into());
 
                 let reg = result_reg(field.ty.mode());
                 self.emit_expr(&e.rhs, reg);
-                self.masm.load_mem(
-                    MachineMode::Ptr,
-                    REG_TMP1.into(),
-                    Mem::Local(temp_offset),
-                );
+                self.masm
+                    .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(temp_offset));
 
                 self.masm.emit_comment(Comment::StoreField(cls_id, fieldid));
 
@@ -813,18 +764,12 @@ where
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             self.emit_expr(&e.lhs, REG_RESULT.into());
             let offset = self.reserve_temp_for_node(&e.lhs);
-            self.masm.store_mem(
-                MachineMode::Ptr,
-                Mem::Local(offset),
-                REG_RESULT.into(),
-            );
+            self.masm
+                .store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
 
             self.emit_expr(&e.rhs, REG_TMP1.into());
-            self.masm.load_mem(
-                MachineMode::Ptr,
-                REG_RESULT.into(),
-                Mem::Local(offset),
-            );
+            self.masm
+                .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
             self.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
 
@@ -873,18 +818,12 @@ where
         let lbl_end = self.masm.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT.into());
-        self.masm.test_and_jump_if(
-            CondCode::NonZero,
-            REG_RESULT,
-            lbl_true,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::NonZero, REG_RESULT, lbl_true);
 
         self.emit_expr(&e.rhs, REG_RESULT.into());
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            REG_RESULT,
-            lbl_false,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
         self.masm.load_true(dest);
@@ -902,18 +841,12 @@ where
         let lbl_end = self.masm.create_label();
 
         self.emit_expr(&e.lhs, REG_RESULT.into());
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            REG_RESULT,
-            lbl_false,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.emit_expr(&e.rhs, REG_RESULT.into());
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            REG_RESULT,
-            lbl_false,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
         self.masm.load_true(dest);
@@ -971,15 +904,13 @@ where
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
                 Intrinsic::StrLen => self.emit_intrinsic_len(e, dest.reg()),
-                Intrinsic::StrGet => {
-                    self.emit_array_get(
-                        e.pos,
-                        MachineMode::Int8,
-                        e.object.as_ref().unwrap(),
-                        &e.args[0],
-                        dest,
-                    )
-                }
+                Intrinsic::StrGet => self.emit_array_get(
+                    e.pos,
+                    MachineMode::Int8,
+                    e.object.as_ref().unwrap(),
+                    &e.args[0],
+                    dest,
+                ),
 
                 Intrinsic::BoolToInt | Intrinsic::ByteToInt => {
                     self.emit_intrinsic_byte_to_int(e, dest.reg())
@@ -1096,8 +1027,11 @@ where
         let ty = self.ty(e.id);
 
         match ty {
-            BuiltinType::Bool | BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long |
-            BuiltinType::Char => self.masm.load_int_const(ty.mode(), dest.reg(), 0),
+            BuiltinType::Bool
+            | BuiltinType::Byte
+            | BuiltinType::Int
+            | BuiltinType::Long
+            | BuiltinType::Char => self.masm.load_int_const(ty.mode(), dest.reg(), 0),
             BuiltinType::Float | BuiltinType::Double => {
                 self.masm.load_float_const(ty.mode(), dest.freg(), 0.0)
             }
@@ -1148,11 +1082,8 @@ where
         let offset_value = self.reserve_temp_for_node(rhs);
         self.masm.store_mem(mode, Mem::Local(offset_value), res);
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Local(offset_object),
-        );
+        self.masm
+            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(offset_object));
         self.masm.load_mem(
             MachineMode::Int32,
             REG_TMP2.into(),
@@ -1194,27 +1125,18 @@ where
     ) {
         self.emit_expr(object, REG_RESULT.into());
         let offset = self.reserve_temp_for_node(object);
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Local(offset),
-            REG_RESULT.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(index, REG_TMP1.into());
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_RESULT.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
         self.masm.test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
 
         if !self.ctxt.args.flag_omit_bounds_check {
-            self.masm.check_index_out_of_bounds(
-                pos,
-                REG_RESULT,
-                REG_TMP1,
-            );
+            self.masm
+                .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
 
         let res = result_reg(mode);
@@ -1231,24 +1153,15 @@ where
     fn emit_set_uint8(&mut self, e: &'ast ExprCallType, _: Reg) {
         self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
-        self.masm.store_mem(
-            MachineMode::Int64,
-            Mem::Local(offset),
-            REG_RESULT.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Int64, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(&e.args[1], REG_TMP1.into());
-        self.masm.load_mem(
-            MachineMode::Int64,
-            REG_RESULT.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(MachineMode::Int64, REG_RESULT.into(), Mem::Local(offset));
 
-        self.masm.store_mem(
-            MachineMode::Int8,
-            Mem::Base(REG_RESULT, 0),
-            REG_TMP1.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
     }
 
     fn emit_intrinsic_is_nan(&mut self, e: &'ast ExprCallType, dest: Reg, intrinsic: Intrinsic) {
@@ -1278,36 +1191,23 @@ where
         self.emit_expr(&e.args[0], REG_RESULT.into());
 
         self.masm.emit_comment(Comment::Lit("check assert"));
-        self.masm.test_and_jump_if(
-            CondCode::Zero,
-            REG_RESULT,
-            lbl_div,
-        );
+        self.masm
+            .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
         self.masm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
     }
 
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
         self.emit_expr(&e.args[0], REG_RESULT.into());
         let offset = self.reserve_temp_for_node(&e.args[0]);
-        self.masm.store_mem(
-            MachineMode::Int32,
-            Mem::Local(offset),
-            REG_RESULT.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Int32, Mem::Local(offset), REG_RESULT.into());
 
         self.emit_expr(&e.args[1], REG_TMP1.into());
-        self.masm.load_mem(
-            MachineMode::Int32,
-            REG_RESULT.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(MachineMode::Int32, REG_RESULT.into(), Mem::Local(offset));
 
-        self.masm.int_shl(
-            MachineMode::Int32,
-            dest,
-            REG_RESULT,
-            REG_TMP1,
-        );
+        self.masm
+            .int_shl(MachineMode::Int32, dest, REG_RESULT, REG_TMP1);
     }
 
     fn emit_intrinsic_long_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1355,12 +1255,8 @@ where
             _ => unreachable!(),
         };
 
-        self.masm.int_to_float(
-            dest_mode,
-            dest,
-            src_mode,
-            REG_RESULT,
-        );
+        self.masm
+            .int_to_float(dest_mode, dest, src_mode, REG_RESULT);
     }
 
     fn emit_intrinsic_float_to_int(
@@ -1379,12 +1275,8 @@ where
             _ => unreachable!(),
         };
 
-        self.masm.float_to_int(
-            dest_mode,
-            dest,
-            src_mode,
-            FREG_RESULT,
-        );
+        self.masm
+            .float_to_int(dest_mode, dest, src_mode, FREG_RESULT);
     }
 
     fn emit_intrinsic_byte_to_int(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1453,8 +1345,11 @@ where
         op: Option<BinOp>,
     ) {
         match intr {
-            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::CharEq | Intrinsic::IntEq |
-            Intrinsic::LongEq => {
+            Intrinsic::ByteEq
+            | Intrinsic::BoolEq
+            | Intrinsic::CharEq
+            | Intrinsic::IntEq
+            | Intrinsic::LongEq => {
                 let mode = if intr == Intrinsic::LongEq {
                     MachineMode::Int64
                 } else {
@@ -1607,8 +1502,8 @@ where
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.has_self() && check_for_nil(ty) && !csite.super_call &&
-                        !fct.is_virtual()
+                    if idx == 0 && fct.has_self() && check_for_nil(ty) && !csite.super_call
+                        && !fct.is_virtual()
                     {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);
                     }
@@ -1635,11 +1530,8 @@ where
             }
 
             let offset = self.reserve_temp_for_arg(arg);
-            self.masm.store_mem(
-                arg.ty().mode(),
-                Mem::Local(offset),
-                dest,
-            );
+            self.masm
+                .store_mem(arg.ty().mode(), Mem::Local(offset), dest);
             temps.push((arg.ty(), offset, None));
         }
 
@@ -1677,16 +1569,10 @@ where
 
                     freg_idx += 1;
                 } else {
-                    self.masm.load_mem(
-                        mode,
-                        FREG_TMP1.into(),
-                        Mem::Local(offset),
-                    );
-                    self.masm.store_mem(
-                        mode,
-                        Mem::Local(arg_offset),
-                        FREG_TMP1.into(),
-                    );
+                    self.masm
+                        .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                    self.masm
+                        .store_mem(mode, Mem::Local(arg_offset), FREG_TMP1.into());
 
                     arg_offset += 8;
                 }
@@ -1697,16 +1583,10 @@ where
 
                     reg_idx += 1;
                 } else {
-                    self.masm.load_mem(
-                        mode,
-                        REG_TMP1.into(),
-                        Mem::Local(offset),
-                    );
-                    self.masm.store_mem(
-                        mode,
-                        Mem::Local(arg_offset),
-                        REG_TMP1.into(),
-                    );
+                    self.masm
+                        .load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                    self.masm
+                        .store_mem(mode, Mem::Local(arg_offset), REG_TMP1.into());
 
                     arg_offset += 8;
                 }
@@ -1729,12 +1609,16 @@ where
             .collect::<Vec<_>>()
             .into();
 
-        debug_assert!(cls_type_params.iter().all(|ty| {
-            !ty.contains_type_param(self.ctxt)
-        }));
-        debug_assert!(fct_type_params.iter().all(|ty| {
-            !ty.contains_type_param(self.ctxt)
-        }));
+        debug_assert!(
+            cls_type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.ctxt))
+        );
+        debug_assert!(
+            fct_type_params
+                .iter()
+                .all(|ty| !ty.contains_type_param(self.ctxt))
+        );
 
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
@@ -1794,73 +1678,44 @@ where
 
         match cls.size {
             ClassSize::Fixed(size) => {
-                self.masm.load_int_const(
-                    MachineMode::Int32,
-                    REG_PARAMS[0],
-                    size as i64,
-                );
+                self.masm
+                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
             }
 
             ClassSize::Array(esize) if temps.len() > 1 => {
-                self.masm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].1),
-                );
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.determine_array_size(
-                    REG_PARAMS[0],
-                    REG_TMP1,
-                    esize,
-                    true,
-                );
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, esize, true);
 
                 store_length = true;
             }
 
             ClassSize::ObjArray if temps.len() > 1 => {
-                self.masm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].1),
-                );
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.determine_array_size(
-                    REG_PARAMS[0],
-                    REG_TMP1,
-                    mem::ptr_width(),
-                    true,
-                );
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width(), true);
 
                 store_length = true;
             }
 
             ClassSize::Str if temps.len() > 1 => {
-                self.masm.load_mem(
-                    MachineMode::Int32,
-                    REG_TMP1.into(),
-                    Mem::Local(temps[1].1),
-                );
+                self.masm
+                    .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.determine_array_size(
-                    REG_PARAMS[0],
-                    REG_TMP1,
-                    1,
-                    true,
-                );
+                self.masm
+                    .determine_array_size(REG_PARAMS[0], REG_TMP1, 1, true);
 
                 store_length = true;
             }
 
-            ClassSize::Array(_) |
-            ClassSize::ObjArray |
-            ClassSize::Str => {
+            ClassSize::Array(_) | ClassSize::ObjArray | ClassSize::Str => {
                 let size = (Header::size() + mem::ptr_width()) as i64;
-                self.masm.load_int_const(
-                    MachineMode::Int32,
-                    REG_PARAMS[0],
-                    size,
-                );
+                self.masm
+                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
 
                 store_length = true;
             }
@@ -1871,7 +1726,8 @@ where
             _ => 0,
         };
 
-        self.masm.load_int_const(MachineMode::Int8, REG_PARAMS[1], array_ref);
+        self.masm
+            .load_int_const(MachineMode::Int8, REG_PARAMS[1], array_ref);
 
         let internal_fct = InternalFct {
             ptr: stdlib::gc_alloc as *mut u8,
@@ -1886,39 +1742,26 @@ where
         self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
 
         // store gc object in temporary storage
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Local(offset),
-            dest.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Local(offset), dest.into());
 
         // store classptr in object
         let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
         let disp = self.masm.add_addr(cptr);
         let pos = self.masm.pos() as i32;
 
-        let temp = if dest == REG_TMP1 {
-            REG_TMP2
-        } else {
-            REG_TMP1
-        };
+        let temp = if dest == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
 
         self.masm.emit_comment(Comment::StoreVTable(cls_id));
         self.masm.load_constpool(temp, disp + pos);
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(dest, 0),
-            temp.into(),
-        );
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), temp.into());
 
         // store length in object
         if store_length {
             if temps.len() > 1 {
-                self.masm.load_mem(
-                    MachineMode::Int32,
-                    temp.into(),
-                    Mem::Local(temps[1].1),
-                );
+                self.masm
+                    .load_mem(MachineMode::Int32, temp.into(), Mem::Local(temps[1].1));
             } else {
                 self.masm.load_int_const(MachineMode::Ptr, temp, 0);
             }
@@ -1936,7 +1779,12 @@ where
             }
 
             _ if temps.len() > 1 => {
-                self.masm.int_add_imm(MachineMode::Ptr, dest, dest, Header::size() + mem::ptr_width());
+                self.masm.int_add_imm(
+                    MachineMode::Ptr,
+                    dest,
+                    dest,
+                    Header::size() + mem::ptr_width(),
+                );
 
                 let element_size = match cls.size {
                     ClassSize::Array(esize) => esize,
@@ -1945,7 +1793,8 @@ where
                     ClassSize::Fixed(_) => unreachable!(),
                 };
 
-                self.masm.determine_array_size(temp, temp, element_size, false);
+                self.masm
+                    .determine_array_size(temp, temp, element_size, false);
                 self.masm.int_add(MachineMode::Ptr, temp, temp, dest);
                 self.masm.fill_zero_dynamic(dest, temp);
             }
@@ -1954,11 +1803,8 @@ where
             _ => {}
         }
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            dest.into(),
-            Mem::Local(offset),
-        );
+        self.masm
+            .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
     }
 
     fn emit_native_call_insn(&mut self, pos: Position, internal_fct: InternalFct, dest: ExprStore) {
@@ -2029,24 +1875,27 @@ where
         self.masm.load_mem(
             MachineMode::Ptr,
             dest.into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset())
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
         );
 
         self.masm.load_mem(
             MachineMode::Ptr,
             (*tlab_end).into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset())
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
         );
 
         self.masm.copy_reg(MachineMode::Ptr, *tlab_next, dest);
         let size_reg = self.masm.get_scratch();
-        self.masm.load_int_const(MachineMode::Ptr, *size_reg, size as i64);
-        self.masm.int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
+        self.masm
+            .load_int_const(MachineMode::Ptr, *size_reg, size as i64);
+        self.masm
+            .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
 
         self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
         self.masm.jump_if(CondCode::LessEq, success);
 
-        self.masm.load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
+        self.masm
+            .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
 
         let internal_fct = InternalFct {
             ptr: stdlib::gc_alloc as *mut u8,
@@ -2116,8 +1965,13 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     match ty {
         BuiltinType::Error => panic!("error shouldn't occur in code generation."),
         BuiltinType::Unit => false,
-        BuiltinType::Byte | BuiltinType::Char | BuiltinType::Int | BuiltinType::Long |
-        BuiltinType::Float | BuiltinType::Double | BuiltinType::Bool => false,
+        BuiltinType::Byte
+        | BuiltinType::Char
+        | BuiltinType::Int
+        | BuiltinType::Long
+        | BuiltinType::Float
+        | BuiltinType::Double
+        | BuiltinType::Bool => false,
         BuiltinType::Nil | BuiltinType::Ptr => true,
         BuiltinType::Class(_, _) => true,
         BuiltinType::Struct(_, _) => false,

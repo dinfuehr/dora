@@ -66,17 +66,17 @@ pub struct SemContext<'ast> {
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVec<StructData>, // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructDef>, // stores all struct definitions
-    pub classes: GrowableVec<Class>, // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>, // stores all class definitions
-    pub fcts: GrowableVec<Fct<'ast>>, // stores all function definitions
-    pub jit_fcts: GrowableVec<JitFct>, // stores all function implementations
-    pub traits: Vec<RefCell<TraitData>>, // stores all trait definitions
-    pub impls: Vec<RefCell<ImplData>>, // stores all impl definitions
-    pub code_map: Mutex<CodeMap>, // stores all compiled functions
+    pub structs: GrowableVec<StructData>,     // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructDef>,  // stores all struct definitions
+    pub classes: GrowableVec<Class>,          // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
+    pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
+    pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
+    pub traits: Vec<RefCell<TraitData>>,      // stores all trait definitions
+    pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
-    pub gc: Gc, // garbage collector
+    pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
     pub compile_stub: RefCell<Option<Stub>>,
@@ -369,8 +369,8 @@ impl TraitData {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
-            if method.name == name && method.is_static == is_static &&
-                params_match(replace, method.params_without_self(), args)
+            if method.name == name && method.is_static == is_static
+                && params_match(replace, method.params_without_self(), args)
             {
                 return Some(method.id);
             }
@@ -735,9 +735,7 @@ impl<'ast> Fct<'ast> {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_) |
-            FctParent::Trait(_) |
-            FctParent::Impl(_) => !self.is_static,
+            FctParent::Class(_) | FctParent::Trait(_) | FctParent::Impl(_) => !self.is_static,
 
             _ => false,
         }
@@ -994,7 +992,9 @@ where
     V: Clone,
 {
     pub fn new() -> NodeMap<V> {
-        NodeMap { map: HashMap::new() }
+        NodeMap {
+            map: HashMap::new(),
+        }
     }
 
     pub fn get(&self, id: ast::NodeId) -> Option<&V> {

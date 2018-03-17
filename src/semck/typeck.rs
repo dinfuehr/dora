@@ -97,10 +97,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             Some(ty) => ty,
             None => {
                 let tyname = self.ctxt.interner.str(s.name).to_string();
-                self.ctxt.diag.borrow_mut().report(
-                    s.pos,
-                    Msg::VarNeedsTypeInfo(tyname),
-                );
+                self.ctxt
+                    .diag
+                    .borrow_mut()
+                    .report(s.pos, Msg::VarNeedsTypeInfo(tyname));
 
                 return;
             }
@@ -121,10 +121,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         // let variable binding needs to be assigned
         } else if !s.reassignable {
-            self.ctxt.diag.borrow_mut().report(
-                s.pos,
-                Msg::LetMissingInitialization,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::LetMissingInitialization);
         }
     }
 
@@ -163,14 +163,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 // find method in impl that implements next()
                 let ximpl = self.ctxt.impls[impl_id].borrow();
-                let impl_next_id = ximpl.find_implements(self.ctxt, next_id).expect(
-                    "next() impl not found",
-                );
+                let impl_next_id = ximpl
+                    .find_implements(self.ctxt, next_id)
+                    .expect("next() impl not found");
 
                 // find method in impl that implements hasNext();
-                let impl_has_next_id = ximpl.find_implements(self.ctxt, has_next_id).expect(
-                    "hasNext() impl not found",
-                );
+                let impl_has_next_id = ximpl
+                    .find_implements(self.ctxt, has_next_id)
+                    .expect("hasNext() impl not found");
 
                 // get return type of next() in impl
                 let fct = self.ctxt.fcts[impl_next_id].borrow();
@@ -264,12 +264,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             self.ctxt.diag.borrow_mut().report(s.pos, Msg::ThrowNil);
         } else if !ty.reference_type() {
             let tyname = ty.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(
-                s.pos,
-                Msg::ReferenceTypeExpected(
-                    tyname,
-                ),
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::ReferenceTypeExpected(tyname));
         }
     }
 
@@ -277,13 +275,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         self.visit_expr(&s.expr);
 
         if !s.expr.is_call() {
-            self.ctxt.diag.borrow_mut().report(
-                s.pos,
-                Msg::FctCallExpected,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(s.pos, Msg::FctCallExpected);
         }
     }
-
 
     fn check_stmt_do(&mut self, s: &'ast StmtDoType) {
         self.visit_stmt(&s.do_block);
@@ -362,22 +359,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let args = vec![index_type, value_type];
             let ret_type = Some(BuiltinType::Unit);
 
-            if let Some((_, fct_id, return_type)) =
-                self.find_method(
-                    e.pos,
-                    object_type,
-                    false,
-                    name,
-                    &args,
-                    &TypeParams::empty(),
-                    ret_type,
-                )
-            {
+            if let Some((_, fct_id, return_type)) = self.find_method(
+                e.pos,
+                object_type,
+                false,
+                name,
+                &args,
+                &TypeParams::empty(),
+                ret_type,
+            ) {
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src.map_calls.insert_or_replace(
-                    e.id,
-                    Rc::new(call_type),
-                );
+                self.src
+                    .map_calls
+                    .insert_or_replace(e.id, Rc::new(call_type));
 
                 let fct = &self.ctxt.fcts[fct_id];
                 let fct = fct.borrow();
@@ -405,32 +399,32 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 match ident_type {
                     &IdentType::Var(varid) => {
                         if !self.src.vars[varid].reassignable {
-                            self.ctxt.diag.borrow_mut().report(
-                                e.pos,
-                                Msg::LetReassigned,
-                            );
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
                         }
                     }
 
                     &IdentType::Global(gid) => {
                         if !self.ctxt.globals[gid].borrow().reassignable {
-                            self.ctxt.diag.borrow_mut().report(
-                                e.pos,
-                                Msg::LetReassigned,
-                            );
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
                         }
                     }
 
                     &IdentType::Field(ty, fieldid) => {
                         let clsid = ty.cls_id(self.ctxt).unwrap();
 
-                        if !self.fct.ctor.is() &&
-                            !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable
+                        if !self.fct.ctor.is()
+                            && !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable
                         {
-                            self.ctxt.diag.borrow_mut().report(
-                                e.pos,
-                                Msg::LetReassigned,
-                            );
+                            self.ctxt
+                                .diag
+                                .borrow_mut()
+                                .report(e.pos, Msg::LetReassigned);
                         }
                     }
 
@@ -439,10 +433,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Const(_) => {
-                        self.ctxt.diag.borrow_mut().report(
-                            e.pos,
-                            Msg::AssignmentToConst,
-                        );
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(e.pos, Msg::AssignmentToConst);
                     }
                 }
 
@@ -471,10 +465,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 }
             }
         } else {
-            self.ctxt.diag.borrow_mut().report(
-                e.pos,
-                Msg::LvalueExpected,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::LvalueExpected);
         }
 
         self.src.set_ty(e.id, BuiltinType::Error);
@@ -541,17 +535,15 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let call_types = [];
 
         if !ty.is_error() {
-            if let Some((_, fct_id, return_type)) =
-                lookup_method(
-                    self.ctxt,
-                    ty,
-                    false,
-                    name,
-                    &call_types,
-                    &TypeParams::empty(),
-                    None,
-                )
-            {
+            if let Some((_, fct_id, return_type)) = lookup_method(
+                self.ctxt,
+                ty,
+                false,
+                name,
+                &call_types,
+                &TypeParams::empty(),
+                None,
+            ) {
                 let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
 
@@ -619,22 +611,19 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern(name);
         let call_types = [rhs_type];
 
-        if let Some((_, fct_id, return_type)) =
-            lookup_method(
-                self.ctxt,
-                lhs_type,
-                false,
-                name,
-                &call_types,
-                &TypeParams::empty(),
-                None,
-            )
-        {
+        if let Some((_, fct_id, return_type)) = lookup_method(
+            self.ctxt,
+            lhs_type,
+            false,
+            name,
+            &call_types,
+            &TypeParams::empty(),
+            None,
+        ) {
             let call_type = CallType::Method(lhs_type, fct_id, TypeParams::empty());
-            self.src.map_calls.insert_or_replace(
-                e.id,
-                Rc::new(call_type),
-            );
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -661,36 +650,29 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             CmpOp::Is | CmpOp::IsNot => {
                 if !lhs_type.reference_type() {
                     let lhs_type = lhs_type.name(self.ctxt);
-                    self.ctxt.diag.borrow_mut().report(
-                        e.pos,
-                        Msg::ReferenceTypeExpected(
-                            lhs_type,
-                        ),
-                    );
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::ReferenceTypeExpected(lhs_type));
                 }
 
                 if !rhs_type.reference_type() {
                     let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt.diag.borrow_mut().report(
-                        e.pos,
-                        Msg::ReferenceTypeExpected(
-                            rhs_type,
-                        ),
-                    );
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::ReferenceTypeExpected(rhs_type));
                 }
 
-                if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type)) &&
-                    !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type))
+                if !(lhs_type.is_nil() || lhs_type.allows(self.ctxt, rhs_type))
+                    && !(rhs_type.is_nil() || rhs_type.allows(self.ctxt, lhs_type))
                 {
                     let lhs_type = lhs_type.name(self.ctxt);
                     let rhs_type = rhs_type.name(self.ctxt);
-                    self.ctxt.diag.borrow_mut().report(
-                        e.pos,
-                        Msg::TypesIncompatible(
-                            lhs_type,
-                            rhs_type,
-                        ),
-                    );
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::TypesIncompatible(lhs_type, rhs_type));
                 }
 
                 self.src.set_ty(e.id, BuiltinType::Bool);
@@ -717,8 +699,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         rhs_type: BuiltinType,
         expected_type: BuiltinType,
     ) {
-        if !expected_type.allows(self.ctxt, lhs_type) ||
-            !expected_type.allows(self.ctxt, rhs_type)
+        if !expected_type.allows(self.ctxt, lhs_type) || !expected_type.allows(self.ctxt, rhs_type)
         {
             let op = op.as_str().into();
             let lhs_type = lhs_type.name(self.ctxt);
@@ -784,10 +765,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let return_type = lookup.found_ret().unwrap();
 
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-                self.src.map_calls.insert_or_replace(
-                    e.id,
-                    Rc::new(call_type),
-                );
+                self.src
+                    .map_calls
+                    .insert_or_replace(e.id, Rc::new(call_type));
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
 
@@ -961,8 +941,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 None,
                 &TypeParams::empty(),
                 &TypeParams::empty(),
-            )
-            {
+            ) {
                 self.src.map_tys.insert(e.id, self.ctxt.cls(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
@@ -1037,7 +1016,6 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let msg = Msg::ThrowingCallWithoutTry;
                     self.ctxt.diag.borrow_mut().report(e.pos, msg);
                 }
-
 
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
@@ -1157,26 +1135,22 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let name = self.ctxt.interner.intern("get");
         let args = vec![index_type];
 
-        if let Some((_, fct_id, return_type)) =
-            self.find_method(
-                e.pos,
-                object_type,
-                false,
-                name,
-                &args,
-                &TypeParams::empty(),
-                None,
-            )
-        {
+        if let Some((_, fct_id, return_type)) = self.find_method(
+            e.pos,
+            object_type,
+            false,
+            name,
+            &args,
+            &TypeParams::empty(),
+            None,
+        ) {
             let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
-            self.src.map_calls.insert_or_replace(
-                e.id,
-                Rc::new(call_type),
-            );
+            self.src
+                .map_calls
+                .insert_or_replace(e.id, Rc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
-
         } else {
             self.src.set_ty(e.id, BuiltinType::Error);
             self.expr_type = BuiltinType::Error;
@@ -1194,13 +1168,12 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let throws = self.ctxt.fcts[fct_id].borrow().throws;
 
                 if !throws {
-                    self.ctxt.diag.borrow_mut().report(
-                        e.pos,
-                        Msg::TryCallNonThrowing,
-                    );
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(e.pos, Msg::TryCallNonThrowing);
                 }
             }
-
 
             match e.mode {
                 TryMode::Normal => {}
@@ -1257,10 +1230,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !check_type.reference_type() {
             let name = check_type.name(self.ctxt);
-            self.ctxt.diag.borrow_mut().report(
-                e.pos,
-                Msg::ReferenceTypeExpected(name),
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::ReferenceTypeExpected(name));
             return;
         }
 
@@ -1320,23 +1293,17 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let fname = self.ctxt.interner.str(field.name).to_string();
                 self.ctxt.diag.borrow_mut().report(
                     e.pos,
-                    Msg::StructFieldNotInitialized(
-                        struc_name.clone(),
-                        fname,
-                    ),
+                    Msg::StructFieldNotInitialized(struc_name.clone(), fname),
                 );
             }
         }
 
         for &fname in initialized.keys() {
             let fname = self.ctxt.interner.str(fname).to_string();
-            self.ctxt.diag.borrow_mut().report(
-                e.pos,
-                Msg::UnknownStructField(
-                    struc_name.clone(),
-                    fname,
-                ),
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
         }
 
         let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
@@ -1451,15 +1418,15 @@ fn arg_allows(
 ) -> bool {
     match def {
         BuiltinType::Error => panic!("error shouldn't occur in fct definition."),
-        BuiltinType::Unit |
-        BuiltinType::Bool |
-        BuiltinType::Byte |
-        BuiltinType::Char |
-        BuiltinType::Struct(_, _) |
-        BuiltinType::Int |
-        BuiltinType::Long |
-        BuiltinType::Float |
-        BuiltinType::Double => def == arg,
+        BuiltinType::Unit
+        | BuiltinType::Bool
+        | BuiltinType::Byte
+        | BuiltinType::Char
+        | BuiltinType::Struct(_, _)
+        | BuiltinType::Int
+        | BuiltinType::Long
+        | BuiltinType::Float
+        | BuiltinType::Double => def == arg,
         BuiltinType::Nil => panic!("nil should not occur in fct definition."),
         BuiltinType::Ptr => panic!("ptr should not occur in fct definition."),
         BuiltinType::This => panic!("this should not occur in fct definition."),
@@ -1580,10 +1547,9 @@ fn check_lit_int<'ast>(
         };
 
         if (negative && val > max) || (!negative && val >= max) {
-            ctxt.diag.borrow_mut().report(
-                e.pos,
-                Msg::NumberOverflow(ty_name.into()),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
         }
     } else {
         let max = match e.suffix {
@@ -1593,10 +1559,9 @@ fn check_lit_int<'ast>(
         };
 
         if val > max {
-            ctxt.diag.borrow_mut().report(
-                e.pos,
-                Msg::NumberOverflow(ty_name.into()),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(e.pos, Msg::NumberOverflow(ty_name.into()));
         }
     }
 
@@ -1636,10 +1601,9 @@ fn check_lit_float<'ast>(
             FloatSuffix::Double => "double",
         };
 
-        ctxt.diag.borrow_mut().report(
-            e.pos,
-            Msg::NumberOverflow(ty.into()),
-        );
+        ctxt.diag
+            .borrow_mut()
+            .report(e.pos, Msg::NumberOverflow(ty.into()));
     }
 
     (ty, value)
@@ -1881,10 +1845,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
             };
 
-            self.ctxt.diag.borrow_mut().report(
-                self.pos.expect("pos not set"),
-                msg,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
             return false;
         };
 
@@ -1931,8 +1895,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             Some(fct_id),
             &cls_tps,
             &fct_tps,
-        )
-        {
+        ) {
             let fct_name = self.ctxt.interner.str(fct.name).to_string();
             let fct_params = fct.params_without_self()
                 .iter()
@@ -1940,10 +1903,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 .collect::<Vec<_>>();
             let call_types = args.iter().map(|a| a.name(self.ctxt)).collect::<Vec<_>>();
             let msg = Msg::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.ctxt.diag.borrow_mut().report(
-                self.pos.expect("pos not set"),
-                msg,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -1985,8 +1948,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 None,
                 type_params,
                 &TypeParams::empty(),
-            )
-            {
+            ) {
                 return Some(ctor_id);
             }
         }
@@ -2027,10 +1989,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     fn check_tps(&self, specified_tps: &[ctxt::TypeParam], tps: &TypeParams) -> bool {
         if specified_tps.len() != tps.len() {
             let msg = Msg::WrongNumberTypeParams(specified_tps.len(), tps.len());
-            self.ctxt.diag.borrow_mut().report(
-                self.pos.expect("pos not set"),
-                msg,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(self.pos.expect("pos not set"), msg);
             return false;
         }
 
@@ -2124,10 +2086,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls = self.ctxt.interner.str(cls.name).to_string();
 
         let msg = Msg::ClassBoundNotSatisfied(name, cls);
-        self.ctxt.diag.borrow_mut().report(
-            self.pos.expect("pos not set"),
-            msg,
-        );
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(self.pos.expect("pos not set"), msg);
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
@@ -2135,10 +2097,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let name = ty.name(self.ctxt);
         let trait_name = self.ctxt.interner.str(bound.name).to_string();
         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-        self.ctxt.diag.borrow_mut().report(
-            self.pos.expect("pos not set"),
-            msg,
-        );
+        self.ctxt
+            .diag
+            .borrow_mut()
+            .report(self.pos.expect("pos not set"), msg);
     }
 
     fn found_fct_id(&self) -> Option<FctId> {
@@ -2168,11 +2130,9 @@ fn lookup_method<'ast>(
             let params = ctxt.lists.borrow().get(list_id);
             Some((cls_id, params))
         }
-        _ => {
-            ctxt.vips.find_class(object_type).map(|c| {
-                (c, TypeParams::empty())
-            })
-        }
+        _ => ctxt.vips
+            .find_class(object_type)
+            .map(|c| (c, TypeParams::empty())),
     };
 
     if let Some((cls_id, ref cls_type_params)) = values {
@@ -2202,8 +2162,7 @@ fn lookup_method<'ast>(
                 Some(method.id),
                 cls_type_params,
                 fct_tps,
-            )
-            {
+            ) {
                 let cmp_type =
                     replace_type_param(ctxt, method.return_type, &cls_type_params, fct_tps);
 
@@ -2304,15 +2263,13 @@ mod tests {
 
     #[test]
     fn type_method_call() {
-        ok(
-            "class Foo {
+        ok("class Foo {
                 fun bar() {}
                 fun baz() -> int { return 1; }
             }
 
             fun f(x: Foo) { x.bar(); }
-            fun g(x: Foo) -> int { return x.baz(); }",
-        );
+            fun g(x: Foo) -> int { return x.baz(); }");
 
         err(
             "class Foo {
@@ -2373,30 +2330,22 @@ mod tests {
             Msg::ThisUnavailable,
         );
 
-        ok(
-            "class Foo(let a: int, let b: int) {
+        ok("class Foo(let a: int, let b: int) {
             fun bar() -> int { return self.a + self.b; }
-        }",
-        );
+        }");
 
-        ok(
-            "class Foo(var a: int) {
+        ok("class Foo(var a: int) {
             fun setA(a: int) { self.a = a; }
-        }",
-        );
+        }");
 
-        ok(
-            "class Foo {
+        ok("class Foo {
             fun zero() -> int { return 0; }
             fun other() -> int { return self.zero(); }
-        }",
-        );
+        }");
 
-        ok(
-            "class Foo {
+        ok("class Foo {
             fun bar() { self.bar(); }
-        }",
-        );
+        }");
     }
 
     #[test]
@@ -2529,10 +2478,8 @@ mod tests {
             Msg::ReturnType("int".into(), "()".into()),
         );
 
-        ok(
-            "fun f() -> int { return 0; }
-            fun g() -> int { return f(); }",
-        );
+        ok("fun f() -> int { return 0; }
+            fun g() -> int { return f(); }");
         err(
             "fun f() { }
              fun g() -> int { return f(); }",
@@ -2625,9 +2572,7 @@ mod tests {
 
     #[test]
     fn type_function_return_type() {
-        ok(
-            "fun foo() -> int { return 1; }\nfun f() { let i: int = foo(); }",
-        );
+        ok("fun foo() -> int { return 1; }\nfun f() { let i: int = foo(); }");
         err(
             "fun foo() -> int { return 1; }\nfun f() { let i: bool = foo(); }",
             pos(2, 11),
@@ -2734,11 +2679,9 @@ mod tests {
 
     #[test]
     fn type_nil_as_method_argument() {
-        ok(
-            "class Foo {
+        ok("class Foo {
             fun f(a: Str) {}
-        } fun f() { Foo().f(nil); }",
-        );
+        } fun f() { Foo().f(nil); }");
     }
 
     #[test]
@@ -2783,10 +2726,8 @@ mod tests {
 
     #[test]
     fn type_defer() {
-        ok(
-            "fun foo() { }
-            fun f() { defer foo(); }",
-        );
+        ok("fun foo() { }
+            fun f() { defer foo(); }");
 
         err(
             "fun foo(a: int) {} fun f() { defer foo();}",
@@ -2800,9 +2741,7 @@ mod tests {
     #[test]
     fn type_catch_variable() {
         ok("fun f() { do {} catch a: Str { print(a); } }");
-        ok(
-            "fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }",
-        );
+        ok("fun f() { var x = 0; do {} catch a: Array<int> { x=a.len(); } }");
     }
 
     #[test]
@@ -2923,26 +2862,18 @@ mod tests {
 
     #[test]
     fn access_super_class_field() {
-        ok(
-            "open class A(var a: int) class B(x: int): A(x*2)
-            fun foo(b: B) { b.a = b.a + 10; }",
-        );
+        ok("open class A(var a: int) class B(x: int): A(x*2)
+            fun foo(b: B) { b.a = b.a + 10; }");
     }
 
     #[test]
     fn check_is() {
-        ok(
-            "open class A class B: A
-            fun f(a: A) -> bool { return a is B; }",
-        );
-        ok(
-            "open class A class B: A
-            fun f(b: B) -> bool { return b is A; }",
-        );
-        ok(
-            "class A
-            fun f(a: A) -> bool { return a is A; }",
-        );
+        ok("open class A class B: A
+            fun f(a: A) -> bool { return a is B; }");
+        ok("open class A class B: A
+            fun f(b: B) -> bool { return b is A; }");
+        ok("class A
+            fun f(a: A) -> bool { return a is A; }");
         err(
             "open class A class B: A
              fun f(a: A) -> bool { return a is Str; }",
@@ -2962,14 +2893,10 @@ mod tests {
 
     #[test]
     fn check_as() {
-        ok(
-            "open class A class B: A
-            fun f(a: A) -> B { return a as B; }",
-        );
-        ok(
-            "class A
-            fun f(a: A) -> A { return a as A; }",
-        );
+        ok("open class A class B: A
+            fun f(a: A) -> B { return a as B; }");
+        ok("class A
+            fun f(a: A) -> A { return a as A; }");
         err(
             "open class A class B: A
              fun f(a: A) -> Str { return a as Str; }",
@@ -2986,8 +2913,7 @@ mod tests {
 
     #[test]
     fn check_upcast() {
-        ok(
-            "open class A class B: A
+        ok("open class A class B: A
             fun f(b: B) -> A {
                 let a: A = b;
                 return a;
@@ -2995,40 +2921,33 @@ mod tests {
                 //return b;
             }
 
-            fun g(a: A) {}",
-        );
+            fun g(a: A) {}");
     }
 
     #[test]
     fn check_cmp_is() {
-        ok(
-            "fun f(x: Str) {
+        ok("fun f(x: Str) {
                 let a = nil === x;
                 let b = x === nil;
                 let c = nil === nil;
-            }",
-        );
+            }");
     }
 
     #[test]
     fn super_delegation() {
-        ok(
-            "open class A { fun f() {} }
+        ok("open class A { fun f() {} }
             class B: A { fun g() {} }
 
             fun foo(b: B) {
                 b.f();
                 b.g();
-            }",
-        );
+            }");
     }
 
     #[test]
     fn super_method_call() {
-        ok(
-            "open class A { open fun f() -> int { return 1; } }
-            class B: A { override fun f() -> int { return super.f() + 1; } }",
-        );
+        ok("open class A { open fun f() -> int { return 1; } }
+            class B: A { override fun f() -> int { return super.f() + 1; } }");
     }
 
     #[test]
@@ -3048,9 +2967,7 @@ mod tests {
 
     #[test]
     fn try_fct() {
-        ok(
-            "fun one() throws -> int { return 1; } fun me() -> int { return try one(); }",
-        );
+        ok("fun one() throws -> int { return 1; } fun me() -> int { return try one(); }");
     }
 
     #[test]
@@ -3074,10 +2991,8 @@ mod tests {
 
     #[test]
     fn try_method() {
-        ok(
-            "class Foo { fun one() throws -> int { return 1; } }
-            fun me() -> int { return try Foo().one(); }",
-        );
+        ok("class Foo { fun one() throws -> int { return 1; } }
+            fun me() -> int { return try Foo().one(); }");
     }
 
     #[test]
@@ -3102,10 +3017,8 @@ mod tests {
 
     #[test]
     fn try_else() {
-        ok(
-            "fun one() throws -> int { return 1; }
-            fun me() -> int { return try one() else 0; }",
-        );
+        ok("fun one() throws -> int { return 1; }
+            fun me() -> int { return try one() else 0; }");
         err(
             "fun one() throws -> int { return 1; }
              fun me() -> int { return try one() else \"bla\"; }",
@@ -3151,82 +3064,62 @@ mod tests {
 
     #[test]
     fn overload_plus() {
-        ok(
-            "class A { fun plus(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() + A(); }",
-        );
+        ok("class A { fun plus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() + A(); }");
     }
 
     #[test]
     fn overload_minus() {
-        ok(
-            "class A { fun minus(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() - A(); }",
-        );
+        ok("class A { fun minus(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() - A(); }");
     }
 
     #[test]
     fn overload_times() {
-        ok(
-            "class A { fun times(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() * A(); }",
-        );
+        ok("class A { fun times(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() * A(); }");
     }
 
     #[test]
     fn overload_div() {
-        ok(
-            "class A { fun div(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() / A(); }",
-        );
+        ok("class A { fun div(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() / A(); }");
     }
 
     #[test]
     fn overload_mod() {
-        ok(
-            "class A { fun mod(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() % A(); }",
-        );
+        ok("class A { fun mod(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() % A(); }");
     }
 
     #[test]
     fn overload_bitwise_or() {
-        ok(
-            "class A { fun bitwiseOr(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() | A(); }",
-        );
+        ok("class A { fun bitwiseOr(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() | A(); }");
     }
 
     #[test]
     fn overload_bitwise_and() {
-        ok(
-            "class A { fun bitwiseAnd(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() & A(); }",
-        );
+        ok("class A { fun bitwiseAnd(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() & A(); }");
     }
 
     #[test]
     fn overload_bitwise_xor() {
-        ok(
-            "class A { fun bitwiseXor(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() ^ A(); }",
-        );
+        ok("class A { fun bitwiseXor(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() ^ A(); }");
     }
 
     #[test]
     fn overload_shl() {
-        ok(
-            "class A { fun shiftLeft(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() << A(); }",
-        );
+        ok("class A { fun shiftLeft(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() << A(); }");
     }
 
     #[test]
     fn overload_sar() {
-        ok(
-            "class A { fun shiftRight(rhs: A) -> int { return 0; } }
-            fun f() -> int { return A() >> A(); }",
-        );
+        ok("class A { fun shiftRight(rhs: A) -> int { return 0; } }
+            fun f() -> int { return A() >> A(); }");
     }
 
     #[test]
@@ -3239,22 +3132,18 @@ mod tests {
 
     #[test]
     fn overload_equals() {
-        ok(
-            "class A { fun equals(rhs: A) -> bool { return true; } }
+        ok("class A { fun equals(rhs: A) -> bool { return true; } }
             fun f1() -> bool { return A() == A(); }
-            fun f2() -> bool { return A() != A(); }",
-        );
+            fun f2() -> bool { return A() != A(); }");
     }
 
     #[test]
     fn overload_compare_to() {
-        ok(
-            "class A { fun compareTo(rhs: A) -> int { return 0; } }
+        ok("class A { fun compareTo(rhs: A) -> int { return 0; } }
             fun f1() -> bool { return A() < A(); }
             fun f2() -> bool { return A() <= A(); }
             fun f3() -> bool { return A() > A(); }
-            fun f4() -> bool { return A() >= A(); }",
-        );
+            fun f4() -> bool { return A() >= A(); }");
     }
 
     #[test]
@@ -3314,9 +3203,7 @@ mod tests {
             pos(1, 19),
             Msg::NumberOverflow("int".into()),
         );
-        ok(
-            "fun f() { let x: int = 0b11111111_11111111_11111111_11111111; }",
-        );
+        ok("fun f() { let x: int = 0b11111111_11111111_11111111_11111111; }");
     }
 
     #[test]
@@ -3342,17 +3229,13 @@ mod tests {
             pos(1, 20),
             Msg::NumberOverflow("float".into()),
         );
-        ok(
-            "fun f() { let x = -340282340000000000000000000000000000000F; }",
-        );
+        ok("fun f() { let x = -340282340000000000000000000000000000000F; }");
         err(
             "fun f() { let x = 340282350000000000000000000000000000001F; }",
             pos(1, 19),
             Msg::NumberOverflow("float".into()),
         );
-        ok(
-            "fun f() { let x = 340282340000000000000000000000000000000F; }",
-        );
+        ok("fun f() { let x = 340282340000000000000000000000000000000F; }");
     }
 
     #[test]
@@ -3503,18 +3386,14 @@ mod tests {
 
     #[test]
     fn test_generic_class_bounds() {
-        ok(
-            "class Foo
+        ok("class Foo
             class A<T: Foo>
-            fun f() -> A<Foo> { return nil; }",
-        );
+            fun f() -> A<Foo> { return nil; }");
 
-        ok(
-            "open class Foo
+        ok("open class Foo
             class Bar: Foo
             class A<T: Foo>
-            fun f() -> A<Bar> { return nil; }",
-        );
+            fun f() -> A<Bar> { return nil; }");
 
         err(
             "class Foo
@@ -3536,13 +3415,11 @@ mod tests {
 
     #[test]
     fn test_generic_trait_bounds() {
-        ok(
-            "trait Foo {}
+        ok("trait Foo {}
             class X
             impl Foo for X {}
             class A<T: Foo>
-            fun f() -> A<X> { return nil; }",
-        );
+            fun f() -> A<X> { return nil; }");
 
         err(
             "trait Foo {}
@@ -3575,12 +3452,10 @@ mod tests {
     fn test_find_class_method_precedence() {
         // finding class method should have precedence over
         // trait methods
-        ok(
-            "class A { fun foo() {} }
+        ok("class A { fun foo() {} }
             trait Foo { fun foo(); }
             impl Foo for A { fun foo() {} }
-            fun test(a: A) { a.foo(); }",
-        );
+            fun test(a: A) { a.foo(); }");
 
         err(
             "class A { fun foo() {} }
@@ -3591,12 +3466,10 @@ mod tests {
             Msg::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["int".into()]),
         );
 
-        ok(
-            "class A { static fun foo() {} }
+        ok("class A { static fun foo() {} }
             trait Foo { fun foo(a: int); }
             impl Foo for A { fun foo(a:  int) {} }
-            fun test(a: A) { a.foo(1); }",
-        );
+            fun test(a: A) { a.foo(1); }");
     }
 
     #[test]
@@ -3640,16 +3513,12 @@ mod tests {
 
     #[test]
     fn generic_trait_method_call() {
-        ok(
-            "trait Foo { fun bar(); }
-            fun f<T: Foo>(t: T) { t.bar(); }",
-        );
-        ok(
-            "trait Foo { fun bar(); }
+        ok("trait Foo { fun bar(); }
+            fun f<T: Foo>(t: T) { t.bar(); }");
+        ok("trait Foo { fun bar(); }
             class A<T: Foo>(let t: T) {
                 fun baz() { self.t.bar(); }
-            }",
-        );
+            }");
 
         err(
             "trait Foo { fun bar() throws; }

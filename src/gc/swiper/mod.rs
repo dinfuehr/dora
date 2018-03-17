@@ -98,9 +98,14 @@ impl Swiper {
         let old = OldGen::new(old_start, old_end, crossing_map.clone());
 
         if args.flag_gc_verbose {
-            println!("GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
-                in_kilo(heap_size), in_kilo(old_size), in_kilo(young_size),
-                in_kilo(card_size), in_kilo(crossing_size));
+            println!(
+                "GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
+                in_kilo(heap_size),
+                in_kilo(old_size),
+                in_kilo(young_size),
+                in_kilo(card_size),
+                in_kilo(crossing_size)
+            );
         }
 
         Swiper {
@@ -156,7 +161,13 @@ impl Swiper {
         self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
-    fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[IndirectObj]) {
+    fn verify(
+        &self,
+        ctxt: &SemContext,
+        phase: VerifierPhase,
+        _name: &str,
+        rootset: &[IndirectObj],
+    ) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_verbose {
                 println!("VERIFY: {}", _name);

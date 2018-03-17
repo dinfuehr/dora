@@ -81,9 +81,9 @@ fn determine_rootset(
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
             let jit_fct = jit_fct.to_base().expect("baseline expected");
-            let gcpoint = jit_fct.gcpoint_for_offset(offset as i32).expect(
-                "no gcpoint",
-            );
+            let gcpoint = jit_fct
+                .gcpoint_for_offset(offset as i32)
+                .expect("no gcpoint");
 
             for &offset in &gcpoint.offsets {
                 let addr = (fp as isize + offset as isize) as usize;

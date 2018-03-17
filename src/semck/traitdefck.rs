@@ -104,12 +104,10 @@ mod tests {
     fn trait_definitions() {
         ok("trait Foo {}");
         ok("trait Foo { fun toBool() -> bool; }");
-        ok(
-            "trait Foo {
+        ok("trait Foo {
                 fun toFloat() -> float;
                 fun toDouble() -> double;
-            }",
-        );
+            }");
 
         err(
             "trait Bar { fun foo() -> Unknown; }",

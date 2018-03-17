@@ -167,8 +167,8 @@ where
                 LLVMDumpModule(self.module);
             }
 
-            if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr()) ==
-                LLVMOrcErrorCode::LLVMOrcErrSuccess
+            if LLVMOrcGetSymbolAddress(orc, &mut ptr, self.fct_name.as_ptr())
+                == LLVMOrcErrorCode::LLVMOrcErrSuccess
             {
                 assert!(ptr != 0);
 
@@ -382,7 +382,6 @@ where
             unsafe {
                 LLVMBuildRet(self.builder, value);
             }
-
         } else {
             unsafe {
                 LLVMBuildRetVoid(self.builder);
@@ -532,13 +531,10 @@ where
     fn emit_bin(&mut self, e: &'ast ExprBinType) -> EmitResult<LLVMValueRef> {
         if let Some(intrinsic) = self.get_intrinsic(e.id) {
             self.emit_bin_intrinsic(e.op, &e.lhs, &e.rhs, intrinsic)
-
         } else if e.op == BinOp::Or {
             self.emit_or(&e.lhs, &e.rhs)
-
         } else if e.op == BinOp::And {
             self.emit_and(&e.lhs, &e.rhs)
-
         } else if e.op == BinOp::Cmp(CmpOp::Is) || e.op == BinOp::Cmp(CmpOp::IsNot) {
             let lhs_value = self.emit_expr(&e.lhs)?;
             let rhs_value = self.emit_expr(&e.rhs)?;
@@ -553,7 +549,6 @@ where
                 unsafe { LLVMBuildICmp(self.builder, predicate, lhs_value, rhs_value, noname()) };
 
             ok(value)
-
         } else {
             fail()
         }
@@ -581,8 +576,11 @@ where
             Intrinsic::IntAnd | Intrinsic::LongAnd => LLVMOpcode::LLVMAnd,
             Intrinsic::IntOr | Intrinsic::LongOr => LLVMOpcode::LLVMOr,
             Intrinsic::IntXor | Intrinsic::LongXor => LLVMOpcode::LLVMXor,
-            Intrinsic::ByteEq | Intrinsic::BoolEq | Intrinsic::CharEq | Intrinsic::IntEq |
-            Intrinsic::LongEq => {
+            Intrinsic::ByteEq
+            | Intrinsic::BoolEq
+            | Intrinsic::CharEq
+            | Intrinsic::IntEq
+            | Intrinsic::LongEq => {
                 let predicate = if op == BinOp::Cmp(CmpOp::Eq) {
                     LLVMIntPredicate::LLVMIntEQ
                 } else {

@@ -35,8 +35,7 @@ pub fn register_signals(ctxt: &SemContext) {
             0 as *mut libc::sigaction,
         ) == -1
         {
-            libc::perror("sigaction for SIGSEGV failed".as_ptr() as
-                *const libc::c_char);
+            libc::perror("sigaction for SIGSEGV failed".as_ptr() as *const libc::c_char);
         }
 
         if libc::sigaction(
@@ -45,8 +44,7 @@ pub fn register_signals(ctxt: &SemContext) {
             0 as *mut libc::sigaction,
         ) == -1
         {
-            libc::perror("sigaction for SIGILL failed".as_ptr() as
-                *const libc::c_char);
+            libc::perror("sigaction for SIGILL failed".as_ptr() as *const libc::c_char);
         }
     }
 }
@@ -185,8 +183,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     } else {
         println!(
             "error: trap not detected (signal {}, addr {:?}).",
-            signo,
-            addr
+            signo, addr
         );
         println!();
         println!("{:?}", &es);
@@ -228,9 +225,9 @@ fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
     let bailout = {
         let data = {
             let code_map = ctxt.code_map.lock().unwrap();
-            code_map.get(ra as *const u8).expect(
-                "return address not found",
-            )
+            code_map
+                .get(ra as *const u8)
+                .expect("return address not found")
         };
 
         let fct_id = match data {

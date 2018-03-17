@@ -22,8 +22,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
                 method.name,
                 Some(cls),
                 method.params_without_self(),
-            )
-            {
+            ) {
                 method.impl_for = Some(fid);
                 defined.insert(fid);
             } else {
@@ -67,7 +66,6 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
     ctxt.diag.borrow_mut().report(pos, msg);
 }
@@ -107,8 +105,7 @@ mod tests {
 
     #[test]
     fn method_returning_self() {
-        ok(
-            "trait Foo {
+        ok("trait Foo {
                 fun foo() -> Self;
             }
 
@@ -116,8 +113,7 @@ mod tests {
 
             impl Foo for A {
                 fun foo() -> A { return A(); }
-            }",
-        );
+            }");
     }
 
     #[test]

@@ -87,12 +87,8 @@ impl CopyCollector {
                 return ptr::null();
             }
 
-            let res = self.top.compare_exchange_weak(
-                old,
-                new,
-                Ordering::SeqCst,
-                Ordering::Relaxed,
-            );
+            let res = self.top
+                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
                 Ok(_) => break,
@@ -109,11 +105,7 @@ impl CopyCollector {
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
             let to_space = self.to_space();
-            os::mprotect(
-                to_space.start.to_ptr(),
-                to_space.size(),
-                ProtType::Writable,
-            );
+            os::mprotect(to_space.start.to_ptr(), to_space.size(), ProtType::Writable);
         }
 
         // empty to-space
@@ -148,18 +140,16 @@ impl CopyCollector {
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
         if cfg!(debug_assertions) {
-            os::mprotect(
-                from_space.start.to_ptr(),
-                from_space.size(),
-                ProtType::None,
-            );
+            os::mprotect(from_space.start.to_ptr(), from_space.size(), ProtType::None);
         }
 
         self.top.store(top.to_usize(), Ordering::Relaxed);
         self.end.store(to_space.end.to_usize(), Ordering::Relaxed);
 
-        timer.stop_with(|dur| if ctxt.args.flag_gc_events {
-            println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
+        timer.stop_with(|dur| {
+            if ctxt.args.flag_gc_events {
+                println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
+            }
         });
     }
 

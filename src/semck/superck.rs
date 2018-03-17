@@ -28,10 +28,9 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag.borrow_mut().report(
-                    cls.pos,
-                    Msg::CycleInHierarchy,
-                );
+                ctxt.diag
+                    .borrow_mut()
+                    .report(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
@@ -167,20 +166,18 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
     // catch: open final fun f()
     if fct.has_open && (!cls.has_open || fct.has_final) {
         let name = ctxt.interner.str(fct.name).to_string();
-        ctxt.diag.borrow_mut().report(
-            fct.pos(),
-            Msg::SuperfluousOpen(name),
-        );
+        ctxt.diag
+            .borrow_mut()
+            .report(fct.pos(), Msg::SuperfluousOpen(name));
         return;
     }
 
     if cls.parent_class.is_none() {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(
-                fct.pos(),
-                Msg::SuperfluousOverride(name),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::SuperfluousOverride(name));
             return;
         }
 
@@ -197,46 +194,41 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
 
         if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(
-                fct.pos(),
-                Msg::MissingOverride(name),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(
-                fct.pos(),
-                Msg::MethodNotOverridable(name),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(
-                fct.pos(),
-                Msg::ThrowsDifference(name),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::ThrowsDifference(name));
         }
 
         if super_method.return_type != fct.return_type {
             let pos = fct.pos();
             let fct = fct.return_type.name(ctxt);
             let sup = super_method.return_type.name(ctxt);
-            ctxt.diag.borrow_mut().report(
-                pos,
-                Msg::ReturnTypeMismatch(fct, sup),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
 
         fct.overrides = Some(super_method.id);
     } else {
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
-            ctxt.diag.borrow_mut().report(
-                fct.pos(),
-                Msg::SuperfluousOverride(name),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos(), Msg::SuperfluousOverride(name));
         }
     }
 }
@@ -353,14 +345,10 @@ mod tests {
             pos(1, 51),
             Msg::MethodNotOverridable("f".into()),
         );
-        ok(
-            "open class A { open fun f() {} } class B: A { override fun f() {} }",
-        );
-        ok(
-            "open class A { open fun f() {} }
+        ok("open class A { open fun f() {} } class B: A { override fun f() {} }");
+        ok("open class A { open fun f() {} }
             open class B: A { override fun f() {} }
-            open class C: B { override fun f() {} }",
-        );
+            open class C: B { override fun f() {} }");
         err(
             "open class A { open fun f() {} } class B: A { fun f() {} }",
             pos(1, 47),
@@ -386,10 +374,8 @@ mod tests {
             ],
         );
 
-        ok(
-            "open class A { static fun f() {} }
-            class B: A { static fun f(a: int) {} }",
-        );
+        ok("open class A { static fun f() {} }
+            class B: A { static fun f(a: int) {} }");
     }
 
     #[test]

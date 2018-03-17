@@ -98,12 +98,9 @@ impl YoungGen {
                 return ptr::null();
             }
 
-            let res = self.free.compare_exchange_weak(
-                old,
-                new,
-                Ordering::SeqCst,
-                Ordering::Relaxed,
-            );
+            let res =
+                self.free
+                    .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
                 Ok(_) => break,
@@ -115,10 +112,8 @@ impl YoungGen {
     }
 
     pub fn swap_spaces(&self, free: Address) {
-        self.end.store(
-            self.to_space().end.to_usize(),
-            Ordering::Relaxed,
-        );
+        self.end
+            .store(self.to_space().end.to_usize(), Ordering::Relaxed);
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);

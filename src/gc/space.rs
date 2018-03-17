@@ -47,7 +47,8 @@ impl Space {
         let space_start = arena::reserve(config.limit).expect("could not reserve space.");
         let space_end = space_start.offset(config.limit);
 
-        arena::commit(space_start, config.chunk, config.executable).expect("could not commit first chunk.");
+        arena::commit(space_start, config.chunk, config.executable)
+            .expect("could not commit first chunk.");
         let end = space_start.offset(config.chunk);
 
         Space {
@@ -71,7 +72,9 @@ impl Space {
 
         loop {
             let ptr = self.raw_alloc(size);
-            if !ptr.is_null() { return ptr; }
+            if !ptr.is_null() {
+                return ptr;
+            }
 
             if !self.extend(size) {
                 return ptr::null_mut();
@@ -90,12 +93,8 @@ impl Space {
                 return ptr::null_mut();
             }
 
-            let res = self.top.compare_exchange_weak(
-                old,
-                new,
-                Ordering::SeqCst,
-                Ordering::Relaxed,
-            );
+            let res = self.top
+                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
                 Ok(_) => break,
@@ -122,11 +121,11 @@ impl Space {
         let new_end = end + size;
 
         if new_end <= self.total.end.to_usize() {
-            arena::commit(end.into(), size, self.config.executable).expect("couldn't commit chunk.");
+            arena::commit(end.into(), size, self.config.executable)
+                .expect("couldn't commit chunk.");
             self.end.store(new_end, Ordering::SeqCst);
 
             true
-
         } else {
             false
         }

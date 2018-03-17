@@ -268,13 +268,8 @@ impl MacroAssembler {
 
             for offset in 0..size_words {
                 let offset = Header::size() + offset as i32 * mem::ptr_width();
-                self.store_mem(
-                    MachineMode::Ptr,
-                    Mem::Base(obj, offset),
-                    (*zero).into(),
-                );
+                self.store_mem(MachineMode::Ptr, Mem::Base(obj, offset), (*zero).into());
             }
-
         } else {
             let obj_end = self.get_scratch();
             self.copy_reg(MachineMode::Ptr, *obj_end, obj);
@@ -299,11 +294,7 @@ impl MacroAssembler {
         // loop until end of object reached
         self.cmp_reg(MachineMode::Ptr, *curr, obj_end);
         self.jump_if(CondCode::Equal, done);
-        self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(*curr, 0),
-            (*zero).into(),
-        );
+        self.store_mem(MachineMode::Ptr, Mem::Base(*curr, 0), (*zero).into());
         self.int_add_imm(MachineMode::Ptr, *curr, *curr, mem::ptr_width());
         // jump to begin of loop
         self.jump(start);
@@ -469,7 +460,6 @@ mod tests {
             let scratch1 = masm.get();
             assert_eq!(*scratch1, Reg(1));
         }
-
 
         {
             let scratch1 = masm.get();

@@ -89,7 +89,9 @@ impl Obj {
             ClassSize::Array(element_size) => determine_array_size(self, element_size),
 
             ClassSize::Str => {
-                let handle: Handle<Str> = Handle { ptr: self as *const Obj as *const Str };
+                let handle: Handle<Str> = Handle {
+                    ptr: self as *const Obj as *const Str,
+                };
                 mem::align_usize(handle.size(), mem::ptr_width() as usize)
             }
         }
@@ -169,10 +171,12 @@ impl Obj {
 }
 
 fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
-    let handle: Handle<ByteArray> = Handle { ptr: obj as *const Obj as *const ByteArray };
+    let handle: Handle<ByteArray> = Handle {
+        ptr: obj as *const Obj as *const ByteArray,
+    };
 
-    let value = Header::size() as usize + mem::ptr_width() as usize +
-        element_size as usize * handle.len() as usize;
+    let value = Header::size() as usize + mem::ptr_width() as usize
+        + element_size as usize * handle.len() as usize;
 
     mem::align_usize(value, mem::ptr_width() as usize)
 }
@@ -190,7 +194,9 @@ impl<T> Handle<T> {
     }
 
     pub fn cast<R>(&self) -> Handle<R> {
-        Handle { ptr: self.ptr as *const R }
+        Handle {
+            ptr: self.ptr as *const R,
+        }
     }
 
     pub fn raw(&self) -> *const T {
@@ -223,7 +229,9 @@ impl<T> DerefMut for Handle<T> {
 
 impl<T> Into<Handle<T>> for usize {
     fn into(self) -> Handle<T> {
-        Handle { ptr: self as *const T }
+        Handle {
+            ptr: self as *const T,
+        }
     }
 }
 

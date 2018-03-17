@@ -22,9 +22,9 @@ extern crate winapi;
 extern crate kernel32;
 
 macro_rules! offset_of {
-    ($ty:ty, $field:ident) => {
+    ($ty: ty, $field: ident) => {
         unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
-    }
+    };
 }
 
 mod baseline;

@@ -27,7 +27,9 @@ mod traitdefck;
 
 macro_rules! return_on_error {
     ($ctxt: ident) => {{
-        if $ctxt.diag.borrow().has_errors() { return; }
+        if $ctxt.diag.borrow().has_errors() {
+            return;
+        }
     }};
 }
 
@@ -117,10 +119,9 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag.borrow_mut().report(
-                fct.pos,
-                Msg::UnresolvedInternal,
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
@@ -132,27 +133,24 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.borrow();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag.borrow_mut().report(
-                cls.pos,
-                Msg::UnresolvedInternal,
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
             let method = ctxt.fcts[*method].borrow();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag.borrow_mut().report(
-                    method.pos,
-                    Msg::UnresolvedInternal,
-                );
+                ctxt.diag
+                    .borrow_mut()
+                    .report(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag.borrow_mut().report(
-                    method.pos,
-                    Msg::MissingFctBody,
-                );
+                ctxt.diag
+                    .borrow_mut()
+                    .report(method.pos, Msg::MissingFctBody);
             }
         }
     }

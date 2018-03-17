@@ -126,8 +126,8 @@ impl VTable {
 
     pub fn get_subtype_overflow(&self, ind: usize) -> *const VTable {
         assert!(
-            self.subtype_depth as usize >= DISPLAY_SIZE &&
-                ind < self.subtype_depth as usize - DISPLAY_SIZE + 1
+            self.subtype_depth as usize >= DISPLAY_SIZE
+                && ind < self.subtype_depth as usize - DISPLAY_SIZE + 1
         );
 
         unsafe {

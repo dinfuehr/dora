@@ -174,10 +174,8 @@ mod tests {
     #[test]
     fn impl_definitions() {
         ok("trait Foo {} class A {} impl Foo for A {}");
-        ok(
-            "trait Foo { fun toBool() -> bool; }
+        ok("trait Foo { fun toBool() -> bool; }
             class A {}
-            impl Foo for A { fun toBool() -> bool { return false; } }",
-        );
+            impl Foo for A { fun toBool() -> bool { return false; } }");
     }
 }

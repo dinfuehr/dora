@@ -20,9 +20,7 @@ impl fmt::Debug for ExecState {
             try!(writeln!(
                 f,
                 "    regs[{:2}] = {:-20?} {:-20}",
-                ind,
-                val as *const u8,
-                val
+                ind, val as *const u8, val
             ));
         }
 

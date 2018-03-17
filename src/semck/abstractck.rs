@@ -57,13 +57,9 @@ pub fn check_abstract<'ast>(
             let cls_name = ctxt.interner.str(mtd_cls.name).to_string();
             let mtd_name = ctxt.interner.str(mtd.name).to_string();
 
-            ctxt.diag.borrow_mut().report(
-                cls.pos,
-                Msg::MissingAbstractOverride(
-                    cls_name,
-                    mtd_name,
-                ),
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(cls.pos, Msg::MissingAbstractOverride(cls_name, mtd_name));
         }
     }
 }
@@ -126,19 +122,15 @@ mod tests {
 
     #[test]
     fn test_override_abstract_method() {
-        ok(
-            "open abstract class A { abstract fun foo(); }
-            class B: A { override fun foo() {} }",
-        );
+        ok("open abstract class A { abstract fun foo(); }
+            class B: A { override fun foo() {} }");
     }
 
     #[test]
     fn test_override_abstract_method_in_super_class() {
-        ok(
-            "open abstract class A { abstract fun foo(); }
+        ok("open abstract class A { abstract fun foo(); }
             open abstract class B: A { override fun foo() {} }
-            class C: B { }",
-        );
+            class C: B { }");
     }
 
     #[test]

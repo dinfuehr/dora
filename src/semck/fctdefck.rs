@@ -119,10 +119,9 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             let ty = semck::read_type(ctxt, &p.data_type).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag.borrow_mut().report(
-                    p.data_type.pos(),
-                    Msg::SelfTypeUnavailable,
-                );
+                ctxt.diag
+                    .borrow_mut()
+                    .report(p.data_type.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.param_types.push(ty);
@@ -140,10 +139,9 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag.borrow_mut().report(
-                    ret.pos(),
-                    Msg::SelfTypeUnavailable,
-                );
+                ctxt.diag
+                    .borrow_mut()
+                    .report(ret.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -299,18 +297,18 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
 
                     if !ty.reference_type() {
                         let ty = ty.name(self.ctxt);
-                        self.ctxt.diag.borrow_mut().report(
-                            catch.data_type.pos(),
-                            Msg::ReferenceTypeExpected(ty),
-                        );
+                        self.ctxt
+                            .diag
+                            .borrow_mut()
+                            .report(catch.data_type.pos(), Msg::ReferenceTypeExpected(ty));
                     }
                 }
 
                 if try.catch_blocks.is_empty() && try.finally_block.is_none() {
-                    self.ctxt.diag.borrow_mut().report(
-                        try.pos,
-                        Msg::CatchOrFinallyExpected,
-                    );
+                    self.ctxt
+                        .diag
+                        .borrow_mut()
+                        .report(try.pos, Msg::CatchOrFinallyExpected);
                 }
             }
 
@@ -341,12 +339,10 @@ mod tests {
 
     #[test]
     fn allow_same_method_as_static_and_non_static() {
-        ok(
-            "class Foo {
+        ok("class Foo {
                 static fun foo() {}
                 fun foo() {}
-            }",
-        );
+            }");
     }
 
     #[test]

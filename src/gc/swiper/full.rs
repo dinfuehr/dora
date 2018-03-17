@@ -81,9 +81,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let garbage = init_size - new_size;
             let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
 
-            println!("GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage)",
-                in_ms(dur), in_kilo(init_size), in_kilo(new_size),
-                in_kilo(garbage), garbage_ratio);
+            println!(
+                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage)",
+                in_ms(dur),
+                in_kilo(init_size),
+                in_kilo(new_size),
+                in_kilo(garbage),
+                garbage_ratio
+            );
         });
     }
 
@@ -104,7 +109,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     self.mark(root_ptr);
                     live_objects += 1;
                 }
-
             } else {
                 debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
             }
@@ -123,7 +127,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                         self.mark(field_addr);
                         live_objects += 1;
                     }
-
                 } else {
                     debug_assert!(field_addr.is_null() || self.perm_space.contains(field_addr));
                 }
@@ -216,7 +219,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             // if not, young gen is empty
             young_top = self.young.to_space().start;
             old_top = self.fwd;
-
         } else {
             young_top = self.fwd;
             old_top = self.old_top;
@@ -230,7 +232,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
     }
 
-    fn walk_old_and_young<F>(&mut self, mut fct: F) where F: FnMut(&mut FullCollector, &mut Obj, Address, usize) {
+    fn walk_old_and_young<F>(&mut self, mut fct: F)
+    where
+        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
+    {
         let used_region = self.old.used_region();
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
@@ -238,7 +243,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.walk_region(used_region.start, used_region.end, &mut fct);
     }
 
-    fn walk_region<F>(&mut self, start: Address, end: Address, fct: &mut F) where F: FnMut(&mut FullCollector, &mut Obj, Address, usize) {
+    fn walk_region<F>(&mut self, start: Address, end: Address, fct: &mut F)
+    where
+        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
+    {
         let mut scan = start;
 
         while scan < end {
@@ -283,14 +291,19 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn update_card(&mut self, addr: Address, young_refs: &mut bool) {
         let card = self.old.card_from_address(addr);
 
-        let card_entry = if *young_refs { CardEntry::Dirty } else { CardEntry:: Clean };
+        let card_entry = if *young_refs {
+            CardEntry::Dirty
+        } else {
+            CardEntry::Clean
+        };
         self.card_table.set(card, card_entry);
 
         *young_refs = false;
     }
 
     fn is_marked(&self, obj: &Obj) -> bool {
-        self.marking_bitmap.is_marked(Address::from_ptr(obj as *const _))
+        self.marking_bitmap
+            .is_marked(Address::from_ptr(obj as *const _))
     }
 
     fn is_marked_addr(&self, addr: Address) -> bool {
@@ -349,9 +362,7 @@ impl MarkingBitmap {
     fn mark_byte(&self, offset: usize) -> u8 {
         let addr = self.bitmap.start.offset(offset);
 
-        unsafe {
-            *addr.to_ptr()
-        }
+        unsafe { *addr.to_ptr() }
     }
 
     fn set_mark_byte(&self, offset: usize, val: u8) {
@@ -389,11 +400,17 @@ impl ForwardTable {
     }
 
     fn forward_address(&mut self, addr: Address) -> Address {
-        self.data.get(&addr).expect("no forward address found.").address()
+        self.data
+            .get(&addr)
+            .expect("no forward address found.")
+            .address()
     }
 
     fn has_young_refs(&mut self, addr: Address) -> bool {
-        self.data.get(&addr).expect("no forward address found.").has_young_refs()
+        self.data
+            .get(&addr)
+            .expect("no forward address found.")
+            .has_young_refs()
     }
 
     fn set_young_refs(&mut self, addr: Address) {
@@ -410,7 +427,7 @@ struct AddressWithYoungRefs {
 impl AddressWithYoungRefs {
     fn new(addr: Address) -> AddressWithYoungRefs {
         AddressWithYoungRefs {
-            data: addr.to_usize()
+            data: addr.to_usize(),
         }
     }
 
@@ -424,7 +441,7 @@ impl AddressWithYoungRefs {
 
     fn set_young_refs(self) -> AddressWithYoungRefs {
         AddressWithYoungRefs {
-            data: self.data | 1
+            data: self.data | 1,
         }
     }
 }

@@ -10,7 +10,7 @@ use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 
 use mem;
-use object::{Obj, offset_of_array_data};
+use object::{offset_of_array_data, Obj};
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -116,7 +116,6 @@ impl<'a> Verifier<'a> {
 
             let next = if object.is_array_ref() {
                 self.verify_array_ref(object, curr, name)
-
             } else {
                 self.verify_object(object, curr, name)
             };
@@ -234,7 +233,6 @@ impl<'a> Verifier<'a> {
                 let crossing = self.crossing_map.get(old_next.into());
                 let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
                 assert!(crossing == CrossingEntry::ArrayStart(diff_words as u8));
-
             } else {
                 loop_start = old_card.to_usize() + 1;
             }
@@ -244,7 +242,6 @@ impl<'a> Verifier<'a> {
                 let expected = CrossingEntry::LeadingRefs(offset_words);
                 assert!(crossing == expected, "array crossing at end not correct.");
             }
-
         } else {
             crossing_middle = CrossingEntry::NoRefs;
             loop_start = old_card.to_usize() + 1;
@@ -254,8 +251,11 @@ impl<'a> Verifier<'a> {
             assert!(crossing == expected, "crossing at end not correct.");
         }
 
-        for c in loop_start .. card.to_usize() {
-            assert!(self.crossing_map.get(c.into()) == crossing_middle, "middle crossing not correct.");
+        for c in loop_start..card.to_usize() {
+            assert!(
+                self.crossing_map.get(c.into()) == crossing_middle,
+                "middle crossing not correct."
+            );
         }
     }
 
@@ -272,7 +272,9 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_region.contains(addr) || self.young_region.contains(addr) || self.perm_space.contains(addr) {
+        if self.old_region.contains(addr) || self.young_region.contains(addr)
+            || self.perm_space.contains(addr)
+        {
             let object = unsafe { &mut *obj };
 
             // Verify that the address is the start of an object,
@@ -297,17 +299,11 @@ impl<'a> Verifier<'a> {
         );
         println!(
             "OLD: {}-{}; active: {}-{}",
-            self.old.total.start,
-            self.old.total.end,
-            self.old_region.start,
-            self.old_region.end
+            self.old.total.start, self.old.total.end, self.old_region.start, self.old_region.end
         );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",
-            addr,
-            name,
-            ref_addr,
-            obj_addr
+            addr, name, ref_addr, obj_addr
         );
 
         if self.young.contains(addr) && !self.young_region.contains(addr) {

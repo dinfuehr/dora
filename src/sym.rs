@@ -13,7 +13,9 @@ pub struct SymTable {
 
 impl SymTable {
     pub fn new() -> SymTable {
-        SymTable { levels: vec![SymLevel::new()] }
+        SymTable {
+            levels: vec![SymLevel::new()],
+        }
     }
 
     pub fn push_level(&mut self) {
@@ -73,7 +75,9 @@ struct SymLevel {
 impl SymLevel {
     // creates a new table
     fn new() -> SymLevel {
-        SymLevel { map: HashMap::new() }
+        SymLevel {
+            map: HashMap::new(),
+        }
     }
 
     // finds symbol in table

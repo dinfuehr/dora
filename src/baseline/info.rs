@@ -50,10 +50,10 @@ pub fn generate<'a, 'ast: 'a>(
 }
 
 pub struct JitInfo<'ast> {
-    pub tempsize: i32, // size of temporary variables on stack
-    pub localsize: i32, // size of local variables on stack
-    pub argsize: i32, // size of arguments on stack (need to be on bottom)
-    pub leaf: bool, // false if fct calls other functions
+    pub tempsize: i32,                // size of temporary variables on stack
+    pub localsize: i32,               // size of local variables on stack
+    pub argsize: i32,                 // size of arguments on stack (need to be on bottom)
+    pub leaf: bool,                   // false if fct calls other functions
     pub eh_return_value: Option<i32>, // stack slot for return value storage
 
     pub map_stores: NodeMap<Store>,
@@ -78,15 +78,15 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
-        *self.map_var_offsets.get(&var_id).expect(
-            "no offset found for var",
-        )
+        *self.map_var_offsets
+            .get(&var_id)
+            .expect("no offset found for var")
     }
 
     pub fn ty(&self, var_id: VarId) -> BuiltinType {
-        *self.map_var_types.get(&var_id).expect(
-            "no type found for var",
-        )
+        *self.map_var_types
+            .get(&var_id)
+            .expect("no type found for var")
     }
 
     pub fn new() -> JitInfo<'ast> {
@@ -154,10 +154,9 @@ impl<'a, 'ast> Visitor<'ast> for InfoGenerator<'a, 'ast> {
         // just use the current offset
         } else {
             let var = &self.src.vars[var];
-            self.jit_info.map_var_offsets.insert(
-                var.id,
-                self.param_offset,
-            );
+            self.jit_info
+                .map_var_offsets
+                .insert(var.id, self.param_offset);
 
             // determine next `param_offset`
             self.param_offset = next_param_offset(self.param_offset, var.ty);
@@ -226,9 +225,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let ret = self.fct.return_type;
 
         if !ret.is_unit() {
-            self.eh_return_value = Some(self.eh_return_value.unwrap_or_else(
-                || self.reserve_stack_for_type(ret),
-            ));
+            self.eh_return_value = Some(
+                self.eh_return_value
+                    .unwrap_or_else(|| self.reserve_stack_for_type(ret)),
+            );
         }
 
         // we also need space for catch block parameters
@@ -395,8 +395,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_id: FctId;
 
         match *call_type {
-            CallType::Ctor(_, fid, _) |
-            CallType::CtorNew(_, fid, _) => {
+            CallType::Ctor(_, fid, _) | CallType::CtorNew(_, fid, _) => {
                 let ty = self.ty(expr.id);
                 let arg = if call_type.is_ctor() {
                     Arg::Selfie(ty, 0)
@@ -580,8 +579,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let fct_type_params;
 
         match *call_type {
-            CallType::Ctor(_, _, ref type_params) |
-            CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 cls_type_params = type_params.clone();
                 fct_type_params = TypeParams::empty();
             }
@@ -618,9 +616,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     }
                 }
 
-                Arg::Stack(_, ty, _) |
-                Arg::Selfie(ty, _) |
-                Arg::SelfieNew(ty, _) => {
+                Arg::Stack(_, ty, _) | Arg::Selfie(ty, _) | Arg::SelfieNew(ty, _) => {
                     if ty.is_float() {
                         freg_args += 1;
                     } else {
@@ -631,8 +627,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         }
 
         // some register are reserved on stack
-        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32) +
-            max(0, freg_args - FREG_PARAMS.len() as i32);
+        let args_on_stack = max(0, reg_args - REG_PARAMS.len() as i32)
+            + max(0, freg_args - FREG_PARAMS.len() as i32);
 
         let argsize = 8 * args_on_stack;
 
@@ -746,10 +742,9 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn reserve_temp_for_node_with_type(&mut self, id: NodeId, ty: BuiltinType) -> i32 {
         let offset = self.reserve_temp_for_type(ty);
 
-        self.jit_info.map_stores.insert_or_replace(
-            id,
-            Store::Temp(offset, ty),
-        );
+        self.jit_info
+            .map_stores
+            .insert_or_replace(id, Store::Temp(offset, ty));
 
         offset
     }
@@ -772,19 +767,16 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
             }
 
-            CallType::Method(cls_ty, _, ref type_params) => {
-                match cls_ty {
-                    BuiltinType::Class(_, list_id) => {
-                        let params = self.ctxt.lists.borrow().get(list_id);
-                        specialize_type(self.ctxt, ty, &params, type_params)
-                    }
-
-                    _ => ty,
+            CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
+                BuiltinType::Class(_, list_id) => {
+                    let params = self.ctxt.lists.borrow().get(list_id);
+                    specialize_type(self.ctxt, ty, &params, type_params)
                 }
-            }
 
-            CallType::Ctor(_, _, ref type_params) |
-            CallType::CtorNew(_, _, ref type_params) => {
+                _ => ty,
+            },
+
+            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 let empty = TypeParams::empty();
                 specialize_type(self.ctxt, ty, type_params, &empty)
             }
@@ -837,9 +829,7 @@ fn specialize_type(
 
             let params: Vec<_> = params
                 .iter()
-                .map(|t| {
-                    specialize_type(ctxt, t, cls_type_params, fct_type_params)
-                })
+                .map(|t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
                 .collect();
 
             let list_id = ctxt.lists.borrow_mut().insert(params.into());

@@ -268,9 +268,8 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
             let cls_id = obj.header().vtbl().class().cls_id;
             let cls = ctxt.classes[cls_id].borrow();
             let name = ctxt.interner.intern("run");
-            cls.find_method(ctxt, name, false).expect(
-                "run() method not found",
-            )
+            cls.find_method(ctxt, name, false)
+                .expect("run() method not found")
         };
 
         let fct_ptr = {

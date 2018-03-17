@@ -38,16 +38,13 @@ pub fn start() -> i32 {
 
         if path.is_file() {
             parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
-
         } else if path.is_dir() {
             parse_dir(&args.arg_file, &id_generator, &mut ast, &mut interner)
-
         } else {
             println!("file or directory `{}` does not exist.", &args.arg_file);
             Err(1)
         }
-    })
-    {
+    }) {
         return code;
     }
 
@@ -124,7 +121,11 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     );
 
     // if all tests passed exit with 0, otherwise 1
-    if tests == passed { 0 } else { 1 }
+    if tests == passed {
+        0
+    } else {
+        1
+    }
 }
 
 fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
@@ -212,7 +213,6 @@ fn parse_dir(
         }
 
         Ok(())
-
     } else {
         println!("directory `{}` does not exist.", dirname);
 
@@ -260,10 +260,9 @@ fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,
         None => {
-            ctxt.diag.borrow_mut().report(
-                Position::new(1, 1),
-                Msg::MainNotFound,
-            );
+            ctxt.diag
+                .borrow_mut()
+                .report(Position::new(1, 1), Msg::MainNotFound);
             return None;
         }
     };
@@ -271,8 +270,7 @@ fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
     let fct = ctxt.fcts[fctid].borrow();
     let ret = fct.return_type;
 
-    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) ||
-        fct.params_without_self().len() > 0
+    if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
         ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);

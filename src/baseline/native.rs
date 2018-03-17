@@ -1,7 +1,7 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use baseline::fct::{JitBaselineFct, JitFctId, JitFct};
+use baseline::fct::{JitBaselineFct, JitFct, JitFctId};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use masm::MacroAssembler;
@@ -16,7 +16,9 @@ pub struct NativeFcts {
 
 impl NativeFcts {
     pub fn new() -> NativeFcts {
-        NativeFcts { map: HashMap::new() }
+        NativeFcts {
+            map: HashMap::new(),
+        }
     }
 
     pub fn find_fct(&self, ptr: *const u8) -> Option<JitFctId> {
@@ -68,8 +70,7 @@ where
         let save_return = self.fct.return_type != BuiltinType::Unit;
         let args = self.fct.args.len();
 
-        let framesize =
-            size_of::<DoraToNativeInfo>() as i32 +          // save d2n structure on stack
+        let framesize = size_of::<DoraToNativeInfo>() as i32 +          // save d2n structure on stack
             mem::ptr_width() +                              // store thread register
             (args as i32 * mem::ptr_width()) +              // store arguments on stack
             if save_return { mem::ptr_width() } else { 0 }; // save return value on stack
@@ -98,9 +99,8 @@ where
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
-        self.masm.direct_call_without_info(
-            start_native_call as *const u8,
-        );
+        self.masm
+            .direct_call_without_info(start_native_call as *const u8);
 
         restore_params(&mut self.masm, self.fct.args, offset_args);
 
@@ -114,9 +114,8 @@ where
             );
         }
 
-        self.masm.direct_call_without_info(
-            finish_native_call as *const u8,
-        );
+        self.masm
+            .direct_call_without_info(finish_native_call as *const u8);
 
         let lbl_exception = self.masm.test_if_not_nil(REG_RESULT);
 
@@ -139,12 +138,8 @@ where
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm.jit(
-            self.ctxt,
-            framesize,
-            self.fct.id,
-            self.fct.throws,
-        )
+        self.masm
+            .jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
     }
 }
 

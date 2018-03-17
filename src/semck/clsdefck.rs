@@ -182,10 +182,10 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         self.add_field(f.pos, f.name, ty, f.reassignable);
 
         if !f.reassignable && !f.primary_ctor && f.expr.is_none() {
-            self.ctxt.diag.borrow_mut().report(
-                f.pos,
-                Msg::LetMissingInitialization,
-            );
+            self.ctxt
+                .diag
+                .borrow_mut()
+                .report(f.pos, Msg::LetMissingInitialization);
         }
     }
 

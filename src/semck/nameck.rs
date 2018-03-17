@@ -511,10 +511,8 @@ mod tests {
 
     #[test]
     fn const_value() {
-        ok(
-            "const one: int = 1;
-            fun f() -> int { return one; }",
-        );
+        ok("const one: int = 1;
+            fun f() -> int { return one; }");
     }
 
     #[test]

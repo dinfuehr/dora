@@ -90,10 +90,10 @@ fn create_specialized_struct(
 ) -> StructDefId {
     let id: StructDefId = ctxt.struct_defs.len().into();
 
-    let old = struc.specializations.borrow_mut().insert(
-        type_params.clone(),
-        id,
-    );
+    let old = struc
+        .specializations
+        .borrow_mut()
+        .insert(type_params.clone(), id);
     assert!(old.is_none());
 
     ctxt.struct_defs.push(StructDef {
@@ -182,10 +182,9 @@ fn create_specialized_class(
 ) -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
-    let old = cls.specializations.borrow_mut().insert(
-        type_params.clone(),
-        id,
-    );
+    let old = cls.specializations
+        .borrow_mut()
+        .insert(type_params.clone(), id);
     assert!(old.is_none());
 
     ctxt.class_defs.push(ClassDef {
@@ -218,9 +217,8 @@ fn create_specialized_class(
             ClassSize::Str
         };
 
-        let super_id = cls.parent_class.expect(
-            "Array & Str should have super class",
-        );
+        let super_id = cls.parent_class
+            .expect("Array & Str should have super class");
         let id = specialize_class_id(ctxt, super_id);
         parent_id = Some(id);
     } else {
@@ -314,10 +312,10 @@ fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usiz
                     );
                 }
 
-                let ptr = vtable.subtype_overflow.offset(
-                    depth as isize -
-                        DISPLAY_SIZE as isize,
-                ) as *mut _;
+                let ptr = vtable
+                    .subtype_overflow
+                    .offset(depth as isize - DISPLAY_SIZE as isize)
+                    as *mut _;
 
                 *ptr = &**vtable as *const _;
             }
@@ -328,11 +326,8 @@ fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usiz
         }
 
         vtable.subtype_depth = depth as i32;
-        vtable.subtype_display[0..depth_fixed].clone_from_slice(
-            &parent_vtable
-                .subtype_display
-                [0..depth_fixed],
-        );
+        vtable.subtype_display[0..depth_fixed]
+            .clone_from_slice(&parent_vtable.subtype_display[0..depth_fixed]);
 
         depth
     } else {

@@ -178,30 +178,18 @@ mod tests {
             Msg::NoReturnValue,
         );
         ok("fun f() -> int { loop { return 1; } }");
-        ok(
-            "fun f() -> int { if true { return 1; } else { return 2; } }",
-        );
+        ok("fun f() -> int { if true { return 1; } else { return 2; } }");
         ok("fun f() -> int { return 1; 1+2; }");
-        ok(
-            "fun f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }",
-        );
+        ok("fun f(x: int) -> int { if x == 0 { throw \"abc\"; } else { return -x; } }");
     }
 
     #[test]
     fn do_returns() {
-        ok(
-            "fun f() -> int { do { return 1; } catch x: Str { return 2; } }",
-        );
-        ok(
-            "fun f() -> int { do { } catch x: Str { return 2; } return 1; }",
-        );
-        ok(
-            "fun f() -> int { do { return 2; } catch x: Str { } return 1; }",
-        );
+        ok("fun f() -> int { do { return 1; } catch x: Str { return 2; } }");
+        ok("fun f() -> int { do { } catch x: Str { return 2; } return 1; }");
+        ok("fun f() -> int { do { return 2; } catch x: Str { } return 1; }");
         ok("fun f() -> int { do { } catch x: Str { } return 1; }");
-        ok(
-            "fun f() -> int { do { } catch x: Str { } finally { return 1; } }",
-        );
+        ok("fun f() -> int { do { } catch x: Str { } finally { return 1; } }");
         err(
             "fun f() -> int { do { return 1; } catch x: Str { } }",
             pos(1, 48),

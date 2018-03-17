@@ -199,7 +199,9 @@ pub struct GcPoints {
 
 impl GcPoints {
     pub fn new() -> GcPoints {
-        GcPoints { points: HashMap::new() }
+        GcPoints {
+            points: HashMap::new(),
+        }
     }
 
     pub fn get(&self, offset: i32) -> Option<&GcPoint> {
@@ -218,7 +220,9 @@ pub struct GcPoint {
 
 impl GcPoint {
     pub fn new() -> GcPoint {
-        GcPoint { offsets: Vec::new() }
+        GcPoint {
+            offsets: Vec::new(),
+        }
     }
 
     pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
@@ -232,7 +236,9 @@ pub struct Comments {
 
 impl Comments {
     pub fn new() -> Comments {
-        Comments { comments: HashMap::new() }
+        Comments {
+            comments: HashMap::new(),
+        }
     }
 
     pub fn get(&self, pos: i32) -> Option<&[Comment]> {
@@ -390,7 +396,9 @@ pub struct LineNumberTable {
 
 impl LineNumberTable {
     pub fn new() -> LineNumberTable {
-        LineNumberTable { map: HashMap::new() }
+        LineNumberTable {
+            map: HashMap::new(),
+        }
     }
 
     pub fn insert(&mut self, offset: i32, lineno: i32) {
@@ -428,7 +436,9 @@ pub struct Bailouts {
 
 impl Bailouts {
     pub fn new() -> Bailouts {
-        Bailouts { map: HashMap::new() }
+        Bailouts {
+            map: HashMap::new(),
+        }
     }
 
     pub fn insert(&mut self, offset: i32, info: BailoutInfo) {

@@ -4,7 +4,7 @@ use ctxt::SemContext;
 
 use gc::Address;
 use gc::root::IndirectObj;
-use gc::swiper::{CARD_SIZE, Region};
+use gc::swiper::{Region, CARD_SIZE};
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
@@ -73,12 +73,18 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let garbage = young_init_size - young_new_size - self.promoted_size;
             let garbage_ratio = (garbage as f64 / young_init_size as f64) * 100f64;
 
-            println!("GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
-                      {:.1}K promoted, {:.1}K/{:.0}% garbage)",
-                in_ms(dur), in_kilo(init_size), in_kilo(new_size),
-                in_kilo(young_init_size), in_kilo(young_new_size),
+            println!(
+                "GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
+                 {:.1}K promoted, {:.1}K/{:.0}% garbage)",
+                in_ms(dur),
+                in_kilo(init_size),
+                in_kilo(new_size),
+                in_kilo(young_init_size),
+                in_kilo(young_new_size),
                 in_kilo(self.promoted_size),
-                in_kilo(garbage), garbage_ratio);
+                in_kilo(garbage),
+                garbage_ratio
+            );
         });
     }
 
@@ -166,7 +172,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         });
     }
 
-    fn copy_card(&mut self, card: Card, mut ptr: Address, card_end: Address, mut ref_to_young_gen: bool) {
+    fn copy_card(
+        &mut self,
+        card: Card,
+        mut ptr: Address,
+        card_end: Address,
+        mut ref_to_young_gen: bool,
+    ) {
         let old_end: Address = self.old.free();
         let mut end = cmp::min(card_end, old_end);
 
@@ -224,7 +236,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
 
         let obj_size = obj.size();
-        debug_assert!(self.young_from.contains(obj_addr), "copy objects only from from-space.");
+        debug_assert!(
+            self.young_from.contains(obj_addr),
+            "copy objects only from from-space."
+        );
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {
@@ -234,7 +249,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             // young generation for now
             if copy_addr.is_null() {
                 self.promotion_failed = true;
-
             } else {
                 self.promote_object(obj, copy_addr, obj_size);
                 return copy_addr.to_mut_ptr();
