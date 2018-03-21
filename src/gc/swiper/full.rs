@@ -279,13 +279,44 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         young.start
     }
 
-    fn update_crossing(&mut self, _last: Address, addr: Address, _array_ref: bool) {
+    fn update_crossing(&mut self, last: Address, addr: Address, array_ref: bool) {
+        let last_card = self.old.card_from_address(last);
+
         let offset = addr.to_usize() & (CARD_SIZE - 1);
         let offset_words = offset / mem::ptr_width_usize();
 
         let card = self.old.card_from_address(addr);
 
-        self.crossing_map.set_first_object(card, offset_words);
+        if array_ref {
+            let last_card_end = self.old.address_from_card(last_card).offset(CARD_SIZE);
+            let loop_start;
+
+            if last.offset(offset_of_array_data() as usize) > last_card_end {
+                let diff_words = last_card_end.offset_from(last) / mem::ptr_width_usize();
+                self.crossing_map.set_array_start(diff_words);
+
+                loop_start = last_card.to_usize() + 2;
+            } else {
+                loop_start = last_card.to_usize() + 1;
+            }
+
+            let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
+
+            for i in loop_start .. card.to_usize() {
+                self.crossing_map.set_references_at_start(i.into(), refs_per_card);
+            }
+
+            if card.to_usize() >= loop_start {
+                self.crossing_map.set_references_at_start(card, offset_words);
+            }
+
+        } else {
+            for i in last_card.to_usize()+1 .. card.to_usize() {
+                self.crossing_map.set_no_references(i.into());
+            }
+
+            self.crossing_map.set_first_object(card, offset_words);
+        }
     }
 
     fn update_card(&mut self, addr: Address, young_refs: &mut bool) {
