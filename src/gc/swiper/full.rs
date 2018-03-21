@@ -13,7 +13,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 use mem;
-use object::Obj;
+use object::{offset_of_array_data, Obj};
 use os;
 use timer::{in_ms, Timer};
 
@@ -293,14 +293,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             if last.offset(offset_of_array_data() as usize) > last_card_end {
                 let diff_words = last_card_end.offset_from(last) / mem::ptr_width_usize();
-                self.crossing_map.set_array_start(diff_words);
+                self.crossing_map.set_array_start((last_card.to_usize()+1).into(), diff_words);
 
                 loop_start = last_card.to_usize() + 2;
             } else {
                 loop_start = last_card.to_usize() + 1;
             }
 
-            let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
+            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
 
             for i in loop_start .. card.to_usize() {
                 self.crossing_map.set_references_at_start(i.into(), refs_per_card);

@@ -227,17 +227,17 @@ impl<'a> Verifier<'a> {
             crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
 
             if old.offset(offset_of_array_data() as usize) > old_card_end {
-                loop_start = old_card.to_usize() + 2;
-
                 let old_next = old_card.to_usize() + 1;
                 let crossing = self.crossing_map.get(old_next.into());
                 let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
                 assert!(crossing == CrossingEntry::ArrayStart(diff_words as u8));
+
+                loop_start = old_card.to_usize() + 2;
             } else {
                 loop_start = old_card.to_usize() + 1;
             }
 
-            if card.to_usize() > loop_start {
+            if card.to_usize() >= loop_start {
                 let crossing = self.crossing_map.get(card);
                 let expected = CrossingEntry::LeadingRefs(offset_words);
                 assert!(crossing == expected, "array crossing at end not correct.");
