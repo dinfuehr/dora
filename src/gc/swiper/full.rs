@@ -199,7 +199,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
                 if on_different_cards(dest, next_dest) && full.old.contains(dest) {
                     full.update_crossing(dest, next_dest, object.is_array_ref());
-                    full.update_card(dest, &mut young_refs);
+                    full.update_card(dest, next_dest, &mut young_refs);
                 }
 
                 last_dest = next_dest;
@@ -207,7 +207,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         if !last_dest.is_null() && !start_of_card(last_dest) && self.old.contains(last_dest) {
-            self.update_card(last_dest, &mut young_refs);
+            self.update_card(last_dest, last_dest, &mut young_refs);
         }
 
         let young_top;
@@ -319,8 +319,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
     }
 
-    fn update_card(&mut self, addr: Address, young_refs: &mut bool) {
+    fn update_card(&mut self, addr: Address, next: Address, young_refs: &mut bool) {
         let card = self.old.card_from_address(addr);
+        let next_card = self.old.card_from_address(next);
 
         let card_entry = if *young_refs {
             CardEntry::Dirty
@@ -328,6 +329,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             CardEntry::Clean
         };
         self.card_table.set(card, card_entry);
+
+        for i in card.to_usize()+1 .. next_card.to_usize() {
+            self.card_table.set(i.into(), CardEntry::Clean);
+        }
 
         *young_refs = false;
     }
