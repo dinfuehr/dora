@@ -5,55 +5,87 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use bytecode::opcodes::*;
 use dora_parser::interner::Name;
 
+macro_rules! emit {
+    ( $gen:expr, $opcode:expr, $($opnd:expr),* ) => {
+        let mut max_width = OpndWidth::Small;
+
+        $(
+            max_width = cmp::max(max_width, width($opnd));
+        )*;
+
+        match max_width {
+            OpndWidth::Small => {}
+            OpndWidth::Wide => {
+                $gen.emit_op(BC_WIDE);
+            }
+            OpndWidth::ExtraWide => {
+                $gen.emit_op(BC_XWIDE);
+            }
+        }
+
+        $gen.emit_op($opcode);
+
+        $(
+            $gen.emit_opnd(max_width, $opnd);
+        )*;
+    };
+}
+
 pub struct BytecodeGenerator {
-    params: Vec<Param>,
     vars: Vec<Var>,
+    params: usize,
     regs: usize,
     code: Vec<u8>,
+    return_type: Option<BytecodeType>,
 }
 
 impl BytecodeGenerator {
-    pub fn add_param(&mut self, name: Name, ty: BytecodeType) -> BytecodeParamId {
-        let len = self.params.len() as u32;
-        self.params.push(Param(name, ty));
-
-        BytecodeParamId(len)
+    pub fn new() -> BytecodeGenerator {
+        BytecodeGenerator {
+            vars: Vec::new(),
+            params: 0,
+            regs: 0,
+            code: Vec::new(),
+            return_type: None,
+        }
     }
 
-    pub fn add_var(&mut self, name: Name, ty: BytecodeType) -> BytecodeVarId {
-        let len = self.vars.len() as u32;
-        self.vars.push(Var(name, ty));
+    pub fn add_param(&mut self, name: Name, ty: BytecodeType) -> BytecodeReg {
+        self.vars.push(Var(Some(name), ty));
+        self.params += 1;
 
-        BytecodeVarId(len)
+        self.create_reg()
     }
 
-    pub fn get_local_int32(&mut self, dest: BytecodeReg, src: BytecodeVarId) {
-        let width = cmp::max(dest.width(), src.width());
-        self.emit_op(BC_GET_LOCAL_INT32);
-        self.emit_u32(width, dest.0);
-        self.emit_u32(width, src.0);
+    pub fn add_var(&mut self, name: Name, ty: BytecodeType) -> BytecodeReg {
+        self.vars.push(Var(Some(name), ty));
+
+        self.create_reg()
     }
 
-    pub fn set_local_int32(&mut self, dest: BytecodeVarId, src: BytecodeReg) {
-        let width = cmp::max(dest.width(), src.width());
-        self.emit_op(BC_SET_LOCAL_INT32);
-        self.emit_u32(width, dest.0);
-        self.emit_u32(width, src.0);
+    pub fn add_temp(&mut self, ty: BytecodeType) -> BytecodeReg {
+        self.vars.push(Var(None, ty));
+
+        self.create_reg()
+    }
+
+    pub fn set_return_type(&mut self, ty: BytecodeType) {
+        self.return_type = Some(ty);
     }
 
     pub fn add_int32(&mut self, dest: BytecodeReg, lhs: BytecodeReg, rhs: BytecodeReg) {
-        let width = max_width(dest.width(), lhs.width(), rhs.width());
-        self.emit_op(BC_ADD_INT32);
-        self.emit_u32(width, dest.0);
-        self.emit_u32(width, lhs.0);
-        self.emit_u32(width, rhs.0);
+        emit!(self, BC_ADD_INT32, dest.0, lhs.0, rhs.0);
+    }
+
+    pub fn add_int64(&mut self, dest: BytecodeReg, lhs: BytecodeReg, rhs: BytecodeReg) {
+        emit!(self, BC_ADD_INT64, dest.0, lhs.0, rhs.0);
     }
 
     fn emit_op(&mut self, op: u8) {
         self.code.push(op);
     }
 
-    fn emit_u32(&mut self, width: OpndWidth, val: u32) {
+    fn emit_opnd(&mut self, width: OpndWidth, val: u32) {
         match width {
             OpndWidth::Small => self.code.push(val as u8),
             OpndWidth::Wide => self.code.write_u16::<LittleEndian>(val as u16).unwrap(),
@@ -61,7 +93,7 @@ impl BytecodeGenerator {
         }
     }
 
-    fn reg(&mut self) -> BytecodeReg {
+    fn create_reg(&mut self) -> BytecodeReg {
         let reg = self.regs;
         self.regs += 1;
 
@@ -73,8 +105,7 @@ fn max_width(op1: OpndWidth, op2: OpndWidth, op3: OpndWidth) -> OpndWidth {
     cmp::max(op1, cmp::max(op2, op3))
 }
 
-struct Param(Name, BytecodeType);
-struct Var(Name, BytecodeType);
+struct Var(Option<Name>, BytecodeType);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OpndWidth {
