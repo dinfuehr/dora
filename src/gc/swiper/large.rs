@@ -1,3 +1,4 @@
+use gc::Address;
 use gc::swiper::Region;
 
 pub struct LargeObjectSpace {
@@ -10,4 +11,9 @@ impl LargeObjectSpace {
             total: total,
         }
     }
+}
+
+struct LargeAlloc {
+    prev: Address,
+    next: Address,
 }
