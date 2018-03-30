@@ -1,14 +1,14 @@
 use gc::Address;
 use gc::swiper::Region;
 
-pub struct LargeObjectSpace {
+pub struct LargeSpace {
     total: Region,
 }
 
-impl LargeObjectSpace {
-    pub fn new(total: Region) -> LargeObjectSpace {
-        LargeObjectSpace {
-            total: total,
+impl LargeSpace {
+    pub fn new(start: Address, end: Address) -> LargeSpace {
+        LargeSpace {
+            total: Region::new(start, end),
         }
     }
 }
