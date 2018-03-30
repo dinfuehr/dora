@@ -19,6 +19,7 @@ use os;
 pub mod card;
 mod crossing;
 mod full;
+mod large;
 mod minor;
 pub mod old;
 mod verify;
