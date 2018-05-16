@@ -29,7 +29,6 @@ impl LargeSpace {
 
         if let Some(range) = ranges.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
-
             range.start.to_ptr()
 
         } else {
@@ -43,6 +42,7 @@ impl LargeSpace {
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
         let mut ranges = self.ranges.lock().unwrap();
+        debug_assert!(!ranges.contains(ptr));
         ranges.free(ptr, size);
         ranges.merge();
     }
@@ -94,6 +94,30 @@ impl Ranges {
 
     fn merge(&mut self) {
         self.elements.sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
+
+        let len = self.elements.len();
+        let mut last_element = 0;
+
+        for i in 1..len {
+            if self.elements[last_element].end == self.elements[i].start {
+                self.elements[last_element].end = self.elements[i].end;
+            } else {
+                last_element += 1;
+                self.elements[last_element] = self.elements[i];
+            }
+        }
+
+        self.elements.truncate(last_element+1);
+    }
+
+    fn contains(&self, ptr: Address) -> bool {
+        for element in &self.elements {
+            if element.contains(ptr) {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -111,6 +135,10 @@ impl Range {
             start: start,
             end: end,
         }
+    }
+
+    fn contains(&self, ptr: Address) -> bool {
+        self.start <= ptr && ptr < self.end
     }
 
     fn size(&self) -> usize {

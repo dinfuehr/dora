@@ -272,8 +272,8 @@ impl Swiper {
         self.old.alloc(size, array_ref)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
-        let ptr = self.old.alloc(size, array_ref);
+    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> *const u8 {
+        let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
@@ -281,7 +281,7 @@ impl Swiper {
 
         self.full_collect(ctxt);
 
-        self.old.alloc(size, array_ref)
+        self.large.alloc(size)
     }
 }
 
