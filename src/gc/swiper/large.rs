@@ -46,6 +46,10 @@ impl LargeSpace {
         ranges.free(ptr, size);
         ranges.merge();
     }
+
+    pub fn contains(&self, addr: Address) -> bool {
+        self.total.contains(addr)
+    }
 }
 
 struct LargeAlloc {

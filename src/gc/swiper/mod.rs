@@ -177,6 +177,7 @@ impl Swiper {
             self.heap.clone(),
             &self.young,
             &self.old,
+            &self.large,
             &self.card_table,
             &self.crossing_map,
             &ctxt.gc.perm_space,

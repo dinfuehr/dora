@@ -9,6 +9,7 @@ use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::CARD_SIZE;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::{in_kilo, on_different_cards, start_of_card};
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
@@ -22,6 +23,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
+    large_space: &'a LargeSpace,
     rootset: &'a [IndirectObj],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -41,6 +43,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
+        large_space: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         perm_space: &'a Space,
@@ -53,6 +56,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             heap: heap,
             young: young,
             old: old,
+            large_space: large_space,
             rootset: rootset,
             card_table: card_table,
             crossing_map: crossing_map,
@@ -153,7 +157,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if !field_addr.is_null() && !full.perm_space.contains(field_addr) {
+                    if !field_addr.is_null() && !full.perm_space.contains(field_addr) && !full.large_space.contains(field_addr) {
                         let fwd_addr = full.fwd_table.forward_address(field_addr);
                         field.set(fwd_addr.to_mut_ptr());
 
@@ -172,7 +176,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) {
+            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) && !self.large_space.contains(root_ptr) {
                 let fwd_addr = self.fwd_table.forward_address(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
