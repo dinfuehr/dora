@@ -10,14 +10,14 @@ use mem;
 
 pub struct LargeSpace {
     total: Region,
-    ranges: Mutex<Ranges>,
+    space: Mutex<LargeSpaceProtected>,
 }
 
 impl LargeSpace {
     pub fn new(start: Address, end: Address) -> LargeSpace {
         LargeSpace {
             total: Region::new(start, end),
-            ranges: Mutex::new(Ranges::new(start, end)),
+            space: Mutex::new(LargeSpaceProtected::new(start, end)),
         }
     }
 
@@ -25,11 +25,11 @@ impl LargeSpace {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
-        let mut ranges = self.ranges.lock().unwrap();
+        let mut space = self.space.lock().unwrap();
 
-        if let Some(range) = ranges.alloc(size) {
+        if let Some(range) = space.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
-            ranges.append_large_alloc(range.start, range.size());
+            space.append_large_alloc(range.start, range.size());
             range.start.to_ptr()
 
         } else {
@@ -42,10 +42,10 @@ impl LargeSpace {
         debug_assert!(mem::is_page_aligned(ptr.to_usize()));
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
-        let mut ranges = self.ranges.lock().unwrap();
-        debug_assert!(!ranges.contains(ptr));
-        ranges.free(ptr, size);
-        ranges.merge();
+        let mut space = self.space.lock().unwrap();
+        debug_assert!(!space.contains(ptr));
+        space.free(ptr, size);
+        space.merge();
     }
 
     pub fn contains(&self, addr: Address) -> bool {
@@ -59,15 +59,15 @@ struct LargeAlloc {
     size: usize,
 }
 
-struct Ranges {
+struct LargeSpaceProtected {
     elements: Vec<Range>,
     head: Address,
     tail: Address,
 }
 
-impl Ranges {
-    fn new(start: Address, end: Address) -> Ranges {
-        Ranges {
+impl LargeSpaceProtected {
+    fn new(start: Address, end: Address) -> LargeSpaceProtected {
+        LargeSpaceProtected {
             elements: vec![Range::new(start, end)],
             head: Address::null(),
             tail: Address::null(),
