@@ -29,6 +29,7 @@ impl LargeSpace {
 
         if let Some(range) = ranges.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
+            ranges.append_large_alloc(range.start, range.size());
             range.start.to_ptr()
 
         } else {
@@ -60,12 +61,16 @@ struct LargeAlloc {
 
 struct Ranges {
     elements: Vec<Range>,
+    head: Address,
+    tail: Address,
 }
 
 impl Ranges {
     fn new(start: Address, end: Address) -> Ranges {
         Ranges {
             elements: vec![Range::new(start, end)],
+            head: Address::null(),
+            tail: Address::null(),
         }
     }
 
@@ -122,6 +127,20 @@ impl Ranges {
         }
 
         false
+    }
+
+    fn append_large_alloc(&mut self, addr: Address, size: usize) {
+        if !self.tail.is_null() {
+            let old_tail = unsafe { &mut *self.tail.to_mut_ptr::<LargeAlloc>() };
+            old_tail.next = addr;
+        }
+
+        let new_tail = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+        new_tail.prev = self.tail;
+        new_tail.next = Address::null();
+        new_tail.size = size;
+
+        self.tail = addr;
     }
 }
 
