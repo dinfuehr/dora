@@ -80,6 +80,9 @@ impl BytecodeGenerator {
     }
 
     pub fn add_int32(&mut self, dest: BytecodeReg, lhs: BytecodeReg, rhs: BytecodeReg) {
+        self.assert_reg_int32(dest);
+        self.assert_reg_int32(lhs);
+        self.assert_reg_int32(rhs);
         emit!(self, BC_ADD_INT32, dest.0, lhs.0, rhs.0);
     }
 
@@ -120,6 +123,14 @@ impl BytecodeGenerator {
         self.regs += 1;
 
         BytecodeReg(reg as u32)
+    }
+
+    fn assert_reg_int32(&self, reg: BytecodeReg) {
+        self.assert_reg_type(reg, BytecodeType::Int32);
+    }
+
+    fn assert_reg_type(&self, reg: BytecodeReg, ty: BytecodeType) {
+        assert!(self.vars[reg.0 as usize].1 == ty);
     }
 }
 
@@ -177,7 +188,7 @@ fn width(val: u32) -> OpndWidth {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BytecodeType {
     Bool,
     Char,
