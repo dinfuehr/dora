@@ -40,6 +40,10 @@ opcodes!(
     BC_NEG_INT64,
     BC_NEG_FLT32,
     BC_NEG_FLT64,
-    BC_GET_LOCAL_INT32,
-    BC_SET_LOCAL_INT32
+
+    BC_RET,
+    BC_RET_VOID,
+
+    BC_FIELD_GET,
+    BC_FIELD_SET
 );

@@ -5,7 +5,13 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use bytecode::opcodes::*;
 use dora_parser::interner::Name;
 
+use class::FieldId;
+
 macro_rules! emit {
+    ( $gen:expr, $opcode:expr ) => {
+        $gen.emit_op($opcode);
+    };
+
     ( $gen:expr, $opcode:expr, $($opnd:expr),* ) => {
         let mut max_width = OpndWidth::Small;
 
@@ -81,8 +87,24 @@ impl BytecodeGenerator {
         emit!(self, BC_ADD_INT64, dest.0, lhs.0, rhs.0);
     }
 
+    pub fn emit_ret(&mut self, value: BytecodeReg) {
+        emit!(self, BC_RET, value.0);
+    }
+
+    pub fn emit_ret_void(&mut self) {
+        emit!(self, BC_RET_VOID);
+    }
+
     fn emit_op(&mut self, op: u8) {
         self.code.push(op);
+    }
+
+    fn emit_field_get(&mut self, dest: BytecodeReg, obj: BytecodeReg, field_id: FieldId) {
+        emit!(self, BC_FIELD_GET, dest.0, obj.0, field_id.idx() as u32);
+    }
+
+    fn emit_field_set(&mut self, obj: BytecodeReg, field_id: FieldId, value: BytecodeReg) {
+        emit!(self, BC_FIELD_SET, obj.0, field_id.idx() as u32, value.0);
     }
 
     fn emit_opnd(&mut self, width: OpndWidth, val: u32) {
