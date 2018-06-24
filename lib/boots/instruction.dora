@@ -1,0 +1,23 @@
+open class Instruction {
+
+}
+
+class PhiInstruction: Instruction {
+    
+}
+
+open class UnaryInstruction: Instruction {
+    var op: int;
+}
+
+open class BinaryInstruction: Instruction {
+
+}
+
+open class TerminatorInstruction: Instruction {
+
+}
+
+class UnreachableInstruction: TerminatorInstruction {
+
+}
