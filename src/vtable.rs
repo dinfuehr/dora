@@ -1,4 +1,4 @@
-use alloc::heap::{Global, Layout};
+use alloc::alloc::{Global, Layout};
 use alloc::allocator::Alloc;
 
 use std::mem::{align_of, size_of};
@@ -69,7 +69,7 @@ impl Drop for VTableBox {
             let mut heap: Global = Default::default();
             let lay = Layout::from_size_align(VTable::size_of(len), align_of::<VTable>()).unwrap();
 
-            let ptr = NonNull::new_unchecked(self.0).as_opaque();
+            let ptr = NonNull::new_unchecked(self.0 as *mut u8);
             heap.dealloc(ptr, lay);
         }
     }
@@ -162,7 +162,7 @@ impl VTable {
         ).unwrap();
 
         unsafe {
-            let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8).as_opaque();
+            let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8);
             heap.dealloc(ptr, lay);
         }
     }
