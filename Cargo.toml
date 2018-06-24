@@ -10,7 +10,6 @@ byteorder = "*"
 libc = "*"
 time = "*"
 dora-parser = { path = "lib/dora-parser" }
-llvm-sys = "50"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

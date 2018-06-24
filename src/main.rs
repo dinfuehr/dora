@@ -11,15 +11,8 @@ extern crate capstone;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
-extern crate llvm_sys as llvm;
 extern crate rustc_serialize;
 extern crate time;
-
-#[cfg(target_os = "windows")]
-extern crate winapi;
-
-#[cfg(target_os = "windows")]
-extern crate kernel32;
 
 macro_rules! offset_of {
     ($ty: ty, $field: ident) => {

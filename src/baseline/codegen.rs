@@ -22,7 +22,6 @@ use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, SemContext, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
-use opt;
 
 use os;
 use os::signal::Trap;
@@ -68,17 +67,6 @@ pub fn generate_fct<'ast>(
         if let Some(&jit_fct_id) = specials.get(&key) {
             return ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
         }
-    }
-
-    if should_optimize(ctxt, &*fct) {
-        if let Ok(ptr) = opt::generate_fct(ctxt, fct, src, cls_type_params, fct_type_params) {
-            return ptr;
-        }
-
-        panic!(
-            "optimizing compiler cannot compile function {:?}",
-            fct.full_name(ctxt)
-        );
     }
 
     let ast = fct.ast;
