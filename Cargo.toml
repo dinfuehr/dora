@@ -9,8 +9,6 @@ docopt = "0.7"
 byteorder = "*"
 libc = "*"
 time = "*"
-winapi = "*"
-kernel32-sys = "*"
 dora-parser = { path = "lib/dora-parser" }
 llvm-sys = "50"
 
