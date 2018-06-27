@@ -276,7 +276,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_region.contains(addr) || self.young_region.contains(addr)
-            || self.perm_space.contains(addr) || self.large.contains(addr)
+            || self.perm_space.contains(addr) || self.large.contains_object(addr)
         {
             let object = unsafe { &mut *obj };
 
