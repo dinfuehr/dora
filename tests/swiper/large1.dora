@@ -6,10 +6,14 @@ fun main() {
     let z = Array::<Object>(16 * 1024);
     forceCollect();
     assert(x[0] === nil);
+    assert(y[0] === nil);
+    assert(z[0] === nil);
     let a = Object();
     x[0] = a;
     assert(x[0] === a);
     forceCollect();
     assert(x[0] !== nil);
-    // assert(x[0] === a);
+    assert(x[0] === a);
+    assert(y[0] === nil);
+    assert(z[0] === nil);
 }

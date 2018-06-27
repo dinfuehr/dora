@@ -59,6 +59,9 @@ impl LargeSpace {
             let keep = f(obj);
 
             if keep {
+                current = loh.next;
+
+            } else {
                 if loh.prev.is_null() {
                     space.head = loh.next;
                 } else {
@@ -76,8 +79,6 @@ impl LargeSpace {
                 let next = loh.next;
                 space.free_large_object(current, loh.size);
                 current = next;
-            } else {
-                current = loh.next;
             }
         }
     }
@@ -105,6 +106,7 @@ impl LargeSpaceProtected {
     }
 
     fn alloc_large_object(&mut self, size: usize) -> Option<Range> {
+        debug_assert!(size >= LARGE_OBJECT_SIZE);
         debug_assert!(mem::is_page_aligned(size));
         let len = self.elements.len();
 
