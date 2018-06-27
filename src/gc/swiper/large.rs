@@ -23,14 +23,16 @@ impl LargeSpace {
 
     pub fn alloc(&self, size: usize) -> *const u8 {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
-        let size = mem::page_align(size_of::<LargeAlloc>() + size);
-
+        let loh_size = size_of::<LargeAlloc>();
+        let size = mem::page_align(loh_size + size);
         let mut space = self.space.lock().unwrap();
 
         if let Some(range) = space.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
             space.append_large_alloc(range.start, range.size());
-            range.start.to_ptr()
+
+            let object_start = range.start.offset(loh_size);
+            object_start.to_ptr()
         } else {
             ptr::null()
         }

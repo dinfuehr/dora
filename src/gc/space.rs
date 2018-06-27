@@ -134,4 +134,8 @@ impl Space {
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
     }
+
+    pub fn total(&self) -> Region {
+        self.total.clone()
+    }
 }
