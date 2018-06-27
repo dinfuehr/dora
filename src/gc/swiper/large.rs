@@ -174,6 +174,8 @@ impl LargeSpaceProtected {
         if !self.tail.is_null() {
             let old_tail = unsafe { &mut *self.tail.to_mut_ptr::<LargeAlloc>() };
             old_tail.next = addr;
+        } else if self.head.is_null() {
+            self.head = addr;
         }
 
         let new_tail = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
