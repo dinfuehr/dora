@@ -210,6 +210,7 @@ impl Swiper {
                 &self.crossing_map,
                 rootset,
                 &*perm_space,
+                &self.large,
                 phase,
             );
             verifier.verify();
