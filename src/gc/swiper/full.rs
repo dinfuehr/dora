@@ -78,6 +78,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.mark_live();
         self.compute_forward();
         self.update_references();
+        self.update_large_objects();
         self.relocate();
 
         timer.stop_with(|dur| {
@@ -185,6 +186,28 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 root.set(fwd_addr.to_mut_ptr());
             }
         }
+    }
+
+    fn update_large_objects(&mut self) {
+        self.large_space.visit(|object| {
+            if self.is_marked(object) {
+                object.visit_reference_fields(|field| {
+                    let field_addr = Address::from_ptr(field.get());
+
+                    if !field_addr.is_null() && !self.perm_space.contains(field_addr)
+                        && !self.large_space.contains(field_addr)
+                    {
+                        let fwd_addr = self.fwd_table.forward_address(field_addr);
+                        field.set(fwd_addr.to_mut_ptr());
+                    }
+                });
+
+                return true;
+            }
+
+            // remove large object
+            false
+        });
     }
 
     fn relocate(&mut self) {

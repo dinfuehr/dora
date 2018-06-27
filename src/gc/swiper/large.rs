@@ -7,6 +7,7 @@ use gc::Address;
 use gc::swiper::Region;
 use gc::swiper::LARGE_OBJECT_SIZE;
 use mem;
+use object::Obj;
 
 pub struct LargeSpace {
     total: Region,
@@ -51,6 +52,44 @@ impl LargeSpace {
 
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
+    }
+
+    pub fn visit<F>(&self, mut f: F) where F: FnMut(&mut Obj) -> bool {
+        let mut space = self.space.lock().unwrap();
+
+        let mut current = space.head;
+
+        while !current.is_null() {
+            let loh = unsafe { &mut *current.to_mut_ptr::<LargeAlloc>() };
+            let obj_address = current.offset(size_of::<LargeAlloc>());
+            let obj = unsafe { &mut *obj_address.to_mut_ptr::<Obj>() };
+
+            let keep = f(obj);
+
+
+            if keep {
+                if loh.prev.is_null() {
+                    space.head = loh.next;
+                } else {
+                    let pred = unsafe { &mut *loh.prev.to_mut_ptr::<LargeAlloc>() };
+                    pred.next = loh.next;
+                }
+
+                if loh.next.is_null() {
+                    space.tail = loh.prev;
+                } else {
+                    let succ = unsafe { &mut *loh.next.to_mut_ptr::<LargeAlloc>() };
+                    succ.next = loh.prev;
+                }
+
+                let next = loh.next;
+                self.free(current, loh.size);
+                current = next;
+
+            } else {
+                current = loh.next;
+            }
+        }
     }
 }
 

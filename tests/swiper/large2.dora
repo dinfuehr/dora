@@ -1,0 +1,12 @@
+//= ignore
+
+fun main() {
+    sub();
+    forceCollect();
+}
+
+fun sub() {
+    let x = Array::<Object>(16 * 1024);
+    forceCollect();
+    assert(x[0] === nil);
+}
