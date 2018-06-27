@@ -43,7 +43,10 @@ impl LargeSpace {
         self.total.contains(addr)
     }
 
-    pub fn visit<F>(&self, mut f: F) where F: FnMut(&mut Obj) -> bool {
+    pub fn visit<F>(&self, mut f: F)
+    where
+        F: FnMut(&mut Obj) -> bool,
+    {
         let mut space = self.space.lock().unwrap();
 
         let mut current = space.head;
@@ -54,7 +57,6 @@ impl LargeSpace {
             let obj = unsafe { &mut *obj_address.to_mut_ptr::<Obj>() };
 
             let keep = f(obj);
-
 
             if keep {
                 if loh.prev.is_null() {
@@ -74,7 +76,6 @@ impl LargeSpace {
                 let next = loh.next;
                 space.free_large_object(current, loh.size);
                 current = next;
-
             } else {
                 current = loh.next;
             }

@@ -158,9 +158,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if !field_addr.is_null() && !full.perm_space.contains(field_addr)
-                        && !full.large_space.contains(field_addr)
-                    {
+                    if full.needs_forwarding(field_addr) {
                         let fwd_addr = full.fwd_table.forward_address(field_addr);
                         field.set(fwd_addr.to_mut_ptr());
 
@@ -179,9 +177,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr)
-                && !self.large_space.contains(root_ptr)
-            {
+            if self.needs_forwarding(root_ptr) {
                 let fwd_addr = self.fwd_table.forward_address(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
@@ -194,9 +190,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if !field_addr.is_null() && !self.perm_space.contains(field_addr)
-                        && !self.large_space.contains(field_addr)
-                    {
+                    if self.needs_forwarding(field_addr) {
                         let fwd_addr = self.fwd_table.forward_address(field_addr);
                         field.set(fwd_addr.to_mut_ptr());
                     }
@@ -208,6 +202,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             // remove large object
             false
         });
+    }
+
+    fn needs_forwarding(&self, addr: Address) -> bool {
+        if addr.is_null() || self.perm_space.contains(addr) || self.large_space.contains(addr) {
+            return false;
+        }
+
+        true
     }
 
     fn relocate(&mut self) {
