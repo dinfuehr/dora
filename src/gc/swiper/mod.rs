@@ -261,7 +261,7 @@ impl Collector for Swiper {
 }
 
 impl Swiper {
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
+    fn alloc_normal(&self, ctxt: &SemContext, size: usize, is_obj_array: bool) -> *const u8 {
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
@@ -280,11 +280,11 @@ impl Swiper {
             return ptr;
         }
 
-        self.old.alloc(size, array_ref)
+        self.old.alloc(size, is_obj_array)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> *const u8 {
-        let ptr = self.large.alloc(size);
+    fn alloc_large(&self, ctxt: &SemContext, size: usize, is_obj_array: bool) -> *const u8 {
+        let ptr = self.large.alloc(size, is_obj_array);
 
         if !ptr.is_null() {
             return ptr;
@@ -292,7 +292,7 @@ impl Swiper {
 
         self.full_collect(ctxt);
 
-        self.large.alloc(size)
+        self.large.alloc(size, is_obj_array)
     }
 }
 

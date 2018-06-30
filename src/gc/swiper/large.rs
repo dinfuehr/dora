@@ -33,7 +33,7 @@ impl LargeSpace {
         }
     }
 
-    pub fn alloc(&self, size: usize) -> *const u8 {
+    pub fn alloc(&self, size: usize, _is_obj_array: bool) -> *const u8 {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         let loh_size = size_of::<LargeAlloc>();
         let size = mem::page_align(loh_size + size);
