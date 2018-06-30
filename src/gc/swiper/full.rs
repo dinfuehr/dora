@@ -231,7 +231,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let next_dest = dest.offset(object_size);
 
                 if on_different_cards(dest, next_dest) && full.old.contains(dest) {
-                    full.update_crossing(dest, next_dest, object.is_array_ref());
+                    full.update_crossing(dest, next_dest, object.is_obj_array());
                     full.update_card(dest, next_dest, &mut young_refs);
                 }
 

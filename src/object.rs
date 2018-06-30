@@ -73,7 +73,7 @@ impl Obj {
         &self.data as *const u8
     }
 
-    pub fn is_array_ref(&self) -> bool {
+    pub fn is_obj_array(&self) -> bool {
         let cls = self.header().vtbl().class();
 
         match cls.size {

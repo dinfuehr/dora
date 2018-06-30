@@ -144,7 +144,7 @@ impl<'a> Verifier<'a> {
         while curr < region.end {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
-            let next = if object.is_array_ref() {
+            let next = if object.is_obj_array() {
                 self.verify_array_ref(object, curr, name)
             } else {
                 self.verify_object(object, curr, name)
