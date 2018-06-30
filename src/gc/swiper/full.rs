@@ -313,15 +313,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_crossing(&mut self, last: Address, addr: Address, array_ref: bool) {
-        let last_card = self.old.card_from_address(last);
+        let last_card = self.card_table.card(last);
 
         let offset = addr.to_usize() & (CARD_SIZE - 1);
         let offset_words = offset / mem::ptr_width_usize();
 
-        let card = self.old.card_from_address(addr);
+        let card = self.card_table.card(addr);
 
         if array_ref {
-            let last_card_end = self.old.address_from_card(last_card).offset(CARD_SIZE);
+            let last_card_end = self.card_table.to_address(last_card).offset(CARD_SIZE);
             let loop_start;
 
             if last.offset(offset_of_array_data() as usize) > last_card_end {
@@ -355,8 +355,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_card(&mut self, addr: Address, next: Address, young_refs: &mut bool) {
-        let card = self.old.card_from_address(addr);
-        let next_card = self.old.card_from_address(next);
+        let card = self.card_table.card(addr);
+        let next_card = self.card_table.card(next);
 
         let card_entry = if *young_refs {
             CardEntry::Dirty

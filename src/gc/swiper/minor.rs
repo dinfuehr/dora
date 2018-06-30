@@ -126,7 +126,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     fn copy_dirty_cards(&mut self) {
         self.card_table.visit_dirty(|card| {
             let crossing_entry = self.crossing_map.get(card);
-            let card_start = self.old.address_from_card(card);
+            let card_start = self.card_table.to_address(card);
             let card_end = card_start.offset(CARD_SIZE);
 
             match crossing_entry {
@@ -276,7 +276,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {
-        let card = self.old.card_from_address(addr);
+        let card = self.card_table.card(addr);
 
         // card is already dirty, nothing left to do.
         if self.card_table.get(card).is_dirty() {

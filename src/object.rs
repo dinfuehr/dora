@@ -57,6 +57,10 @@ pub struct Obj {
 }
 
 impl Obj {
+    pub fn to_address(&self) -> Address {
+        Address::from_ptr(self as *const _)
+    }
+
     pub fn header(&self) -> &Header {
         &self.header
     }

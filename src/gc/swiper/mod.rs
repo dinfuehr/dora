@@ -79,8 +79,17 @@ impl Swiper {
 
         let ptr = arena::reserve(heap_reserve_size).expect("could not reserve heap.");
 
+        // determine heap boundaries
         let heap_start = ptr;
         let heap_end = ptr.offset(4 * heap_size);
+
+        // determine boundaries for spaces
+        let young_start = heap_start;
+        let young_end = young_start.offset(heap_size);
+        let old_start = young_end;
+        let old_end = old_start.offset(heap_size);
+        let large_start = old_end;
+        let large_end = large_start.offset(2 * heap_size);
 
         // determine offset to card table (card table starts right after heap)
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
@@ -91,7 +100,8 @@ impl Swiper {
         let card_end = card_start.offset(card_size);
 
         arena::commit(card_start, card_size, false).expect("could not commit card table.");
-        let card_table = CardTable::new(card_start, card_end, heap_size);
+        let old_and_large = Region::new(old_start, large_end);
+        let card_table = CardTable::new(card_start, card_end, heap_size, old_and_large);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
@@ -101,23 +111,17 @@ impl Swiper {
             .expect("could not commit crossing table.");
         let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
-        // determine boundaries of young generation
-        let young_start = heap_start;
-        let young_end = young_start.offset(heap_size);
+        // create young generation
         let young = YoungGen::new(young_start, young_end);
 
         arena::commit(young_start, heap_size, false).expect("could not commit young gen.");
 
-        // determine boundaries of old generation
-        let old_start = young_end;
-        let old_end = old_start.offset(heap_size);
-        let old = OldGen::new(old_start, old_end, crossing_map.clone());
+        // create old generation
+        let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
 
         arena::commit(old_start, heap_size, false).expect("could not commit old gen.");
 
-        // determine large object space
-        let large_start = old_end;
-        let large_end = large_start.offset(2 * heap_size);
+        // create large object space
         let large = LargeSpace::new(large_start, large_end);
 
         if args.flag_gc_verbose {

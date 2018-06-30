@@ -42,6 +42,7 @@ pub struct Verifier<'a> {
 
     refs_to_young_gen: usize,
     in_old: bool,
+    in_large: bool,
 
     old_region: Region,
     young_region: Region,
@@ -71,6 +72,7 @@ impl<'a> Verifier<'a> {
 
             refs_to_young_gen: 0,
             in_old: false,
+            in_large: false,
 
             young_region: young.used_region(),
             old_region: old.used_region(),
@@ -83,6 +85,7 @@ impl<'a> Verifier<'a> {
         self.verify_roots();
         self.verify_young();
         self.verify_old();
+        self.verify_large();
     }
 
     fn verify_young(&mut self) {
@@ -104,13 +107,37 @@ impl<'a> Verifier<'a> {
         }
     }
 
+    fn verify_large(&mut self) {
+        self.in_old = true;
+        self.in_large = true;
+        self.large.visit(|obj| {
+            self.verify_large_object(obj);
+            true
+        });
+        self.in_old = false;
+        self.in_large = false;
+    }
+
+    fn verify_large_object(&mut self, object: &mut Obj) {
+        let object_start = object.to_address();
+        let object_size = object.size();
+        let object_end = object_start.offset(object_size);
+        let region = Region::new(object_start, object_end);
+        self.verify_objects(region, "large space");
+    }
+
     fn verify_objects(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
 
-        if self.in_old {
+        if self.in_old && !self.in_large {
             // we should start at card start
-            assert!(self.old.is_card_aligned(curr));
+            assert!(self.card_table.is_aligned(curr));
+            self.verify_crossing(curr, curr, false);
+
+        } else if self.in_large {
+            // large objects do not start at card start
+            // due to large object header
             self.verify_crossing(curr, curr, false);
         }
 
@@ -173,7 +200,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_card(&mut self, curr: Address) {
-        let curr_card = self.old.card_from_address(curr);
+        let curr_card = self.card_table.card(curr);
 
         let card_entry = self.card_table.get(curr_card);
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -213,13 +240,13 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_crossing(&mut self, old: Address, addr: Address, array_ref: bool) {
-        let card = self.old.card_from_address(addr);
-        let card_start = self.old.address_from_card(card);
+        let card = self.card_table.card(addr);
+        let card_start = self.card_table.to_address(card);
         let offset = addr.offset_from(card_start);
         let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
-        let old_card = self.old.card_from_address(old);
-        let old_card_end = self.old.address_from_card(old_card).offset(CARD_SIZE);
+        let old_card = self.card_table.card(old);
+        let old_card_end = self.card_table.to_address(old_card).offset(CARD_SIZE);
 
         let crossing_middle;
         let loop_start;
