@@ -8,6 +8,7 @@ use gc::swiper::{Region, CARD_SIZE};
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 
@@ -19,6 +20,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     young: &'a YoungGen,
     old: &'a OldGen,
+    large: &'a LargeSpace,
     rootset: &'a [IndirectObj],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -34,6 +36,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         ctxt: &'a SemContext<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
+        large: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
@@ -42,6 +45,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             ctxt: ctxt,
             young: young,
             old: old,
+            large: large,
             rootset: rootset,
             card_table: card_table,
             crossing_map: crossing_map,
@@ -184,23 +188,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         loop {
             while ptr < end {
-                let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
-
-                object.visit_reference_fields_within(end, |field| {
-                    let field_ptr = field.get();
-
-                    if self.young_from.contains(Address::from_ptr(field_ptr)) {
-                        let copied_obj = self.copy(field_ptr);
-                        field.set(copied_obj);
-
-                        // determine if copied object is still in young generation
-                        if self.young.contains(Address::from_ptr(copied_obj)) {
-                            ref_to_young_gen = true;
-                        }
-                    }
-                });
-
-                ptr = ptr.offset(object.size());
+                ptr = self.copy_object(ptr, end, &mut ref_to_young_gen);
             }
 
             // if we are in the last card of the old generation, promoted objects
@@ -225,6 +213,31 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         if !ref_to_young_gen {
             self.card_table.set(card, CardEntry::Clean);
         }
+    }
+
+    fn copy_object(
+        &mut self,
+        addr: Address,
+        end: Address,
+        ref_to_young_gen: &mut bool,
+    ) -> Address {
+        let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+
+        object.visit_reference_fields_within(end, |field| {
+            let field_ptr = field.get();
+
+            if self.young_from.contains(Address::from_ptr(field_ptr)) {
+                let copied_obj = self.copy(field_ptr);
+                field.set(copied_obj);
+
+                // determine if copied object is still in young generation
+                if self.young.contains(Address::from_ptr(copied_obj)) {
+                    *ref_to_young_gen = true;
+                }
+            }
+        });
+
+        addr.offset(object.size())
     }
 
     fn copy(&mut self, obj: *mut Obj) -> *mut Obj {

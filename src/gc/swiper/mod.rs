@@ -164,6 +164,7 @@ impl Swiper {
             ctxt,
             &self.young,
             &self.old,
+            &self.large,
             &self.card_table,
             &self.crossing_map,
             &rootset,
