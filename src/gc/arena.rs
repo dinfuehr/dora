@@ -74,3 +74,19 @@ pub fn uncommit(ptr: Address, size: usize) -> Result<(), ()> {
         Err(())
     }
 }
+
+pub fn forget(ptr: Address, size: usize) {
+    use libc;
+
+    let val = unsafe {
+        libc::madvise(
+            ptr.to_mut_ptr(),
+            size,
+            libc::MADV_FREE,
+        )
+    };
+
+    if val != 0 {
+        panic!("madvise(MADV_FREE) failed");
+    }
+}

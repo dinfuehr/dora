@@ -160,6 +160,10 @@ impl LargeSpaceProtected {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         debug_assert!(mem::is_page_aligned(ptr.to_usize()));
 
+        // forget memoy content but keep memor address space
+        // reserved
+        arena::forget(ptr, size);
+
         self.free(ptr, size);
         self.merge();
     }
