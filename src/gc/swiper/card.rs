@@ -13,6 +13,8 @@ pub struct CardTable {
     start: Address,
     end: Address,
 
+    heap_size: usize,
+
     // contiguous old & large space that can have references
     // into young generation
     old_and_large: Region,
@@ -22,16 +24,17 @@ impl CardTable {
     pub fn new(
         start: Address,
         end: Address,
-        young_size: usize,
+        heap_size: usize,
         old_and_large: Region,
     ) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
-        let start = start.offset(young_size >> CARD_SIZE_BITS);
+        let start = start.offset(heap_size >> CARD_SIZE_BITS);
 
         let card = CardTable {
             start: start,
             end: end,
+            heap_size: heap_size,
             old_and_large: old_and_large,
         };
 
@@ -60,8 +63,9 @@ impl CardTable {
         F: FnMut(Card),
     {
         let mut ptr = self.start;
+        let end = self.start.offset(self.heap_size >> CARD_SIZE_BITS);
 
-        while ptr < self.end {
+        while ptr < end {
             let val: u8 = unsafe { *ptr.to_ptr() };
 
             if val == 0 {
