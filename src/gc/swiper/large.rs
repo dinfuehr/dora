@@ -40,7 +40,7 @@ impl LargeSpace {
         let mut space = self.space.lock().unwrap();
 
         if let Some(range) = space.alloc_large_object(size) {
-            arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
+            arena::commit(range.start, range.size(), false);
             space.append_large_alloc(range.start, range.size());
 
             let object_start = range.start.offset(loh_size);
