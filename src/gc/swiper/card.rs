@@ -99,6 +99,10 @@ impl CardTable {
         }
     }
 
+    pub fn clear(&self, card: Card) {
+        self.set(card, CardEntry::Clean);
+    }
+
     #[inline(always)]
     pub fn is_aligned(&self, addr: Address) -> bool {
         debug_assert!(self.old_and_large.contains(addr));

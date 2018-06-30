@@ -43,6 +43,8 @@ impl LargeSpace {
             arena::commit(range.start, range.size(), false);
             space.append_large_alloc(range.start, range.size());
 
+            self.init_card(range.start, range.size());
+
             let object_start = range.start.offset(loh_size);
             object_start.to_ptr()
         } else {
@@ -110,6 +112,19 @@ impl LargeSpace {
             }
         }
     }
+
+    fn init_card(&self, addr: Address, size: usize) {
+        let card = self.card_table.card(addr);
+        let card_end = self.card_table.card(addr.offset(size));
+
+        for c in card.to_usize()..card_end.to_usize() {
+            self.card_table.clear(c.into());
+        }
+
+        if addr.offset(size) != self.card_table.to_address(card_end) {
+            self.card_table.clear(card_end);
+        }
+    }
 }
 
 struct LargeAlloc {
@@ -160,7 +175,7 @@ impl LargeSpaceProtected {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         debug_assert!(mem::is_page_aligned(ptr.to_usize()));
 
-        // forget memoy content but keep memor address space
+        // forget memoy content but keep memory address space
         // reserved
         arena::forget(ptr, size);
 

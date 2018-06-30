@@ -73,7 +73,6 @@ impl OldGen {
             let old_card = self.card_table.card(old);
             let old_card_end = self.card_table.to_address(old_card).offset(CARD_SIZE);
 
-            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
             let mut loop_card_start = old_card.to_usize() + 1;
 
             // If you allocate an object array just before the card end,
@@ -90,7 +89,7 @@ impl OldGen {
             // all cards between ]old_card; new_card[ are full with references
             for c in loop_card_start..card.to_usize() {
                 self.crossing_map
-                    .set_references_at_start(c.into(), refs_per_card);
+                    .set_full_with_references(c.into());
             }
 
             if card.to_usize() > loop_card_start {

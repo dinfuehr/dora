@@ -42,7 +42,6 @@ pub struct Verifier<'a> {
 
     refs_to_young_gen: usize,
     in_old: bool,
-    in_large: bool,
 
     old_region: Region,
     young_region: Region,
@@ -72,7 +71,6 @@ impl<'a> Verifier<'a> {
 
             refs_to_young_gen: 0,
             in_old: false,
-            in_large: false,
 
             young_region: young.used_region(),
             old_region: old.used_region(),
@@ -108,14 +106,10 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_large(&mut self) {
-        self.in_old = true;
-        self.in_large = true;
         self.large.visit(|obj| {
             self.verify_large_object(obj);
             true
         });
-        self.in_old = false;
-        self.in_large = false;
     }
 
     fn verify_large_object(&mut self, object: &mut Obj) {
@@ -130,13 +124,9 @@ impl<'a> Verifier<'a> {
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
 
-        if self.in_old && !self.in_large {
+        if self.in_old {
             // we should start at card start
             assert!(self.card_table.is_aligned(curr));
-            self.verify_crossing(curr, curr, false);
-        } else if self.in_large {
-            // large objects do not start at card start
-            // due to large object header
             self.verify_crossing(curr, curr, false);
         }
 
