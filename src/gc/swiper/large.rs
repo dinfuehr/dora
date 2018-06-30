@@ -4,21 +4,32 @@ use std::sync::Mutex;
 
 use gc::arena;
 use gc::Address;
-use gc::swiper::Region;
+use gc::swiper::card::CardTable;
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::LARGE_OBJECT_SIZE;
+use gc::swiper::Region;
 use mem;
 use object::Obj;
 
 pub struct LargeSpace {
     total: Region,
     space: Mutex<LargeSpaceProtected>,
+    crossing_map: CrossingMap,
+    card_table: CardTable,
 }
 
 impl LargeSpace {
-    pub fn new(start: Address, end: Address) -> LargeSpace {
+    pub fn new(
+        start: Address,
+        end: Address,
+        crossing_map: CrossingMap,
+        card_table: CardTable,
+    ) -> LargeSpace {
         LargeSpace {
             total: Region::new(start, end),
             space: Mutex::new(LargeSpaceProtected::new(start, end)),
+            crossing_map: crossing_map,
+            card_table: card_table,
         }
     }
 

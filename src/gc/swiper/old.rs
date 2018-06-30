@@ -17,7 +17,12 @@ pub struct OldGen {
 }
 
 impl OldGen {
-    pub fn new(start: Address, end: Address, crossing_map: CrossingMap, card_table: CardTable) -> OldGen {
+    pub fn new(
+        start: Address,
+        end: Address,
+        crossing_map: CrossingMap,
+        card_table: CardTable,
+    ) -> OldGen {
         OldGen {
             total: Region::new(start, end),
             free: AtomicUsize::new(start.to_usize()),
@@ -34,7 +39,7 @@ impl OldGen {
         self.free.load(Ordering::Relaxed).into()
     }
 
-    pub fn alloc(&self, size: usize, array_ref: bool) -> *const u8 {
+    pub fn alloc(&self, size: usize, is_obj_array: bool) -> *const u8 {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
@@ -60,7 +65,7 @@ impl OldGen {
                 let card = self.card_table.card(old.into());
                 self.crossing_map.set_first_object(card, 0);
             }
-        } else if array_ref {
+        } else if is_obj_array {
             let card = self.card_table.card(new.into());
             let card_start = self.card_table.to_address(card).to_usize();
 

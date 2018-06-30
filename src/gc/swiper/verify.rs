@@ -134,7 +134,6 @@ impl<'a> Verifier<'a> {
             // we should start at card start
             assert!(self.card_table.is_aligned(curr));
             self.verify_crossing(curr, curr, false);
-
         } else if self.in_large {
             // large objects do not start at card start
             // due to large object header

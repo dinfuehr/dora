@@ -19,7 +19,12 @@ pub struct CardTable {
 }
 
 impl CardTable {
-    pub fn new(start: Address, end: Address, young_size: usize, old_and_large: Region) -> CardTable {
+    pub fn new(
+        start: Address,
+        end: Address,
+        young_size: usize,
+        old_and_large: Region,
+    ) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
         let start = start.offset(young_size >> CARD_SIZE_BITS);

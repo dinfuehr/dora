@@ -122,7 +122,12 @@ impl Swiper {
         arena::commit(old_start, heap_size, false).expect("could not commit old gen.");
 
         // create large object space
-        let large = LargeSpace::new(large_start, large_end);
+        let large = LargeSpace::new(
+            large_start,
+            large_end,
+            crossing_map.clone(),
+            card_table.clone(),
+        );
 
         if args.flag_gc_verbose {
             println!(
