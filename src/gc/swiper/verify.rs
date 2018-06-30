@@ -144,7 +144,7 @@ impl<'a> Verifier<'a> {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
             let next = if object.is_obj_array() {
-                self.verify_array_ref(object, curr, name)
+                self.verify_obj_array(object, curr, name)
             } else {
                 self.verify_object(object, curr, name)
             };
@@ -159,7 +159,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_array_ref(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
+    fn verify_obj_array(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
         let object_address = curr;
 
         object.visit_reference_fields(|child| {
@@ -238,7 +238,7 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, old: Address, addr: Address, array_ref: bool) {
+    fn verify_crossing(&mut self, old: Address, addr: Address, is_obj_array: bool) {
         let card = self.card_table.card(addr);
         let card_start = self.card_table.to_address(card);
         let offset = addr.offset_from(card_start);
@@ -250,7 +250,7 @@ impl<'a> Verifier<'a> {
         let crossing_middle;
         let loop_start;
 
-        if array_ref {
+        if is_obj_array {
             let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
 
             crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
