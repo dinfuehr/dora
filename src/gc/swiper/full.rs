@@ -74,13 +74,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     pub fn collect(&mut self) {
         let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
         let init_size = self.heap_size();
+        let current_old_top = self.old.used_region().end;
 
         self.mark_live();
         self.compute_forward();
         self.update_references();
         self.update_large_objects();
         self.relocate();
-        self.update_card_and_crossing();
+        self.update_card_and_crossing(current_old_top);
 
         timer.stop_with(|dur| {
             let new_size = self.heap_size();
@@ -237,7 +238,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
     }
 
-    fn update_card_and_crossing(&mut self) {
+    fn update_card_and_crossing(&mut self, old_old_top: Address) {
         let old_region = self.old.used_region();
 
         // initial first crossing map entry
@@ -309,7 +310,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             // keep all objects here
             true
-        })
+        });
+
+        // clean cards for now unused space in old generation
+        let mut card_start = self.card_table.card(old_region.end).to_usize();
+        let mut card_end = self.card_table.card(old_old_top).to_usize();
+
+        if !start_of_card(card_start.into()) { card_start += 1; }
+        if !start_of_card(card_end.into()) { card_end += 1; }
+
+        for card in card_start .. card_end {
+            self.card_table.set_young_refs(card.into(), false);
+        }
     }
 
     fn walk_old_and_young<F>(&mut self, mut fct: F)

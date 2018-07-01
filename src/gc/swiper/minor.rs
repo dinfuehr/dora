@@ -10,6 +10,7 @@ use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
+use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 
 use mem;
@@ -329,9 +330,40 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // Promoted object can have references to the young generation.
         // Set the card table entry to dirty if this is the case.
-        self.handle_promoted_object(copy_addr);
+        if obj.is_obj_array() {
+            self.handle_promoted_object_array(copy_addr);
+        } else {
+            self.handle_promoted_object(copy_addr);
+        }
 
         obj.header_mut().forward_to(copy_addr);
+    }
+
+    fn handle_promoted_object_array(&mut self, addr: Address) {
+        let object: &mut Obj = unsafe { &mut *addr.to_mut_ptr() };
+        let mut old_to_young_ref = false;
+        let mut last_field = addr;
+
+        object.visit_reference_fields(|field| {
+            let field_ptr = field.get();
+
+            if on_different_cards(last_field, field.to_address()) && old_to_young_ref {
+                let card = self.card_table.card(last_field);
+                self.card_table.set_young_refs(card, true);
+                old_to_young_ref = false;
+            }
+
+            if self.young.contains(Address::from_ptr(field_ptr)) {
+                old_to_young_ref = true;
+            }
+
+            last_field = field.to_address();
+        });
+
+        if old_to_young_ref {
+            let card = self.card_table.card(last_field);
+            self.card_table.set(card, CardEntry::Dirty);
+        }
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {
