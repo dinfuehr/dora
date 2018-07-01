@@ -244,34 +244,37 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let mut last_card: Card = 0.into();
         self.crossing_map.set_first_object(last_card, 0);
 
-        let mut fct = |full: &mut FullCollector, obj: &mut Obj, obj_addr: Address, obj_size: usize| {
-            let obj_end = obj_addr.offset(obj_size);
+        let mut fct =
+            |full: &mut FullCollector, obj: &mut Obj, obj_addr: Address, obj_size: usize| {
+                let obj_end = obj_addr.offset(obj_size);
 
-            if on_different_cards(obj_addr, obj_end) {
-                let card_end = full.card_table.card(obj_end);
+                if on_different_cards(obj_addr, obj_end) {
+                    let card_end = full.card_table.card(obj_end);
 
-                if obj.is_obj_array() {
-                    let card_start = last_card.to_usize() + 1;
+                    if obj.is_obj_array() {
+                        let card_start = last_card.to_usize() + 1;
 
-                    for card in card_start .. card_end.to_usize() {
-                        full.crossing_map.set_full_with_references(card.into());
+                        for card in card_start..card_end.to_usize() {
+                            full.crossing_map.set_full_with_references(card.into());
+                        }
+
+                        let card_offset = obj_end.offset_from(full.card_table.to_address(card_end))
+                            / mem::ptr_width_usize();
+                        full.crossing_map
+                            .set_references_at_start(card_end, card_offset);
+                    } else {
+                        for card in last_card.to_usize() + 1..card_end.to_usize() {
+                            full.crossing_map.set_no_references(card.into());
+                        }
+
+                        let card_offset = obj_end.offset_from(full.card_table.to_address(card_end))
+                            / mem::ptr_width_usize();
+                        full.crossing_map.set_first_object(card_end, card_offset);
                     }
 
-                    let card_offset = obj_end.offset_from(full.card_table.to_address(card_end)) / mem::ptr_width_usize();
-                    full.crossing_map.set_references_at_start(card_end, card_offset);
-
-                } else {
-                    for card in last_card.to_usize() + 1 .. card_end.to_usize() {
-                        full.crossing_map.set_no_references(card.into());
-                    }
-
-                    let card_offset = obj_end.offset_from(full.card_table.to_address(card_end)) / mem::ptr_width_usize();
-                    full.crossing_map.set_first_object(card_end, card_offset);
+                    last_card = card_end;
                 }
-
-                last_card = card_end;
-            }
-        };
+            };
 
         self.walk_region(old_region.start, old_region.end, &mut fct);
 
@@ -455,8 +458,6 @@ impl ForwardTable {
     }
 
     fn forward_address(&mut self, addr: Address) -> Address {
-        *self.data
-            .get(&addr)
-            .expect("no forward address found.")
+        *self.data.get(&addr).expect("no forward address found.")
     }
 }
