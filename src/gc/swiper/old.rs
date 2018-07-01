@@ -88,8 +88,7 @@ impl OldGen {
 
             // all cards between ]old_card; new_card[ are full with references
             for c in loop_card_start..card.to_usize() {
-                self.crossing_map
-                    .set_full_with_references(c.into());
+                self.crossing_map.set_full_with_references(c.into());
             }
 
             if card.to_usize() > loop_card_start {

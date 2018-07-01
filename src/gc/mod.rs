@@ -7,6 +7,7 @@ use gc::copy::CopyCollector;
 use gc::swiper::Swiper;
 use gc::space::{Space, SpaceConfig};
 use gc::zero::ZeroCollector;
+use mem;
 
 pub mod arena;
 pub mod chunk;
@@ -133,6 +134,11 @@ impl Address {
     #[inline(always)]
     pub fn offset(self, offset: usize) -> Address {
         Address(self.0 + offset)
+    }
+
+    #[inline(always)]
+    pub fn pointer_offset(self, offset: usize) -> Address {
+        Address(self.0 + offset * mem::ptr_width_usize())
     }
 
     #[inline(always)]

@@ -136,44 +136,94 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             match crossing_entry {
                 CrossingEntry::NoRefs => panic!("card dirty without any refs"),
                 CrossingEntry::LeadingRefs(refs) => {
-                    let mut ptr = card_start;
                     let mut ref_to_young_gen = false;
+                    let refs_end = card_start.pointer_offset(refs as usize);
 
-                    for _ in 0..refs {
-                        let ind_ptr = IndirectObj::from_address(ptr);
-                        let dir_ptr = ind_ptr.get();
-
-                        if self.young_from.contains(Address::from_ptr(dir_ptr)) {
-                            let copied_obj = self.copy(dir_ptr);
-                            ind_ptr.set(copied_obj);
-
-                            if self.young.contains(Address::from_ptr(copied_obj)) {
-                                ref_to_young_gen = true;
-                            }
-                        }
-
-                        ptr = ptr.offset(mem::ptr_width() as usize);
-                    }
+                    self.visit_references(card_start, refs_end, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end, ref_to_young_gen);
+                    self.copy_card(card, refs_end, card_end, true, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObjectOffset(offset) => {
                     let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end, false);
+                    self.copy_card(card, ptr, card_end, true, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
                     let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr.into(), card_end, false);
+                    self.copy_card(card, ptr.into(), card_end, true, false);
                 }
             }
         });
+
+        self.large.visit(|obj| {
+            let obj_start = Address::from_ptr(obj as *const _);
+            let obj_end = obj_start.offset(obj.size());
+            let card = self.card_table.card(obj_start);
+
+            if obj.is_obj_array() {
+                if self.card_table.get(card).is_dirty() {
+                    let first_card_end = self.card_table.to_address(card).offset(CARD_SIZE);
+                    debug_assert!(first_card_end < obj_end);
+                    self.copy_card(card, obj_start, first_card_end, false, false);
+                }
+
+                let card_end = self.card_table.card(obj_end);
+
+                let real_card_end = if obj_end == self.card_table.to_address(card_end) {
+                    card_end.to_usize()
+                } else {
+                    card_end.to_usize() + 1
+                };
+
+                for c in card.to_usize() + 1..real_card_end {
+                    if self.card_table.get(c.into()).is_clean() {
+                        continue;
+                    }
+
+                    let card_start = self.card_table.to_address(c.into());
+                    let card_end_address = card_start.offset(CARD_SIZE);
+                    let end = cmp::min(card_end_address, obj_end);
+                    let mut ref_to_young_gen = false;
+
+                    self.visit_references(card_start, end, &mut ref_to_young_gen);
+
+                    if !ref_to_young_gen {
+                        self.card_table.set(card, CardEntry::Clean);
+                    }
+                }
+            } else if self.card_table.get(card).is_dirty() {
+                let mut ref_to_young_gen = false;
+                self.copy_object(obj_start, obj_end, &mut ref_to_young_gen);
+
+                if !ref_to_young_gen {
+                    self.card_table.set(card, CardEntry::Clean);
+                }
+            }
+
+            true
+        });
+    }
+
+    fn visit_references(&mut self, start: Address, end: Address, ref_to_young_gen: &mut bool) {
+        for ref_addr in (start.to_usize()..end.to_usize()).step_by(mem::ptr_width() as usize) {
+            let ind_ptr = IndirectObj::from_address(ref_addr.into());
+            let dir_ptr = ind_ptr.get();
+
+            if self.young_from.contains(Address::from_ptr(dir_ptr)) {
+                let copied_obj = self.copy(dir_ptr);
+                ind_ptr.set(copied_obj);
+
+                if self.young.contains(Address::from_ptr(copied_obj)) {
+                    *ref_to_young_gen = true;
+                }
+            }
+        }
     }
 
     fn copy_card(
@@ -181,9 +231,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         card: Card,
         mut ptr: Address,
         card_end: Address,
+        in_old: bool,
         mut ref_to_young_gen: bool,
     ) {
-        let old_end: Address = self.old.free();
+        let old_end: Address = if in_old { self.old.free() } else { card_end };
         let mut end = cmp::min(card_end, old_end);
 
         loop {
@@ -215,12 +266,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
     }
 
-    fn copy_object(
-        &mut self,
-        addr: Address,
-        end: Address,
-        ref_to_young_gen: &mut bool,
-    ) -> Address {
+    fn copy_object(&mut self, addr: Address, end: Address, ref_to_young_gen: &mut bool) -> Address {
         let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
 
         object.visit_reference_fields_within(end, |field| {

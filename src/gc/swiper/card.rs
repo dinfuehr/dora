@@ -21,12 +21,7 @@ pub struct CardTable {
 }
 
 impl CardTable {
-    pub fn new(
-        start: Address,
-        end: Address,
-        heap_size: usize,
-        old_and_large: Region,
-    ) -> CardTable {
+    pub fn new(start: Address, end: Address, heap_size: usize, old_and_large: Region) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
         let start = start.offset(heap_size >> CARD_SIZE_BITS);
