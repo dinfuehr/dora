@@ -98,6 +98,16 @@ impl CardTable {
         }
     }
 
+    pub fn set_young_refs(&self, card: Card, value: bool) {
+        let entry = if value {
+            CardEntry::Dirty
+        } else {
+            CardEntry::Clean
+        };
+
+        self.set(card, entry);
+    }
+
     pub fn clear(&self, card: Card) {
         self.set(card, CardEntry::Clean);
     }

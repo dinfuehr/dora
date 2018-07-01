@@ -187,14 +187,35 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn update_large_objects(&mut self) {
         self.large_space.visit(|object| {
             if self.is_marked(object) {
-                object.visit_reference_fields(|field| {
-                    let field_addr = Address::from_ptr(field.get());
+                let mut young_refs = false;
+                let mut last_field = Address::from_ptr(object as *const _);
 
-                    if self.needs_forwarding(field_addr) {
-                        let fwd_addr = self.fwd_table.forward_address(field_addr);
-                        field.set(fwd_addr.to_mut_ptr());
+                object.visit_reference_fields(|field| {
+                    let field_addr = field.to_address();
+                    let field_ref = Address::from_ptr(field.get());
+
+                    if on_different_cards(last_field, field_addr) {
+                        let card = self.card_table.card(last_field);
+                        self.card_table.set_young_refs(card, young_refs);
+                        young_refs = false;
                     }
+
+                    if self.needs_forwarding(field_ref) {
+                        let fwd_addr = self.fwd_table.forward_address(field_ref);
+                        field.set(fwd_addr.to_mut_ptr());
+
+                        if self.young.contains(fwd_addr) {
+                            young_refs = true;
+                        }
+                    }
+
+                    last_field = field_addr;
                 });
+
+                if !start_of_card(last_field) {
+                    let card = self.card_table.card(last_field);
+                    self.card_table.set_young_refs(card, young_refs);
+                }
 
                 return true;
             }
