@@ -14,7 +14,7 @@ use gc::swiper::{on_different_cards, start_of_card};
 use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
 use mem;
-use object::Obj;
+use object::{Obj, Header};
 use os;
 use timer::{in_ms, Timer};
 
@@ -145,7 +145,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn compute_forward(&mut self) {
         self.walk_old_and_young(|full, object, address, object_size| {
             if full.is_marked(object) {
-                let fwd = full.allocate(object_size);
+                let fwd = full.allocate(object_size, object.is_obj_array());
                 full.fwd_table.forward_to(address, fwd);
             }
         });
@@ -339,9 +339,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
     }
 
-    fn allocate(&mut self, object_size: usize) -> Address {
+    fn allocate(&mut self, object_size: usize, is_obj_array: bool) -> Address {
         let addr = self.fwd;
         let next = self.fwd.offset(object_size);
+
+        if is_obj_array {
+            assert!(!start_of_card(addr.offset(Header::size() as usize)));
+        }
 
         if next <= self.fwd_end {
             self.fwd = next;

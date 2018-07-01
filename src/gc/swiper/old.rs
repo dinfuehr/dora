@@ -6,8 +6,10 @@ use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::Region;
+use gc::swiper::start_of_card;
 use mem;
 use object::offset_of_array_data;
+use object::Header;
 
 pub struct OldGen {
     pub total: Region,
@@ -72,6 +74,8 @@ impl OldGen {
             let old = Address::from(old);
             let old_card = self.card_table.card(old);
             let old_card_end = self.card_table.to_address(old_card).offset(CARD_SIZE);
+
+            assert!(!start_of_card(old.offset(Header::size() as usize)));
 
             let mut loop_card_start = old_card.to_usize() + 1;
 
