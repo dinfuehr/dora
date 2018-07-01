@@ -42,6 +42,7 @@ pub struct Verifier<'a> {
 
     refs_to_young_gen: usize,
     in_old: bool,
+    in_large: bool,
 
     old_region: Region,
     young_region: Region,
@@ -71,6 +72,7 @@ impl<'a> Verifier<'a> {
 
             refs_to_young_gen: 0,
             in_old: false,
+            in_large: false,
 
             young_region: young.used_region(),
             old_region: old.used_region(),
@@ -106,10 +108,12 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_large(&mut self) {
+        self.in_large = true;
         self.large.visit(|obj| {
             self.verify_large_object(obj);
             true
         });
+        self.in_large = false;
     }
 
     fn verify_large_object(&mut self, object: &mut Obj) {
@@ -144,7 +148,7 @@ impl<'a> Verifier<'a> {
 
         assert!(curr == region.end, "object doesn't end at region end");
 
-        if self.in_old && !start_of_card(curr) {
+        if (self.in_old || self.in_large) && !start_of_card(curr) {
             self.verify_card(curr);
         }
     }
@@ -155,7 +159,7 @@ impl<'a> Verifier<'a> {
         object.visit_reference_fields(|child| {
             let child_ptr = child.get();
 
-            if self.in_old && on_different_cards(curr, child.to_address()) {
+            if (self.in_old || self.in_large) && on_different_cards(curr, child.to_address()) {
                 self.verify_card(curr);
                 curr = child.to_address();
             }
@@ -180,9 +184,12 @@ impl<'a> Verifier<'a> {
 
         let next = curr.offset(object.size());
 
-        if self.in_old && on_different_cards(curr, next) {
+        if (self.in_old || self.in_large) && on_different_cards(curr, next) {
             self.verify_card(curr);
-            self.verify_crossing(curr, next, false);
+
+            if !self.in_large {
+                self.verify_crossing(curr, next, false);
+            }
         }
 
         next

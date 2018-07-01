@@ -1,4 +1,4 @@
-//= ignore
+//= vm-args "--gc-verify"
 
 fun main() {
     sub();
