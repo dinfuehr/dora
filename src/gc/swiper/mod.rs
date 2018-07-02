@@ -130,12 +130,12 @@ impl Swiper {
 
         if args.flag_gc_verbose {
             println!(
-                "GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
-                in_kilo(heap_size),
-                in_kilo(old_size),
-                in_kilo(young_size),
-                in_kilo(card_size),
-                in_kilo(crossing_size)
+                "GC: heap info: {}, old {}, young {}, card {}, crossing {}",
+                size_format(heap_size),
+                size_format(old_size),
+                size_format(young_size),
+                size_format(card_size),
+                size_format(crossing_size)
             );
         }
 
@@ -333,8 +333,59 @@ impl fmt::Display for Region {
     }
 }
 
-fn in_kilo(size: usize) -> f64 {
-    (size as f64) / 1024.0
+enum Format {
+    Kilo, Mega, Giga, Tera,
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let specifier = match self {
+            Format::Kilo => "K",
+            Format::Mega => "M",
+            Format::Giga => "G",
+            Format::Tera => "T",
+        };
+
+        write!(f, "{}", specifier)
+    }
+}
+
+pub struct FormattedSize {
+    bytes: usize,
+    size: f64,
+    format: Format,
+}
+
+impl fmt::Display for FormattedSize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:.1}{}", self.size, self.format)
+    }
+}
+
+fn size_format(bytes: usize) -> FormattedSize {
+    let mut size = (bytes as f64) / 1024.0;
+    let mut format = Format::Kilo;
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Mega;
+    }
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Giga;
+    }
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Tera;
+    }
+
+    FormattedSize {
+        bytes: bytes,
+        size: size,
+        format: format,
+    }
 }
 
 fn on_different_cards(curr: Address, next: Address) -> bool {

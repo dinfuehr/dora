@@ -7,7 +7,7 @@ use gc::root::IndirectObj;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::{Card, CrossingMap};
-use gc::swiper::in_kilo;
+use gc::swiper::size_format;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::{on_different_cards, start_of_card};
@@ -89,11 +89,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
 
             println!(
-                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage)",
+                "GC: Full GC ({:.2} ms, {}->{} size, {}/{:.0}% garbage)",
                 in_ms(dur),
-                in_kilo(init_size),
-                in_kilo(new_size),
-                in_kilo(garbage),
+                size_format(init_size),
+                size_format(new_size),
+                size_format(garbage),
                 garbage_ratio
             );
         });

@@ -7,7 +7,7 @@ use gc::root::IndirectObj;
 use gc::swiper::{Region, CARD_SIZE};
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
-use gc::swiper::in_kilo;
+use gc::swiper::size_format;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
@@ -79,15 +79,15 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let garbage_ratio = (garbage as f64 / young_init_size as f64) * 100f64;
 
             println!(
-                "GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
-                 {:.1}K promoted, {:.1}K/{:.0}% garbage)",
+                "GC: Minor GC ({:.2} ms, {}->{}, young {}->{}, \
+                 {} promoted, {}/{:.0}% garbage)",
                 in_ms(dur),
-                in_kilo(init_size),
-                in_kilo(new_size),
-                in_kilo(young_init_size),
-                in_kilo(young_new_size),
-                in_kilo(self.promoted_size),
-                in_kilo(garbage),
+                size_format(init_size),
+                size_format(new_size),
+                size_format(young_init_size),
+                size_format(young_new_size),
+                size_format(self.promoted_size),
+                size_format(garbage),
                 garbage_ratio
             );
         });
