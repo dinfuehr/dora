@@ -1,5 +1,5 @@
 use alloc::heap::{Global, Layout};
-use alloc::allocator::Alloc;
+use core::alloc::Alloc;
 
 use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
