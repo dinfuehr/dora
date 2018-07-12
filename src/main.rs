@@ -13,6 +13,7 @@ extern crate dora_parser;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
+extern crate core;
 
 macro_rules! offset_of {
     ($ty: ty, $field: ident) => {

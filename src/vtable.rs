@@ -1,6 +1,7 @@
-use alloc::alloc::{Global, Layout};
-use alloc::allocator::Alloc;
-
+use alloc::alloc::{Global,Layout};
+//use alloc::heap::{Global, Layout};
+//use alloc::allocator::Alloc;
+use core::alloc::Alloc;
 use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
@@ -69,7 +70,7 @@ impl Drop for VTableBox {
             let mut heap: Global = Default::default();
             let lay = Layout::from_size_align(VTable::size_of(len), align_of::<VTable>()).unwrap();
 
-            let ptr = NonNull::new_unchecked(self.0 as *mut u8);
+            let ptr = NonNull::new_unchecked(self.0 as *const _ as *mut u8);
             heap.dealloc(ptr, lay);
         }
     }
@@ -149,8 +150,7 @@ impl VTable {
         let lay = Layout::from_size_align(size, align).unwrap();
 
         unsafe {
-            self.subtype_overflow =
-                heap.alloc(lay).expect("could not allocate").as_ptr() as *const _;
+            self.subtype_overflow = heap.alloc(lay).expect("could not allocate").as_ptr() as *const _;
         }
     }
 
@@ -161,13 +161,15 @@ impl VTable {
             num * size_of::<*const VTable>(),
             align_of::<*const VTable>(),
         ).unwrap();
-
+        
         unsafe {
             let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8);
             heap.dealloc(ptr, lay);
         }
     }
 }
+
+
 
 impl Drop for VTable {
     fn drop(&mut self) {
@@ -176,4 +178,5 @@ impl Drop for VTable {
             self.deallocate_overflow(elems);
         }
     }
+
 }
