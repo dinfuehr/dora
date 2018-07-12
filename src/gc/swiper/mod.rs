@@ -77,10 +77,19 @@ impl Swiper {
 
         let heap_reserve_size = heap_size * 4 + card_size + crossing_size;
 
-        let ptr = arena::reserve(heap_reserve_size).expect("could not reserve heap.");
+        let ptr = arena::reserve(heap_reserve_size);
 
+        // determine heap boundaries
         let heap_start = ptr;
         let heap_end = ptr.offset(4 * heap_size);
+
+        // determine boundaries for spaces
+        let young_start = heap_start;
+        let young_end = young_start.offset(heap_size);
+        let old_start = young_end;
+        let old_end = old_start.offset(heap_size);
+        let large_start = old_end;
+        let large_end = large_start.offset(2 * heap_size);
 
         // determine offset to card table (card table starts right after heap)
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
@@ -90,43 +99,43 @@ impl Swiper {
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
-        arena::commit(card_start, card_size, false).expect("could not commit card table.");
-        let card_table = CardTable::new(card_start, card_end, heap_size);
+        arena::commit(card_start, card_size, false);
+        let old_and_large = Region::new(old_start, large_end);
+        let card_table = CardTable::new(card_start, card_end, heap_size, old_and_large);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        arena::commit(crossing_start, crossing_size, false).expect("could not commit crossing table.");
+        arena::commit(crossing_start, crossing_size, false);
         let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
-        // determine boundaries of young generation
-        let young_start = heap_start;
-        let young_end = young_start.offset(heap_size);
+        // create young generation
         let young = YoungGen::new(young_start, young_end);
 
-        arena::commit(young_start, heap_size, false).expect("could not commit young gen.");
+        arena::commit(young_start, heap_size, false);
 
-        // determine boundaries of old generation
-        let old_start = young_end;
-        let old_end = old_start.offset(heap_size);
-        let old = OldGen::new(old_start, old_end, crossing_map.clone());
+        // create old generation
+        let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
 
-        arena::commit(old_start, heap_size, false).expect("could not commit old gen.");
+        arena::commit(old_start, heap_size, false);
 
-        // determine large object space
-        let large_start = old_end;
-        let large_end = large_start.offset(2 * heap_size);
-        let large = LargeSpace::new(large_start, large_end);
+        // create large object space
+        let large = LargeSpace::new(
+            large_start,
+            large_end,
+            crossing_map.clone(),
+            card_table.clone(),
+        );
 
         if args.flag_gc_verbose {
             println!(
-                "GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
-                in_kilo(heap_size),
-                in_kilo(old_size),
-                in_kilo(young_size),
-                in_kilo(card_size),
-                in_kilo(crossing_size)
+                "GC: heap info: {}, old {}, young {}, card {}, crossing {}",
+                size_format(heap_size),
+                size_format(old_size),
+                size_format(young_size),
+                size_format(card_size),
+                size_format(crossing_size)
             );
         }
 
@@ -155,6 +164,7 @@ impl Swiper {
             ctxt,
             &self.young,
             &self.old,
+            &self.large,
             &self.card_table,
             &self.crossing_map,
             &rootset,
@@ -209,6 +219,7 @@ impl Swiper {
                 &self.crossing_map,
                 rootset,
                 &*perm_space,
+                &self.large,
                 phase,
             );
             verifier.verify();
@@ -251,7 +262,7 @@ impl Collector for Swiper {
 }
 
 impl Swiper {
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
+    fn alloc_normal(&self, ctxt: &SemContext, size: usize, is_obj_array: bool) -> *const u8 {
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
@@ -270,11 +281,11 @@ impl Swiper {
             return ptr;
         }
 
-        self.old.alloc(size, array_ref)
+        self.old.alloc(size, is_obj_array)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> *const u8 {
-        let ptr = self.large.alloc(size);
+    fn alloc_large(&self, ctxt: &SemContext, size: usize, is_obj_array: bool) -> *const u8 {
+        let ptr = self.large.alloc(size, is_obj_array);
 
         if !ptr.is_null() {
             return ptr;
@@ -282,7 +293,7 @@ impl Swiper {
 
         self.full_collect(ctxt);
 
-        self.large.alloc(size)
+        self.large.alloc(size, is_obj_array)
     }
 }
 
@@ -322,8 +333,59 @@ impl fmt::Display for Region {
     }
 }
 
-fn in_kilo(size: usize) -> f64 {
-    (size as f64) / 1024.0
+enum Format {
+    Kilo, Mega, Giga, Tera,
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let specifier = match self {
+            Format::Kilo => "K",
+            Format::Mega => "M",
+            Format::Giga => "G",
+            Format::Tera => "T",
+        };
+
+        write!(f, "{}", specifier)
+    }
+}
+
+pub struct FormattedSize {
+    bytes: usize,
+    size: f64,
+    format: Format,
+}
+
+impl fmt::Display for FormattedSize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:.1}{}", self.size, self.format)
+    }
+}
+
+fn size_format(bytes: usize) -> FormattedSize {
+    let mut size = (bytes as f64) / 1024.0;
+    let mut format = Format::Kilo;
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Mega;
+    }
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Giga;
+    }
+
+    if size > 1024.0 {
+        size /= 1024.0;
+        format = Format::Tera;
+    }
+
+    FormattedSize {
+        bytes: bytes,
+        size: size,
+        format: format,
+    }
 }
 
 fn on_different_cards(curr: Address, next: Address) -> bool {

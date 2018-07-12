@@ -1,0 +1,27 @@
+open class Value {
+    open fun isConst() -> bool { return false; }
+}
+
+class ByteLiteral: Value {
+    var value: byte;
+}
+
+class IntLiteral: Value {
+    var value: int;
+}
+
+class LongLiteral: Value {
+    var value: long;
+}
+
+class StrLiteral: Value {
+    var value: Str;
+}
+
+class FloatLiteral: Value {
+    var value: float;
+}
+
+class DoubleLiteral: Value {
+    var value: double;
+}

@@ -21,11 +21,11 @@ use gc::Gc;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use handle::HandleMemory;
-use opt::util::LlvmJit;
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use sym::*;
 use sym::Sym::*;
+use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
@@ -84,7 +84,7 @@ pub struct SemContext<'ast> {
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
-    pub llvm_jit: LlvmJit,
+    pub tld: ThreadLocalData,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -144,7 +144,7 @@ impl<'ast> SemContext<'ast> {
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
-            llvm_jit: LlvmJit::new(),
+            tld: ThreadLocalData::new(),
         }
     }
 

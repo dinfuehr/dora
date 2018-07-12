@@ -4,6 +4,7 @@ use gc::space::Space;
 use gc::swiper::CARD_SIZE;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::{on_different_cards, start_of_card};
 use gc::swiper::Region;
@@ -41,10 +42,12 @@ pub struct Verifier<'a> {
 
     refs_to_young_gen: usize,
     in_old: bool,
+    in_large: bool,
 
     old_region: Region,
     young_region: Region,
 
+    large: &'a LargeSpace,
     phase: VerifierPhase,
 }
 
@@ -56,6 +59,7 @@ impl<'a> Verifier<'a> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
         perm_space: &'a Space,
+        large: &'a LargeSpace,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
         Verifier {
@@ -68,10 +72,11 @@ impl<'a> Verifier<'a> {
 
             refs_to_young_gen: 0,
             in_old: false,
+            in_large: false,
 
             young_region: young.used_region(),
             old_region: old.used_region(),
-
+            large: large,
             phase: phase,
         }
     }
@@ -80,6 +85,7 @@ impl<'a> Verifier<'a> {
         self.verify_roots();
         self.verify_young();
         self.verify_old();
+        self.verify_large();
     }
 
     fn verify_young(&mut self) {
@@ -101,21 +107,38 @@ impl<'a> Verifier<'a> {
         }
     }
 
+    fn verify_large(&mut self) {
+        self.in_large = true;
+        self.large.visit(|obj| {
+            self.verify_large_object(obj);
+            true
+        });
+        self.in_large = false;
+    }
+
+    fn verify_large_object(&mut self, object: &mut Obj) {
+        let object_start = object.to_address();
+        let object_size = object.size();
+        let object_end = object_start.offset(object_size);
+        let region = Region::new(object_start, object_end);
+        self.verify_objects(region, "large space");
+    }
+
     fn verify_objects(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
 
         if self.in_old {
             // we should start at card start
-            assert!(self.old.is_card_aligned(curr));
+            assert!(self.card_table.is_aligned(curr));
             self.verify_crossing(curr, curr, false);
         }
 
         while curr < region.end {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
-            let next = if object.is_array_ref() {
-                self.verify_array_ref(object, curr, name)
+            let next = if object.is_obj_array() {
+                self.verify_obj_array(object, curr, name)
             } else {
                 self.verify_object(object, curr, name)
             };
@@ -125,18 +148,18 @@ impl<'a> Verifier<'a> {
 
         assert!(curr == region.end, "object doesn't end at region end");
 
-        if self.in_old && !start_of_card(curr) {
+        if (self.in_old || self.in_large) && !start_of_card(curr) {
             self.verify_card(curr);
         }
     }
 
-    fn verify_array_ref(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
+    fn verify_obj_array(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
         let object_address = curr;
 
         object.visit_reference_fields(|child| {
             let child_ptr = child.get();
 
-            if self.in_old && on_different_cards(curr, child.to_address()) {
+            if (self.in_old || self.in_large) && on_different_cards(curr, child.to_address()) {
                 self.verify_card(curr);
                 curr = child.to_address();
             }
@@ -161,16 +184,19 @@ impl<'a> Verifier<'a> {
 
         let next = curr.offset(object.size());
 
-        if self.in_old && on_different_cards(curr, next) {
+        if (self.in_old || self.in_large) && on_different_cards(curr, next) {
             self.verify_card(curr);
-            self.verify_crossing(curr, next, false);
+
+            if !self.in_large {
+                self.verify_crossing(curr, next, false);
+            }
         }
 
         next
     }
 
     fn verify_card(&mut self, curr: Address) {
-        let curr_card = self.old.card_from_address(curr);
+        let curr_card = self.card_table.card(curr);
 
         let card_entry = self.card_table.get(curr_card);
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -209,19 +235,19 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, old: Address, addr: Address, array_ref: bool) {
-        let card = self.old.card_from_address(addr);
-        let card_start = self.old.address_from_card(card);
+    fn verify_crossing(&mut self, old: Address, addr: Address, is_obj_array: bool) {
+        let card = self.card_table.card(addr);
+        let card_start = self.card_table.to_address(card);
         let offset = addr.offset_from(card_start);
         let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
-        let old_card = self.old.card_from_address(old);
-        let old_card_end = self.old.address_from_card(old_card).offset(CARD_SIZE);
+        let old_card = self.card_table.card(old);
+        let old_card_end = self.card_table.to_address(old_card).offset(CARD_SIZE);
 
         let crossing_middle;
         let loop_start;
 
-        if array_ref {
+        if is_obj_array {
             let refs_per_card = (CARD_SIZE / mem::ptr_width_usize()) as u8;
 
             crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
@@ -273,7 +299,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_region.contains(addr) || self.young_region.contains(addr)
-            || self.perm_space.contains(addr)
+            || self.perm_space.contains(addr) || self.large.contains_object(addr)
         {
             let object = unsafe { &mut *obj };
 

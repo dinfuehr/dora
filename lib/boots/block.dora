@@ -1,0 +1,5 @@
+class BasicBlock {
+    var predecessors: Vec<BasicBlock>;
+    var successors: Vec<BasicBlock>;
+    var instructions: Vec<BasicBlock>;
+}

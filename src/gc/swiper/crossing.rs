@@ -58,6 +58,10 @@ impl CrossingMap {
         self.set(card, 64 + (refs as u8));
     }
 
+    pub fn set_full_with_references(&self, card: Card) {
+        self.set_references_at_start(card, 64);
+    }
+
     fn set(&self, card: Card, val: u8) {
         unsafe {
             *self.start.offset(card.to_usize()).to_mut_ptr::<u8>() = val;

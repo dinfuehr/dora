@@ -4,52 +4,126 @@ use std::sync::Mutex;
 
 use gc::arena;
 use gc::Address;
-use gc::swiper::Region;
+use gc::swiper::card::CardTable;
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::LARGE_OBJECT_SIZE;
+use gc::swiper::Region;
 use mem;
+use object::Obj;
 
 pub struct LargeSpace {
     total: Region,
     space: Mutex<LargeSpaceProtected>,
+    crossing_map: CrossingMap,
+    card_table: CardTable,
 }
 
 impl LargeSpace {
-    pub fn new(start: Address, end: Address) -> LargeSpace {
+    pub fn new(
+        start: Address,
+        end: Address,
+        crossing_map: CrossingMap,
+        card_table: CardTable,
+    ) -> LargeSpace {
         LargeSpace {
             total: Region::new(start, end),
             space: Mutex::new(LargeSpaceProtected::new(start, end)),
+            crossing_map: crossing_map,
+            card_table: card_table,
         }
     }
 
-    pub fn alloc(&self, size: usize) -> *const u8 {
+    pub fn alloc(&self, size: usize, _is_obj_array: bool) -> *const u8 {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
-        let size = mem::page_align(size_of::<LargeAlloc>() + size);
-
+        let loh_size = size_of::<LargeAlloc>();
+        let size = mem::page_align(loh_size + size);
         let mut space = self.space.lock().unwrap();
 
-        if let Some(range) = space.alloc(size) {
-            arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
+        if let Some(range) = space.alloc_large_object(size) {
+            arena::commit(range.start, range.size(), false);
             space.append_large_alloc(range.start, range.size());
-            range.start.to_ptr()
 
+            self.init_card(range.start, range.size());
+
+            let object_start = range.start.offset(loh_size);
+            object_start.to_ptr()
         } else {
             ptr::null()
         }
     }
 
-    pub fn free(&self, ptr: Address, size: usize) {
-        debug_assert!(size >= LARGE_OBJECT_SIZE);
-        debug_assert!(mem::is_page_aligned(ptr.to_usize()));
-        let size = mem::page_align(size_of::<LargeAlloc>() + size);
-
-        let mut space = self.space.lock().unwrap();
-        debug_assert!(!space.contains(ptr));
-        space.free(ptr, size);
-        space.merge();
-    }
-
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
+    }
+
+    pub fn contains_object(&self, addr: Address) -> bool {
+        let space = self.space.lock().unwrap();
+        let mut current = space.head;
+
+        while !current.is_null() {
+            let loh = unsafe { &mut *current.to_mut_ptr::<LargeAlloc>() };
+            let obj_address = current.offset(size_of::<LargeAlloc>());
+
+            if addr == obj_address {
+                return true;
+            }
+
+            current = loh.next;
+        }
+
+        false
+    }
+
+    pub fn visit<F>(&self, mut f: F)
+    where
+        F: FnMut(&mut Obj) -> bool,
+    {
+        let mut space = self.space.lock().unwrap();
+
+        let mut current = space.head;
+
+        while !current.is_null() {
+            let loh = unsafe { &mut *current.to_mut_ptr::<LargeAlloc>() };
+            let obj_address = current.offset(size_of::<LargeAlloc>());
+            let obj = unsafe { &mut *obj_address.to_mut_ptr::<Obj>() };
+
+            let keep = f(obj);
+
+            if keep {
+                current = loh.next;
+            } else {
+                if loh.prev.is_null() {
+                    space.head = loh.next;
+                } else {
+                    let pred = unsafe { &mut *loh.prev.to_mut_ptr::<LargeAlloc>() };
+                    pred.next = loh.next;
+                }
+
+                if loh.next.is_null() {
+                    space.tail = loh.prev;
+                } else {
+                    let succ = unsafe { &mut *loh.next.to_mut_ptr::<LargeAlloc>() };
+                    succ.next = loh.prev;
+                }
+
+                let next = loh.next;
+                space.free_large_object(current, loh.size);
+                current = next;
+            }
+        }
+    }
+
+    fn init_card(&self, addr: Address, size: usize) {
+        let card = self.card_table.card(addr);
+        let card_end = self.card_table.card(addr.offset(size));
+
+        for c in card.to_usize()..card_end.to_usize() {
+            self.card_table.clear(c.into());
+        }
+
+        if addr.offset(size) != self.card_table.to_address(card_end) {
+            self.card_table.clear(card_end);
+        }
     }
 }
 
@@ -74,7 +148,8 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn alloc(&mut self, size: usize) -> Option<Range> {
+    fn alloc_large_object(&mut self, size: usize) -> Option<Range> {
+        debug_assert!(size >= LARGE_OBJECT_SIZE);
         debug_assert!(mem::is_page_aligned(size));
         let len = self.elements.len();
 
@@ -96,13 +171,26 @@ impl LargeSpaceProtected {
         None
     }
 
+    fn free_large_object(&mut self, ptr: Address, size: usize) {
+        debug_assert!(size >= LARGE_OBJECT_SIZE);
+        debug_assert!(mem::is_page_aligned(ptr.to_usize()));
+
+        // forget memoy content but keep memory address space
+        // reserved
+        arena::forget(ptr, size);
+
+        self.free(ptr, size);
+        self.merge();
+    }
+
     fn free(&mut self, ptr: Address, size: usize) {
         debug_assert!(mem::is_page_aligned(size));
         self.elements.push(Range::new(ptr, ptr.offset(size)));
     }
 
     fn merge(&mut self) {
-        self.elements.sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
+        self.elements
+            .sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
 
         let len = self.elements.len();
         let mut last_element = 0;
@@ -116,7 +204,7 @@ impl LargeSpaceProtected {
             }
         }
 
-        self.elements.truncate(last_element+1);
+        self.elements.truncate(last_element + 1);
     }
 
     fn contains(&self, ptr: Address) -> bool {
@@ -133,6 +221,8 @@ impl LargeSpaceProtected {
         if !self.tail.is_null() {
             let old_tail = unsafe { &mut *self.tail.to_mut_ptr::<LargeAlloc>() };
             old_tail.next = addr;
+        } else if self.head.is_null() {
+            self.head = addr;
         }
 
         let new_tail = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };

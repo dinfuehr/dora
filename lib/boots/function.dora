@@ -1,0 +1,6 @@
+class Function {
+    var name: Str;
+    var start: BasicBlock;
+    var end: BasicBlock;
+    var blocks: Vec<BasicBlock>;
+}

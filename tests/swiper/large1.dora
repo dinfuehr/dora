@@ -1,12 +1,19 @@
-//= ignore
+//= vm-args "--gc-verify"
 
 fun main() {
     let x = Array::<Object>(16 * 1024);
     let y = Array::<Object>(16 * 1024);
     let z = Array::<Object>(16 * 1024);
-//    forceCollect();
-//    assert(x[0] === nil);
-//    x[0] = Object();
-//    forceCollect();
-//    assert(x[0] !== nil);
+    forceCollect();
+    assert(x[0] === nil);
+    assert(y[0] === nil);
+    assert(z[0] === nil);
+    let a = Object();
+    x[0] = a;
+    assert(x[0] === a);
+    forceCollect();
+    assert(x[0] !== nil);
+    assert(x[0] === a);
+    assert(y[0] === nil);
+    assert(z[0] === nil);
 }

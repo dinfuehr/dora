@@ -1,0 +1,9 @@
+const OPCODE_ADD: int = 0;
+const OPCODE_SUB: int = 1;
+const OPCODE_MUL: int = 2;
+const OPCODE_DIV: int = 3;
+const OPCODE_MOD: int = 4;
+
+const OPCODE_OR : int = 5;
+const OPCODE_AND: int = 6;
+const OPCODE_XOR: int = 7;

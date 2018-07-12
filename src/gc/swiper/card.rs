@@ -1,26 +1,36 @@
 use std::ptr;
 
 use gc::Address;
-use gc::swiper::CARD_SIZE_BITS;
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::Card;
+use gc::swiper::Region;
 
+#[derive(Clone)]
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)
     // table is actually larger but we shouldn't need
     // to touch the rest
     start: Address,
     end: Address,
+
+    heap_size: usize,
+
+    // contiguous old & large space that can have references
+    // into young generation
+    old_and_large: Region,
 }
 
 impl CardTable {
-    pub fn new(start: Address, end: Address, young_size: usize) -> CardTable {
+    pub fn new(start: Address, end: Address, heap_size: usize, old_and_large: Region) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
-        let start = start.offset(young_size >> CARD_SIZE_BITS);
+        let start = start.offset(heap_size >> CARD_SIZE_BITS);
 
         let card = CardTable {
             start: start,
             end: end,
+            heap_size: heap_size,
+            old_and_large: old_and_large,
         };
 
         // reset card table to all 1's
@@ -48,8 +58,9 @@ impl CardTable {
         F: FnMut(Card),
     {
         let mut ptr = self.start;
+        let end = self.start.offset(self.heap_size >> CARD_SIZE_BITS);
 
-        while ptr < self.end {
+        while ptr < end {
             let val: u8 = unsafe { *ptr.to_ptr() };
 
             if val == 0 {
@@ -85,6 +96,41 @@ impl CardTable {
         unsafe {
             *ptr.to_mut_ptr() = val;
         }
+    }
+
+    pub fn set_young_refs(&self, card: Card, value: bool) {
+        let entry = if value {
+            CardEntry::Dirty
+        } else {
+            CardEntry::Clean
+        };
+
+        self.set(card, entry);
+    }
+
+    pub fn clear(&self, card: Card) {
+        self.set(card, CardEntry::Clean);
+    }
+
+    #[inline(always)]
+    pub fn is_aligned(&self, addr: Address) -> bool {
+        debug_assert!(self.old_and_large.contains(addr));
+        (addr.offset_from(self.old_and_large.start) & !(CARD_SIZE - 1)) == 0
+    }
+
+    #[inline(always)]
+    pub fn to_address(&self, card: Card) -> Address {
+        let addr = self.old_and_large.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
+
+        addr.into()
+    }
+
+    #[inline(always)]
+    pub fn card(&self, addr: Address) -> Card {
+        debug_assert!(self.old_and_large.contains(addr));
+        let idx = addr.offset_from(self.old_and_large.start) >> CARD_SIZE_BITS;
+
+        idx.into()
     }
 }
 

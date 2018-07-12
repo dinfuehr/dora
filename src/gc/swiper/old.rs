@@ -3,23 +3,33 @@ use std::ptr;
 
 use gc::Address;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::swiper::crossing::{Card, CrossingMap};
+use gc::swiper::card::CardTable;
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::Region;
+use gc::swiper::start_of_card;
 use mem;
 use object::offset_of_array_data;
+use object::Header;
 
 pub struct OldGen {
     pub total: Region,
     pub free: AtomicUsize,
     crossing_map: CrossingMap,
+    card_table: CardTable,
 }
 
 impl OldGen {
-    pub fn new(start: Address, end: Address, crossing_map: CrossingMap) -> OldGen {
+    pub fn new(
+        start: Address,
+        end: Address,
+        crossing_map: CrossingMap,
+        card_table: CardTable,
+    ) -> OldGen {
         OldGen {
             total: Region::new(start, end),
             free: AtomicUsize::new(start.to_usize()),
             crossing_map: crossing_map,
+            card_table: card_table,
         }
     }
 
@@ -31,7 +41,7 @@ impl OldGen {
         self.free.load(Ordering::Relaxed).into()
     }
 
-    pub fn alloc(&self, size: usize, array_ref: bool) -> *const u8 {
+    pub fn alloc(&self, size: usize, is_obj_array: bool) -> *const u8 {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
@@ -54,18 +64,19 @@ impl OldGen {
 
         if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
             if (old & (CARD_SIZE - 1)) == 0 {
-                let card = self.card_from(old);
+                let card = self.card_table.card(old.into());
                 self.crossing_map.set_first_object(card, 0);
             }
-        } else if array_ref {
-            let card = self.card_from(new);
-            let card_start = self.address_from_card(card).to_usize();
+        } else if is_obj_array {
+            let card = self.card_table.card(new.into());
+            let card_start = self.card_table.to_address(card).to_usize();
 
             let old = Address::from(old);
-            let old_card = self.card_from(old.to_usize());
-            let old_card_end = self.address_from_card(old_card).offset(CARD_SIZE);
+            let old_card = self.card_table.card(old);
+            let old_card_end = self.card_table.to_address(old_card).offset(CARD_SIZE);
 
-            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
+            assert!(!start_of_card(old.offset(Header::size() as usize)));
+
             let mut loop_card_start = old_card.to_usize() + 1;
 
             // If you allocate an object array just before the card end,
@@ -81,8 +92,7 @@ impl OldGen {
 
             // all cards between ]old_card; new_card[ are full with references
             for c in loop_card_start..card.to_usize() {
-                self.crossing_map
-                    .set_references_at_start(c.into(), refs_per_card);
+                self.crossing_map.set_full_with_references(c.into());
             }
 
             if card.to_usize() > loop_card_start {
@@ -90,10 +100,10 @@ impl OldGen {
                     .set_references_at_start(card, (new - card_start) / mem::ptr_width_usize());
             }
         } else {
-            let card = self.card_from(new);
-            let card_start = self.address_from_card(card).to_usize();
+            let card = self.card_table.card(new.into());
+            let card_start = self.card_table.to_address(card).to_usize();
 
-            let old_card = self.card_from(old);
+            let old_card = self.card_table.card(old.into());
 
             // all cards between ]old_card; new_card[ are set to NoRefs
             for c in old_card.to_usize() + 1..card.to_usize() {
@@ -105,31 +115,6 @@ impl OldGen {
         }
 
         old as *const u8
-    }
-
-    #[inline(always)]
-    pub fn is_card_aligned(&self, addr: Address) -> bool {
-        (addr.offset_from(self.total.start) & !(CARD_SIZE - 1)) == 0
-    }
-
-    #[inline(always)]
-    pub fn address_from_card(&self, card: Card) -> Address {
-        let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
-
-        addr.into()
-    }
-
-    #[inline(always)]
-    fn card_from(&self, addr: usize) -> Card {
-        self.card_from_address(Address::from(addr))
-    }
-
-    #[inline(always)]
-    pub fn card_from_address(&self, addr: Address) -> Card {
-        debug_assert!(self.contains(addr));
-        let idx = addr.offset_from(self.total.start) >> CARD_SIZE_BITS;
-
-        idx.into()
     }
 
     pub fn contains(&self, addr: Address) -> bool {

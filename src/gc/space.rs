@@ -44,11 +44,10 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let space_start = arena::reserve(config.limit).expect("could not reserve space.");
+        let space_start = arena::reserve(config.limit);
         let space_end = space_start.offset(config.limit);
 
-        arena::commit(space_start, config.chunk, config.executable)
-            .expect("could not commit first chunk.");
+        arena::commit(space_start, config.chunk, config.executable);
         let end = space_start.offset(config.chunk);
 
         Space {
@@ -121,8 +120,7 @@ impl Space {
         let new_end = end + size;
 
         if new_end <= self.total.end.to_usize() {
-            arena::commit(end.into(), size, self.config.executable)
-                .expect("couldn't commit chunk.");
+            arena::commit(end.into(), size, self.config.executable);
             self.end.store(new_end, Ordering::SeqCst);
 
             true
@@ -133,5 +131,9 @@ impl Space {
 
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
+    }
+
+    pub fn total(&self) -> Region {
+        self.total.clone()
     }
 }
