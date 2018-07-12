@@ -14,6 +14,7 @@ extern crate libc;
 extern crate llvm_sys as llvm;
 extern crate rustc_serialize;
 extern crate time;
+extern crate core;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
