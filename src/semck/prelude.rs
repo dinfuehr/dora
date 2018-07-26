@@ -33,7 +33,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.iterator_trait = Cell::new(Some(find_trait(ctxt, "Iterator")));
 }
 
-fn internal_class<'ast>(
+pub fn internal_class<'ast>(
     ctxt: &mut SemContext<'ast>,
     name: &str,
     ty: Option<BuiltinType>,
@@ -58,7 +58,7 @@ fn internal_class<'ast>(
     }
 }
 
-fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
+pub fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
     let iname = ctxt.interner.intern(name);
     let tid = ctxt.sym.borrow().get_trait(iname);
 
@@ -293,11 +293,11 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+pub fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
     internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
 }
 
-fn intrinsic_method<'ast>(
+pub fn intrinsic_method<'ast>(
     ctxt: &mut SemContext<'ast>,
     clsid: ClassId,
     name: &str,
@@ -306,7 +306,7 @@ fn intrinsic_method<'ast>(
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
+pub fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
     let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 
@@ -321,15 +321,15 @@ fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str
     }
 }
 
-fn native_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, fctptr: *const u8) {
+pub fn native_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, fctptr: *const u8) {
     internal_fct(ctxt, name, FctKind::Native(fctptr));
 }
 
-fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intrinsic) {
+pub fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intrinsic) {
     internal_fct(ctxt, name, FctKind::Builtin(intrinsic));
 }
 
-fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
+pub fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     let name = ctxt.interner.intern(name);
     let fctid = ctxt.sym.borrow().get_fct(name);
 
@@ -343,7 +343,7 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     }
 }
 
-fn intrinsic_impl<'ast>(
+pub fn intrinsic_impl<'ast>(
     ctxt: &mut SemContext<'ast>,
     clsid: ClassId,
     tid: TraitId,

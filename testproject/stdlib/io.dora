@@ -1,0 +1,37 @@
+class File(let name: Str) {
+  fun delete() throws {
+    let ptr = native_string(self.name);
+    let fct = loadFunction("unlink");
+    let res = call1(fct, ptr);
+    native_free(ptr);
+
+    if res != 0L {
+      throw Exception("could not delete file");
+    }
+  }
+}
+
+class FileDescriptor {
+  var fd: int;
+
+  init(fd: int) {
+    self.fd = fd;
+  }
+
+  fun read() -> byte {
+    // TODO
+    return 0Y;
+  }
+
+  fun readBytes(array: Array<byte>, off: int, len: int) {
+    // TODO
+  }
+
+  fun write(val: byte) {
+    // TODO
+  }
+
+  fun writeBytes(array: Array<byte>, off: int, len: int) {
+    // TODO
+  }
+}

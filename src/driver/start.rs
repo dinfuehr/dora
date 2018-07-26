@@ -54,7 +54,7 @@ pub fn start() -> i32 {
 
     let mut ctxt = SemContext::new(args, &ast, interner);
 
-    semck::check(&mut ctxt);
+    semck::check(&mut ctxt,None);
 
     // register signal handler
     os::register_signals(&ctxt);
@@ -90,7 +90,7 @@ pub fn start() -> i32 {
     }
 }
 
-fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
+pub fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -128,7 +128,7 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     }
 }
 
-fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
+pub fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     let fct_ptr = {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeParams::empty();
@@ -153,7 +153,7 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     exception.is_null() && !testing.has_failed()
 }
 
-fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
+pub fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
@@ -170,7 +170,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
     fct_name.starts_with("test")
 }
 
-fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
+pub fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     let fct_ptr = {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeParams::empty();
@@ -195,7 +195,7 @@ fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
     }
 }
 
-fn parse_dir(
+pub fn parse_dir(
     dirname: &str,
     id_generator: &NodeIdGenerator,
     ast: &mut Ast,
@@ -220,7 +220,7 @@ fn parse_dir(
     }
 }
 
-fn parse_file(
+pub fn parse_file(
     filename: &str,
     id_generator: &NodeIdGenerator,
     ast: &mut Ast,
@@ -255,7 +255,7 @@ fn parse_file(
     Ok(())
 }
 
-fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
+pub fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,

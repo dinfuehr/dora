@@ -17,7 +17,7 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod nameck;
-mod prelude;
+pub mod prelude;
 mod typeck;
 mod returnck;
 pub mod specialize;
@@ -33,7 +33,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>,cus_fct: Option<*const u8>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -78,7 +78,12 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
     superck::check_override(ctxt);
     return_on_error!(ctxt);
-
+    if cus_fct.is_some() {
+        let ptr = cus_fct.unwrap();
+        use std::mem;
+        let func: fn(ctxt: &mut SemContext) -> i32 = unsafe {mem::transmute(ptr) };
+        func(ctxt);
+    }
     // check impl methods against trait definition
     implck::check(ctxt);
     return_on_error!(ctxt);

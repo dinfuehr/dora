@@ -10,6 +10,7 @@ use os::signal::Trap;
 use exception::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
+#[derive(Debug)]
 pub struct NativeFcts {
     map: HashMap<*const u8, JitFctId>,
 }

@@ -1,0 +1,5 @@
+internal fun myfunc();
+
+fun main() {
+    myfunc();
+}
