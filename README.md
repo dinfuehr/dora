@@ -5,8 +5,8 @@ Works on Linux (x86\_64, aarch64) and macOS (x86\_64).
 Build with:
 
 ## Dependencies
-You need to install these dependency:
-[capstone](https://github.com/aquynh/capstone)
+You need to install [capstone](https://github.com/aquynh/capstone) dependency:
+
 
 ```
 $ git clone https://github.com/aquynh/capstone
