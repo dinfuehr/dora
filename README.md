@@ -31,6 +31,6 @@ rustup update nightly
 rustup override set nightly
 
 # run all tests in debug and release mode
-LLVM_SYS_50_PREFIX=$LLVM_INSTALL_DIR ./test
-LLVM_SYS_50_PREFIX=$LLVM_INSTALL_DIR ./test-release
+./test
+./test-release
 ```
