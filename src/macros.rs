@@ -2,19 +2,8 @@ use ctxt::SemContext;
 use semck::prelude::{native_fct,native_method,internal_class};
 
 
-#[macro_export]
-macro_rules! dora_macro_items { ($($x:item)+) => ($($x)+) }
 
-#[macro_export]
-macro_rules! dora_fn_pop {
-    ($rt:ident $arg:ident : $t:ty) => {
-        let $arg: $t = try!($rt.pop());
-    };
-    ($rt:ident $arg:ident : $t:ty, $($args:tt : $ts:ty),+) => {
-        dyon_fn_pop!($rt $($args: $ts),+);
-        let $arg: $t = try!($rt.pop());
-    };
-}
+
 
 #[macro_export]
 macro_rules! dora_fn {
