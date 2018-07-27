@@ -13,6 +13,7 @@ use lexer::token::*;
 use lexer::position::Position;
 use lexer::reader::Reader;
 
+
 pub struct Parser<'a> {
     lexer: Lexer,
     token: Token,
@@ -127,6 +128,16 @@ impl<'a> Parser<'a> {
                 elements.push(ElemConst(xconst));
             }
 
+            TokenKind::Include => {
+                self.ban_modifiers(&modifiers)?;
+                self.parse_include()?;
+            }
+
+            TokenKind::Import => {
+                let msg = Msg::Unimplemented;
+                return Err(MsgWithPos::new(self.token.position,msg));
+            }
+
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 return Err(MsgWithPos::new(self.token.position, msg));
@@ -134,6 +145,25 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
+    }
+
+    fn parse_include(&mut self) -> Result<Include,MsgWithPos> {
+        let pos = self.expect_token(TokenKind::Include)?.position;
+        let ident = self.expect_identifier()?;
+        let mut include_file = self.interner.str(ident).to_string();
+        while self.advance_token()?.is(TokenKind::Dot) {
+            include_file.push_str("/");
+            let ident = self.expect_identifier()?;
+            let n = self.interner.str(ident).to_string();
+            include_file.push_str(&n)
+        }
+        self.expect_semicolon()?;
+        Ok(Include {
+            id: self.generate_id(),
+            pos: pos,
+            path: include_file.to_string(),
+            
+        })
     }
 
     fn parse_const(&mut self) -> Result<Const, MsgWithPos> {
@@ -779,7 +809,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_type(&mut self) -> Result<Option<Type>, MsgWithPos> {
-        if self.token.is(TokenKind::Arrow) {
+        if self.token.is(TokenKind::Arrow) || self.token.is(TokenKind::Colon){
             self.advance_token()?;
             let ty = self.parse_type()?;
 

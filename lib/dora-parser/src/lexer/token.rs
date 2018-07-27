@@ -48,6 +48,8 @@ pub enum TokenKind {
     Pub,
     Static,
     Spawn,
+    Include,
+    Import,
 
     Enum,
     Type,
@@ -129,7 +131,8 @@ impl TokenKind {
                     FloatSuffix::Double => "double number",
                 }
             }
-
+            TokenKind::Include => "include",
+            TokenKind::Import => "import",
             TokenKind::Identifier(_) => "identifier",
             TokenKind::End => "<<EOF>>",
 

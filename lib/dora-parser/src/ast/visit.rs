@@ -33,6 +33,8 @@ pub trait Visitor<'v>: Sized {
         walk_struct(self, s);
     }
 
+    fn visit_include(&mut self, include: &'v Include) {}
+
     fn visit_const(&mut self, c: &'v Const) {
         walk_const(self, c);
     }
@@ -94,6 +96,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemImpl(ref i) => v.visit_impl(i),
             ElemGlobal(ref g) => v.visit_global(g),
             ElemConst(ref c) => v.visit_const(c),
+            ElemInclude(ref include) => v.visit_include(include),
         }
     }
 }
