@@ -13,6 +13,7 @@ pub mod dump;
 #[derive(Clone, Debug)]
 pub struct Ast {
     pub files: Vec<File>,
+    
 }
 
 impl Ast {
@@ -113,6 +114,8 @@ pub enum Elem {
     ElemImpl(Impl),
     ElemGlobal(Global),
     ElemConst(Const),
+    ElemInclude(Include),
+    
 }
 
 impl Elem {
@@ -125,6 +128,7 @@ impl Elem {
             &ElemImpl(ref i) => i.id,
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
+            &ElemInclude(ref i) => i.id,
         }
     }
 
@@ -173,6 +177,12 @@ impl Elem {
     pub fn to_const(&self) -> Option<&Const> {
         match self {
             &ElemConst(ref konst) => Some(konst),
+            _ => None,
+        }
+    }
+    pub fn to_include(&self) -> Option<&Include> {
+        match self {
+            &ElemInclude (ref include) => Some(include),
             _ => None,
         }
     }
@@ -487,6 +497,14 @@ pub struct Field {
     pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
     pub reassignable: bool,
+}
+
+
+#[derive(Clone,Debug)]
+pub struct Include {
+    pub id: NodeId,
+    pub pos: Position,
+    pub path: String,
 }
 
 #[derive(Clone, Debug)]
