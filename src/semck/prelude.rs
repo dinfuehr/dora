@@ -33,7 +33,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
     ctxt.vips.iterator_trait = Cell::new(Some(find_trait(ctxt, "Iterator")));
 }
 
-fn internal_class<'ast>(
+pub fn internal_class<'ast>(
     ctxt: &mut SemContext<'ast>,
     name: &str,
     ty: Option<BuiltinType>,
@@ -58,7 +58,7 @@ fn internal_class<'ast>(
     }
 }
 
-fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
+pub fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
     let iname = ctxt.interner.intern(name);
     let tid = ctxt.sym.borrow().get_trait(iname);
 
@@ -343,7 +343,7 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     }
 }
 
-fn intrinsic_impl<'ast>(
+pub fn intrinsic_impl<'ast>(
     ctxt: &mut SemContext<'ast>,
     clsid: ClassId,
     tid: TraitId,
