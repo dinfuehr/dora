@@ -54,7 +54,7 @@ pub fn start() -> i32 {
 
     let mut ctxt = SemContext::new(args, &ast, interner);
 
-    semck::check(&mut ctxt,None);
+    semck::check(&mut ctxt);
 
     // register signal handler
     os::register_signals(&ctxt);
