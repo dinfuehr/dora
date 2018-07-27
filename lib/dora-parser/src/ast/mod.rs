@@ -180,6 +180,12 @@ impl Elem {
             _ => None,
         }
     }
+    pub fn to_include(&self) -> Option<&Include> {
+        match self {
+            &ElemInclude (ref include) => Some(include),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

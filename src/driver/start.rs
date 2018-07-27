@@ -20,6 +20,8 @@ use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
+use dora_parser::ast::Elem::*;
+use dora_parser::ast::Include;
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -46,6 +48,17 @@ pub fn start() -> i32 {
         }
     }) {
         return code;
+    }
+    for file in ast.files.clone().iter_mut() {
+        for elem in file.elements.iter_mut() {
+            match elem {
+                ElemInclude(ref mut include) => {
+                    include.path.push_str(".dora");
+                    parse_file(&include.path, &id_generator,&mut ast, &mut interner).unwrap();
+                }
+                _ => (),
+            }
+        }
     }
 
     if args.flag_emit_ast {

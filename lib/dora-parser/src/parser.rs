@@ -23,7 +23,7 @@ pub struct Parser<'a> {
     param_idx: u32,
     field_idx: u32,
     in_class: bool,
-
+    includes: Vec<Include>,
     next_id: NodeId,
 }
 
@@ -49,6 +49,7 @@ impl<'a> Parser<'a> {
             in_class: false,
             ast: ast,
             next_id: NodeId(1),
+            includes: Vec::new(),
         };
 
         parser
@@ -130,7 +131,8 @@ impl<'a> Parser<'a> {
 
             TokenKind::Include => {
                 self.ban_modifiers(&modifiers)?;
-                self.parse_include()?;
+                let include = self.parse_include()?;
+                elements.push(ElemInclude(include));
             }
 
             TokenKind::Import => {
@@ -158,12 +160,14 @@ impl<'a> Parser<'a> {
             include_file.push_str(&n)
         }
         self.expect_semicolon()?;
-        Ok(Include {
+        let include = Include {
             id: self.generate_id(),
             pos: pos,
             path: include_file.to_string(),
             
-        })
+        };
+        
+        Ok(include)
     }
 
     fn parse_const(&mut self) -> Result<Const, MsgWithPos> {
