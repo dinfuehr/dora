@@ -57,12 +57,16 @@ mod vtable;
 
 #[cfg(test)]
 mod test;
+use semck::prelude::native_fct;
+#[macro_use]
+mod macros;
 
 #[cfg(not(test))]
 use std::process::exit;
 
 #[cfg(not(test))]
 fn main() {
+
     os::mem::init_page_size();
 
     exit(driver::start());

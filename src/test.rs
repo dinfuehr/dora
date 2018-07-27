@@ -47,7 +47,7 @@ where
 
     let mut ctxt = SemContext::new(args, &ast, interner);
 
-    semck::check(&mut ctxt);
+    semck::check(&mut ctxt,None);
 
     f(&ctxt)
 }

@@ -1,0 +1,5 @@
+internal fun test() -> int;
+
+fun main() {
+    println(test().toString());
+}

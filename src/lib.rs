@@ -54,6 +54,9 @@ pub mod timer;
 pub mod ty;
 pub mod utils;
 pub mod vtable;
+#[macro_use]
+pub mod macros;
+
 
 #[cfg(test)]
 pub mod test;
