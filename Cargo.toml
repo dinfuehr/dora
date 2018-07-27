@@ -12,7 +12,6 @@ time = "*"
 winapi = "*"
 kernel32-sys = "*"
 dora-parser = { path = "lib/dora-parser" }
-llvm-sys = "50"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"
