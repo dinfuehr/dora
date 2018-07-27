@@ -1,7 +1,0 @@
-class Testing {
-    var failed: bool = false;
-
-    fun fail() {
-        self.failed = true;
-    }
-}

@@ -1,7 +1,0 @@
-[package]
-name = "test_dora_project"
-version = "0.0.1"
-authors = [""]
-
-[dependencies]
-dora = {path = "../"}
