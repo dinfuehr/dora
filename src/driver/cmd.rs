@@ -13,6 +13,7 @@ pub fn parse() -> Args {
 // Write the Docopt usage string.
 static USAGE: &'static str = "
 Usage: dora test [options] <file>
+       dora init <name>
        dora [options] <file> [--] [<argument>...]
        dora (--version | --help)
 
@@ -44,7 +45,7 @@ Options:
 pub struct Args {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: String,
-
+    pub arg_name: String,
     pub flag_emit_ast: bool,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
@@ -63,7 +64,7 @@ pub struct Args {
     pub flag_gc: Option<CollectorName>,
     pub flag_heap_size: Option<MemSize>,
     pub flag_check: bool,
-
+    pub cmd_init: bool,
     pub cmd_test: bool,
 }
 
@@ -78,7 +79,7 @@ impl Default for Args {
         Args {
             arg_argument: None,
             arg_file: "".into(),
-
+            arg_name: "".into(),
             flag_emit_ast: false,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
@@ -99,6 +100,7 @@ impl Default for Args {
             flag_check: false,
 
             cmd_test: false,
+            cmd_init: false,
         }
     }
 }

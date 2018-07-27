@@ -9,97 +9,149 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::interner::Interner;
-use dora_parser::lexer::reader::Reader;
 use dora_parser::lexer::position::Position;
+use dora_parser::lexer::reader::Reader;
 use driver::cmd;
 use exception::DoraToNativeInfo;
 use object::{self, Handle, Testing};
 use os;
 
+use dora_parser::ast::Elem::*;
+use dora_parser::ast::Include;
 use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
-use dora_parser::ast::Elem::*;
-use dora_parser::ast::Include;
 
 pub fn start() -> i32 {
     let args = cmd::parse();
-
-    if args.flag_version {
-        println!("dora v0.01b");
-        return 0;
-    }
-
-    let mut interner = Interner::new();
-    let id_generator = NodeIdGenerator::new();
-    let mut ast = Ast::new();
-
-    if let Err(code) = parse_dir("stdlib", &id_generator, &mut ast, &mut interner).and_then(|_| {
-        let path = Path::new(&args.arg_file);
-
-        if path.is_file() {
-            parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
-        } else if path.is_dir() {
-            parse_dir(&args.arg_file, &id_generator, &mut ast, &mut interner)
-        } else {
-            println!("file or directory `{}` does not exist.", &args.arg_file);
-            Err(1)
+    if !args.cmd_init {
+        if args.flag_version {
+            println!("dora v0.01b");
+            return 0;
         }
-    }) {
-        return code;
-    }
-    for file in ast.files.clone().iter_mut() {
-        for elem in file.elements.iter_mut() {
-            match elem {
-                ElemInclude(ref mut include) => {
-                    include.path.push_str(".dora");
-                    parse_file(&include.path, &id_generator,&mut ast, &mut interner).unwrap();
+
+        let mut interner = Interner::new();
+        let id_generator = NodeIdGenerator::new();
+        let mut ast = Ast::new();
+
+        if let Err(code) =
+            parse_dir("stdlib", &id_generator, &mut ast, &mut interner).and_then(|_| {
+                let path = Path::new(&args.arg_file);
+
+                if path.is_file() {
+                    parse_file(&args.arg_file, &id_generator, &mut ast, &mut interner)
+                } else if path.is_dir() {
+                    parse_dir(&args.arg_file, &id_generator, &mut ast, &mut interner)
+                } else {
+                    println!("file or directory `{}` does not exist.", &args.arg_file);
+                    Err(1)
                 }
-                _ => (),
+            }) {
+            return code;
+        }
+        for file in ast.files.clone().iter_mut() {
+            for elem in file.elements.iter_mut() {
+                match elem {
+                    ElemInclude(ref mut include) => {
+                        include.path.push_str(".dora");
+                        parse_file(&include.path, &id_generator, &mut ast, &mut interner).unwrap();
+                    }
+                    _ => (),
+                }
             }
         }
-    }
 
-    if args.flag_emit_ast {
-        ast::dump::dump(&ast, &interner);
-    }
-
-    let mut ctxt = SemContext::new(args, &ast, interner);
-
-    semck::check(&mut ctxt);
-
-    // register signal handler
-    os::register_signals(&ctxt);
-
-    let main = if ctxt.args.cmd_test {
-        None
-    } else {
-        find_main(&ctxt)
-    };
-
-    if ctxt.diag.borrow().has_errors() {
-        ctxt.diag.borrow().dump();
-        let no_errors = ctxt.diag.borrow().errors().len();
-
-        if no_errors == 1 {
-            println!("{} error found.", no_errors);
-        } else {
-            println!("{} errors found.", no_errors);
+        if args.flag_emit_ast {
+            ast::dump::dump(&ast, &interner);
         }
 
-        return 1;
-    }
+        let mut ctxt = SemContext::new(args, &ast, interner);
 
-    // if --check given, stop after type/semantic check
-    if ctxt.args.flag_check {
-        return 0;
-    }
+        semck::check(&mut ctxt,None);
 
-    if ctxt.args.cmd_test {
-        run_tests(&ctxt)
+        // register signal handler
+        os::register_signals(&ctxt);
+
+        let main = if ctxt.args.cmd_test {
+            None
+        } else {
+            find_main(&ctxt)
+        };
+
+        if ctxt.diag.borrow().has_errors() {
+            ctxt.diag.borrow().dump();
+            let no_errors = ctxt.diag.borrow().errors().len();
+
+            if no_errors == 1 {
+                println!("{} error found.", no_errors);
+            } else {
+                println!("{} errors found.", no_errors);
+            }
+
+            return 1;
+        }
+
+        // if --check given, stop after type/semantic check
+        if ctxt.args.flag_check {
+            return 0;
+        }
+
+        if ctxt.args.cmd_test {
+            run_tests(&ctxt)
+        } else {
+            run_main(&ctxt, main.unwrap())
+        }
     } else {
-        run_main(&ctxt, main.unwrap())
+        use std::env;
+        use std::path::PathBuf;
+        use std::fs;
+        let current_directory = env::current_dir().unwrap_or(PathBuf::from(env!("PWD")));
+        let cur_dir_str = current_directory.to_str().unwrap();
+        let project_name = args.arg_name.clone();
+        let full_path = format!("{}/{}",cur_dir_str,project_name);
+        
+        let cargo_toml = format!(
+            "[package]\n
+name=\"{}\"\n
+version=\"0.0.1\"\n
+authors = [\"\"]\n
+[dependencies.dora]\n 
+path = \"../\"\n 
+            ",project_name);
+
+        let main_rs = format!(
+            "extern crate dora;\n
+use dora::start;\n
+use std::process::exit;\n
+use std::path::Path;
+fn main() {{\n
+exit(start(Path::new(\"src/main.dora\"),None));\n
+}}\n"
+        );
+        if let Err(err) = fs::create_dir(full_path.clone()) {
+            panic!(format!("Cannot create directory;\nError: {}\n\n", err));
+        }
+        if let Err(err) = fs::create_dir(format!("{}/src",full_path)) {
+            panic!(format!("Cannot create directory;\nError: {}\n\n", err));
+        }
+        if let Err(err) = fs::File::create(format!("{}/Cargo.toml",&full_path.clone())) {
+            panic!(format!("Cannot create file;\nError: {}\n\n", err));
+        }
+        if let Err(err) = fs::File::create(format!("{}/src/main.rs",&full_path.clone())) {
+            panic!(format!("Cannot create file;\nError: {}\n\n", err));
+        }
+        if let Err(err) = fs::File::create(format!("{}/src/main.dora",&full_path.clone())) {
+            panic!(format!("Cannot create file;\nError: {}\n\n", err));
+        }
+        
+        fs::write(format!("{}/Cargo.toml",full_path), cargo_toml.as_bytes()).unwrap();
+        fs::write(format!("{}/src/main.rs",full_path), main_rs.as_bytes()).unwrap();
+        
+
+        use std::os;
+        os::unix::fs::symlink(format!("{}/stdlib",env!("CARGO_MANIFEST_DIR")),format!("{}/stdlib",full_path));
+        return 1;
     }
 }
 

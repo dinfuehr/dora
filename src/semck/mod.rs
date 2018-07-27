@@ -1,15 +1,15 @@
 use class::TypeParams;
 use ctxt::{NodeMap, SemContext};
-use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
+use dora_parser::ast::{Stmt, Type};
 use dora_parser::error::msg::Msg;
 use mem;
 use sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 mod abstractck;
-mod constdefck;
 mod clsdefck;
+mod constdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
@@ -18,22 +18,22 @@ mod implck;
 mod impldefck;
 mod nameck;
 pub mod prelude;
-mod typeck;
 mod returnck;
 pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;
+mod typeck;
 
 macro_rules! return_on_error {
-    ($ctxt: ident) => {{
+    ($ctxt:ident) => {{
         if $ctxt.diag.borrow().has_errors() {
             return;
         }
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>,custom_funcs: Option<*const u8>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -85,7 +85,12 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
     // define internal functions
     prelude::internal_functions(ctxt);
-
+    if custom_funcs.is_some() {
+        let ptr = custom_funcs.unwrap();
+        use std::mem;
+        let func: fn(ctxt: &mut SemContext) -> i32 = unsafe {mem::transmute(ptr) };
+        func(ctxt);
+    }
     // check types of expressions in functions
     typeck::check(ctxt);
     return_on_error!(ctxt);
