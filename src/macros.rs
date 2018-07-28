@@ -1,10 +1,3 @@
-use ctxt::SemContext;
-use semck::prelude::{native_fct,native_method,internal_class};
-
-
-
-
-
 #[macro_export]
 macro_rules! dora_ffi {
         ($ctxt:expr;$(fun $i:ident($($arg:ident: $argty:ty),*) -> $ret:ty $b:block)*) => ($(

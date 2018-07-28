@@ -23,17 +23,17 @@ impl PosMap {
 }
 
 pub struct FileMap {
-    name: String,
-    content: String,
-    lines: Vec<u32>,
+    _name: String,
+    _content: String,
+    _lines: Vec<u32>,
 }
 
 impl FileMap {
     fn new(name: String, content: String) -> FileMap {
         FileMap {
-            name: name,
-            content: content,
-            lines: Vec::new(),
+            _name: name,
+            _content: content,
+            _lines: Vec::new(),
         }
     }
 }

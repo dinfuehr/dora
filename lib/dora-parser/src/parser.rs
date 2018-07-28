@@ -21,10 +21,9 @@ pub struct Parser<'a> {
     interner: &'a mut Interner,
     ast: &'a mut Ast,
     param_idx: u32,
-    field_idx: u32,
+    _field_idx: u32,
     in_class: bool,
-    includes: Vec<Include>,
-    next_id: NodeId,
+    _next_id: NodeId,
 }
 
 type ExprResult = Result<Box<Expr>, MsgWithPos>;
@@ -45,11 +44,10 @@ impl<'a> Parser<'a> {
             id_generator: id_generator,
             interner: interner,
             param_idx: 0,
-            field_idx: 0,
+            _field_idx: 0,
             in_class: false,
             ast: ast,
-            next_id: NodeId(1),
-            includes: Vec::new(),
+            _next_id: NodeId(1),
         };
 
         parser
@@ -236,8 +234,6 @@ impl<'a> Parser<'a> {
         };
 
         self.expect_semicolon()?;
-
-        let builder = Builder::new(self.id_generator);
 
         let global = Global {
             id: self.generate_id(),

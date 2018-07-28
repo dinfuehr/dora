@@ -58,7 +58,6 @@ mod vtable;
 
 #[cfg(test)]
 mod test;
-use semck::prelude::native_fct;
 #[macro_use]
 mod macros;
 

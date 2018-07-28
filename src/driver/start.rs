@@ -150,7 +150,9 @@ fn main() {{\n
         
 
         use std::os;
-        os::unix::fs::symlink(format!("{}/stdlib",env!("CARGO_MANIFEST_DIR")),format!("{}/stdlib",full_path));
+        if let Err(err) = os::unix::fs::symlink(format!("{}/stdlib",env!("CARGO_MANIFEST_DIR")),format!("{}/stdlib",full_path)) {
+            panic!(format!("Unable to symlink stdlib directory!\n\nError: {}\n",err));
+        }
         return 1;
     }
 }
