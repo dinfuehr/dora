@@ -117,16 +117,16 @@ name=\"{}\"\n
 version=\"0.0.1\"\n
 authors = [\"\"]\n
 [dependencies.dora]\n 
-path = \"../\"\n 
+git = \"https://github.com/pigprogrammer/dora\"\n 
             ",project_name);
 
         let main_rs = format!(
-            "extern crate dora;\n
+            "#[macro_use]extern crate dora;\n
 use dora::start;\n
 use std::process::exit;\n
 use std::path::Path;
 fn main() {{\n
-exit(start(Path::new(\"src/main.dora\"),None));\n
+\texit(start(Path::new(\"src/main.dora\"),None));\n
 }}\n"
         );
         if let Err(err) = fs::create_dir(full_path.clone()) {
