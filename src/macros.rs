@@ -38,8 +38,8 @@ macro_rules! dora_ffi {
         let name = stringify!($i);
         
         #[no_mangle]
-		pub extern  "C" fn $i() -> $ret {
-			pub fn inner() -> $ret {
+		pub extern  "C" fn $i() {
+			pub fn inner() {
                 $b
             }
             inner()
@@ -52,8 +52,8 @@ macro_rules! dora_ffi {
         let name = stringify!($i);
         
         #[no_mangle]
-		pub extern  "C" fn $i() -> $ret {
-			pub fn inner($($arg: $argty),*) -> $ret {
+		pub extern  "C" fn $i() {
+			pub fn inner($($arg: $argty),*) {
                 $b
             }
             inner($($arg: $argty),*)
