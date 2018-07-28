@@ -1,9 +1,8 @@
-use std::ffi::{CStr};
+use std::ffi::CStr;
 
 use libc;
 
 pub mod fct;
-
 
 type EmitResult<T> = Result<T, ()>;
 

@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::SemContext;
 use driver::cmd::Args;

@@ -134,10 +134,11 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Import => {
-                let msg = Msg::Unimplemented;
-                return Err(MsgWithPos::new(self.token.position,msg));
+                self.ban_modifiers(&modifiers)?;
+                let import = self.parse_import()?;
+                elements.push(ElemImport(import));
             }
-
+            TokenKind::From => (),
             _ => {
                 let msg = Msg::ExpectedTopLevelElement(self.token.name());
                 return Err(MsgWithPos::new(self.token.position, msg));
@@ -145,6 +146,60 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
+    }
+
+    fn parse_import(&mut self) -> Result<Import,MsgWithPos> {
+        /*let position = self.expect_token(TokenKind::Import)?.position;
+        let ident = self.expect_identifier()?;
+        let mut imports: Vec<String> = Vec::new();
+        imports.push(self.interner.str(ident).to_string());
+        while self.advance_token()?.is(TokenKind::Comma) {
+            let ident = self.expect_identifier()?;
+            let n = self.interner.str(ident).to_string();
+            imports.push(n);
+        }
+        let from_token = self.expect_token(TokenKind::From)?;
+        let file_ident = self.expect_identifier()?;
+        let mut file_from_import = self.interner.str(ident).to_string();
+
+        while self.advance_token()?.is(TokenKind::Dot) {
+            file_from_import.push_str("/");
+            let ident = self.expect_identifier()?;
+            let n = self.interner.str(ident).to_string();
+            file_from_import.push_str(&n);
+        }*/
+
+        let pos = self.expect_token(TokenKind::Import)?.position;
+
+        let ident = self.expect_identifier()?;
+        let mut imports: Vec<String> = Vec::new();
+        //imports.push(self.interner.str(ident).to_string());
+        let mut import_file = self.interner.str(ident).to_string();
+        while self.advance_token()?.is(TokenKind::Dot) {
+            import_file.push_str("/");
+            let ident = self.expect_identifier()?;
+            let n = self.interner.str(ident).to_string();
+            import_file.push_str(&n);
+            if self.advance_token()?.is(TokenKind::Colon) {
+                break;
+            }
+        }
+        let iden = self.expect_identifier()?;
+        imports.push(self.interner.str(ident).to_string());
+        while self.advance_token()?.is(TokenKind::Comma) {
+            let ident = self.expect_identifier()?;
+            let n = self.interner.str(ident).to_string();
+            imports.push(n);
+        }
+
+        let import = Import {
+            id: self.generate_id(),
+            pos: pos,
+            import_from: import_file,
+            to_import: imports,
+
+        };
+        Ok(import)
     }
 
     fn parse_include(&mut self) -> Result<Include,MsgWithPos> {
@@ -157,7 +212,7 @@ impl<'a> Parser<'a> {
             let n = self.interner.str(ident).to_string();
             include_file.push_str(&n)
         }
-        self.expect_semicolon()?;
+        
         let include = Include {
             id: self.generate_id(),
             pos: pos,

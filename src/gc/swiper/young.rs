@@ -1,8 +1,8 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::Address;
 use gc::swiper::Region;
+use gc::Address;
 use os::{self, ProtType};
 
 pub struct YoungGen {

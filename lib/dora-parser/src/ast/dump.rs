@@ -75,8 +75,20 @@ impl<'a> AstDumper<'a> {
                 ElemGlobal(ref global) => self.dump_global(global),
                 ElemConst(ref xconst) => self.dump_const(xconst),
                 ElemInclude(ref include) => self.dump_include(include),
+                ElemImport(ref import) => self.dump_import(import),
             }
         }
+    }
+
+    fn dump_import(&mut self, import: &Import) {
+        dump!(
+            self,
+            "import {:?} from {} @ {} {}",
+            import.to_import,
+            import.import_from,
+            import.pos,
+            import.id,
+        );
     }
     fn dump_include(&mut self, include: &Include) {
         dump!(self,

@@ -1,6 +1,6 @@
+use ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{Fct, FctId, FctKind, FctParent, NodeMap, SemContext, TraitId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;

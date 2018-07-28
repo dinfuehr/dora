@@ -8,12 +8,12 @@
 extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
+extern crate core;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
-extern crate core;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
@@ -22,7 +22,7 @@ extern crate winapi;
 extern crate kernel32;
 
 macro_rules! offset_of {
-    ($ty: ty, $field: ident) => {
+    ($ty:ty, $field:ident) => {
         unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
     };
 }
@@ -45,9 +45,9 @@ pub mod object;
 pub mod opt;
 pub mod os;
 pub mod os_cpu;
+pub mod safepoint;
 pub mod semck;
 pub mod stdlib;
-pub mod safepoint;
 pub mod sym;
 pub mod threads;
 pub mod timer;
@@ -57,12 +57,11 @@ pub mod vtable;
 #[macro_use]
 pub mod macros;
 
-
 #[cfg(test)]
 pub mod test;
 use std::path::Path;
 
-use ctxt::{ SemContext};
+use ctxt::SemContext;
 use dora_parser::ast::Ast;
 
 use dora_parser::interner::Interner;
@@ -70,13 +69,12 @@ use driver::cmd;
 
 use dora_parser::parser::NodeIdGenerator;
 
-use driver::*;
 use dora_parser::ast;
+use driver::*;
 
 pub fn start(file: &Path, custom_funcs: Option<*const u8>) -> i32 {
     let args = cmd::Args::default();
     os::init_page_size();
-
 
     let mut interner = Interner::new();
     let id_generator = NodeIdGenerator::new();
@@ -86,9 +84,19 @@ pub fn start(file: &Path, custom_funcs: Option<*const u8>) -> i32 {
         let path = file;
 
         if path.is_file() {
-            parse_file(&file.to_owned().to_str().unwrap(), &id_generator, &mut ast,&mut interner)
+            parse_file(
+                &file.to_owned().to_str().unwrap(),
+                &id_generator,
+                &mut ast,
+                &mut interner,
+            )
         } else if path.is_dir() {
-            parse_dir(&file.to_owned().to_str().unwrap(), &id_generator, &mut ast,&mut interner)
+            parse_dir(
+                &file.to_owned().to_str().unwrap(),
+                &id_generator,
+                &mut ast,
+                &mut interner,
+            )
         } else {
             println!("file or directory `{}` does not exist.", &args.arg_file);
             Err(1)
@@ -98,13 +106,11 @@ pub fn start(file: &Path, custom_funcs: Option<*const u8>) -> i32 {
     }
 
     if args.flag_emit_ast {
-        ast::dump::dump(&ast,&interner);
+        ast::dump::dump(&ast, &interner);
     }
 
-    
     let mut ctxt = SemContext::new(args, &ast, interner);
     semck::check(&mut ctxt, custom_funcs);
-    
 
     // register signal handler
     os::register_signals(&ctxt);
@@ -124,10 +130,8 @@ pub fn start(file: &Path, custom_funcs: Option<*const u8>) -> i32 {
         return 1;
     }
 
-
     run_main(&ctxt, main.unwrap())
 }
-
 
 pub use semck::prelude::internal_fct;
 pub use semck::prelude::internal_method;
@@ -135,8 +139,8 @@ pub use semck::prelude::native_fct;
 pub use semck::prelude::native_method;
 
 pub mod types {
-    use object::Handle;
     use object;
+    use object::Handle;
     pub type Str = Handle<object::Str>;
     pub type Obj = Handle<object::Obj>;
     pub type Array<T> = Handle<object::Array<T>>;

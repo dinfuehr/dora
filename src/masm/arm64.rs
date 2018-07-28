@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
+use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::BailoutInfo;
 use baseline::fct::GcPoint;
-use baseline::codegen::CondCode;
 use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::asm;

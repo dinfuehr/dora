@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use dora_parser::ast::*;
-use dora_parser::ast::Stmt::*;
-use dora_parser::ast::visit::*;
 use ctxt::{self, Fct, FctId, FctParent, FctSrc, SemContext};
+use dora_parser::ast::visit::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
 use semck;
 use sym::Sym;

@@ -294,7 +294,12 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     }
 }
 
-pub fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
+pub fn native_method<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    clsid: ClassId,
+    name: &str,
+    fctptr: *const u8,
+) {
     internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
 }
 
@@ -307,7 +312,12 @@ pub fn intrinsic_method<'ast>(
     internal_method(ctxt, clsid, name, FctKind::Builtin(intrinsic));
 }
 
-pub fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
+pub fn internal_method<'ast>(
+    ctxt: &mut SemContext<'ast>,
+    clsid: ClassId,
+    name: &str,
+    kind: FctKind,
+) {
     let cls = ctxt.classes[clsid].borrow();
     let name = ctxt.interner.intern(name);
 

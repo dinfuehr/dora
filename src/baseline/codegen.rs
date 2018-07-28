@@ -2,15 +2,15 @@ use libc;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::io::{self, BufWriter, Write};
 use std::fs::OpenOptions;
+use std::io::{self, BufWriter, Write};
 use std::slice;
 
 use capstone::{Engine, Error};
 
-use dora_parser::ast::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
 use baseline::expr::*;
@@ -68,8 +68,6 @@ pub fn generate_fct<'ast>(
             return ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
         }
     }
-
-
 
     let ast = fct.ast;
 
@@ -800,7 +798,8 @@ where
     }
 
     fn emit_expr(&mut self, e: &'ast Expr) -> ExprStore {
-        let ty = self.src
+        let ty = self
+            .src
             .map_tys
             .get(e.id())
             .map(|ty| *ty)
@@ -1052,8 +1051,6 @@ pub fn should_emit_asm(ctxt: &SemContext, fct: &Fct) -> bool {
         false
     }
 }
-
-
 
 fn fct_pattern_match(ctxt: &SemContext, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {

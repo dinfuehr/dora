@@ -59,7 +59,7 @@ pub extern "C" fn double_to_string(val: f64) -> Handle<Str> {
 
 pub extern "C" fn string_from_ptr(val: i64) -> Handle<Str> {
     use std::ffi::CString;
-    let cstr = unsafe {CString::from_raw(val as *mut i8) };
+    let cstr = unsafe { CString::from_raw(val as *mut i8) };
 
     let str = cstr.to_str().unwrap();
     return Str::from_buffer2(str.as_bytes());
@@ -255,10 +255,16 @@ pub extern "C" fn call3(addr: *const u8, arg1: usize, arg2: usize, arg3: usize) 
 
     fct(arg1, arg2, arg3)
 }
-pub extern "C" fn call4(addr: *const u8, arg1: usize, arg2: usize, arg3: usize,arg4: usize) -> usize {
-    let fct: extern "C" fn(usize, usize, usize,usize) -> usize = unsafe { mem::transmute(addr) };
+pub extern "C" fn call4(
+    addr: *const u8,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+) -> usize {
+    let fct: extern "C" fn(usize, usize, usize, usize) -> usize = unsafe { mem::transmute(addr) };
 
-    fct(arg1, arg2, arg3,arg4)
+    fct(arg1, arg2, arg3, arg4)
 }
 
 pub extern "C" fn native_malloc(size: usize) -> *const u8 {

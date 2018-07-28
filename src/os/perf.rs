@@ -1,6 +1,6 @@
+use baseline::fct::JitBaselineFct;
 use ctxt::SemContext;
 use dora_parser::interner::Name;
-use baseline::fct::JitBaselineFct;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(jit_fct: &JitBaselineFct, ctxt: &SemContext, name: Name) {

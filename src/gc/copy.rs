@@ -1,11 +1,11 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::{Address, Collector};
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::Region;
+use gc::{Address, Collector};
 use mem;
 use object::Obj;
 use os::{self, ProtType};
@@ -87,7 +87,8 @@ impl CopyCollector {
                 return ptr::null();
             }
 
-            let res = self.top
+            let res = self
+                .top
                 .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {

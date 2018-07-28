@@ -97,6 +97,7 @@ pub fn walk_file<'v, V: Visitor<'v>>(v: &mut V, f: &'v File) {
             ElemGlobal(ref g) => v.visit_global(g),
             ElemConst(ref c) => v.visit_const(c),
             ElemInclude(ref include) => v.visit_include(include),
+            ElemImport(ref _import) => (),
         }
     }
 }

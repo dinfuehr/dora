@@ -1,5 +1,5 @@
-use std::ptr;
 use libc;
+use std::ptr;
 
 use execstate::ExecState;
 use os;

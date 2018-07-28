@@ -2,9 +2,9 @@ use std::convert::From;
 
 use baseline::map::CodeData;
 use ctxt::SemContext;
-use object::Obj;
 use exception::DoraToNativeInfo;
 use gc::Address;
+use object::Obj;
 
 pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
     let mut rootset = Vec::new();

@@ -8,13 +8,13 @@ use std::slice;
 use std::str;
 
 use class::{ClassDefId, ClassSize};
+use ctxt;
 use ctxt::SemContext;
-use gc::Address;
 use gc::root::IndirectObj;
+use gc::Address;
 use handle::Rooted;
 use mem;
 use vtable::VTable;
-use ctxt;
 
 #[repr(C)]
 pub struct Header {
@@ -176,7 +176,8 @@ fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
         ptr: obj as *const Obj as *const ByteArray,
     };
 
-    let value = Header::size() as usize + mem::ptr_width() as usize
+    let value = Header::size() as usize
+        + mem::ptr_width() as usize
         + element_size as usize * handle.len() as usize;
 
     mem::align_usize(value, mem::ptr_width() as usize)

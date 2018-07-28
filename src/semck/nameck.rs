@@ -4,10 +4,10 @@ use class::TypeParams;
 use ctxt::*;
 use dora_parser::error::msg::Msg;
 
-use dora_parser::ast::*;
+use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
-use dora_parser::ast::visit::*;
+use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 

@@ -2,8 +2,8 @@ pub use self::ProtType::*;
 
 use libc;
 
-use std::ptr;
 use mem;
+use std::ptr;
 
 static mut PAGE_SIZE: u32 = 0;
 static mut PAGE_SIZE_BITS: u32 = 0;
@@ -31,8 +31,8 @@ fn determine_page_size() -> u32 {
 #[cfg(target_family = "windows")]
 pub fn determine_page_size() -> u32 {
     use kernel32::GetSystemInfo;
-    use winapi::sysinfoapi::SYSTEM_INFO;
     use std::mem;
+    use winapi::sysinfoapi::SYSTEM_INFO;
 
     unsafe {
         let mut system_info: SYSTEM_INFO = mem::uninitialized();
@@ -151,8 +151,8 @@ pub fn munmap(ptr: *const u8, size: usize) {
 #[cfg(target_family = "windows")]
 pub fn munmap(ptr: *const u8, size: usize) {
     use kernel32::VirtualFree;
-    use winapi::winnt::MEM_RELEASE;
     use winapi;
+    use winapi::winnt::MEM_RELEASE;
 
     let res = unsafe { VirtualFree(ptr as *mut winapi::c_void, 0, MEM_RELEASE) };
 

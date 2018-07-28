@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
+use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use sym::Sym;

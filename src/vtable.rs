@@ -3,8 +3,8 @@ use core::alloc::Alloc;
 
 use std::mem::{align_of, size_of};
 use std::ops::{Deref, DerefMut};
-use std::{self, fmt, ptr, slice};
 use std::ptr::NonNull;
+use std::{self, fmt, ptr, slice};
 
 use class::ClassDef;
 
@@ -149,7 +149,8 @@ impl VTable {
         let lay = Layout::from_size_align(size, align).unwrap();
 
         unsafe {
-            self.subtype_overflow = heap.alloc(lay).expect("could not allocate").as_ptr() as *const _;
+            self.subtype_overflow =
+                heap.alloc(lay).expect("could not allocate").as_ptr() as *const _;
         }
     }
 

@@ -546,6 +546,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("function", TokenKind::Fun);
     keywords.insert("include", TokenKind::Include);
     keywords.insert("import", TokenKind::Import);
+    keywords.insert("from",  TokenKind::From);
     keywords.insert("let", TokenKind::Let);
     keywords.insert("var", TokenKind::Var);
     keywords.insert("while", TokenKind::While);

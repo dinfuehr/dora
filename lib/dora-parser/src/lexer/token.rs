@@ -50,6 +50,7 @@ pub enum TokenKind {
     Spawn,
     Include,
     Import,
+    From,
 
     Enum,
     Type,
@@ -124,7 +125,7 @@ impl TokenKind {
             }
 
             TokenKind::LitChar(_) => "char",
-
+            TokenKind::From => "from",
             TokenKind::LitFloat(_, suffix) => {
                 match suffix {
                     FloatSuffix::Float => "float number",

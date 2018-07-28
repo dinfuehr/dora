@@ -3,17 +3,17 @@ use std::fmt;
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
-use gc::Address;
-use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
-use gc::swiper::young::YoungGen;
 use gc::swiper::old::OldGen;
 use gc::swiper::verify::{Verifier, VerifierPhase};
+use gc::swiper::young::YoungGen;
+use gc::Address;
+use gc::Collector;
 use mem;
 use os;
 
@@ -97,7 +97,8 @@ impl Swiper {
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        arena::commit(crossing_start, crossing_size, false).expect("could not commit crossing table.");
+        arena::commit(crossing_start, crossing_size, false)
+            .expect("could not commit crossing table.");
         let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
         // determine boundaries of young generation

@@ -1,5 +1,5 @@
-use dora_parser::ast::{Stmt, StmtBlockType, StmtReturnType};
 use ctxt::Fct;
+use dora_parser::ast::{Stmt, StmtBlockType, StmtReturnType};
 use mir::repr::{BasicBlock, BasicBlockId, Mir};
 
 pub fn generate<'a, 'ast>(fct: &'a Fct<'ast>) -> Result<Mir, ()> {

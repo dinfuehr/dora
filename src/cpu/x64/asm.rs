@@ -1,5 +1,5 @@
-use cpu::*;
 use baseline::codegen::CondCode;
+use cpu::*;
 use masm::{Label, MacroAssembler};
 use ty::MachineMode;
 

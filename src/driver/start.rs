@@ -5,9 +5,9 @@ use std::path::Path;
 use baseline;
 use class::TypeParams;
 use ctxt::{exception_get_and_clear, Fct, FctId, SemContext};
+use dora_parser::ast::Import;
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
-
 use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
@@ -16,12 +16,45 @@ use exception::DoraToNativeInfo;
 use object::{self, Handle, Testing};
 use os;
 
+use dora_parser::ast::{Class, Const, Function, Trait};
+
 use dora_parser::ast::Elem::*;
-use dora_parser::ast::Include;
 use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
+
+pub fn parse_import(import: &mut Import, ctxt: &mut SemContext,id_gen: &NodeIdGenerator) {
+    let mut ast = Ast::new();
+    let mut interner = Interner::new();
+
+    let path = Path::new(&import.import_from);
+
+    if path.is_file() {
+        parse_file(&import.import_from, &id_gen, &mut ast, &mut interner);
+    } else if path.is_dir() {
+        panic!("Imports from directory is impossible for now :(");
+    } else {
+        println!("file `{}` does not exist.", &import.import_from);
+        panic!("");
+    }
+
+    for file in ast.files.clone().iter_mut() {
+        for elem in file.elements.iter_mut() {
+            match elem {
+                ElemInclude(ref mut include) => {
+                    include.path.push_str(".dora");
+                    parse_file(&include.path, &id_gen, &mut ast, &mut interner).unwrap();
+                }
+                ElemImport(ref mut import) => {
+                    import.import_from.push_str(".dora");
+                    parse_import(import, ctxt,id_gen);
+                }
+                _ => (),
+            }
+        }
+    }
+}
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -50,6 +83,13 @@ pub fn start() -> i32 {
             }) {
             return code;
         }
+
+        if args.flag_emit_ast {
+            ast::dump::dump(&ast, &interner);
+        }
+
+        
+
         for file in ast.files.clone().iter_mut() {
             for elem in file.elements.iter_mut() {
                 match elem {
@@ -57,18 +97,13 @@ pub fn start() -> i32 {
                         include.path.push_str(".dora");
                         parse_file(&include.path, &id_generator, &mut ast, &mut interner).unwrap();
                     }
+
                     _ => (),
                 }
             }
         }
-
-        if args.flag_emit_ast {
-            ast::dump::dump(&ast, &interner);
-        }
-
         let mut ctxt = SemContext::new(args, &ast, interner);
-
-        semck::check(&mut ctxt,None);
+        semck::check(&mut ctxt, None);
 
         // register signal handler
         os::register_signals(&ctxt);
@@ -104,13 +139,13 @@ pub fn start() -> i32 {
         }
     } else {
         use std::env;
-        use std::path::PathBuf;
         use std::fs;
+        use std::path::PathBuf;
         let current_directory = env::current_dir().unwrap_or(PathBuf::from(env!("PWD")));
         let cur_dir_str = current_directory.to_str().unwrap();
         let project_name = args.arg_name.clone();
-        let full_path = format!("{}/{}",cur_dir_str,project_name);
-        
+        let full_path = format!("{}/{}", cur_dir_str, project_name);
+
         let cargo_toml = format!(
             "[package]\n
 name=\"{}\"\n
@@ -118,7 +153,9 @@ version=\"0.0.1\"\n
 authors = [\"\"]\n
 [dependencies.dora]\n 
 git = \"https://github.com/pigprogrammer/dora\"\n 
-            ",project_name);
+            ",
+            project_name
+        );
 
         let main_rs = format!(
             "#[macro_use]extern crate dora;\n
@@ -132,26 +169,31 @@ fn main() {{\n
         if let Err(err) = fs::create_dir(full_path.clone()) {
             panic!(format!("Cannot create directory;\nError: {}\n\n", err));
         }
-        if let Err(err) = fs::create_dir(format!("{}/src",full_path)) {
+        if let Err(err) = fs::create_dir(format!("{}/src", full_path)) {
             panic!(format!("Cannot create directory;\nError: {}\n\n", err));
         }
-        if let Err(err) = fs::File::create(format!("{}/Cargo.toml",&full_path.clone())) {
+        if let Err(err) = fs::File::create(format!("{}/Cargo.toml", &full_path.clone())) {
             panic!(format!("Cannot create file;\nError: {}\n\n", err));
         }
-        if let Err(err) = fs::File::create(format!("{}/src/main.rs",&full_path.clone())) {
+        if let Err(err) = fs::File::create(format!("{}/src/main.rs", &full_path.clone())) {
             panic!(format!("Cannot create file;\nError: {}\n\n", err));
         }
-        if let Err(err) = fs::File::create(format!("{}/src/main.dora",&full_path.clone())) {
+        if let Err(err) = fs::File::create(format!("{}/src/main.dora", &full_path.clone())) {
             panic!(format!("Cannot create file;\nError: {}\n\n", err));
         }
-        
-        fs::write(format!("{}/Cargo.toml",full_path), cargo_toml.as_bytes()).unwrap();
-        fs::write(format!("{}/src/main.rs",full_path), main_rs.as_bytes()).unwrap();
-        
+
+        fs::write(format!("{}/Cargo.toml", full_path), cargo_toml.as_bytes()).unwrap();
+        fs::write(format!("{}/src/main.rs", full_path), main_rs.as_bytes()).unwrap();
 
         use std::os;
-        if let Err(err) = os::unix::fs::symlink(format!("{}/stdlib",env!("CARGO_MANIFEST_DIR")),format!("{}/stdlib",full_path)) {
-            panic!(format!("Unable to symlink stdlib directory!\n\nError: {}\n",err));
+        if let Err(err) = os::unix::fs::symlink(
+            format!("{}/stdlib", env!("CARGO_MANIFEST_DIR")),
+            format!("{}/stdlib", full_path),
+        ) {
+            panic!(format!(
+                "Unable to symlink stdlib directory!\n\nError: {}\n",
+                err
+            ));
         }
         return 1;
     }

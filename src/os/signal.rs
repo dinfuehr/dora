@@ -1,6 +1,6 @@
+use libc;
 use std;
 use std::ptr::null;
-use libc;
 
 use baseline;
 use baseline::fct::BailoutInfo;

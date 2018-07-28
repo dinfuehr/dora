@@ -4,8 +4,8 @@ use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeData;
 use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
 use ctxt::{get_ctxt, SemContext};
-use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
+use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,

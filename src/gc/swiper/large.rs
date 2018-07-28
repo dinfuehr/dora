@@ -3,9 +3,9 @@ use std::ptr;
 use std::sync::Mutex;
 
 use gc::arena;
-use gc::Address;
 use gc::swiper::Region;
 use gc::swiper::LARGE_OBJECT_SIZE;
+use gc::Address;
 use mem;
 
 pub struct LargeSpace {
@@ -31,7 +31,6 @@ impl LargeSpace {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
             space.append_large_alloc(range.start, range.size());
             range.start.to_ptr()
-
         } else {
             ptr::null()
         }
@@ -102,7 +101,8 @@ impl LargeSpaceProtected {
     }
 
     fn merge(&mut self) {
-        self.elements.sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
+        self.elements
+            .sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
 
         let len = self.elements.len();
         let mut last_element = 0;
@@ -116,7 +116,7 @@ impl LargeSpaceProtected {
             }
         }
 
-        self.elements.truncate(last_element+1);
+        self.elements.truncate(last_element + 1);
     }
 
     fn contains(&self, ptr: Address) -> bool {

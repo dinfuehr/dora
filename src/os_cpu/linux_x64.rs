@@ -1,5 +1,5 @@
-use std;
 use libc::SIGSEGV;
+use std;
 
 use cpu;
 use execstate::ExecState;

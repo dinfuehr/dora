@@ -10,7 +10,7 @@ use interner::{Interner, Name};
 pub mod visit;
 pub mod dump;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Ast {
     pub files: Vec<File>,
     
@@ -90,7 +90,7 @@ impl Ast {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct File {
     pub path: String,
     pub elements: Vec<Elem>,
@@ -105,7 +105,7 @@ impl fmt::Display for NodeId {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub enum Elem {
     ElemFunction(Function),
     ElemClass(Class),
@@ -115,8 +115,8 @@ pub enum Elem {
     ElemGlobal(Global),
     ElemConst(Const),
     ElemInclude(Include),
-    
-}
+    ElemImport(Import), 
+}  
 
 impl Elem {
     pub fn id(&self) -> NodeId {
@@ -129,12 +129,20 @@ impl Elem {
             &ElemGlobal(ref g) => g.id,
             &ElemConst(ref c) => c.id,
             &ElemInclude(ref i) => i.id,
+            &ElemImport(ref i) => i.id,
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &ElemFunction(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_import(&self) -> Option<&Import> {
+        match self {
+            &ElemImport(ref import) => Some(import),
             _ => None,
         }
     }
@@ -188,7 +196,7 @@ impl Elem {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Global {
     pub id: NodeId,
     pub pos: Position,
@@ -198,7 +206,7 @@ pub struct Global {
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Const {
     pub id: NodeId,
     pub pos: Position,
@@ -207,7 +215,7 @@ pub struct Const {
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Struct {
     pub id: NodeId,
     pub pos: Position,
@@ -215,7 +223,7 @@ pub struct Struct {
     pub fields: Vec<StructField>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StructField {
     pub id: NodeId,
     pub name: Name,
@@ -223,7 +231,7 @@ pub struct StructField {
     pub data_type: Type,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub enum Type {
     TypeSelf(TypeSelfType),
     TypeBasic(TypeBasicType),
@@ -233,20 +241,20 @@ pub enum Type {
     TypeLambda(TypeLambdaType),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeSelfType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeTupleType {
     pub id: NodeId,
     pub pos: Position,
     pub subtypes: Vec<Box<Type>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeLambdaType {
     pub id: NodeId,
     pub pos: Position,
@@ -254,7 +262,7 @@ pub struct TypeLambdaType {
     pub ret: Box<Type>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeBasicType {
     pub id: NodeId,
     pub pos: Position,
@@ -262,14 +270,14 @@ pub struct TypeBasicType {
     pub params: Vec<Box<Type>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypePtrType {
     pub id: NodeId,
     pub pos: Position,
     pub subtype: Box<Type>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeArrayType {
     pub id: NodeId,
     pub pos: Position,
@@ -419,7 +427,7 @@ impl Type {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Impl {
     pub id: NodeId,
     pub trait_name: Name,
@@ -428,7 +436,7 @@ pub struct Impl {
     pub methods: Vec<Function>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Trait {
     pub id: NodeId,
     pub name: Name,
@@ -436,7 +444,7 @@ pub struct Trait {
     pub methods: Vec<Function>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Class {
     pub id: NodeId,
     pub name: Name,
@@ -453,14 +461,14 @@ pub struct Class {
     pub type_params: Option<Vec<TypeParam>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct TypeParam {
     pub name: Name,
     pub pos: Position,
     pub bounds: Vec<Type>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct PrimaryCtorParam {
     pub name: Name,
     pub pos: Position,
@@ -469,7 +477,7 @@ pub struct PrimaryCtorParam {
     pub reassignable: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ParentClass {
     pub name: Name,
     pub pos: Position,
@@ -488,7 +496,7 @@ impl ParentClass {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Field {
     pub id: NodeId,
     pub name: Name,
@@ -500,14 +508,22 @@ pub struct Field {
 }
 
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Include {
     pub id: NodeId,
     pub pos: Position,
     pub path: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone,Debug,PartialEq)]
+pub struct Import  {
+    pub id: NodeId,
+    pub pos: Position,
+    pub import_from: String,
+    pub to_import: Vec<String>,
+}
+
+#[derive(Clone, Debug,PartialEq)]
 pub struct Function {
     pub id: NodeId,
     pub name: Name,
@@ -566,7 +582,7 @@ impl CtorType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Modifiers(Vec<ModifierElement>);
 
 impl Modifiers {
@@ -591,7 +607,7 @@ impl Modifiers {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ModifierElement {
     pub value: Modifier,
     pub pos: Position,
@@ -622,7 +638,7 @@ impl Modifier {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Param {
     pub id: NodeId,
     pub idx: u32,
@@ -632,7 +648,7 @@ pub struct Param {
     pub data_type: Type,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub enum Stmt {
     StmtVar(StmtVarType),
     StmtWhile(StmtWhileType),
@@ -1016,7 +1032,7 @@ impl Stmt {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtVarType {
     pub id: NodeId,
     pub pos: Position,
@@ -1028,7 +1044,7 @@ pub struct StmtVarType {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtForType {
     pub id: NodeId,
     pub pos: Position,
@@ -1038,7 +1054,7 @@ pub struct StmtForType {
     pub block: Box<Stmt>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtWhileType {
     pub id: NodeId,
     pub pos: Position,
@@ -1047,14 +1063,14 @@ pub struct StmtWhileType {
     pub block: Box<Stmt>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtLoopType {
     pub id: NodeId,
     pub pos: Position,
     pub block: Box<Stmt>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtIfType {
     pub id: NodeId,
     pub pos: Position,
@@ -1063,54 +1079,54 @@ pub struct StmtIfType {
     pub else_block: Option<Box<Stmt>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtExprType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtBlockType {
     pub id: NodeId,
     pub pos: Position,
     pub stmts: Vec<Box<Stmt>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtReturnType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtBreakType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtContinueType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtThrowType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtDeferType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtDoType {
     pub id: NodeId,
     pub pos: Position,
@@ -1119,14 +1135,14 @@ pub struct StmtDoType {
     pub finally_block: Option<FinallyBlock>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StmtSpawnType {
     pub id: NodeId,
     pub pos: Position,
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct CatchBlock {
     pub id: NodeId,
     pub name: Name,
@@ -1152,7 +1168,7 @@ impl CatchBlock {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct FinallyBlock {
     pub block: Box<Stmt>,
 }
@@ -1253,7 +1269,7 @@ impl BinOp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub enum Expr {
     ExprUn(ExprUnType),
     ExprBin(ExprBinType),
@@ -1797,7 +1813,7 @@ impl Expr {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitStructType {
     pub id: NodeId,
     pub pos: Position,
@@ -1805,7 +1821,7 @@ pub struct ExprLitStructType {
     pub args: Vec<StructArg>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct StructArg {
     pub id: NodeId,
     pub pos: Position,
@@ -1813,7 +1829,7 @@ pub struct StructArg {
     pub expr: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprConvType {
     pub id: NodeId,
     pub pos: Position,
@@ -1822,7 +1838,7 @@ pub struct ExprConvType {
     pub data_type: Box<Type>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprTryType {
     pub id: NodeId,
     pub pos: Position,
@@ -1830,7 +1846,7 @@ pub struct ExprTryType {
     pub mode: TryMode,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub enum TryMode {
     Normal,
     Else(Box<Expr>),
@@ -1868,7 +1884,7 @@ impl TryMode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprDelegationType {
     pub id: NodeId,
     pub pos: Position,
@@ -1898,7 +1914,7 @@ impl DelegationType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprUnType {
     pub id: NodeId,
     pub pos: Position,
@@ -1907,7 +1923,7 @@ pub struct ExprUnType {
     pub opnd: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprBinType {
     pub id: NodeId,
     pub pos: Position,
@@ -1917,7 +1933,7 @@ pub struct ExprBinType {
     pub rhs: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprArrayType {
     pub id: NodeId,
     pub pos: Position,
@@ -1926,7 +1942,7 @@ pub struct ExprArrayType {
     pub index: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitCharType {
     pub id: NodeId,
     pub pos: Position,
@@ -1934,7 +1950,7 @@ pub struct ExprLitCharType {
     pub value: char,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitIntType {
     pub id: NodeId,
     pub pos: Position,
@@ -1944,7 +1960,7 @@ pub struct ExprLitIntType {
     pub suffix: IntSuffix,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitFloatType {
     pub id: NodeId,
     pub pos: Position,
@@ -1953,7 +1969,7 @@ pub struct ExprLitFloatType {
     pub suffix: FloatSuffix,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitStrType {
     pub id: NodeId,
     pub pos: Position,
@@ -1961,7 +1977,7 @@ pub struct ExprLitStrType {
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLitBoolType {
     pub id: NodeId,
     pub pos: Position,
@@ -1969,25 +1985,25 @@ pub struct ExprLitBoolType {
     pub value: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprSuperType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprSelfType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprNilType {
     pub id: NodeId,
     pub pos: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprIdentType {
     pub id: NodeId,
     pub pos: Position,
@@ -1996,7 +2012,7 @@ pub struct ExprIdentType {
     pub type_params: Option<Vec<Type>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprLambdaType {
     pub id: NodeId,
     pub pos: Position,
@@ -2006,7 +2022,7 @@ pub struct ExprLambdaType {
     pub block: Box<Stmt>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct Path {
     pub path: Vec<Name>,
 }
@@ -2035,7 +2051,7 @@ impl Index<usize> for Path {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprCallType {
     pub id: NodeId,
     pub pos: Position,
@@ -2046,7 +2062,7 @@ pub struct ExprCallType {
     pub type_params: Option<Vec<Type>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprAssignType {
     pub id: NodeId,
     pub pos: Position,
@@ -2055,7 +2071,7 @@ pub struct ExprAssignType {
     pub rhs: Box<Expr>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug,PartialEq)]
 pub struct ExprFieldType {
     pub id: NodeId,
     pub pos: Position,

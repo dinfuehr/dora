@@ -8,12 +8,12 @@
 extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
+extern crate core;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
 extern crate rustc_serialize;
 extern crate time;
-extern crate core;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
@@ -22,11 +22,10 @@ extern crate winapi;
 extern crate kernel32;
 
 macro_rules! offset_of {
-    ($ty: ty, $field: ident) => {
+    ($ty:ty, $field:ident) => {
         unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
     };
 }
-
 
 mod baseline;
 mod bytecode;
@@ -46,9 +45,9 @@ mod object;
 mod opt;
 mod os;
 mod os_cpu;
+mod safepoint;
 mod semck;
 mod stdlib;
-mod safepoint;
 mod sym;
 mod threads;
 mod timer;
@@ -66,7 +65,6 @@ use std::process::exit;
 
 #[cfg(not(test))]
 fn main() {
-
     os::mem::init_page_size();
 
     exit(driver::start());

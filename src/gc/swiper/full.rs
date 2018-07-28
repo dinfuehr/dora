@@ -2,17 +2,17 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
-use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::CARD_SIZE;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::{in_kilo, on_different_cards, start_of_card};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
-use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
+use gc::swiper::Region;
+use gc::swiper::CARD_SIZE;
+use gc::swiper::{in_kilo, on_different_cards, start_of_card};
+use gc::Address;
 use mem;
 use object::{offset_of_array_data, Obj};
 use os;
@@ -157,7 +157,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 object.visit_reference_fields(|field| {
                     let field_addr = Address::from_ptr(field.get());
 
-                    if !field_addr.is_null() && !full.perm_space.contains(field_addr) && !full.large_space.contains(field_addr) {
+                    if !field_addr.is_null()
+                        && !full.perm_space.contains(field_addr)
+                        && !full.large_space.contains(field_addr)
+                    {
                         let fwd_addr = full.fwd_table.forward_address(field_addr);
                         field.set(fwd_addr.to_mut_ptr());
 
@@ -176,7 +179,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) && !self.large_space.contains(root_ptr) {
+            if !root_ptr.is_null()
+                && !self.perm_space.contains(root_ptr)
+                && !self.large_space.contains(root_ptr)
+            {
                 let fwd_addr = self.fwd_table.forward_address(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
@@ -297,7 +303,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             if last.offset(offset_of_array_data() as usize) > last_card_end {
                 let diff_words = last_card_end.offset_from(last) / mem::ptr_width_usize();
-                self.crossing_map.set_array_start((last_card.to_usize()+1).into(), diff_words);
+                self.crossing_map
+                    .set_array_start((last_card.to_usize() + 1).into(), diff_words);
 
                 loop_start = last_card.to_usize() + 2;
             } else {
@@ -306,16 +313,17 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
 
-            for i in loop_start .. card.to_usize() {
-                self.crossing_map.set_references_at_start(i.into(), refs_per_card);
+            for i in loop_start..card.to_usize() {
+                self.crossing_map
+                    .set_references_at_start(i.into(), refs_per_card);
             }
 
             if card.to_usize() >= loop_start {
-                self.crossing_map.set_references_at_start(card, offset_words);
+                self.crossing_map
+                    .set_references_at_start(card, offset_words);
             }
-
         } else {
-            for i in last_card.to_usize()+1 .. card.to_usize() {
+            for i in last_card.to_usize() + 1..card.to_usize() {
                 self.crossing_map.set_no_references(i.into());
             }
 
@@ -334,7 +342,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         };
         self.card_table.set(card, card_entry);
 
-        for i in card.to_usize()+1 .. next_card.to_usize() {
+        for i in card.to_usize() + 1..next_card.to_usize() {
             self.card_table.set(i.into(), CardEntry::Clean);
         }
 

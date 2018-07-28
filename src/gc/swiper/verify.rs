@@ -1,13 +1,13 @@
-use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
-use gc::swiper::CARD_SIZE;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::old::OldGen;
-use gc::swiper::{on_different_cards, start_of_card};
-use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
+use gc::swiper::Region;
+use gc::swiper::CARD_SIZE;
+use gc::swiper::{on_different_cards, start_of_card};
+use gc::Address;
 
 use mem;
 use object::{offset_of_array_data, Obj};
@@ -272,7 +272,8 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_region.contains(addr) || self.young_region.contains(addr)
+        if self.old_region.contains(addr)
+            || self.young_region.contains(addr)
             || self.perm_space.contains(addr)
         {
             let object = unsafe { &mut *obj };

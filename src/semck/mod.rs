@@ -33,7 +33,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check<'ast>(ctxt: &mut SemContext<'ast>,custom_funcs: Option<*const u8>) {
+pub fn check<'ast>(ctxt: &mut SemContext<'ast>, custom_funcs: Option<*const u8>) {
     let mut map_cls_defs = NodeMap::new(); // get ClassId from ast node
     let mut map_struct_defs = NodeMap::new(); // get StructId from ast node
     let mut map_trait_defs = NodeMap::new(); // get TraitId from ast node
@@ -88,7 +88,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>,custom_funcs: Option<*const u8>) 
     if custom_funcs.is_some() {
         let ptr = custom_funcs.unwrap();
         use std::mem;
-        let func: fn(ctxt: &mut SemContext) -> i32 = unsafe {mem::transmute(ptr) };
+        let func: fn(ctxt: &mut SemContext) -> i32 = unsafe { mem::transmute(ptr) };
         func(ctxt);
     }
     // check types of expressions in functions

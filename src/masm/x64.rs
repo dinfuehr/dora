@@ -1,7 +1,7 @@
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
-use baseline::fct::GcPoint;
 use baseline::fct::BailoutInfo;
+use baseline::fct::GcPoint;
 use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::*;
@@ -9,7 +9,7 @@ use ctxt::FctId;
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
-use mem::{ptr_width, fits_i32};
+use mem::{fits_i32, ptr_width};
 use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
