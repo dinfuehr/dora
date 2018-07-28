@@ -133,3 +133,20 @@ pub use semck::prelude::internal_fct;
 pub use semck::prelude::internal_method;
 pub use semck::prelude::native_fct;
 pub use semck::prelude::native_method;
+
+pub mod types {
+    use object::Handle;
+    use object;
+    pub type Str = Handle<object::Str>;
+    pub type Obj = Handle<object::Obj>;
+    pub type Array<T> = Handle<object::Array<T>>;
+    pub type ByteArray = Handle<object::ByteArray>;
+    pub type int = i32;
+    pub type long = i64;
+    pub type double = f64;
+    pub type float = f32;
+    pub type byte = i8;
+    pub type bool = i8;
+    pub type char = i32;
+
+}

@@ -14,6 +14,7 @@ use gc::root::IndirectObj;
 use handle::Rooted;
 use mem;
 use vtable::VTable;
+use ctxt;
 
 #[repr(C)]
 pub struct Header {
@@ -290,6 +291,21 @@ impl Str {
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_perm(ctxt, buf.len());
+        handle.length = buf.len();
+
+        unsafe {
+            let data = handle.data() as *mut u8;
+
+            // copy buffer content into Str
+            ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
+        }
+
+        handle
+    }
+
+    pub fn from_buffer2(buf: &[u8]) -> Handle<Str> {
+        let ctxt = ctxt::get_ctxt();
+        let mut handle = str_alloc_heap(ctxt, buf.len());
         handle.length = buf.len();
 
         unsafe {

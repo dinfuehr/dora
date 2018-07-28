@@ -1,5 +1,13 @@
 internal fun test() -> int;
+internal fun read_line_test() -> Str;
+
+
 
 fun main() {
     println(test().toString());
+    println(read_line_test());
 }
+
+
+
+
