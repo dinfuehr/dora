@@ -13,19 +13,15 @@ use dora::object::{Handle,Str};
 
 fn myfuns(ctxt: &mut SemContext) -> i32 {
     
-    dora_ffi! (ctxt;
-        fun test() -> int {
-            println!("Hello world!");
-            12 * 2
+    dora_ffi! (
+        ctxt;
+
+        fun square(x: int) -> int {
+            return 2 * x;
         }
 
-        fun read_line_test() -> Handle<Str> {
-            use std::io::stdin;
-            let mut buffer = String::new();
-            stdin().read_line(&mut buffer).unwrap();
-            
-            return Str::from_buffer2(buffer.as_bytes());
-            
+        fun triple(x: int) -> int {
+            return 3 * x;
         }
     );
     return 1;

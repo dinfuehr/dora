@@ -1,11 +1,8 @@
-internal fun test() -> int;
-internal fun read_line_test() -> Str;
-
-
+internal fun square(x: int) -> int;
+internal fun triple(x: int) -> int;
 
 fun main() {
-    println(test().toString());
-    println(read_line_test());
+    println(square(25).toString());
 }
 
 
