@@ -20,7 +20,7 @@ internal class Str {
   }
 
   internal fun compareTo(rhs: Str) -> int;
-
+  internal static fun fromRaw(ptr: long) -> Str;
   internal fun len() -> int;
   internal fun parseInt() -> int;
   internal fun plus(rhs: Str) -> Str;

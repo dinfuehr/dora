@@ -1,0 +1,5 @@
+fun main() {
+    var f = try(File("tests/long5.dora").fopen("r"));
+    println(f.readToStr());
+    
+}

@@ -321,6 +321,7 @@ internal fun call0(fct: long) -> long;
 internal fun call1(fct: long, arg0: long) -> long;
 internal fun call2(fct: long, arg0: long, arg1: long) -> long;
 internal fun call3(fct: long, arg0: long, arg1: long, arg2: long) -> long;
+internal fun call4(fct: long,arg0: long,arg1: long,arg2: long,arg3: long) -> long;
 
 internal fun native_malloc(size: long) -> long;
 internal fun native_free(address: long);
@@ -340,6 +341,13 @@ fun native_string(val: Str) -> long {
   set_uint8(ptr+len.toLong(), 0Y);
 
   return ptr;
+}
+
+
+fun getenv(variable: Str) -> Str {
+  let getenv_fct = loadFunction("getenv");
+  let output = call1(getenv_fct,native_string(variable));
+  return Str::fromRaw(output);
 }
 
 fun getpid() -> int {

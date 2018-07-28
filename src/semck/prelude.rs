@@ -100,7 +100,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_fct(ctxt, "call1", stdlib::call1 as *const u8);
     native_fct(ctxt, "call2", stdlib::call2 as *const u8);
     native_fct(ctxt, "call3", stdlib::call3 as *const u8);
-
+    native_fct(ctxt, "call4", stdlib::call4 as *const u8);
     native_fct(ctxt, "native_malloc", stdlib::native_malloc as *const u8);
     native_fct(ctxt, "native_free", stdlib::native_free as *const u8);
     intrinsic_fct(ctxt, "set_uint8", Intrinsic::SetUint8);
@@ -202,6 +202,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
 
     intrinsic_method(ctxt, clsid, "len", Intrinsic::StrLen);
     intrinsic_method(ctxt, clsid, "getByte", Intrinsic::StrGet);
+    native_method(ctxt, clsid, "fromRaw", stdlib::string_from_ptr as *const u8);
     native_method(ctxt, clsid, "clone", stdlib::str_clone as *const u8);
     native_method(
         ctxt,

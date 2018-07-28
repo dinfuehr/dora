@@ -1,4 +1,8 @@
+const SEEK_END: long = 2L;
+const SEEK_SET: long = 0L;
+
 class File(let name: Str) {
+  var __ptr: long;
   fun delete() throws {
     let ptr = native_string(self.name);
     let fct = loadFunction("unlink");
@@ -9,13 +13,53 @@ class File(let name: Str) {
       throw Exception("could not delete file");
     }
   }
+
+  fun fopen(mode: Str) throws -> FileDescriptor {
+    var file: long;
+    var mode_ptr = native_string(mode);
+    let fopen = loadFunction("fopen");
+    let name_ptr = native_string(self.name);
+    file = call2(fopen,name_ptr,mode_ptr);
+
+    if file == 0L {
+      throw Exception("could not open file");
+    }
+
+    return FileDescriptor(file);
+  }
+
+
 }
 
 class FileDescriptor {
-  var fd: int;
+  var fd: long;
 
-  init(fd: int) {
+  init(fd: long) {
     self.fd = fd;
+  }
+
+
+
+  fun readToStr() -> Str {
+    var length = 0L;
+    var buffer = native_string("");
+    let fseek = loadFunction("fseek");
+    let ftell = loadFunction("ftell");
+    let fread = loadFunction("fread");
+    let fclose = loadFunction("fclose");
+    
+    call3(fseek,self.fd,0L,SEEK_END);
+    length = call1(ftell,self.fd);
+    call3(fseek,self.fd,0L,SEEK_SET);
+    buffer = native_malloc(length);
+    
+    if buffer != 0L {
+      call4(fread,buffer,1L,length,self.fd);
+    }
+    
+
+    var str = Str::fromRaw(buffer);
+    return str;
   }
 
   fun read() -> byte {
