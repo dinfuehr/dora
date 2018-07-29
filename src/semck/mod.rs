@@ -17,7 +17,7 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod nameck;
-pub prelude;
+mod prelude;
 mod typeck;
 mod returnck;
 pub mod specialize;
