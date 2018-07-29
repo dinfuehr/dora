@@ -140,6 +140,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.ctxt, var.name);
+                println!("{:?}",self.ast);
                 report(self.ctxt, var.pos, Msg::ShadowClass(name));
             }
         }
@@ -165,6 +166,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
             Err(_) => {
                 let name = str(self.ctxt, for_loop.name);
+                println!("{:?}",self.ast);
                 report(self.ctxt, for_loop.pos, Msg::ShadowClass(name));
             }
         }
@@ -195,6 +197,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
                 }
 
                 Err(_) => {
+                    println!("{:?}",self.ast);
                     let name = str(self.ctxt, catch.name);
                     report(self.ctxt, catch.pos, Msg::ShadowClass(name));
                 }
@@ -332,6 +335,7 @@ impl<'a, 'ast> Visitor<'ast> for NameCheck<'a, 'ast> {
 
             Err(sym) => {
                 let name = str(self.ctxt, p.name);
+                println!("{:?}",self.ast);
                 let msg = if sym.is_class() {
                     Msg::ShadowClass(name)
                 } else {

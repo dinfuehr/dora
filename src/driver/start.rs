@@ -24,14 +24,16 @@ use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
 
-pub fn parse_import(import: &mut Import, ctxt: &mut SemContext,id_gen: &NodeIdGenerator) {
+pub fn parse_import(import: &mut Import, ast0: &mut Ast,interner0: &mut Interner,id_gen: &NodeIdGenerator) {
     let mut ast = Ast::new();
     let mut interner = Interner::new();
-
-    let path = Path::new(&import.import_from);
+    let mut path2 = import.import_from.clone();
+    parse_dir("stdlib", &id_gen, &mut ast, &mut interner);
+    path2.push_str(".dora");
+    let path = Path::new(&path2);
 
     if path.is_file() {
-        parse_file(&import.import_from, &id_gen, &mut ast, &mut interner);
+        parse_file(&path2, &id_gen, &mut ast, &mut interner);
     } else if path.is_dir() {
         panic!("Imports from directory is impossible for now :(");
     } else {
@@ -46,15 +48,42 @@ pub fn parse_import(import: &mut Import, ctxt: &mut SemContext,id_gen: &NodeIdGe
                     include.path.push_str(".dora");
                     parse_file(&include.path, &id_gen, &mut ast, &mut interner).unwrap();
                 }
-                ElemImport(ref mut import) => {
-                    import.import_from.push_str(".dora");
-                    parse_import(import, ctxt,id_gen);
-                }
                 _ => (),
             }
         }
     }
+
+    let mut original_file = ast0.files[5].clone();
+    
+    for import_name in import.to_import.clone().iter() {
+        let name = interner.intern(import_name);
+        for file in ast.files.clone().iter_mut() {
+            for elem in ast.files[5].elements.clone().iter_mut() {
+                match elem {
+                    ElemFunction(ref fun) => {
+                       
+                       println!("{}",interner.str(name));
+                       println!("{}",interner.str(fun.name));
+                        if interner.str(fun.name) == interner.str(name) {
+                            
+                            let mut edited_fun = fun.clone();
+                            edited_fun.id = id_gen.next();
+                            ast0.files[5].elements.push(ElemFunction(edited_fun));
+                        } else {
+                            return;
+                        }
+                    }
+                    _ => {()}
+                }
+            }
+        }
+    }
+    println!("{:?}",ast);
+    
 }
+
+
+
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -102,6 +131,11 @@ pub fn start() -> i32 {
                 }
             }
         }
+
+        for import in ast.imports.clone().iter_mut() {
+            parse_import(import, &mut ast,&mut interner, &id_generator);
+        }
+
         let mut ctxt = SemContext::new(args, &ast, interner);
         semck::check(&mut ctxt, None);
 

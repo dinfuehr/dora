@@ -13,12 +13,13 @@ pub mod dump;
 #[derive(Clone, Debug,PartialEq)]
 pub struct Ast {
     pub files: Vec<File>,
+    pub imports: Vec<Import>,
     
 }
 
 impl Ast {
     pub fn new() -> Ast {
-        Ast { files: Vec::new() }
+        Ast { files: Vec::new(),imports: Vec::new() }
     }
 
     #[cfg(test)]

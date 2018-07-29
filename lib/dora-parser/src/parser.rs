@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
             TokenKind::Import => {
                 self.ban_modifiers(&modifiers)?;
                 let import = self.parse_import()?;
-                elements.push(ElemImport(import));
+                self.ast.imports.push(import);
             }
             TokenKind::From => (),
             _ => {
@@ -175,23 +175,28 @@ impl<'a> Parser<'a> {
         let mut imports: Vec<String> = Vec::new();
         //imports.push(self.interner.str(ident).to_string());
         let mut import_file = self.interner.str(ident).to_string();
-        while self.advance_token()?.is(TokenKind::Dot) {
-            import_file.push_str("/");
-            let ident = self.expect_identifier()?;
-            let n = self.interner.str(ident).to_string();
-            import_file.push_str(&n);
-            if self.advance_token()?.is(TokenKind::Colon) {
+        while self.advance_token()?.is(TokenKind::Dot)  {
+            if !self.advance_token()?.is(TokenKind::Colon) {
+                import_file.push_str("/");
+                let ident = self.expect_identifier()?;
+                let n = self.interner.str(ident).to_string();
+                import_file.push_str(&n);
+            } else {
+                
                 break;
             }
         }
         let iden = self.expect_identifier()?;
-        imports.push(self.interner.str(ident).to_string());
+        imports.push(self.interner.str(iden).to_string());
+        
         while self.advance_token()?.is(TokenKind::Comma) {
             let ident = self.expect_identifier()?;
             let n = self.interner.str(ident).to_string();
+            println!("printing impot {}",n);
             imports.push(n);
         }
-
+        println!("{:?}",imports);
+        
         let import = Import {
             id: self.generate_id(),
             pos: pos,
@@ -199,6 +204,7 @@ impl<'a> Parser<'a> {
             to_import: imports,
 
         };
+        println!("{:?}",import);
         Ok(import)
     }
 
