@@ -10,6 +10,7 @@ use dora::ctxt::SemContext;
 use dora::native_fct;
 use dora::types::int;
 use dora::object::{Handle,Str};
+use dora::driver::cmd;
 
 fn myfuns(ctxt: &mut SemContext) -> i32 {
     
@@ -29,6 +30,6 @@ fn myfuns(ctxt: &mut SemContext) -> i32 {
 
 fn main() {
 
-exit(start(Path::new("src/main.dora"),Some(myfuns as *const u8)));
+exit(start(Path::new("src/main.dora"),Some(myfuns as *const u8),cmd::parse()));
 
 }

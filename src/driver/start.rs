@@ -193,11 +193,12 @@ git = \"https://github.com/pigprogrammer/dora\"\n
 
         let main_rs = format!(
             "#[macro_use]extern crate dora;\n
-use dora::start;\n
-use std::process::exit;\n
+use dora::start;
+use std::process::exit;
 use std::path::Path;
+use dora::driver::cmd;
 fn main() {{\n
-\texit(start(Path::new(\"src/main.dora\"),None));\n
+\texit(start(Path::new(\"src/main.dora\"),None,cmd::parse()));\n
 }}\n"
         );
         if let Err(err) = fs::create_dir(full_path.clone()) {

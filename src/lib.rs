@@ -71,9 +71,10 @@ use dora_parser::parser::NodeIdGenerator;
 
 use dora_parser::ast;
 use driver::*;
+use driver::cmd::Args;
 
-pub fn start(file: &Path, custom_funcs: Option<*const u8>) -> i32 {
-    let args = cmd::Args::default();
+pub fn start(file: &Path, custom_funcs: Option<*const u8>,args: cmd::Args) -> i32 {
+    let args = args;
     os::init_page_size();
 
     let mut interner = Interner::new();
