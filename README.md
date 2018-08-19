@@ -34,6 +34,13 @@ $ brew install capstone
 
 [ruby](https://www.ruby-lang.org/) - used to run tests
 
+### Debian and Ubuntu
+
+On Debian-based systems it is possible to install the dependencies with:
+```
+sudo apt install llvm-5.0-dev libcapstone-dev ruby
+```
+and export `LLVM_SYS_50_PREFIX=/usr/lib/llvm-5.0` during the first invocation of a `cargo` command that builds the projects dependencies like `cargo build` or `cargo test`.
 
 ## Compilation & Testing
 Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
