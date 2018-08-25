@@ -187,7 +187,7 @@ impl MacroAssembler {
                 asm::cmov(self, 0, dest, *scratch, CondCode::NotEqual);
             }
 
-            CondCode::Greater | CondCode::GreaterEq | CondCode::Less | CondCode::LessEq => {
+            CondCode::Greater | CondCode::GreaterEq => {
                 self.load_int_const(MachineMode::Int32, dest, 0);
 
                 match mode {
@@ -199,8 +199,24 @@ impl MacroAssembler {
                 let cond = match cond {
                     CondCode::Greater => CondCode::UnsignedGreater,
                     CondCode::GreaterEq => CondCode::UnsignedGreaterEq,
-                    CondCode::Less => CondCode::UnsignedLess,
-                    CondCode::LessEq => CondCode::UnsignedLessEq,
+                    _ => unreachable!(),
+                };
+
+                asm::emit_setb_reg(self, cond, dest);
+            }
+
+            CondCode::Less | CondCode::LessEq => {
+                self.load_int_const(MachineMode::Int32, dest, 0);
+
+                match mode {
+                    MachineMode::Float32 => asm::ucomiss(self, rhs, lhs),
+                    MachineMode::Float64 => asm::ucomisd(self, rhs, lhs),
+                    _ => unreachable!(),
+                }
+
+                let cond = match cond {
+                    CondCode::Less => CondCode::UnsignedGreater,
+                    CondCode::LessEq => CondCode::UnsignedGreaterEq,
                     _ => unreachable!(),
                 };
 
