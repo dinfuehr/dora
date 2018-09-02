@@ -153,7 +153,7 @@ where
                 orc,
                 &mut handle,
                 self.shared_module,
-                resolver,
+                Some(resolver),
                 ptr::null_mut(),
             );
             assert!(res == LLVMOrcErrorCode::LLVMOrcErrSuccess);
