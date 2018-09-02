@@ -9,9 +9,9 @@ Build with:
 ## Dependencies
 You need to install these dependencies:
 
-[llvm](http://llvm.org) - Download LLVM 5.0.0 from [llvm.org](http://releases.llvm.org/5.0.0/llvm-5.0.0.src.tar.xz).
-Unpack the archive and switch into the source directory `$LLVM_SRC_DIR` (e.g. `$HOME/llvm-5.0.0.src`).
-We will now build & install LLVM to `$LLVM_INSTALL_DIR` (e.g. `$HOME/llvm-5.0.0`).
+[llvm](http://llvm.org) - Download LLVM 6.0 from [llvm.org](http://releases.llvm.org/6.0.1/llvm-6.0.1.src.tar.xz).
+Unpack the archive and switch into the source directory `$LLVM_SRC_DIR` (e.g. `$HOME/llvm-6.0.src`).
+We will now build & install LLVM to `$LLVM_INSTALL_DIR` (e.g. `$HOME/llvm-6.0`).
 
 ```
 cd $LLVM_SRC_DIR # change into directory with LLVM source
@@ -40,9 +40,9 @@ $ brew install capstone
 
 On Debian-based systems it is possible to install the dependencies with:
 ```
-sudo apt install llvm-5.0-dev zlib1g-dev libcapstone-dev ruby
+sudo apt install llvm-6.0-dev zlib1g-dev libcapstone-dev ruby
 ```
-and export `LLVM_SYS_50_PREFIX=/usr/lib/llvm-5.0` during the invocation of `cargo` commands that build the projects' dependencies like `cargo build` or `cargo test`.
+and export `LLVM_SYS_60_PREFIX=/usr/lib/llvm-6.0` during the invocation of `cargo` commands that build the projects' dependencies like `cargo build` or `cargo test`.
 
 ## Compilation & Testing
 Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
@@ -56,6 +56,6 @@ rustup update nightly
 rustup override set nightly
 
 # run all tests in debug and release mode
-LLVM_SYS_50_PREFIX=$LLVM_INSTALL_DIR ./test
-LLVM_SYS_50_PREFIX=$LLVM_INSTALL_DIR ./test-release
+LLVM_SYS_60_PREFIX=$LLVM_INSTALL_DIR ./test
+LLVM_SYS_60_PREFIX=$LLVM_INSTALL_DIR ./test-release
 ```
