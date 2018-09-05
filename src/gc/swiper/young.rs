@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::ptr;
 
 use gc::Address;
 use gc::swiper::Region;
@@ -87,7 +86,7 @@ impl YoungGen {
         addr.to_usize() < self.age_marker.load(Ordering::Relaxed)
     }
 
-    pub fn alloc(&self, size: usize) -> *const u8 {
+    pub fn alloc(&self, size: usize) -> Address {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
@@ -95,7 +94,7 @@ impl YoungGen {
             new = old + size;
 
             if new > self.end.load(Ordering::Relaxed) {
-                return ptr::null();
+                return Address::null();
             }
 
             let res =
@@ -108,7 +107,7 @@ impl YoungGen {
             }
         }
 
-        old as *const u8
+        old.into()
     }
 
     pub fn swap_spaces(&self, free: Address) {

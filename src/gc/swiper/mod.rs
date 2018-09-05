@@ -217,7 +217,7 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         if ctxt.args.flag_gc_stress_minor {
             self.minor_collect(ctxt);
         }
@@ -251,7 +251,7 @@ impl Collector for Swiper {
 }
 
 impl Swiper {
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
+    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
@@ -273,7 +273,7 @@ impl Swiper {
         self.old.alloc(size, array_ref)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> *const u8 {
+    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> Address {
         let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {

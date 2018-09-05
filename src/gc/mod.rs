@@ -78,7 +78,7 @@ impl Gc {
         self.perm_space.alloc(size)
     }
 
-    pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8 {
+    pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         self.collector.alloc(ctxt, size, array_ref)
     }
 
@@ -93,7 +93,7 @@ impl Gc {
 
 trait Collector {
     // allocate object of given size
-    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> *const u8;
+    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
     fn collect(&self, ctxt: &SemContext);

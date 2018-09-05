@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::ptr;
 
 use ctxt::SemContext;
 use driver::cmd::Args;
@@ -28,7 +27,7 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> *const u8 {
+    fn alloc(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 
@@ -36,7 +35,7 @@ impl Collector for ZeroCollector {
             new = old + size;
 
             if new >= self.end.to_usize() {
-                return ptr::null();
+                return Address::null();
             }
 
             let res =
@@ -49,7 +48,7 @@ impl Collector for ZeroCollector {
             }
         }
 
-        old as *const u8
+        old.into()
     }
 
     fn collect(&self, _: &SemContext) {

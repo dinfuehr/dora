@@ -1,5 +1,4 @@
 use std::mem::size_of;
-use std::ptr;
 use std::sync::Mutex;
 
 use gc::arena;
@@ -21,7 +20,7 @@ impl LargeSpace {
         }
     }
 
-    pub fn alloc(&self, size: usize) -> *const u8 {
+    pub fn alloc(&self, size: usize) -> Address {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
@@ -30,10 +29,10 @@ impl LargeSpace {
         if let Some(range) = space.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
             space.append_large_alloc(range.start, range.size());
-            range.start.to_ptr()
+            range.start
 
         } else {
-            ptr::null()
+            Address::null()
         }
     }
 

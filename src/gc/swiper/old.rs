@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::ptr;
 
 use gc::Address;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
@@ -31,7 +30,7 @@ impl OldGen {
         self.free.load(Ordering::Relaxed).into()
     }
 
-    pub fn alloc(&self, size: usize, array_ref: bool) -> *const u8 {
+    pub fn alloc(&self, size: usize, array_ref: bool) -> Address {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 
@@ -39,7 +38,7 @@ impl OldGen {
             new = old + size;
 
             if new >= self.total.end.to_usize() {
-                return ptr::null();
+                return Address::null();
             }
 
             let res =
@@ -104,7 +103,7 @@ impl OldGen {
                 .set_first_object(card, (new - card_start) / mem::ptr_width_usize());
         }
 
-        old as *const u8
+        old.into()
     }
 
     #[inline(always)]

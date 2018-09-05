@@ -1,5 +1,4 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::ptr;
 
 use ctxt::SemContext;
 use driver::cmd::Args;
@@ -44,7 +43,7 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> *const u8 {
+    fn alloc(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
         if ctxt.args.flag_gc_stress {
             self.collect(ctxt);
         }
@@ -76,7 +75,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn alloc_inner(&self, size: usize) -> *const u8 {
+    fn alloc_inner(&self, size: usize) -> Address {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 
@@ -84,7 +83,7 @@ impl CopyCollector {
             new = old + size;
 
             if new > self.end.load(Ordering::Relaxed) {
-                return ptr::null();
+                return Address::null();
             }
 
             let res = self.top
@@ -96,7 +95,7 @@ impl CopyCollector {
             }
         }
 
-        old as *const u8
+        old.into()
     }
 
     fn collect_from(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
