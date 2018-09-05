@@ -83,7 +83,7 @@ impl LargeSpaceProtected {
                     self.elements[i] = Range::new(range.start.offset(size), range.end);
                 }
 
-                arena::commit(addr, size, false).expect("couldn't commit large object.");
+                arena::commit(addr, size, false);
                 self.append_large_alloc(addr, size);
 
                 return addr.offset(size_of::<LargeAlloc>());
@@ -169,16 +169,16 @@ impl LargeSpaceProtected {
 
             if keep {
                 if prev.is_null() {
+                    // Our new head
                     self.head = addr;
-                    large_alloc.prev = Address::null();
 
                 } else {
-                    large_alloc.prev = prev;
-
+                    // Change predecessor
                     let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
                     prev_large_alloc.next = addr;
                 }
 
+                large_alloc.prev = prev;
                 // We might not have a successor
                 large_alloc.next = Address::null();
                 prev = addr;

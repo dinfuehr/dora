@@ -77,7 +77,7 @@ impl Swiper {
 
         let heap_reserve_size = heap_size * 4 + card_size + crossing_size;
 
-        let ptr = arena::reserve(heap_reserve_size).expect("could not reserve heap.");
+        let ptr = arena::reserve(heap_reserve_size);
 
         let heap_start = ptr;
         let heap_end = ptr.offset(4 * heap_size);
@@ -90,15 +90,14 @@ impl Swiper {
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
-        arena::commit(card_start, card_size, false).expect("could not commit card table.");
+        arena::commit(card_start, card_size, false);
         let card_table = CardTable::new(card_start, card_end, heap_size);
 
         // determine boundaries for crossing map
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        arena::commit(crossing_start, crossing_size, false)
-            .expect("could not commit crossing table.");
+        arena::commit(crossing_start, crossing_size, false);
         let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
         // determine boundaries of young generation
@@ -106,14 +105,14 @@ impl Swiper {
         let young_end = young_start.offset(heap_size);
         let young = YoungGen::new(young_start, young_end);
 
-        arena::commit(young_start, heap_size, false).expect("could not commit young gen.");
+        arena::commit(young_start, heap_size, false);
 
         // determine boundaries of old generation
         let old_start = young_end;
         let old_end = old_start.offset(heap_size);
         let old = OldGen::new(old_start, old_end, crossing_map.clone());
 
-        arena::commit(old_start, heap_size, false).expect("could not commit old gen.");
+        arena::commit(old_start, heap_size, false);
 
         // determine large object space
         let large_start = old_end;

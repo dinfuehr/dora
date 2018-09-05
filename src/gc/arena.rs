@@ -3,7 +3,7 @@ use std::ptr;
 use gc::Address;
 use mem;
 
-pub fn reserve(size: usize) -> Result<Address, ()> {
+pub fn reserve(size: usize) -> Address {
     use libc;
 
     let ptr = unsafe {
@@ -18,13 +18,13 @@ pub fn reserve(size: usize) -> Result<Address, ()> {
     };
 
     if ptr == libc::MAP_FAILED {
-        Err(())
-    } else {
-        Ok(Address::from_ptr(ptr))
+        panic!("reserving memory with mmap() failed");
     }
+    
+    Address::from_ptr(ptr)
 }
 
-pub fn commit(ptr: Address, size: usize, executable: bool) -> Result<(), ()> {
+pub fn commit(ptr: Address, size: usize, executable: bool) {
     debug_assert!(mem::is_page_aligned(ptr.to_usize()));
     debug_assert!(mem::is_page_aligned(size));
 
@@ -47,14 +47,12 @@ pub fn commit(ptr: Address, size: usize, executable: bool) -> Result<(), ()> {
         )
     };
 
-    if val != libc::MAP_FAILED {
-        Ok(())
-    } else {
-        Err(())
+    if val == libc::MAP_FAILED {
+        panic!("committing memory with mmap() failed");
     }
 }
 
-pub fn uncommit(ptr: Address, size: usize) -> Result<(), ()> {
+pub fn uncommit(ptr: Address, size: usize) {
     use libc;
 
     let val = unsafe {
@@ -68,10 +66,8 @@ pub fn uncommit(ptr: Address, size: usize) -> Result<(), ()> {
         )
     };
 
-    if val != libc::MAP_FAILED {
-        Ok(())
-    } else {
-        Err(())
+    if val == libc::MAP_FAILED {
+        panic!("uncommitting memory with mmap() failed");
     }
 }
 
@@ -83,6 +79,6 @@ pub fn forget(ptr: Address, size: usize) {
     };
 
     if res != 0 {
-        panic!("madvise() failed");
+        panic!("forgetting memory with madvise() failed");
     }
 }
