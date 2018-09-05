@@ -95,6 +95,7 @@ impl LargeSpaceProtected {
 
     fn free(&mut self, ptr: Address, size: usize) {
         debug_assert!(mem::is_page_aligned(size));
+        arena::forget(ptr, size);
         self.elements.push(Range::new(ptr, ptr.offset(size)));
     }
 
