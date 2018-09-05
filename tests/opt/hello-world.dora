@@ -1,9 +1,0 @@
-//= vm-args "--opt=foo"
-
-fun main() {
-    assert(foo() == 2);
-}
-
-fun foo() -> int {
-    return 2;
-}
