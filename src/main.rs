@@ -40,7 +40,6 @@ mod gc;
 mod handle;
 mod masm;
 mod mem;
-mod mir;
 mod object;
 mod opt;
 mod os;
