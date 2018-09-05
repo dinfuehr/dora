@@ -20,7 +20,7 @@ pub fn reserve(size: usize) -> Address {
     if ptr == libc::MAP_FAILED {
         panic!("reserving memory with mmap() failed");
     }
-    
+
     Address::from_ptr(ptr)
 }
 
@@ -74,9 +74,7 @@ pub fn uncommit(ptr: Address, size: usize) {
 pub fn forget(ptr: Address, size: usize) {
     use libc;
 
-    let res = unsafe {
-        libc::madvise(ptr.to_mut_ptr(), size, libc::MADV_DONTNEED)
-    };
+    let res = unsafe { libc::madvise(ptr.to_mut_ptr(), size, libc::MADV_DONTNEED) };
 
     if res != 0 {
         panic!("forgetting memory with madvise() failed");

@@ -156,7 +156,8 @@ impl LargeSpaceProtected {
     }
 
     fn remove_objects<F>(&mut self, mut f: F)
-    where F: FnMut(Address) -> bool,
+    where
+        F: FnMut(Address) -> bool,
     {
         let mut addr = self.head;
         let mut prev = Address::null();
@@ -171,7 +172,6 @@ impl LargeSpaceProtected {
                 if prev.is_null() {
                     // Our new head
                     self.head = addr;
-
                 } else {
                     // Change predecessor
                     let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
