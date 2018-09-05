@@ -72,14 +72,29 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) {
-        let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
+        let active = self.ctxt.args.flag_gc_verbose;
+        let mut timer = Timer::new(active);
         let init_size = self.heap_size();
 
-        self.mark_live();
-        self.compute_forward();
-        self.update_references();
-        self.relocate();
-        self.update_large_objects();
+        let time_mark = Timer::ms(active, || {
+            self.mark_live();
+        });
+
+        let time_forward = Timer::ms(active, || {
+            self.compute_forward();
+        });
+
+        let time_updateref = Timer::ms(active, || {
+            self.update_references();
+        });
+
+        let time_relocate = Timer::ms(active, || {
+            self.relocate();
+        });
+
+        let time_large = Timer::ms(active, || {
+            self.update_large_objects();
+        });
 
         timer.stop_with(|dur| {
             let new_size = self.heap_size();
@@ -87,12 +102,17 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
 
             println!(
-                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage)",
+                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage); mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
                 in_ms(dur),
                 in_kilo(init_size),
                 in_kilo(new_size),
                 in_kilo(garbage),
-                garbage_ratio
+                garbage_ratio,
+                time_mark,
+                time_forward,
+                time_updateref,
+                time_relocate,
+                time_large,
             );
         });
     }
