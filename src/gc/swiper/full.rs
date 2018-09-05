@@ -435,8 +435,6 @@ impl ForwardTable {
     }
 
     fn forward_address(&mut self, addr: Address) -> Address {
-        *self.data
-            .get(&addr)
-            .expect("no forward address found.")
+        *self.data.get(&addr).expect("no forward address found.")
     }
 }

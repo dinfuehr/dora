@@ -30,13 +30,15 @@ impl Timer {
         }
     }
 
-    pub fn ms<F>(active: bool, f: F) -> f32 where F: FnOnce() {
+    pub fn ms<F>(active: bool, f: F) -> f32
+    where
+        F: FnOnce(),
+    {
         if active {
             let ts = timestamp();
             f();
             let diff = timestamp() - ts;
             in_ms(diff)
-
         } else {
             f();
             0.0f32
