@@ -7,7 +7,7 @@ addons:
     packages:
     - ruby
 
-# don't test on macOS for now
+# Don't test on macOS for now.
 # os:
 #   - linux
 #   - osx
