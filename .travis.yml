@@ -12,12 +12,6 @@ addons:
 #   - linux
 #   - osx
 
-before_script:
-  - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-  - echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-get update -qq
-  - sudo apt-get install clang-4.0 -y
-
 install:
   - git clone https://github.com/aquynh/capstone
   - (cd capstone && git checkout 3.0.4 && sudo make install)
