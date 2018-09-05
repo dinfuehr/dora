@@ -102,7 +102,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
 
             println!(
-                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage); mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
+                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage); \
+                mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
                 in_ms(dur),
                 in_kilo(init_size),
                 in_kilo(new_size),
