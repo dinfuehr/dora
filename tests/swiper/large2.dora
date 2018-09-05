@@ -1,0 +1,17 @@
+//= --gc=swiper --gc-verify
+
+fun main() {
+    {
+        let x = Array::<Object>(16 * 1024);
+        forceCollect();
+    }
+
+    forceCollect();
+
+    {
+        let y = Array::<Object>(16 * 1024);
+        forceCollect();
+    }
+
+    forceCollect();
+}

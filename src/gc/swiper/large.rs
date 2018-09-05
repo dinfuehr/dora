@@ -25,25 +25,7 @@ impl LargeSpace {
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
         let mut space = self.space.lock().unwrap();
-
-        if let Some(range) = space.alloc(size) {
-            arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
-            space.append_large_alloc(range.start, range.size());
-            range.start.offset(size_of::<LargeAlloc>())
-        } else {
-            Address::null()
-        }
-    }
-
-    pub fn free(&self, ptr: Address, size: usize) {
-        debug_assert!(size >= LARGE_OBJECT_SIZE);
-        debug_assert!(mem::is_page_aligned(ptr.to_usize()));
-        let size = mem::page_align(size_of::<LargeAlloc>() + size);
-
-        let mut space = self.space.lock().unwrap();
-        debug_assert!(!space.contains(ptr));
-        space.free(ptr, size);
-        space.merge();
+        space.alloc(size)
     }
 
     pub fn contains(&self, addr: Address) -> bool {
@@ -56,6 +38,14 @@ impl LargeSpace {
     {
         let mut space = self.space.lock().unwrap();
         space.visit_objects(f);
+    }
+
+    pub fn remove_objects<F>(&self, f: F)
+    where
+        F: FnMut(Address) -> bool,
+    {
+        let mut space = self.space.lock().unwrap();
+        space.remove_objects(f);
     }
 }
 
@@ -78,14 +68,14 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn alloc(&mut self, size: usize) -> Option<Range> {
+    fn alloc(&mut self, size: usize) -> Address {
         debug_assert!(mem::is_page_aligned(size));
         let len = self.elements.len();
 
         for i in 0..len {
             if self.elements[i].size() >= size {
                 let range = self.elements[i];
-                let alloc = Range::new(range.start, range.start.offset(size));
+                let addr = range.start;
 
                 if range.size() == size {
                     self.elements.remove(i);
@@ -93,11 +83,14 @@ impl LargeSpaceProtected {
                     self.elements[i] = Range::new(range.start.offset(size), range.end);
                 }
 
-                return Some(alloc);
+                arena::commit(addr, size, false).expect("couldn't commit large object.");
+                self.append_large_alloc(addr, size);
+
+                return addr.offset(size_of::<LargeAlloc>());
             }
         }
 
-        None
+        Address::null()
     }
 
     fn free(&mut self, ptr: Address, size: usize) {
@@ -158,6 +151,47 @@ impl LargeSpaceProtected {
             let large_alloc = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
             f(addr.offset(size_of::<LargeAlloc>()));
             addr = large_alloc.next;
+        }
+    }
+
+    fn remove_objects<F>(&mut self, mut f: F)
+    where F: FnMut(Address) -> bool,
+    {
+        let mut addr = self.head;
+        let mut prev = Address::null();
+        let mut freed = false;
+
+        while !addr.is_null() {
+            let large_alloc = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+            let next = large_alloc.next;
+            let keep = f(addr.offset(size_of::<LargeAlloc>()));
+
+            if keep {
+                if prev.is_null() {
+                    self.head = addr;
+                    large_alloc.prev = Address::null();
+
+                } else {
+                    large_alloc.prev = prev;
+
+                    let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
+                    prev_large_alloc.next = addr;
+                }
+
+                // We might not have a successor
+                large_alloc.next = Address::null();
+                prev = addr;
+            } else {
+                freed = true;
+                let size = large_alloc.size;
+                self.free(addr, size);
+            }
+
+            addr = next;
+        }
+
+        if freed {
+            self.merge();
         }
     }
 }

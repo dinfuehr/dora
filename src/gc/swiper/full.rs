@@ -235,12 +235,20 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_large_objects(&mut self) {
-        self.large_space.visit_objects(|addr| {
+        self.large_space.remove_objects(|addr| {
+            if !self.is_marked_addr(addr) {
+                // free object
+                return false;
+            }
+
             let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
 
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
             });
+
+            // keep object
+            true
         });
     }
 
