@@ -28,6 +28,6 @@ pub fn register_with_perf(jit_fct: &JitBaselineFct, ctxt: &SemContext, name: Nam
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn register_with_perf(_: &JitFct, _: &SemContext, _: Name) {
+pub fn register_with_perf(_: &JitBaselineFct, _: &SemContext, _: Name) {
     // nothing to do
 }

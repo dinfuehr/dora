@@ -3,6 +3,7 @@
 require 'pathname'
 require 'tempfile'
 require 'thread'
+require 'open3'
 
 $ARGS = ARGV.clone
 $release = $ARGS.delete("--release") != nil
@@ -35,13 +36,30 @@ class TestExpectation
   end
 end
 
+def num_from_shell(cmd)
+  begin
+    stdout, stderr, status = Open3.capture3(cmd)
+
+    if status.success?
+      stdout.to_i
+    else
+      0
+    end
+  rescue
+    0
+  end
+end
+
 def number_processors
   return $processors if $processors > 0
 
-  num = `nproc --all`.to_i
+  num = num_from_shell("nproc --all")
   return num if num > 0
 
-  num = `grep -c ^processor /proc/cpuinfo`.to_i
+  num = num_from_shell("grep -c ^processor /proc/cpuinfo")
+  return num if num > 0
+
+  num = num_from_shell("sysctl -n hw.ncpu")
   return num if num > 0
 
   1
