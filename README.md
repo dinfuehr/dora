@@ -9,24 +9,19 @@ Build with:
 ## Dependencies
 You need to install these dependencies:
 
-[capstone](https://github.com/aquynh/capstone)
-
 ```
-$ git clone https://github.com/aquynh/capstone
-$ cd capstone && git checkout 3.0.4 && sudo make install
+# on Fedora
+$ sudo dnf install capstone-devel ruby
+
+# on Ubuntu/Debian
+$ sudo apt install libcapstone-dev ruby
 
 # on MacOS capstone can be installed via homebrew
 $ brew install capstone
 ```
 
-[ruby](https://www.ruby-lang.org/) - used to run tests
+[Ruby](https://www.ruby-lang.org/) is used for running tests, while [capstone](https://github.com/aquynh/capstone) is used for instruction decoding/disassembling machine code.
 
-### Debian and Ubuntu
-
-On Debian-based systems it is possible to install the dependencies with:
-```
-sudo apt install zlib1g-dev libcapstone-dev ruby
-```
 
 ## Compilation & Testing
 Install current Rust Nightly via [rustup.rs](http://rustup.rs). The nightly version of
