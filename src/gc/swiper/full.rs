@@ -271,15 +271,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             return addr;
         }
 
-        assert!(self.fwd_end == self.old.total.end);
-        assert!(self.old_top.is_null());
-        self.old_top = self.fwd;
-
-        let young = self.young.to_space();
-        self.fwd = young.start.offset(object_size);
-        self.fwd_end = young.end;
-
-        young.start
+        panic!("FAIL: Not enough space for objects in old generation.");
     }
 
     fn update_crossing(&mut self, last: Address, addr: Address, array_ref: bool) {
