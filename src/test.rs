@@ -1,10 +1,10 @@
 use ctxt::SemContext;
-use driver::cmd::Args;
 use dora_parser::ast::Ast;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
-use os;
 use dora_parser::parser::{NodeIdGenerator, Parser};
+use driver::cmd::Args;
+use os;
 use semck;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T

@@ -9,8 +9,8 @@ use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
 use dora_parser::interner::Interner;
-use dora_parser::lexer::reader::Reader;
 use dora_parser::lexer::position::Position;
+use dora_parser::lexer::reader::Reader;
 use driver::cmd;
 use exception::DoraToNativeInfo;
 use object::{self, Handle, Testing};

@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
 
-use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 use class::*;
 use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, NodeMap, SemContext};
+use dora_parser::ast;
+use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

@@ -1,8 +1,8 @@
+use ctxt::{GlobalId, NodeMap, SemContext};
+use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Elem::ElemGlobal;
 use dora_parser::ast::{File, Global};
-use dora_parser::ast::visit::Visitor;
 use dora_parser::error::msg::Msg;
-use ctxt::{GlobalId, NodeMap, SemContext};
 use semck;
 use ty::BuiltinType;
 

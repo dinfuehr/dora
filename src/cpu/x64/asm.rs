@@ -1,5 +1,5 @@
-use cpu::*;
 use baseline::codegen::CondCode;
+use cpu::*;
 use masm::{Label, MacroAssembler};
 use ty::MachineMode;
 
@@ -105,8 +105,7 @@ pub fn emit_movl_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i
 }
 
 pub fn emit_movb_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i32) {
-    let dest_msb =
-        if dest == RIP { 0 } else { dest.msb() };
+    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
     if dest_msb != 0 || src.msb() != 0 || (src != RAX && src != RBX && src != RCX && src != RDX) {
         emit_rex(buf, 0, src.msb(), 0, dest.msb());
@@ -117,8 +116,7 @@ pub fn emit_movb_reg_memq(buf: &mut MacroAssembler, src: Reg, dest: Reg, disp: i
 }
 
 pub fn emit_movb_imm_memq(buf: &mut MacroAssembler, imm: u8, dest: Reg, disp: i32) {
-    let dest_msb =
-        if dest == RIP { 0 } else { dest.msb() };
+    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
     if dest_msb != 0 {
         emit_rex(buf, 0, 0, 0, dest.msb());
@@ -197,8 +195,7 @@ fn emit_mov_reg_memq(
     dest: Reg,
     disp: i32,
 ) {
-    let dest_msb =
-        if dest == RIP { 0 } else { dest.msb() };
+    let dest_msb = if dest == RIP { 0 } else { dest.msb() };
 
     if dest_msb != 0 || src.msb() != 0 || x64 != 0 {
         emit_rex(buf, x64, src.msb(), 0, dest_msb);
@@ -492,8 +489,7 @@ fn emit_rex_mem(buf: &mut MacroAssembler, x64: u8, dest: Reg, src: &Mem) {
     let (base_msb, index_msb) = match src {
         &Mem::Local(_) => (RBP.msb(), 0),
         &Mem::Base(base, _) => {
-            let base_msb =
-                if base == RIP { 0 } else { base.msb() };
+            let base_msb = if base == RIP { 0 } else { base.msb() };
 
             (base_msb, 0)
         }
@@ -582,8 +578,7 @@ pub fn emit_cmp_mem_reg(
     disp: i32,
     dest: Reg,
 ) {
-    let base_msb =
-        if base == RIP { 0 } else { base.msb() };
+    let base_msb = if base == RIP { 0 } else { base.msb() };
 
     let (x64, opcode) = match mode {
         MachineMode::Int8 => (0, 0x38),
@@ -678,8 +673,7 @@ pub fn emit_cmp_mem_imm(
     disp: i32,
     imm: i32,
 ) {
-    let base_msb =
-        if base == RIP { 0 } else { base.msb() };
+    let base_msb = if base == RIP { 0 } else { base.msb() };
 
     let opcode = if fits_i8(imm) { 0x83 } else { 0x81 };
 

@@ -4,8 +4,8 @@ use std::fmt;
 use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
-use gc::swiper::Swiper;
 use gc::space::{Space, SpaceConfig};
+use gc::swiper::Swiper;
 use gc::zero::ZeroCollector;
 
 pub mod arena;

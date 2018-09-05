@@ -1,6 +1,6 @@
+use ctxt::{NodeMap, SemContext, StructFieldData, StructId};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use ctxt::{NodeMap, SemContext, StructFieldData, StructId};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;

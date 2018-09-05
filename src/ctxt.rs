@@ -7,24 +7,24 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::{Mutex, RwLock};
 
-use driver::cmd::Args;
 use dora_parser::error::diag::Diagnostic;
+use driver::cmd::Args;
 
-use dora_parser::ast;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
 use baseline::stub::Stub;
 use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
-use exception::DoraToNativeInfo;
-use gc::Gc;
+use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
+use exception::DoraToNativeInfo;
+use gc::Gc;
 use handle::HandleMemory;
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
-use sym::*;
 use sym::Sym::*;
+use sym::*;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
@@ -366,7 +366,8 @@ impl TraitData {
         for &method in &self.methods {
             let method = ctxt.fcts[method].borrow();
 
-            if method.name == name && method.is_static == is_static
+            if method.name == name
+                && method.is_static == is_static
                 && params_match(replace, method.params_without_self(), args)
             {
                 return Some(method.id);
@@ -681,11 +682,14 @@ impl<'ast> Fct<'ast> {
         if self.type_params.len() > 0 {
             repr.push_str("<");
 
-            repr.push_str(&self.type_params
-                .iter()
-                .map(|n| ctxt.interner.str(n.name).to_string())
-                .collect::<Vec<_>>()
-                .join(", "));
+            repr.push_str(
+                &self
+                    .type_params
+                    .iter()
+                    .map(|n| ctxt.interner.str(n.name).to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
             repr.push_str(">");
         }
 

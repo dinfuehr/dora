@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use gc::arena;
-use gc::Address;
 use gc::swiper::Region;
+use gc::Address;
 use mem;
 
 /// Configuration for a space.
@@ -92,7 +92,8 @@ impl Space {
                 return ptr::null_mut();
             }
 
-            let res = self.top
+            let res = self
+                .top
                 .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {

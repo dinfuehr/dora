@@ -4,10 +4,10 @@ use std::mem::size_of;
 use baseline::fct::{JitBaselineFct, JitFct, JitFctId};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
+use exception::DoraToNativeInfo;
 use masm::MacroAssembler;
 use mem;
 use os::signal::Trap;
-use exception::DoraToNativeInfo;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeFcts {

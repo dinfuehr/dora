@@ -1,6 +1,6 @@
+use ctxt::{ConstId, NodeMap, SemContext};
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
-use ctxt::{ConstId, NodeMap, SemContext};
 use dora_parser::error::msg::Msg;
 use dora_parser::lexer::position::Position;
 use semck;

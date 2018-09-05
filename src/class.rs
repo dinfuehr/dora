@@ -8,9 +8,9 @@ use std::rc::Rc;
 use ctxt::{FctId, ImplId, SemContext, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
-use vtable::VTableBox;
 use ty::BuiltinType;
 use utils::GrowableVec;
+use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);

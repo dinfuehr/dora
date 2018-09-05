@@ -1,17 +1,19 @@
-use std::{f32, f64};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use std::{f32, f64};
 
-use ctxt;
-use ctxt::{CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
-           IdentType, SemContext, TraitId};
 use class::{ClassId, TypeParams};
+use ctxt;
+use ctxt::{
+    CallType, ConstData, ConstValue, ConvInfo, Fct, FctId, FctParent, FctSrc, ForTypeInfo,
+    IdentType, SemContext, TraitId,
+};
 use dora_parser::error::msg::Msg;
 
-use dora_parser::ast::*;
+use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
-use dora_parser::ast::visit::Visitor;
+use dora_parser::ast::*;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -150,15 +152,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let has_next_name = self.ctxt.interner.intern("hasNext");
                 let next_name = self.ctxt.interner.intern("next");
                 let trai = self.ctxt.traits[iterator_trait_id].borrow();
-                let next_id = trai.find_method(self.ctxt, false, next_name, None, &[])
+                let next_id = trai
+                    .find_method(self.ctxt, false, next_name, None, &[])
                     .expect("next() not found");
-                let has_next_id = trai.find_method(self.ctxt, false, has_next_name, None, &[])
+                let has_next_id = trai
+                    .find_method(self.ctxt, false, has_next_name, None, &[])
                     .expect("hasNext() not found");
 
                 // find impl for ret that implements Iterator
                 let cls_id = make_iterator_ret.cls_id(self.ctxt).unwrap();
                 let cls = self.ctxt.classes[cls_id].borrow();
-                let impl_id = cls.find_impl_for_trait(self.ctxt, iterator_trait_id)
+                let impl_id = cls
+                    .find_impl_for_trait(self.ctxt, iterator_trait_id)
                     .expect("impl not found for Iterator");
 
                 // find method in impl that implements next()
@@ -229,14 +234,14 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_stmt_return(&mut self, s: &'ast StmtReturnType) {
-        let expr_type = s.expr
+        let expr_type = s
+            .expr
             .as_ref()
             .map(|expr| {
                 self.visit_expr(&expr);
 
                 self.expr_type
-            })
-            .unwrap_or(BuiltinType::Unit);
+            }).unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
 
@@ -498,7 +503,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         if result.is_none() {
             let type_name = object_type.name(self.ctxt);
             let name = self.ctxt.interner.str(name).to_string();
-            let param_names = args.iter()
+            let param_names = args
+                .iter()
                 .map(|a| a.name(self.ctxt))
                 .collect::<Vec<String>>();
             let msg = if is_static {
@@ -726,13 +732,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             None
         };
 
-        let call_types: Vec<BuiltinType> = e.args
+        let call_types: Vec<BuiltinType> = e
+            .args
             .iter()
             .map(|arg| {
                 self.visit_expr(arg);
                 self.expr_type
-            })
-            .collect();
+            }).collect();
 
         let type_params: Vec<BuiltinType> = if let Some(ref type_params) = e.type_params {
             type_params.iter().map(|p| self.src.ty(p.id())).collect()
@@ -894,13 +900,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     }
 
     fn check_expr_delegation(&mut self, e: &'ast ExprDelegationType) {
-        let arg_types: Vec<BuiltinType> = e.args
+        let arg_types: Vec<BuiltinType> = e
+            .args
             .iter()
             .map(|arg| {
                 self.visit_expr(arg);
                 self.expr_type
-            })
-            .collect();
+            }).collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
 
@@ -1025,7 +1031,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         let type_name = obj.name(self.ctxt);
         let name = self.ctxt.interner.str(e.path.name()).to_string();
-        let param_names = args.iter()
+        let param_names = args
+            .iter()
             .map(|a| a.name(self.ctxt))
             .collect::<Vec<String>>();
         let msg = Msg::UnknownMethod(type_name, name, param_names);
@@ -1209,7 +1216,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             BuiltinType::Unit
         };
 
-        let params = e.params
+        let params = e
+            .params
             .iter()
             .map(|p| self.src.ty(p.data_type.id()))
             .collect::<Vec<_>>();
@@ -1821,7 +1829,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             };
 
             let name = self.ctxt.interner.str(name).to_string();
-            let param_names = args.iter()
+            let param_names = args
+                .iter()
                 .map(|a| a.name(self.ctxt))
                 .collect::<Vec<String>>();
 
@@ -1897,7 +1906,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             &fct_tps,
         ) {
             let fct_name = self.ctxt.interner.str(fct.name).to_string();
-            let fct_params = fct.params_without_self()
+            let fct_params = fct
+                .params_without_self()
                 .iter()
                 .map(|a| a.name(self.ctxt))
                 .collect::<Vec<_>>();
@@ -2130,7 +2140,8 @@ fn lookup_method<'ast>(
             let params = ctxt.lists.borrow().get(list_id);
             Some((cls_id, params))
         }
-        _ => ctxt.vips
+        _ => ctxt
+            .vips
             .find_class(object_type)
             .map(|c| (c, TypeParams::empty())),
     };

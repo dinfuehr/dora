@@ -4,8 +4,8 @@ use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeData;
 use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
 use ctxt::{get_ctxt, SemContext};
-use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use execstate::ExecState;
+use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,
@@ -201,7 +201,8 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
                 // println!("entry = {:x} to {:x} for {:?}",
                 //          entry.try_start, entry.try_end, entry.catch_type);
 
-                if entry.try_start < pc && pc <= entry.try_end
+                if entry.try_start < pc
+                    && pc <= entry.try_end
                     && (entry.catch_type == CatchType::Any
                         || entry.catch_type == CatchType::Class(clsptr))
                 {

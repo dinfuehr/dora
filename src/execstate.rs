@@ -1,5 +1,5 @@
-use std::fmt;
 use cpu::REG_COUNT;
+use std::fmt;
 
 pub struct ExecState {
     pub pc: usize,

@@ -1,14 +1,16 @@
 use std::cmp::max;
 use std::collections::HashMap;
 
-use dora_parser::ast::*;
-use dora_parser::ast::Stmt::*;
-use dora_parser::ast::Expr::*;
-use dora_parser::ast::visit::*;
 use class::TypeParams;
 use cpu::*;
-use ctxt::{Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
-           SemContext, Store, TraitId, VarId};
+use ctxt::{
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
+    SemContext, Store, TraitId, VarId,
+};
+use dora_parser::ast::visit::*;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::*;
 use mem;
 use ty::BuiltinType;
 
@@ -78,13 +80,15 @@ impl<'ast> JitInfo<'ast> {
     }
 
     pub fn offset(&self, var_id: VarId) -> i32 {
-        *self.map_var_offsets
+        *self
+            .map_var_offsets
             .get(&var_id)
             .expect("no offset found for var")
     }
 
     pub fn ty(&self, var_id: VarId) -> BuiltinType {
-        *self.map_var_types
+        *self
+            .map_var_types
             .get(&var_id)
             .expect("no type found for var")
     }
@@ -387,7 +391,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
 
-        let mut args = expr.args
+        let mut args = expr
+            .args
             .iter()
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
@@ -483,7 +488,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn expr_delegation(&mut self, expr: &'ast ExprDelegationType) {
-        let mut args = expr.args
+        let mut args = expr
+            .args
             .iter()
             .map(|arg| Arg::Expr(arg, BuiltinType::Unit, 0))
             .collect::<Vec<_>>();
@@ -546,7 +552,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
         assert!(callee.params_with_self().len() == args.len());
 
-        let args = args.iter()
+        let args = args
+            .iter()
             .enumerate()
             .map(|(ind, arg)| {
                 let ty = callee.params_with_self()[ind];
@@ -566,8 +573,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, offset),
                     Arg::Selfie(cid, _) => Arg::Selfie(cid, offset),
                 }
-            })
-            .collect::<Vec<_>>();
+            }).collect::<Vec<_>>();
 
         let return_type = self.specialize_type_for_call(call_type, callee.return_type);
 

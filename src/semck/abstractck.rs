@@ -112,8 +112,8 @@ fn find_abstract_methods<'ast>(
 
 #[cfg(test)]
 mod tests {
-    use semck::tests::{err, ok, pos};
     use dora_parser::error::msg::Msg;
+    use semck::tests::{err, ok, pos};
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {

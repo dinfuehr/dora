@@ -1,9 +1,9 @@
 use ctxt::{Fct, FctSrc, SemContext};
 use dora_parser::error::msg::Msg;
 
-use dora_parser::ast::*;
-use dora_parser::ast::Stmt::*;
 use dora_parser::ast::visit::*;
+use dora_parser::ast::Stmt::*;
+use dora_parser::ast::*;
 
 pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {

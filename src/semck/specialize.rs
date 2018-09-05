@@ -6,8 +6,8 @@ use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams
 use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
 use mem;
 use object::Header;
-use vtable::{VTableBox, DISPLAY_SIZE};
 use ty::BuiltinType;
+use vtable::{VTableBox, DISPLAY_SIZE};
 
 pub fn specialize_type<'ast>(
     ctxt: &SemContext<'ast>,
@@ -182,7 +182,8 @@ fn create_specialized_class(
 ) -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
-    let old = cls.specializations
+    let old = cls
+        .specializations
         .borrow_mut()
         .insert(type_params.clone(), id);
     assert!(old.is_none());
@@ -217,7 +218,8 @@ fn create_specialized_class(
             ClassSize::Str
         };
 
-        let super_id = cls.parent_class
+        let super_id = cls
+            .parent_class
             .expect("Array & Str should have super class");
         let id = specialize_class_id(ctxt, super_id);
         parent_id = Some(id);

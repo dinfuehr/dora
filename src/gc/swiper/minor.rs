@@ -2,14 +2,14 @@ use std::cmp;
 
 use ctxt::SemContext;
 
-use gc::Address;
 use gc::root::IndirectObj;
-use gc::swiper::{Region, CARD_SIZE};
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
+use gc::swiper::{Region, CARD_SIZE};
+use gc::Address;
 
 use mem;
 use object::Obj;

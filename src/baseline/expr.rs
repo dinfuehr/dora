@@ -1,18 +1,22 @@
-use dora_parser::ast::*;
-use dora_parser::ast::Expr::*;
-use baseline::codegen::{self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug,
-                        CondCode, Scopes, TempOffsets};
+use baseline::codegen::{
+    self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug, CondCode, Scopes,
+    TempOffsets,
+};
 use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use baseline::native::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
-use cpu::{FREG_TMP1, FReg, Mem, REG_TMP1, REG_TMP2, Reg, FREG_PARAMS, FREG_RESULT, REG_PARAMS,
-          REG_RESULT, REG_THREAD};
+use cpu::{
+    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_THREAD,
+    REG_TMP1, REG_TMP2,
+};
 use ctxt::*;
-use driver::cmd::AsmSyntax;
+use dora_parser::ast::Expr::*;
+use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
+use driver::cmd::AsmSyntax;
 use masm::*;
 use mem;
 use object::{Header, Str};
@@ -1502,7 +1506,10 @@ where
                     // no check necessary for:
                     //   super calls (guaranteed to not be nil) and
                     //   dynamic dispatch (implicit check when loading fctptr from vtable)
-                    if idx == 0 && fct.has_self() && check_for_nil(ty) && !csite.super_call
+                    if idx == 0
+                        && fct.has_self()
+                        && check_for_nil(ty)
+                        && !csite.super_call
                         && !fct.is_virtual()
                     {
                         self.masm.test_if_nil_bailout(pos, dest.reg(), Trap::NIL);

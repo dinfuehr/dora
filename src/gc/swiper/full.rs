@@ -2,17 +2,17 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
-use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
-use gc::swiper::CARD_SIZE;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::{in_kilo, on_different_cards};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
-use gc::swiper::Region;
 use gc::swiper::young::YoungGen;
+use gc::swiper::Region;
+use gc::swiper::CARD_SIZE;
+use gc::swiper::{in_kilo, on_different_cards};
+use gc::Address;
 use mem;
 use object::{offset_of_array_data, Obj};
 use os;
@@ -183,7 +183,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr)
+            if !root_ptr.is_null()
+                && !self.perm_space.contains(root_ptr)
                 && !self.large_space.contains(root_ptr)
             {
                 let fwd_addr = self.fwd_table.forward_address(root_ptr);
@@ -256,7 +257,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn forward_reference(&mut self, indirect_obj: IndirectObj) {
         let object_addr = Address::from_ptr(indirect_obj.get());
 
-        if !object_addr.is_null() && !self.perm_space.contains(object_addr)
+        if !object_addr.is_null()
+            && !self.perm_space.contains(object_addr)
             && !self.large_space.contains(object_addr)
         {
             let fwd_addr = self.fwd_table.forward_address(object_addr);

@@ -3,15 +3,17 @@ use std::collections::HashSet;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use baseline::expr::ExprStore;
-use baseline::fct::{BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint,
-                    GcPoints, JitBaselineFct, LineNumberTable};
 use baseline::codegen::CondCode;
+use baseline::expr::ExprStore;
+use baseline::fct::{
+    BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
+    JitBaselineFct, LineNumberTable,
+};
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Mem, Reg, SCRATCH};
 use ctxt::{FctId, SemContext};
-use dseg::DSeg;
 use dora_parser::lexer::position::Position;
+use dseg::DSeg;
 use mem;
 use object::Header;
 use os::signal::Trap;

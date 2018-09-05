@@ -1,5 +1,5 @@
-use std;
 use mem;
+use std;
 
 #[derive(Debug)]
 pub struct DSeg {

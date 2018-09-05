@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::Address;
-use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::swiper::crossing::{Card, CrossingMap};
 use gc::swiper::Region;
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::Address;
 use mem;
 use object::offset_of_array_data;
 

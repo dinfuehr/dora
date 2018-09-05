@@ -1,8 +1,8 @@
 use std::ptr;
 
-use gc::Address;
-use gc::swiper::CARD_SIZE_BITS;
 use gc::swiper::crossing::Card;
+use gc::swiper::CARD_SIZE_BITS;
+use gc::Address;
 
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)

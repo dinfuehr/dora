@@ -1,15 +1,15 @@
 use class::TypeParams;
 use ctxt::{NodeMap, SemContext};
-use dora_parser::ast::{Stmt, Type};
 use dora_parser::ast::Type::{TypeBasic, TypeLambda, TypeSelf, TypeTuple};
+use dora_parser::ast::{Stmt, Type};
 use dora_parser::error::msg::Msg;
 use mem;
 use sym::Sym::{SymClass, SymClassTypeParam, SymFctTypeParam, SymStruct, SymTrait};
 use ty::BuiltinType;
 
 mod abstractck;
-mod constdefck;
 mod clsdefck;
+mod constdefck;
 mod fctdefck;
 mod flowck;
 mod globaldef;
@@ -18,12 +18,12 @@ mod implck;
 mod impldefck;
 mod nameck;
 mod prelude;
-mod typeck;
 mod returnck;
 pub mod specialize;
 mod structdefck;
 mod superck;
 mod traitdefck;
+mod typeck;
 
 macro_rules! return_on_error {
     ($ctxt: ident) => {{
