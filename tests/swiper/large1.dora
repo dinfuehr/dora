@@ -1,12 +1,12 @@
-//= ignore
+//= --gc=swiper --gc-verify
 
 fun main() {
     let x = Array::<Object>(16 * 1024);
     let y = Array::<Object>(16 * 1024);
     let z = Array::<Object>(16 * 1024);
-//    forceCollect();
-//    assert(x[0] === nil);
-//    x[0] = Object();
-//    forceCollect();
-//    assert(x[0] !== nil);
+    forceCollect();
+    assert(x[0] === nil);
+    x[0] = Object();
+    forceCollect();
+    assert(x[0] !== nil);
 }

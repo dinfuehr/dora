@@ -29,7 +29,7 @@ impl LargeSpace {
         if let Some(range) = space.alloc(size) {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
             space.append_large_alloc(range.start, range.size());
-            range.start
+            range.start.offset(size_of::<LargeAlloc>())
 
         } else {
             Address::null()
