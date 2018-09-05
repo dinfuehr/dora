@@ -4,6 +4,7 @@ use gc::space::Space;
 use gc::swiper::CARD_SIZE;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::{on_different_cards, start_of_card};
 use gc::swiper::Region;
@@ -37,6 +38,7 @@ pub struct Verifier<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [IndirectObj],
+    large: &'a LargeSpace,
     perm_space: &'a Space,
 
     refs_to_young_gen: usize,
@@ -55,6 +57,7 @@ impl<'a> Verifier<'a> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
+        large: &'a LargeSpace,
         perm_space: &'a Space,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
@@ -65,6 +68,7 @@ impl<'a> Verifier<'a> {
             crossing_map: crossing_map,
             rootset: rootset,
             perm_space: perm_space,
+            large: large,
 
             refs_to_young_gen: 0,
             in_old: false,
@@ -80,6 +84,7 @@ impl<'a> Verifier<'a> {
         self.verify_roots();
         self.verify_young();
         self.verify_old();
+        self.verify_large();
     }
 
     fn verify_young(&mut self) {
@@ -92,6 +97,14 @@ impl<'a> Verifier<'a> {
         self.in_old = true;
         self.verify_objects(region, "old gen");
         self.in_old = false;
+    }
+
+    fn verify_large(&mut self) {
+        self.large.visit_objects(|addr| {
+            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+            let region = Region::new(addr, addr.offset(object.size()));
+            self.verify_objects(region, "large space");
+        });
     }
 
     fn verify_roots(&mut self) {
@@ -273,7 +286,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_region.contains(addr) || self.young_region.contains(addr)
-            || self.perm_space.contains(addr)
+            || self.perm_space.contains(addr) || self.large.contains(addr)
         {
             let object = unsafe { &mut *obj };
 

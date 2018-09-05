@@ -5,10 +5,10 @@ use ctxt::SemContext;
 use gc::Address;
 use gc::root::IndirectObj;
 use gc::space::Space;
-use gc::swiper::card::{CardEntry, CardTable};
+use gc::swiper::card::CardTable;
 use gc::swiper::CARD_SIZE;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::{in_kilo, on_different_cards, start_of_card};
+use gc::swiper::{in_kilo, on_different_cards};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::Region;
@@ -79,6 +79,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.compute_forward();
         self.update_references();
         self.relocate();
+        self.update_large_objects();
 
         timer.stop_with(|dur| {
             let new_size = self.heap_size();
@@ -150,33 +151,20 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_references(&mut self) {
-        self.walk_old_and_young(|full, object, address, _| {
+        self.walk_old_and_young(|full, object, _address, _| {
             if full.is_marked(object) {
-                let mut young_refs = false;
-
                 object.visit_reference_fields(|field| {
-                    let field_addr = Address::from_ptr(field.get());
-
-                    if !field_addr.is_null() && !full.perm_space.contains(field_addr) && !full.large_space.contains(field_addr) {
-                        let fwd_addr = full.fwd_table.forward_address(field_addr);
-                        field.set(fwd_addr.to_mut_ptr());
-
-                        if full.young.contains(fwd_addr) {
-                            young_refs = true;
-                        }
-                    }
+                    full.forward_reference(field);
                 });
-
-                if young_refs {
-                    full.fwd_table.set_young_refs(address);
-                }
             }
         });
 
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
-            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr) && !self.large_space.contains(root_ptr) {
+            if !root_ptr.is_null() && !self.perm_space.contains(root_ptr)
+                && !self.large_space.contains(root_ptr)
+            {
                 let fwd_addr = self.fwd_table.forward_address(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
@@ -187,7 +175,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.unprotect_to_space();
 
         self.crossing_map.set_first_object(0.into(), 0);
-        let mut young_refs = false;
         let mut last_dest = Address::null();
 
         self.walk_old_and_young(|full, object, address, object_size| {
@@ -195,24 +182,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let dest = full.fwd_table.forward_address(address);
                 object.copy_to(dest, object_size);
 
-                if !young_refs {
-                    young_refs = full.fwd_table.has_young_refs(address);
-                }
-
                 let next_dest = dest.offset(object_size);
 
                 if on_different_cards(dest, next_dest) && full.old.contains(dest) {
                     full.update_crossing(dest, next_dest, object.is_array_ref());
-                    full.update_card(dest, next_dest, &mut young_refs);
                 }
 
                 last_dest = next_dest;
             }
         });
-
-        if !last_dest.is_null() && !start_of_card(last_dest) && self.old.contains(last_dest) {
-            self.update_card(last_dest, last_dest, &mut young_refs);
-        }
 
         let young_top;
         let old_top;
@@ -234,6 +212,27 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         debug_assert!(self.old.valid_top(old_top));
         self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
+    }
+
+    fn update_large_objects(&mut self) {
+        self.large_space.visit_objects(|addr| {
+            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+
+            object.visit_reference_fields(|field| {
+                self.forward_reference(field);
+            });
+        });
+    }
+
+    fn forward_reference(&mut self, indirect_obj: IndirectObj) {
+        let object_addr = Address::from_ptr(indirect_obj.get());
+
+        if !object_addr.is_null() && !self.perm_space.contains(object_addr)
+            && !self.large_space.contains(object_addr)
+        {
+            let fwd_addr = self.fwd_table.forward_address(object_addr);
+            indirect_obj.set(fwd_addr.to_mut_ptr());
+        }
     }
 
     fn walk_old_and_young<F>(&mut self, mut fct: F)
@@ -297,7 +296,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             if last.offset(offset_of_array_data() as usize) > last_card_end {
                 let diff_words = last_card_end.offset_from(last) / mem::ptr_width_usize();
-                self.crossing_map.set_array_start((last_card.to_usize()+1).into(), diff_words);
+                self.crossing_map
+                    .set_array_start((last_card.to_usize() + 1).into(), diff_words);
 
                 loop_start = last_card.to_usize() + 2;
             } else {
@@ -306,39 +306,22 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
 
-            for i in loop_start .. card.to_usize() {
-                self.crossing_map.set_references_at_start(i.into(), refs_per_card);
+            for i in loop_start..card.to_usize() {
+                self.crossing_map
+                    .set_references_at_start(i.into(), refs_per_card);
             }
 
             if card.to_usize() >= loop_start {
-                self.crossing_map.set_references_at_start(card, offset_words);
+                self.crossing_map
+                    .set_references_at_start(card, offset_words);
             }
-
         } else {
-            for i in last_card.to_usize()+1 .. card.to_usize() {
+            for i in last_card.to_usize() + 1..card.to_usize() {
                 self.crossing_map.set_no_references(i.into());
             }
 
             self.crossing_map.set_first_object(card, offset_words);
         }
-    }
-
-    fn update_card(&mut self, addr: Address, next: Address, young_refs: &mut bool) {
-        let card = self.old.card_from_address(addr);
-        let next_card = self.old.card_from_address(next);
-
-        let card_entry = if *young_refs {
-            CardEntry::Dirty
-        } else {
-            CardEntry::Clean
-        };
-        self.card_table.set(card, card_entry);
-
-        for i in card.to_usize()+1 .. next_card.to_usize() {
-            self.card_table.set(i.into(), CardEntry::Clean);
-        }
-
-        *young_refs = false;
     }
 
     fn is_marked(&self, obj: &Obj) -> bool {
@@ -421,7 +404,7 @@ impl Drop for MarkingBitmap {
 }
 
 struct ForwardTable {
-    data: HashMap<Address, AddressWithYoungRefs>,
+    data: HashMap<Address, Address>,
 }
 
 impl ForwardTable {
@@ -436,52 +419,12 @@ impl ForwardTable {
     }
 
     fn forward_to(&mut self, addr: Address, fwd: Address) {
-        self.data.insert(addr, AddressWithYoungRefs::new(fwd));
+        self.data.insert(addr, fwd);
     }
 
     fn forward_address(&mut self, addr: Address) -> Address {
-        self.data
+        *self.data
             .get(&addr)
             .expect("no forward address found.")
-            .address()
-    }
-
-    fn has_young_refs(&mut self, addr: Address) -> bool {
-        self.data
-            .get(&addr)
-            .expect("no forward address found.")
-            .has_young_refs()
-    }
-
-    fn set_young_refs(&mut self, addr: Address) {
-        let value = self.data.get_mut(&addr).expect("no forward address found.");
-        *value = value.set_young_refs();
-    }
-}
-
-#[derive(Copy, Clone)]
-struct AddressWithYoungRefs {
-    data: usize,
-}
-
-impl AddressWithYoungRefs {
-    fn new(addr: Address) -> AddressWithYoungRefs {
-        AddressWithYoungRefs {
-            data: addr.to_usize(),
-        }
-    }
-
-    fn address(self) -> Address {
-        (self.data & !1).into()
-    }
-
-    fn has_young_refs(self) -> bool {
-        (self.data & 1) != 0
-    }
-
-    fn set_young_refs(self) -> AddressWithYoungRefs {
-        AddressWithYoungRefs {
-            data: self.data | 1,
-        }
     }
 }

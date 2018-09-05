@@ -97,7 +97,8 @@ impl Swiper {
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
-        arena::commit(crossing_start, crossing_size, false).expect("could not commit crossing table.");
+        arena::commit(crossing_start, crossing_size, false)
+            .expect("could not commit crossing table.");
         let crossing_map = CrossingMap::new(crossing_start, crossing_end);
 
         // determine boundaries of young generation
@@ -208,6 +209,7 @@ impl Swiper {
                 &self.card_table,
                 &self.crossing_map,
                 rootset,
+                &self.large,
                 &*perm_space,
                 phase,
             );

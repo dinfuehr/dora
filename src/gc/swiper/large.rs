@@ -30,7 +30,6 @@ impl LargeSpace {
             arena::commit(range.start, range.size(), false).expect("couldn't commit large object.");
             space.append_large_alloc(range.start, range.size());
             range.start.offset(size_of::<LargeAlloc>())
-
         } else {
             Address::null()
         }
@@ -50,6 +49,14 @@ impl LargeSpace {
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
     }
+
+    pub fn visit_objects<F>(&self, f: F)
+    where
+        F: FnMut(Address),
+    {
+        let mut space = self.space.lock().unwrap();
+        space.visit_objects(f);
+    }
 }
 
 struct LargeAlloc {
@@ -61,7 +68,6 @@ struct LargeAlloc {
 struct LargeSpaceProtected {
     elements: Vec<Range>,
     head: Address,
-    tail: Address,
 }
 
 impl LargeSpaceProtected {
@@ -69,7 +75,6 @@ impl LargeSpaceProtected {
         LargeSpaceProtected {
             elements: vec![Range::new(start, end)],
             head: Address::null(),
-            tail: Address::null(),
         }
     }
 
@@ -101,7 +106,8 @@ impl LargeSpaceProtected {
     }
 
     fn merge(&mut self) {
-        self.elements.sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
+        self.elements
+            .sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
 
         let len = self.elements.len();
         let mut last_element = 0;
@@ -115,7 +121,7 @@ impl LargeSpaceProtected {
             }
         }
 
-        self.elements.truncate(last_element+1);
+        self.elements.truncate(last_element + 1);
     }
 
     fn contains(&self, ptr: Address) -> bool {
@@ -129,17 +135,30 @@ impl LargeSpaceProtected {
     }
 
     fn append_large_alloc(&mut self, addr: Address, size: usize) {
-        if !self.tail.is_null() {
-            let old_tail = unsafe { &mut *self.tail.to_mut_ptr::<LargeAlloc>() };
-            old_tail.next = addr;
+        if !self.head.is_null() {
+            let old_head = unsafe { &mut *self.head.to_mut_ptr::<LargeAlloc>() };
+            old_head.prev = addr;
         }
 
-        let new_tail = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
-        new_tail.prev = self.tail;
-        new_tail.next = Address::null();
-        new_tail.size = size;
+        let new_head = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+        new_head.next = self.head;
+        new_head.prev = Address::null();
+        new_head.size = size;
 
-        self.tail = addr;
+        self.head = addr;
+    }
+
+    fn visit_objects<F>(&mut self, mut f: F)
+    where
+        F: FnMut(Address),
+    {
+        let mut addr = self.head;
+
+        while !addr.is_null() {
+            let large_alloc = unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() };
+            f(addr.offset(size_of::<LargeAlloc>()));
+            addr = large_alloc.next;
+        }
     }
 }
 
