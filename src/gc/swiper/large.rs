@@ -179,8 +179,6 @@ impl LargeSpaceProtected {
                 }
 
                 large_alloc.prev = prev;
-                // We might not have a successor
-                large_alloc.next = Address::null();
                 prev = addr;
             } else {
                 freed = true;
@@ -189,6 +187,16 @@ impl LargeSpaceProtected {
             }
 
             addr = next;
+        }
+
+        if prev.is_null() {
+            // No large objects left
+            self.head = Address::null();
+
+        } else {
+            // Set next to null for last allocation
+            let prev_large_alloc = unsafe { &mut *prev.to_mut_ptr::<LargeAlloc>() };
+            prev_large_alloc.next = Address::null();
         }
 
         if freed {

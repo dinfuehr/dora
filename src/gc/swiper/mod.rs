@@ -121,12 +121,12 @@ impl Swiper {
 
         if args.flag_gc_verbose {
             println!(
-                "GC: heap info: {:.1}K, old {:.1}K, young {:.1}K, card {:.1}K, crossing {:.1}K",
-                in_kilo(heap_size),
-                in_kilo(old_size),
-                in_kilo(young_size),
-                in_kilo(card_size),
-                in_kilo(crossing_size)
+                "GC: heap info: {}, old {}, young {}, card {}, crossing {}",
+                formatted_size(heap_size),
+                formatted_size(old_size),
+                formatted_size(young_size),
+                formatted_size(card_size),
+                formatted_size(crossing_size)
             );
         }
 
@@ -321,6 +321,38 @@ impl fmt::Display for Region {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}-{}", self.start, self.end)
     }
+}
+
+struct FormattedSize {
+    size: usize
+}
+
+impl fmt::Display for FormattedSize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ksize = (self.size as f64) / 1024f64;
+
+        if ksize < 1f64 {
+            return write!(f, "{}B", self.size);
+        }
+
+        let msize = ksize / 1024f64;
+
+        if msize < 1f64 {
+            return write!(f, "{:.1}K", ksize);
+        }
+
+        let gsize = msize / 1024f64;
+
+        if gsize < 1f64 {
+            write!(f, "{:.1}M", msize)
+        } else {
+            write!(f, "{:.1}G", gsize)
+        }
+    }
+}
+
+fn formatted_size(size: usize) -> FormattedSize {
+    FormattedSize { size }
 }
 
 fn in_kilo(size: usize) -> f64 {
