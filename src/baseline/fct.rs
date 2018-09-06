@@ -47,7 +47,7 @@ pub enum JitFct {
 impl JitFct {
     pub fn fct_id(&self) -> FctId {
         match self {
-            &JitFct::Base(ref base) => base.fct_id,
+            &JitFct::Base(ref base) => base.fct_id(),
             &JitFct::Opt(ref opt) => opt.fct_id(),
         }
     }
@@ -67,11 +67,19 @@ impl JitFct {
     }
 }
 
+#[derive(Debug)]
+pub enum JitDescriptor {
+    DoraFct(FctId),
+    CompilerTrap,
+    NativeThunk(FctId),
+    DoraEntry,
+}
+
 pub struct JitBaselineFct {
     code_start: *const u8,
     code_end: *const u8,
 
-    pub fct_id: FctId,
+    pub desc: JitDescriptor,
     pub throws: bool,
 
     // pointer to beginning of function
@@ -100,7 +108,7 @@ impl JitBaselineFct {
         framesize: i32,
         comments: Comments,
         linenos: LineNumberTable,
-        fct_id: FctId,
+        desc: JitDescriptor,
         throws: bool,
         mut exception_handlers: Vec<ExHandler>,
     ) -> JitBaselineFct {
@@ -137,7 +145,7 @@ impl JitBaselineFct {
             fct_start: fct_start,
             fct_len: buffer.len(),
             linenos: linenos,
-            fct_id: fct_id,
+            desc: desc,
             throws: throws,
             exception_handlers: exception_handlers,
         }
@@ -163,6 +171,14 @@ impl JitBaselineFct {
         self.code_end
     }
 
+    pub fn fct_id(&self) -> FctId {
+        match self.desc {
+            JitDescriptor::NativeThunk(fct_id) => fct_id,
+            JitDescriptor::DoraFct(fct_id) => fct_id,
+            _ => panic!("no fctid found"),
+        }
+    }
+
     pub fn fct_ptr(&self) -> *const u8 {
         self.fct_start
     }
@@ -184,10 +200,10 @@ impl fmt::Debug for JitBaselineFct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "JitBaselineFct {{ start: {:?}, end: {:?}, fct_id: {:?} }}",
+            "JitBaselineFct {{ start: {:?}, end: {:?}, desc: {:?} }}",
             self.ptr_start(),
             self.ptr_end(),
-            self.fct_id,
+            self.desc,
         )
     }
 }

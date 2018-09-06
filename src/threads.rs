@@ -1,20 +1,30 @@
 use std::ptr;
 
 use exception::DoraToNativeInfo;
+use gc::Address;
 
 pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,
-    tlab_top: usize,
-    tlab_end: usize,
+    tlab_top: Address,
+    tlab_end: Address,
 }
 
 impl ThreadLocalData {
     pub fn new() -> ThreadLocalData {
         ThreadLocalData {
             d2n: ptr::null(),
-            tlab_top: 0,
-            tlab_end: 0,
+            tlab_top: Address::null(),
+            tlab_end: Address::null(),
         }
+    }
+
+    pub fn tlab_initialize(&mut self, start: Address, end: Address) {
+        self.tlab_top = start;
+        self.tlab_end = end;
+    }
+
+    pub fn tlab_rest(&self) -> usize {
+        self.tlab_end.offset_from(self.tlab_top)
     }
 
     pub fn tlab_top_offset() -> i32 {

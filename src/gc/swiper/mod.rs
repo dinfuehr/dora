@@ -324,7 +324,7 @@ impl fmt::Display for Region {
 }
 
 struct FormattedSize {
-    size: usize
+    size: usize,
 }
 
 impl fmt::Display for FormattedSize {

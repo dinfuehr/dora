@@ -2,6 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::rc::Rc;
@@ -10,6 +11,8 @@ use std::sync::{Mutex, RwLock};
 use dora_parser::error::diag::Diagnostic;
 use driver::cmd::Args;
 
+use baseline;
+use baseline::dora_entry;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
 use baseline::native::NativeFcts;
@@ -19,12 +22,14 @@ use dora_parser::ast;
 use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use exception::DoraToNativeInfo;
-use gc::Gc;
+use gc::{Address, Gc};
 use handle::HandleMemory;
+use object::{Handle, Testing};
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use sym::Sym::*;
 use sym::*;
+use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
@@ -83,6 +88,8 @@ pub struct SemContext<'ast> {
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
+    pub dora_entry: Address,
+    pub tld: RefCell<ThreadLocalData>,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -91,7 +98,7 @@ impl<'ast> SemContext<'ast> {
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        SemContext {
+        let mut ctxt = SemContext {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -142,7 +149,35 @@ impl<'ast> SemContext<'ast> {
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
-        }
+            dora_entry: Address::null(),
+            tld: RefCell::new(ThreadLocalData::new()),
+        };
+
+        ctxt.dora_entry = dora_entry::generate(&ctxt, false);
+
+        ctxt
+    }
+
+    pub fn run_main(&self, fct_id: FctId) -> i32 {
+        let ptr = self.ensure_compiled(fct_id);
+        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(self.dora_entry) };
+        fct(ptr)
+    }
+
+    pub fn run_test(&self, fct_id: FctId, testing: Handle<Testing>) {
+        let ptr = self.ensure_compiled(fct_id);
+        let fct: extern "C" fn(Address, Handle<Testing>) -> i32 =
+            unsafe { mem::transmute(self.dora_entry) };
+        fct(ptr, testing);
+    }
+
+    fn ensure_compiled(&self, fct_id: FctId) -> Address {
+        let mut dtn = DoraToNativeInfo::new();
+        let type_params = TypeParams::empty();
+
+        self.use_dtn(&mut dtn, || {
+            Address::from_ptr(baseline::generate(self, fct_id, &type_params, &type_params))
+        })
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R

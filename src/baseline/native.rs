@@ -1,7 +1,7 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
-use baseline::fct::{JitBaselineFct, JitFct, JitFctId};
+use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use exception::DoraToNativeInfo;
@@ -133,13 +133,18 @@ where
             Mem::Base(REG_SP, offset_thread),
         );
 
-        self.masm.epilog(framesize, self.ctxt.polling_page.addr());
+        self.masm
+            .epilog_with_polling(framesize, self.ctxt.polling_page.addr());
 
         self.masm.bind_label(lbl_exception);
         self.masm.trap(Trap::THROW);
 
-        self.masm
-            .jit(self.ctxt, framesize, self.fct.id, self.fct.throws)
+        self.masm.jit(
+            self.ctxt,
+            framesize,
+            JitDescriptor::NativeThunk(self.fct.id),
+            self.fct.throws,
+        )
     }
 }
 

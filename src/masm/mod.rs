@@ -7,11 +7,11 @@ use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::{
     BailoutInfo, Bailouts, CatchType, Comment, Comments, ExHandler, GcPoint, GcPoints,
-    JitBaselineFct, LineNumberTable,
+    JitBaselineFct, JitDescriptor, LineNumberTable,
 };
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Mem, Reg, SCRATCH};
-use ctxt::{FctId, SemContext};
+use ctxt::SemContext;
 use dora_parser::lexer::position::Position;
 use dseg::DSeg;
 use mem;
@@ -68,7 +68,7 @@ impl MacroAssembler {
         mut self,
         ctxt: &SemContext,
         stacksize: i32,
-        fct_id: FctId,
+        desc: JitDescriptor,
         throws: bool,
     ) -> JitBaselineFct {
         // align data such that code starts at address that is
@@ -86,7 +86,7 @@ impl MacroAssembler {
             stacksize,
             self.comments,
             self.linenos,
-            fct_id,
+            desc,
             throws,
             self.exception_handlers,
         )

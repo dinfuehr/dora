@@ -14,7 +14,9 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 
 use baseline::expr::*;
-use baseline::fct::{CatchType, Comment, CommentFormat, GcPoint, JitBaselineFct, JitFct};
+use baseline::fct::{
+    CatchType, Comment, CommentFormat, GcPoint, JitBaselineFct, JitDescriptor, JitFct,
+};
 use baseline::info::{self, JitInfo};
 use baseline::map::CodeData;
 use class::{ClassDef, TypeParams};
@@ -319,7 +321,7 @@ where
         let jit_fct = self.masm.jit(
             self.ctxt,
             self.jit_info.stacksize(),
-            self.fct.id,
+            JitDescriptor::DoraFct(self.fct.id),
             self.ast.throws,
         );
 
@@ -398,7 +400,7 @@ where
         self.masm.emit_comment(Comment::Newline);
         self.masm.emit_comment(Comment::Lit("epilog"));
         self.masm
-            .epilog(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
+            .epilog_with_polling(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {

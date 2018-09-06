@@ -1,9 +1,6 @@
 use std::fs;
-use std::mem;
 use std::path::Path;
 
-use baseline;
-use class::TypeParams;
 use ctxt::{exception_get_and_clear, Fct, FctId, SemContext};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
@@ -12,8 +9,7 @@ use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
 use driver::cmd;
-use exception::DoraToNativeInfo;
-use object::{self, Handle, Testing};
+use object;
 use os;
 
 use dora_parser::parser::{NodeIdGenerator, Parser};
@@ -129,23 +125,10 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
 }
 
 fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
-    let fct_ptr = {
-        let mut dtn = DoraToNativeInfo::new();
-        let type_params = TypeParams::empty();
-
-        ctxt.use_dtn(&mut dtn, || {
-            baseline::generate(&ctxt, fct, &type_params, &type_params)
-        })
-    };
-
     let testing_class = ctxt.vips.testing_class;
     let testing_class = specialize_class_id(ctxt, testing_class);
     let testing = object::alloc(ctxt, testing_class).cast();
-
-    let fct: extern "C" fn(Handle<Testing>) -> i32 = unsafe { mem::transmute(fct_ptr) };
-
-    // execute test
-    fct(testing);
+    ctxt.run_test(fct, testing);
 
     // see if test failed with exception
     let exception = exception_get_and_clear();
@@ -171,18 +154,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
 }
 
 fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
-    let fct_ptr = {
-        let mut dtn = DoraToNativeInfo::new();
-        let type_params = TypeParams::empty();
-
-        ctxt.use_dtn(&mut dtn, || {
-            baseline::generate(&ctxt, main, &type_params, &type_params)
-        })
-    };
-
-    let fct: extern "C" fn() -> i32 = unsafe { mem::transmute(fct_ptr) };
-    let res = fct();
-
+    let res = ctxt.run_main(main);
     let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
 
     // main-fct without return value exits with status 0

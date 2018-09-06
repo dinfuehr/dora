@@ -1,7 +1,8 @@
 use std::fmt;
 
+use baseline::fct::JitDescriptor;
 use baseline::map::CodeData;
-use ctxt::{FctId, SemContext};
+use ctxt::SemContext;
 use masm::MacroAssembler;
 use os::signal::Trap;
 
@@ -14,7 +15,7 @@ impl Stub {
     pub fn new(ctxt: &SemContext) -> Stub {
         let mut masm = MacroAssembler::new();
         masm.trap(Trap::COMPILER);
-        let jit_fct = masm.jit(ctxt, 0, FctId(0), false);
+        let jit_fct = masm.jit(ctxt, 0, JitDescriptor::CompilerTrap, false);
 
         Stub {
             start: jit_fct.ptr_start(),

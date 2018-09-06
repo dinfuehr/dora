@@ -25,7 +25,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog(&mut self, stacksize: i32, polling_page: *const u8) {
+    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
         if stacksize > 0 {
             asm::emit_addq_imm_reg(self, stacksize, RSP);
         }
@@ -37,6 +37,15 @@ impl MacroAssembler {
         let gcpoint = GcPoint::new();
         self.emit_gcpoint(gcpoint);
 
+        asm::emit_retq(self);
+    }
+
+    pub fn epilog(&mut self, stacksize: i32) {
+        if stacksize > 0 {
+            asm::emit_addq_imm_reg(self, stacksize, RSP);
+        }
+
+        asm::emit_popq_reg(self, RBP);
         asm::emit_retq(self);
     }
 
