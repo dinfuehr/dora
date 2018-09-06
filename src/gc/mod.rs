@@ -71,11 +71,11 @@ impl Gc {
     }
 
     pub fn alloc_code(&self, size: usize) -> *mut u8 {
-        self.code_space.alloc(size)
+        self.code_space.alloc(size).to_mut_ptr()
     }
 
     pub fn alloc_perm(&self, size: usize) -> *mut u8 {
-        self.perm_space.alloc(size)
+        self.perm_space.alloc(size).to_mut_ptr()
     }
 
     pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {

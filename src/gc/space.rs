@@ -1,4 +1,3 @@
-use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -66,7 +65,7 @@ impl Space {
     /// in the current chunk. If this fails a new chunk is allocated.
     /// Doesn't use a freelist right now so memory at the end of a chunk
     /// is probably lost.
-    pub fn alloc(&self, size: usize) -> *mut u8 {
+    pub fn alloc(&self, size: usize) -> Address {
         let size = mem::align_usize(size, self.config.align);
 
         loop {
@@ -76,12 +75,12 @@ impl Space {
             }
 
             if !self.extend(size) {
-                return ptr::null_mut();
+                return Address::null();
             }
         }
     }
 
-    fn raw_alloc(&self, size: usize) -> *mut u8 {
+    fn raw_alloc(&self, size: usize) -> Address {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 
@@ -89,7 +88,7 @@ impl Space {
             new = old + size;
 
             if new > self.end.load(Ordering::Relaxed) {
-                return ptr::null_mut();
+                return Address::null();
             }
 
             let res = self
@@ -102,7 +101,7 @@ impl Space {
             }
         }
 
-        old as *mut u8
+        old.into()
     }
 
     fn extend(&self, size: usize) -> bool {
