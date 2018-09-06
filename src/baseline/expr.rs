@@ -17,6 +17,7 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use driver::cmd::AsmSyntax;
+use gc::TLAB_OBJECT_SIZE;
 use masm::*;
 use mem;
 use object::{Header, Str};
@@ -1683,10 +1684,13 @@ where
         // allocate storage for object
         self.masm.emit_comment(Comment::Alloc(cls_id));
 
+        let alloc_size;
+
         match cls.size {
             ClassSize::Fixed(size) => {
                 self.masm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
+                alloc_size = AllocationSize::Fixed(size as usize);
             }
 
             ClassSize::Array(esize) if temps.len() > 1 => {
@@ -1697,6 +1701,7 @@ where
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, esize, true);
 
                 store_length = true;
+                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
             ClassSize::ObjArray if temps.len() > 1 => {
@@ -1707,6 +1712,7 @@ where
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width(), true);
 
                 store_length = true;
+                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
             ClassSize::Str if temps.len() > 1 => {
@@ -1717,36 +1723,25 @@ where
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, 1, true);
 
                 store_length = true;
+                alloc_size = AllocationSize::Dynamic(REG_PARAMS[0]);
             }
 
             ClassSize::Array(_) | ClassSize::ObjArray | ClassSize::Str => {
-                let size = (Header::size() + mem::ptr_width()) as i64;
+                let size = Header::size() as usize + mem::ptr_width_usize();
                 self.masm
-                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size);
+                    .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
 
                 store_length = true;
+                alloc_size = AllocationSize::Fixed(size);
             }
         }
 
         let array_ref = match cls.size {
-            ClassSize::ObjArray => 1,
-            _ => 0,
+            ClassSize::ObjArray => true,
+            _ => false,
         };
 
-        self.masm
-            .load_int_const(MachineMode::Int8, REG_PARAMS[1], array_ref);
-
-        let internal_fct = InternalFct {
-            ptr: stdlib::gc_alloc as *mut u8,
-            args: &[BuiltinType::Int],
-            return_type: BuiltinType::Ptr,
-            throws: false,
-            id: FctId(0),
-        };
-
-        self.emit_native_call_insn(pos, internal_fct, dest.into());
-
-        self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+        self.emit_raw_allocation(dest, alloc_size, pos, array_ref);
 
         // store gc object in temporary storage
         self.masm
@@ -1872,12 +1867,69 @@ where
         }
     }
 
-    pub fn allocate_in_tlab(&mut self, dest: Reg, size: usize, pos: Position) {
+    fn emit_raw_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+        match size {
+            AllocationSize::Fixed(fixed_size) => {
+                if fixed_size < TLAB_OBJECT_SIZE {
+                    self.emit_tlab_allocation(dest, size, pos, array_ref);
+                } else {
+                    self.emit_normal_allocation(dest, size, pos, array_ref);
+                }
+            }
+
+            AllocationSize::Dynamic(_) => {
+                self.emit_tlab_allocation(dest, size, pos, array_ref);
+            }
+        }
+    }
+
+    fn emit_normal_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+        match size {
+            AllocationSize::Fixed(size) => {
+                self.masm
+                    .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
+            }
+
+            AllocationSize::Dynamic(reg) => {
+                self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], reg);
+            }
+        }
+
+        self.masm.load_int_const(MachineMode::Int8, REG_PARAMS[1], if array_ref { 1 } else { 0 });
+
+        let internal_fct = InternalFct {
+            ptr: stdlib::gc_alloc as *mut u8,
+            args: &[BuiltinType::Ptr],
+            return_type: BuiltinType::Ptr,
+            throws: false,
+            id: FctId(0),
+        };
+
+        self.emit_native_call_insn(pos, internal_fct, dest.into());
+        self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+    }
+
+    fn emit_tlab_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+        let lbl_success = self.masm.create_label();
+        let lbl_end = self.masm.create_label();
+        let lbl_normal_alloc = self.masm.create_label();
+
+        match size {
+            AllocationSize::Dynamic(reg_size) => {
+                let max_tlab = self.masm.get_scratch();
+                self.masm
+                    .load_int_const(MachineMode::Ptr, *max_tlab, TLAB_OBJECT_SIZE as i64);
+                self.masm.cmp_reg(MachineMode::Ptr, reg_size, *max_tlab);
+                self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
+            }
+
+            AllocationSize::Fixed(size) => {
+                assert!(size < TLAB_OBJECT_SIZE);
+            }
+        }
+
         let tlab_next = self.masm.get_scratch();
         let tlab_end = self.masm.get_scratch();
-
-        let success = self.masm.create_label();
-        let end = self.masm.create_label();
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -1892,30 +1944,30 @@ where
         );
 
         self.masm.copy_reg(MachineMode::Ptr, *tlab_next, dest);
-        let size_reg = self.masm.get_scratch();
-        self.masm
-            .load_int_const(MachineMode::Ptr, *size_reg, size as i64);
-        self.masm
-            .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
+
+        match size {
+            AllocationSize::Fixed(size) => {
+                let size_reg = self.masm.get_scratch();
+                self.masm
+                    .load_int_const(MachineMode::Ptr, *size_reg, size as i64);
+                self.masm
+                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
+            }
+
+            AllocationSize::Dynamic(reg) => {
+                self.masm
+                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg);
+            }
+        }
 
         self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.masm.jump_if(CondCode::LessEq, success);
+        self.masm.jump_if(CondCode::LessEq, lbl_success);
 
-        self.masm
-            .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
+        self.masm.bind_label(lbl_normal_alloc);
+        self.emit_normal_allocation(dest, size, pos, array_ref);
+        self.masm.jump(lbl_end);
 
-        let internal_fct = InternalFct {
-            ptr: stdlib::gc_alloc as *mut u8,
-            args: &[BuiltinType::Ptr],
-            return_type: BuiltinType::Ptr,
-            throws: false,
-            id: FctId(0),
-        };
-
-        self.emit_native_call_insn(pos, internal_fct, dest.into());
-        self.masm.jump(end);
-
-        self.masm.bind_label(success);
+        self.masm.bind_label(lbl_success);
 
         self.masm.store_mem(
             MachineMode::Ptr,
@@ -1923,7 +1975,7 @@ where
             (*tlab_next).into(),
         );
 
-        self.masm.bind_label(end);
+        self.masm.bind_label(lbl_end);
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
@@ -2059,4 +2111,9 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
         CmpOp::Is => CondCode::Equal,
         CmpOp::IsNot => CondCode::NotEqual,
     }
+}
+
+enum AllocationSize {
+    Fixed(usize),
+    Dynamic(Reg),
 }

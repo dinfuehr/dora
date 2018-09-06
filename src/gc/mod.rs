@@ -23,6 +23,9 @@ const CHUNK_SIZE: usize = 8 * 1024;
 const CODE_SPACE_LIMIT: usize = 128 * 1024;
 const PERM_SPACE_LIMIT: usize = 64 * 1024;
 
+pub const TLAB_SIZE: usize = 16 * 1024;
+pub const TLAB_OBJECT_SIZE: usize = 4 * 1024;
+
 pub struct Gc {
     collector: Box<Collector>,
 
