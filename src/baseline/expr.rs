@@ -1867,7 +1867,13 @@ where
         }
     }
 
-    fn emit_raw_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+    fn emit_raw_allocation(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+    ) {
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < TLAB_OBJECT_SIZE {
@@ -1883,7 +1889,13 @@ where
         }
     }
 
-    fn emit_normal_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+    fn emit_normal_allocation(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+    ) {
         match size {
             AllocationSize::Fixed(size) => {
                 self.masm
@@ -1895,7 +1907,11 @@ where
             }
         }
 
-        self.masm.load_int_const(MachineMode::Int8, REG_PARAMS[1], if array_ref { 1 } else { 0 });
+        self.masm.load_int_const(
+            MachineMode::Int8,
+            REG_PARAMS[1],
+            if array_ref { 1 } else { 0 },
+        );
 
         let internal_fct = InternalFct {
             ptr: stdlib::gc_alloc as *mut u8,
@@ -1909,7 +1925,13 @@ where
         self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
     }
 
-    fn emit_tlab_allocation(&mut self, dest: Reg, size: AllocationSize, pos: Position, array_ref: bool) {
+    fn emit_tlab_allocation(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+    ) {
         let lbl_success = self.masm.create_label();
         let lbl_end = self.masm.create_label();
         let lbl_normal_alloc = self.masm.create_label();
@@ -1933,7 +1955,7 @@ where
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            dest.into(),
+            REG_TMP1.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
         );
 
@@ -1943,20 +1965,20 @@ where
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
         );
 
-        self.masm.copy_reg(MachineMode::Ptr, *tlab_next, dest);
-
         match size {
             AllocationSize::Fixed(size) => {
-                let size_reg = self.masm.get_scratch();
+                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
+                let reg_size = self.masm.get_scratch();
                 self.masm
-                    .load_int_const(MachineMode::Ptr, *size_reg, size as i64);
+                    .load_int_const(MachineMode::Ptr, *reg_size, size as i64);
                 self.masm
-                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *size_reg);
+                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *reg_size);
             }
 
-            AllocationSize::Dynamic(reg) => {
+            AllocationSize::Dynamic(reg_size) => {
+                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
                 self.masm
-                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg);
+                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
             }
         }
 
@@ -1975,6 +1997,7 @@ where
             (*tlab_next).into(),
         );
 
+        self.masm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
         self.masm.bind_label(lbl_end);
     }
 
