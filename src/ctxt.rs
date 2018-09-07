@@ -89,7 +89,7 @@ pub struct SemContext<'ast> {
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
     pub dora_entry: Address,
-    pub tld: RefCell<ThreadLocalData>,
+    pub tld: Box<RefCell<ThreadLocalData>>,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -150,7 +150,7 @@ impl<'ast> SemContext<'ast> {
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
             dora_entry: Address::null(),
-            tld: RefCell::new(ThreadLocalData::new()),
+            tld: Box::new(RefCell::new(ThreadLocalData::new())),
         };
 
         ctxt.dora_entry = dora_entry::generate(&ctxt, false);
