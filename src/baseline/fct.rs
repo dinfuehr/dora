@@ -71,6 +71,7 @@ impl JitFct {
 pub enum JitDescriptor {
     DoraFct(FctId),
     CompilerTrap,
+    CompilerThunk,
     NativeThunk(FctId),
     DoraEntry,
 }

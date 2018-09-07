@@ -15,7 +15,7 @@ use baseline;
 use baseline::dora_entry;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
-use baseline::native::NativeFcts;
+use baseline::dora_exit::NativeFcts;
 use baseline::stub::Stub;
 use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
 use dora_parser::ast;

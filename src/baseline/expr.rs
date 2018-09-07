@@ -4,7 +4,7 @@ use baseline::codegen::{
 };
 use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
-use baseline::native::{self, InternalFct};
+use baseline::dora_exit::{self, InternalFct};
 use baseline::stub::ensure_stub;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{
@@ -2076,7 +2076,7 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
         let fct = ctxt.fcts[fct_id].borrow();
         let dbg = should_emit_debug(ctxt, &*fct);
 
-        let jit_fct_id = native::generate(ctxt, internal_fct, dbg);
+        let jit_fct_id = dora_exit::generate(ctxt, internal_fct, dbg);
         let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
 

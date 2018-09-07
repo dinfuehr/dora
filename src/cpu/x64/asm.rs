@@ -462,6 +462,14 @@ pub fn emit_jmp(buf: &mut MacroAssembler, lbl: Label) {
     buf.emit_label(lbl);
 }
 
+pub fn emit_jmp_reg(buf: &mut MacroAssembler, reg: Reg) {
+    if reg.msb() != 0 {
+        emit_rex(buf, 0, 0, 0, reg.msb());
+    }
+    emit_op(buf, 0xFF);
+    emit_modrm(buf, 0b11, 0b100, reg.and7());
+}
+
 pub fn emit_testl_reg_reg(buf: &mut MacroAssembler, op1: Reg, op2: Reg) {
     if op1.msb() != 0 || op2.msb() != 0 {
         emit_rex(buf, 0, op1.msb(), 0, op2.msb());
@@ -2212,5 +2220,17 @@ mod tests {
                      emit_movb_imm_memscaleq(0, R8, RSI, 0));
         assert_emit!(0x42, 0xC6, 0x04, 0x0F, 0x00;
                      emit_movb_imm_memscaleq(0, RDI, R9, 0));
+    }
+
+    #[test]
+    fn test_emit_jmp_reg() {
+        assert_emit!(0xFF, 0xE0;
+                     emit_jmp_reg(RAX));
+        assert_emit!(0x41, 0xFF, 0xE2;
+                     emit_jmp_reg(R10));
+        assert_emit!(0x41, 0xFF, 0xE1;
+                     emit_jmp_reg(R9));
+        assert_emit!(0xFF, 0xE2;
+                     emit_jmp_reg(RDX));
     }
 }

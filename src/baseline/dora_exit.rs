@@ -200,7 +200,7 @@ fn restore_params(masm: &mut MacroAssembler, args: &[BuiltinType], offset_args: 
     }
 }
 
-fn start_native_call(fp: *const u8, pc: usize) {
+pub fn start_native_call(fp: *const u8, pc: usize) {
     unsafe {
         // fp is framepointer of native stub
 
@@ -218,7 +218,7 @@ fn start_native_call(fp: *const u8, pc: usize) {
     }
 }
 
-fn finish_native_call() -> *const u8 {
+pub fn finish_native_call() -> *const u8 {
     let ctxt = get_ctxt();
 
     ctxt.handles.pop_border();

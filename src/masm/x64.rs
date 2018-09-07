@@ -26,12 +26,7 @@ impl MacroAssembler {
     }
 
     pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
-        if stacksize > 0 {
-            asm::emit_addq_imm_reg(self, stacksize, RSP);
-        }
-
-        asm::emit_popq_reg(self, RBP);
-
+        self.epilog_without_return(stacksize);
         self.check_polling_page(polling_page);
 
         let gcpoint = GcPoint::new();
@@ -41,12 +36,16 @@ impl MacroAssembler {
     }
 
     pub fn epilog(&mut self, stacksize: i32) {
+        self.epilog_without_return(stacksize);
+        asm::emit_retq(self);
+    }
+
+    pub fn epilog_without_return(&mut self, stacksize: i32) {
         if stacksize > 0 {
             asm::emit_addq_imm_reg(self, stacksize, RSP);
         }
 
         asm::emit_popq_reg(self, RBP);
-        asm::emit_retq(self);
     }
 
     pub fn direct_call(
@@ -265,6 +264,10 @@ impl MacroAssembler {
 
     pub fn jump(&mut self, lbl: Label) {
         asm::emit_jmp(self, lbl);
+    }
+
+    pub fn jump_reg(&mut self, reg: Reg) {
+        asm::emit_jmp_reg(self, reg);
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -683,6 +686,10 @@ impl MacroAssembler {
 
     pub fn copy_pc(&mut self, dest: Reg) {
         asm::lea(self, dest, Mem::Base(RIP, 0));
+    }
+
+    pub fn copy_ra(&mut self, dest: Reg) {
+        self.load_mem(MachineMode::Ptr, dest.into(), Mem::Base(dest, 0));
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
