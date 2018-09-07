@@ -7,7 +7,6 @@ use std::ptr;
 use std::str;
 use std::thread;
 
-use baseline;
 use class::TypeParams;
 use ctxt::{exception_set, get_ctxt};
 use exception::alloc_exception;
@@ -117,10 +116,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
                 }
             }
 
-            let type_params = TypeParams::empty();
-            let fct_ptr = baseline::generate(ctxt, fct_id, &type_params, &type_params);
-            let fct: extern "C" fn() = unsafe { mem::transmute(fct_ptr) };
-            fct();
+            ctxt.run(fct_id);
         }
 
         _ => {

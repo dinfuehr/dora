@@ -154,7 +154,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
 }
 
 fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
-    let res = ctxt.run_main(main);
+    let res = ctxt.run(main);
     let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
 
     // main-fct without return value exits with status 0

@@ -158,7 +158,7 @@ impl<'ast> SemContext<'ast> {
         ctxt
     }
 
-    pub fn run_main(&self, fct_id: FctId) -> i32 {
+    pub fn run(&self, fct_id: FctId) -> i32 {
         let ptr = self.ensure_compiled(fct_id);
         let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(self.dora_entry) };
         fct(ptr)
