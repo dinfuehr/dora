@@ -1,7 +1,4 @@
-use std::ptr;
-
 use baseline::fct::ExHandler;
-use exception::DoraToNativeInfo;
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os::signal::Trap;
@@ -12,20 +9,6 @@ pub use self::reg::*;
 pub mod asm;
 pub mod param;
 pub mod reg;
-
-pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
-    let ra = unsafe { *(es.sp as *const usize) };
-
-    DoraToNativeInfo {
-        last: ptr::null(),
-        fp: es.regs[RBP.int() as usize],
-        pc: ra,
-    }
-}
-
-pub fn receiver_from_execstate(es: &ExecState) -> usize {
-    es.regs[REG_PARAMS[0].int() as usize]
-}
 
 pub fn resume_with_handler(
     es: &mut ExecState,

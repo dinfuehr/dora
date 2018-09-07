@@ -13,20 +13,6 @@ pub mod param;
 pub mod reg;
 pub mod trap;
 
-pub fn dtn_from_execution_state(es: &ExecState) -> DoraToNativeInfo {
-    let ra = es.regs[REG_LR.asm() as usize];
-
-    DoraToNativeInfo {
-        last: ptr::null(),
-        fp: es.regs[REG_FP.asm() as usize],
-        pc: ra,
-    }
-}
-
-pub fn receiver_from_execstate(es: &ExecState) -> usize {
-    es.regs[REG_PARAMS[0].asm() as usize]
-}
-
 pub fn resume_with_handler(
     es: &mut ExecState,
     handler: &ExHandler,
