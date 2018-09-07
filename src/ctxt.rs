@@ -12,11 +12,11 @@ use dora_parser::error::diag::Diagnostic;
 use driver::cmd::Args;
 
 use baseline;
+use baseline::dora_compile;
 use baseline::dora_entry;
+use baseline::dora_exit::NativeFcts;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::CodeMap;
-use baseline::dora_exit::NativeFcts;
-use baseline::stub::Stub;
 use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
 use dora_parser::ast;
 use dora_parser::interner::*;
@@ -83,7 +83,7 @@ pub struct SemContext<'ast> {
     pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
-    pub compile_stub: RefCell<Option<Stub>>,
+    pub compiler_thunk: Address,
     pub polling_page: PollingPage,
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
@@ -144,7 +144,7 @@ impl<'ast> SemContext<'ast> {
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
-            compile_stub: RefCell::new(None),
+            compiler_thunk: Address::null(),
             polling_page: PollingPage::new(),
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
@@ -154,6 +154,7 @@ impl<'ast> SemContext<'ast> {
         };
 
         ctxt.dora_entry = dora_entry::generate(&ctxt, false);
+        ctxt.compiler_thunk = dora_compile::generate(&ctxt, false);
 
         ctxt
     }

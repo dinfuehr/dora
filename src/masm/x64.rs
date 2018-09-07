@@ -689,7 +689,7 @@ impl MacroAssembler {
     }
 
     pub fn copy_ra(&mut self, dest: Reg) {
-        self.load_mem(MachineMode::Ptr, dest.into(), Mem::Base(dest, 0));
+        self.load_mem(MachineMode::Ptr, dest.into(), Mem::Base(REG_SP, 0));
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {

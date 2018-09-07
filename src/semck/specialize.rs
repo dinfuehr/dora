@@ -1,7 +1,6 @@
 use std::cmp::max;
 use std::ptr;
 
-use baseline::stub::ensure_stub;
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
 use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
 use mem;
@@ -267,7 +266,7 @@ fn create_specialized_class(
         size = ClassSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
     }
 
-    let stub = ensure_stub(ctxt) as usize;
+    let stub = ctxt.compiler_thunk.to_usize();
     let vtable_entries = vec![stub; cls.vtable_len as usize];
 
     let mut cls_def = ctxt.class_defs[id].borrow_mut();

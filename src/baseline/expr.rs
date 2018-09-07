@@ -2,10 +2,9 @@ use baseline::codegen::{
     self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug, CondCode, Scopes,
     TempOffsets,
 };
+use baseline::dora_exit::{self, InternalFct};
 use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
-use baseline::dora_exit::{self, InternalFct};
-use baseline::stub::ensure_stub;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_THREAD,
@@ -2120,7 +2119,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
         return jit_fct.fct_ptr();
     }
 
-    ensure_stub(ctxt)
+    ctxt.compiler_thunk.to_ptr()
 }
 
 fn to_cond_code(cmp: CmpOp) -> CondCode {

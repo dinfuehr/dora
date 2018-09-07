@@ -8,4 +8,3 @@ pub mod expr;
 pub mod fct;
 pub mod info;
 pub mod map;
-pub mod stub;

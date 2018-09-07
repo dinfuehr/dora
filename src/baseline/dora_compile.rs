@@ -1,10 +1,13 @@
+use std::mem::size_of;
+
 use baseline;
-use baseline::dora_exit::{start_native_call, finish_native_call};
+use baseline::dora_exit::{finish_native_call, start_native_call};
 use baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeData;
 use class::TypeParams;
-use cpu::{Mem, REG_TMP1, REG_PARAMS, FREG_PARAMS, REG_RESULT, REG_SP};
-use ctxt::{FctId, get_ctxt, SemContext};
+use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
+use ctxt::{get_ctxt, FctId, SemContext};
+use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
@@ -37,66 +40,105 @@ where
     'ast: 'a,
 {
     pub fn generate(mut self) -> JitBaselineFct {
-        let framesize = (REG_PARAMS.len() + FREG_PARAMS.len() + 1) * mem::ptr_width_usize();
-        let framesize = mem::align_usize(framesize, 16) as i32;
+        let framesize = size_of::<DoraToNativeInfo>() as i32
+            + (REG_PARAMS.len() + FREG_PARAMS.len() + 2) as i32 * mem::ptr_width();
+        let framesize = mem::align_i32(framesize, 16) as i32;
 
         let offset_params = 0;
-        let offset_tmp = offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
-
-        self.masm.prolog(framesize);
+        let offset_tmp =
+            offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
+        let offset_thread = offset_tmp + mem::ptr_width();
 
         self.masm.copy_ra(REG_TMP1);
-        self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, offset_tmp), REG_TMP1.into());
+        self.masm.prolog(framesize);
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_thread),
+            REG_THREAD.into(),
+        );
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_tmp),
+            REG_TMP1.into(),
+        );
         self.store_params(offset_params);
 
-        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_TMP1);
+        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
         self.masm
             .direct_call_without_info(start_native_call as *const u8);
 
-        self.masm.load_mem(MachineMode::Ptr, REG_PARAMS[0].into(), Mem::Base(REG_SP, offset_tmp));
-        self.masm.load_mem(MachineMode::Ptr, REG_PARAMS[1].into(), Mem::Base(REG_SP, offset_params));
-        self.masm.direct_call_without_info(compile_request as *const u8);
-        self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, offset_tmp), REG_RESULT.into());
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_PARAMS[0].into(),
+            Mem::Base(REG_SP, offset_tmp),
+        );
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_PARAMS[1].into(),
+            Mem::Base(REG_SP, offset_params),
+        );
+        self.masm
+            .direct_call_without_info(compile_request as *const u8);
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_SP, offset_tmp),
+            REG_RESULT.into(),
+        );
 
         self.masm
             .direct_call_without_info(finish_native_call as *const u8);
 
-        self.masm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(REG_SP, offset_tmp));
-        self.masm.epilog_without_return(framesize);
-
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Base(REG_SP, offset_tmp),
+        );
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_THREAD.into(),
+            Mem::Base(REG_SP, offset_thread),
+        );
         self.load_params(offset_params);
-
+        self.masm.epilog_without_return(framesize);
         self.masm.jump_reg(REG_TMP1);
 
-        self.masm.jit(
-            self.ctxt,
-            framesize,
-            JitDescriptor::CompilerThunk,
-            false,
-        )
+        self.masm
+            .jit(self.ctxt, framesize, JitDescriptor::CompilerThunk, false)
     }
 
     fn store_params(&mut self, mut offset: i32) {
         for reg in &REG_PARAMS {
-            self.masm.store_mem(MachineMode::Ptr, Mem::Base(REG_SP, offset), (*reg).into());
+            self.masm
+                .store_mem(MachineMode::Ptr, Mem::Base(REG_SP, offset), (*reg).into());
             offset += mem::ptr_width();
         }
 
         for reg in &FREG_PARAMS {
-            self.masm.store_mem(MachineMode::Float64, Mem::Base(REG_SP, offset), (*reg).into());
+            self.masm.store_mem(
+                MachineMode::Float64,
+                Mem::Base(REG_SP, offset),
+                (*reg).into(),
+            );
             offset += mem::ptr_width();
         }
     }
 
     fn load_params(&mut self, mut offset: i32) {
         for reg in &REG_PARAMS {
-            self.masm.load_mem(MachineMode::Ptr, (*reg).into(), Mem::Base(REG_SP, offset));
+            self.masm
+                .load_mem(MachineMode::Ptr, (*reg).into(), Mem::Base(REG_SP, offset));
             offset += mem::ptr_width();
         }
 
         for reg in &FREG_PARAMS {
-            self.masm.load_mem(MachineMode::Float64, (*reg).into(), Mem::Base(REG_SP, offset));
+            self.masm.load_mem(
+                MachineMode::Float64,
+                (*reg).into(),
+                Mem::Base(REG_SP, offset),
+            );
             offset += mem::ptr_width();
         }
     }
