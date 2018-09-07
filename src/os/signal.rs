@@ -1,16 +1,9 @@
 use libc;
 use std;
-use std::ptr::null;
 
-use baseline;
-use baseline::fct::BailoutInfo;
 use baseline::map::CodeData;
-use class::TypeParams;
-use cpu;
-use ctxt::{get_ctxt, FctId, SemContext, CTXT};
+use ctxt::{get_ctxt, SemContext, CTXT};
 use exception::{handle_exception, stacktrace_from_es};
-use execstate::ExecState;
-use object::{Handle, Obj};
 use os_cpu::*;
 use safepoint;
 
@@ -88,8 +81,6 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
         match trap {
-            Trap::COMPILER => compile_request(ctxt, &mut es, ucontext),
-
             Trap::DIV0 => {
                 println!("division by 0");
                 let stacktrace = stacktrace_from_es(ctxt, &es);
@@ -218,103 +209,8 @@ fn detect_polling_page_check(ctxt: &SemContext, signo: libc::c_int, addr: *const
     signo == libc::SIGSEGV && ctxt.polling_page.addr() == addr
 }
 
-fn compile_request(ctxt: &SemContext, es: &mut ExecState, ucontext: *const u8) {
-    // get return address from top of stack
-    let ra = cpu::ra_from_execstate(es);
-
-    let bailout = {
-        let data = {
-            let code_map = ctxt.code_map.lock().unwrap();
-            code_map
-                .get(ra as *const u8)
-                .expect("return address not found")
-        };
-
-        let fct_id = match data {
-            CodeData::Fct(fct_id) => fct_id,
-            _ => panic!("expected function for code"),
-        };
-
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-
-        let offset = ra - jit_fct.fct_ptr() as usize;
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
-        jit_fct
-            .bailouts
-            .get(offset as i32)
-            .expect("bailout info not found")
-            .clone()
-    };
-
-    let mut dtn = cpu::dtn_from_execution_state(es);
-
-    ctxt.use_dtn(&mut dtn, || match bailout {
-        BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
-            patch_fct_call(ctxt, es, ra, fct_id, cls_tps, fct_tps, disp)
-        }
-        BailoutInfo::VirtCompile(vtable_index, ref fct_tps) => {
-            patch_vtable_call(ctxt, es, vtable_index, fct_tps)
-        }
-    });
-
-    write_execstate(es, ucontext as *mut u8);
-}
-
-fn patch_vtable_call(
-    ctxt: &SemContext,
-    es: &mut ExecState,
-    vtable_index: u32,
-    fct_tps: &TypeParams,
-) {
-    let obj: Handle<Obj> = cpu::receiver_from_execstate(es).into();
-
-    let vtable = obj.header().vtbl();
-    let cls_id = vtable.class().cls_id;
-    let cls = ctxt.classes[cls_id].borrow();
-
-    let mut fct_ptr = null();
-
-    for &fct_id in &cls.methods {
-        let fct = ctxt.fcts[fct_id].borrow();
-
-        if Some(vtable_index) == fct.vtable_index {
-            let empty = TypeParams::empty();
-            fct_ptr = baseline::generate(ctxt, fct_id, &empty, fct_tps);
-            break;
-        }
-    }
-
-    let methodtable = vtable.table_mut();
-    methodtable[vtable_index as usize] = fct_ptr as usize;
-
-    // execute fct call again
-    es.pc = fct_ptr as usize;
-}
-
-pub fn patch_fct_call(
-    ctxt: &SemContext,
-    es: &mut ExecState,
-    ra: usize,
-    fct_id: FctId,
-    cls_tps: &TypeParams,
-    fct_tps: &TypeParams,
-    disp: i32,
-) {
-    let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
-    let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
-
-    // write function pointer
-    unsafe {
-        *fct_addr = fct_ptr as usize;
-    }
-
-    // execute fct call again
-    es.pc = fct_ptr as usize;
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Trap {
-    COMPILER,
     DIV0,
     ASSERT,
     INDEX_OUT_OF_BOUNDS,
@@ -328,7 +224,6 @@ pub enum Trap {
 impl Trap {
     pub fn int(self) -> u32 {
         match self {
-            Trap::COMPILER => 0,
             Trap::DIV0 => 1,
             Trap::ASSERT => 2,
             Trap::INDEX_OUT_OF_BOUNDS => 3,
@@ -342,7 +237,6 @@ impl Trap {
 
     pub fn from(value: u32) -> Option<Trap> {
         match value {
-            0 => Some(Trap::COMPILER),
             1 => Some(Trap::DIV0),
             2 => Some(Trap::ASSERT),
             3 => Some(Trap::INDEX_OUT_OF_BOUNDS),
