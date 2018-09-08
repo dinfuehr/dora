@@ -148,6 +148,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
         }
 
         Some(CodeDescriptor::TrapThunk) => true,
+        Some(CodeDescriptor::ThrowThunk) => true,
         Some(CodeDescriptor::DoraEntry) => false,
 
         _ => {
@@ -254,7 +255,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
     let mut fp: usize = dtn.fp;
 
     while fp != 0 {
-        let res = find_handler2(ctxt, exception, fp, pc, resume);
+        let res = find_handler2(ctxt, exception, pc, fp, resume);
 
         match res {
             HandlerFound::Yes => {
@@ -264,7 +265,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
 
             HandlerFound::Stop => {
                 // no handler found
-                stdlib::trap(Trap::UNEXPECTED.int());
+                stdlib::trap(Trap::THROW.int());
             }
 
             HandlerFound::No => {
@@ -306,6 +307,14 @@ fn find_handler2(
                 {
                     let stacksize = jit_fct.framesize as usize;
 
+                    if let Some(offset) = entry.offset {
+                        let arg = (fp as isize + offset as isize) as usize;
+
+                        unsafe {
+                            *(arg as *mut usize) = exception.raw() as usize;
+                        }
+                    }
+
                     resume.pc = entry.catch;
                     resume.sp = fp - stacksize;
                     resume.fp = fp;
@@ -332,6 +341,7 @@ fn find_handler2(
         Some(CodeDescriptor::ThrowThunk) => HandlerFound::No,
 
         _ => {
+            println!("data = {:?}", data);
             panic!("invalid stack frame");
         }
     }

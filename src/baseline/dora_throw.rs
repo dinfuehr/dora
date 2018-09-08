@@ -48,7 +48,7 @@ where
 
         let offset_receiver = 0;
         let offset_thread = offset_receiver + mem::ptr_width();
-        let offset_result = offset_thread + 3 * mem::ptr_width();
+        let offset_result = offset_thread + mem::ptr_width();
         let offset_result_pc = offset_result;
         let offset_result_sp = offset_result_pc + mem::ptr_width();
         let offset_result_fp = offset_result_sp + mem::ptr_width();
@@ -81,7 +81,7 @@ where
         self.masm.int_add_imm(
             MachineMode::Ptr,
             REG_PARAMS[1],
-            REG_PARAMS[3],
+            REG_PARAMS[1],
             offset_result,
         );
         self.masm.direct_call_without_info(throw as *const u8);

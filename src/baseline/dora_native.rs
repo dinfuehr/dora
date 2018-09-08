@@ -1,6 +1,8 @@
 use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
+use dora_parser::lexer::position::Position;
+
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
@@ -153,7 +155,8 @@ where
             .epilog_with_polling(framesize, self.ctxt.polling_page.addr());
 
         self.masm.bind_label(lbl_exception);
-        self.masm.throw();
+        self.masm.throw(REG_RESULT, Position::new(1, 1));
+        self.masm.nop();
 
         let desc = match self.fct.desc {
             InternalFctDescriptor::NativeThunk(fid) => JitDescriptor::NativeThunk(fid),

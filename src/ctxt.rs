@@ -15,6 +15,7 @@ use baseline;
 use baseline::dora_compile;
 use baseline::dora_entry;
 use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeFcts};
+use baseline::dora_throw;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::{CodeDescriptor, CodeMap};
 use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
@@ -91,6 +92,7 @@ pub struct SemContext<'ast> {
     pub handles: HandleMemory,
     pub dora_entry: Address,
     pub trap_thunk: Address,
+    pub throw_thunk: Address,
     pub tld: RefCell<ThreadLocalData>,
 }
 
@@ -153,6 +155,7 @@ impl<'ast> SemContext<'ast> {
             handles: HandleMemory::new(),
             dora_entry: Address::null(),
             trap_thunk: Address::null(),
+            throw_thunk: Address::null(),
             tld: RefCell::new(ThreadLocalData::new()),
         });
 
@@ -166,6 +169,7 @@ impl<'ast> SemContext<'ast> {
 
         ctxt.dora_entry = dora_entry::generate(&ctxt, false);
         ctxt.compiler_thunk = dora_compile::generate(&ctxt, false);
+        ctxt.throw_thunk = dora_throw::generate(&ctxt, false);
 
         let ifct = InternalFct {
             ptr: stdlib::trap as *const u8,

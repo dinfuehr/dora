@@ -683,7 +683,7 @@ where
         self.emit_expr(&s.expr);
         self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
-        self.masm.throw();
+        self.masm.throw(REG_RESULT, s.pos);
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -792,7 +792,7 @@ where
 
         self.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-        self.masm.throw();
+        self.masm.throw(REG_RESULT, s.pos);
 
         self.scopes.pop_scope();
 

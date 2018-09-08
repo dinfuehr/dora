@@ -919,8 +919,11 @@ impl MacroAssembler {
         self.emit_lineno(pos.line as i32);
     }
 
-    pub fn throw(&mut self) {
-        self.trap_signal(Trap::THROW);
+    pub fn throw(&mut self, receiver: Reg, pos: Position) {
+        let ctxt = get_ctxt();
+        self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
+        self.direct_call_without_info(ctxt.throw_thunk.to_ptr());
+        self.emit_lineno(pos.line as i32);
     }
 
     pub fn trap_signal(&mut self, trap: Trap) {
