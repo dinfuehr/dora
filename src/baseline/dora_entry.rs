@@ -17,7 +17,11 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, dbg: bool) -> Address 
     let jit_fct = ngen.generate();
     let ptr = Address::from_ptr(jit_fct.fct_ptr());
 
-    ctxt.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), CodeDescriptor::DoraEntry);
+    ctxt.insert_code_map(
+        jit_fct.ptr_start(),
+        jit_fct.ptr_end(),
+        CodeDescriptor::DoraEntry,
+    );
     ctxt.jit_fcts.push(JitFct::Base(jit_fct));
 
     ptr

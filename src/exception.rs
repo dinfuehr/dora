@@ -6,6 +6,8 @@ use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
 use ctxt::{get_ctxt, SemContext};
 use execstate::ExecState;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
+use os::signal::Trap;
+use stdlib;
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,
@@ -235,6 +237,104 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     }
 
     HandlerFound::No
+}
+
+pub struct ThrowResume {
+    pc: usize,
+    sp: usize,
+    fp: usize,
+}
+
+pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
+    let ctxt = get_ctxt();
+
+    let dtn = unsafe { &**ctxt.dtn.borrow() };
+
+    let mut pc: usize = dtn.pc;
+    let mut fp: usize = dtn.fp;
+
+    while fp != 0 {
+        let res = find_handler2(ctxt, exception, fp, pc, resume);
+
+        match res {
+            HandlerFound::Yes => {
+                // handler found, resume from there
+                return;
+            }
+
+            HandlerFound::Stop => {
+                // no handler found
+                stdlib::trap(Trap::UNEXPECTED.int());
+            }
+
+            HandlerFound::No => {
+                // try next stack frame
+            }
+        }
+
+        pc = unsafe { *((fp + 8) as *const usize) };
+        fp = unsafe { *(fp as *const usize) };
+    }
+}
+
+fn find_handler2(
+    ctxt: &SemContext,
+    exception: Handle<Obj>,
+    pc: usize,
+    fp: usize,
+    resume: &mut ThrowResume,
+) -> HandlerFound {
+    let data = {
+        let code_map = ctxt.code_map.lock().unwrap();
+        code_map.get(pc as *const u8)
+    };
+
+    match data {
+        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
+            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let jit_fct = jit_fct.to_base().expect("baseline expected");
+            let clsptr = exception.header().vtbl().classptr();
+
+            for entry in &jit_fct.exception_handlers {
+                // println!("entry = {:x} to {:x} for {:?}",
+                //          entry.try_start, entry.try_end, entry.catch_type);
+
+                if entry.try_start < pc
+                    && pc <= entry.try_end
+                    && (entry.catch_type == CatchType::Any
+                        || entry.catch_type == CatchType::Class(clsptr))
+                {
+                    let stacksize = jit_fct.framesize as usize;
+
+                    resume.pc = entry.catch;
+                    resume.sp = fp - stacksize;
+                    resume.fp = fp;
+
+                    return HandlerFound::Yes;
+                } else if pc > entry.try_end {
+                    // exception handlers are sorted, no more possible handlers
+                    // in this function
+
+                    return HandlerFound::No;
+                }
+            }
+
+            // exception can only bubble up in stacktrace if current function
+            // is allowed to throw exceptions
+            if !jit_fct.throws {
+                return HandlerFound::Stop;
+            }
+
+            HandlerFound::No
+        }
+
+        Some(CodeDescriptor::DoraEntry) => HandlerFound::Stop,
+        Some(CodeDescriptor::ThrowThunk) => HandlerFound::No,
+
+        _ => {
+            panic!("invalid stack frame");
+        }
+    }
 }
 
 pub extern "C" fn retrieve_stack_trace(obj: Handle<Exception>) {

@@ -161,12 +161,7 @@ where
             InternalFctDescriptor::TrapThunk => JitDescriptor::TrapThunk,
         };
 
-        self.masm.jit(
-            self.ctxt,
-            framesize,
-            desc,
-            self.fct.throws,
-        )
+        self.masm.jit(self.ctxt, framesize, desc, self.fct.throws)
     }
 }
 

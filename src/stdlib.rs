@@ -277,10 +277,6 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn throw() {
-    unimplemented!();
-}
-
 pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use baseline;
     use exception::DoraToNativeInfo;
