@@ -56,7 +56,6 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg:
     };
 
     let jit_fct = ngen.generate();
-
     let jit_fct_id = ctxt.jit_fcts.len().into();
 
     let code_desc = match fct_desc {

@@ -71,6 +71,7 @@ impl JitFct {
 pub enum JitDescriptor {
     DoraFct(FctId),
     CompilerThunk,
+    ThrowThunk,
     TrapThunk,
     AllocThunk,
     NativeThunk(FctId),

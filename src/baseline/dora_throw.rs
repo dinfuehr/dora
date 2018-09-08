@@ -1,41 +1,40 @@
 use std::mem::size_of;
 
-use baseline;
 use baseline::dora_native::{finish_native_call, start_native_call};
-use baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
+use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
-use class::TypeParams;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::{get_ctxt, FctId, SemContext};
+use ctxt::SemContext;
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
-use object::Obj;
+use stdlib::throw;
 use ty::MachineMode;
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, dbg: bool) -> Address {
-    let ngen = DoraCompileGen {
+    let ngen = DoraThrowGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
         dbg: dbg,
     };
 
     let jit_fct = ngen.generate();
+    ctxt.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), CodeDescriptor::ThrowThunk);
     let addr = Address::from_ptr(jit_fct.fct_ptr());
-    ctxt.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), CodeDescriptor::CompilerThunk);
+
     ctxt.jit_fcts.push(JitFct::Base(jit_fct));
 
     addr
 }
 
-struct DoraCompileGen<'a, 'ast: 'a> {
+struct DoraThrowGen<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
 
-impl<'a, 'ast> DoraCompileGen<'a, 'ast>
+impl<'a, 'ast> DoraThrowGen<'a, 'ast>
 where
     'ast: 'a,
 {
@@ -81,7 +80,7 @@ where
             Mem::Base(REG_SP, offset_params),
         );
         self.masm
-            .direct_call_without_info(compile_request as *const u8);
+            .direct_call_without_info(throw as *const u8);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_tmp),
@@ -106,7 +105,7 @@ where
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.ctxt, framesize, JitDescriptor::CompilerThunk, false)
+            .jit(self.ctxt, framesize, JitDescriptor::ThrowThunk, false)
     }
 
     fn store_params(&mut self, mut offset: i32) {
@@ -142,90 +141,4 @@ where
             offset += mem::ptr_width();
         }
     }
-}
-
-fn compile_request(ra: usize, receiver: Address) -> Address {
-    let ctxt = get_ctxt();
-
-    let bailout = {
-        let data = {
-            let code_map = ctxt.code_map.lock().unwrap();
-            code_map
-                .get(ra as *const u8)
-                .expect("return address not found")
-        };
-
-        let fct_id = match data {
-            CodeDescriptor::DoraFct(fct_id) => fct_id,
-            _ => panic!("expected function for code"),
-        };
-
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-
-        let offset = ra - jit_fct.fct_ptr() as usize;
-        let jit_fct = jit_fct.to_base().expect("baseline expected");
-        jit_fct
-            .bailouts
-            .get(offset as i32)
-            .expect("bailout info not found")
-            .clone()
-    };
-
-    match bailout {
-        BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
-            patch_fct_call(ctxt, ra, fct_id, cls_tps, fct_tps, disp)
-        }
-
-        BailoutInfo::VirtCompile(vtable_index, ref fct_tps) => {
-            patch_vtable_call(ctxt, receiver, vtable_index, fct_tps)
-        }
-    }
-}
-
-fn patch_vtable_call(
-    ctxt: &SemContext,
-    receiver: Address,
-    vtable_index: u32,
-    fct_tps: &TypeParams,
-) -> Address {
-    let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
-    let vtable = obj.header().vtbl();
-    let cls_id = vtable.class().cls_id;
-    let cls = ctxt.classes[cls_id].borrow();
-
-    let mut fct_ptr = Address::null();
-
-    for &fct_id in &cls.methods {
-        let fct = ctxt.fcts[fct_id].borrow();
-
-        if Some(vtable_index) == fct.vtable_index {
-            let empty = TypeParams::empty();
-            fct_ptr = Address::from_ptr(baseline::generate(ctxt, fct_id, &empty, fct_tps));
-            break;
-        }
-    }
-
-    let methodtable = vtable.table_mut();
-    methodtable[vtable_index as usize] = fct_ptr.to_usize();
-
-    fct_ptr
-}
-
-fn patch_fct_call(
-    ctxt: &SemContext,
-    ra: usize,
-    fct_id: FctId,
-    cls_tps: &TypeParams,
-    fct_tps: &TypeParams,
-    disp: i32,
-) -> Address {
-    let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
-    let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
-
-    // update function pointer in data segment
-    unsafe {
-        *fct_addr = fct_ptr as usize;
-    }
-
-    Address::from_ptr(fct_ptr)
 }

@@ -29,6 +29,7 @@ impl CodeMap {
                     println!("dora {}", fct.full_name(ctxt));
                 }
                 &CodeDescriptor::CompilerThunk => println!("compiler_thunk"),
+                &CodeDescriptor::ThrowThunk => println!("throw_thunk"),
                 &CodeDescriptor::TrapThunk => println!("trap_thunk"),
                 &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
                 &CodeDescriptor::NativeThunk(jit_fct_id) => {
@@ -60,6 +61,7 @@ impl CodeMap {
 pub enum CodeDescriptor {
     DoraFct(JitFctId),
     CompilerThunk,
+    ThrowThunk,
     TrapThunk,
     AllocThunk,
     NativeThunk(JitFctId),

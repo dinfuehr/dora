@@ -80,22 +80,17 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     let addr = unsafe { (*info).si_addr } as *const u8;
 
     if let Some(trap) = detect_trap(signo as i32, &es) {
-        if trap == Trap::THROW {
-            let handler_found = handle_exception(&mut es);
+        assert!(trap == Trap::THROW);
+        let handler_found = handle_exception(&mut es);
 
-            if handler_found {
-                write_execstate(&es, ucontext as *mut u8);
-            } else {
-                println!("uncaught exception");
-                unsafe {
-                    libc::_exit(100 + trap.int() as i32);
-                }
+        if handler_found {
+            write_execstate(&es, ucontext as *mut u8);
+        } else {
+            println!("uncaught exception");
+            unsafe {
+                libc::_exit(100 + trap.int() as i32);
             }
-
-            return;
         }
-
-        panic!("shouldn't happen anymore.");
 
     // is this is a failed nil check?
     } else if detect_nil_check(ctxt, es.pc) {
