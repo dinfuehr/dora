@@ -2,7 +2,7 @@ use std::ptr;
 
 use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeDescriptor;
-use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
+use cpu::fp_from_execstate;
 use ctxt::{get_ctxt, SemContext};
 use execstate::ExecState;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
@@ -158,86 +158,11 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
     }
 }
 
-pub fn handle_exception(es: &mut ExecState) -> bool {
-    let mut pc: usize = es.pc;
-    let mut fp: usize = fp_from_execstate(es);
-
-    let exception = get_exception_object(es);
-
-    loop {
-        let found = find_handler(exception, es, pc, fp);
-
-        match found {
-            HandlerFound::Yes => {
-                return true;
-            }
-            HandlerFound::Stop => {
-                return false;
-            }
-            HandlerFound::No => {
-                if fp == 0 {
-                    return false;
-                }
-            }
-        }
-
-        pc = unsafe { *((fp + 8) as *const usize) };
-        fp = unsafe { *(fp as *const usize) };
-    }
-}
-
 #[derive(PartialEq, Eq, Debug)]
 enum HandlerFound {
     Yes,
     No,
     Stop,
-}
-
-fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize) -> HandlerFound {
-    let ctxt = get_ctxt();
-    let data = {
-        let code_map = ctxt.code_map.lock().unwrap();
-        code_map.get(pc as *const u8)
-    };
-
-    match data {
-        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
-            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-            let jit_fct = jit_fct.to_base().expect("baseline expected");
-            let clsptr = exception.header().vtbl().classptr();
-
-            for entry in &jit_fct.exception_handlers {
-                // println!("entry = {:x} to {:x} for {:?}",
-                //          entry.try_start, entry.try_end, entry.catch_type);
-
-                if entry.try_start < pc
-                    && pc <= entry.try_end
-                    && (entry.catch_type == CatchType::Any
-                        || entry.catch_type == CatchType::Class(clsptr))
-                {
-                    let stacksize = jit_fct.framesize as usize;
-                    resume_with_handler(es, entry, fp, exception, stacksize);
-
-                    return HandlerFound::Yes;
-                } else if pc > entry.try_end {
-                    // exception handlers are sorted, no more possible handlers
-                    // in this function
-
-                    return HandlerFound::No;
-                }
-            }
-
-            // exception can only bubble up in stacktrace if current function
-            // is allowed to throw exceptions
-            if !jit_fct.throws {
-                return HandlerFound::Stop;
-            }
-        }
-
-        _ => {}
-    }
-
-    HandlerFound::No
 }
 
 pub struct ThrowResume {
@@ -255,7 +180,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
     let mut fp: usize = dtn.fp;
 
     while fp != 0 {
-        let res = find_handler2(ctxt, exception, pc, fp, resume);
+        let res = find_handler(ctxt, exception, pc, fp, resume);
 
         match res {
             HandlerFound::Yes => {
@@ -278,7 +203,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
     }
 }
 
-fn find_handler2(
+fn find_handler(
     ctxt: &SemContext,
     exception: Handle<Obj>,
     pc: usize,

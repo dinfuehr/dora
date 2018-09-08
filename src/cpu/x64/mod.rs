@@ -1,4 +1,3 @@
-use baseline::fct::ExHandler;
 use execstate::ExecState;
 use object::{Handle, Obj};
 use os::signal::Trap;
@@ -9,26 +8,6 @@ pub use self::reg::*;
 pub mod asm;
 pub mod param;
 pub mod reg;
-
-pub fn resume_with_handler(
-    es: &mut ExecState,
-    handler: &ExHandler,
-    fp: usize,
-    exception: Handle<Obj>,
-    stacksize: usize,
-) {
-    if let Some(offset) = handler.offset {
-        let arg = (fp as isize + offset as isize) as usize;
-
-        unsafe {
-            *(arg as *mut usize) = exception.raw() as usize;
-        }
-    }
-
-    es.regs[RSP.int() as usize] = fp - stacksize;
-    es.regs[RBP.int() as usize] = fp;
-    es.pc = handler.catch;
-}
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier

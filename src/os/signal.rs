@@ -3,7 +3,7 @@ use std;
 
 use baseline::map::CodeDescriptor;
 use ctxt::{get_ctxt, SemContext};
-use exception::{handle_exception, stacktrace_from_es};
+use exception::stacktrace_from_es;
 use os_cpu::*;
 use safepoint;
 
@@ -71,26 +71,12 @@ fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
 
 #[cfg(target_family = "unix")]
 fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
-    let mut es = read_execstate(ucontext);
+    let es = read_execstate(ucontext);
     let ctxt = get_ctxt();
 
     let addr = unsafe { (*info).si_addr } as *const u8;
 
-    if let Some(trap) = detect_trap(signo as i32, &es) {
-        assert!(trap == Trap::THROW);
-        let handler_found = handle_exception(&mut es);
-
-        if handler_found {
-            write_execstate(&es, ucontext as *mut u8);
-        } else {
-            println!("uncaught exception");
-            unsafe {
-                libc::_exit(100 + trap.int() as i32);
-            }
-        }
-
-    // is this is a failed nil check?
-    } else if detect_nil_check(ctxt, es.pc) {
+    if detect_nil_check(ctxt, es.pc) {
         println!("nil check failed");
         let stacktrace = stacktrace_from_es(ctxt, &es);
         stacktrace.dump(ctxt);
