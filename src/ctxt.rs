@@ -91,16 +91,16 @@ pub struct SemContext<'ast> {
     pub handles: HandleMemory,
     pub dora_entry: Address,
     pub trap_thunk: Address,
-    pub tld: Box<RefCell<ThreadLocalData>>,
+    pub tld: RefCell<ThreadLocalData>,
 }
 
 impl<'ast> SemContext<'ast> {
-    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> SemContext<'ast> {
+    pub fn new(args: Args, ast: &'ast ast::Ast, interner: Interner) -> Box<SemContext<'ast>> {
         let empty_class_id: ClassId = 0.into();
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        let mut ctxt = SemContext {
+        let mut ctxt = Box::new(SemContext {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -153,8 +153,16 @@ impl<'ast> SemContext<'ast> {
             handles: HandleMemory::new(),
             dora_entry: Address::null(),
             trap_thunk: Address::null(),
-            tld: Box::new(RefCell::new(ThreadLocalData::new())),
-        };
+            tld: RefCell::new(ThreadLocalData::new()),
+        });
+
+        {
+            let ptr = &ctxt as &SemContext as *const SemContext as *const u8;
+
+            unsafe {
+                CTXT = Some(ptr);
+            }
+        }
 
         ctxt.dora_entry = dora_entry::generate(&ctxt, false);
         ctxt.compiler_thunk = dora_compile::generate(&ctxt, false);
@@ -167,7 +175,8 @@ impl<'ast> SemContext<'ast> {
             desc: InternalFctDescriptor::TrapThunk,
         };
         let jit_fct_id = dora_native::generate(&ctxt, ifct, false);
-        ctxt.trap_thunk = Address::from_ptr(ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr());
+        let fct_ptr = ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
+        ctxt.trap_thunk = Address::from_ptr(fct_ptr);
 
         ctxt
     }

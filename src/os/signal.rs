@@ -2,7 +2,7 @@ use libc;
 use std;
 
 use baseline::map::CodeDescriptor;
-use ctxt::{get_ctxt, SemContext, CTXT};
+use ctxt::{get_ctxt, SemContext};
 use exception::{handle_exception, stacktrace_from_es};
 use os_cpu::*;
 use safepoint;
@@ -11,11 +11,8 @@ use safepoint;
 use winapi::winnt::EXCEPTION_POINTERS;
 
 #[cfg(target_family = "unix")]
-pub fn register_signals(ctxt: &SemContext) {
+pub fn register_signals() {
     unsafe {
-        let ptr = ctxt as *const SemContext as *const u8;
-        CTXT = Some(ptr);
-
         let mut sa: libc::sigaction = std::mem::uninitialized();
 
         sa.sa_sigaction = handler as usize;

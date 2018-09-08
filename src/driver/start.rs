@@ -53,7 +53,7 @@ pub fn start() -> i32 {
     semck::check(&mut ctxt);
 
     // register signal handler
-    os::register_signals(&ctxt);
+    os::register_signals();
 
     let main = if ctxt.args.cmd_test {
         None
