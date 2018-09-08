@@ -2,12 +2,12 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
+use baseline::map::CodeDescriptor;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
 use exception::DoraToNativeInfo;
 use masm::MacroAssembler;
 use mem;
-use os::signal::Trap;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeFcts {
@@ -30,15 +30,24 @@ impl NativeFcts {
     }
 }
 
+#[derive(Clone)]
+pub enum InternalFctDescriptor {
+    NativeThunk(FctId),
+    AllocThunk,
+    TrapThunk,
+}
+
 pub struct InternalFct<'a> {
     pub ptr: *const u8,
     pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
     pub throws: bool,
-    pub id: FctId,
+    pub desc: InternalFctDescriptor,
 }
 
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
+    let fct_desc = fct.desc.clone();
+
     let ngen = NativeGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -49,6 +58,14 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg:
     let jit_fct = ngen.generate();
 
     let jit_fct_id = ctxt.jit_fcts.len().into();
+
+    let code_desc = match fct_desc {
+        InternalFctDescriptor::NativeThunk(_) => CodeDescriptor::NativeThunk(jit_fct_id),
+        InternalFctDescriptor::TrapThunk => CodeDescriptor::TrapThunk,
+        InternalFctDescriptor::AllocThunk => CodeDescriptor::AllocThunk,
+    };
+
+    ctxt.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), code_desc);
     ctxt.jit_fcts.push(JitFct::Base(jit_fct));
 
     jit_fct_id
@@ -137,12 +154,18 @@ where
             .epilog_with_polling(framesize, self.ctxt.polling_page.addr());
 
         self.masm.bind_label(lbl_exception);
-        self.masm.trap(Trap::THROW);
+        self.masm.throw();
+
+        let desc = match self.fct.desc {
+            InternalFctDescriptor::NativeThunk(fid) => JitDescriptor::NativeThunk(fid),
+            InternalFctDescriptor::AllocThunk => JitDescriptor::AllocThunk,
+            InternalFctDescriptor::TrapThunk => JitDescriptor::TrapThunk,
+        };
 
         self.masm.jit(
             self.ctxt,
             framesize,
-            JitDescriptor::NativeThunk(self.fct.id),
+            desc,
             self.fct.throws,
         )
     }

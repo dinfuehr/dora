@@ -2,7 +2,7 @@ use baseline::codegen::{
     self, dump_asm, register_for_mode, should_emit_asm, should_emit_debug, CondCode, Scopes,
     TempOffsets,
 };
-use baseline::dora_exit::{self, InternalFct};
+use baseline::dora_native::{self, InternalFct, InternalFctDescriptor};
 use baseline::fct::{CatchType, Comment};
 use baseline::info::JitInfo;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
@@ -888,7 +888,7 @@ where
                         args: fct.params_with_self(),
                         return_type: fct.return_type,
                         throws: fct.ast.throws,
-                        id: fid,
+                        desc: InternalFctDescriptor::NativeThunk(fid),
                     };
 
                     ensure_native_stub(self.ctxt, fid, internal_fct)
@@ -905,6 +905,7 @@ where
             match intrinsic {
                 Intrinsic::GenericArrayLen => self.emit_intrinsic_len(e, dest.reg()),
                 Intrinsic::Assert => self.emit_intrinsic_assert(e, dest.reg()),
+                Intrinsic::Debug => self.emit_intrinsic_debug(),
                 Intrinsic::Shl => self.emit_intrinsic_shl(e, dest.reg()),
                 Intrinsic::SetUint8 => self.emit_set_uint8(e, dest.reg()),
                 Intrinsic::StrLen => self.emit_intrinsic_len(e, dest.reg()),
@@ -1198,6 +1199,10 @@ where
         self.masm
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
         self.masm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
+    }
+
+    fn emit_intrinsic_debug(&mut self) {
+        self.masm.debug();
     }
 
     fn emit_intrinsic_shl(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1917,7 +1922,7 @@ where
             args: &[BuiltinType::Ptr],
             return_type: BuiltinType::Ptr,
             throws: false,
-            id: FctId(0),
+            desc: InternalFctDescriptor::AllocThunk,
         };
 
         self.emit_native_call_insn(pos, internal_fct, dest.into());
@@ -2075,18 +2080,9 @@ fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFc
         let fct = ctxt.fcts[fct_id].borrow();
         let dbg = should_emit_debug(ctxt, &*fct);
 
-        let jit_fct_id = dora_exit::generate(ctxt, internal_fct, dbg);
+        let jit_fct_id = dora_native::generate(ctxt, internal_fct, dbg);
         let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
-
-        {
-            use baseline::map::CodeData;
-
-            let mut code_map = ctxt.code_map.lock().unwrap();
-            let cdata = CodeData::NativeStub(jit_fct_id);
-
-            code_map.insert(jit_fct.ptr_start(), jit_fct.ptr_end(), cdata);
-        }
 
         let fct_start = jit_fct.fct_start;
 

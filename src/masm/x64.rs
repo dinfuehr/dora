@@ -5,7 +5,7 @@ use baseline::fct::GcPoint;
 use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::*;
-use ctxt::FctId;
+use ctxt::{FctId, get_ctxt};
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
@@ -912,15 +912,30 @@ impl MacroAssembler {
         }
     }
 
-    pub fn trap(&mut self, trap: Trap) {
+    pub fn trap(&mut self, trap: Trap, pos: Position) {
+        let ctxt = get_ctxt();
+        self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
+        self.direct_call_without_info(ctxt.trap_thunk.to_ptr());
+        self.emit_lineno(pos.line as i32);
+    }
+
+    pub fn throw(&mut self) {
+        self.trap_signal(Trap::THROW);
+    }
+
+    pub fn trap_signal(&mut self, trap: Trap) {
         let dest = R10;
 
-        // mov r10, [Trap::COMPILER]
+        // mov r10, [trap]
         asm::emit_rex(self, 1, dest.msb(), 0, 0);
         asm::emit_op(self, 0x8b);
         asm::emit_modrm(self, 0, dest.and7(), 0b100);
         asm::emit_sib(self, 0, 0b100, 0b101);
         asm::emit_u32(self, trap.int());
+    }
+
+    pub fn nop(&mut self) {
+        asm::emit_nop(self);
     }
 
     pub fn emit_label(&mut self, lbl: Label) {

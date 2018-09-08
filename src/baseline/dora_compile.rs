@@ -1,9 +1,9 @@
 use std::mem::size_of;
 
 use baseline;
-use baseline::dora_exit::{finish_native_call, start_native_call};
+use baseline::dora_native::{finish_native_call, start_native_call};
 use baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
-use baseline::map::CodeData;
+use baseline::map::CodeDescriptor;
 use class::TypeParams;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use ctxt::{get_ctxt, FctId, SemContext};
@@ -156,7 +156,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
         };
 
         let fct_id = match data {
-            CodeData::Fct(fct_id) => fct_id,
+            CodeDescriptor::DoraFct(fct_id) => fct_id,
             _ => panic!("expected function for code"),
         };
 

@@ -293,12 +293,14 @@ def test_case_expectation(file)
         when "at" then exp.position = arguments[2]
         when "code" then exp.code = arguments[2].to_i
         when "message" then exp.message = arguments[2].to_s
-        when "assert" then exp.code = 101
-        when "array" then exp.code = 102
-        when "nil" then exp.code = 103
-        when "exception" then exp.code = 104
-        when "cast" then exp.code = 105
-        when "unexpected" then exp.code = 106
+        when "div0" then exp.code = 101
+        when "assert" then exp.code = 102
+        when "array" then exp.code = 103
+        when "nil" then exp.code = 104
+        when "exception" then exp.code = 105
+        when "cast" then exp.code = 106
+        when "unexpected" then exp.code = 107
+        when "oom" then exp.code = 108
         when "fail"
           # do nothing
         end

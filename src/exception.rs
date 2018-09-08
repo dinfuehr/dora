@@ -1,7 +1,7 @@
 use std::ptr;
 
 use baseline::fct::{CatchType, JitFctId};
-use baseline::map::CodeData;
+use baseline::map::CodeDescriptor;
 use cpu::{fp_from_execstate, get_exception_object, resume_with_handler};
 use ctxt::{get_ctxt, SemContext};
 use execstate::ExecState;
@@ -120,7 +120,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
     let data = code_map.get(pc as *const u8);
 
     match data {
-        Some(CodeData::Fct(fct_id)) => {
+        Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
@@ -136,7 +136,7 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
             true
         }
 
-        Some(CodeData::NativeStub(fct_id)) => {
+        Some(CodeDescriptor::NativeThunk(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
             let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
 
@@ -145,7 +145,13 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usi
             true
         }
 
-        _ => false,
+        Some(CodeDescriptor::TrapThunk) => true,
+        Some(CodeDescriptor::DoraEntry) => false,
+
+        _ => {
+            println!("data = {:?}", data);
+            panic!("invalid stack frame");
+        }
     }
 }
 
@@ -192,7 +198,7 @@ fn find_handler(exception: Handle<Obj>, es: &mut ExecState, pc: usize, fp: usize
     };
 
     match data {
-        Some(CodeData::Fct(fct_id)) | Some(CodeData::NativeStub(fct_id)) => {
+        Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();

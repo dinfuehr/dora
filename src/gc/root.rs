@@ -1,6 +1,6 @@
 use std::convert::From;
 
-use baseline::map::CodeData;
+use baseline::map::CodeDescriptor;
 use ctxt::SemContext;
 use exception::DoraToNativeInfo;
 use gc::Address;
@@ -76,7 +76,7 @@ fn determine_rootset(
     let data = code_map.get(pc as *const u8);
 
     match data {
-        Some(CodeData::Fct(fct_id)) => {
+        Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = ctxt.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
@@ -93,9 +93,14 @@ fn determine_rootset(
             true
         }
 
-        Some(CodeData::NativeStub(_)) => true,
+        Some(CodeDescriptor::AllocThunk) => true,
+        Some(CodeDescriptor::NativeThunk(_)) => true,
+        Some(CodeDescriptor::DoraEntry) => false,
 
-        _ => false,
+        _ => {
+            println!("data = {:?}", data);
+            panic!("invalid stack frame");
+        }
     }
 }
 

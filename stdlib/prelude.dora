@@ -13,6 +13,7 @@ internal fun print(text: Str);
 internal fun println(text: Str);
 internal fun address_of(object: Object) -> long;
 internal fun assert(val: bool);
+internal fun debug();
 internal fun argc() -> int;
 internal fun argv(idx: int) -> Str;
 internal fun forceCollect();

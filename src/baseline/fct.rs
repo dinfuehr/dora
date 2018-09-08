@@ -70,8 +70,9 @@ impl JitFct {
 #[derive(Debug)]
 pub enum JitDescriptor {
     DoraFct(FctId),
-    CompilerTrap,
     CompilerThunk,
+    TrapThunk,
+    AllocThunk,
     NativeThunk(FctId),
     DoraEntry,
 }

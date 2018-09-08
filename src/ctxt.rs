@@ -14,9 +14,9 @@ use driver::cmd::Args;
 use baseline;
 use baseline::dora_compile;
 use baseline::dora_entry;
-use baseline::dora_exit::NativeFcts;
+use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeFcts};
 use baseline::fct::{JitFct, JitFctId};
-use baseline::map::CodeMap;
+use baseline::map::{CodeDescriptor, CodeMap};
 use class::{Class, ClassDef, ClassDefId, ClassId, FieldId, TypeParams};
 use dora_parser::ast;
 use dora_parser::interner::*;
@@ -27,6 +27,7 @@ use handle::HandleMemory;
 use object::{Handle, Testing};
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
+use stdlib;
 use sym::Sym::*;
 use sym::*;
 use threads::ThreadLocalData;
@@ -89,6 +90,7 @@ pub struct SemContext<'ast> {
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
     pub dora_entry: Address,
+    pub trap_thunk: Address,
     pub tld: Box<RefCell<ThreadLocalData>>,
 }
 
@@ -150,11 +152,22 @@ impl<'ast> SemContext<'ast> {
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
             dora_entry: Address::null(),
+            trap_thunk: Address::null(),
             tld: Box::new(RefCell::new(ThreadLocalData::new())),
         };
 
         ctxt.dora_entry = dora_entry::generate(&ctxt, false);
         ctxt.compiler_thunk = dora_compile::generate(&ctxt, false);
+
+        let ifct = InternalFct {
+            ptr: stdlib::trap as *const u8,
+            args: &[BuiltinType::Int],
+            return_type: BuiltinType::Unit,
+            throws: false,
+            desc: InternalFctDescriptor::TrapThunk,
+        };
+        let jit_fct_id = dora_native::generate(&ctxt, ifct, false);
+        ctxt.trap_thunk = Address::from_ptr(ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr());
 
         ctxt
     }
@@ -211,6 +224,11 @@ impl<'ast> SemContext<'ast> {
 
         let last_dtn = dtn.last as *const DoraToNativeInfo;
         *self.dtn.borrow_mut() = last_dtn;
+    }
+
+    pub fn insert_code_map(&self, start: *const u8, end: *const u8, desc: CodeDescriptor) {
+        let mut code_map = self.code_map.lock().unwrap();
+        code_map.insert(start, end, desc);
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
@@ -833,6 +851,7 @@ pub enum Intrinsic {
     DefaultValue,
 
     Assert,
+    Debug,
     Shl,
 
     SetUint8,

@@ -9,8 +9,9 @@ use std::thread;
 
 use class::TypeParams;
 use ctxt::{exception_set, get_ctxt};
-use exception::alloc_exception;
+use exception::{alloc_exception, stacktrace_from_last_dtn};
 use object::{ByteArray, Handle, Obj, Str};
+use os::signal::Trap;
 
 use sym::Sym::SymFct;
 
@@ -251,6 +252,29 @@ pub extern "C" fn native_malloc(size: usize) -> *const u8 {
 
 pub extern "C" fn native_free(addr: *const u8) {
     unsafe { libc::free(addr as *mut libc::c_void) }
+}
+
+pub extern "C" fn trap(trap_id: u32) {
+    let ctxt = get_ctxt();
+    let trap = Trap::from(trap_id).expect("invalid trap id!");
+
+    let msg = match trap {
+        Trap::DIV0 => "division by 0",
+        Trap::ASSERT => "assert failed",
+        Trap::INDEX_OUT_OF_BOUNDS => "array index out of bounds",
+        Trap::NIL => "nil check failed",
+        Trap::CAST => "cast failed",
+        Trap::UNEXPECTED => "unexpected exception",
+        Trap::OOM => "out of memory",
+        _ => unimplemented!(),
+    };
+
+    println!("{}", msg);
+    let stacktrace = stacktrace_from_last_dtn(ctxt);
+    stacktrace.dump(ctxt);
+    unsafe {
+        libc::_exit(100 + trap_id as i32);
+    }
 }
 
 pub extern "C" fn spawn_thread(obj: Handle<Obj>) {

@@ -18,7 +18,7 @@ use baseline::fct::{
     CatchType, Comment, CommentFormat, GcPoint, JitBaselineFct, JitDescriptor, JitFct,
 };
 use baseline::info::{self, JitInfo};
-use baseline::map::CodeData;
+use baseline::map::CodeDescriptor;
 use class::{ClassDef, TypeParams};
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, SemContext, VarId};
@@ -133,7 +133,7 @@ pub fn generate_fct<'ast>(
 
     {
         let mut code_map = ctxt.code_map.lock().unwrap();
-        let cdata = CodeData::Fct(jit_fct_id);
+        let cdata = CodeDescriptor::DoraFct(jit_fct_id);
         code_map.insert(ptr_start, ptr_end, cdata);
     }
 
@@ -683,7 +683,7 @@ where
         self.emit_expr(&s.expr);
         self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
-        self.masm.trap(Trap::THROW);
+        self.masm.throw();
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -792,7 +792,7 @@ where
 
         self.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-        self.masm.trap(Trap::THROW);
+        self.masm.throw();
 
         self.scopes.pop_scope();
 

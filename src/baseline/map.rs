@@ -5,7 +5,7 @@ use baseline::fct::JitFctId;
 use ctxt::SemContext;
 
 pub struct CodeMap {
-    tree: BTreeMap<CodeSpan, CodeData>,
+    tree: BTreeMap<CodeSpan, CodeDescriptor>,
 }
 
 impl CodeMap {
@@ -22,27 +22,34 @@ impl CodeMap {
             print!("  {:?} - {:?} => ", key.start, key.end);
 
             match data {
-                &CodeData::CompileStub => println!("compile stub"),
-                &CodeData::VirtCompileStub => println!("virtual compile stub"),
-                &CodeData::Fct(jit_fct_id) => {
+                &CodeDescriptor::DoraFct(jit_fct_id) => {
                     let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
                     let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
 
-                    println!("{}", fct.full_name(ctxt));
+                    println!("dora {}", fct.full_name(ctxt));
                 }
-                &CodeData::NativeStub(_) => println!("native stub"),
+                &CodeDescriptor::CompilerThunk => println!("compiler_thunk"),
+                &CodeDescriptor::TrapThunk => println!("trap_thunk"),
+                &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
+                &CodeDescriptor::NativeThunk(jit_fct_id) => {
+                    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+                    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
+
+                    println!("native {}", fct.full_name(ctxt));
+                }
+                &CodeDescriptor::DoraEntry => println!("dora_entry"),
             }
         }
 
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: *const u8, end: *const u8, data: CodeData) {
+    pub fn insert(&mut self, start: *const u8, end: *const u8, data: CodeDescriptor) {
         let span = CodeSpan::new(start, end);
         assert!(self.tree.insert(span, data).is_none());
     }
 
-    pub fn get(&self, ptr: *const u8) -> Option<CodeData> {
+    pub fn get(&self, ptr: *const u8) -> Option<CodeDescriptor> {
         let span = CodeSpan::new(ptr, unsafe { ptr.offset(1) });
 
         self.tree.get(&span).map(|el| *el)
@@ -50,11 +57,13 @@ impl CodeMap {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CodeData {
-    CompileStub,
-    VirtCompileStub,
-    Fct(JitFctId),
-    NativeStub(JitFctId),
+pub enum CodeDescriptor {
+    DoraFct(JitFctId),
+    CompilerThunk,
+    TrapThunk,
+    AllocThunk,
+    NativeThunk(JitFctId),
+    DoraEntry,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -147,14 +156,14 @@ mod tests {
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), CodeData::Fct(1.into()));
-        map.insert(ptr(7), ptr(9), CodeData::Fct(2.into()));
+        map.insert(ptr(5), ptr(7), CodeDescriptor::DoraFct(1.into()));
+        map.insert(ptr(7), ptr(9), CodeDescriptor::DoraFct(2.into()));
 
         assert_eq!(None, map.get(ptr(4)));
-        assert_eq!(Some(CodeData::Fct(1.into())), map.get(ptr(5)));
-        assert_eq!(Some(CodeData::Fct(1.into())), map.get(ptr(6)));
-        assert_eq!(Some(CodeData::Fct(2.into())), map.get(ptr(7)));
-        assert_eq!(Some(CodeData::Fct(2.into())), map.get(ptr(8)));
+        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(ptr(5)));
+        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(ptr(6)));
+        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(ptr(7)));
+        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(ptr(8)));
         assert_eq!(None, map.get(ptr(9)));
     }
 
@@ -163,7 +172,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), CodeData::Fct(1.into()));
-        map.insert(ptr(6), ptr(7), CodeData::Fct(2.into()));
+        map.insert(ptr(5), ptr(7), CodeDescriptor::DoraFct(1.into()));
+        map.insert(ptr(6), ptr(7), CodeDescriptor::DoraFct(2.into()));
     }
 }

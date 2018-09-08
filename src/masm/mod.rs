@@ -71,10 +71,11 @@ impl MacroAssembler {
         desc: JitDescriptor,
         throws: bool,
     ) -> JitBaselineFct {
+        self.finish();
+
         // align data such that code starts at address that is
         // aligned to 16
         self.dseg.align(16);
-        self.finish();
 
         JitBaselineFct::from_buffer(
             ctxt,
@@ -110,8 +111,13 @@ impl MacroAssembler {
             let (lbl, trap, pos) = *bailout;
 
             self.bind_label(lbl);
-            self.emit_lineno(pos.line as i32);
-            self.trap(trap);
+            self.trap(trap, pos);
+        }
+
+        // add nop after bailout traps, so that we can't find return address
+        // in code map, even though return address is at function end.
+        if bailouts.len() > 0 {
+            self.nop();
         }
 
         self.fix_forward_jumps();
@@ -201,7 +207,7 @@ impl MacroAssembler {
 
     pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
         self.emit_lineno(pos.line as i32);
-        self.trap(trap);
+        self.trap_signal(trap);
     }
 
     pub fn emit_exception_handler(
