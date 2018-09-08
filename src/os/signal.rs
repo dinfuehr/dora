@@ -95,23 +95,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
             return;
         }
 
-        let msg = match trap {
-            Trap::DIV0 => "division by 0",
-            Trap::ASSERT => "assert failed",
-            Trap::INDEX_OUT_OF_BOUNDS => "array index out of bounds",
-            Trap::NIL => "nil check failed",
-            Trap::CAST => "cast failed",
-            Trap::UNEXPECTED => "unexpected exception",
-            Trap::OOM => "out of memory",
-            _ => unimplemented!(),
-        };
-
-        println!("{}", msg);
-        let stacktrace = stacktrace_from_es(ctxt, &es);
-        stacktrace.dump(ctxt);
-        unsafe {
-            libc::_exit(100 + trap.int() as i32);
-        }
+        panic!("shouldn't happen anymore.");
 
     // is this is a failed nil check?
     } else if detect_nil_check(ctxt, es.pc) {

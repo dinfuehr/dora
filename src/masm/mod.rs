@@ -206,8 +206,7 @@ impl MacroAssembler {
     }
 
     pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
-        self.emit_lineno(pos.line as i32);
-        self.trap_signal(trap);
+        self.trap(trap, pos);
     }
 
     pub fn emit_exception_handler(
