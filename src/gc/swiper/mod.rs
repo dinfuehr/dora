@@ -14,8 +14,10 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::Address;
 use gc::Collector;
+use gc::{TLAB_SIZE, TLAB_OBJECT_SIZE};
 use mem;
 use os;
+use vtable::VTable;
 
 pub mod card;
 mod crossing;
@@ -252,6 +254,85 @@ impl Collector for Swiper {
 }
 
 impl Swiper {
+    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+        let tlab = ctxt.tld.borrow().tlab_region();
+        assert!(size > tlab.size());
+        assert!(size < TLAB_OBJECT_SIZE);
+
+        // make heap iterable by filling tlab with unused objects
+        self.fill_tlab(ctxt, tlab.start, tlab.end);
+
+        // allocate new tlab
+        let tlab_start = self.alloc_tlab_area(ctxt);
+
+        if tlab_start.is_null() {
+            // couldn't allocate tlab!?
+            let n = Address::null();
+            ctxt.tld.borrow_mut().tlab_initialize(n, n);
+
+            // allocate object in old generation
+            self.old.alloc(size, array_ref)
+
+        } else {
+            ctxt.tld.borrow_mut().tlab_initialize(tlab_start.offset(size), tlab_start.offset(TLAB_SIZE));
+
+            // object is allocated in start of TLAB
+            tlab_start
+        }
+    }
+
+    fn alloc_tlab_area(&self, ctxt: &SemContext) -> Address {
+        let ptr = self.young.alloc(TLAB_SIZE);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        let promotion_failed = self.minor_collect_inner(ctxt);
+
+        if promotion_failed {
+            self.full_collect(ctxt);
+            return self.young.alloc(TLAB_SIZE);
+        }
+
+        let ptr = self.young.alloc(TLAB_SIZE);
+
+        if !ptr.is_null() {
+            return ptr;
+        }
+
+        self.full_collect(ctxt);
+        self.young.alloc(TLAB_SIZE)
+    }
+
+    fn fill_tlab(&self, ctxt: &SemContext, start: Address, end: Address) {
+        if start == end {
+            // nothing to do
+
+        } else if end.offset_from(start) == mem::ptr_width_usize() {
+            // fill with object
+            let cls_id = ctxt.vips.obj(ctxt);
+            let cls = ctxt.class_defs[cls_id].borrow();
+            let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+            unsafe {
+                *start.to_mut_ptr::<usize>() = vtable as usize;
+            }
+
+        } else {
+            // fill with int array
+            let cls_id = ctxt.vips.int_array(ctxt);
+            let cls = ctxt.class_defs[cls_id].borrow();
+            let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+            let length: usize = end.offset_from(start.add_ptr(2)) / 2;
+
+            unsafe {
+                *start.to_mut_ptr::<usize>() = vtable as usize;
+                *start.add_ptr(1).to_mut_ptr::<usize>() = length;
+            }
+        }
+    }
+
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         let ptr = self.young.alloc(size);
 

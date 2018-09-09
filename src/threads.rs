@@ -2,6 +2,7 @@ use std::ptr;
 
 use exception::DoraToNativeInfo;
 use gc::Address;
+use gc::swiper::Region;
 
 pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,
@@ -25,6 +26,10 @@ impl ThreadLocalData {
 
     pub fn tlab_rest(&self) -> usize {
         self.tlab_end.offset_from(self.tlab_top)
+    }
+
+    pub fn tlab_region(&self) -> Region {
+        Region::new(self.tlab_top, self.tlab_end)
     }
 
     pub fn tlab_top_offset() -> i32 {

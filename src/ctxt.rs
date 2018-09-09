@@ -136,6 +136,7 @@ impl<'ast> SemContext<'ast> {
 
                 int_array_def: Cell::new(None),
                 str_class_def: Cell::new(None),
+                obj_class_def: Cell::new(None),
                 ste_class_def: Cell::new(None),
                 ex_class_def: Cell::new(None),
             },
@@ -546,6 +547,7 @@ pub struct KnownElements {
 
     int_array_def: Cell<Option<ClassDefId>>,
     str_class_def: Cell<Option<ClassDefId>>,
+    obj_class_def: Cell<Option<ClassDefId>>,
     ste_class_def: Cell<Option<ClassDefId>>,
     ex_class_def: Cell<Option<ClassDefId>>,
 }
@@ -576,6 +578,18 @@ impl KnownElements {
         } else {
             let cls_id = specialize_class_id(ctxt, self.str_class);
             self.str_class_def.set(Some(cls_id));
+            cls_id
+        }
+    }
+
+    pub fn obj(&self, ctxt: &SemContext) -> ClassDefId {
+        let cls_id = self.obj_class_def.get();
+
+        if let Some(cls_id) = cls_id {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(ctxt, self.object_class);
+            self.obj_class_def.set(Some(cls_id));
             cls_id
         }
     }
