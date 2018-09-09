@@ -14,7 +14,7 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::Address;
 use gc::Collector;
-use gc::{TLAB_SIZE, TLAB_OBJECT_SIZE};
+use gc::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use mem;
 use os;
 use vtable::VTable;
@@ -149,6 +149,9 @@ impl Swiper {
     }
 
     fn minor_collect_inner(&self, ctxt: &SemContext) -> bool {
+        // make heap iterable
+        self.fill_current_tlab(ctxt);
+
         let rootset = get_rootset(ctxt);
 
         self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
@@ -170,6 +173,9 @@ impl Swiper {
     }
 
     fn full_collect(&self, ctxt: &SemContext) {
+        // make heap iterable
+        self.fill_current_tlab(ctxt);
+
         let rootset = get_rootset(ctxt);
 
         self.verify(ctxt, VerifierPhase::PreFull, "pre-full", &rootset);
@@ -229,7 +235,9 @@ impl Collector for Swiper {
             self.full_collect(ctxt);
         }
 
-        if size < LARGE_OBJECT_SIZE {
+        if size < TLAB_OBJECT_SIZE {
+            self.alloc_tlab(ctxt, size, array_ref)
+        } else if size < LARGE_OBJECT_SIZE {
             self.alloc_normal(ctxt, size, array_ref)
         } else {
             self.alloc_large(ctxt, size, array_ref)
@@ -241,6 +249,7 @@ impl Collector for Swiper {
     }
 
     fn minor_collect(&self, ctxt: &SemContext) {
+        self.fill_current_tlab(ctxt);
         self.minor_collect_inner(ctxt);
     }
 
@@ -256,33 +265,41 @@ impl Collector for Swiper {
 impl Swiper {
     fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         let tlab = ctxt.tld.borrow().tlab_region();
-        assert!(size > tlab.size());
-        assert!(size < TLAB_OBJECT_SIZE);
 
-        // make heap iterable by filling tlab with unused objects
+        // try to allocate in current tlab
+        if size <= tlab.size() {
+            ctxt.tld
+                .borrow_mut()
+                .tlab_initialize(tlab.start.offset(size), tlab.end);
+            return tlab.start;
+        }
+
+        // if there is not enough space, make heap iterable by filling tlab with unused objects
         self.fill_tlab(ctxt, tlab.start, tlab.end);
 
         // allocate new tlab
-        let tlab_start = self.alloc_tlab_area(ctxt);
+        let tlab_start = self.alloc_tlab_area(ctxt, size);
 
         if tlab_start.is_null() {
-            // couldn't allocate tlab!?
-            let n = Address::null();
-            ctxt.tld.borrow_mut().tlab_initialize(n, n);
-
-            // allocate object in old generation
+            // allocate object in old generation instead
             self.old.alloc(size, array_ref)
-
         } else {
-            ctxt.tld.borrow_mut().tlab_initialize(tlab_start.offset(size), tlab_start.offset(TLAB_SIZE));
+            let object_start = tlab_start;
+            let tlab_start = tlab_start.offset(size);
+            let tlab_end = tlab_start.offset(TLAB_SIZE);
 
-            // object is allocated in start of TLAB
-            tlab_start
+            // initialize TLAB to new boundaries
+            ctxt.tld.borrow_mut().tlab_initialize(tlab_start, tlab_end);
+
+            // object is allocated before TLAB
+            object_start
         }
     }
 
-    fn alloc_tlab_area(&self, ctxt: &SemContext) -> Address {
-        let ptr = self.young.alloc(TLAB_SIZE);
+    fn alloc_tlab_area(&self, ctxt: &SemContext, extend: usize) -> Address {
+        assert!(extend < TLAB_OBJECT_SIZE);
+        let size = TLAB_SIZE + extend;
+        let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
@@ -292,10 +309,10 @@ impl Swiper {
 
         if promotion_failed {
             self.full_collect(ctxt);
-            return self.young.alloc(TLAB_SIZE);
+            return self.young.alloc(size);
         }
 
-        let ptr = self.young.alloc(TLAB_SIZE);
+        let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
@@ -303,6 +320,11 @@ impl Swiper {
 
         self.full_collect(ctxt);
         self.young.alloc(TLAB_SIZE)
+    }
+
+    fn fill_current_tlab(&self, ctxt: &SemContext) {
+        let tlab = ctxt.tld.borrow().tlab_region();
+        self.fill_tlab(ctxt, tlab.start, tlab.end);
     }
 
     fn fill_tlab(&self, ctxt: &SemContext, start: Address, end: Address) {
@@ -318,19 +340,21 @@ impl Swiper {
             unsafe {
                 *start.to_mut_ptr::<usize>() = vtable as usize;
             }
-
         } else {
             // fill with int array
             let cls_id = ctxt.vips.int_array(ctxt);
             let cls = ctxt.class_defs[cls_id].borrow();
             let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-            let length: usize = end.offset_from(start.add_ptr(2)) / 2;
+            let length: usize = end.offset_from(start.add_ptr(2)) / 4;
 
             unsafe {
                 *start.to_mut_ptr::<usize>() = vtable as usize;
                 *start.add_ptr(1).to_mut_ptr::<usize>() = length;
             }
         }
+
+        let n = Address::null();
+        ctxt.tld.borrow_mut().tlab_initialize(n, n);
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
