@@ -118,6 +118,10 @@ impl JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
         let ptr = ctxt.gc.alloc_code(size);
 
+        if ptr.is_null() {
+            panic!("out of memory: not enough executable memory left!");
+        }
+
         dseg.finish(ptr);
 
         let fct_start;

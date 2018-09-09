@@ -4,6 +4,8 @@ use std::ops::Deref;
 use docopt::Docopt;
 use rustc_serialize;
 
+use gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_PERM_SPACE_LIMIT};
+
 pub fn parse() -> Args {
     Docopt::new(USAGE)
         .and_then(|d| d.decode())
@@ -38,7 +40,9 @@ Options:
     --gc-verify             Verify heap before and after collections
     --gc=<name>             Switch GC. Possible values: zero, copy (default), swiper
 
-    --heap-size=<SIZE>       Set heap size
+    --heap-size=<SIZE>      Set heap size
+    --code-size=<SIZE>      Set code size limit
+    --perm-size=<SIZE>      Set perm size limit
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -64,6 +68,8 @@ pub struct Args {
     pub flag_gc_verify: bool,
     pub flag_gc: Option<CollectorName>,
     pub flag_heap_size: Option<MemSize>,
+    pub flag_code_size: Option<MemSize>,
+    pub flag_perm_size: Option<MemSize>,
     pub flag_check: bool,
 
     pub cmd_test: bool,
@@ -72,6 +78,14 @@ pub struct Args {
 impl Args {
     pub fn heap_size(&self) -> usize {
         self.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024)
+    }
+
+    pub fn code_size(&self) -> usize {
+        self.flag_code_size.map(|s| *s).unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
+    }
+
+    pub fn perm_size(&self) -> usize {
+        self.flag_perm_size.map(|s| *s).unwrap_or(DEFAULT_PERM_SPACE_LIMIT)
     }
 }
 
@@ -99,6 +113,8 @@ impl Default for Args {
             flag_gc_verify: false,
             flag_gc: None,
             flag_heap_size: None,
+            flag_code_size: None,
+            flag_perm_size: None,
             flag_check: false,
 
             cmd_test: false,

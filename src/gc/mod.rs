@@ -17,12 +17,11 @@ pub mod space;
 pub mod swiper;
 pub mod zero;
 
-const INITIAL_SIZE: usize = 64 * 1024;
 const LARGE_OBJECT_SIZE: usize = 64 * 1024;
 
 const CHUNK_SIZE: usize = 8 * 1024;
-const CODE_SPACE_LIMIT: usize = 128 * 1024;
-const PERM_SPACE_LIMIT: usize = 64 * 1024;
+pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
+pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
 pub const TLAB_SIZE: usize = 16 * 1024;
 pub const TLAB_OBJECT_SIZE: usize = 4 * 1024;
@@ -39,14 +38,14 @@ impl Gc {
         let code_config = SpaceConfig {
             executable: true,
             chunk: CHUNK_SIZE,
-            limit: CODE_SPACE_LIMIT,
+            limit: args.code_size(),
             align: 64,
         };
 
         let perm_config = SpaceConfig {
             executable: false,
             chunk: CHUNK_SIZE,
-            limit: PERM_SPACE_LIMIT,
+            limit: args.perm_size(),
             align: 8,
         };
 
