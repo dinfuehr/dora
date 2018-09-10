@@ -1942,10 +1942,7 @@ where
 
         match size {
             AllocationSize::Dynamic(reg_size) => {
-                let max_tlab = self.masm.get_scratch();
-                self.masm
-                    .load_int_const(MachineMode::Ptr, *max_tlab, TLAB_OBJECT_SIZE as i64);
-                self.masm.cmp_reg(MachineMode::Ptr, reg_size, *max_tlab);
+                self.masm.cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
                 self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
             }
 

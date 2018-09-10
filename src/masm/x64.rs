@@ -166,6 +166,10 @@ impl MacroAssembler {
         asm::emit_cmp_reg_reg(self, x64, rhs, lhs);
     }
 
+    pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
+        asm::emit_cmp_imm_reg(self, mode, imm, lhs);
+    }
+
     pub fn float_cmp(
         &mut self,
         mode: MachineMode,

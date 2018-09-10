@@ -1920,7 +1920,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp_reg_imm() {
+    fn test_cmp_imm_reg() {
         assert_emit!(0x48, 0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, RAX));
         assert_emit!(0x83, 0xf8, 0; emit_cmp_imm_reg(MachineMode::Int32, 0, RAX));
         assert_emit!(0x49, 0x83, 0xff, 0; emit_cmp_imm_reg(MachineMode::Ptr, 0, R15));
