@@ -7,11 +7,11 @@ use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, dbg: bool) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
     let ngen = DoraEntryGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
-        dbg: dbg,
+        dbg: ctxt.args.flag_emit_debug_entry,
     };
 
     let jit_fct = ngen.generate();

@@ -14,11 +14,11 @@ use mem;
 use object::Obj;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, dbg: bool) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
     let ngen = DoraCompileGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
-        dbg: dbg,
+        dbg: ctxt.args.flag_emit_debug_compile,
     };
 
     let jit_fct = ngen.generate();
@@ -52,6 +52,10 @@ where
         let offset_tmp =
             offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
         let offset_thread = offset_tmp + mem::ptr_width();
+
+        if self.dbg {
+            self.masm.debug();
+        }
 
         self.masm.copy_ra(REG_TMP1);
         self.masm.prolog(framesize);

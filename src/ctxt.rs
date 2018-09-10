@@ -168,9 +168,9 @@ impl<'ast> SemContext<'ast> {
             }
         }
 
-        ctxt.dora_entry = dora_entry::generate(&ctxt, false);
-        ctxt.compiler_thunk = dora_compile::generate(&ctxt, false);
-        ctxt.throw_thunk = dora_throw::generate(&ctxt, false);
+        ctxt.dora_entry = dora_entry::generate(&ctxt);
+        ctxt.compiler_thunk = dora_compile::generate(&ctxt);
+        ctxt.throw_thunk = dora_throw::generate(&ctxt);
 
         let ifct = InternalFct {
             ptr: stdlib::trap as *const u8,

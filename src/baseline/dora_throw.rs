@@ -12,11 +12,11 @@ use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, dbg: bool) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
     let ngen = DoraThrowGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
-        dbg: dbg,
+        dbg: ctxt.args.flag_emit_debug_compile,
     };
 
     let jit_fct = ngen.generate();
@@ -52,6 +52,10 @@ where
         let offset_result_pc = offset_result;
         let offset_result_sp = offset_result_pc + mem::ptr_width();
         let offset_result_fp = offset_result_sp + mem::ptr_width();
+
+        if self.dbg {
+            self.masm.debug();
+        }
 
         self.masm.prolog(framesize);
 

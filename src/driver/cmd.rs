@@ -27,6 +27,9 @@ Options:
     --emit-asm-file         Emits assembly code into file dora-<pid>.asm
     --emit-stubs            Emits generated stubs
     --emit-debug=<fct>      Emits debug instruction at beginning of functions
+    --emit-debug-compile    Emits debug instruction at beginning of compile thunk
+    --emit-debug-throw      Emits debug instruction at beginning of throw thunk
+    --emit-debug-entry      Emits debug instruction at beginning of entry thunk
     --omit-bounds-check     Omit array index out of bounds checks
     --check                 Only type check given program
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
@@ -59,6 +62,9 @@ pub struct Args {
     pub flag_omit_bounds_check: bool,
     pub flag_version: bool,
     pub flag_emit_debug: Option<String>,
+    pub flag_emit_debug_throw: bool,
+    pub flag_emit_debug_compile: bool,
+    pub flag_emit_debug_entry: bool,
     pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
@@ -101,6 +107,9 @@ impl Default for Args {
             flag_emit_llvm: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
+            flag_emit_debug_compile: false,
+            flag_emit_debug_throw: false,
+            flag_emit_debug_entry: false,
             flag_enable_perf: false,
             flag_omit_bounds_check: false,
             flag_version: false,
