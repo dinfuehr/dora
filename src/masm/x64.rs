@@ -335,13 +335,21 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i32) {
+    pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
+        if !fits_i32(value) {
+            assert!(mode == MachineMode::Int64 || mode == MachineMode::Ptr);
+            let reg_size = self.get_scratch();
+            self.load_int_const(MachineMode::Ptr, *reg_size, value);
+            self.int_add(mode, dest, lhs, *reg_size);
+            return;
+        }
+
         let x64 = match mode {
             MachineMode::Int64 | MachineMode::Ptr => 1,
             _ => unimplemented!(),
         };
 
-        asm::emit_addq_imm_reg(self, value, lhs);
+        asm::emit_addq_imm_reg(self, value as i32, lhs);
 
         if dest != lhs {
             asm::emit_mov_reg_reg(self, x64, lhs, dest);

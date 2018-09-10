@@ -87,11 +87,15 @@ impl Args {
     }
 
     pub fn code_size(&self) -> usize {
-        self.flag_code_size.map(|s| *s).unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
+        self.flag_code_size
+            .map(|s| *s)
+            .unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
     }
 
     pub fn perm_size(&self) -> usize {
-        self.flag_perm_size.map(|s| *s).unwrap_or(DEFAULT_PERM_SPACE_LIMIT)
+        self.flag_perm_size
+            .map(|s| *s)
+            .unwrap_or(DEFAULT_PERM_SPACE_LIMIT)
     }
 }
 

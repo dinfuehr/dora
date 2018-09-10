@@ -281,8 +281,8 @@ impl MacroAssembler {
             let obj_end = self.get_scratch();
             self.copy_reg(MachineMode::Ptr, *obj_end, obj);
             let offset = Header::size() + (size_words as i32) * mem::ptr_width();
-            self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset);
-            self.int_add_imm(MachineMode::Ptr, obj, obj, Header::size());
+            self.int_add_imm(MachineMode::Ptr, *obj_end, *obj_end, offset as i64);
+            self.int_add_imm(MachineMode::Ptr, obj, obj, Header::size() as i64);
             self.fill_zero_dynamic(obj, *obj_end);
         }
     }
@@ -302,7 +302,7 @@ impl MacroAssembler {
         self.cmp_reg(MachineMode::Ptr, *curr, obj_end);
         self.jump_if(CondCode::Equal, done);
         self.store_mem(MachineMode::Ptr, Mem::Base(*curr, 0), (*zero).into());
-        self.int_add_imm(MachineMode::Ptr, *curr, *curr, mem::ptr_width());
+        self.int_add_imm(MachineMode::Ptr, *curr, *curr, mem::ptr_width() as i64);
         // jump to begin of loop
         self.jump(start);
         self.bind_label(done);

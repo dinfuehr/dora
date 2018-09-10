@@ -86,7 +86,7 @@ where
             MachineMode::Ptr,
             REG_PARAMS[1],
             REG_PARAMS[1],
-            offset_result,
+            offset_result as i64,
         );
         self.masm.direct_call_without_info(throw as *const u8);
 

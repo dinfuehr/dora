@@ -1789,7 +1789,7 @@ where
                     MachineMode::Ptr,
                     dest,
                     dest,
-                    Header::size() + mem::ptr_width(),
+                    (Header::size() + mem::ptr_width()) as i64,
                 );
 
                 let element_size = match cls.size {
@@ -1942,7 +1942,8 @@ where
 
         match size {
             AllocationSize::Dynamic(reg_size) => {
-                self.masm.cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
+                self.masm
+                    .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
                 self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
             }
 
@@ -1969,11 +1970,8 @@ where
         match size {
             AllocationSize::Fixed(size) => {
                 self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
-                let reg_size = self.masm.get_scratch();
                 self.masm
-                    .load_int_const(MachineMode::Ptr, *reg_size, size as i64);
-                self.masm
-                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, *reg_size);
+                    .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
             }
 
             AllocationSize::Dynamic(reg_size) => {
