@@ -782,8 +782,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                 _ => ty,
             },
 
-            CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
+            CallType::Ctor(cls_id, _, ref type_params) | CallType::CtorNew(cls_id, _, ref type_params) => {
                 let empty = TypeParams::empty();
+                let list_id = self.ctxt.lists.borrow_mut().insert(empty.clone());
+                let ty = BuiltinType::Class(cls_id, list_id);
                 specialize_type(self.ctxt, ty, type_params, &empty)
             }
         };
