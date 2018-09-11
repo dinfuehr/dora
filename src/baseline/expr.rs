@@ -1644,10 +1644,12 @@ where
                 cls_type_params,
                 fct_type_params,
             );
+
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.masm.emit_comment(Comment::CallVirtual(fid));
             self.emit_indirect_call_insn(vtable_index, pos, return_type, dest);
+
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.masm.emit_comment(Comment::CallDirect(fid));
@@ -1852,7 +1854,9 @@ where
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
         self.masm.emit_gcpoint(gcpoint);
 
-        self.copy_result_to(ty, dest);
+        if !ty.is_unit() {
+            self.copy_result_to(ty, dest);
+        }
     }
 
     fn copy_result_to(&mut self, ty: BuiltinType, dest: ExprStore) {
