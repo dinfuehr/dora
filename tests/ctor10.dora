@@ -1,3 +1,0 @@
-fun main() { f(); }
-class Foo(i: int)
-fun f() { assert(Foo(1) !== Foo(2)); }
