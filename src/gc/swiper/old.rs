@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::swiper::crossing::{Card, CrossingMap};
+use gc::swiper::crossing::{CardIdx, CrossingMap};
 use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::Address;
@@ -112,19 +112,19 @@ impl OldGen {
     }
 
     #[inline(always)]
-    pub fn address_from_card(&self, card: Card) -> Address {
+    pub fn address_from_card(&self, card: CardIdx) -> Address {
         let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
 
         addr.into()
     }
 
     #[inline(always)]
-    fn card_from(&self, addr: usize) -> Card {
+    fn card_from(&self, addr: usize) -> CardIdx {
         self.card_from_address(Address::from(addr))
     }
 
     #[inline(always)]
-    pub fn card_from_address(&self, addr: Address) -> Card {
+    pub fn card_from_address(&self, addr: Address) -> CardIdx {
         debug_assert!(self.contains(addr));
         let idx = addr.offset_from(self.total.start) >> CARD_SIZE_BITS;
 

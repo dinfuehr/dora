@@ -19,17 +19,17 @@ use gc::Address;
 //     and some non-reference content is in the next card
 
 #[derive(Copy, Clone)]
-pub struct Card(usize);
+pub struct CardIdx(usize);
 
-impl Card {
+impl CardIdx {
     pub fn to_usize(self) -> usize {
         self.0
     }
 }
 
-impl From<usize> for Card {
-    fn from(val: usize) -> Card {
-        Card(val)
+impl From<usize> for CardIdx {
+    fn from(val: usize) -> CardIdx {
+        CardIdx(val)
     }
 }
 
@@ -48,32 +48,32 @@ impl CrossingMap {
         }
     }
 
-    pub fn set_no_references(&self, card: Card) {
+    pub fn set_no_references(&self, card: CardIdx) {
         self.set(card, 64);
     }
 
-    pub fn set_first_object(&self, card: Card, words: usize) {
+    pub fn set_first_object(&self, card: CardIdx, words: usize) {
         assert!(words < 64);
         self.set(card, words as u8);
     }
 
-    pub fn set_array_start(&self, card: Card, words: usize) {
+    pub fn set_array_start(&self, card: CardIdx, words: usize) {
         assert!(words == 1);
         self.set(card, (128 + words) as u8);
     }
 
-    pub fn set_references_at_start(&self, card: Card, refs: usize) {
+    pub fn set_references_at_start(&self, card: CardIdx, refs: usize) {
         assert!(refs > 0 && refs <= 64);
         self.set(card, 64 + (refs as u8));
     }
 
-    fn set(&self, card: Card, val: u8) {
+    fn set(&self, card: CardIdx, val: u8) {
         unsafe {
             *self.start.offset(card.to_usize()).to_mut_ptr::<u8>() = val;
         }
     }
 
-    pub fn get(&self, card: Card) -> CrossingEntry {
+    pub fn get(&self, card: CardIdx) -> CrossingEntry {
         let val = unsafe { *self.start.offset(card.to_usize()).to_ptr::<u8>() };
 
         if val < 64 {

@@ -4,7 +4,7 @@ use ctxt::SemContext;
 
 use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::crossing::{Card, CrossingEntry, CrossingMap};
+use gc::swiper::crossing::{CardIdx, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
@@ -174,7 +174,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     fn copy_card(
         &mut self,
-        card: Card,
+        card: CardIdx,
         mut ptr: Address,
         card_end: Address,
         mut ref_to_young_gen: bool,

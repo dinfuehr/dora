@@ -1,6 +1,6 @@
 use std::ptr;
 
-use gc::swiper::crossing::Card;
+use gc::swiper::crossing::CardIdx;
 use gc::swiper::CARD_SIZE_BITS;
 use gc::Address;
 
@@ -45,7 +45,7 @@ impl CardTable {
     // visits all dirty cards
     pub fn visit_dirty<F>(&self, mut f: F)
     where
-        F: FnMut(Card),
+        F: FnMut(CardIdx),
     {
         let mut ptr = self.start;
 
@@ -53,14 +53,14 @@ impl CardTable {
             let val: u8 = unsafe { *ptr.to_ptr() };
 
             if val == 0 {
-                f(Card::from(ptr.offset_from(self.start)));
+                f(CardIdx::from(ptr.offset_from(self.start)));
             }
 
             ptr = ptr.offset(1);
         }
     }
 
-    pub fn get(&self, card: Card) -> CardEntry {
+    pub fn get(&self, card: CardIdx) -> CardEntry {
         let ptr = self.start.offset(card.to_usize());
         debug_assert!(ptr < self.end);
 
@@ -73,7 +73,7 @@ impl CardTable {
         }
     }
 
-    pub fn set(&self, card: Card, entry: CardEntry) {
+    pub fn set(&self, card: CardIdx, entry: CardEntry) {
         let ptr = self.start.offset(card.to_usize());
         debug_assert!(ptr < self.end);
 
