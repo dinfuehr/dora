@@ -260,7 +260,7 @@ impl<'a> Verifier<'a> {
             loop_start = old_card.to_usize() + 1;
 
             let crossing = self.crossing_map.get(card);
-            let expected = CrossingEntry::FirstObjectOffset(offset_words);
+            let expected = CrossingEntry::FirstObject(offset_words);
             assert!(crossing == expected, "crossing at end not correct.");
         }
 

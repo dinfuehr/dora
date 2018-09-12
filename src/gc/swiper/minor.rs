@@ -155,7 +155,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                     self.copy_card(card, ptr, card_end, ref_to_young_gen);
                 }
 
-                CrossingEntry::FirstObjectOffset(offset) => {
+                CrossingEntry::FirstObject(offset) => {
                     let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card

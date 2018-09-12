@@ -3,12 +3,20 @@ use gc::Address;
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
 //
-// 0 < v <= 64
-//     first object starts v words after card start, there are
-//     no references before the first object
-//     64 means no references
-// 64 < v < 128
-//     there are -v references before first object
+// 0 <= v < 64: [0-63] FirstObject
+//     first object starts v words after card start
+//     no references before first object
+//
+// 64: NoRefs
+//     no references in this card
+//
+// 64 < v <= 128: [1-64] LeadingRefs
+//     there are v references before first object
+//
+// 128 < v: [1] ArrayStart
+//     object starts v words before this card
+//     used only for object arrays when array starts in the card before
+//     and some non-reference content is in the next card
 
 #[derive(Copy, Clone)]
 pub struct Card(usize);
@@ -50,7 +58,8 @@ impl CrossingMap {
     }
 
     pub fn set_array_start(&self, card: Card, words: usize) {
-        self.set(card, (129 + words) as u8);
+        assert!(words == 1);
+        self.set(card, (128 + words) as u8);
     }
 
     pub fn set_references_at_start(&self, card: Card, refs: usize) {
@@ -68,13 +77,17 @@ impl CrossingMap {
         let val = unsafe { *self.start.offset(card.to_usize()).to_ptr::<u8>() };
 
         if val < 64 {
-            CrossingEntry::FirstObjectOffset(val)
-        } else if val > 64 && val <= 128 {
-            CrossingEntry::LeadingRefs(val - 64)
-        } else if val > 128 {
-            CrossingEntry::ArrayStart(val - 129)
-        } else {
+            CrossingEntry::FirstObject(val)
+
+        } else if val == 64 {
             CrossingEntry::NoRefs
+
+        } else if val <= 128 {
+            CrossingEntry::LeadingRefs(val - 64)
+
+        } else {
+            assert!(val == 129);
+            CrossingEntry::ArrayStart(1)
         }
     }
 }
@@ -83,6 +96,6 @@ impl CrossingMap {
 pub enum CrossingEntry {
     NoRefs,
     LeadingRefs(u8),
-    FirstObjectOffset(u8),
+    FirstObject(u8),
     ArrayStart(u8),
 }
