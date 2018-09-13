@@ -6,6 +6,7 @@ use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CardIdx, CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
+use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{Region, CARD_SIZE};
@@ -19,6 +20,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     young: &'a YoungGen,
     old: &'a OldGen,
+    large: &'a LargeSpace,
     rootset: &'a [IndirectObj],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -34,6 +36,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         ctxt: &'a SemContext<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
+        large: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [IndirectObj],
@@ -42,6 +45,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             ctxt: ctxt,
             young: young,
             old: old,
+            large: large,
             rootset: rootset,
             card_table: card_table,
             crossing_map: crossing_map,
@@ -62,6 +66,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         self.visit_roots();
         self.copy_dirty_cards();
+        self.visit_large_objects();
         self.visit_copied_objects();
         self.young.swap_spaces(self.free);
 
@@ -101,6 +106,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 root.set(self.copy(root_ptr));
             }
         }
+    }
+
+    fn visit_large_objects(&mut self) {
+        // TODO: visit dirty cards for large objects
     }
 
     fn visit_copied_objects(&mut self) {

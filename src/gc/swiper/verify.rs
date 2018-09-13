@@ -222,14 +222,19 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, old: Address, addr: Address, array_ref: bool) {
-        let card = self.old.card_from_address(addr);
-        let card_start = self.old.address_from_card(card);
-        let offset = addr.offset_from(card_start);
-        let offset_words = (offset / mem::ptr_width_usize()) as u8;
+    fn verify_crossing(&mut self, old: Address, new: Address, array_ref: bool) {
+        let new_card_idx = self.old.card_from_address(new);
+        let old_card_idx = self.old.card_from_address(old);
 
-        let old_card = self.old.card_from_address(old);
-        let old_card_end = self.old.address_from_card(old_card).offset(CARD_SIZE);
+        if new_card_idx == old_card_idx {
+            return;
+        }
+
+        let new_card_start = self.old.address_from_card(new_card_idx);
+        let old_card_end = self.old.address_from_card(old_card_idx).offset(CARD_SIZE);
+
+        let offset = new.offset_from(new_card_start);
+        let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
         let crossing_middle;
         let loop_start;
@@ -240,31 +245,32 @@ impl<'a> Verifier<'a> {
             crossing_middle = CrossingEntry::LeadingRefs(refs_per_card);
 
             if old.offset(offset_of_array_data() as usize) > old_card_end {
-                let old_next = old_card.to_usize() + 1;
+                let old_next = old_card_idx.to_usize() + 1;
                 let crossing = self.crossing_map.get(old_next.into());
                 let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
                 assert!(crossing == CrossingEntry::ArrayStart(diff_words as u8));
 
-                loop_start = old_card.to_usize() + 2;
+                loop_start = old_card_idx.to_usize() + 2;
             } else {
-                loop_start = old_card.to_usize() + 1;
+                loop_start = old_card_idx.to_usize() + 1;
             }
 
-            if card.to_usize() >= loop_start {
-                let crossing = self.crossing_map.get(card);
+            if new_card_idx.to_usize() >= loop_start {
+                let crossing = self.crossing_map.get(new_card_idx);
                 let expected = CrossingEntry::LeadingRefs(offset_words);
                 assert!(crossing == expected, "array crossing at end not correct.");
             }
+
         } else {
             crossing_middle = CrossingEntry::NoRefs;
-            loop_start = old_card.to_usize() + 1;
+            loop_start = old_card_idx.to_usize() + 1;
 
-            let crossing = self.crossing_map.get(card);
+            let crossing = self.crossing_map.get(new_card_idx);
             let expected = CrossingEntry::FirstObject(offset_words);
             assert!(crossing == expected, "crossing at end not correct.");
         }
 
-        for c in loop_start..card.to_usize() {
+        for c in loop_start..new_card_idx.to_usize() {
             assert!(
                 self.crossing_map.get(c.into()) == crossing_middle,
                 "middle crossing not correct."

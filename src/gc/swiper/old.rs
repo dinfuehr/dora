@@ -52,20 +52,22 @@ impl OldGen {
         }
 
         if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
+            // object does not span multiple cards
             if (old & (CARD_SIZE - 1)) == 0 {
                 let card = self.card_from(old);
                 self.crossing_map.set_first_object(card, 0);
             }
+
         } else if array_ref {
-            let card = self.card_from(new);
-            let card_start = self.address_from_card(card).to_usize();
+            let new_card_idx = self.card_from(new);
+            let new_card_start = self.address_from_card(new_card_idx).to_usize();
 
             let old = Address::from(old);
-            let old_card = self.card_from(old.to_usize());
-            let old_card_end = self.address_from_card(old_card).offset(CARD_SIZE);
+            let old_card_idx = self.card_from(old.to_usize());
+            let old_card_end = self.address_from_card(old_card_idx).offset(CARD_SIZE);
 
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
-            let mut loop_card_start = old_card.to_usize() + 1;
+            let mut loop_card_start = old_card_idx.to_usize() + 1;
 
             // If you allocate an object array just before the card end,
             // it could happen that the card starts with part of the header
@@ -79,28 +81,30 @@ impl OldGen {
             }
 
             // all cards between ]old_card; new_card[ are full with references
-            for c in loop_card_start..card.to_usize() {
+            for c in loop_card_start..new_card_idx.to_usize() {
                 self.crossing_map
                     .set_references_at_start(c.into(), refs_per_card);
             }
 
-            if card.to_usize() > loop_card_start {
+            if new_card_idx.to_usize() > loop_card_start {
+                let refs_dist = (new - new_card_start) / mem::ptr_width_usize();
                 self.crossing_map
-                    .set_references_at_start(card, (new - card_start) / mem::ptr_width_usize());
+                    .set_references_at_start(new_card_idx, refs_dist);
             }
-        } else {
-            let card = self.card_from(new);
-            let card_start = self.address_from_card(card).to_usize();
 
-            let old_card = self.card_from(old);
+        } else {
+            let new_card_idx = self.card_from(new);
+            let new_card_start = self.address_from_card(new_card_idx).to_usize();
+
+            let old_card_idx = self.card_from(old);
 
             // all cards between ]old_card; new_card[ are set to NoRefs
-            for c in old_card.to_usize() + 1..card.to_usize() {
+            for c in old_card_idx.to_usize() + 1..new_card_idx.to_usize() {
                 self.crossing_map.set_no_references(c.into());
             }
 
             self.crossing_map
-                .set_first_object(card, (new - card_start) / mem::ptr_width_usize());
+                .set_first_object(new_card_idx, (new - new_card_start) / mem::ptr_width_usize());
         }
 
         old.into()

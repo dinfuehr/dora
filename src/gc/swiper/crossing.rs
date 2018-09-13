@@ -18,7 +18,7 @@ use gc::Address;
 //     used only for object arrays when array starts in the card before
 //     and some non-reference content is in the next card
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct CardIdx(usize);
 
 impl CardIdx {
