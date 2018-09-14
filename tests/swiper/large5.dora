@@ -1,0 +1,21 @@
+// ignore
+//= --gc=swiper --gc-verify
+
+class Foo(let x: int)
+
+fun main() {
+    let x = Array::<Foo>(64);
+    forceMinorCollect();
+    assert(x[0] === nil);
+    assert(x[63] === nil);
+
+    x[0] = Foo(1);
+    forceMinorCollect();
+    assert(x[0].x == 1);
+    assert(x[63] === nil);
+
+    x[63] = Foo(2);
+    forceMinorCollect();
+    assert(x[0].x == 1);
+    assert(x[63].x == 2);
+}
