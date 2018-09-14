@@ -57,19 +57,29 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) {
-        let mut timer = Timer::new(self.ctxt.args.flag_gc_verbose);
+        let active = self.ctxt.args.flag_gc_verbose;
+        let mut timer = Timer::new(active);
+
         let init_size = self.heap_size();
         let young_init_size = self.young.used_region().size();
         self.free = self.young.to_space().start;
 
         self.young.unprotect_to_space();
 
-        self.visit_roots();
-        self.copy_dirty_cards();
-        self.visit_large_objects();
-        self.visit_copied_objects();
-        self.young.swap_spaces(self.free);
+        let time_roots = Timer::ms(active, || {
+            self.visit_roots();
+        });
 
+        let time_dirty_cards = Timer::ms(active, || {
+            self.copy_dirty_cards();
+            self.visit_large_objects();
+        });
+
+        let time_traverse = Timer::ms(active, || {
+            self.visit_copied_objects();
+        });
+
+        self.young.swap_spaces(self.free);
         self.young.protect_to_space();
 
         timer.stop_with(|dur| {
@@ -80,7 +90,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             println!(
                 "GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
-                 {:.1}K promoted, {:.1}K/{:.0}% garbage)",
+                 {:.1}K promoted, {:.1}K/{:.0}% garbage); \
+                 root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms",
                 in_ms(dur),
                 in_kilo(init_size),
                 in_kilo(new_size),
@@ -88,7 +99,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 in_kilo(young_new_size),
                 in_kilo(self.promoted_size),
                 in_kilo(garbage),
-                garbage_ratio
+                garbage_ratio,
+                time_roots,
+                time_dirty_cards,
+                time_traverse,
             );
         });
     }
