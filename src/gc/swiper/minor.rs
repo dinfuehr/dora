@@ -5,7 +5,7 @@ use ctxt::SemContext;
 use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::in_kilo;
+use gc::swiper::formatted_size;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
@@ -93,16 +93,16 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             };
 
             println!(
-                "GC: Minor GC ({:.2} ms, {:.1}K->{:.1}K, young {:.1}K->{:.1}K, \
-                 {:.1}K promoted, {:.1}K/{:.0}% garbage); \
+                "GC: Minor GC ({:.2} ms, {}->{}, young {}->{}, \
+                 {} promoted, {}/{:.0}% garbage); \
                  root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms",
                 in_ms(dur),
-                in_kilo(init_size),
-                in_kilo(new_size),
-                in_kilo(young_init_size),
-                in_kilo(young_new_size),
-                in_kilo(self.promoted_size),
-                in_kilo(garbage),
+                formatted_size(init_size),
+                formatted_size(new_size),
+                formatted_size(young_init_size),
+                formatted_size(young_new_size),
+                formatted_size(self.promoted_size),
+                formatted_size(garbage),
                 garbage_ratio,
                 time_roots,
                 time_dirty_cards,

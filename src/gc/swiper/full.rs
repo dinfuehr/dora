@@ -11,7 +11,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::Region;
 use gc::swiper::CARD_SIZE;
-use gc::swiper::{in_kilo, on_different_cards};
+use gc::swiper::{formatted_size, on_different_cards};
 use gc::Address;
 use mem;
 use object::{offset_of_array_data, Obj};
@@ -106,12 +106,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             };
 
             println!(
-                "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage); \
+                "GC: Full GC ({:.2} ms, {}->{} size, {}/{:.0}% garbage); \
                  mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
                 in_ms(dur),
-                in_kilo(init_size),
-                in_kilo(new_size),
-                in_kilo(garbage),
+                formatted_size(init_size),
+                formatted_size(new_size),
+                formatted_size(garbage),
                 garbage_ratio,
                 time_mark,
                 time_forward,

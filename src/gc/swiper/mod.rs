@@ -490,10 +490,6 @@ fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
 }
 
-fn in_kilo(size: usize) -> f64 {
-    (size as f64) / 1024.0
-}
-
 fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
 }
