@@ -16,7 +16,12 @@ pub struct OldGen {
 }
 
 impl OldGen {
-    pub fn new(start: Address, end: Address, crossing_map: CrossingMap, card_table: CardTable) -> OldGen {
+    pub fn new(
+        start: Address,
+        end: Address,
+        crossing_map: CrossingMap,
+        card_table: CardTable,
+    ) -> OldGen {
         OldGen {
             total: Region::new(start, end),
             free: AtomicUsize::new(start.to_usize()),
@@ -60,7 +65,6 @@ impl OldGen {
                 let card = self.card_table.card_idx(old.into());
                 self.crossing_map.set_first_object(card, 0);
             }
-
         } else if array_ref {
             let new_card_idx = self.card_table.card_idx(new.into());
             let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
@@ -94,7 +98,6 @@ impl OldGen {
                 self.crossing_map
                     .set_references_at_start(new_card_idx, refs_dist);
             }
-
         } else {
             let new_card_idx = self.card_table.card_idx(new.into());
             let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
@@ -106,8 +109,10 @@ impl OldGen {
                 self.crossing_map.set_no_references(c.into());
             }
 
-            self.crossing_map
-                .set_first_object(new_card_idx, (new - new_card_start) / mem::ptr_width_usize());
+            self.crossing_map.set_first_object(
+                new_card_idx,
+                (new - new_card_start) / mem::ptr_width_usize(),
+            );
         }
 
         old.into()

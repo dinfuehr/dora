@@ -114,10 +114,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             if object.is_array_ref() {
                 self.visit_large_object_array(object, addr);
-
             } else {
                 self.visit_large_object(object, addr);
-
             }
         })
     }
@@ -141,7 +139,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             if card_idx.to_usize() == start_card_idx {
                 self.copy_range(object_start, end, &mut ref_to_young_gen);
-
             } else {
                 // all but the first card are full with references
                 let refs = end.offset_from(card_start) / mem::ptr_width_usize();
@@ -153,7 +150,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
-        if !self.card_table.is_dirty(object_start) { return; }
+        if !self.card_table.is_dirty(object_start) {
+            return;
+        }
 
         object.visit_reference_fields(|field| {
             let field_ptr = field.get();
@@ -196,10 +195,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                     let mut ref_to_young_gen = false;
 
                     // copy references at start of card
-                    let first_obect = self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
+                    let first_object =
+                        self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_old_card(card, first_obect, card_end, ref_to_young_gen);
+                    self.copy_old_card(card, first_object, card_end, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
@@ -272,7 +272,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.update_card(card, ref_to_young_gen);
     }
 
-    fn copy_range(&mut self, mut ptr: Address, end: Address, ref_to_young_gen: &mut bool) -> Address {
+    fn copy_range(
+        &mut self,
+        mut ptr: Address,
+        end: Address,
+        ref_to_young_gen: &mut bool,
+    ) -> Address {
         while ptr < end {
             let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
 

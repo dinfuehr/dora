@@ -260,7 +260,6 @@ impl<'a> Verifier<'a> {
                 let expected = CrossingEntry::LeadingRefs(offset_words);
                 assert!(crossing == expected, "array crossing at end not correct.");
             }
-
         } else {
             crossing_middle = CrossingEntry::NoRefs;
             loop_start = old_card_idx.to_usize() + 1;

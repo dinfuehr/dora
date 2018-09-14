@@ -120,7 +120,13 @@ impl Swiper {
         let large_start = old_end;
         let large_end = large_start.offset(2 * heap_size);
 
-        let card_table = CardTable::new(card_start, card_end, Region::new(old_start, large_end), old_end, heap_size);
+        let card_table = CardTable::new(
+            card_start,
+            card_end,
+            Region::new(old_start, large_end),
+            old_end,
+            heap_size,
+        );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, heap_size);
         let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
         let large = LargeSpace::new(large_start, large_end);

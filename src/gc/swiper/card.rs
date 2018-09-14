@@ -1,9 +1,9 @@
 use std::ptr;
 
 use gc::swiper::CardIdx;
+use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::Address;
-use gc::swiper::Region;
 
 use mem;
 
@@ -26,7 +26,13 @@ pub struct CardTable {
 }
 
 impl CardTable {
-    pub fn new(start: Address, end: Address, old_and_large: Region, old_end: Address, heap_size: usize) -> CardTable {
+    pub fn new(
+        start: Address,
+        end: Address,
+        old_and_large: Region,
+        old_end: Address,
+        heap_size: usize,
+    ) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
         let start = start.offset(heap_size >> CARD_SIZE_BITS);

@@ -1,6 +1,6 @@
-use gc::Address;
 use gc::swiper::CardIdx;
 use gc::swiper::CARD_SIZE;
+use gc::Address;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
@@ -70,13 +70,10 @@ impl CrossingMap {
 
         if val < 64 {
             CrossingEntry::FirstObject(val)
-
         } else if val == 64 {
             CrossingEntry::NoRefs
-
         } else if val <= 128 {
             CrossingEntry::LeadingRefs(val - 64)
-
         } else {
             assert!(val == 129);
             CrossingEntry::ArrayStart(1)
