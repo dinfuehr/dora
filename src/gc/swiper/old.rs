@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::swiper::card::CardTable;
-use gc::swiper::crossing::{CardIdx, CrossingMap};
+use gc::swiper::crossing::CrossingMap;
 use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::Address;
@@ -63,11 +63,11 @@ impl OldGen {
 
         } else if array_ref {
             let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.address_from_card(new_card_idx).to_usize();
+            let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
 
             let old = Address::from(old);
             let old_card_idx = self.card_table.card_idx(old);
-            let old_card_end = self.address_from_card(old_card_idx).offset(CARD_SIZE);
+            let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
 
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
             let mut loop_card_start = old_card_idx.to_usize() + 1;
@@ -97,7 +97,7 @@ impl OldGen {
 
         } else {
             let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.address_from_card(new_card_idx).to_usize();
+            let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
 
             let old_card_idx = self.card_table.card_idx(old.into());
 
@@ -111,18 +111,6 @@ impl OldGen {
         }
 
         old.into()
-    }
-
-    #[inline(always)]
-    pub fn is_card_aligned(&self, addr: Address) -> bool {
-        (addr.offset_from(self.total.start) & !(CARD_SIZE - 1)) == 0
-    }
-
-    #[inline(always)]
-    pub fn address_from_card(&self, card: CardIdx) -> Address {
-        let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
-
-        addr.into()
     }
 
     pub fn contains(&self, addr: Address) -> bool {

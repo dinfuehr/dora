@@ -120,7 +120,7 @@ impl<'a> Verifier<'a> {
 
         if self.in_old {
             // we should start at card start
-            assert!(self.old.is_card_aligned(curr));
+            assert!(self.card_table.is_aligned(curr));
             self.verify_crossing(curr, curr, false);
         }
 
@@ -230,8 +230,8 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        let new_card_start = self.old.address_from_card(new_card_idx);
-        let old_card_end = self.old.address_from_card(old_card_idx).offset(CARD_SIZE);
+        let new_card_start = self.card_table.to_address(new_card_idx);
+        let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
 
         let offset = new.offset_from(new_card_start);
         let offset_words = (offset / mem::ptr_width_usize()) as u8;

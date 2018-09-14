@@ -314,7 +314,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let card = self.card_table.card_idx(addr);
 
         if array_ref {
-            let last_card_end = self.old.address_from_card(last_card).offset(CARD_SIZE);
+            let last_card_end = self.card_table.to_address(last_card).offset(CARD_SIZE);
             let loop_start;
 
             if last.offset(offset_of_array_data() as usize) > last_card_end {

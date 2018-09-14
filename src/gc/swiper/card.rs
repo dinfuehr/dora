@@ -104,7 +104,7 @@ impl CardTable {
     }
 
     #[inline(always)]
-    pub fn is_card_aligned(&self, addr: Address) -> bool {
+    pub fn is_aligned(&self, addr: Address) -> bool {
         (addr.offset_from(self.old_and_large.start) & !(CARD_SIZE - 1)) == 0
     }
 
