@@ -99,7 +99,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         timer.stop_with(|dur| {
             let new_size = self.heap_size();
             let garbage = init_size - new_size;
-            let garbage_ratio = (garbage as f64 / init_size as f64) * 100f64;
+            let garbage_ratio = if init_size == 0 {
+                0f64
+            } else {
+                (garbage as f64 / init_size as f64) * 100f64
+            };
 
             println!(
                 "GC: Full GC ({:.2} ms, {:.1}K->{:.1}K size, {:.1}K/{:.0}% garbage); \
