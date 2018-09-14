@@ -137,7 +137,17 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let card_end = card_start.offset(CARD_SIZE);
             let end = cmp::min(card_end, object_end);
 
-            self.copy_card(card_idx, card_start, end, false);
+            if card_idx.to_usize() == start_card_idx {
+                self.copy_card(card_idx, object_start, end, false);
+
+            } else {
+                // all but the first card are full with references
+                let refs = end.offset_from(card_start) / mem::ptr_width_usize();
+                let mut ref_to_young_gen = false;
+
+                self.copy_refs(card_start, refs, &mut ref_to_young_gen);
+                self.update_card(card_idx, ref_to_young_gen);
+            }
         }
     }
 
@@ -182,27 +192,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             match crossing_entry {
                 CrossingEntry::NoRefs => panic!("card dirty without any refs"),
                 CrossingEntry::LeadingRefs(refs) => {
-                    let mut ptr = card_start;
                     let mut ref_to_young_gen = false;
 
-                    for _ in 0..refs {
-                        let ind_ptr = IndirectObj::from_address(ptr);
-                        let dir_ptr = ind_ptr.get();
-
-                        if self.young_from.contains(Address::from_ptr(dir_ptr)) {
-                            let copied_obj = self.copy(dir_ptr);
-                            ind_ptr.set(copied_obj);
-
-                            if self.young.contains(Address::from_ptr(copied_obj)) {
-                                ref_to_young_gen = true;
-                            }
-                        }
-
-                        ptr = ptr.offset(mem::ptr_width() as usize);
-                    }
+                    // copy references at start of card
+                    let first_obect = self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end, ref_to_young_gen);
+                    self.copy_card(card, first_obect, card_end, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
@@ -220,6 +216,26 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 }
             }
         });
+    }
+
+    fn copy_refs(&mut self, mut ptr: Address, refs: usize, ref_to_young_gen: &mut bool) -> Address {
+        for _ in 0..refs {
+            let ind_ptr = IndirectObj::from_address(ptr);
+            let dir_ptr = ind_ptr.get();
+
+            if self.young_from.contains(Address::from_ptr(dir_ptr)) {
+                let copied_obj = self.copy(dir_ptr);
+                ind_ptr.set(copied_obj);
+
+                if self.young.contains(Address::from_ptr(copied_obj)) {
+                    *ref_to_young_gen = true;
+                }
+            }
+
+            ptr = ptr.offset(mem::ptr_width_usize());
+        }
+
+        ptr
     }
 
     fn copy_card(
@@ -270,10 +286,14 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             }
         }
 
+        self.update_card(card, ref_to_young_gen);
+    }
+
+    fn update_card(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
         // if there are no references to the young generation in this card,
         // set the card to clean.
         if !ref_to_young_gen {
-            self.card_table.set(card, CardEntry::Clean);
+            self.card_table.set(card_idx, CardEntry::Clean);
         }
     }
 
