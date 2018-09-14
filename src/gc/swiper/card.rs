@@ -114,11 +114,6 @@ impl CardTable {
     }
 
     #[inline(always)]
-    fn card_idx_usize(&self, addr: usize) -> CardIdx {
-        self.card_idx(Address::from(addr))
-    }
-
-    #[inline(always)]
     pub fn card_idx(&self, addr: Address) -> CardIdx {
         debug_assert!(self.old_and_large.contains(addr));
         let idx = addr.offset_from(self.old_and_large.start) >> CARD_SIZE_BITS;
