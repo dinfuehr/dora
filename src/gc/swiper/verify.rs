@@ -183,7 +183,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_card(&mut self, curr: Address) {
-        let curr_card = self.old.card_from_address(curr);
+        let curr_card = self.card_table.card_idx(curr);
 
         let card_entry = self.card_table.get(curr_card);
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -223,8 +223,8 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_crossing(&mut self, old: Address, new: Address, array_ref: bool) {
-        let new_card_idx = self.old.card_from_address(new);
-        let old_card_idx = self.old.card_from_address(old);
+        let new_card_idx = self.card_table.card_idx(new);
+        let old_card_idx = self.card_table.card_idx(old);
 
         if new_card_idx == old_card_idx {
             return;

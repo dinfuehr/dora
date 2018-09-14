@@ -306,12 +306,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_crossing(&mut self, last: Address, addr: Address, array_ref: bool) {
-        let last_card = self.old.card_from_address(last);
+        let last_card = self.card_table.card_idx(last);
 
         let offset = addr.to_usize() & (CARD_SIZE - 1);
         let offset_words = offset / mem::ptr_width_usize();
 
-        let card = self.old.card_from_address(addr);
+        let card = self.card_table.card_idx(addr);
 
         if array_ref {
             let last_card_end = self.old.address_from_card(last_card).offset(CARD_SIZE);

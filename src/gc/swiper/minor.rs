@@ -285,10 +285,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {
-        let card = self.old.card_from_address(addr);
+        let card_idx = self.card_table.card_idx(addr);
 
         // card is already dirty, nothing left to do.
-        if self.card_table.get(card).is_dirty() {
+        if self.card_table.get(card_idx).is_dirty() {
             return;
         }
 
@@ -304,7 +304,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         });
 
         if old_to_young_ref {
-            self.card_table.set(card, CardEntry::Dirty);
+            self.card_table.set(card_idx, CardEntry::Dirty);
         }
     }
 

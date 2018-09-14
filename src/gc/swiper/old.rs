@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use gc::swiper::card::CardTable;
 use gc::swiper::crossing::{CardIdx, CrossingMap};
 use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
@@ -11,14 +12,16 @@ pub struct OldGen {
     pub total: Region,
     pub free: AtomicUsize,
     crossing_map: CrossingMap,
+    card_table: CardTable,
 }
 
 impl OldGen {
-    pub fn new(start: Address, end: Address, crossing_map: CrossingMap) -> OldGen {
+    pub fn new(start: Address, end: Address, crossing_map: CrossingMap, card_table: CardTable) -> OldGen {
         OldGen {
             total: Region::new(start, end),
             free: AtomicUsize::new(start.to_usize()),
             crossing_map: crossing_map,
+            card_table: card_table,
         }
     }
 
@@ -54,16 +57,16 @@ impl OldGen {
         if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
             // object does not span multiple cards
             if (old & (CARD_SIZE - 1)) == 0 {
-                let card = self.card_from(old);
+                let card = self.card_table.card_idx(old.into());
                 self.crossing_map.set_first_object(card, 0);
             }
 
         } else if array_ref {
-            let new_card_idx = self.card_from(new);
+            let new_card_idx = self.card_table.card_idx(new.into());
             let new_card_start = self.address_from_card(new_card_idx).to_usize();
 
             let old = Address::from(old);
-            let old_card_idx = self.card_from(old.to_usize());
+            let old_card_idx = self.card_table.card_idx(old);
             let old_card_end = self.address_from_card(old_card_idx).offset(CARD_SIZE);
 
             let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
@@ -93,10 +96,10 @@ impl OldGen {
             }
 
         } else {
-            let new_card_idx = self.card_from(new);
+            let new_card_idx = self.card_table.card_idx(new.into());
             let new_card_start = self.address_from_card(new_card_idx).to_usize();
 
-            let old_card_idx = self.card_from(old);
+            let old_card_idx = self.card_table.card_idx(old.into());
 
             // all cards between ]old_card; new_card[ are set to NoRefs
             for c in old_card_idx.to_usize() + 1..new_card_idx.to_usize() {
@@ -120,19 +123,6 @@ impl OldGen {
         let addr = self.total.start.to_usize() + (card.to_usize() << CARD_SIZE_BITS);
 
         addr.into()
-    }
-
-    #[inline(always)]
-    fn card_from(&self, addr: usize) -> CardIdx {
-        self.card_from_address(Address::from(addr))
-    }
-
-    #[inline(always)]
-    pub fn card_from_address(&self, addr: Address) -> CardIdx {
-        debug_assert!(self.contains(addr));
-        let idx = addr.offset_from(self.total.start) >> CARD_SIZE_BITS;
-
-        idx.into()
     }
 
     pub fn contains(&self, addr: Address) -> bool {

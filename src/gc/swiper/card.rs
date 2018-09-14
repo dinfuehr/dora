@@ -7,6 +7,7 @@ use gc::swiper::Region;
 
 use mem;
 
+#[derive(Clone)]
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)
     // table is actually larger but we shouldn't need
@@ -100,6 +101,29 @@ impl CardTable {
         unsafe {
             *ptr.to_mut_ptr() = val;
         }
+    }
+
+    #[inline(always)]
+    pub fn is_card_aligned(&self, addr: Address) -> bool {
+        (addr.offset_from(self.old_and_large.start) & !(CARD_SIZE - 1)) == 0
+    }
+
+    #[inline(always)]
+    pub fn to_address(&self, card: CardIdx) -> Address {
+        self.old_and_large.start.offset(card.to_usize() << CARD_SIZE_BITS)
+    }
+
+    #[inline(always)]
+    fn card_idx_usize(&self, addr: usize) -> CardIdx {
+        self.card_idx(Address::from(addr))
+    }
+
+    #[inline(always)]
+    pub fn card_idx(&self, addr: Address) -> CardIdx {
+        debug_assert!(self.old_and_large.contains(addr));
+        let idx = addr.offset_from(self.old_and_large.start) >> CARD_SIZE_BITS;
+
+        idx.into()
     }
 }
 
