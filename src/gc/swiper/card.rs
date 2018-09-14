@@ -1,8 +1,11 @@
 use std::ptr;
 
 use gc::swiper::crossing::CardIdx;
-use gc::swiper::CARD_SIZE_BITS;
+use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::Address;
+use gc::swiper::Region;
+
+use mem;
 
 pub struct CardTable {
     // card table boundaries for old gen (not young gen)
@@ -10,10 +13,16 @@ pub struct CardTable {
     // to touch the rest
     start: Address,
     end: Address,
+
+    // contiguous region with old generation and large space
+    old_and_large: Region,
+
+    // end of old generation and start of large space
+    old_end: Address,
 }
 
 impl CardTable {
-    pub fn new(start: Address, end: Address, young_size: usize) -> CardTable {
+    pub fn new(start: Address, end: Address, old_and_large: Region, old_end: Address, young_size: usize) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
         let start = start.offset(young_size >> CARD_SIZE_BITS);
@@ -21,6 +30,8 @@ impl CardTable {
         let card = CardTable {
             start: start,
             end: end,
+            old_and_large: old_and_large,
+            old_end: old_end,
         };
 
         // reset card table to all 1's
@@ -42,14 +53,18 @@ impl CardTable {
         self.end.offset_from(self.start)
     }
 
-    // visits all dirty cards
-    pub fn visit_dirty<F>(&self, mut f: F)
+    // visits all dirty cards in region
+    pub fn visit_dirty_in_old<F>(&self, end: Address, mut f: F)
     where
         F: FnMut(CardIdx),
     {
+        assert!(end >= self.old_and_large.start && end <= self.old_end);
         let mut ptr = self.start;
 
-        while ptr < self.end {
+        let no_cards = number_of_cards(end.offset_from(self.old_and_large.start));
+        let end = self.start.offset(no_cards);
+
+        while ptr < end {
             let val: u8 = unsafe { *ptr.to_ptr() };
 
             if val == 0 {
@@ -86,6 +101,10 @@ impl CardTable {
             *ptr.to_mut_ptr() = val;
         }
     }
+}
+
+fn number_of_cards(size: usize) -> usize {
+    mem::align_usize(size, CARD_SIZE)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

@@ -133,7 +133,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     // copy all references from old- into young-generation.
     fn copy_dirty_cards(&mut self) {
-        self.card_table.visit_dirty(|card| {
+        self.card_table.visit_dirty_in_old(self.old.free(), |card| {
             let crossing_entry = self.crossing_map.get(card);
             let card_start = self.old.address_from_card(card);
             let card_end = card_start.offset(CARD_SIZE);
