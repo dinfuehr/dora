@@ -77,10 +77,13 @@ impl Swiper {
         // determine size for crossing map
         let crossing_size = mem::page_align(heap_size >> CARD_SIZE_BITS);
 
+        // determine full memory size
         let heap_reserve_size = heap_size * 4 + card_size + crossing_size;
 
+        // reserve full memory
         let ptr = arena::reserve(heap_reserve_size);
 
+        // heap is young and old generation
         let heap_start = ptr;
         let heap_end = ptr.offset(4 * heap_size);
 
@@ -118,7 +121,7 @@ impl Swiper {
         let large_end = large_start.offset(2 * heap_size);
 
         let card_table = CardTable::new(card_start, card_end, Region::new(old_start, large_end), old_end, heap_size);
-        let crossing_map = CrossingMap::new(crossing_start, crossing_end);
+        let crossing_map = CrossingMap::new(crossing_start, crossing_end, heap_size);
         let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
         let large = LargeSpace::new(large_start, large_end);
 
@@ -400,6 +403,10 @@ pub struct CardIdx(usize);
 impl CardIdx {
     pub fn to_usize(self) -> usize {
         self.0
+    }
+
+    pub fn offset(self, val: usize) -> CardIdx {
+        (self.0 + val).into()
     }
 }
 

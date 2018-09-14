@@ -66,7 +66,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         self.visit_roots();
         self.copy_dirty_cards();
-        self.visit_large_objects();
+        // self.visit_large_objects();
         self.visit_copied_objects();
         self.young.swap_spaces(self.free);
 
@@ -109,7 +109,48 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_large_objects(&mut self) {
-        // TODO: visit dirty cards for large objects
+        self.large.visit_objects(|addr| {
+            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+
+            if object.is_array_ref() {
+                self.visit_large_object_array(object, addr);
+
+            } else {
+                self.visit_large_object(object, addr);
+
+            }
+        })
+    }
+
+    fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
+        let object_end = object_start.offset(object.size() as usize);
+        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
+
+        for card_idx in start_card_idx..end_card_idx {
+            let card_idx = card_idx.into();
+
+            if self.card_table.get(card_idx).is_clean() {
+                continue;
+            }
+
+            let card_start = self.card_table.to_address(card_idx);
+            let card_end = card_start.offset(CARD_SIZE);
+            let end = cmp::min(card_end, object_end);
+
+            self.copy_card(card_idx, card_start, end, false);
+        }
+    }
+
+    fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
+        if !self.card_table.is_dirty(object_start) { return; }
+
+        object.visit_reference_fields(|field| {
+            let field_ptr = field.get();
+
+            if self.young.contains(Address::from_ptr(field_ptr)) {
+                field.set(self.copy(field_ptr));
+            }
+        });
     }
 
     fn visit_copied_objects(&mut self) {

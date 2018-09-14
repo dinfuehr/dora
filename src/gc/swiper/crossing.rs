@@ -1,5 +1,6 @@
 use gc::Address;
 use gc::swiper::CardIdx;
+use gc::swiper::CARD_SIZE;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
@@ -24,13 +25,15 @@ pub struct CrossingMap {
     // boundaries for crossing map
     start: Address,
     end: Address,
+    cards_in_heap: usize,
 }
 
 impl CrossingMap {
-    pub fn new(start: Address, end: Address) -> CrossingMap {
+    pub fn new(start: Address, end: Address, heap_size: usize) -> CrossingMap {
         CrossingMap {
             start: start,
             end: end,
+            cards_in_heap: heap_size / CARD_SIZE,
         }
     }
 
@@ -54,13 +57,16 @@ impl CrossingMap {
     }
 
     fn set(&self, card: CardIdx, val: u8) {
+        let card = self.index_from_card_idx(card);
+
         unsafe {
-            *self.start.offset(card.to_usize()).to_mut_ptr::<u8>() = val;
+            *self.start.offset(card).to_mut_ptr::<u8>() = val;
         }
     }
 
     pub fn get(&self, card: CardIdx) -> CrossingEntry {
-        let val = unsafe { *self.start.offset(card.to_usize()).to_ptr::<u8>() };
+        let card = self.index_from_card_idx(card);
+        let val = unsafe { *self.start.offset(card).to_ptr::<u8>() };
 
         if val < 64 {
             CrossingEntry::FirstObject(val)
@@ -75,6 +81,12 @@ impl CrossingMap {
             assert!(val == 129);
             CrossingEntry::ArrayStart(1)
         }
+    }
+
+    fn index_from_card_idx(&self, card: CardIdx) -> usize {
+        let card = card.to_usize();
+        assert!(card < self.cards_in_heap);
+        card
     }
 }
 

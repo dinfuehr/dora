@@ -20,19 +20,25 @@ pub struct CardTable {
 
     // end of old generation and start of large space
     old_end: Address,
+
+    // number of cards in heap_size
+    cards_in_heap: usize,
 }
 
 impl CardTable {
-    pub fn new(start: Address, end: Address, old_and_large: Region, old_end: Address, young_size: usize) -> CardTable {
+    pub fn new(start: Address, end: Address, old_and_large: Region, old_end: Address, heap_size: usize) -> CardTable {
         // only keep track of card table for old gen,
         // just ignore the card table for the young gen
-        let start = start.offset(young_size >> CARD_SIZE_BITS);
+        let start = start.offset(heap_size >> CARD_SIZE_BITS);
+
+        assert!(old_and_large.contains(old_end));
 
         let card = CardTable {
             start: start,
             end: end,
             old_and_large: old_and_large,
             old_end: old_end,
+            cards_in_heap: heap_size / CARD_SIZE,
         };
 
         // reset card table to all 1's
@@ -60,24 +66,23 @@ impl CardTable {
         F: FnMut(CardIdx),
     {
         assert!(end >= self.old_and_large.start && end <= self.old_end);
-        let mut ptr = self.start;
+        let (start_card_idx, end_card_idx) = self.card_indices(self.old_and_large.start, end);
 
-        let no_cards = number_of_cards(end.offset_from(self.old_and_large.start));
-        let end = self.start.offset(no_cards);
-
-        while ptr < end {
-            let val: u8 = unsafe { *ptr.to_ptr() };
-
-            if val == 0 {
-                f(CardIdx::from(ptr.offset_from(self.start)));
+        for card_idx in start_card_idx..end_card_idx {
+            if self.get(card_idx.into()).is_dirty() {
+                f(card_idx.into());
             }
-
-            ptr = ptr.offset(1);
         }
     }
 
+    pub fn is_dirty(&self, addr: Address) -> bool {
+        let card_idx = self.card_idx(addr);
+        self.get(card_idx) == CardEntry::Dirty
+    }
+
     pub fn get(&self, card: CardIdx) -> CardEntry {
-        let ptr = self.start.offset(card.to_usize());
+        let card = self.index_from_card_idx(card);
+        let ptr = self.start.offset(card);
         debug_assert!(ptr < self.end);
 
         let val: u8 = unsafe { *ptr.to_ptr() };
@@ -90,7 +95,8 @@ impl CardTable {
     }
 
     pub fn set(&self, card: CardIdx, entry: CardEntry) {
-        let ptr = self.start.offset(card.to_usize());
+        let card = self.index_from_card_idx(card);
+        let ptr = self.start.offset(card);
         debug_assert!(ptr < self.end);
 
         let val: u8 = match entry {
@@ -103,6 +109,12 @@ impl CardTable {
         }
     }
 
+    fn index_from_card_idx(&self, card: CardIdx) -> usize {
+        let card = card.to_usize();
+        assert!(card < 3 * self.cards_in_heap);
+        card
+    }
+
     #[inline(always)]
     pub fn is_aligned(&self, addr: Address) -> bool {
         (addr.offset_from(self.old_and_large.start) & !(CARD_SIZE - 1)) == 0
@@ -110,7 +122,8 @@ impl CardTable {
 
     #[inline(always)]
     pub fn to_address(&self, card: CardIdx) -> Address {
-        self.old_and_large.start.offset(card.to_usize() << CARD_SIZE_BITS)
+        let card = self.index_from_card_idx(card);
+        self.old_and_large.start.offset(card << CARD_SIZE_BITS)
     }
 
     #[inline(always)]
@@ -120,10 +133,18 @@ impl CardTable {
 
         idx.into()
     }
-}
 
-fn number_of_cards(size: usize) -> usize {
-    mem::align_usize(size, CARD_SIZE)
+    #[inline(always)]
+    pub fn card_indices(&self, start: Address, end: Address) -> (usize, usize) {
+        assert!(end >= start);
+
+        let card_start = self.card_idx(start);
+
+        let end = mem::align_usize(end.to_usize(), CARD_SIZE).into();
+        let card_end = self.card_idx(end);
+
+        (card_start.to_usize(), card_end.to_usize())
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
