@@ -184,10 +184,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     // copy all references from old- into young-generation.
     fn copy_dirty_cards(&mut self) {
-        self.card_table.visit_dirty_in_old(self.old.free(), |card| {
-            let crossing_entry = self.crossing_map.get(card);
-            let card_start = self.card_table.to_address(card);
-            let card_end = card_start.offset(CARD_SIZE);
+        self.card_table.visit_dirty_in_old(self.old.free(), |card_idx| {
+            let crossing_entry = self.crossing_map.get(card_idx);
+            let card_start = self.card_table.to_address(card_idx);
 
             match crossing_entry {
                 CrossingEntry::NoRefs => panic!("card dirty without any refs"),
@@ -199,21 +198,22 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                         self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_old_card(card, first_object, card_end, ref_to_young_gen);
+                    self.copy_old_card(card_idx, first_object, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
                     let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_old_card(card, ptr, card_end, false);
+                    self.copy_old_card(card_idx, ptr, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
+                    assert!(offset == 1);
                     let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_old_card(card, ptr.into(), card_end, false);
+                    self.copy_old_card(card_idx, ptr.into(), false);
                 }
             }
         });
@@ -243,9 +243,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         &mut self,
         card: CardIdx,
         mut ptr: Address,
-        card_end: Address,
         mut ref_to_young_gen: bool,
     ) {
+        let card_start = self.card_table.to_address(card);
+        let card_end = card_start.offset(CARD_SIZE);
+
         let old_end: Address = self.old.free();
         let mut end = cmp::min(card_end, old_end);
 
