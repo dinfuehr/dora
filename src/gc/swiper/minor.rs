@@ -66,7 +66,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         self.visit_roots();
         self.copy_dirty_cards();
-        // self.visit_large_objects();
+        self.visit_large_objects();
         self.visit_copied_objects();
         self.young.swap_spaces(self.free);
 
@@ -137,17 +137,18 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let card_end = card_start.offset(CARD_SIZE);
             let end = cmp::min(card_end, object_end);
 
+            let mut ref_to_young_gen = false;
+
             if card_idx.to_usize() == start_card_idx {
-                self.copy_card(card_idx, object_start, end, false);
+                self.copy_range(object_start, end, &mut ref_to_young_gen);
 
             } else {
                 // all but the first card are full with references
                 let refs = end.offset_from(card_start) / mem::ptr_width_usize();
-                let mut ref_to_young_gen = false;
-
                 self.copy_refs(card_start, refs, &mut ref_to_young_gen);
-                self.update_card(card_idx, ref_to_young_gen);
             }
+
+            self.update_card(card_idx, ref_to_young_gen);
         }
     }
 
@@ -198,21 +199,21 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                     let first_obect = self.copy_refs(card_start, refs as usize, &mut ref_to_young_gen);
 
                     // copy all objects from this card
-                    self.copy_card(card, first_obect, card_end, ref_to_young_gen);
+                    self.copy_old_card(card, first_obect, card_end, ref_to_young_gen);
                 }
 
                 CrossingEntry::FirstObject(offset) => {
                     let ptr = card_start.offset(offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr, card_end, false);
+                    self.copy_old_card(card, ptr, card_end, false);
                 }
 
                 CrossingEntry::ArrayStart(offset) => {
                     let ptr = card_start.to_usize() - (offset as usize * mem::ptr_width_usize());
 
                     // copy all objects from this card
-                    self.copy_card(card, ptr.into(), card_end, false);
+                    self.copy_old_card(card, ptr.into(), card_end, false);
                 }
             }
         });
@@ -238,7 +239,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         ptr
     }
 
-    fn copy_card(
+    fn copy_old_card(
         &mut self,
         card: CardIdx,
         mut ptr: Address,
@@ -249,25 +250,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let mut end = cmp::min(card_end, old_end);
 
         loop {
-            while ptr < end {
-                let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
-
-                object.visit_reference_fields_within(end, |field| {
-                    let field_ptr = field.get();
-
-                    if self.young_from.contains(Address::from_ptr(field_ptr)) {
-                        let copied_obj = self.copy(field_ptr);
-                        field.set(copied_obj);
-
-                        // determine if copied object is still in young generation
-                        if self.young.contains(Address::from_ptr(copied_obj)) {
-                            ref_to_young_gen = true;
-                        }
-                    }
-                });
-
-                ptr = ptr.offset(object.size());
-            }
+            ptr = self.copy_range(ptr, end, &mut ref_to_young_gen);
 
             // if we are in the last card of the old generation, promoted objects
             // will increase `end` towards `card_end`. Those newly promoted objects
@@ -287,6 +270,30 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
 
         self.update_card(card, ref_to_young_gen);
+    }
+
+    fn copy_range(&mut self, mut ptr: Address, end: Address, ref_to_young_gen: &mut bool) -> Address {
+        while ptr < end {
+            let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
+
+            object.visit_reference_fields_within(end, |field| {
+                let field_ptr = field.get();
+
+                if self.young_from.contains(Address::from_ptr(field_ptr)) {
+                    let copied_obj = self.copy(field_ptr);
+                    field.set(copied_obj);
+
+                    // determine if copied object is still in young generation
+                    if self.young.contains(Address::from_ptr(copied_obj)) {
+                        *ref_to_young_gen = true;
+                    }
+                }
+            });
+
+            ptr = ptr.offset(object.size());
+        }
+
+        end
     }
 
     fn update_card(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
