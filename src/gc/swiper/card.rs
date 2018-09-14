@@ -1,6 +1,6 @@
 use std::ptr;
 
-use gc::swiper::crossing::CardIdx;
+use gc::swiper::CardIdx;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
 use gc::Address;
 use gc::swiper::Region;

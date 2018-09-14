@@ -394,6 +394,21 @@ impl Swiper {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct CardIdx(usize);
+
+impl CardIdx {
+    pub fn to_usize(self) -> usize {
+        self.0
+    }
+}
+
+impl From<usize> for CardIdx {
+    fn from(val: usize) -> CardIdx {
+        CardIdx(val)
+    }
+}
+
 #[derive(Clone)]
 pub struct Region {
     pub start: Address,

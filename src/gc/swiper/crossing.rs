@@ -1,4 +1,5 @@
 use gc::Address;
+use gc::swiper::CardIdx;
 
 // see GC Handbook 11.8: Crossing Maps
 // meaning of byte value
@@ -17,21 +18,6 @@ use gc::Address;
 //     object starts v words before this card
 //     used only for object arrays when array starts in the card before
 //     and some non-reference content is in the next card
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub struct CardIdx(usize);
-
-impl CardIdx {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for CardIdx {
-    fn from(val: usize) -> CardIdx {
-        CardIdx(val)
-    }
-}
 
 #[derive(Clone)]
 pub struct CrossingMap {

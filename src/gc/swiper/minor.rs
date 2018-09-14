@@ -4,12 +4,12 @@ use ctxt::SemContext;
 
 use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
-use gc::swiper::crossing::{CardIdx, CrossingEntry, CrossingMap};
+use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::in_kilo;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
-use gc::swiper::{Region, CARD_SIZE};
+use gc::swiper::{CardIdx, Region, CARD_SIZE};
 use gc::Address;
 
 use mem;
