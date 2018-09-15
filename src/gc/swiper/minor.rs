@@ -25,7 +25,9 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
 
-    free: Address,
+    young_free: Address,
+    old_end: Address,
+
     promotion_failed: bool,
     promoted_size: usize,
     young_from: Region,
@@ -49,7 +51,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             rootset: rootset,
             card_table: card_table,
             crossing_map: crossing_map,
-            free: Address::null(),
+
+            young_free: Address::null(),
+            old_end: Address::null(),
+
             promotion_failed: false,
             promoted_size: 0,
             young_from: young.from_space(),
@@ -62,7 +67,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let init_size = self.heap_size();
         let young_init_size = self.young.used_region().size();
-        self.free = self.young.to_space().start;
+
+        self.young_free = self.young.to_space().start;
+        self.old_end = self.old.free();
 
         self.young.unprotect_to_space();
 
@@ -79,7 +86,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             self.visit_copied_objects();
         });
 
-        self.young.swap_spaces(self.free);
+        self.young.swap_spaces(self.young_free);
         self.young.protect_to_space();
 
         timer.stop_with(|dur| {
@@ -182,28 +189,43 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_copied_objects(&mut self) {
-        let mut scan = self.young.to_space().start;
+        let mut young_scan = self.young.to_space().start;
+        let mut old_scan = self.old_end;
 
-        // visit all fields in copied objects
-        while scan < self.free {
-            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+        // visit all fields in grey (=copied) objects
+        // there can be grey objects in old & young gen
+        while young_scan < self.young_free || old_scan < self.old.free() {
+            while young_scan < self.young_free {
+                young_scan = self.visit_copied_object(young_scan);
+            }
 
-            object.visit_reference_fields(|field| {
-                let field_ptr = field.get();
-
-                if self.young.contains(Address::from_ptr(field_ptr)) {
-                    field.set(self.copy(field_ptr));
-                }
-            });
-
-            scan = scan.offset(object.size());
+            while old_scan < self.old.free() {
+                old_scan = self.visit_copied_object(old_scan);
+            }
         }
+
+        assert!(young_scan == self.young_free);
+        assert!(old_scan == self.old.free());
+    }
+
+    fn visit_copied_object(&mut self, addr: Address) -> Address {
+        let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+
+        object.visit_reference_fields(|field| {
+            let field_ptr = field.get();
+
+            if self.young.contains(Address::from_ptr(field_ptr)) {
+                field.set(self.copy(field_ptr));
+            }
+        });
+
+        addr.offset(object.size())
     }
 
     // copy all references from old- into young-generation.
     fn copy_dirty_cards(&mut self) {
         self.card_table
-            .visit_dirty_in_old(self.old.free(), |card_idx| {
+            .visit_dirty_in_old(self.old_end, |card_idx| {
                 let crossing_entry = self.crossing_map.get(card_idx);
                 let card_start = self.card_table.to_address(card_idx);
 
@@ -342,20 +364,16 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) {
-            let copy_addr = self.old.alloc(obj_size, obj.is_array_ref());
+            let old_addr = self.try_promote_object(obj, obj_size);
 
-            // if there isn't enough space in old gen keep it in the
-            // young generation for now
-            if copy_addr.is_null() {
-                self.promotion_failed = true;
-            } else {
-                self.promote_object(obj, copy_addr, obj_size);
-                return copy_addr.to_mut_ptr();
+            if old_addr.is_non_null() {
+                return old_addr.to_mut_ptr();
             }
         }
 
-        let copy_addr = self.free;
-        self.free = copy_addr.offset(obj_size);
+        let copy_addr = self.young_free;
+        self.young_free = copy_addr.offset(obj_size);
+        assert!(self.young_free <= self.young.to_space().end);
 
         obj.copy_to(copy_addr, obj_size);
         obj.header_mut().forward_to(copy_addr);
@@ -363,7 +381,20 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         copy_addr.to_mut_ptr()
     }
 
-    fn promote_object(&mut self, obj: &mut Obj, copy_addr: Address, obj_size: usize) {
+    fn try_promote_object(
+        &mut self,
+        obj: &mut Obj,
+        obj_size: usize,
+    ) -> Address {
+        let copy_addr = self.old.alloc(obj_size, obj.is_array_ref());
+
+        // if there isn't enough space in old gen keep it in the
+        // young generation for now
+        if copy_addr.is_null() {
+            self.promotion_failed = true;
+            return Address::null();
+        }
+
         obj.copy_to(copy_addr, obj_size);
         self.promoted_size += obj_size;
 
@@ -372,6 +403,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.handle_promoted_object(copy_addr);
 
         obj.header_mut().forward_to(copy_addr);
+
+        copy_addr
     }
 
     fn handle_promoted_object(&mut self, addr: Address) {

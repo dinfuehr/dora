@@ -172,6 +172,11 @@ impl Address {
     pub fn is_null(self) -> bool {
         self.0 == 0
     }
+
+    #[inline(always)]
+    pub fn is_non_null(self) -> bool {
+        self.0 != 0
+    }
 }
 
 impl fmt::Display for Address {
