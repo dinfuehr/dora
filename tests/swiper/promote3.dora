@@ -11,6 +11,7 @@ fun main() {
   assert(x.next.next.a == 2);
   assert(x.next.next.next.a == 3);
   assert(x.next.next.next.next.a == 4);
+  assert(x.next.next.next.next.next === nil);
 }
 
 class Foo(let a: int, var next: Foo)
