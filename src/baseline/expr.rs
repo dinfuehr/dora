@@ -1880,6 +1880,11 @@ where
         pos: Position,
         array_ref: bool,
     ) {
+        if self.ctxt.args.flag_disable_tlab {
+            self.emit_normal_allocation(dest, size, pos, array_ref);
+            return;
+        }
+
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < TLAB_OBJECT_SIZE {

@@ -246,7 +246,7 @@ impl Collector for Swiper {
             self.full_collect(ctxt);
         }
 
-        if size < TLAB_OBJECT_SIZE {
+        if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
             self.alloc_tlab(ctxt, size, array_ref)
         } else if size < LARGE_OBJECT_SIZE {
             self.alloc_normal(ctxt, size, array_ref)

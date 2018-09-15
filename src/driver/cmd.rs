@@ -43,6 +43,8 @@ Options:
     --gc-verify             Verify heap before and after collections
     --gc=<name>             Switch GC. Possible values: zero, copy (default), swiper
 
+    --disable-tlab          Disable tlab allocation.
+
     --heap-size=<SIZE>      Set heap size
     --code-size=<SIZE>      Set code size limit
     --perm-size=<SIZE>      Set perm size limit
@@ -77,6 +79,7 @@ pub struct Args {
     pub flag_code_size: Option<MemSize>,
     pub flag_perm_size: Option<MemSize>,
     pub flag_check: bool,
+    pub flag_disable_tlab: bool,
 
     pub cmd_test: bool,
 }
@@ -129,6 +132,7 @@ impl Default for Args {
             flag_code_size: None,
             flag_perm_size: None,
             flag_check: false,
+            flag_disable_tlab: false,
 
             cmd_test: false,
         }
