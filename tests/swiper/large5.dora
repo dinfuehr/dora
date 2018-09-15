@@ -1,4 +1,4 @@
-// ignore
+//= ignore
 //= --gc=swiper --gc-verify
 
 class Foo(let x: int)
