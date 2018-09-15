@@ -7,7 +7,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::Region;
 use gc::swiper::CARD_SIZE;
-use gc::swiper::{on_different_cards, start_of_card};
+use gc::swiper::on_different_cards;
 use gc::Address;
 
 use mem;
@@ -142,7 +142,7 @@ impl<'a> Verifier<'a> {
 
         assert!(curr == region.end, "object doesn't end at region end");
 
-        if (self.in_old || self.in_large) && !start_of_card(curr) {
+        if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
             self.verify_card(curr);
         }
     }

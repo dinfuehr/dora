@@ -493,7 +493,3 @@ fn formatted_size(size: usize) -> FormattedSize {
 fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
 }
-
-fn start_of_card(addr: Address) -> bool {
-    (addr.to_usize() & (CARD_SIZE - 1)) == addr.to_usize()
-}
