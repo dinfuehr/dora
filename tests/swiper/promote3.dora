@@ -1,0 +1,16 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fun main() {
+  var x = Foo(1, Foo(2, Foo(3, nil)));
+  forceMinorCollect();
+  x.next.next.next = Foo(4, nil);
+  x = Foo(100, x);
+  forceMinorCollect();
+  assert(x.a == 100);
+  assert(x.next.a == 1);
+  assert(x.next.next.a == 2);
+  assert(x.next.next.next.a == 3);
+  assert(x.next.next.next.next.a == 4);
+}
+
+class Foo(let a: int, var next: Foo)
