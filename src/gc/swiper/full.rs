@@ -241,17 +241,20 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn update_large_objects(&mut self) {
-        self.large_space.remove_objects(|addr| {
-            if !self.is_marked_addr(addr) {
+        self.large_space.remove_objects(|object_start| {
+            if !self.is_marked_addr(object_start) {
                 // free object
                 return false;
             }
 
-            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+            let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
 
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
             });
+
+            let object_end = object_start.offset(object.size());
+            self.card_table.reset_region(object_start, object_end);
 
             // keep object
             true
