@@ -1,0 +1,88 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+class Foo(let x: int)
+
+fun main() {
+    let a = Array::<long>(70);
+    let x = CardSpanningObject();
+    forceMinorCollect();
+    assert(x.field0 === nil);
+    assert(x.field64 === nil);
+
+    x.field0 = Foo(1);
+    forceMinorCollect();
+    assert(x.field0.x == 1);
+    assert(x.field64 === nil);
+
+    forceMinorCollect();
+    assert(x.field0.x == 1);
+    assert(x.field64 === nil);
+}
+
+class CardSpanningObject {
+    var field0: Foo;
+    var field1: Foo;
+    var field2: Foo;
+    var field3: Foo;
+    var field4: Foo;
+    var field5: Foo;
+    var field6: Foo;
+    var field7: Foo;
+    var field8: Foo;
+    var field9: Foo;
+    var field10: Foo;
+    var field11: Foo;
+    var field12: Foo;
+    var field13: Foo;
+    var field14: Foo;
+    var field15: Foo;
+    var field16: Foo;
+    var field17: Foo;
+    var field18: Foo;
+    var field19: Foo;
+    var field20: Foo;
+    var field21: Foo;
+    var field22: Foo;
+    var field23: Foo;
+    var field24: Foo;
+    var field25: Foo;
+    var field26: Foo;
+    var field27: Foo;
+    var field28: Foo;
+    var field29: Foo;
+    var field30: Foo;
+    var field31: Foo;
+    var field32: Foo;
+    var field33: Foo;
+    var field34: Foo;
+    var field35: Foo;
+    var field36: Foo;
+    var field37: Foo;
+    var field38: Foo;
+    var field39: Foo;
+    var field40: Foo;
+    var field41: Foo;
+    var field42: Foo;
+    var field43: Foo;
+    var field44: Foo;
+    var field45: Foo;
+    var field46: Foo;
+    var field47: Foo;
+    var field48: Foo;
+    var field49: Foo;
+    var field50: Foo;
+    var field51: Foo;
+    var field52: Foo;
+    var field53: Foo;
+    var field54: Foo;
+    var field55: Foo;
+    var field56: Foo;
+    var field57: Foo;
+    var field58: Foo;
+    var field59: Foo;
+    var field60: Foo;
+    var field61: Foo;
+    var field62: Foo;
+    var field63: Foo;
+    var field64: Foo;
+}

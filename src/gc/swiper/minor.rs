@@ -8,6 +8,7 @@ use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::formatted_size;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
+use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, Region, CARD_SIZE};
 use gc::Address;
@@ -210,7 +211,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             }
 
             while old_scan < self.old.free() {
-                old_scan = self.visit_gray_object(old_scan);
+                old_scan = self.visit_gray_object_in_old(old_scan);
             }
         }
 
@@ -230,6 +231,64 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         });
 
         addr.offset(object.size())
+    }
+
+    fn visit_gray_object_in_old(&mut self, object_start: Address) -> Address {
+        let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
+
+        if object.is_array_ref() {
+            let mut ref_to_young_gen = false;
+            let mut last = object_start;
+
+            object.visit_reference_fields(|field| {
+                let field_ptr = field.get();
+
+                if on_different_cards(last, field.to_address()) && ref_to_young_gen {
+                    let card_idx = self.card_table.card_idx(last);
+                    self.card_table.set(card_idx, CardEntry::Dirty);
+                    ref_to_young_gen = false;
+                }
+
+                if self.young.contains(Address::from_ptr(field_ptr)) {
+                    let copied_addr = self.copy(field_ptr);
+                    field.set(copied_addr);
+
+                    if self.young.contains(Address::from_ptr(copied_addr)) {
+                        ref_to_young_gen = true;
+                    }
+                }
+
+                last = field.to_address();
+            });
+
+            if ref_to_young_gen {
+                let card_idx = self.card_table.card_idx(last);
+                self.card_table.set(card_idx, CardEntry::Dirty);
+            }
+
+        } else {
+            let mut ref_to_young_gen = false;
+
+            object.visit_reference_fields(|field| {
+                let field_ptr = field.get();
+
+                if self.young.contains(Address::from_ptr(field_ptr)) {
+                    let copied_addr = self.copy(field_ptr);
+                    field.set(copied_addr);
+
+                    if self.young.contains(Address::from_ptr(copied_addr)) {
+                        ref_to_young_gen = true;
+                    }
+                }
+            });
+
+            if ref_to_young_gen {
+                let card_idx = self.card_table.card_idx(object_start);
+                self.card_table.set(card_idx, CardEntry::Dirty);
+            }
+        }
+
+        object_start.offset(object.size())
     }
 
     // copy all references from old- into young-generation.
@@ -404,37 +463,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         obj.copy_to(copy_addr, obj_size);
         self.promoted_size += obj_size;
 
-        // Promoted object can have references to the young generation.
-        // Set the card table entry to dirty if this is the case.
-        self.handle_promoted_object(copy_addr);
-
         obj.header_mut().forward_to(copy_addr);
 
         copy_addr
-    }
-
-    fn handle_promoted_object(&mut self, addr: Address) {
-        let card_idx = self.card_table.card_idx(addr);
-
-        // card is already dirty, nothing left to do.
-        if self.card_table.get(card_idx).is_dirty() {
-            return;
-        }
-
-        let object: &mut Obj = unsafe { &mut *addr.to_mut_ptr() };
-        let mut old_to_young_ref = false;
-
-        object.visit_reference_fields(|field| {
-            let field_ptr = field.get();
-
-            if self.young.contains(Address::from_ptr(field_ptr)) {
-                old_to_young_ref = true;
-            }
-        });
-
-        if old_to_young_ref {
-            self.card_table.set(card_idx, CardEntry::Dirty);
-        }
     }
 
     pub fn promotion_failed(&self) -> bool {
