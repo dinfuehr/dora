@@ -200,8 +200,8 @@ impl<'a> Verifier<'a> {
 
         // In the verify-phase before the collection the card's dirty-entry isn't
         // guaranteed to be exact. It could be `dirty` although this card doesn't
-        // actually contain any references into the young generation. But it is never
-        // clean when there are actual references into the young generation.
+        // actually contain any references into the young generation. But it should never
+        // be clean when there are actual references into the young generation.
         if self.phase.is_pre() && expected_card_entry == CardEntry::Clean {
             self.refs_to_young_gen = 0;
             return;

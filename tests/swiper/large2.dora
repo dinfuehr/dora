@@ -1,4 +1,4 @@
-//= --gc=swiper --gc-verify
+//= vm-args "--gc=swiper --gc-verify"
 
 fun main() {
     {

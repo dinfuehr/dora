@@ -1,5 +1,5 @@
 //= ignore
-//= --gc=swiper --gc-verify
+//= vm-args "--gc=swiper --gc-verify"
 
 class Foo(let x: int)
 
@@ -15,6 +15,10 @@ fun main() {
     assert(x[63] === nil);
 
     x[63] = Foo(2);
+    forceMinorCollect();
+    assert(x[0].x == 1);
+    assert(x[63].x == 2);
+
     forceMinorCollect();
     assert(x[0].x == 1);
     assert(x[63].x == 2);

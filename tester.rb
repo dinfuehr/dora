@@ -289,6 +289,8 @@ def test_case_expectation(file)
       when "error"
         exp.fail = true
 
+        next if arguments.size == 1
+
         case arguments[1]
         when "at" then exp.position = arguments[2]
         when "code" then exp.code = arguments[2].to_i
@@ -303,6 +305,8 @@ def test_case_expectation(file)
         when "oom" then exp.code = 108
         when "fail"
           # do nothing
+        else
+          raise "unknown error expectation in #{file}: #{line}"
         end
 
       when "file"
@@ -322,6 +326,9 @@ def test_case_expectation(file)
 
       when "vm-args"
         exp.vm_args = arguments[1..-1]
+
+      else
+        raise "unkown expectation in #{file}: #{line}"
 
       end
     end
