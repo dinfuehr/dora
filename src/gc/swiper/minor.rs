@@ -391,11 +391,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         copy_addr.to_mut_ptr()
     }
 
-    fn try_promote_object(
-        &mut self,
-        obj: &mut Obj,
-        obj_size: usize,
-    ) -> Address {
+    fn try_promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
         let copy_addr = self.old.alloc(obj_size, obj.is_array_ref());
 
         // if there isn't enough space in old gen keep it in the

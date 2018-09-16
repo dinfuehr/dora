@@ -4,10 +4,10 @@ use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
+use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::Region;
 use gc::swiper::CARD_SIZE;
-use gc::swiper::on_different_cards;
 use gc::Address;
 
 use mem;

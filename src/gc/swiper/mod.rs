@@ -106,7 +106,6 @@ impl Swiper {
         // determine boundaries of young generation
         let young_start = heap_start;
         let young_end = young_start.offset(heap_size);
-        let young = YoungGen::new(young_start, young_end);
 
         arena::commit(young_start, heap_size, false);
 
@@ -128,6 +127,7 @@ impl Swiper {
             heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, heap_size);
+        let young = YoungGen::new(young_start, young_end, args.flag_gc_verify);
         let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
         let large = LargeSpace::new(large_start, large_end);
 

@@ -1,3 +1,4 @@
+use std::cmp;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
@@ -75,6 +76,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let active = self.ctxt.args.flag_gc_verbose;
         let mut timer = Timer::new(active);
         let init_size = self.heap_size();
+        self.old_top = self.old.used_region().end;
 
         let time_mark = Timer::ms(active, || {
             self.mark_live();
@@ -95,6 +97,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let time_large = Timer::ms(active, || {
             self.update_large_objects();
         });
+
+        self.reset_cards();
 
         timer.stop_with(|dur| {
             let new_size = self.heap_size();
@@ -198,10 +202,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn relocate(&mut self) {
-        self.young.unprotect_to_space();
-
         self.crossing_map.set_first_object(0.into(), 0);
-        let mut last_dest = Address::null();
 
         self.walk_old_and_young(|full, object, address, object_size| {
             if full.is_marked(object) {
@@ -213,52 +214,46 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 if on_different_cards(dest, next_dest) {
                     full.update_crossing(dest, next_dest, object.is_array_ref());
                 }
-
-                last_dest = next_dest;
             }
         });
 
-        let young_top;
-        let old_top;
+        self.young.free();
 
-        // check if we have left the old-generation into
-        // the young generation for copying objects
-        if self.old_top.is_null() {
-            // if not, young gen is empty
-            young_top = self.young.to_space().start;
-            old_top = self.fwd;
-        } else {
-            young_top = self.fwd;
-            old_top = self.old_top;
-        }
-
-        debug_assert!(self.young.valid_top(young_top));
-        self.young.swap_spaces(young_top);
-        self.young.protect_to_space();
-
-        debug_assert!(self.old.valid_top(old_top));
-        self.old.free.store(old_top.to_usize(), Ordering::SeqCst);
+        assert!(self.old.valid_top(self.fwd));
+        self.old.free.store(self.fwd.to_usize(), Ordering::SeqCst);
     }
 
     fn update_large_objects(&mut self) {
         self.large_space.remove_objects(|object_start| {
+            let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
+
+            // reset cards for object, also do this for dead objects
+            // to reset card entries to clean.
+            if object.is_array_ref() {
+                let object_end = object_start.offset(object.size());
+                self.card_table.reset_region(object_start, object_end);
+            } else {
+                self.card_table.reset_addr(object_start);
+            }
+
             if !self.is_marked_addr(object_start) {
                 // free object
                 return false;
             }
 
-            let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
-
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
             });
 
-            let object_end = object_start.offset(object.size());
-            self.card_table.reset_region(object_start, object_end);
-
             // keep object
             true
         });
+    }
+
+    fn reset_cards(&mut self) {
+        let start = self.old.total.start;
+        let end = cmp::max(self.fwd, self.old_top);
+        self.card_table.reset_region(start, end);
     }
 
     fn forward_reference(&mut self, indirect_obj: IndirectObj) {

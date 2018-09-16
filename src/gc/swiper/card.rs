@@ -74,6 +74,12 @@ impl CardTable {
         }
     }
 
+    // reset cards for address to 1 (not dirty)
+    pub fn reset_addr(&self, addr: Address) {
+        let card_idx = self.card_idx(addr);
+        self.set(card_idx, CardEntry::Clean);
+    }
+
     fn size(&self) -> usize {
         self.end.offset_from(self.start)
     }

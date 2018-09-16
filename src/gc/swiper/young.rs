@@ -24,10 +24,14 @@ pub struct YoungGen {
     // separates survived from newly allocated objects
     // needed to decide whether to promote object into old space
     age_marker: AtomicUsize,
+
+    // set to true when unused memory regions should
+    // be protected.
+    protect: bool,
 }
 
 impl YoungGen {
-    pub fn new(young_start: Address, young_end: Address) -> YoungGen {
+    pub fn new(young_start: Address, young_end: Address, protect: bool) -> YoungGen {
         let half_size = young_end.offset_from(young_start) / 2;
         let half_address = young_start.offset(half_size);
 
@@ -38,6 +42,7 @@ impl YoungGen {
             age_marker: AtomicUsize::new(young_start.to_usize()),
             free: AtomicUsize::new(young_start.to_usize()),
             end: AtomicUsize::new(half_address.to_usize()),
+            protect: protect,
         }
     }
 
@@ -111,11 +116,21 @@ impl YoungGen {
     }
 
     pub fn swap_spaces(&self, free: Address) {
+        let to_space = self.to_space();
+        assert!(to_space.valid_top(free));
         self.end
-            .store(self.to_space().end.to_usize(), Ordering::Relaxed);
+            .store(to_space.end.to_usize(), Ordering::Relaxed);
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);
+    }
+
+    pub fn free(&self) {
+        let from_space = self.from_space();
+        let start = from_space.start.to_usize();
+
+        self.age_marker.store(start, Ordering::Relaxed);
+        self.free.store(start, Ordering::Relaxed);
     }
 
     pub fn unprotect_to_space(&self) {
@@ -123,7 +138,7 @@ impl YoungGen {
         // can copy objects to the to-space.
         // Since this has some overhead, do it only in debug builds.
 
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) || self.protect {
             let to_space = self.to_space();
 
             os::mprotect(
@@ -137,7 +152,7 @@ impl YoungGen {
     pub fn protect_to_space(&self) {
         // Make from-space unaccessible both from read/write.
         // Since this has some overhead, do it only in debug builds.
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) || self.protect {
             let to_space = self.to_space();
             os::mprotect(
                 to_space.start.to_ptr::<u8>(),
