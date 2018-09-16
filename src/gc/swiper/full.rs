@@ -210,7 +210,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
                 let next_dest = dest.offset(object_size);
 
-                if on_different_cards(dest, next_dest) && full.old.contains(dest) {
+                if on_different_cards(dest, next_dest) {
                     full.update_crossing(dest, next_dest, object.is_array_ref());
                 }
 
