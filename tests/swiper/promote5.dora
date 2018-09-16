@@ -1,5 +1,5 @@
-//= ignore
 //= vm-args "--gc=swiper --gc-verify"
+//= ignore
 
 class Foo(let x: int)
 
