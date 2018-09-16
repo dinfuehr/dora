@@ -1,0 +1,16 @@
+//= vm-args "--gc=swiper --gc-verify"
+//= ignore
+
+fun main() {
+  var x = Array::<Foo>(128);
+  forceMinorCollect();
+  x[0] = Foo(1);
+  x[127] = Foo(2);
+  forceMinorCollect();
+  assert(x[0].a == 1);
+  assert(x[1] === nil);
+  assert(x[126] === nil);
+  assert(x[127].a == 2);
+}
+
+class Foo(let a: int)

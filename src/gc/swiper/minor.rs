@@ -175,7 +175,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
-        if !self.card_table.is_dirty(object_start) {
+        let card_idx = self.card_table.card_idx(object_start);
+        let mut ref_to_young_gen = false;
+
+        if self.card_table.get(card_idx).is_clean() {
             return;
         }
 
@@ -183,9 +186,16 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let field_ptr = field.get();
 
             if self.young.contains(Address::from_ptr(field_ptr)) {
-                field.set(self.copy(field_ptr));
+                let copied_addr = self.copy(field_ptr);
+                field.set(copied_addr);
+
+                if self.young.contains(Address::from_ptr(copied_addr)) {
+                    ref_to_young_gen = true;
+                }
             }
         });
+
+        self.update_card(card_idx, ref_to_young_gen);
     }
 
     fn visit_gray_objects(&mut self) {
