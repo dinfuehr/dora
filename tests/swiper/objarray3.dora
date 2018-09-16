@@ -1,5 +1,4 @@
 //= vm-args "--gc=swiper --gc-verify"
-//= ignore
 
 fun main() {
     let a = Array::<Foo>(16 * 1024);
