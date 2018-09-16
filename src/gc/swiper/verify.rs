@@ -316,6 +316,14 @@ impl<'a> Verifier<'a> {
             return;
         }
 
+        let perm_region = self.perm_space.used_region();
+
+        println!(
+            "PRM: {}-{}; active: {}-{}",
+            self.perm_space.total().start,
+            self.perm_space.total().end,
+            perm_region.start,
+            perm_region.end);
         println!(
             "YNG: {}-{}; active: {}-{}",
             self.young.total.start,
@@ -326,6 +334,11 @@ impl<'a> Verifier<'a> {
         println!(
             "OLD: {}-{}; active: {}-{}",
             self.old.total.start, self.old.total.end, self.old_region.start, self.old_region.end
+        );
+        println!(
+            "LRG: {}-{}",
+            self.large.total().start,
+            self.large.total().end
         );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",

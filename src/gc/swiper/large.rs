@@ -28,6 +28,10 @@ impl LargeSpace {
         space.alloc(size)
     }
 
+    pub fn total(&self) -> Region {
+        self.total.clone()
+    }
+
     pub fn contains(&self, addr: Address) -> bool {
         self.total.contains(addr)
     }
