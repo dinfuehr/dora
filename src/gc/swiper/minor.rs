@@ -83,7 +83,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         });
 
         let time_traverse = Timer::ms(active, || {
-            self.visit_copied_objects();
+            self.visit_gray_objects();
         });
 
         self.young.swap_spaces(self.young_free);
@@ -188,19 +188,19 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         });
     }
 
-    fn visit_copied_objects(&mut self) {
+    fn visit_gray_objects(&mut self) {
         let mut young_scan = self.young.to_space().start;
         let mut old_scan = self.old_end;
 
-        // visit all fields in grey (=copied) objects
-        // there can be grey objects in old & young gen
+        // visit all fields in gray (=copied) objects
+        // there can be gray objects in old & young gen
         while young_scan < self.young_free || old_scan < self.old.free() {
             while young_scan < self.young_free {
-                young_scan = self.visit_copied_object(young_scan);
+                young_scan = self.visit_gray_object(young_scan);
             }
 
             while old_scan < self.old.free() {
-                old_scan = self.visit_copied_object(old_scan);
+                old_scan = self.visit_gray_object(old_scan);
             }
         }
 
@@ -208,7 +208,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         assert!(old_scan == self.old.free());
     }
 
-    fn visit_copied_object(&mut self, addr: Address) -> Address {
+    fn visit_gray_object(&mut self, addr: Address) -> Address {
         let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
 
         object.visit_reference_fields(|field| {
