@@ -59,17 +59,22 @@ impl OldGen {
             }
         }
 
-        if (old >> CARD_SIZE_BITS) == (new >> CARD_SIZE_BITS) {
+        self.update_crossing(old.into(), new.into(), array_ref);
+
+        old.into()
+    }
+
+    pub fn update_crossing(&self, old: Address, new: Address, array_ref: bool) {
+        if (old.to_usize() >> CARD_SIZE_BITS) == (new.to_usize() >> CARD_SIZE_BITS) {
             // object does not span multiple cards
-            if (old & (CARD_SIZE - 1)) == 0 {
+            if (old.to_usize() & (CARD_SIZE - 1)) == 0 {
                 let card = self.card_table.card_idx(old.into());
                 self.crossing_map.set_first_object(card, 0);
             }
         } else if array_ref {
             let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
+            let new_card_start = self.card_table.to_address(new_card_idx);
 
-            let old = Address::from(old);
             let old_card_idx = self.card_table.card_idx(old);
             let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
 
@@ -93,14 +98,15 @@ impl OldGen {
                     .set_references_at_start(c.into(), refs_per_card);
             }
 
-            if new_card_idx.to_usize() > loop_card_start {
-                let refs_dist = (new - new_card_start) / mem::ptr_width_usize();
+            // new_card starts with x references, then next object
+            if new_card_idx.to_usize() >= loop_card_start {
+                let refs_dist = new.offset_from(new_card_start) / mem::ptr_width_usize();
                 self.crossing_map
                     .set_references_at_start(new_card_idx, refs_dist);
             }
         } else {
             let new_card_idx = self.card_table.card_idx(new.into());
-            let new_card_start = self.card_table.to_address(new_card_idx).to_usize();
+            let new_card_start = self.card_table.to_address(new_card_idx);
 
             let old_card_idx = self.card_table.card_idx(old.into());
 
@@ -109,13 +115,12 @@ impl OldGen {
                 self.crossing_map.set_no_references(c.into());
             }
 
+            // new_card stores x words of object, then next object
             self.crossing_map.set_first_object(
                 new_card_idx,
-                (new - new_card_start) / mem::ptr_width_usize(),
+                new.offset_from(new_card_start) / mem::ptr_width_usize(),
             );
         }
-
-        old.into()
     }
 
     pub fn contains(&self, addr: Address) -> bool {

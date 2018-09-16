@@ -11,11 +11,10 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::swiper::Region;
-use gc::swiper::CARD_SIZE;
 use gc::swiper::{formatted_size, on_different_cards};
 use gc::Address;
 use mem;
-use object::{offset_of_array_data, Obj};
+use object::Obj;
 use os;
 use timer::{in_ms, Timer};
 
@@ -212,7 +211,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let next_dest = dest.offset(object_size);
 
                 if on_different_cards(dest, next_dest) {
-                    full.update_crossing(dest, next_dest, object.is_array_ref());
+                    full.old.update_crossing(dest, next_dest, object.is_array_ref());
                 }
             }
         });
@@ -305,48 +304,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         panic!("FAIL: Not enough space for objects in old generation.");
-    }
-
-    fn update_crossing(&mut self, last: Address, addr: Address, array_ref: bool) {
-        let last_card = self.card_table.card_idx(last);
-
-        let offset = addr.to_usize() & (CARD_SIZE - 1);
-        let offset_words = offset / mem::ptr_width_usize();
-
-        let card = self.card_table.card_idx(addr);
-
-        if array_ref {
-            let last_card_end = self.card_table.to_address(last_card).offset(CARD_SIZE);
-            let loop_start;
-
-            if last.offset(offset_of_array_data() as usize) > last_card_end {
-                let diff_words = last_card_end.offset_from(last) / mem::ptr_width_usize();
-                self.crossing_map
-                    .set_array_start((last_card.to_usize() + 1).into(), diff_words);
-
-                loop_start = last_card.to_usize() + 2;
-            } else {
-                loop_start = last_card.to_usize() + 1;
-            }
-
-            let refs_per_card = CARD_SIZE / mem::ptr_width_usize();
-
-            for i in loop_start..card.to_usize() {
-                self.crossing_map
-                    .set_references_at_start(i.into(), refs_per_card);
-            }
-
-            if card.to_usize() >= loop_start {
-                self.crossing_map
-                    .set_references_at_start(card, offset_words);
-            }
-        } else {
-            for i in last_card.to_usize() + 1..card.to_usize() {
-                self.crossing_map.set_no_references(i.into());
-            }
-
-            self.crossing_map.set_first_object(card, offset_words);
-        }
     }
 
     fn is_marked(&self, obj: &Obj) -> bool {
