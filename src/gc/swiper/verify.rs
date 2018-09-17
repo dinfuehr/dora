@@ -1,3 +1,5 @@
+use ctxt::get_ctxt;
+
 use gc::root::IndirectObj;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
@@ -356,6 +358,13 @@ impl<'a> Verifier<'a> {
         if self.young.contains(addr) && !self.young_region.contains(addr) {
             println!("reference points into young generation but not into the active semi-space.");
         }
+
+        println!("try print object size and class:");
+
+        let object = unsafe { &mut *obj };
+        println!("\tsize {}", object.size());
+        let cls = object.header().vtbl().class();
+        println!("\tclass {}", cls.name(get_ctxt()));
 
         panic!("reference neither pointing into young nor old generation.");
     }
