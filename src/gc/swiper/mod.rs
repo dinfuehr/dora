@@ -339,7 +339,7 @@ impl Swiper {
         }
 
         self.full_collect(ctxt);
-        self.young.alloc(TLAB_SIZE)
+        self.young.alloc(size)
     }
 
     fn fill_current_tlab(&self, ctxt: &SemContext) {
