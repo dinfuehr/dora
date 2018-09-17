@@ -47,6 +47,7 @@ pub struct Verifier<'a> {
 
     old_region: Region,
     young_region: Region,
+    reserved_area: Region,
 
     phase: VerifierPhase,
 }
@@ -60,6 +61,7 @@ impl<'a> Verifier<'a> {
         rootset: &'a [IndirectObj],
         large: &'a LargeSpace,
         perm_space: &'a Space,
+        reserved_area: Region,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
         Verifier {
@@ -77,6 +79,7 @@ impl<'a> Verifier<'a> {
 
             young_region: young.used_region(),
             old_region: old.used_region(),
+            reserved_area: reserved_area,
 
             phase: phase,
         }
@@ -340,6 +343,11 @@ impl<'a> Verifier<'a> {
             self.large.total().start,
             self.large.total().end
         );
+        println!(
+            "TTL: {}-{}",
+            self.reserved_area.start,
+            self.reserved_area.end
+            );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",
             addr, name, ref_addr, obj_addr

@@ -41,7 +41,11 @@ pub const CARD_SIZE_BITS: usize = 9;
 pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
 
 pub struct Swiper {
+    // contiguous memory for young/old generation and large space
     heap: Region,
+
+    // contains heap and also card table and crossing map
+    reserved_area: Region,
 
     young: YoungGen,
     old: OldGen,
@@ -83,9 +87,12 @@ impl Swiper {
         // reserve full memory
         let ptr = arena::reserve(heap_reserve_size);
 
-        // heap is young and old generation
+        // heap is young/old generation & large space
         let heap_start = ptr;
         let heap_end = ptr.offset(4 * heap_size);
+
+        // reserved area also contains card table & crossing map
+        let reserved_area = heap_start.region_start(heap_reserve_size);
 
         // determine offset to card table (card table starts right after heap)
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
@@ -144,6 +151,7 @@ impl Swiper {
 
         Swiper {
             heap: Region::new(heap_start, heap_end),
+            reserved_area: reserved_area,
 
             young: young,
             old: old,
@@ -229,6 +237,7 @@ impl Swiper {
                 rootset,
                 &self.large,
                 &*perm_space,
+                self.reserved_area.clone(),
                 phase,
             );
             verifier.verify();

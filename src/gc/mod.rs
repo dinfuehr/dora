@@ -5,7 +5,7 @@ use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
-use gc::swiper::Swiper;
+use gc::swiper::{Region, Swiper};
 use gc::zero::ZeroCollector;
 use mem;
 
@@ -124,6 +124,11 @@ impl Address {
     #[inline(always)]
     pub fn from(val: usize) -> Address {
         Address(val)
+    }
+
+    #[inline(always)]
+    pub fn region_start(self, size: usize) -> Region {
+        Region::new(self, self.offset(size))
     }
 
     #[inline(always)]
