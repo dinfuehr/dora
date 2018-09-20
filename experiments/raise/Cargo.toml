@@ -1,7 +1,0 @@
-[package]
-name = "raise"
-version = "0.1.0"
-authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
-
-[dependencies]
-libc = "*"
