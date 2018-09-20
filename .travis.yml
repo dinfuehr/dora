@@ -17,5 +17,5 @@ install:
   - (cd capstone && git checkout 3.0.4 && sudo make install)
 
 script:
-  - ./test
-  - ./test-release
+  - tools/test
+  - tools/test-release

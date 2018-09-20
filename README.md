@@ -35,6 +35,6 @@ rustup update nightly
 rustup override set nightly
 
 # run all tests in debug and release mode
-./test
-./test-release
+tools/test
+tools/test-release
 ```
