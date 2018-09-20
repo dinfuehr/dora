@@ -13,7 +13,7 @@ pub struct ZeroCollector {
 
 impl ZeroCollector {
     pub fn new(args: &Args) -> ZeroCollector {
-        let heap_size: usize = args.heap_size();
+        let heap_size: usize = args.max_heap_size();
 
         let ptr = arena::reserve(heap_size);
         arena::commit(ptr, heap_size, false);

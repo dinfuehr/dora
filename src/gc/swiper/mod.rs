@@ -65,7 +65,7 @@ pub struct Swiper {
 
 impl Swiper {
     pub fn new(args: &Args) -> Swiper {
-        let heap_size = args.heap_size();
+        let heap_size = args.max_heap_size();
 
         // set heap size to multiple of page
         let heap_size = mem::page_align(heap_size);

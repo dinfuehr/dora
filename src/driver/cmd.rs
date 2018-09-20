@@ -19,35 +19,36 @@ Usage: dora test [options] <file>
        dora (--version | --help)
 
 Options:
-    -h, --help              Shows this text
-    --version               Shows version
-    --emit-ast              Emits AST to stdout
-    --emit-llvm             Emits initial LLVM IR to stdout
-    --emit-asm=<fct>        Emits assembly code to stdout
-    --emit-asm-file         Emits assembly code into file dora-<pid>.asm
-    --emit-stubs            Emits generated stubs
-    --emit-debug=<fct>      Emits debug instruction at beginning of functions
-    --emit-debug-compile    Emits debug instruction at beginning of compile thunk
-    --emit-debug-throw      Emits debug instruction at beginning of throw thunk
-    --emit-debug-entry      Emits debug instruction at beginning of entry thunk
-    --omit-bounds-check     Omit array index out of bounds checks
-    --check                 Only type check given program
-    --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax
-                            Allowed values: intel, att
-    --enable-perf           Enable dump for perf
-    --gc-events             Dump GC events
-    --gc-stress             Collect garbage at every allocation
-    --gc-stress-minor       Minor collection at every allocation
-    --gc-stats              Print GC statistics
-    --gc-verbose            Verbose GC
-    --gc-verify             Verify heap before and after collections
-    --gc=<name>             Switch GC. Possible values: zero, copy (default), swiper
+    -h, --help              Shows this text.
+    --version               Shows version.
+    --emit-ast              Emits AST to stdout.
+    --emit-llvm             Emits initial LLVM IR to stdout.
+    --emit-asm=<fct>        Emits assembly code to stdout.
+    --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
+    --emit-stubs            Emits generated stubs.
+    --emit-debug=<fct>      Emits debug instruction at beginning of functions.
+    --emit-debug-compile    Emits debug instruction at beginning of compile thunk.
+    --emit-debug-throw      Emits debug instruction at beginning of throw thunk.
+    --emit-debug-entry      Emits debug instruction at beginning of entry thunk.
+    --omit-bounds-check     Omit array index out of bounds checks.
+    --check                 Only type check given program.
+    --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax.
+                            Allowed values: intel, att.
+    --enable-perf           Enable dump for perf.
+    --gc-events             Dump GC events.
+    --gc-stress             Collect garbage at every allocation.
+    --gc-stress-minor       Minor collection at every allocation.
+    --gc-stats              Print GC statistics.
+    --gc-verbose            Verbose GC.
+    --gc-verify             Verify heap before and after collections.
+    --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
 
     --disable-tlab          Disable tlab allocation.
 
-    --heap-size=<SIZE>      Set heap size
-    --code-size=<SIZE>      Set code size limit
-    --perm-size=<SIZE>      Set perm size limit
+    --min-heap-size=<SIZE>  Set minimum heap size.
+    --max-heap-size=<SIZE>  Set maximum heap size.
+    --code-size=<SIZE>      Set code size limit.
+    --perm-size=<SIZE>      Set perm size limit.
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -75,7 +76,8 @@ pub struct Args {
     pub flag_gc_verbose: bool,
     pub flag_gc_verify: bool,
     pub flag_gc: Option<CollectorName>,
-    pub flag_heap_size: Option<MemSize>,
+    pub flag_min_heap_size: Option<MemSize>,
+    pub flag_max_heap_size: Option<MemSize>,
     pub flag_code_size: Option<MemSize>,
     pub flag_perm_size: Option<MemSize>,
     pub flag_check: bool,
@@ -85,8 +87,12 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn heap_size(&self) -> usize {
-        self.flag_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024)
+    pub fn min_heap_size(&self) -> usize {
+        self.flag_min_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024)
+    }
+
+    pub fn max_heap_size(&self) -> usize {
+        self.flag_max_heap_size.map(|s| *s).unwrap_or(128 * 1024 * 1024)
     }
 
     pub fn code_size(&self) -> usize {
@@ -128,7 +134,8 @@ impl Default for Args {
             flag_gc_verbose: false,
             flag_gc_verify: false,
             flag_gc: None,
-            flag_heap_size: None,
+            flag_min_heap_size: None,
+            flag_max_heap_size: None,
             flag_code_size: None,
             flag_perm_size: None,
             flag_check: false,
