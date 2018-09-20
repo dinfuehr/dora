@@ -1,6 +1,5 @@
 use std::cmp;
 use std::collections::HashMap;
-use std::sync::atomic::Ordering;
 
 use ctxt::SemContext;
 use gc::root::IndirectObj;
@@ -65,8 +64,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             marking_bitmap: marking_bitmap,
             fwd_table: ForwardTable::new(),
 
-            fwd: old.total.start,
-            fwd_end: old.total.end,
+            fwd: old.total().start,
+            fwd_end: old.total().end,
             old_top: Address::null(),
         }
     }
@@ -219,7 +218,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.free();
 
         assert!(self.old.valid_top(self.fwd));
-        self.old.free.store(self.fwd.to_usize(), Ordering::SeqCst);
+        self.old.update_free(self.fwd);
     }
 
     fn update_large_objects(&mut self) {
@@ -250,7 +249,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn reset_cards(&mut self) {
-        let start = self.old.total.start;
+        let start = self.old.total().start;
         let end = cmp::max(self.fwd, self.old_top);
         self.card_table.reset_region(start, end);
     }

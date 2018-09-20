@@ -338,7 +338,7 @@ impl<'a> Verifier<'a> {
         );
         println!(
             "OLD: {}-{}; active: {}-{}",
-            self.old.total.start, self.old.total.end, self.old_region.start, self.old_region.end
+            self.old.total().start, self.old.total().end, self.old_region.start, self.old_region.end
         );
         println!(
             "LRG: {}-{}",

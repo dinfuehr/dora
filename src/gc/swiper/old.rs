@@ -9,8 +9,8 @@ use mem;
 use object::offset_of_array_data;
 
 pub struct OldGen {
-    pub total: Region,
-    pub free: AtomicUsize,
+    total: Region,
+    free: AtomicUsize,
     crossing_map: CrossingMap,
     card_table: CardTable,
 }
@@ -30,12 +30,20 @@ impl OldGen {
         }
     }
 
+    pub fn total(&self) -> Region {
+        self.total.clone()
+    }
+
     pub fn used_region(&self) -> Region {
         Region::new(self.total.start, self.free())
     }
 
     pub fn free(&self) -> Address {
         self.free.load(Ordering::Relaxed).into()
+    }
+
+    pub fn update_free(&self, free: Address) {
+        self.free.store(free.to_usize(), Ordering::SeqCst);
     }
 
     pub fn alloc(&self, size: usize, array_ref: bool) -> Address {
