@@ -1,6 +1,6 @@
 #!/bin/bash
 RUNS=3
-ARG=20
+ARG=21
 set -e
 
 echo "java" 1>&2

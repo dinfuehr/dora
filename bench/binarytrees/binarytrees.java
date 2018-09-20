@@ -1,8 +1,9 @@
 /* The Computer Language Benchmarks Game
- * http://benchmarksgame.alioth.debian.org/
+ * https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
  *
  * contributed by Jarkko Miettinen
  * modified by Daryl Griffith
+ * *reset*
 */
 
 public class binarytrees {
@@ -22,13 +23,13 @@ public class binarytrees {
             int stretchDepth = maxDepth + 1;
 
             System.out.println("stretch tree of depth " + stretchDepth +
-		            "\t check: " + checkTree(createTree(0, stretchDepth)));
+		            "\t check: " + checkTree(createTree(stretchDepth)));
         }
         trees(maxDepth);
     }
 
     public static void trees(int maxDepth) {
-        TreeNode longLastingNode = createTree(0, maxDepth);
+        TreeNode longLastingNode = createTree(maxDepth);
         int depth = 4;
 
         do {
@@ -47,32 +48,29 @@ public class binarytrees {
         int item = 0;
 
         do {
-            check += checkTree(createTree(item, depth)) +
-		 checkTree(createTree(-item, depth));
+            check += checkTree(createTree(depth));
             item++;
         } while (item < iterations);
-        System.out.println((iterations << 1) + "\t trees of depth " +
+        System.out.println(iterations + "\t trees of depth " +
 		depth + "\t check: " + check);
     }
 
-    public static TreeNode createTree(int item, int depth) {
+    public static TreeNode createTree(int depth) {
         TreeNode node = new TreeNode();
 
-        node.item = item;
         if (depth > 0) {
-            item = item + item;
             depth--;
-            node.left = createTree(item - 1, depth);
-            node.right = createTree(item, depth);
+            node.left = createTree(depth);
+            node.right = createTree(depth);
         }
         return node;
     }
 
     public static int checkTree(TreeNode node) {
         if (node.left == null) {
-            return node.item;
+            return 1;
         }
-        return checkTree(node.left) - checkTree(node.right) + node.item;
+        return checkTree(node.left) + checkTree(node.right) + 1;
     }
 
     public static class TreeNode {
