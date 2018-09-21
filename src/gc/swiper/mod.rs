@@ -65,6 +65,10 @@ impl Swiper {
         let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
 
+        // determine size for generations
+        let young_size = max_heap_size;
+        let old_size = max_heap_size;
+
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
 
@@ -104,13 +108,9 @@ impl Swiper {
         let young_start = heap_start;
         let young_end = young_start.offset(max_heap_size);
 
-        arena::commit(young_start, max_heap_size, false);
-
         // determine boundaries of old generation
         let old_start = young_end;
         let old_end = old_start.offset(max_heap_size);
-
-        arena::commit(old_start, max_heap_size, false);
 
         // determine large object space
         let large_start = old_end;
@@ -124,16 +124,16 @@ impl Swiper {
             max_heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
-        let young = YoungGen::new(young_start, young_end, args.flag_gc_verify);
-        let old = OldGen::new(old_start, old_end, crossing_map.clone(), card_table.clone());
+        let young = YoungGen::new(young_start, young_end, young_size, args.flag_gc_verify);
+        let old = OldGen::new(old_start, old_end, old_size, crossing_map.clone(), card_table.clone());
         let large = LargeSpace::new(large_start, large_end);
 
         if args.flag_gc_verbose {
             println!(
                 "GC: heap info: {}, old {}, young {}, card {}, crossing {}",
                 formatted_size(max_heap_size),
-                formatted_size(max_heap_size),
-                formatted_size(max_heap_size),
+                formatted_size(old_size),
+                formatted_size(young_size),
                 formatted_size(card_size),
                 formatted_size(crossing_size)
             );

@@ -1,16 +1,20 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use gc::arena;
 use gc::swiper::Region;
 use gc::Address;
 use os::{self, ProtType};
 
 pub struct YoungGen {
     // bounds of from- & to-space
-    pub total: Region,
+    total: Region,
 
-    // size of both from- or to-space.
+    // maximum semi-space size
     // Not combined, use total.size() for that.
-    size: usize,
+    max_semi_size: usize,
+
+    // comitted semi-space size
+    committed_semi_size: usize,
 
     // address that separates from & to-space
     separator: Address,
@@ -31,19 +35,34 @@ pub struct YoungGen {
 }
 
 impl YoungGen {
-    pub fn new(young_start: Address, young_end: Address, protect: bool) -> YoungGen {
+    pub fn new(
+        young_start: Address,
+        young_end: Address,
+        young_size: usize,
+        protect: bool,
+    ) -> YoungGen {
         let half_size = young_end.offset_from(young_start) / 2;
         let half_address = young_start.offset(half_size);
 
-        YoungGen {
+        let young = YoungGen {
             total: Region::new(young_start, young_end),
-            size: half_size,
+            max_semi_size: half_size,
+            committed_semi_size: young_size / 2,
             separator: half_address,
             age_marker: AtomicUsize::new(young_start.to_usize()),
             free: AtomicUsize::new(young_start.to_usize()),
             end: AtomicUsize::new(half_address.to_usize()),
             protect: protect,
-        }
+        };
+
+        young.commit();
+
+        young
+    }
+
+    fn commit(&self) {
+        arena::commit(self.total.start, self.committed_semi_size, false);
+        arena::commit(self.separator, self.committed_semi_size, false);
     }
 
     pub fn used_region(&self) -> Region {
@@ -63,18 +82,22 @@ impl YoungGen {
 
     pub fn from_space(&self) -> Region {
         if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
-            Region::new(self.total.start, self.separator)
+            self.total.start.region_start(self.committed_semi_size)
         } else {
-            Region::new(self.separator, self.total.end)
+            self.separator.region_start(self.committed_semi_size)
         }
     }
 
     pub fn to_space(&self) -> Region {
         if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
-            Region::new(self.separator, self.total.end)
+            self.separator.region_start(self.committed_semi_size)
         } else {
-            Region::new(self.total.start, self.separator)
+            self.total.start.region_start(self.committed_semi_size)
         }
+    }
+
+    pub fn total(&self) -> Region {
+        self.total.clone()
     }
 
     pub fn contains(&self, addr: Address) -> bool {
@@ -115,16 +138,17 @@ impl YoungGen {
         old.into()
     }
 
+    // Switch from- & to-semi-space.
     pub fn swap_spaces(&self, free: Address) {
         let to_space = self.to_space();
         assert!(to_space.valid_top(free));
-        self.end
-            .store(to_space.end.to_usize(), Ordering::Relaxed);
+        self.end.store(to_space.end.to_usize(), Ordering::Relaxed);
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);
     }
 
+    // Free all objects in from-semi-space.
     pub fn free(&self) {
         let from_space = self.from_space();
         let start = from_space.start.to_usize();
@@ -133,6 +157,7 @@ impl YoungGen {
         self.free.store(start, Ordering::Relaxed);
     }
 
+    // Make to-semi-space writable.
     pub fn unprotect_to_space(&self) {
         // make memory writable again, so that we
         // can copy objects to the to-space.
@@ -149,6 +174,7 @@ impl YoungGen {
         }
     }
 
+    // Make to-semi-space inaccessible.
     pub fn protect_to_space(&self) {
         // Make from-space unaccessible both from read/write.
         // Since this has some overhead, do it only in debug builds.

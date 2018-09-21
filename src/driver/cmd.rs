@@ -88,11 +88,15 @@ pub struct Args {
 
 impl Args {
     pub fn min_heap_size(&self) -> usize {
-        self.flag_min_heap_size.map(|s| *s).unwrap_or(32 * 1024 * 1024)
+        self.flag_min_heap_size
+            .map(|s| *s)
+            .unwrap_or(32 * 1024 * 1024)
     }
 
     pub fn max_heap_size(&self) -> usize {
-        self.flag_max_heap_size.map(|s| *s).unwrap_or(128 * 1024 * 1024)
+        self.flag_max_heap_size
+            .map(|s| *s)
+            .unwrap_or(128 * 1024 * 1024)
     }
 
     pub fn code_size(&self) -> usize {

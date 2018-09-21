@@ -265,7 +265,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 let card_idx = self.card_table.card_idx(last);
                 self.card_table.set(card_idx, CardEntry::Dirty);
             }
-
         } else {
             let mut ref_to_young_gen = false;
 

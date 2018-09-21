@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use gc::arena;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::Region;
@@ -11,6 +12,8 @@ use object::offset_of_array_data;
 pub struct OldGen {
     total: Region,
     free: AtomicUsize,
+    committed_size: usize,
+    committed_end: Address,
     crossing_map: CrossingMap,
     card_table: CardTable,
 }
@@ -19,15 +22,26 @@ impl OldGen {
     pub fn new(
         start: Address,
         end: Address,
+        old_size: usize,
         crossing_map: CrossingMap,
         card_table: CardTable,
     ) -> OldGen {
-        OldGen {
+        let old = OldGen {
             total: Region::new(start, end),
             free: AtomicUsize::new(start.to_usize()),
+            committed_size: old_size,
+            committed_end: start.offset(old_size),
             crossing_map: crossing_map,
             card_table: card_table,
-        }
+        };
+
+        old.commit();
+
+        old
+    }
+
+    fn commit(&self) {
+        arena::commit(self.total.start, self.committed_size, false);
     }
 
     pub fn total(&self) -> Region {
@@ -53,7 +67,7 @@ impl OldGen {
         loop {
             new = old + size;
 
-            if new >= self.total.end.to_usize() {
+            if new >= self.committed_end.to_usize() {
                 return Address::null();
             }
 

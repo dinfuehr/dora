@@ -328,17 +328,21 @@ impl<'a> Verifier<'a> {
             self.perm_space.total().start,
             self.perm_space.total().end,
             perm_region.start,
-            perm_region.end);
+            perm_region.end
+        );
         println!(
             "YNG: {}-{}; active: {}-{}",
-            self.young.total.start,
-            self.young.total.end,
+            self.young.total().start,
+            self.young.total().end,
             self.young_region.start,
             self.young_region.end
         );
         println!(
             "OLD: {}-{}; active: {}-{}",
-            self.old.total().start, self.old.total().end, self.old_region.start, self.old_region.end
+            self.old.total().start,
+            self.old.total().end,
+            self.old_region.start,
+            self.old_region.end
         );
         println!(
             "LRG: {}-{}",
@@ -347,9 +351,8 @@ impl<'a> Verifier<'a> {
         );
         println!(
             "TTL: {}-{}",
-            self.reserved_area.start,
-            self.reserved_area.end
-            );
+            self.reserved_area.start, self.reserved_area.end
+        );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",
             addr, name, ref_addr, obj_addr
