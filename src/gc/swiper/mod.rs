@@ -66,8 +66,8 @@ impl Swiper {
         let max_heap_size = args.max_heap_size();
 
         // determine size for generations
-        let young_size = max_heap_size;
-        let old_size = max_heap_size;
+        let young_size = max_heap_size / YOUNG_RATIO;
+        let old_size = max_heap_size - young_size;
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);

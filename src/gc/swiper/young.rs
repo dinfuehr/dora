@@ -22,8 +22,9 @@ pub struct YoungGen {
     // address of next free memory
     free: AtomicUsize,
 
-    // end of free memory (either separator or total.end)
-    end: AtomicUsize,
+    // start and end of free memory in from-space
+    committed_start: AtomicUsize,
+    committed_end: AtomicUsize,
 
     // separates survived from newly allocated objects
     // needed to decide whether to promote object into old space
@@ -44,14 +45,17 @@ impl YoungGen {
         let half_size = young_end.offset_from(young_start) / 2;
         let half_address = young_start.offset(half_size);
 
+        let committed_semi_size = young_size / 2;
+
         let young = YoungGen {
             total: Region::new(young_start, young_end),
             max_semi_size: half_size,
-            committed_semi_size: young_size / 2,
+            committed_semi_size: committed_semi_size,
             separator: half_address,
             age_marker: AtomicUsize::new(young_start.to_usize()),
             free: AtomicUsize::new(young_start.to_usize()),
-            end: AtomicUsize::new(half_address.to_usize()),
+            committed_start: AtomicUsize::new(young_start.to_usize()),
+            committed_end: AtomicUsize::new(young_start.offset(committed_semi_size).to_usize()),
             protect: protect,
         };
 
@@ -73,23 +77,15 @@ impl YoungGen {
     }
 
     fn start_address(&self) -> Address {
-        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
-            self.total.start
-        } else {
-            self.separator
-        }
+        self.committed_start.load(Ordering::Relaxed).into()
     }
 
     pub fn from_space(&self) -> Region {
-        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
-            self.total.start.region_start(self.committed_semi_size)
-        } else {
-            self.separator.region_start(self.committed_semi_size)
-        }
+        self.start_address().region_start(self.committed_semi_size)
     }
 
     pub fn to_space(&self) -> Region {
-        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
+        if self.committed_start.load(Ordering::Relaxed) == self.total.start.to_usize() {
             self.separator.region_start(self.committed_semi_size)
         } else {
             self.total.start.region_start(self.committed_semi_size)
@@ -121,7 +117,7 @@ impl YoungGen {
         loop {
             new = old + size;
 
-            if new > self.end.load(Ordering::Relaxed) {
+            if new > self.committed_end.load(Ordering::Relaxed) {
                 return Address::null();
             }
 
@@ -142,7 +138,8 @@ impl YoungGen {
     pub fn swap_spaces(&self, free: Address) {
         let to_space = self.to_space();
         assert!(to_space.valid_top(free));
-        self.end.store(to_space.end.to_usize(), Ordering::Relaxed);
+        self.committed_start.store(to_space.start.to_usize(), Ordering::Relaxed);
+        self.committed_end.store(to_space.end.to_usize(), Ordering::Relaxed);
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);
