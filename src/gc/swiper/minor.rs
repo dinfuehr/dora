@@ -15,7 +15,7 @@ use gc::Address;
 
 use mem;
 use object::Obj;
-use timer::{in_ms, Timer};
+use timer::Timer;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
@@ -90,7 +90,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.young.swap_spaces(self.young_free);
         self.young.protect_to_space();
 
-        timer.stop_with(|dur| {
+        timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let young_new_size = self.young.used_region().size();
             let garbage = young_init_size - young_new_size - self.promoted_size;
@@ -101,10 +101,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             };
 
             println!(
-                "GC: Minor GC ({:.2} ms, {}->{}, young {}->{}, \
+                "GC: Minor GC ({:.1} ms, {}->{}, young {}->{}, \
                  {} promoted, {}/{:.0}% garbage); \
                  root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms",
-                in_ms(dur),
+                time_pause,
                 formatted_size(init_size),
                 formatted_size(new_size),
                 formatted_size(young_init_size),

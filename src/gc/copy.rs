@@ -8,7 +8,7 @@ use gc::{Address, Collector};
 use mem;
 use object::Obj;
 use os::{self, ProtType};
-use timer::{in_ms, Timer};
+use timer::Timer;
 
 pub struct CopyCollector {
     total: Region,
@@ -146,9 +146,9 @@ impl CopyCollector {
         self.top.store(top.to_usize(), Ordering::Relaxed);
         self.end.store(to_space.end.to_usize(), Ordering::Relaxed);
 
-        timer.stop_with(|dur| {
+        timer.stop_with(|time_pause| {
             if ctxt.args.flag_gc_events {
-                println!("Copy GC: collect garbage ({} ms)", in_ms(dur));
+                println!("Copy GC: collect garbage ({:.1} ms)", time_pause);
             }
         });
     }

@@ -14,7 +14,7 @@ use gc::Address;
 use mem;
 use object::Obj;
 use os;
-use timer::{in_ms, Timer};
+use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
@@ -95,7 +95,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
-        timer.stop_with(|dur| {
+        timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let garbage = init_size - new_size;
             let garbage_ratio = if init_size == 0 {
@@ -105,9 +105,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             };
 
             println!(
-                "GC: Full GC ({:.2} ms, {}->{} size, {}/{:.0}% garbage); \
+                "GC: Full GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage); \
                  mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
-                in_ms(dur),
+                time_pause,
                 formatted_size(init_size),
                 formatted_size(new_size),
                 formatted_size(garbage),
