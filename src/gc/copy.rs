@@ -156,7 +156,7 @@ impl CopyCollector {
     fn copy(&self, obj: *mut Obj, top: &mut Address) -> *mut Obj {
         let obj = unsafe { &mut *obj };
 
-        if let Some(fwd) = obj.header().forwarded() {
+        if let Some(fwd) = obj.header().vtbl_forwarded() {
             return fwd.to_mut_ptr();
         }
 
@@ -166,7 +166,7 @@ impl CopyCollector {
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header_mut().forward_to(addr);
+        obj.header_mut().vtbl_forward_to(addr);
 
         addr.to_mut_ptr()
     }

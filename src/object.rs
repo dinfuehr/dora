@@ -38,12 +38,12 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn forward_to(&mut self, address: Address) {
+    pub fn vtbl_forward_to(&mut self, address: Address) {
         self.vtable = (address.to_usize() | 1) as *mut VTable;
     }
 
     #[inline(always)]
-    pub fn forwarded(&self) -> Option<Address> {
+    pub fn vtbl_forwarded(&self) -> Option<Address> {
         let addr = self.vtable as usize;
 
         if (addr & 1) == 1 {

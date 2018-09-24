@@ -420,7 +420,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let obj_addr = Address::from_ptr(obj);
         let obj = unsafe { &mut *obj };
 
-        if let Some(fwd) = obj.header().forwarded() {
+        if let Some(fwd) = obj.header().vtbl_forwarded() {
             return fwd.to_mut_ptr();
         }
 
@@ -444,7 +444,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         assert!(self.young_free <= self.young.to_space().end);
 
         obj.copy_to(copy_addr, obj_size);
-        obj.header_mut().forward_to(copy_addr);
+        obj.header_mut().vtbl_forward_to(copy_addr);
 
         copy_addr.to_mut_ptr()
     }
@@ -462,7 +462,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         obj.copy_to(copy_addr, obj_size);
         self.promoted_size += obj_size;
 
-        obj.header_mut().forward_to(copy_addr);
+        obj.header_mut().vtbl_forward_to(copy_addr);
 
         copy_addr
     }

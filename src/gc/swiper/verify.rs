@@ -273,7 +273,11 @@ impl<'a> Verifier<'a> {
 
             if new_card_idx.to_usize() >= loop_start {
                 let crossing = self.crossing_map.get(new_card_idx);
-                let expected = CrossingEntry::LeadingRefs(offset_words);
+                let expected = if offset_words > 0 {
+                    CrossingEntry::LeadingRefs(offset_words)
+                } else {
+                    CrossingEntry::FirstObject(0)
+                };
                 assert!(crossing == expected, "array crossing at end not correct.");
             }
         } else {

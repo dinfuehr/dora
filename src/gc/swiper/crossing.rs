@@ -47,7 +47,7 @@ impl CrossingMap {
     }
 
     pub fn set_array_start(&self, card: CardIdx, words: usize) {
-        assert!(words == 1);
+        assert!(words == 1 || words == 2);
         self.set(card, (128 + words) as u8);
     }
 
@@ -75,8 +75,8 @@ impl CrossingMap {
         } else if val <= 128 {
             CrossingEntry::LeadingRefs(val - 64)
         } else {
-            assert!(val == 129);
-            CrossingEntry::ArrayStart(1)
+            assert!(val == 129 || val == 130);
+            CrossingEntry::ArrayStart(val - 128)
         }
     }
 

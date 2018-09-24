@@ -123,8 +123,13 @@ impl OldGen {
             // new_card starts with x references, then next object
             if new_card_idx.to_usize() >= loop_card_start {
                 let refs_dist = new.offset_from(new_card_start) / mem::ptr_width_usize();
-                self.crossing_map
-                    .set_references_at_start(new_card_idx, refs_dist);
+
+                if refs_dist > 0 {
+                    self.crossing_map
+                        .set_references_at_start(new_card_idx, refs_dist);
+                } else {
+                    self.crossing_map.set_first_object(new_card_idx, 0);
+                }
             }
         } else {
             let new_card_idx = self.card_table.card_idx(new.into());

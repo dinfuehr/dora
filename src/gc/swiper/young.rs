@@ -138,8 +138,10 @@ impl YoungGen {
     pub fn swap_spaces(&self, free: Address) {
         let to_space = self.to_space();
         assert!(to_space.valid_top(free));
-        self.committed_start.store(to_space.start.to_usize(), Ordering::Relaxed);
-        self.committed_end.store(to_space.end.to_usize(), Ordering::Relaxed);
+        self.committed_start
+            .store(to_space.start.to_usize(), Ordering::Relaxed);
+        self.committed_end
+            .store(to_space.end.to_usize(), Ordering::Relaxed);
 
         self.age_marker.store(free.to_usize(), Ordering::Relaxed);
         self.free.store(free.to_usize(), Ordering::Relaxed);

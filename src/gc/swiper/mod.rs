@@ -126,7 +126,13 @@ impl Swiper {
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
         let young = YoungGen::new(young_start, young_end, young_size, args.flag_gc_verify);
-        let old = OldGen::new(old_start, old_end, old_size, crossing_map.clone(), card_table.clone());
+        let old = OldGen::new(
+            old_start,
+            old_end,
+            old_size,
+            crossing_map.clone(),
+            card_table.clone(),
+        );
         let large = LargeSpace::new(large_start, large_end);
 
         if args.flag_gc_verbose {
@@ -347,7 +353,6 @@ impl Swiper {
             unsafe {
                 *start.to_mut_ptr::<usize>() = 0;
             }
-
         } else if end.offset_from(start) == Header::size() as usize {
             // fill with object
             let cls_id = ctxt.vips.obj(ctxt);
@@ -357,17 +362,21 @@ impl Swiper {
             unsafe {
                 *start.to_mut_ptr::<usize>() = vtable as usize;
             }
-
         } else {
             // fill with int array
             let cls_id = ctxt.vips.int_array(ctxt);
             let cls = ctxt.class_defs[cls_id].borrow();
             let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-            let length: usize = end.offset_from(start.add_ptr(2)) / 4;
+
+            // determine of header+length in bytes
+            let header_size = Header::size() as usize + mem::ptr_width_usize();
+
+            // calculate int array length
+            let length: usize = end.offset_from(start.offset(header_size)) / 4;
 
             unsafe {
                 *start.to_mut_ptr::<usize>() = vtable as usize;
-                *start.add_ptr(1).to_mut_ptr::<usize>() = length;
+                *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
             }
         }
 
