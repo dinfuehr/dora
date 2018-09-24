@@ -19,6 +19,10 @@ use vtable::VTable;
 pub struct Header {
     // ptr to class
     vtable: *mut VTable,
+
+    // forwarding ptr
+    // (used during mark-compact)
+    fwdptr: Address,
 }
 
 impl Header {
@@ -52,6 +56,16 @@ impl Header {
             None
         }
     }
+
+    #[inline(always)]
+    pub fn fwdptr(&self) -> Address {
+        self.fwdptr
+    }
+
+    #[inline(always)]
+    pub fn set_fwdptr(&mut self, addr: Address) {
+        self.fwdptr = addr;
+    }
 }
 
 // is used to reference any object
@@ -75,6 +89,12 @@ impl Obj {
     #[inline(always)]
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
+    }
+
+    #[inline(always)]
+    pub fn fwdptr(addr: Address) -> Address {
+        let obj = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+        obj.header().fwdptr()
     }
 
     pub fn is_array_ref(&self) -> bool {

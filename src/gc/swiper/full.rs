@@ -1,5 +1,4 @@
 use std::cmp;
-use std::collections::HashMap;
 
 use ctxt::SemContext;
 use gc::root::IndirectObj;
@@ -29,7 +28,6 @@ pub struct FullCollector<'a, 'ast: 'a> {
     perm_space: &'a Space,
 
     marking_bitmap: MarkingBitmap,
-    fwd_table: ForwardTable,
 
     fwd: Address,
     fwd_end: Address,
@@ -62,7 +60,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             perm_space: perm_space,
 
             marking_bitmap: marking_bitmap,
-            fwd_table: ForwardTable::new(),
 
             fwd: old.total().start,
             fwd_end: old.total().end,
@@ -164,15 +161,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
-
-        self.fwd_table.reserve_capacity(live_objects);
     }
 
     fn compute_forward(&mut self) {
-        self.walk_old_and_young(|full, object, address, object_size| {
+        self.walk_old_and_young(|full, object, _address, object_size| {
             if full.is_marked(object) {
                 let fwd = full.allocate(object_size);
-                full.fwd_table.forward_to(address, fwd);
+                object.header_mut().set_fwdptr(fwd);
             }
         });
     }
@@ -193,7 +188,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 && !self.perm_space.contains(root_ptr)
                 && !self.large_space.contains(root_ptr)
             {
-                let fwd_addr = self.fwd_table.forward_address(root_ptr);
+                let fwd_addr = Obj::fwdptr(root_ptr);
                 root.set(fwd_addr.to_mut_ptr());
             }
         }
@@ -202,9 +197,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn relocate(&mut self) {
         self.crossing_map.set_first_object(0.into(), 0);
 
-        self.walk_old_and_young(|full, object, address, object_size| {
+        self.walk_old_and_young(|full, object, _address, object_size| {
             if full.is_marked(object) {
-                let dest = full.fwd_table.forward_address(address);
+                let dest = object.header().fwdptr();
                 object.copy_to(dest, object_size);
 
                 let next_dest = dest.offset(object_size);
@@ -262,7 +257,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             && !self.perm_space.contains(object_addr)
             && !self.large_space.contains(object_addr)
         {
-            let fwd_addr = self.fwd_table.forward_address(object_addr);
+            let fwd_addr = Obj::fwdptr(object_addr);
             indirect_obj.set(fwd_addr.to_mut_ptr());
         }
     }
@@ -388,29 +383,5 @@ impl MarkingBitmap {
 impl Drop for MarkingBitmap {
     fn drop(&mut self) {
         os::munmap(self.bitmap.start.to_ptr(), self.bitmap.size());
-    }
-}
-
-struct ForwardTable {
-    data: HashMap<Address, Address>,
-}
-
-impl ForwardTable {
-    fn new() -> ForwardTable {
-        ForwardTable {
-            data: HashMap::new(),
-        }
-    }
-
-    fn reserve_capacity(&mut self, count: usize) {
-        self.data.reserve(count);
-    }
-
-    fn forward_to(&mut self, addr: Address, fwd: Address) {
-        self.data.insert(addr, fwd);
-    }
-
-    fn forward_address(&mut self, addr: Address) -> Address {
-        *self.data.get(&addr).expect("no forward address found.")
     }
 }
