@@ -16,6 +16,7 @@ use gc::Address;
 use gc::Collector;
 use gc::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use mem;
+use object::Header;
 use vtable::VTable;
 
 pub mod card;
@@ -343,6 +344,11 @@ impl Swiper {
             // nothing to do
 
         } else if end.offset_from(start) == mem::ptr_width_usize() {
+            unsafe {
+                *start.to_mut_ptr::<usize>() = 0;
+            }
+
+        } else if end.offset_from(start) == Header::size() as usize {
             // fill with object
             let cls_id = ctxt.vips.obj(ctxt);
             let cls = ctxt.class_defs[cls_id].borrow();
@@ -351,6 +357,7 @@ impl Swiper {
             unsafe {
                 *start.to_mut_ptr::<usize>() = vtable as usize;
             }
+
         } else {
             // fill with int array
             let cls_id = ctxt.vips.int_array(ctxt);

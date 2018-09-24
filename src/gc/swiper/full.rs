@@ -286,6 +286,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         while scan < end {
             let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+
+            if object.header().vtblptr().is_null() {
+                scan = scan.add_ptr(1);
+                continue;
+            }
+
             let object_size = object.size();
 
             fct(self, object, scan, object_size);

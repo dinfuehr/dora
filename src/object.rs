@@ -22,22 +22,27 @@ pub struct Header {
 }
 
 impl Header {
+    #[inline(always)]
     pub fn size() -> i32 {
         std::mem::size_of::<Header>() as i32
     }
 
+    #[inline(always)]
     pub fn vtblptr(&self) -> *mut VTable {
         self.vtable
     }
 
+    #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtable }
     }
 
+    #[inline(always)]
     pub fn forward_to(&mut self, address: Address) {
         self.vtable = (address.to_usize() | 1) as *mut VTable;
     }
 
+    #[inline(always)]
     pub fn forwarded(&self) -> Option<Address> {
         let addr = self.vtable as usize;
 
@@ -57,14 +62,17 @@ pub struct Obj {
 }
 
 impl Obj {
+    #[inline(always)]
     pub fn header(&self) -> &Header {
         &self.header
     }
 
+    #[inline(always)]
     pub fn header_mut(&mut self) -> &mut Header {
         &mut self.header
     }
 
+    #[inline(always)]
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
     }

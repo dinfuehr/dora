@@ -136,6 +136,11 @@ impl<'a> Verifier<'a> {
         while curr < region.end {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
+            if object.header().vtblptr().is_null() {
+                curr = curr.add_ptr(1);
+                continue;
+            }
+
             let next = if object.is_array_ref() {
                 self.verify_array_ref(object, curr, name)
             } else {
