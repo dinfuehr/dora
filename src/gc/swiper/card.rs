@@ -1,9 +1,8 @@
 use std::ptr;
 
 use gc::swiper::CardIdx;
-use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::Address;
+use gc::{Address, Region};
 
 use mem;
 

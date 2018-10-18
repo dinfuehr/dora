@@ -8,9 +8,8 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::Region;
 use gc::swiper::CARD_SIZE;
-use gc::Address;
+use gc::{Address, Region};
 
 use mem;
 use object::{offset_of_array_data, Obj};

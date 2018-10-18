@@ -1,8 +1,8 @@
-use std::fmt;
-
 use ctxt::SemContext;
 use driver::cmd::Args;
+use gc::{Address, formatted_size, Region};
 use gc::arena;
+use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -12,13 +12,8 @@ use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
-use gc::Address;
-use gc::Collector;
-use gc::{TLAB_OBJECT_SIZE, TLAB_SIZE};
+use gc::tlab::{self, TLAB_OBJECT_SIZE};
 use mem;
-use object::Header;
-use vtable::VTable;
-
 pub mod card;
 mod crossing;
 mod full;
@@ -166,7 +161,7 @@ impl Swiper {
 
     fn minor_collect_inner(&self, ctxt: &SemContext) -> bool {
         // make heap iterable
-        self.fill_current_tlab(ctxt);
+        tlab::make_iterable(ctxt);
 
         let rootset = get_rootset(ctxt);
 
@@ -191,7 +186,7 @@ impl Swiper {
 
     fn full_collect(&self, ctxt: &SemContext) {
         // make heap iterable
-        self.fill_current_tlab(ctxt);
+        tlab::make_iterable(ctxt);
 
         let rootset = get_rootset(ctxt);
 
@@ -267,7 +262,7 @@ impl Collector for Swiper {
     }
 
     fn minor_collect(&self, ctxt: &SemContext) {
-        self.fill_current_tlab(ctxt);
+        tlab::make_iterable(ctxt);
         self.minor_collect_inner(ctxt);
     }
 
@@ -282,106 +277,64 @@ impl Collector for Swiper {
 
 impl Swiper {
     fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        let tlab = ctxt.tld.borrow().tlab_region();
-
         // try to allocate in current tlab
-        if size <= tlab.size() {
-            ctxt.tld
-                .borrow_mut()
-                .tlab_initialize(tlab.start.offset(size), tlab.end);
-            return tlab.start;
+        if let Some(addr) = tlab::allocate(ctxt, size) {
+            return addr;
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
-        self.fill_tlab(ctxt, tlab.start, tlab.end);
+        tlab::make_iterable(ctxt);
 
         // allocate new tlab
-        let tlab_start = self.alloc_tlab_area(ctxt, size);
-
-        if tlab_start.is_null() {
-            // allocate object in old generation instead
-            self.old.alloc(size, array_ref)
-        } else {
-            let object_start = tlab_start;
-            let tlab_start = tlab_start.offset(size);
-            let tlab_end = tlab_start.offset(TLAB_SIZE);
+        if let Some(tlab) = self.alloc_tlab_area(ctxt, tlab::calculate_size(size)) {
+            let object_start = tlab.start;
+            let tlab = Region::new(tlab.start.offset(size), tlab.end);
 
             // initialize TLAB to new boundaries
-            ctxt.tld.borrow_mut().tlab_initialize(tlab_start, tlab_end);
+            tlab::initialize(ctxt, tlab);
 
             // object is allocated before TLAB
             object_start
+        } else {
+            // allocate object in old generation instead
+            self.old.alloc(size, array_ref)
         }
     }
 
-    fn alloc_tlab_area(&self, ctxt: &SemContext, extend: usize) -> Address {
-        assert!(extend < TLAB_OBJECT_SIZE);
-        let size = TLAB_SIZE + extend;
+    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
-            return ptr;
+            return Some(ptr.region_start(size));
         }
 
         let promotion_failed = self.minor_collect_inner(ctxt);
 
         if promotion_failed {
             self.full_collect(ctxt);
-            return self.young.alloc(size);
+            let ptr = self.young.alloc(size);
+
+            return if ptr.is_null() {
+                None
+            } else {
+                Some(ptr.region_start(size))
+            };
         }
 
         let ptr = self.young.alloc(size);
 
         if !ptr.is_null() {
-            return ptr;
+            return Some(ptr.region_start(size));
         }
 
         self.full_collect(ctxt);
-        self.young.alloc(size)
-    }
+        let ptr = self.young.alloc(size);
 
-    fn fill_current_tlab(&self, ctxt: &SemContext) {
-        let tlab = ctxt.tld.borrow().tlab_region();
-        self.fill_tlab(ctxt, tlab.start, tlab.end);
-    }
-
-    fn fill_tlab(&self, ctxt: &SemContext, start: Address, end: Address) {
-        if start == end {
-            // nothing to do
-
-        } else if end.offset_from(start) == mem::ptr_width_usize() {
-            unsafe {
-                *start.to_mut_ptr::<usize>() = 0;
-            }
-        } else if end.offset_from(start) == Header::size() as usize {
-            // fill with object
-            let cls_id = ctxt.vips.obj(ctxt);
-            let cls = ctxt.class_defs[cls_id].borrow();
-            let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-
-            unsafe {
-                *start.to_mut_ptr::<usize>() = vtable as usize;
-            }
+        return if ptr.is_null() {
+            None
         } else {
-            // fill with int array
-            let cls_id = ctxt.vips.int_array(ctxt);
-            let cls = ctxt.class_defs[cls_id].borrow();
-            let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-
-            // determine of header+length in bytes
-            let header_size = Header::size() as usize + mem::ptr_width_usize();
-
-            // calculate int array length
-            let length: usize = end.offset_from(start.offset(header_size)) / 4;
-
-            unsafe {
-                *start.to_mut_ptr::<usize>() = vtable as usize;
-                *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
-            }
-        }
-
-        let n = Address::null();
-        ctxt.tld.borrow_mut().tlab_initialize(n, n);
+            Some(ptr.region_start(size))
+        };
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
@@ -436,74 +389,6 @@ impl From<usize> for CardIdx {
     fn from(val: usize) -> CardIdx {
         CardIdx(val)
     }
-}
-
-#[derive(Clone)]
-pub struct Region {
-    pub start: Address,
-    pub end: Address,
-}
-
-impl Region {
-    pub fn new(start: Address, end: Address) -> Region {
-        Region {
-            start: start,
-            end: end,
-        }
-    }
-
-    #[inline(always)]
-    pub fn contains(&self, addr: Address) -> bool {
-        self.start <= addr && addr < self.end
-    }
-
-    #[inline(always)]
-    pub fn valid_top(&self, addr: Address) -> bool {
-        self.start <= addr && addr <= self.end
-    }
-
-    #[inline(always)]
-    pub fn size(&self) -> usize {
-        self.end.to_usize() - self.start.to_usize()
-    }
-}
-
-impl fmt::Display for Region {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}-{}", self.start, self.end)
-    }
-}
-
-struct FormattedSize {
-    size: usize,
-}
-
-impl fmt::Display for FormattedSize {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ksize = (self.size as f64) / 1024f64;
-
-        if ksize < 1f64 {
-            return write!(f, "{}B", self.size);
-        }
-
-        let msize = ksize / 1024f64;
-
-        if msize < 1f64 {
-            return write!(f, "{:.1}K", ksize);
-        }
-
-        let gsize = msize / 1024f64;
-
-        if gsize < 1f64 {
-            write!(f, "{:.1}M", msize)
-        } else {
-            write!(f, "{:.1}G", gsize)
-        }
-    }
-}
-
-fn formatted_size(size: usize) -> FormattedSize {
-    FormattedSize { size }
 }
 
 fn on_different_cards(curr: Address, next: Address) -> bool {

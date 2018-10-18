@@ -16,7 +16,7 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use driver::cmd::AsmSyntax;
-use gc::TLAB_OBJECT_SIZE;
+use gc::tlab::TLAB_OBJECT_SIZE;
 use masm::*;
 use mem;
 use object::{Header, Str};

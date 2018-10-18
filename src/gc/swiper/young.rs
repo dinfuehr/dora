@@ -1,8 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::arena;
-use gc::swiper::Region;
-use gc::Address;
+use gc::{Address, Region};
 use os::{self, ProtType};
 
 pub struct YoungGen {

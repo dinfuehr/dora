@@ -1,8 +1,7 @@
 use std::ptr;
 
 use exception::DoraToNativeInfo;
-use gc::swiper::Region;
-use gc::Address;
+use gc::{Address, Region};
 
 pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,

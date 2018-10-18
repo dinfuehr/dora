@@ -2,9 +2,8 @@ use std::mem::size_of;
 use std::sync::Mutex;
 
 use gc::arena;
-use gc::swiper::Region;
 use gc::swiper::LARGE_OBJECT_SIZE;
-use gc::Address;
+use gc::{Address, Region};
 use mem;
 
 pub struct LargeSpace {

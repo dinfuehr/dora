@@ -5,13 +5,12 @@ use ctxt::SemContext;
 use gc::root::IndirectObj;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use gc::swiper::formatted_size;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::{CardIdx, Region, CARD_SIZE};
-use gc::Address;
+use gc::swiper::{CardIdx, CARD_SIZE};
+use gc::{Address, formatted_size, Region};
 
 use mem;
 use object::Obj;

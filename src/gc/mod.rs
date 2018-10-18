@@ -5,7 +5,7 @@ use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
-use gc::swiper::{Region, Swiper};
+use gc::swiper::Swiper;
 use gc::zero::ZeroCollector;
 use mem;
 
@@ -15,6 +15,7 @@ pub mod copy;
 pub mod root;
 pub mod space;
 pub mod swiper;
+pub mod tlab;
 pub mod zero;
 
 const LARGE_OBJECT_SIZE: usize = 64 * 1024;
@@ -22,9 +23,6 @@ const LARGE_OBJECT_SIZE: usize = 64 * 1024;
 const CHUNK_SIZE: usize = 8 * 1024;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
-
-pub const TLAB_SIZE: usize = 16 * 1024;
-pub const TLAB_OBJECT_SIZE: usize = 4 * 1024;
 
 pub struct Gc {
     collector: Box<Collector>,
@@ -206,4 +204,72 @@ impl From<usize> for Address {
     fn from(val: usize) -> Address {
         Address(val)
     }
+}
+
+#[derive(Clone)]
+pub struct Region {
+    pub start: Address,
+    pub end: Address,
+}
+
+impl Region {
+    pub fn new(start: Address, end: Address) -> Region {
+        Region {
+            start: start,
+            end: end,
+        }
+    }
+
+    #[inline(always)]
+    pub fn contains(&self, addr: Address) -> bool {
+        self.start <= addr && addr < self.end
+    }
+
+    #[inline(always)]
+    pub fn valid_top(&self, addr: Address) -> bool {
+        self.start <= addr && addr <= self.end
+    }
+
+    #[inline(always)]
+    pub fn size(&self) -> usize {
+        self.end.to_usize() - self.start.to_usize()
+    }
+}
+
+impl fmt::Display for Region {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}-{}", self.start, self.end)
+    }
+}
+
+struct FormattedSize {
+    size: usize,
+}
+
+impl fmt::Display for FormattedSize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ksize = (self.size as f64) / 1024f64;
+
+        if ksize < 1f64 {
+            return write!(f, "{}B", self.size);
+        }
+
+        let msize = ksize / 1024f64;
+
+        if msize < 1f64 {
+            return write!(f, "{:.1}K", ksize);
+        }
+
+        let gsize = msize / 1024f64;
+
+        if gsize < 1f64 {
+            write!(f, "{:.1}M", msize)
+        } else {
+            write!(f, "{:.1}G", gsize)
+        }
+    }
+}
+
+fn formatted_size(size: usize) -> FormattedSize {
+    FormattedSize { size }
 }

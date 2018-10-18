@@ -2,8 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use gc::arena;
-use gc::swiper::Region;
-use gc::Address;
+use gc::{Address, Region};
 use mem;
 
 /// Configuration for a space.

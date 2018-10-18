@@ -3,9 +3,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use gc::arena;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
-use gc::swiper::Region;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::Address;
+use gc::{Address, Region};
 use mem;
 use object::offset_of_array_data;
 
