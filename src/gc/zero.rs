@@ -2,8 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::Address;
-use gc::{arena, Collector};
+use gc::{Address, arena, Collector, Region};
 
 pub struct ZeroCollector {
     start: Address,
@@ -51,8 +50,14 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc_tlab(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
-        self.bump_alloc(size)
+    fn alloc_tlab_area(&self, _ctxt: &SemContext, size: usize) -> Option<Region> {
+        let ptr = self.bump_alloc(size);
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(ptr.region_start(size))
+        }
     }
 
     fn alloc_normal(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {

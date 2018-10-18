@@ -52,28 +52,22 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
-        // try to allocate in current tlab
-        if let Some(addr) = tlab::allocate(ctxt, size) {
-            return addr;
+    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+        let ptr = self.bump_alloc(size);
+
+        if ptr.is_non_null() {
+            return Some(ptr.region_start(size));
         }
 
-        // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable(ctxt);
+        self.collect(ctxt);
 
-        // allocate new tlab
-        if let Some(tlab) = self.alloc_tlab_area(ctxt, tlab::calculate_size(size)) {
-            let object_start = tlab.start;
-            let tlab = Region::new(tlab.start.offset(size), tlab.end);
+        let ptr = self.bump_alloc(size);
 
-            // initialize TLAB to new boundaries
-            tlab::initialize(ctxt, tlab);
-
-            // object is allocated before TLAB
-            object_start
+        return if ptr.is_null() {
+            None
         } else {
-            self.bump_alloc(size)
-        }
+            Some(ptr.region_start(size))
+        };
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
@@ -111,24 +105,6 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
-        let ptr = self.bump_alloc(size);
-
-        if ptr.is_non_null() {
-            return Some(ptr.region_start(size));
-        }
-
-        self.collect(ctxt);
-
-        let ptr = self.bump_alloc(size);
-
-        return if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        };
-    }
-
     fn bump_alloc(&self, size: usize) -> Address {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;

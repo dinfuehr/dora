@@ -239,29 +239,40 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        // try to allocate in current tlab
-        if let Some(addr) = tlab::allocate(ctxt, size) {
-            return addr;
+    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return Some(ptr.region_start(size));
         }
 
-        // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable(ctxt);
+        let promotion_failed = self.minor_collect_inner(ctxt);
 
-        // allocate new tlab
-        if let Some(tlab) = self.alloc_tlab_area(ctxt, tlab::calculate_size(size)) {
-            let object_start = tlab.start;
-            let tlab = Region::new(tlab.start.offset(size), tlab.end);
+        if promotion_failed {
+            self.full_collect(ctxt);
+            let ptr = self.young.alloc(size);
 
-            // initialize TLAB to new boundaries
-            tlab::initialize(ctxt, tlab);
+            return if ptr.is_null() {
+                None
+            } else {
+                Some(ptr.region_start(size))
+            };
+        }
 
-            // object is allocated before TLAB
-            object_start
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return Some(ptr.region_start(size));
+        }
+
+        self.full_collect(ctxt);
+        let ptr = self.young.alloc(size);
+
+        return if ptr.is_null() {
+            None
         } else {
-            // allocate object in old generation instead
-            self.old.alloc(size, array_ref)
-        }
+            Some(ptr.region_start(size))
+        };
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
@@ -313,44 +324,6 @@ impl Collector for Swiper {
 
     fn card_table_offset(&self) -> usize {
         self.card_table_offset
-    }
-}
-
-impl Swiper {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
-        }
-
-        let promotion_failed = self.minor_collect_inner(ctxt);
-
-        if promotion_failed {
-            self.full_collect(ctxt);
-            let ptr = self.young.alloc(size);
-
-            return if ptr.is_null() {
-                None
-            } else {
-                Some(ptr.region_start(size))
-            };
-        }
-
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
-        }
-
-        self.full_collect(ctxt);
-        let ptr = self.young.alloc(size);
-
-        return if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        };
     }
 }
 

@@ -90,11 +90,36 @@ impl Gc {
         }
 
         if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
-            self.collector.alloc_tlab(ctxt, size, array_ref)
+            self.alloc_tlab(ctxt, size, array_ref)
         } else if size < LARGE_OBJECT_SIZE {
             self.collector.alloc_normal(ctxt, size, array_ref)
         } else {
             self.collector.alloc_large(ctxt, size, array_ref)
+        }
+    }
+
+    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+        // try to allocate in current tlab
+        if let Some(addr) = tlab::allocate(ctxt, size) {
+            return addr;
+        }
+
+        // if there is not enough space, make heap iterable by filling tlab with unused objects
+        tlab::make_iterable(ctxt);
+
+        // allocate new tlab
+        if let Some(tlab) = self.collector.alloc_tlab_area(ctxt, tlab::calculate_size(size)) {
+            let object_start = tlab.start;
+            let tlab = Region::new(tlab.start.offset(size), tlab.end);
+
+            // initialize TLAB to new boundaries
+            tlab::initialize(ctxt, tlab);
+
+            // object is allocated before TLAB
+            object_start
+        } else {
+            // allocate object
+            self.collector.alloc_normal(ctxt, size, array_ref)
         }
     }
 
@@ -109,7 +134,7 @@ impl Gc {
 
 trait Collector {
     // allocate object of given size
-    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region>;
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
     fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
 
