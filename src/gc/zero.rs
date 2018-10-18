@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::{Address, arena, Collector, Region};
+use gc::{arena, Address, Collector, Region};
 
 pub struct ZeroCollector {
     start: Address,

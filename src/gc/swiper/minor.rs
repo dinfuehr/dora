@@ -10,7 +10,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{Address, formatted_size, Region};
+use gc::{formatted_size, Address, Region};
 
 use mem;
 use object::Obj;

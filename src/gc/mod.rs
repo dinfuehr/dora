@@ -108,7 +108,10 @@ impl Gc {
         tlab::make_iterable(ctxt);
 
         // allocate new tlab
-        if let Some(tlab) = self.collector.alloc_tlab_area(ctxt, tlab::calculate_size(size)) {
+        if let Some(tlab) = self
+            .collector
+            .alloc_tlab_area(ctxt, tlab::calculate_size(size))
+        {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 

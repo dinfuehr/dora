@@ -1,8 +1,6 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::{Address, formatted_size, Region};
 use gc::arena;
-use gc::Collector;
 use gc::root::{get_rootset, IndirectObj};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -13,6 +11,8 @@ use gc::swiper::old::OldGen;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
+use gc::Collector;
+use gc::{formatted_size, Address, Region};
 use mem;
 pub mod card;
 mod crossing;

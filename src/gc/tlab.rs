@@ -22,9 +22,10 @@ pub fn allocate(ctxt: &SemContext, size: usize) -> Option<Address> {
     let tlab = ctxt.tld.borrow().tlab_region();
 
     if size <= tlab.size() {
-        ctxt.tld.borrow_mut().tlab_initialize(tlab.start.offset(size), tlab.end);
+        ctxt.tld
+            .borrow_mut()
+            .tlab_initialize(tlab.start.offset(size), tlab.end);
         Some(tlab.start)
-
     } else {
         None
     }
