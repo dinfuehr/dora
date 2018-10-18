@@ -12,7 +12,7 @@ use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
-use gc::tlab::{self, TLAB_OBJECT_SIZE};
+use gc::tlab;
 use mem;
 pub mod card;
 mod crossing;
@@ -239,43 +239,6 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        if ctxt.args.flag_gc_stress_minor {
-            self.minor_collect(ctxt);
-        }
-
-        if ctxt.args.flag_gc_stress {
-            self.full_collect(ctxt);
-        }
-
-        if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
-            self.alloc_tlab(ctxt, size, array_ref)
-        } else if size < LARGE_OBJECT_SIZE {
-            self.alloc_normal(ctxt, size, array_ref)
-        } else {
-            self.alloc_large(ctxt, size, array_ref)
-        }
-    }
-
-    fn collect(&self, ctxt: &SemContext) {
-        self.full_collect(ctxt);
-    }
-
-    fn minor_collect(&self, ctxt: &SemContext) {
-        tlab::make_iterable(ctxt);
-        self.minor_collect_inner(ctxt);
-    }
-
-    fn needs_write_barrier(&self) -> bool {
-        return true;
-    }
-
-    fn card_table_offset(&self) -> usize {
-        self.card_table_offset
-    }
-}
-
-impl Swiper {
     fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(ctxt, size) {
@@ -299,42 +262,6 @@ impl Swiper {
             // allocate object in old generation instead
             self.old.alloc(size, array_ref)
         }
-    }
-
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
-        }
-
-        let promotion_failed = self.minor_collect_inner(ctxt);
-
-        if promotion_failed {
-            self.full_collect(ctxt);
-            let ptr = self.young.alloc(size);
-
-            return if ptr.is_null() {
-                None
-            } else {
-                Some(ptr.region_start(size))
-            };
-        }
-
-        let ptr = self.young.alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
-        }
-
-        self.full_collect(ctxt);
-        let ptr = self.young.alloc(size);
-
-        return if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        };
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
@@ -369,6 +296,61 @@ impl Swiper {
         self.full_collect(ctxt);
 
         self.large.alloc(size)
+    }
+
+    fn collect(&self, ctxt: &SemContext) {
+        self.full_collect(ctxt);
+    }
+
+    fn minor_collect(&self, ctxt: &SemContext) {
+        tlab::make_iterable(ctxt);
+        self.minor_collect_inner(ctxt);
+    }
+
+    fn needs_write_barrier(&self) -> bool {
+        return true;
+    }
+
+    fn card_table_offset(&self) -> usize {
+        self.card_table_offset
+    }
+}
+
+impl Swiper {
+    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return Some(ptr.region_start(size));
+        }
+
+        let promotion_failed = self.minor_collect_inner(ctxt);
+
+        if promotion_failed {
+            self.full_collect(ctxt);
+            let ptr = self.young.alloc(size);
+
+            return if ptr.is_null() {
+                None
+            } else {
+                Some(ptr.region_start(size))
+            };
+        }
+
+        let ptr = self.young.alloc(size);
+
+        if !ptr.is_null() {
+            return Some(ptr.region_start(size));
+        }
+
+        self.full_collect(ctxt);
+        let ptr = self.young.alloc(size);
+
+        return if ptr.is_null() {
+            None
+        } else {
+            Some(ptr.region_start(size))
+        };
     }
 }
 

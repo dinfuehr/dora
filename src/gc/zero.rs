@@ -24,10 +24,8 @@ impl ZeroCollector {
             next: AtomicUsize::new(ptr.to_usize()),
         }
     }
-}
 
-impl Collector for ZeroCollector {
-    fn alloc(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+    fn bump_alloc(&self, size: usize) -> Address {
         let mut old = self.next.load(Ordering::Relaxed);
         let mut new;
 
@@ -49,6 +47,20 @@ impl Collector for ZeroCollector {
         }
 
         old.into()
+    }
+}
+
+impl Collector for ZeroCollector {
+    fn alloc_tlab(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+        self.bump_alloc(size)
+    }
+
+    fn alloc_normal(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+        self.bump_alloc(size)
+    }
+
+    fn alloc_large(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+        self.bump_alloc(size)
     }
 
     fn collect(&self, _: &SemContext) {

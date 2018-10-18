@@ -6,6 +6,7 @@ use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
 use gc::swiper::Swiper;
+use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
 
@@ -80,7 +81,21 @@ impl Gc {
     }
 
     pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        self.collector.alloc(ctxt, size, array_ref)
+        if ctxt.args.flag_gc_stress_minor {
+            self.minor_collect(ctxt);
+        }
+
+        if ctxt.args.flag_gc_stress {
+            self.collect(ctxt);
+        }
+
+        if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
+            self.collector.alloc_tlab(ctxt, size, array_ref)
+        } else if size < LARGE_OBJECT_SIZE {
+            self.collector.alloc_normal(ctxt, size, array_ref)
+        } else {
+            self.collector.alloc_large(ctxt, size, array_ref)
+        }
     }
 
     pub fn collect(&self, ctxt: &SemContext) {
@@ -94,7 +109,9 @@ impl Gc {
 
 trait Collector {
     // allocate object of given size
-    fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
     fn collect(&self, ctxt: &SemContext);
