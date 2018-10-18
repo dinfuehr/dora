@@ -1,7 +1,6 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use ctxt::SemContext;
 use driver::cmd::Args;
+use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, IndirectObj};
 use gc::tlab;
 use gc::{formatted_size, Address, Collector, Region};
@@ -14,8 +13,7 @@ pub struct CopyCollector {
     total: Region,
     separator: Address,
 
-    top: AtomicUsize,
-    end: AtomicUsize,
+    alloc: BumpAllocator,
 }
 
 impl CopyCollector {
@@ -41,15 +39,14 @@ impl CopyCollector {
         CopyCollector {
             total: heap,
             separator: separator,
-            top: AtomicUsize::new(heap_start.to_usize()),
-            end: AtomicUsize::new(separator.to_usize()),
+            alloc: BumpAllocator::new(heap_start, separator),
         }
     }
 }
 
 impl Collector for CopyCollector {
     fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
-        let ptr = self.bump_alloc(size);
+        let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return Some(ptr.region_start(size));
@@ -57,7 +54,7 @@ impl Collector for CopyCollector {
 
         self.collect(ctxt);
 
-        let ptr = self.bump_alloc(size);
+        let ptr = self.alloc.bump_alloc(size);
 
         return if ptr.is_null() {
             None
@@ -67,14 +64,14 @@ impl Collector for CopyCollector {
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
-        let ptr = self.bump_alloc(size);
+        let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return ptr;
         }
 
         self.collect(ctxt);
-        self.bump_alloc(size)
+        self.alloc.bump_alloc(size)
     }
 
     fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
@@ -101,30 +98,6 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn bump_alloc(&self, size: usize) -> Address {
-        let mut old = self.top.load(Ordering::Relaxed);
-        let mut new;
-
-        loop {
-            new = old + size;
-
-            if new > self.end.load(Ordering::Relaxed) {
-                return Address::null();
-            }
-
-            let res = self
-                .top
-                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
-
-            match res {
-                Ok(_) => break,
-                Err(x) => old = x,
-            }
-        }
-
-        old.into()
-    }
-
     fn copy_collect(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
@@ -169,8 +142,7 @@ impl CopyCollector {
             os::mprotect(from_space.start.to_ptr(), from_space.size(), ProtType::None);
         }
 
-        self.top.store(top.to_usize(), Ordering::Relaxed);
-        self.end.store(to_space.end.to_usize(), Ordering::Relaxed);
+        self.alloc.reset(top, to_space.end);
 
         timer.stop_with(|time_pause| {
             if ctxt.args.flag_gc_events {
@@ -198,7 +170,7 @@ impl CopyCollector {
     }
 
     pub fn from_space(&self) -> Region {
-        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
+        if self.alloc.limit() == self.separator {
             Region::new(self.total.start, self.separator)
         } else {
             Region::new(self.separator, self.total.end)
@@ -206,7 +178,7 @@ impl CopyCollector {
     }
 
     pub fn to_space(&self) -> Region {
-        if self.end.load(Ordering::Relaxed) == self.separator.to_usize() {
+        if self.alloc.limit() == self.separator {
             Region::new(self.separator, self.total.end)
         } else {
             Region::new(self.total.start, self.separator)

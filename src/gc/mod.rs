@@ -11,6 +11,7 @@ use gc::zero::ZeroCollector;
 use mem;
 
 pub mod arena;
+pub mod bump;
 pub mod copy;
 pub mod root;
 pub mod space;
