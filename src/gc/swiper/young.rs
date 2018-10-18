@@ -8,15 +8,18 @@ pub struct YoungGen {
     // bounds of from- & to-space
     total: Region,
 
+    // eden limit - semi start
+    semi_start: Address,
+
+    // separator between semi spaces
+    semi_separator: Address,
+
     // maximum semi-space size
     // Not combined, use total.size() for that.
     max_semi_size: usize,
 
     // comitted semi-space size
     committed_semi_size: usize,
-
-    // address that separates from & to-space
-    separator: Address,
 
     // address of next free memory
     free: AtomicUsize,
@@ -42,19 +45,25 @@ impl YoungGen {
         protect: bool,
     ) -> YoungGen {
         let half_size = young_end.offset_from(young_start) / 2;
-        let half_address = young_start.offset(half_size);
+        let semi_start = young_start.offset(half_size);
+
+        let semi_size = young_end.offset_from(semi_start) / 2;
+        let semi_separator = semi_start.offset(semi_size);
 
         let committed_semi_size = young_size / 2;
 
         let young = YoungGen {
             total: Region::new(young_start, young_end),
-            max_semi_size: half_size,
-            committed_semi_size: committed_semi_size,
-            separator: half_address,
-            age_marker: AtomicUsize::new(young_start.to_usize()),
-            free: AtomicUsize::new(young_start.to_usize()),
-            committed_start: AtomicUsize::new(young_start.to_usize()),
-            committed_end: AtomicUsize::new(young_start.offset(committed_semi_size).to_usize()),
+            semi_start: semi_start,
+            semi_separator: semi_separator,
+
+            max_semi_size: semi_size,
+            committed_semi_size: semi_size,
+
+            age_marker: AtomicUsize::new(semi_start.to_usize()),
+            free: AtomicUsize::new(semi_start.to_usize()),
+            committed_start: AtomicUsize::new(semi_start.to_usize()),
+            committed_end: AtomicUsize::new(semi_start.offset(committed_semi_size).to_usize()),
             protect: protect,
         };
 
@@ -64,8 +73,8 @@ impl YoungGen {
     }
 
     fn commit(&self) {
-        arena::commit(self.total.start, self.committed_semi_size, false);
-        arena::commit(self.separator, self.committed_semi_size, false);
+        arena::commit(self.semi_start, self.committed_semi_size, false);
+        arena::commit(self.semi_separator, self.committed_semi_size, false);
     }
 
     pub fn used_region(&self) -> Region {
@@ -84,10 +93,10 @@ impl YoungGen {
     }
 
     pub fn to_space(&self) -> Region {
-        if self.committed_start.load(Ordering::Relaxed) == self.total.start.to_usize() {
-            self.separator.region_start(self.committed_semi_size)
+        if self.committed_start.load(Ordering::Relaxed) == self.semi_start.to_usize() {
+            self.semi_separator.region_start(self.committed_semi_size)
         } else {
-            self.total.start.region_start(self.committed_semi_size)
+            self.semi_start.region_start(self.committed_semi_size)
         }
     }
 
@@ -109,7 +118,7 @@ impl YoungGen {
         addr.to_usize() < self.age_marker.load(Ordering::Relaxed)
     }
 
-    pub fn alloc(&self, size: usize) -> Address {
+    pub fn bump_alloc(&self, size: usize) -> Address {
         let mut old = self.free.load(Ordering::Relaxed);
         let mut new;
 

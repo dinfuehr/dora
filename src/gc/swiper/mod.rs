@@ -240,7 +240,7 @@ impl Swiper {
 
 impl Collector for Swiper {
     fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
-        let ptr = self.young.alloc(size);
+        let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return Some(ptr.region_start(size));
@@ -250,7 +250,7 @@ impl Collector for Swiper {
 
         if promotion_failed {
             self.full_collect(ctxt);
-            let ptr = self.young.alloc(size);
+            let ptr = self.young.bump_alloc(size);
 
             return if ptr.is_null() {
                 None
@@ -259,14 +259,14 @@ impl Collector for Swiper {
             };
         }
 
-        let ptr = self.young.alloc(size);
+        let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return Some(ptr.region_start(size));
         }
 
         self.full_collect(ctxt);
-        let ptr = self.young.alloc(size);
+        let ptr = self.young.bump_alloc(size);
 
         return if ptr.is_null() {
             None
@@ -276,7 +276,7 @@ impl Collector for Swiper {
     }
 
     fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        let ptr = self.young.alloc(size);
+        let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return ptr;
@@ -288,7 +288,7 @@ impl Collector for Swiper {
             self.full_collect(ctxt);
         }
 
-        let ptr = self.young.alloc(size);
+        let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return ptr;
