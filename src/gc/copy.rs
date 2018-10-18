@@ -90,7 +90,7 @@ impl Collector for CopyCollector {
         tlab::make_iterable(ctxt);
 
         let rootset = get_rootset(ctxt);
-        self.collect_from(ctxt, &rootset);
+        self.copy_collect(ctxt, &rootset);
     }
 
     fn minor_collect(&self, ctxt: &SemContext) {
@@ -129,7 +129,7 @@ impl CopyCollector {
         old.into()
     }
 
-    fn collect_from(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
+    fn copy_collect(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
         let mut timer = Timer::new(ctxt.args.flag_gc_events);
 
         // enable writing into to-space again (for debug builds)
