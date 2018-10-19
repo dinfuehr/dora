@@ -1763,6 +1763,12 @@ where
         self.masm
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), temp.into());
 
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.masm.load_int_const(MachineMode::Ptr, temp, 0);
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Base(dest, mem::ptr_width()), temp.into());
+
         // store length in object
         if store_length {
             if temps.len() > 1 {

@@ -332,25 +332,28 @@ impl<'a> Verifier<'a> {
         let perm_region = self.perm_space.used_region();
 
         println!(
-            "PRM: {}-{}; active: {}-{}",
+            "PRM: {}-{}; active: {}-{} (size 0x{:x})",
             self.perm_space.total().start,
             self.perm_space.total().end,
             perm_region.start,
-            perm_region.end
+            perm_region.end,
+            perm_region.size(),
         );
         println!(
-            "YNG: {}-{}; active: {}-{}",
+            "YNG: {}-{}; active: {}-{} (size 0x{:x})",
             self.young.total().start,
             self.young.total().end,
             self.young_region.start,
-            self.young_region.end
+            self.young_region.end,
+            self.young_region.size(),
         );
         println!(
-            "OLD: {}-{}; active: {}-{}",
+            "OLD: {}-{}; active: {}-{} (size 0x{:x})",
             self.old.total().start,
             self.old.total().end,
             self.old_region.start,
-            self.old_region.end
+            self.old_region.end,
+            self.old_region.size(),
         );
         println!(
             "LRG: {}-{}",

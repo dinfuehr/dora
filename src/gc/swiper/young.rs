@@ -1,3 +1,4 @@
+use std::cmp;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::arena;
@@ -47,18 +48,19 @@ impl YoungGen {
         let half_size = young_end.offset_from(young_start) / 2;
         let semi_start = young_start.offset(half_size);
 
-        let semi_size = young_end.offset_from(semi_start) / 2;
-        let semi_separator = semi_start.offset(semi_size);
+        let max_semi_size = young_end.offset_from(semi_start) / 2;
+        let semi_separator = semi_start.offset(max_semi_size);
 
-        let committed_semi_size = young_size / 2;
+        let committed_semi_size = cmp::min(young_size / 2, max_semi_size);
+        assert!(committed_semi_size <= max_semi_size);
 
         let young = YoungGen {
             total: Region::new(young_start, young_end),
             semi_start: semi_start,
             semi_separator: semi_separator,
 
-            max_semi_size: semi_size,
-            committed_semi_size: semi_size,
+            max_semi_size: max_semi_size,
+            committed_semi_size: committed_semi_size,
 
             age_marker: AtomicUsize::new(semi_start.to_usize()),
             free: AtomicUsize::new(semi_start.to_usize()),

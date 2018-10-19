@@ -9,6 +9,7 @@ use gc::swiper::Swiper;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
+use object::Obj;
 
 pub mod arena;
 pub mod bump;
@@ -189,6 +190,16 @@ impl Address {
     #[inline(always)]
     pub fn add_ptr(self, ptr: usize) -> Address {
         Address(self.0 + ptr * mem::ptr_width_usize())
+    }
+
+    #[inline(always)]
+    pub fn to_mut_obj(self) -> &'static mut Obj {
+        unsafe { &mut *self.to_mut_ptr::<Obj>() }
+    }
+
+    #[inline(always)]
+    pub fn to_obj(self) -> &'static Obj {
+        unsafe { &*self.to_mut_ptr::<Obj>() }
     }
 
     #[inline(always)]

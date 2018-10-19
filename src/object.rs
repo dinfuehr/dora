@@ -22,10 +22,22 @@ pub struct Header {
 
     // forwarding ptr
     // (used during mark-compact)
-    fwdptr: Address,
+    fwdptr: usize,
 }
 
+const MARK_BITS: usize = 2;
+const MARK_MASK: usize = (2 << MARK_BITS) - 1;
+const FWD_MASK: usize = !0 & !MARK_MASK;
+
 impl Header {
+    #[cfg(test)]
+    fn new() -> Header {
+        Header {
+            vtable: ptr::null_mut(),
+            fwdptr: 0,
+        }
+    }
+
     #[inline(always)]
     pub fn size() -> i32 {
         std::mem::size_of::<Header>() as i32
@@ -59,12 +71,28 @@ impl Header {
 
     #[inline(always)]
     pub fn fwdptr(&self) -> Address {
-        self.fwdptr
+        (self.fwdptr & FWD_MASK).into()
     }
 
     #[inline(always)]
     pub fn set_fwdptr(&mut self, addr: Address) {
-        self.fwdptr = addr;
+        debug_assert!((addr.to_usize() & MARK_MASK) == 0);
+        self.fwdptr = addr.to_usize() | (self.fwdptr & MARK_MASK);
+    }
+
+    #[inline(always)]
+    pub fn mark(&mut self) {
+        self.fwdptr = self.fwdptr | 1;
+    }
+
+    #[inline(always)]
+    pub fn unmark(&mut self) {
+        self.fwdptr = self.fwdptr & FWD_MASK;
+    }
+
+    #[inline(always)]
+    pub fn is_marked(&self) -> bool {
+        (self.fwdptr & MARK_MASK) != 0
     }
 }
 
@@ -89,12 +117,6 @@ impl Obj {
     #[inline(always)]
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
-    }
-
-    #[inline(always)]
-    pub fn fwdptr(addr: Address) -> Address {
-        let obj = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
-        obj.header().fwdptr()
     }
 
     pub fn is_array_ref(&self) -> bool {
@@ -189,7 +211,7 @@ impl Obj {
 
     pub fn copy_to(&self, dest: Address, size: usize) {
         unsafe {
-            ptr::copy_nonoverlapping(
+            ptr::copy(
                 self as *const Obj as *const u8,
                 dest.to_mut_ptr::<u8>(),
                 size,
@@ -593,4 +615,26 @@ pub struct StackTraceElement {
     pub header: Header,
     pub name: Handle<Str>,
     pub line: i32,
+}
+
+#[cfg(test)]
+mod tests {
+    use object::Header;
+
+    #[test]
+    fn header_markbit() {
+        let mut h = Header::new();
+        h.set_fwdptr(8.into());
+        assert_eq!(false, h.is_marked());
+        assert_eq!(8, h.fwdptr().to_usize());
+        h.mark();
+        assert_eq!(true, h.is_marked());
+        assert_eq!(8, h.fwdptr().to_usize());
+        h.set_fwdptr(16.into());
+        assert_eq!(true, h.is_marked());
+        assert_eq!(16, h.fwdptr().to_usize());
+        h.unmark();
+        assert_eq!(false, h.is_marked());
+        assert_eq!(16, h.fwdptr().to_usize());
+    }
 }

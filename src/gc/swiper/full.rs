@@ -10,9 +10,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::{formatted_size, Address, Region};
-use mem;
 use object::Obj;
-use os;
 use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
@@ -25,8 +23,6 @@ pub struct FullCollector<'a, 'ast: 'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     perm_space: &'a Space,
-
-    marking_bitmap: MarkingBitmap,
 
     fwd: Address,
     fwd_end: Address,
@@ -45,8 +41,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         perm_space: &'a Space,
         rootset: &'a [IndirectObj],
     ) -> FullCollector<'a, 'ast> {
-        let marking_bitmap = MarkingBitmap::new(heap.clone());
-
         FullCollector {
             ctxt: ctxt,
             heap: heap,
@@ -57,8 +51,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             card_table: card_table,
             crossing_map: crossing_map,
             perm_space: perm_space,
-
-            marking_bitmap: marking_bitmap,
 
             fwd: old.total().start,
             fwd_end: old.total().end,
@@ -126,16 +118,16 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn mark_live(&mut self) {
         let mut marking_stack: Vec<Address> = Vec::new();
-        let mut live_objects = 0;
 
         for root in self.rootset {
             let root_ptr = Address::from_ptr(root.get());
 
             if self.heap.contains(root_ptr) {
-                if !self.is_marked_addr(root_ptr) {
+                let root_obj = root_ptr.to_mut_obj();
+
+                if !root_obj.header().is_marked() {
                     marking_stack.push(root_ptr);
-                    self.mark(root_ptr);
-                    live_objects += 1;
+                    root_obj.header_mut().mark();
                 }
             } else {
                 debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
@@ -150,10 +142,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let field_addr = Address::from_ptr(field.get());
 
                 if self.heap.contains(field_addr) {
-                    if !self.is_marked_addr(field_addr) {
+                    let field_obj = field_addr.to_mut_obj();
+
+                    if !field_obj.header().is_marked() {
                         marking_stack.push(field_addr);
-                        self.mark(field_addr);
-                        live_objects += 1;
+                        field_obj.header_mut().mark();
                     }
                 } else {
                     debug_assert!(field_addr.is_null() || self.perm_space.contains(field_addr));
@@ -164,7 +157,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn compute_forward(&mut self) {
         self.walk_old_and_young(|full, object, _address, object_size| {
-            if full.is_marked(object) {
+            if object.header().is_marked() {
                 let fwd = full.allocate(object_size);
                 object.header_mut().set_fwdptr(fwd);
             }
@@ -173,7 +166,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn update_references(&mut self) {
         self.walk_old_and_young(|full, object, _address, _| {
-            if full.is_marked(object) {
+            if object.header().is_marked() {
                 object.visit_reference_fields(|field| {
                     full.forward_reference(field);
                 });
@@ -181,15 +174,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         for root in self.rootset {
-            let root_ptr = Address::from_ptr(root.get());
-
-            if !root_ptr.is_null()
-                && !self.perm_space.contains(root_ptr)
-                && !self.large_space.contains(root_ptr)
-            {
-                let fwd_addr = Obj::fwdptr(root_ptr);
-                root.set(fwd_addr.to_mut_ptr());
-            }
+            self.forward_reference(*root);
         }
     }
 
@@ -197,9 +182,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.crossing_map.set_first_object(0.into(), 0);
 
         self.walk_old_and_young(|full, object, _address, object_size| {
-            if full.is_marked(object) {
+            if object.header().is_marked() {
+                // copy object to new location
                 let dest = object.header().fwdptr();
                 object.copy_to(dest, object_size);
+
+                // unmark object for next collection
+                dest.to_mut_obj().header_mut().unmark();
 
                 let next_dest = dest.offset(object_size);
 
@@ -218,7 +207,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn update_large_objects(&mut self) {
         self.large_space.remove_objects(|object_start| {
-            let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
+            let object = object_start.to_mut_obj();
 
             // reset cards for object, also do this for dead objects
             // to reset card entries to clean.
@@ -229,10 +218,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 self.card_table.reset_addr(object_start);
             }
 
-            if !self.is_marked_addr(object_start) {
-                // free object
+            if !object.header().is_marked() {
+                // object is unmarked -> free it
                 return false;
             }
+
+            // unmark object for next collection
+            object.header_mut().unmark();
 
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
@@ -252,12 +244,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn forward_reference(&mut self, indirect_obj: IndirectObj) {
         let object_addr = Address::from_ptr(indirect_obj.get());
 
-        if !object_addr.is_null()
-            && !self.perm_space.contains(object_addr)
-            && !self.large_space.contains(object_addr)
-        {
-            let fwd_addr = Obj::fwdptr(object_addr);
+        if self.heap.contains(object_addr) && !self.large_space.contains(object_addr) {
+            debug_assert!(object_addr.to_obj().header().is_marked());
+            let fwd_addr = object_addr.to_obj().header().fwdptr();
+            debug_assert!(self.heap.contains(fwd_addr));
             indirect_obj.set(fwd_addr.to_mut_ptr());
+        } else {
+            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr) || self.large_space.contains(object_addr));
         }
     }
 
@@ -279,7 +272,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let mut scan = start;
 
         while scan < end {
-            let object = unsafe { &mut *scan.to_mut_ptr::<Obj>() };
+            let object = scan.to_mut_obj();
 
             if object.header().vtblptr().is_null() {
                 scan = scan.add_ptr(1);
@@ -304,83 +297,5 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         }
 
         panic!("FAIL: Not enough space for objects in old generation.");
-    }
-
-    fn is_marked(&self, obj: &Obj) -> bool {
-        self.marking_bitmap
-            .is_marked(Address::from_ptr(obj as *const _))
-    }
-
-    fn is_marked_addr(&self, addr: Address) -> bool {
-        self.marking_bitmap.is_marked(addr)
-    }
-
-    fn mark(&mut self, addr: Address) {
-        self.marking_bitmap.mark(addr);
-    }
-}
-
-pub struct MarkingBitmap {
-    heap: Region,
-    bitmap: Region,
-}
-
-impl MarkingBitmap {
-    pub fn new(heap: Region) -> MarkingBitmap {
-        let bitmap_size = mem::page_align(heap.size() / mem::ptr_width_usize() / 8);
-        let bitmap_start = Address::from_ptr(os::mmap(bitmap_size, os::Writable));
-
-        if bitmap_start.is_null() {
-            panic!("could not allocate marking bitmap.");
-        }
-
-        MarkingBitmap {
-            heap: heap,
-            bitmap: Region::new(bitmap_start, bitmap_start.offset(bitmap_size)),
-        }
-    }
-
-    pub fn mark(&mut self, addr: Address) {
-        let (byte_offset, bit_offset) = self.mark_offset(addr);
-
-        let byte = self.mark_byte(byte_offset);
-        let modified_byte = byte | (1 << bit_offset);
-        self.set_mark_byte(byte_offset, modified_byte);
-    }
-
-    pub fn is_marked(&self, addr: Address) -> bool {
-        let (byte_offset, bit_offset) = self.mark_offset(addr);
-        let byte = self.mark_byte(byte_offset);
-
-        byte & (1 << bit_offset) != 0
-    }
-
-    fn mark_offset(&self, addr: Address) -> (usize, u8) {
-        debug_assert!(self.heap.contains(addr));
-        let offset = addr.offset_from(self.heap.start) / mem::ptr_width_usize();
-        let byte = offset / 8;
-        let bit = offset % 8;
-
-        (byte, bit as u8)
-    }
-
-    fn mark_byte(&self, offset: usize) -> u8 {
-        let addr = self.bitmap.start.offset(offset);
-
-        unsafe { *addr.to_ptr() }
-    }
-
-    fn set_mark_byte(&self, offset: usize, val: u8) {
-        let addr = self.bitmap.start.offset(offset);
-
-        unsafe {
-            *addr.to_mut_ptr() = val;
-        }
-    }
-}
-
-impl Drop for MarkingBitmap {
-    fn drop(&mut self) {
-        os::munmap(self.bitmap.start.to_ptr(), self.bitmap.size());
     }
 }
