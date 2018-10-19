@@ -4,8 +4,8 @@ use mem;
 use object::Header;
 use vtable::VTable;
 
-pub const TLAB_SIZE: usize = 16 * 1024;
-pub const TLAB_OBJECT_SIZE: usize = 4 * 1024;
+pub const TLAB_SIZE: usize = 32 * 1024;
+pub const TLAB_OBJECT_SIZE: usize = 8 * 1024;
 
 pub fn initialize(ctxt: &SemContext, tlab: Region) {
     ctxt.tld.borrow_mut().tlab_initialize(tlab.start, tlab.end);

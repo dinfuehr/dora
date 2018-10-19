@@ -25,7 +25,7 @@ pub mod young;
 
 // determines size of young generation in heap
 // young generation size = heap size / YOUNG_RATIO
-const YOUNG_RATIO: usize = 8;
+const YOUNG_RATIO: usize = 2;
 
 // heap is divided into cards of size CARD_SIZE.
 // card entry determines whether this part of the heap was modified
