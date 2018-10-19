@@ -28,7 +28,6 @@ macro_rules! offset_of {
 }
 
 mod baseline;
-mod bytecode;
 mod class;
 mod cpu;
 mod ctxt;
