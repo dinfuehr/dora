@@ -99,7 +99,7 @@ impl Drop for CopyCollector {
 
 impl CopyCollector {
     fn copy_collect(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
-        let mut timer = Timer::new(ctxt.args.flag_gc_events);
+        let mut timer = Timer::new(ctxt.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
@@ -110,6 +110,9 @@ impl CopyCollector {
         // empty to-space
         let to_space = self.to_space();
         let from_space = self.from_space();
+
+        // determine size of heap before collection
+        let old_size = self.alloc.top().offset_from(from_space.start);
 
         let mut top = to_space.start;
         let mut scan = top;
@@ -145,9 +148,22 @@ impl CopyCollector {
         self.alloc.reset(top, to_space.end);
 
         timer.stop_with(|time_pause| {
-            if ctxt.args.flag_gc_events {
-                println!("Copy GC: collect garbage ({:.1} ms)", time_pause);
-            }
+            let new_size = top.offset_from(to_space.start);
+            let garbage = old_size - new_size;
+            let garbage_ratio = if old_size == 0 {
+                0f64
+            } else {
+                (garbage as f64 / old_size as f64) * 100f64
+            };
+
+            println!(
+                "GC: Copy GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage)",
+                time_pause,
+                formatted_size(old_size),
+                formatted_size(new_size),
+                formatted_size(garbage),
+                garbage_ratio
+            );
         });
     }
 

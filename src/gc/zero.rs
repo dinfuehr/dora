@@ -1,7 +1,7 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::{arena, Address, Collector, Region};
 use gc::bump::BumpAllocator;
+use gc::{arena, Address, Collector, Region};
 
 pub struct ZeroCollector {
     start: Address,
