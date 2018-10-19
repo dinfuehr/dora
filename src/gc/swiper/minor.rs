@@ -2,7 +2,7 @@ use std::cmp;
 
 use ctxt::SemContext;
 
-use gc::root::IndirectObj;
+use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
@@ -21,7 +21,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
     large: &'a LargeSpace,
-    rootset: &'a [IndirectObj],
+    rootset: &'a [Slot],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
 
@@ -41,7 +41,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         large: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
-        rootset: &'a [IndirectObj],
+        rootset: &'a [Slot],
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             ctxt: ctxt,
@@ -127,7 +127,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         for &root in self.rootset {
             let root_ptr = root.get();
 
-            if self.young.contains(Address::from_ptr(root_ptr)) {
+            if self.young.contains(root_ptr) {
                 root.set(self.copy(root_ptr));
             }
         }
@@ -135,7 +135,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     fn visit_large_objects(&mut self) {
         self.large.visit_objects(|addr| {
-            let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+            let object = addr.to_mut_obj();
 
             if object.is_array_ref() {
                 self.visit_large_object_array(object, addr);
@@ -185,11 +185,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         object.visit_reference_fields(|field| {
             let field_ptr = field.get();
 
-            if self.young.contains(Address::from_ptr(field_ptr)) {
+            if self.young.contains(field_ptr) {
                 let copied_addr = self.copy(field_ptr);
                 field.set(copied_addr);
 
-                if self.young.contains(Address::from_ptr(copied_addr)) {
+                if self.young.contains(copied_addr) {
                     ref_to_young_gen = true;
                 }
             }
@@ -219,12 +219,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_gray_object(&mut self, addr: Address) -> Address {
-        let object = unsafe { &mut *addr.to_mut_ptr::<Obj>() };
+        let object = addr.to_mut_obj();
 
         object.visit_reference_fields(|field| {
             let field_ptr = field.get();
 
-            if self.young.contains(Address::from_ptr(field_ptr)) {
+            if self.young.contains(field_ptr) {
                 field.set(self.copy(field_ptr));
             }
         });
@@ -233,7 +233,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_gray_object_in_old(&mut self, object_start: Address) -> Address {
-        let object = unsafe { &mut *object_start.to_mut_ptr::<Obj>() };
+        let object = object_start.to_mut_obj();
 
         if object.is_array_ref() {
             let mut ref_to_young_gen = false;
@@ -242,22 +242,22 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
 
-                if on_different_cards(last, field.to_address()) && ref_to_young_gen {
+                if on_different_cards(last, field.address()) && ref_to_young_gen {
                     let card_idx = self.card_table.card_idx(last);
                     self.card_table.set(card_idx, CardEntry::Dirty);
                     ref_to_young_gen = false;
                 }
 
-                if self.young.contains(Address::from_ptr(field_ptr)) {
+                if self.young.contains(field_ptr) {
                     let copied_addr = self.copy(field_ptr);
                     field.set(copied_addr);
 
-                    if self.young.contains(Address::from_ptr(copied_addr)) {
+                    if self.young.contains(copied_addr) {
                         ref_to_young_gen = true;
                     }
                 }
 
-                last = field.to_address();
+                last = field.address();
             });
 
             if ref_to_young_gen {
@@ -270,11 +270,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
 
-                if self.young.contains(Address::from_ptr(field_ptr)) {
+                if self.young.contains(field_ptr) {
                     let copied_addr = self.copy(field_ptr);
                     field.set(copied_addr);
 
-                    if self.young.contains(Address::from_ptr(copied_addr)) {
+                    if self.young.contains(copied_addr) {
                         ref_to_young_gen = true;
                     }
                 }
@@ -330,14 +330,14 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     fn copy_refs(&mut self, mut ptr: Address, refs: usize, ref_to_young_gen: &mut bool) -> Address {
         for _ in 0..refs {
-            let ind_ptr = IndirectObj::from_address(ptr);
-            let dir_ptr = ind_ptr.get();
+            let slot = Slot::at(ptr);
+            let dir_ptr = slot.get();
 
-            if self.young_from.contains(Address::from_ptr(dir_ptr)) {
+            if self.young_from.contains(dir_ptr) {
                 let copied_obj = self.copy(dir_ptr);
-                ind_ptr.set(copied_obj);
+                slot.set(copied_obj);
 
-                if self.young.contains(Address::from_ptr(copied_obj)) {
+                if self.young.contains(copied_obj) {
                     *ref_to_young_gen = true;
                 }
             }
@@ -385,17 +385,17 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         ref_to_young_gen: &mut bool,
     ) -> Address {
         while ptr < end {
-            let object = unsafe { &mut *ptr.to_mut_ptr::<Obj>() };
+            let object = ptr.to_mut_obj();
 
             object.visit_reference_fields_within(end, |field| {
                 let field_ptr = field.get();
 
-                if self.young_from.contains(Address::from_ptr(field_ptr)) {
+                if self.young_from.contains(field_ptr) {
                     let copied_obj = self.copy(field_ptr);
                     field.set(copied_obj);
 
                     // determine if copied object is still in young generation
-                    if self.young.contains(Address::from_ptr(copied_obj)) {
+                    if self.young.contains(copied_obj) {
                         *ref_to_young_gen = true;
                     }
                 }
@@ -415,12 +415,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
     }
 
-    fn copy(&mut self, obj: *mut Obj) -> *mut Obj {
-        let obj_addr = Address::from_ptr(obj);
-        let obj = unsafe { &mut *obj };
+    fn copy(&mut self, obj_addr: Address) -> Address {
+        let obj = obj_addr.to_mut_obj();
 
         if let Some(fwd) = obj.header().vtbl_forwarded() {
-            return fwd.to_mut_ptr();
+            return fwd;
         }
 
         let obj_size = obj.size();
@@ -434,7 +433,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let old_addr = self.try_promote_object(obj, obj_size);
 
             if old_addr.is_non_null() {
-                return old_addr.to_mut_ptr();
+                return old_addr;
             }
         }
 
@@ -445,7 +444,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         obj.copy_to(copy_addr, obj_size);
         obj.header_mut().vtbl_forward_to(copy_addr);
 
-        copy_addr.to_mut_ptr()
+        copy_addr
     }
 
     fn try_promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {

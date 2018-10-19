@@ -1,7 +1,7 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::arena;
-use gc::root::{get_rootset, IndirectObj};
+use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::full::FullCollector;
@@ -213,7 +213,7 @@ impl Swiper {
         ctxt: &SemContext,
         phase: VerifierPhase,
         _name: &str,
-        rootset: &[IndirectObj],
+        rootset: &[Slot],
     ) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_verbose {

@@ -1,7 +1,7 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
-use gc::root::{get_rootset, IndirectObj};
+use gc::root::{get_rootset, Slot};
 use gc::tlab;
 use gc::{formatted_size, Address, Collector, Region};
 use mem;
@@ -98,7 +98,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, ctxt: &SemContext, rootset: &[IndirectObj]) {
+    fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot]) {
         let mut timer = Timer::new(ctxt.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
@@ -120,7 +120,7 @@ impl CopyCollector {
         for root in rootset {
             let root_ptr = root.get();
 
-            if from_space.contains(Address::from_ptr(root_ptr)) {
+            if from_space.contains(root_ptr) {
                 root.set(self.copy(root_ptr, &mut top));
             }
         }
@@ -131,7 +131,7 @@ impl CopyCollector {
             object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
 
-                if from_space.contains(Address::from_ptr(field_ptr)) {
+                if from_space.contains(field_ptr) {
                     field.set(self.copy(field_ptr, &mut top));
                 }
             });
@@ -167,11 +167,11 @@ impl CopyCollector {
         });
     }
 
-    fn copy(&self, obj: *mut Obj, top: &mut Address) -> *mut Obj {
-        let obj = unsafe { &mut *obj };
+    fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
+        let obj = obj_addr.to_mut_obj();
 
         if let Some(fwd) = obj.header().vtbl_forwarded() {
-            return fwd.to_mut_ptr();
+            return fwd;
         }
 
         let addr = *top;
@@ -182,7 +182,7 @@ impl CopyCollector {
 
         obj.header_mut().vtbl_forward_to(addr);
 
-        addr.to_mut_ptr()
+        addr
     }
 
     pub fn from_space(&self) -> Region {

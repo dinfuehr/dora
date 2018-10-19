@@ -1,7 +1,7 @@
 use std::cmp;
 
 use ctxt::SemContext;
-use gc::root::IndirectObj;
+use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -19,7 +19,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
     large_space: &'a LargeSpace,
-    rootset: &'a [IndirectObj],
+    rootset: &'a [Slot],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     perm_space: &'a Space,
@@ -39,7 +39,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         perm_space: &'a Space,
-        rootset: &'a [IndirectObj],
+        rootset: &'a [Slot],
     ) -> FullCollector<'a, 'ast> {
         FullCollector {
             ctxt: ctxt,
@@ -120,7 +120,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let mut marking_stack: Vec<Address> = Vec::new();
 
         for root in self.rootset {
-            let root_ptr = Address::from_ptr(root.get());
+            let root_ptr = root.get();
 
             if self.heap.contains(root_ptr) {
                 let root_obj = root_ptr.to_mut_obj();
@@ -136,10 +136,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         while marking_stack.len() > 0 {
             let object_addr = marking_stack.pop().expect("stack already empty");
-            let object = unsafe { &mut *object_addr.to_mut_ptr::<Obj>() };
+            let object = object_addr.to_mut_obj();
 
             object.visit_reference_fields(|field| {
-                let field_addr = Address::from_ptr(field.get());
+                let field_addr = field.get();
 
                 if self.heap.contains(field_addr) {
                     let field_obj = field_addr.to_mut_obj();
@@ -241,14 +241,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.card_table.reset_region(start, end);
     }
 
-    fn forward_reference(&mut self, indirect_obj: IndirectObj) {
-        let object_addr = Address::from_ptr(indirect_obj.get());
+    fn forward_reference(&mut self, slot: Slot) {
+        let object_addr = slot.get();
 
         if self.heap.contains(object_addr) && !self.large_space.contains(object_addr) {
             debug_assert!(object_addr.to_obj().header().is_marked());
             let fwd_addr = object_addr.to_obj().header().fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
-            indirect_obj.set(fwd_addr.to_mut_ptr());
+            slot.set(fwd_addr);
         } else {
             debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr) || self.large_space.contains(object_addr));
         }

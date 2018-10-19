@@ -9,7 +9,7 @@ use std::str;
 
 use class::{ClassDefId, ClassSize};
 use ctxt::SemContext;
-use gc::root::IndirectObj;
+use gc::root::Slot;
 use gc::Address;
 use handle::Rooted;
 use mem;
@@ -105,6 +105,11 @@ pub struct Obj {
 
 impl Obj {
     #[inline(always)]
+    pub fn address(&self) -> Address {
+        Address::from_ptr(self as *const _)
+    }
+
+    #[inline(always)]
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -149,7 +154,7 @@ impl Obj {
 
     pub fn visit_reference_fields<F>(&mut self, mut f: F)
     where
-        F: FnMut(IndirectObj),
+        F: FnMut(Slot),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
@@ -158,27 +163,28 @@ impl Obj {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
-            let mut ptr = array.data() as *mut *mut Obj;
-            let last = unsafe { ptr.offset(array.len() as isize) };
+            let mut ptr = Address::from_ptr(array.data());
+            let last = ptr.add_ptr(array.len() as usize);
 
             while ptr < last {
-                f((ptr as usize).into());
-
-                unsafe { ptr = ptr.offset(1) }
+                f(Slot::at(ptr));
+                ptr = ptr.add_ptr(1);
             }
 
             return;
         }
 
+        let addr = self.address();
+
         for &offset in &cls.ref_fields {
-            let obj = (self as *mut Obj as usize) + offset as usize;
-            f(obj.into());
+            let obj = addr.offset(offset as usize);
+            f(Slot::at(obj));
         }
     }
 
     pub fn visit_reference_fields_within<F>(&mut self, limit: Address, mut f: F)
     where
-        F: FnMut(IndirectObj),
+        F: FnMut(Slot),
     {
         let classptr = self.header().vtbl().classptr;
         let cls = unsafe { &*classptr };
@@ -187,25 +193,26 @@ impl Obj {
             let array = unsafe { &*(self as *const _ as *const StrArray) };
 
             // walk through all objects in array
-            let mut ptr = array.data() as *mut *mut Obj;
-            let last = unsafe { ptr.offset(array.len() as isize) };
+            let mut ptr = Address::from_ptr(array.data());
+            let last = ptr.add_ptr(array.len() as usize);
 
             // visit elements until `limit` reached
-            let limit = cmp::min(last, limit.to_mut_ptr());
+            let limit = cmp::min(last, limit);
 
             while ptr < limit {
-                f((ptr as usize).into());
-
-                unsafe { ptr = ptr.offset(1) }
+                f(Slot::at(ptr));
+                ptr = ptr.add_ptr(1);
             }
 
             return;
         }
 
+        let addr = self.address();
+
         // visit the whole object all the time
         for &offset in &cls.ref_fields {
-            let obj = (self as *mut Obj as usize) + offset as usize;
-            f(obj.into());
+            let obj = addr.offset(offset as usize);
+            f(Slot::at(obj));
         }
     }
 

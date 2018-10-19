@@ -1,12 +1,9 @@
-use std::convert::From;
-
 use baseline::map::CodeDescriptor;
 use ctxt::SemContext;
 use exception::DoraToNativeInfo;
 use gc::Address;
-use object::Obj;
 
-pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
+pub fn get_rootset(ctxt: &SemContext) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
     determine_rootset_from_stack(&mut rootset, ctxt);
@@ -16,13 +13,14 @@ pub fn get_rootset(ctxt: &SemContext) -> Vec<IndirectObj> {
     rootset
 }
 
-fn determine_rootset_from_handles(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
+fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
     for rooted in ctxt.handles.iter() {
-        rootset.push((rooted.raw() as usize).into());
+        let slot = Slot::at(Address::from_ptr(rooted.raw()));
+        rootset.push(slot);
     }
 }
 
-fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
+fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
     for glob in ctxt.globals.iter() {
         let glob = glob.borrow();
 
@@ -30,11 +28,12 @@ fn determine_rootset_from_globals(rootset: &mut Vec<IndirectObj>, ctxt: &SemCont
             continue;
         }
 
-        rootset.push((glob.address_value as usize).into());
+        let slot = Slot::at(Address::from_ptr(glob.address_value));
+        rootset.push(slot);
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &SemContext) {
+fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
     assert!(!ctxt.dtn.borrow().is_null());
 
     let mut dtn = *ctxt.dtn.borrow();
@@ -45,7 +44,7 @@ fn determine_rootset_from_stack(rootset: &mut Vec<IndirectObj>, ctxt: &SemContex
 }
 
 fn from_dora_to_native_info(
-    rootset: &mut Vec<IndirectObj>,
+    rootset: &mut Vec<Slot>,
     ctxt: &SemContext,
     dtn: *const DoraToNativeInfo,
 ) -> *const DoraToNativeInfo {
@@ -67,7 +66,7 @@ fn from_dora_to_native_info(
 }
 
 fn determine_rootset(
-    rootset: &mut Vec<IndirectObj>,
+    rootset: &mut Vec<Slot>,
     ctxt: &SemContext,
     fp: usize,
     pc: usize,
@@ -87,7 +86,7 @@ fn determine_rootset(
 
             for &offset in &gcpoint.offsets {
                 let addr = (fp as isize + offset as isize) as usize;
-                rootset.push(addr.into());
+                rootset.push(Slot::at(addr.into()));
             }
 
             true
@@ -105,30 +104,24 @@ fn determine_rootset(
 }
 
 #[derive(Copy, Clone)]
-pub struct IndirectObj(*mut *mut Obj);
+pub struct Slot(Address);
 
-impl IndirectObj {
-    pub fn from_address(addr: Address) -> IndirectObj {
-        IndirectObj(addr.to_usize() as *mut *mut Obj)
+impl Slot {
+    pub fn at(addr: Address) -> Slot {
+        Slot(addr)
     }
 
-    pub fn to_address(self) -> Address {
-        Address::from_ptr(self.0)
+    pub fn address(self) -> Address {
+        self.0
     }
 
-    pub fn get(self) -> *mut Obj {
-        unsafe { *self.0 }
+    pub fn get(self) -> Address {
+        unsafe { *self.0.to_ptr::<Address>() }
     }
 
-    pub fn set(self, obj: *mut Obj) {
+    pub fn set(self, obj: Address) {
         unsafe {
-            *self.0 = obj;
+            *self.0.to_mut_ptr::<Address>() = obj;
         }
-    }
-}
-
-impl From<usize> for IndirectObj {
-    fn from(ptr: usize) -> IndirectObj {
-        IndirectObj(ptr as *mut *mut Obj)
     }
 }

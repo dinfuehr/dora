@@ -1,6 +1,6 @@
 use ctxt::get_ctxt;
 
-use gc::root::IndirectObj;
+use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -38,7 +38,7 @@ pub struct Verifier<'a> {
     old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
-    rootset: &'a [IndirectObj],
+    rootset: &'a [Slot],
     large: &'a LargeSpace,
     perm_space: &'a Space,
 
@@ -59,7 +59,7 @@ impl<'a> Verifier<'a> {
         old: &'a OldGen,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
-        rootset: &'a [IndirectObj],
+        rootset: &'a [Slot],
         large: &'a LargeSpace,
         perm_space: &'a Space,
         reserved_area: Region,
@@ -117,8 +117,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_roots(&mut self) {
         for root in self.rootset {
-            let root_ptr = root.get();
-            self.verify_reference(root_ptr, root.to_address(), Address::null(), "root set");
+            self.verify_reference(*root, Address::null(), "root set");
         }
     }
 
@@ -159,15 +158,13 @@ impl<'a> Verifier<'a> {
     fn verify_array_ref(&mut self, object: &mut Obj, mut curr: Address, name: &str) -> Address {
         let object_address = curr;
 
-        object.visit_reference_fields(|child| {
-            let child_ptr = child.get();
-
-            if (self.in_old || self.in_large) && on_different_cards(curr, child.to_address()) {
+        object.visit_reference_fields(|element| {
+            if (self.in_old || self.in_large) && on_different_cards(curr, element.address()) {
                 self.verify_card(curr);
-                curr = child.to_address();
+                curr = element.address();
             }
 
-            self.verify_reference(child_ptr, child.to_address(), object_address, name);
+            self.verify_reference(element, object_address, name);
         });
 
         let next = object_address.offset(object.size());
@@ -181,8 +178,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_object(&mut self, object: &mut Obj, curr: Address, name: &str) -> Address {
         object.visit_reference_fields(|child| {
-            let child_ptr = child.get();
-            self.verify_reference(child_ptr, child.to_address(), curr, name);
+            self.verify_reference(child, curr, name);
         });
 
         let next = curr.offset(object.size());
@@ -298,23 +294,22 @@ impl<'a> Verifier<'a> {
 
     fn verify_reference(
         &mut self,
-        obj: *mut Obj,
-        ref_addr: Address,
-        obj_addr: Address,
+        slot: Slot,
+        container_obj: Address,
         name: &str,
     ) {
-        let addr = Address::from_ptr(obj);
+        let reference = slot.get();
 
-        if obj.is_null() {
+        if reference.is_null() {
             return;
         }
 
-        if self.old_region.contains(addr)
-            || self.young_region.contains(addr)
-            || self.perm_space.contains(addr)
-            || self.large.contains(addr)
+        if self.old_region.contains(reference)
+            || self.young_region.contains(reference)
+            || self.perm_space.contains(reference)
+            || self.large.contains(reference)
         {
-            let object = unsafe { &mut *obj };
+            let object = reference.to_obj();
 
             // Verify that the address is the start of an object,
             // for this access its size.
@@ -322,7 +317,7 @@ impl<'a> Verifier<'a> {
             // make sure that the size doesn't equal 1.
             assert!(object.size() != 1, "object size shouldn't be 1");
 
-            if self.young_region.contains(addr) {
+            if self.young_region.contains(reference) {
                 self.refs_to_young_gen += 1;
             }
 
@@ -366,16 +361,16 @@ impl<'a> Verifier<'a> {
         );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",
-            addr, name, ref_addr, obj_addr
+            reference, name, slot.address(), container_obj
         );
 
-        if self.young.contains(addr) && !self.young_region.contains(addr) {
+        if self.young.contains(reference) && !self.young_region.contains(reference) {
             println!("reference points into young generation but not into the active semi-space.");
         }
 
         println!("try print object size and class:");
 
-        let object = unsafe { &mut *obj };
+        let object = reference.to_obj();
         println!("\tsize {}", object.size());
         let cls = object.header().vtbl().class();
         println!("\tclass {}", cls.name(get_ctxt()));
