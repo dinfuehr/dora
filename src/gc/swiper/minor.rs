@@ -79,7 +79,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
 
-
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
         }

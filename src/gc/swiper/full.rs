@@ -41,6 +41,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         perm_space: &'a Space,
         rootset: &'a [Slot],
     ) -> FullCollector<'a, 'ast> {
+        let old_committed = old.committed();
+
         FullCollector {
             ctxt: ctxt,
             heap: heap,
@@ -52,8 +54,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             crossing_map: crossing_map,
             perm_space: perm_space,
 
-            fwd: old.total().start,
-            fwd_end: old.total().end,
+            fwd: old_committed.start,
+            fwd_end: old_committed.end,
             old_top: Address::null(),
         }
     }
@@ -66,6 +68,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.old_top = self.old.active().end;
 
         if dev_verbose {
+            println!(
+                "Full GC: init: eden={} from={} old={}",
+                self.young.eden_active(),
+                self.young.from_active(),
+                self.old.active()
+            );
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
@@ -102,6 +110,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         if dev_verbose {
             println!("Full GC: Phase 5 (large objects) finished.");
+            println!(
+                "Full GC: final: eden={} from={} old={}",
+                self.young.eden_active(),
+                self.young.from_active(),
+                self.old.active()
+            );
         }
 
         self.reset_cards();
@@ -203,14 +217,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.walk_old_and_young(|full, object, _address, object_size| {
             if object.header().is_marked() {
-                // copy object to new location
+                // get new location
                 let dest = object.header().fwdptr();
+                debug_assert!(full.old.committed().contains(dest));
+
+                // determine location after relocated object
+                let next_dest = dest.offset(object_size);
+                debug_assert!(full.old.committed().valid_top(next_dest));
+
                 object.copy_to(dest, object_size);
 
                 // unmark object for next collection
                 dest.to_mut_obj().header_mut().unmark();
-
-                let next_dest = dest.offset(object_size);
 
                 if on_different_cards(dest, next_dest) {
                     full.old

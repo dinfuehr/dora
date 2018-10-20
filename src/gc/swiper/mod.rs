@@ -212,7 +212,7 @@ impl Swiper {
     fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_dev_verbose {
-                println!("VERIFY: {}", _name);
+                println!("GC: Verify {}", _name);
             }
 
             let perm_space = &ctxt.gc.perm_space;

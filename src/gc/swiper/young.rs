@@ -48,6 +48,10 @@ impl YoungGen {
         self.eden.active()
     }
 
+    pub fn eden_committed(&self) -> Region {
+        self.eden.committed()
+    }
+
     pub fn from_active(&self) -> Region {
         self.semi.from_active()
     }
