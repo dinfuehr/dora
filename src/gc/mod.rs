@@ -28,6 +28,7 @@ pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
 // every space (eden/from/to/old) is aligned to at least this size
 const SPACE_ALIGNMENT_BITS: usize = 16;
+const GEN_ALIGNMENT_BITS: usize = 18;
 
 pub struct Gc {
     collector: Box<Collector>,
@@ -333,9 +334,17 @@ fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
 }
 
-/// round the given value up to the nearest multiple of a page
+/// round the given value up to the nearest multiple of a space
 pub fn align_space(val: usize) -> usize {
     let align = SPACE_ALIGNMENT_BITS;
+    // we know that page size is power of 2, hence
+    // we can use shifts instead of expensive division
+    ((val + (1 << align) - 1) >> align) << align
+}
+
+/// round the given value up to the nearest multiple of a generation
+pub fn align_gen(val: usize) -> usize {
+    let align = GEN_ALIGNMENT_BITS;
     // we know that page size is power of 2, hence
     // we can use shifts instead of expensive division
     ((val + (1 << align) - 1) >> align) << align

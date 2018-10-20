@@ -1,6 +1,6 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::arena;
+use gc::{align_gen, arena};
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -62,8 +62,10 @@ impl Swiper {
         let max_heap_size = args.max_heap_size();
 
         // determine size for generations
-        let young_size = max_heap_size / YOUNG_RATIO;
-        let old_size = max_heap_size - young_size;
+        let young_size = align_gen(max_heap_size / YOUNG_RATIO);
+        let old_size = align_gen(max_heap_size - young_size);
+
+        let max_heap_size = young_size + old_size;
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
