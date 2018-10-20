@@ -1,72 +1,36 @@
-use std::cmp;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::arena;
+use gc::bump::BumpAllocator;
 use gc::{Address, Region};
 use os::{self, ProtType};
 
 pub struct YoungGen {
-    // bounds of from- & to-space
+    // bounds of eden & semi-spaces
     total: Region,
 
-    // eden limit - semi start
-    semi_start: Address,
+    // eden space
+    eden: Eden,
 
-    // separator between semi spaces
-    semi_separator: Address,
-
-    // maximum semi-space size
-    // Not combined, use total.size() for that.
-    max_semi_size: usize,
-
-    // comitted semi-space size
-    committed_semi_size: usize,
-
-    // address of next free memory
-    free: AtomicUsize,
-
-    // start and end of free memory in from-space
-    committed_start: AtomicUsize,
-    committed_end: AtomicUsize,
-
-    // separates survived from newly allocated objects
-    // needed to decide whether to promote object into old space
-    age_marker: AtomicUsize,
-
-    // set to true when unused memory regions should
-    // be protected.
-    protect: bool,
+    // from/to-space
+    semi: SemiSpace,
 }
 
 impl YoungGen {
     pub fn new(
-        young_start: Address,
-        young_end: Address,
-        young_size: usize,
+        total: Region,
+        committed_size: usize,
         protect: bool,
     ) -> YoungGen {
-        let half_size = young_end.offset_from(young_start) / 2;
-        let semi_start = young_start.offset(half_size);
+        let half_size = total.size() / 2;
 
-        let max_semi_size = young_end.offset_from(semi_start) / 2;
-        let semi_separator = semi_start.offset(max_semi_size);
-
-        let committed_semi_size = cmp::min(young_size / 2, max_semi_size);
-        assert!(committed_semi_size <= max_semi_size);
+        let eden = total.start.region_start(half_size);
+        let semi = Region::new(eden.start, total.end);
 
         let young = YoungGen {
-            total: Region::new(young_start, young_end),
-            semi_start: semi_start,
-            semi_separator: semi_separator,
-
-            max_semi_size: max_semi_size,
-            committed_semi_size: committed_semi_size,
-
-            age_marker: AtomicUsize::new(semi_start.to_usize()),
-            free: AtomicUsize::new(semi_start.to_usize()),
-            committed_start: AtomicUsize::new(semi_start.to_usize()),
-            committed_end: AtomicUsize::new(semi_start.offset(committed_semi_size).to_usize()),
-            protect: protect,
+            total: total,
+            eden: Eden::new(eden, 0),
+            semi: SemiSpace::new(semi, committed_size, protect),
         };
 
         young.commit();
@@ -75,31 +39,28 @@ impl YoungGen {
     }
 
     fn commit(&self) {
-        arena::commit(self.semi_start, self.committed_semi_size, false);
-        arena::commit(self.semi_separator, self.committed_semi_size, false);
+        self.eden.commit();
+        self.semi.commit();
     }
 
-    pub fn used_region(&self) -> Region {
-        Region::new(
-            self.start_address(),
-            self.free.load(Ordering::Relaxed).into(),
-        )
+    pub fn eden_active(&self) -> Region {
+        self.eden.active()
     }
 
-    fn start_address(&self) -> Address {
-        self.committed_start.load(Ordering::Relaxed).into()
+    pub fn from_active(&self) -> Region {
+        self.semi.from_active()
     }
 
-    pub fn from_space(&self) -> Region {
-        self.start_address().region_start(self.committed_semi_size)
+    pub fn from_committed(&self) -> Region {
+        self.semi.from_committed()
     }
 
-    pub fn to_space(&self) -> Region {
-        if self.committed_start.load(Ordering::Relaxed) == self.semi_start.to_usize() {
-            self.semi_separator.region_start(self.committed_semi_size)
-        } else {
-            self.semi_start.region_start(self.committed_semi_size)
-        }
+    pub fn from_total(&self) -> Region {
+        self.semi.from_total()
+    }
+
+    pub fn to_committed(&self) -> Region {
+        self.semi.to_committed()
     }
 
     pub fn total(&self) -> Region {
@@ -114,66 +75,174 @@ impl YoungGen {
         self.total.valid_top(addr)
     }
 
-    pub fn should_be_promoted(&self, addr: Address) -> bool {
-        debug_assert!(self.contains(addr));
+    pub fn clear(&self) {
+        self.eden.reset_top();
+        self.semi.clear_from();
+    }
 
-        addr.to_usize() < self.age_marker.load(Ordering::Relaxed)
+    pub fn active_size(&self) -> usize {
+        self.eden.active().size() + self.semi.from_block().active().size()
+    }
+
+    pub fn unprotect_to(&self) {
+        self.semi.unprotect_to();
+    }
+
+    pub fn protect_to(&self) {
+        self.semi.protect_to();
+    }
+
+    pub fn swap_semi(&self, top: Address) {
+        self.semi.swap(top);
+    }
+
+    pub fn should_be_promoted(&self, addr: Address) -> bool {
+        self.semi.should_be_promoted(addr)
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
-        let mut old = self.free.load(Ordering::Relaxed);
-        let mut new;
+        self.semi.from_block().bump_alloc(size)
+    }
+}
 
-        loop {
-            new = old + size;
+struct Eden {
+    total: Region,
+    block: Block,
+    alloc: BumpAllocator,
+}
 
-            if new > self.committed_end.load(Ordering::Relaxed) {
-                return Address::null();
-            }
+impl Eden {
+    fn new(total: Region, committed_size: usize) -> Eden {
+        let limit = total.start.offset(committed_size);
 
-            let res =
-                self.free
-                    .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
-
-            match res {
-                Ok(_) => break,
-                Err(x) => old = x,
-            }
+        Eden {
+            total: total.clone(),
+            block: Block::new(total.clone(), committed_size),
+            alloc: BumpAllocator::new(total.start, limit),
         }
-
-        old.into()
     }
 
-    // Switch from- & to-semi-space.
-    pub fn swap_spaces(&self, free: Address) {
-        let to_space = self.to_space();
-        assert!(to_space.valid_top(free));
-        self.committed_start
-            .store(to_space.start.to_usize(), Ordering::Relaxed);
-        self.committed_end
-            .store(to_space.end.to_usize(), Ordering::Relaxed);
-
-        self.age_marker.store(free.to_usize(), Ordering::Relaxed);
-        self.free.store(free.to_usize(), Ordering::Relaxed);
+    fn commit(&self) {
+        self.block.commit();
     }
 
-    // Free all objects in from-semi-space.
-    pub fn free(&self) {
-        let from_space = self.from_space();
-        let start = from_space.start.to_usize();
-
-        self.age_marker.store(start, Ordering::Relaxed);
-        self.free.store(start, Ordering::Relaxed);
+    fn total(&self) -> Region {
+        self.block.total()
     }
 
-    // Make to-semi-space writable.
-    pub fn unprotect_to_space(&self) {
+    fn committed(&self) -> Region {
+        self.block.committed()
+    }
+
+    fn active(&self) -> Region {
+        self.block.active()
+    }
+
+    fn reset_top(&self) {
+        self.block.reset_top();
+    }
+}
+
+struct SemiSpace {
+    total: Region,
+
+    first: Block,
+    second: Block,
+
+    // decides whether first or second is the from-space (value 1=first or 2=second)
+    from_index: AtomicUsize,
+
+    protect: bool,
+    alloc: BumpAllocator,
+    age_marker: AtomicUsize,
+}
+
+impl SemiSpace {
+    fn new(total: Region, committed_size: usize, protect: bool) -> SemiSpace {
+        let committed_semi_size = committed_size / 2;
+
+        let semi_size = total.size() / 2;
+        assert!(committed_semi_size <= semi_size);
+
+        let first = total.start.region_start(semi_size);
+        let second = Region::new(first.end, total.end);
+        assert!(first.size() == second.size());
+
+        let limit = total.start.offset(committed_semi_size);
+
+        SemiSpace {
+            total: total.clone(),
+
+            first: Block::new(first.clone(), committed_semi_size),
+            second: Block::new(second, committed_semi_size),
+
+            from_index: AtomicUsize::new(1),
+            protect: protect,
+            alloc: BumpAllocator::new(total.start, limit),
+            age_marker: AtomicUsize::new(first.start.to_usize()),
+        }
+    }
+
+    fn commit(&self) {
+        self.from_block().commit();
+    }
+
+    fn from_block(&self) -> &Block {
+        let from_index = self.from_index.load(Ordering::Relaxed);
+        if from_index == 1 {
+            &self.first
+
+        } else {
+            assert!(from_index == 2);
+            &self.second
+        }
+    }
+
+    fn to_block(&self) -> &Block {
+        let from_index = self.from_index.load(Ordering::Relaxed);
+        if from_index == 1 {
+            &self.second
+
+        } else {
+            assert!(from_index == 2);
+            &self.first
+        }
+    }
+
+    fn from_total(&self) -> Region {
+        self.from_block().total()
+    }
+
+    fn from_committed(&self) -> Region {
+        self.from_block().committed()
+
+    }
+
+    fn from_active(&self) -> Region {
+        self.from_block().active()
+    }
+
+    fn to_total(&self) -> Region {
+        self.to_block().total()
+    }
+
+    fn to_committed(&self) -> Region {
+        self.to_block().committed()
+
+    }
+
+    fn to_active(&self) -> Region {
+        self.to_block().active()
+    }
+
+    // Make to-space writable.
+    fn unprotect_to(&self) {
         // make memory writable again, so that we
         // can copy objects to the to-space.
         // Since this has some overhead, do it only in debug builds.
 
         if cfg!(debug_assertions) || self.protect {
-            let to_space = self.to_space();
+            let to_space = self.to_committed();
 
             os::mprotect(
                 to_space.start.to_ptr::<u8>(),
@@ -183,17 +252,114 @@ impl YoungGen {
         }
     }
 
-    // Make to-semi-space inaccessible.
-    pub fn protect_to_space(&self) {
+    // Make to-space inaccessible.
+    fn protect_to(&self) {
         // Make from-space unaccessible both from read/write.
         // Since this has some overhead, do it only in debug builds.
         if cfg!(debug_assertions) || self.protect {
-            let to_space = self.to_space();
+            let to_space = self.to_committed();
             os::mprotect(
                 to_space.start.to_ptr::<u8>(),
                 to_space.size(),
                 ProtType::None,
             );
         }
+    }
+
+    // Free all objects in from-semi-space.
+    fn clear_from(&self) {
+        let from_space = self.from_block();
+
+        self.age_marker.store(from_space.start.to_usize(), Ordering::Relaxed);
+        self.from_block().reset_top();
+    }
+
+    // Switch from- & to-semi-space.
+    fn swap(&self, top: Address) {
+        // current from-space is now empty
+        self.from_block().reset_top();
+
+        // swap from_index
+        self.swap_from_index();
+
+        // new from-space is already used up to `top`.
+        self.from_block().set_top(top);
+        self.age_marker.store(top.to_usize(), Ordering::Relaxed);
+    }
+
+    fn swap_from_index(&self) {
+        let from_index = self.from_index.load(Ordering::Relaxed);
+
+        let updated_from_index = if from_index == 1 {
+            2
+        } else {
+            assert!(from_index == 2);
+            1
+        };
+
+        self.from_index.store(updated_from_index, Ordering::Relaxed);
+    }
+
+    fn should_be_promoted(&self, addr: Address) -> bool {
+        debug_assert!(self.from_active().contains(addr));
+        return addr.to_usize() < self.age_marker.load(Ordering::Relaxed);
+    }
+}
+
+struct Block {
+    start: Address,
+    end: Address,
+    committed: AtomicUsize,
+    alloc: BumpAllocator,
+}
+
+impl Block {
+    fn new(region: Region, committed_size: usize) -> Block {
+        assert!(committed_size <= region.size());
+        let committed = region.start.offset(committed_size);
+
+        Block {
+            start: region.start,
+            end: region.end,
+            committed: AtomicUsize::new(committed.to_usize()),
+            alloc: BumpAllocator::new(region.start, committed),
+        }
+    }
+
+    fn commit(&self) {
+        let committed = self.committed.load(Ordering::Relaxed);
+        let size = committed - self.start.to_usize();
+
+        if size > 0 {
+            arena::commit(self.start, size, false);
+        }
+    }
+
+    fn total(&self) -> Region {
+        Region::new(self.start, self.end)
+    }
+
+    fn committed(&self) -> Region {
+        let committed = self.committed.load(Ordering::Relaxed);
+        Region::new(self.start, committed.into())
+    }
+
+    fn active(&self) -> Region {
+        Region::new(self.start, self.alloc.top())
+    }
+
+    fn reset_top(&self) {
+        let committed = self.committed.load(Ordering::Relaxed);
+        self.alloc.reset(self.start, committed.into());
+    }
+
+    fn set_top(&self, addr: Address) {
+        let committed = self.committed.load(Ordering::Relaxed);
+        assert!(self.start <= addr && addr <= committed.into());
+        self.alloc.reset(addr, committed.into())
+    }
+
+    fn bump_alloc(&self, size: usize) -> Address {
+        self.alloc.bump_alloc(size)
     }
 }

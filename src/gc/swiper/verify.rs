@@ -46,8 +46,9 @@ pub struct Verifier<'a> {
     in_old: bool,
     in_large: bool,
 
-    old_region: Region,
-    young_region: Region,
+    old_active: Region,
+    eden_active: Region,
+    from_active: Region,
     reserved_area: Region,
 
     phase: VerifierPhase,
@@ -78,8 +79,9 @@ impl<'a> Verifier<'a> {
             in_old: false,
             in_large: false,
 
-            young_region: young.used_region(),
-            old_region: old.used_region(),
+            eden_active: young.eden_active(),
+            from_active: young.from_active(),
+            old_active: old.used_region(),
             reserved_area: reserved_area,
 
             phase: phase,
@@ -94,12 +96,12 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let region = self.young_region.clone();
-        self.verify_objects(region, "young gen");
+        let region = self.from_active.clone();
+        self.verify_objects(region, "young gen (from)");
     }
 
     fn verify_old(&mut self) {
-        let region = self.old_region.clone();
+        let region = self.old_active.clone();
         self.in_old = true;
         self.verify_objects(region, "old gen");
         self.in_old = false;
@@ -304,8 +306,8 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_region.contains(reference)
-            || self.young_region.contains(reference)
+        if self.old_active.contains(reference)
+            || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
         {
@@ -317,7 +319,7 @@ impl<'a> Verifier<'a> {
             // make sure that the size doesn't equal 1.
             assert!(object.size() != 1, "object size shouldn't be 1");
 
-            if self.young_region.contains(reference) {
+            if self.from_active.contains(reference) {
                 self.refs_to_young_gen += 1;
             }
 
@@ -327,28 +329,22 @@ impl<'a> Verifier<'a> {
         let perm_region = self.perm_space.used_region();
 
         println!(
-            "PRM: {}-{}; active: {}-{} (size 0x{:x})",
-            self.perm_space.total().start,
-            self.perm_space.total().end,
-            perm_region.start,
-            perm_region.end,
+            "PRM: {}; active: {} (size 0x{:x})",
+            self.perm_space.total(),
+            perm_region,
             perm_region.size(),
         );
         println!(
-            "YNG: {}-{}; active: {}-{} (size 0x{:x})",
-            self.young.total().start,
-            self.young.total().end,
-            self.young_region.start,
-            self.young_region.end,
-            self.young_region.size(),
+            "FRM: {}; active: {} (size 0x{:x})",
+            self.young.from_total(),
+            self.from_active,
+            self.from_active.size(),
         );
         println!(
-            "OLD: {}-{}; active: {}-{} (size 0x{:x})",
-            self.old.total().start,
-            self.old.total().end,
-            self.old_region.start,
-            self.old_region.end,
-            self.old_region.size(),
+            "OLD: {}; active: {} (size 0x{:x})",
+            self.old.total(),
+            self.old_active,
+            self.old_active.size(),
         );
         println!(
             "LRG: {}-{}",
@@ -364,7 +360,7 @@ impl<'a> Verifier<'a> {
             reference, name, slot.address(), container_obj
         );
 
-        if self.young.contains(reference) && !self.young_region.contains(reference) {
+        if self.young.contains(reference) && !self.from_active.contains(reference) {
             println!("reference points into young generation but not into the active semi-space.");
         }
 

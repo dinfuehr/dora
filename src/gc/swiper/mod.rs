@@ -103,6 +103,7 @@ impl Swiper {
         // determine boundaries of young generation
         let young_start = heap_start;
         let young_end = young_start.offset(max_heap_size);
+        let young = Region::new(young_start, young_end);
 
         // determine boundaries of old generation
         let old_start = young_end;
@@ -120,7 +121,7 @@ impl Swiper {
             max_heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
-        let young = YoungGen::new(young_start, young_end, young_size, args.flag_gc_verify);
+        let young = YoungGen::new(young, young_size, args.flag_gc_verify);
         let old = OldGen::new(
             old_start,
             old_end,

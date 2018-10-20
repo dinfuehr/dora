@@ -113,7 +113,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.used_region().size() + self.old.used_region().size()
+        self.young.active_size() + self.old.used_region().size()
     }
 
     fn mark_live(&mut self) {
@@ -199,7 +199,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             }
         });
 
-        self.young.free();
+        self.young.clear();
 
         assert!(self.old.valid_top(self.fwd));
         self.old.update_free(self.fwd);
@@ -261,7 +261,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let used_region = self.old.used_region();
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
-        let used_region = self.young.used_region();
+        let used_region = self.young.from_active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
     }
 

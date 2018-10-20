@@ -30,7 +30,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     promotion_failed: bool,
     promoted_size: usize,
-    young_from: Region,
+    from_committed: Region,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -57,7 +57,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             promotion_failed: false,
             promoted_size: 0,
-            young_from: young.from_space(),
+            from_committed: young.from_committed(),
         }
     }
 
@@ -66,12 +66,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let mut timer = Timer::new(active);
 
         let init_size = self.heap_size();
-        let young_init_size = self.young.used_region().size();
+        let young_init_size = self.young.active_size();
 
-        self.young_free = self.young.to_space().start;
+        self.young_free = self.young.to_committed().start;
         self.old_end = self.old.free();
 
-        self.young.unprotect_to_space();
+        self.young.unprotect_to();
 
         let time_roots = Timer::ms(active, || {
             self.visit_roots();
@@ -86,12 +86,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             self.visit_gray_objects();
         });
 
-        self.young.swap_spaces(self.young_free);
-        self.young.protect_to_space();
+        self.young.swap_semi(self.young_free);
+        self.young.protect_to();
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
-            let young_new_size = self.young.used_region().size();
+            let young_new_size = self.young.active_size();
             let garbage = young_init_size - young_new_size - self.promoted_size;
             let garbage_ratio = if young_init_size == 0 {
                 0f64
@@ -119,7 +119,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.used_region().size() + self.old.used_region().size()
+        self.young.active_size() + self.old.used_region().size()
     }
 
     fn visit_roots(&mut self) {
@@ -199,7 +199,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_gray_objects(&mut self) {
-        let mut young_scan = self.young.to_space().start;
+        let mut young_scan = self.young.to_committed().start;
         let mut old_scan = self.old_end;
 
         // visit all fields in gray (=copied) objects
@@ -333,7 +333,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let slot = Slot::at(ptr);
             let dir_ptr = slot.get();
 
-            if self.young_from.contains(dir_ptr) {
+            if self.from_committed.contains(dir_ptr) {
                 let copied_obj = self.copy(dir_ptr);
                 slot.set(copied_obj);
 
@@ -390,7 +390,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             object.visit_reference_fields_within(end, |field| {
                 let field_ptr = field.get();
 
-                if self.young_from.contains(field_ptr) {
+                if self.from_committed.contains(field_ptr) {
                     let copied_obj = self.copy(field_ptr);
                     field.set(copied_obj);
 
@@ -424,7 +424,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let obj_size = obj.size();
         debug_assert!(
-            self.young_from.contains(obj_addr),
+            self.from_committed.contains(obj_addr),
             "copy objects only from from-space."
         );
 
@@ -439,7 +439,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let copy_addr = self.young_free;
         self.young_free = copy_addr.offset(obj_size);
-        assert!(self.young_free <= self.young.to_space().end);
+        assert!(self.young.to_committed().valid_top(self.young_free));
 
         obj.copy_to(copy_addr, obj_size);
         obj.header_mut().vtbl_forward_to(copy_addr);
