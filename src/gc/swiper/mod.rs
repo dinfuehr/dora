@@ -211,7 +211,7 @@ impl Swiper {
 
     fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
         if ctxt.args.flag_gc_verify {
-            if ctxt.args.flag_gc_verbose {
+            if ctxt.args.flag_gc_dev_verbose {
                 println!("VERIFY: {}", _name);
             }
 

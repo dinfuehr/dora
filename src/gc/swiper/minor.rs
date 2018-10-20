@@ -77,18 +77,34 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         self.young.unprotect_to();
 
+        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
+
+
+        if dev_verbose {
+            println!("Minor GC: Phase 1 (roots)");
+        }
         let time_roots = Timer::ms(active, || {
             self.visit_roots();
         });
 
+        if dev_verbose {
+            println!("Minor GC: Phase 2 (dirty cards)");
+        }
         let time_dirty_cards = Timer::ms(active, || {
             self.copy_dirty_cards();
             self.visit_large_objects();
         });
 
+        if dev_verbose {
+            println!("Minor GC: Phase 3 (traverse)");
+        }
         let time_traverse = Timer::ms(active, || {
             self.visit_gray_objects();
         });
+
+        if dev_verbose {
+            println!("Minor GC: Phase 3 (traverse) finished.");
+        }
 
         self.young.swap_semi(self.young_free);
         self.young.protect_to();

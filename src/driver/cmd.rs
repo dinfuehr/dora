@@ -40,6 +40,7 @@ Options:
     --gc-stress-minor       Minor collection at every allocation.
     --gc-stats              Print GC statistics.
     --gc-verbose            Verbose GC.
+    --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
 
@@ -74,6 +75,7 @@ pub struct Args {
     pub flag_gc_stress_minor: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_verbose: bool,
+    pub flag_gc_dev_verbose: bool,
     pub flag_gc_verify: bool,
     pub flag_gc: Option<CollectorName>,
     pub flag_min_heap_size: Option<MemSize>,
@@ -136,6 +138,7 @@ impl Default for Args {
             flag_gc_stress_minor: false,
             flag_gc_stats: false,
             flag_gc_verbose: false,
+            flag_gc_dev_verbose: false,
             flag_gc_verify: false,
             flag_gc: None,
             flag_min_heap_size: None,

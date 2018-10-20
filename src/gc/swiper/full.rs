@@ -60,29 +60,49 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     pub fn collect(&mut self) {
         let active = self.ctxt.args.flag_gc_verbose;
+        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
         let mut timer = Timer::new(active);
         let init_size = self.heap_size();
         self.old_top = self.old.active().end;
 
+        if dev_verbose {
+            println!("Full GC: Phase 1 (marking)");
+        }
         let time_mark = Timer::ms(active, || {
             self.mark_live();
         });
 
+        if dev_verbose {
+            println!("Full GC: Phase 2 (forward)");
+        }
         let time_forward = Timer::ms(active, || {
             self.compute_forward();
         });
 
+        if dev_verbose {
+            println!("Full GC: Phase 3 (update refs)");
+        }
         let time_updateref = Timer::ms(active, || {
             self.update_references();
         });
 
+        if dev_verbose {
+            println!("Full GC: Phase 4 (relocate)");
+        }
         let time_relocate = Timer::ms(active, || {
             self.relocate();
         });
 
+        if dev_verbose {
+            println!("Full GC: Phase 5 (large objects)");
+        }
         let time_large = Timer::ms(active, || {
             self.update_large_objects();
         });
+
+        if dev_verbose {
+            println!("Full GC: Phase 5 (large objects) finished.");
+        }
 
         self.reset_cards();
 
