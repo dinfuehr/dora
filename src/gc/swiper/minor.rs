@@ -69,7 +69,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let young_init_size = self.young.active_size();
 
         self.young_free = self.young.to_committed().start;
-        self.old_end = self.old.free();
+        self.old_end = self.old.top();
 
         self.young.unprotect_to();
 
@@ -119,7 +119,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.used_region().size()
+        self.young.active_size() + self.old.active_size()
     }
 
     fn visit_roots(&mut self) {
@@ -204,18 +204,18 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // visit all fields in gray (=copied) objects
         // there can be gray objects in old & young gen
-        while young_scan < self.young_free || old_scan < self.old.free() {
+        while young_scan < self.young_free || old_scan < self.old.top() {
             while young_scan < self.young_free {
                 young_scan = self.visit_gray_object(young_scan);
             }
 
-            while old_scan < self.old.free() {
+            while old_scan < self.old.top() {
                 old_scan = self.visit_gray_object_in_old(old_scan);
             }
         }
 
         assert!(young_scan == self.young_free);
-        assert!(old_scan == self.old.free());
+        assert!(old_scan == self.old.top());
     }
 
     fn visit_gray_object(&mut self, addr: Address) -> Address {
@@ -352,7 +352,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let card_start = self.card_table.to_address(card);
         let card_end = card_start.offset(CARD_SIZE);
 
-        let old_end: Address = self.old.free();
+        let old_end: Address = self.old.top();
         let mut end = cmp::min(card_end, old_end);
 
         loop {
@@ -365,7 +365,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 break;
             }
 
-            let old_end = self.old.free();
+            let old_end = self.old.top();
             let next_end = cmp::min(card_end, old_end);
 
             if end != next_end {
@@ -448,7 +448,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn try_promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
-        let copy_addr = self.old.alloc(obj_size, obj.is_array_ref());
+        let copy_addr = self.old.bump_alloc(obj_size, obj.is_array_ref());
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now

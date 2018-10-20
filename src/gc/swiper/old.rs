@@ -10,7 +10,7 @@ use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
-    free: AtomicUsize,
+    top: AtomicUsize,
     committed_size: usize,
     committed_end: Address,
     crossing_map: CrossingMap,
@@ -27,7 +27,7 @@ impl OldGen {
     ) -> OldGen {
         let old = OldGen {
             total: Region::new(start, end),
-            free: AtomicUsize::new(start.to_usize()),
+            top: AtomicUsize::new(start.to_usize()),
             committed_size: old_size,
             committed_end: start.offset(old_size),
             crossing_map: crossing_map,
@@ -47,20 +47,28 @@ impl OldGen {
         self.total.clone()
     }
 
-    pub fn used_region(&self) -> Region {
-        Region::new(self.total.start, self.free())
+    pub fn active(&self) -> Region {
+        Region::new(self.total.start, self.top())
     }
 
-    pub fn free(&self) -> Address {
-        self.free.load(Ordering::Relaxed).into()
+    pub fn committed(&self) -> Region {
+        Region::new(self.total.start, self.committed_end)
+    }
+
+    pub fn active_size(&self) -> usize {
+        self.top().offset_from(self.total.start)
+    }
+
+    pub fn top(&self) -> Address {
+        self.top.load(Ordering::Relaxed).into()
     }
 
     pub fn update_free(&self, free: Address) {
-        self.free.store(free.to_usize(), Ordering::SeqCst);
+        self.top.store(free.to_usize(), Ordering::SeqCst);
     }
 
-    pub fn alloc(&self, size: usize, array_ref: bool) -> Address {
-        let mut old = self.free.load(Ordering::Relaxed);
+    pub fn bump_alloc(&self, size: usize, array_ref: bool) -> Address {
+        let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 
         loop {
@@ -71,7 +79,7 @@ impl OldGen {
             }
 
             let res =
-                self.free
+                self.top
                     .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {

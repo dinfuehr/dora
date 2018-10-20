@@ -295,7 +295,7 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        self.old.alloc(size, array_ref)
+        self.old.bump_alloc(size, array_ref)
     }
 
     fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> Address {

@@ -62,7 +62,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let active = self.ctxt.args.flag_gc_verbose;
         let mut timer = Timer::new(active);
         let init_size = self.heap_size();
-        self.old_top = self.old.used_region().end;
+        self.old_top = self.old.active().end;
 
         let time_mark = Timer::ms(active, || {
             self.mark_live();
@@ -113,7 +113,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn heap_size(&self) -> usize {
-        self.young.active_size() + self.old.used_region().size()
+        self.young.active_size() + self.old.active_size()
     }
 
     fn mark_live(&mut self) {
@@ -258,7 +258,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        let used_region = self.old.used_region();
+        let used_region = self.old.active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
         let used_region = self.young.from_active();

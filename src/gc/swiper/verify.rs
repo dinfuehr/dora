@@ -81,7 +81,7 @@ impl<'a> Verifier<'a> {
 
             eden_active: young.eden_active(),
             from_active: young.from_active(),
-            old_active: old.used_region(),
+            old_active: old.active(),
             reserved_area: reserved_area,
 
             phase: phase,
@@ -96,6 +96,9 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
+        let region = self.young.eden_active();
+        self.verify_objects(region, "young gen (eden)");
+
         let region = self.from_active.clone();
         self.verify_objects(region, "young gen (from)");
     }
