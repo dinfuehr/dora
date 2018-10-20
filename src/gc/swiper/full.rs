@@ -265,6 +265,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let used_region = self.old.active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
+        let used_region = self.young.eden_active();
+        self.walk_region(used_region.start, used_region.end, &mut fct);
+
         let used_region = self.young.from_active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
     }

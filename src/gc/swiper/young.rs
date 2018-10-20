@@ -1,9 +1,11 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use gc::arena;
 use gc::bump::BumpAllocator;
+use gc::{align_space, arena};
 use gc::{Address, Region};
 use os::{self, ProtType};
+
+const SEMI_RATIO: usize = 3;
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -20,13 +22,16 @@ impl YoungGen {
     pub fn new(total: Region, committed_size: usize, protect: bool) -> YoungGen {
         let half_size = total.size() / 2;
 
-        let eden = total.start.region_start(half_size);
-        let semi = Region::new(eden.start, total.end);
+        let eden_total = total.start.region_start(half_size);
+        let semi_total = Region::new(eden_total.start, total.end);
+
+        let semi_committed = align_space(committed_size / SEMI_RATIO);
+        let eden_committed = committed_size - semi_committed;
 
         let young = YoungGen {
             total: total,
-            eden: Eden::new(eden, 0),
-            semi: SemiSpace::new(semi, committed_size, protect),
+            eden: Eden::new(eden_total, eden_committed),
+            semi: SemiSpace::new(semi_total, semi_committed, protect),
         };
 
         young.commit();

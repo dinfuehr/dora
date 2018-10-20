@@ -30,7 +30,9 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     promotion_failed: bool,
     promoted_size: usize,
-    from_committed: Region,
+
+    from_active: Region,
+    eden_active: Region,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -57,7 +59,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             promotion_failed: false,
             promoted_size: 0,
-            from_committed: young.from_committed(),
+
+            from_active: young.from_active(),
+            eden_active: young.eden_active(),
         }
     }
 
@@ -333,7 +337,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             let slot = Slot::at(ptr);
             let dir_ptr = slot.get();
 
-            if self.from_committed.contains(dir_ptr) {
+            if self.young.contains(dir_ptr) {
                 let copied_obj = self.copy(dir_ptr);
                 slot.set(copied_obj);
 
@@ -390,7 +394,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             object.visit_reference_fields_within(end, |field| {
                 let field_ptr = field.get();
 
-                if self.from_committed.contains(field_ptr) {
+                if self.young.contains(field_ptr) {
                     let copied_obj = self.copy(field_ptr);
                     field.set(copied_obj);
 
@@ -424,7 +428,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let obj_size = obj.size();
         debug_assert!(
-            self.from_committed.contains(obj_addr),
+            self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
             "copy objects only from from-space."
         );
 

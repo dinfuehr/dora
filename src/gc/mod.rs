@@ -26,6 +26,9 @@ const CHUNK_SIZE: usize = 8 * 1024;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
+// every space (eden/from/to/old) is aligned to at least this size
+const SPACE_ALIGNMENT_BITS: usize = 16;
+
 pub struct Gc {
     collector: Box<Collector>,
 
@@ -328,4 +331,12 @@ impl fmt::Display for FormattedSize {
 
 fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
+}
+
+/// round the given value up to the nearest multiple of a page
+pub fn align_space(val: usize) -> usize {
+    let align = SPACE_ALIGNMENT_BITS;
+    // we know that page size is power of 2, hence
+    // we can use shifts instead of expensive division
+    ((val + (1 << align) - 1) >> align) << align
 }
