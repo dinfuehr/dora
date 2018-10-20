@@ -160,7 +160,8 @@ impl VTable {
         let lay = Layout::from_size_align(
             num * size_of::<*const VTable>(),
             align_of::<*const VTable>(),
-        ).unwrap();
+        )
+        .unwrap();
 
         unsafe {
             let ptr = NonNull::new_unchecked(self.subtype_overflow as *const _ as *mut u8);

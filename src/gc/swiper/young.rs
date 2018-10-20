@@ -17,11 +17,7 @@ pub struct YoungGen {
 }
 
 impl YoungGen {
-    pub fn new(
-        total: Region,
-        committed_size: usize,
-        protect: bool,
-    ) -> YoungGen {
+    pub fn new(total: Region, committed_size: usize, protect: bool) -> YoungGen {
         let half_size = total.size() / 2;
 
         let eden = total.start.region_start(half_size);
@@ -191,7 +187,6 @@ impl SemiSpace {
         let from_index = self.from_index.load(Ordering::Relaxed);
         if from_index == 1 {
             &self.first
-
         } else {
             assert!(from_index == 2);
             &self.second
@@ -202,7 +197,6 @@ impl SemiSpace {
         let from_index = self.from_index.load(Ordering::Relaxed);
         if from_index == 1 {
             &self.second
-
         } else {
             assert!(from_index == 2);
             &self.first
@@ -215,7 +209,6 @@ impl SemiSpace {
 
     fn from_committed(&self) -> Region {
         self.from_block().committed()
-
     }
 
     fn from_active(&self) -> Region {
@@ -228,7 +221,6 @@ impl SemiSpace {
 
     fn to_committed(&self) -> Region {
         self.to_block().committed()
-
     }
 
     fn to_active(&self) -> Region {
@@ -270,7 +262,8 @@ impl SemiSpace {
     fn clear_from(&self) {
         let from_space = self.from_block();
 
-        self.age_marker.store(from_space.start.to_usize(), Ordering::Relaxed);
+        self.age_marker
+            .store(from_space.start.to_usize(), Ordering::Relaxed);
         self.from_block().reset_top();
     }
 

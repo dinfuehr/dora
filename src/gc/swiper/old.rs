@@ -78,9 +78,9 @@ impl OldGen {
                 return Address::null();
             }
 
-            let res =
-                self.top
-                    .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
+            let res = self
+                .top
+                .compare_exchange_weak(old, new, Ordering::SeqCst, Ordering::Relaxed);
 
             match res {
                 Ok(_) => break,

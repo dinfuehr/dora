@@ -297,12 +297,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_reference(
-        &mut self,
-        slot: Slot,
-        container_obj: Address,
-        name: &str,
-    ) {
+    fn verify_reference(&mut self, slot: Slot, container_obj: Address, name: &str) {
         let reference = slot.get();
 
         if reference.is_null() {
@@ -310,6 +305,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_active.contains(reference)
+            || self.eden_active.contains(reference)
             || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
@@ -360,10 +356,16 @@ impl<'a> Verifier<'a> {
         );
         println!(
             "found invalid reference to {} in {} (at {}, in object {}).",
-            reference, name, slot.address(), container_obj
+            reference,
+            name,
+            slot.address(),
+            container_obj
         );
 
-        if self.young.contains(reference) && !self.from_active.contains(reference) {
+        if self.young.contains(reference)
+            && !self.from_active.contains(reference)
+            && !self.eden_active.contains(reference)
+        {
             println!("reference points into young generation but not into the active semi-space.");
         }
 

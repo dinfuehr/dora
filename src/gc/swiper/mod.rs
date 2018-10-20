@@ -209,13 +209,7 @@ impl Swiper {
         self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
-    fn verify(
-        &self,
-        ctxt: &SemContext,
-        phase: VerifierPhase,
-        _name: &str,
-        rootset: &[Slot],
-    ) {
+    fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_verbose {
                 println!("VERIFY: {}", _name);

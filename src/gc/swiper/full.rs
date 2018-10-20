@@ -250,7 +250,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
-            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr) || self.large_space.contains(object_addr));
+            debug_assert!(
+                object_addr.is_null()
+                    || self.perm_space.contains(object_addr)
+                    || self.large_space.contains(object_addr)
+            );
         }
     }
 

@@ -101,7 +101,8 @@ pub fn generate_fct<'ast>(
 
         cls_type_params: cls_type_params,
         fct_type_params: fct_type_params,
-    }.generate();
+    }
+    .generate();
 
     if should_emit_asm(ctxt, &*fct) {
         dump_asm(
@@ -255,7 +256,8 @@ pub fn dump_asm<'ast>(
             &mut w,
             "  {:#06x}: {}\t\t{}",
             instr.addr, instr.mnemonic, instr.op_str
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     writeln!(&mut w).unwrap();

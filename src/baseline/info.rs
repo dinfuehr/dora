@@ -573,7 +573,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
                     Arg::SelfieNew(cid, _) => Arg::SelfieNew(cid, offset),
                     Arg::Selfie(cid, _) => Arg::Selfie(cid, offset),
                 }
-            }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
 
         let return_type = self.specialize_type_for_call(call_type, callee.return_type);
 

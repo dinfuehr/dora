@@ -241,7 +241,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.visit_expr(&expr);
 
                 self.expr_type
-            }).unwrap_or(BuiltinType::Unit);
+            })
+            .unwrap_or(BuiltinType::Unit);
 
         let fct_type = self.fct.return_type;
 
@@ -738,7 +739,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map(|arg| {
                 self.visit_expr(arg);
                 self.expr_type
-            }).collect();
+            })
+            .collect();
 
         let type_params: Vec<BuiltinType> = if let Some(ref type_params) = e.type_params {
             type_params.iter().map(|p| self.src.ty(p.id())).collect()
@@ -906,7 +908,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map(|arg| {
                 self.visit_expr(arg);
                 self.expr_type
-            }).collect();
+            })
+            .collect();
 
         let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
 
@@ -1653,7 +1656,8 @@ impl<'a, 'ast> ConstCheck<'a, 'ast> {
                     &[],
                     &TypeParams::empty(),
                     Some(ty),
-                ).is_none()
+                )
+                .is_none()
                 {
                     let ty = ty.name(self.ctxt);
                     let msg = Msg::UnOpType(expr.op.as_str().into(), ty);

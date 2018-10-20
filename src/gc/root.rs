@@ -65,12 +65,7 @@ fn from_dora_to_native_info(
     dtn.last
 }
 
-fn determine_rootset(
-    rootset: &mut Vec<Slot>,
-    ctxt: &SemContext,
-    fp: usize,
-    pc: usize,
-) -> bool {
+fn determine_rootset(rootset: &mut Vec<Slot>, ctxt: &SemContext, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
