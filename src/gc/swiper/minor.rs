@@ -105,13 +105,14 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse) finished.");
         }
 
+        self.young.clear_eden();
         self.young.swap_semi(self.young_free);
         self.young.protect_to();
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let young_new_size = self.young.active_size();
-            let garbage = young_init_size - young_new_size - self.promoted_size;
+            let garbage = saturating_sub(saturating_sub(young_init_size, young_new_size), self.promoted_size);
             let garbage_ratio = if young_init_size == 0 {
                 0f64
             } else {
@@ -486,5 +487,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     pub fn promotion_failed(&self) -> bool {
         self.promotion_failed
+    }
+}
+
+fn saturating_sub(lhs: usize, rhs: usize) -> usize {
+    if lhs > rhs {
+        lhs - rhs
+    } else {
+        0
     }
 }

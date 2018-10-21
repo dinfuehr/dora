@@ -23,7 +23,7 @@ impl YoungGen {
         let half_size = total.size() / 2;
 
         let eden_total = total.start.region_start(half_size);
-        let semi_total = Region::new(eden_total.start, total.end);
+        let semi_total = Region::new(eden_total.end, total.end);
 
         let semi_committed = align_space(committed_size / SEMI_RATIO);
         let eden_committed = committed_size - semi_committed;
@@ -97,16 +97,26 @@ impl YoungGen {
         self.semi.protect_to();
     }
 
+    pub fn clear_eden(&self) {
+        self.eden.reset_top();
+    }
+
     pub fn swap_semi(&self, top: Address) {
         self.semi.swap(top);
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
+        debug_assert!(self.total.contains(addr));
+
+        if addr < self.semi.total.start {
+            return false;
+        }
+
         self.semi.should_be_promoted(addr)
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
-        self.semi.from_block().bump_alloc(size)
+        self.eden.bump_alloc(size)
     }
 }
 
@@ -145,6 +155,10 @@ impl Eden {
 
     fn reset_top(&self) {
         self.block.reset_top();
+    }
+
+    fn bump_alloc(&self, size: usize) -> Address {
+        self.block.bump_alloc(size)
     }
 }
 
