@@ -25,7 +25,8 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
 
-    young_free: Address,
+    young_top: Address,
+    young_limit: Address,
     old_end: Address,
 
     promotion_failed: bool,
@@ -54,7 +55,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             card_table: card_table,
             crossing_map: crossing_map,
 
-            young_free: Address::null(),
+            young_top: Address::null(),
+            young_limit: Address::null(),
             old_end: Address::null(),
 
             promotion_failed: false,
@@ -72,7 +74,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let init_size = self.heap_size();
         let young_init_size = self.young.active_size();
 
-        self.young_free = self.young.to_committed().start;
+        let to_committed = self.young.to_committed();
+        self.young_top = to_committed.start;
+        self.young_limit = to_committed.end;
         self.old_end = self.old.top();
 
         self.young.unprotect_to();
@@ -106,7 +110,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
 
         self.young.clear_eden();
-        self.young.swap_semi(self.young_free);
+        self.young.swap_semi(self.young_top);
         self.young.protect_to();
 
         timer.stop_with(|time_pause| {
@@ -224,8 +228,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // visit all fields in gray (=copied) objects
         // there can be gray objects in old & young gen
-        while young_scan < self.young_free || old_scan < self.old.top() {
-            while young_scan < self.young_free {
+        while young_scan < self.young_top || old_scan < self.old.top() {
+            while young_scan < self.young_top {
                 young_scan = self.visit_gray_object(young_scan);
             }
 
@@ -234,7 +238,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             }
         }
 
-        assert!(young_scan == self.young_free);
+        assert!(young_scan == self.young_top);
         assert!(old_scan == self.old.top());
     }
 
@@ -448,8 +452,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             "copy objects only from from-space."
         );
 
+        let copy_addr = self.young_top;
+        let next_young_top = copy_addr.offset(obj_size);
+
         // if object is old enough we copy it into the old generation
-        if self.young.should_be_promoted(obj_addr) {
+        if self.young.should_be_promoted(obj_addr) || next_young_top > self.young_limit {
             let old_addr = self.try_promote_object(obj, obj_size);
 
             if old_addr.is_non_null() {
@@ -457,9 +464,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             }
         }
 
-        let copy_addr = self.young_free;
-        self.young_free = copy_addr.offset(obj_size);
-        assert!(self.young.to_committed().valid_top(self.young_free));
+        if next_young_top > self.young_limit {
+            panic!("FAIL: not enough space in to-space.");
+        }
+
+        self.young_top = next_young_top;
+        debug_assert!(self.young.to_committed().valid_top(self.young_top));
 
         obj.copy_to(copy_addr, obj_size);
         obj.header_mut().vtbl_forward_to(copy_addr);
