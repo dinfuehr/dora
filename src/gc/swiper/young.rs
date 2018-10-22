@@ -116,7 +116,13 @@ impl YoungGen {
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
-        self.eden.bump_alloc(size)
+        let eden_ptr = self.eden.bump_alloc(size);
+
+        if eden_ptr.is_non_null() {
+            return eden_ptr;
+        }
+
+        return self.semi.bump_alloc(size);
     }
 }
 
@@ -319,6 +325,10 @@ impl SemiSpace {
     fn should_be_promoted(&self, addr: Address) -> bool {
         debug_assert!(self.from_active().contains(addr));
         return addr.to_usize() < self.age_marker.load(Ordering::Relaxed);
+    }
+
+    fn bump_alloc(&self, size: usize) -> Address {
+        self.from_block().bump_alloc(size)
     }
 }
 
