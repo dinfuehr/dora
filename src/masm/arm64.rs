@@ -987,7 +987,7 @@ impl MacroAssembler {
     }
 
     pub fn nop(&mut self) {
-        unimplemented!();
+        self.emit_u32(asm::nop());
     }
 
     pub fn fix_forward_jumps(&mut self) {
