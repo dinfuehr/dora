@@ -3,7 +3,7 @@ use std::mem::size_of;
 use baseline::dora_native::{finish_native_call, start_native_call};
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
-use cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
 use ctxt::SemContext;
 use exception::throw;
 use exception::DoraToNativeInfo;
@@ -111,9 +111,11 @@ where
         );
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_SP.into(),
+            REG_TMP2.into(),
             Mem::Base(REG_SP, offset_result_sp),
         );
+
+        self.masm.set_sp(REG_TMP2);
         self.masm.jump_reg(REG_TMP1);
 
         self.masm

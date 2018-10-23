@@ -708,6 +708,10 @@ impl MacroAssembler {
         self.copy_reg(MachineMode::Ptr, dest, REG_SP);
     }
 
+    pub fn set_sp(&mut self, src: Reg) {
+        self.copy_reg(MachineMode::Ptr, REG_SP, src);
+    }
+
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => asm::movss(self, dest, src),

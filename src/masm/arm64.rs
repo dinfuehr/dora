@@ -868,7 +868,11 @@ impl MacroAssembler {
     }
 
     pub fn copy_sp(&mut self, dest: Reg) {
-        self.emit_u32(asm::add_imm(1, dest, REG_SP, 0, 0))
+        self.emit_u32(asm::add_imm(1, dest, REG_SP, 0, 0));
+    }
+
+    pub fn set_sp(&mut self, src: Reg) {
+        self.emit_u32(asm::add_imm(1, REG_SP, src, 0, 0));
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
