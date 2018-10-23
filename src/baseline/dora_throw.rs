@@ -81,7 +81,7 @@ where
             REG_PARAMS[0].into(),
             Mem::Base(REG_SP, offset_receiver),
         );
-        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], REG_SP);
+        self.masm.copy_sp(REG_PARAMS[1]);
         self.masm.int_add_imm(
             MachineMode::Ptr,
             REG_PARAMS[1],

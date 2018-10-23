@@ -704,6 +704,10 @@ impl MacroAssembler {
         self.load_mem(MachineMode::Ptr, dest.into(), Mem::Base(REG_SP, 0));
     }
 
+    pub fn copy_sp(&mut self, dest: Reg) {
+        self.copy_reg(MachineMode::Ptr, dest, REG_SP);
+    }
+
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
             MachineMode::Float32 => asm::movss(self, dest, src),
