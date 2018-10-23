@@ -153,7 +153,7 @@ impl MacroAssembler {
         index: Reg,
         value: ExprStore,
         write_barrier: bool,
-        _card_table_offset: usize,
+        card_table_offset: usize,
     ) {
         self.store_mem(
             mode,
@@ -162,7 +162,19 @@ impl MacroAssembler {
         );
 
         if write_barrier {
-            unimplemented!();
+            let scratch = self.get_scratch();
+            self.emit_u32(asm::add_imm(1, *scratch, array, offset_of_array_data() as u32, 0));
+
+            let shift = match mode {
+                MachineMode::Int8 => 0,
+                MachineMode::Int32 | MachineMode::Float32 => 2,
+                MachineMode::Int64 | MachineMode::Ptr | MachineMode::Float64 => 3,
+            };
+
+            let inst = asm::add_shreg(1, *scratch, *scratch, index, Shift::LSL, shift);
+            self.emit_u32(inst);
+
+            self.emit_barrier(array, card_table_offset);
         }
     }
 
