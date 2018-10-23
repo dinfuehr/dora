@@ -174,7 +174,7 @@ impl MacroAssembler {
             let inst = asm::add_shreg(1, *scratch, *scratch, index, Shift::LSL, shift);
             self.emit_u32(inst);
 
-            self.emit_barrier(array, card_table_offset);
+            self.emit_barrier(*scratch, card_table_offset);
         }
     }
 
