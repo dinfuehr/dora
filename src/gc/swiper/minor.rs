@@ -10,7 +10,7 @@ use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{formatted_size, Address, Region};
+use gc::{formatted_size, Address, GcReason, Region};
 
 use mem;
 use object::Obj;
@@ -34,6 +34,8 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     from_active: Region,
     eden_active: Region,
+
+    reason: GcReason,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -45,6 +47,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
+        reason: GcReason,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             ctxt: ctxt,
@@ -64,6 +67,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             from_active: young.from_active(),
             eden_active: young.eden_active(),
+
+            reason: reason,
         }
     }
 
@@ -116,7 +121,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let young_new_size = self.young.active_size();
-            let garbage = saturating_sub(saturating_sub(young_init_size, young_new_size), self.promoted_size);
+            let garbage = saturating_sub(
+                saturating_sub(young_init_size, young_new_size),
+                self.promoted_size,
+            );
             let garbage_ratio = if young_init_size == 0 {
                 0f64
             } else {
@@ -126,7 +134,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             println!(
                 "GC: Minor GC ({:.1} ms, {}->{}, young {}->{}, \
                  {} promoted, {}/{:.0}% garbage); \
-                 root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms",
+                 root={:.1}ms dirty_cards={:.1}ms traverse={:.1}ms; ({})",
                 time_pause,
                 formatted_size(init_size),
                 formatted_size(new_size),
@@ -138,6 +146,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 time_roots,
                 time_dirty_cards,
                 time_traverse,
+                self.reason,
             );
         });
     }

@@ -1,6 +1,5 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
-use gc::{align_gen, arena};
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -12,6 +11,7 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
+use gc::{align_gen, arena, GcReason};
 use gc::{formatted_size, Address, Region};
 use mem;
 pub mod card;
@@ -163,7 +163,7 @@ impl Swiper {
         }
     }
 
-    fn minor_collect_inner(&self, ctxt: &SemContext) -> bool {
+    fn minor_collect_inner(&self, ctxt: &SemContext, reason: GcReason) -> bool {
         // make heap iterable
         tlab::make_iterable(ctxt);
 
@@ -179,6 +179,7 @@ impl Swiper {
             &self.card_table,
             &self.crossing_map,
             &rootset,
+            reason,
         );
         collector.collect();
 
@@ -188,7 +189,7 @@ impl Swiper {
         promotion_failed
     }
 
-    fn full_collect(&self, ctxt: &SemContext) {
+    fn full_collect(&self, ctxt: &SemContext, reason: GcReason) {
         // make heap iterable
         tlab::make_iterable(ctxt);
 
@@ -206,6 +207,7 @@ impl Swiper {
             &self.crossing_map,
             &ctxt.gc.perm_space,
             &rootset,
+            reason,
         );
         collector.collect();
 
@@ -244,10 +246,10 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt);
+        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt);
+            self.full_collect(ctxt, GcReason::PromotionFailure);
             let ptr = self.young.bump_alloc(size);
 
             return if ptr.is_null() {
@@ -263,7 +265,7 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        self.full_collect(ctxt);
+        self.full_collect(ctxt, GcReason::AllocationFailure);
         let ptr = self.young.bump_alloc(size);
 
         return if ptr.is_null() {
@@ -280,10 +282,10 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt);
+        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt);
+            self.full_collect(ctxt, GcReason::PromotionFailure);
         }
 
         let ptr = self.young.bump_alloc(size);
@@ -302,18 +304,18 @@ impl Collector for Swiper {
             return ptr;
         }
 
-        self.full_collect(ctxt);
+        self.full_collect(ctxt, GcReason::AllocationFailure);
 
         self.large.alloc(size)
     }
 
-    fn collect(&self, ctxt: &SemContext) {
-        self.full_collect(ctxt);
+    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+        self.full_collect(ctxt, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext) {
+    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
         tlab::make_iterable(ctxt);
-        self.minor_collect_inner(ctxt);
+        self.minor_collect_inner(ctxt, reason);
     }
 
     fn needs_write_barrier(&self) -> bool {

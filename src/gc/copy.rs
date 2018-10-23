@@ -3,7 +3,7 @@ use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
 use gc::tlab;
-use gc::{formatted_size, Address, Collector, Region};
+use gc::{formatted_size, Address, Collector, GcReason, Region};
 use mem;
 use object::Obj;
 use os::{self, ProtType};
@@ -52,7 +52,7 @@ impl Collector for CopyCollector {
             return Some(ptr.region_start(size));
         }
 
-        self.collect(ctxt);
+        self.collect(ctxt, GcReason::AllocationFailure);
 
         let ptr = self.alloc.bump_alloc(size);
 
@@ -70,7 +70,7 @@ impl Collector for CopyCollector {
             return ptr;
         }
 
-        self.collect(ctxt);
+        self.collect(ctxt, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
     }
 
@@ -78,16 +78,16 @@ impl Collector for CopyCollector {
         self.alloc_normal(ctxt, size, array_ref)
     }
 
-    fn collect(&self, ctxt: &SemContext) {
+    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
         // make heap iterable
         tlab::make_iterable(ctxt);
 
         let rootset = get_rootset(ctxt);
-        self.copy_collect(ctxt, &rootset);
+        self.copy_collect(ctxt, &rootset, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext) {
-        self.collect(ctxt);
+    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
+        self.collect(ctxt, reason);
     }
 }
 
@@ -98,7 +98,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot]) {
+    fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot], reason: GcReason) {
         let mut timer = Timer::new(ctxt.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
@@ -157,12 +157,13 @@ impl CopyCollector {
             };
 
             println!(
-                "GC: Copy GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage)",
+                "Copy GC: {:.1} ms, {}->{} size, {}/{:.0}% garbage, ({})",
                 time_pause,
                 formatted_size(old_size),
                 formatted_size(new_size),
                 formatted_size(garbage),
-                garbage_ratio
+                garbage_ratio,
+                reason
             );
         });
     }

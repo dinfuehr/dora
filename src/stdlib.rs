@@ -10,6 +10,7 @@ use std::thread;
 use class::TypeParams;
 use ctxt::{exception_set, get_ctxt};
 use exception::{alloc_exception, stacktrace_from_last_dtn};
+use gc::GcReason;
 use object::{ByteArray, Handle, Obj, Str};
 use os::signal::Trap;
 
@@ -166,12 +167,12 @@ pub extern "C" fn gc_alloc(size: usize, array_ref: bool) -> *mut Obj {
 
 pub extern "C" fn gc_collect() {
     let ctxt = get_ctxt();
-    ctxt.gc.collect(ctxt);
+    ctxt.gc.collect(ctxt, GcReason::ForceCollect);
 }
 
 pub extern "C" fn gc_minor_collect() {
     let ctxt = get_ctxt();
-    ctxt.gc.minor_collect(ctxt);
+    ctxt.gc.minor_collect(ctxt, GcReason::ForceMinorCollect);
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {

@@ -1,7 +1,7 @@
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
-use gc::{arena, Address, Collector, Region};
+use gc::{arena, Address, Collector, GcReason, Region};
 
 pub struct ZeroCollector {
     start: Address,
@@ -45,11 +45,11 @@ impl Collector for ZeroCollector {
         self.alloc.bump_alloc(size)
     }
 
-    fn collect(&self, _: &SemContext) {
+    fn collect(&self, _: &SemContext, _: GcReason) {
         // do nothing
     }
 
-    fn minor_collect(&self, _: &SemContext) {
+    fn minor_collect(&self, _: &SemContext, _: GcReason) {
         // do nothing
     }
 }

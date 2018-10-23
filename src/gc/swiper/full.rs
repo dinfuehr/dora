@@ -9,7 +9,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::{formatted_size, Address, Region};
+use gc::{formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
 
@@ -27,6 +27,8 @@ pub struct FullCollector<'a, 'ast: 'a> {
     fwd: Address,
     fwd_end: Address,
     old_top: Address,
+
+    reason: GcReason,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -40,6 +42,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         crossing_map: &'a CrossingMap,
         perm_space: &'a Space,
         rootset: &'a [Slot],
+        reason: GcReason,
     ) -> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
@@ -57,6 +60,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             fwd: old_committed.start,
             fwd_end: old_committed.end,
             old_top: Address::null(),
+
+            reason: reason,
         }
     }
 
@@ -131,7 +136,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             println!(
                 "GC: Full GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage); \
-                 mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms",
+                 mark={:.1}ms forward={:.1}ms updateref={:.1}ms relocate={:.1}ms large={:.1}ms; ({})",
                 time_pause,
                 formatted_size(init_size),
                 formatted_size(new_size),
@@ -142,6 +147,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 time_updateref,
                 time_relocate,
                 time_large,
+                self.reason,
             );
         });
     }

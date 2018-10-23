@@ -87,11 +87,11 @@ impl Gc {
 
     pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
         if ctxt.args.flag_gc_stress_minor {
-            self.minor_collect(ctxt);
+            self.minor_collect(ctxt, GcReason::StressMinor);
         }
 
         if ctxt.args.flag_gc_stress {
-            self.collect(ctxt);
+            self.collect(ctxt, GcReason::Stress);
         }
 
         if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
@@ -131,12 +131,12 @@ impl Gc {
         }
     }
 
-    pub fn collect(&self, ctxt: &SemContext) {
-        self.collector.collect(ctxt);
+    pub fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+        self.collector.collect(ctxt, reason);
     }
 
-    pub fn minor_collect(&self, ctxt: &SemContext) {
-        self.collector.minor_collect(ctxt);
+    pub fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
+        self.collector.minor_collect(ctxt, reason);
     }
 }
 
@@ -147,11 +147,11 @@ trait Collector {
     fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
-    fn collect(&self, ctxt: &SemContext);
+    fn collect(&self, ctxt: &SemContext, reason: GcReason);
 
     // collect young generation if supported, otherwise
     // collects whole heap
-    fn minor_collect(&self, ctxt: &SemContext);
+    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason);
 
     // decides whether to emit write barriers needed for
     // generational GC to write into card table
@@ -350,6 +350,30 @@ pub fn align_gen(val: usize) -> usize {
     ((val + (1 << align) - 1) >> align) << align
 }
 
-enum GcReason {
-    PromotionFailure, ForceCollect, ForceMinorCollect
+pub enum GcReason {
+    PromotionFailure,
+    AllocationFailure,
+    ForceCollect,
+    ForceMinorCollect,
+    Stress,
+    StressMinor,
+}
+
+impl GcReason {
+    fn message(&self) -> &'static str {
+        match self {
+            GcReason::PromotionFailure => "promo failure",
+            GcReason::AllocationFailure => "alloc failure",
+            GcReason::ForceCollect => "force collect",
+            GcReason::ForceMinorCollect => "force minor collect",
+            GcReason::Stress => "stress",
+            GcReason::StressMinor => "stress minor",
+        }
+    }
+}
+
+impl fmt::Display for GcReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message())
+    }
 }
