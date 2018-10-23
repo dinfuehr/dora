@@ -35,6 +35,7 @@ impl YoungGen {
         };
 
         young.commit();
+        young.protect_to();
 
         young
     }
@@ -210,6 +211,7 @@ impl SemiSpace {
 
     fn commit(&self) {
         self.from_block().commit();
+        self.to_block().commit();
     }
 
     fn from_block(&self) -> &Block {
