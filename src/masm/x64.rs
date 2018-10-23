@@ -534,11 +534,12 @@ impl MacroAssembler {
             0
         };
 
-        let size = header_size + if element_size != ptr_width() {
-            ptr_width() - 1
-        } else {
-            0
-        };
+        let size = header_size
+            + if element_size != ptr_width() {
+                ptr_width() - 1
+            } else {
+                0
+            };
 
         asm::lea(self, dest, Mem::Offset(length, element_size, size));
 

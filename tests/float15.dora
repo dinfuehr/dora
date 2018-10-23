@@ -4,21 +4,29 @@ fun main() {
     assert(!(nan > 0.0));
     assert(!(nan <= 0.0));
     assert(!(nan >= 0.0));
+    assert(!(nan == 0.0));
+    assert(nan != 0.0);
     
     assert(!(nan < nan));
     assert(!(nan > nan));
     assert(!(nan <= nan));
     assert(!(nan >= nan));
+    assert(!(nan == nan));
+    assert(nan != nan);
 
     let infp = 1.0 / 0.0;
     assert(!(nan < infp));
     assert(!(nan > infp));
     assert(!(nan <= infp));
     assert(!(nan >= infp));
+    assert(!(nan == infp));
+    assert(nan != infp);
 
     let infn = -1.0 / 0.0;
     assert(!(nan < infn));
     assert(!(nan > infn));
     assert(!(nan <= infn));
     assert(!(nan >= infn));
+    assert(!(nan == infn));
+    assert(nan != infn);
 }

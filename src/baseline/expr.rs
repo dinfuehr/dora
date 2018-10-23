@@ -1621,16 +1621,12 @@ where
             .collect::<Vec<_>>()
             .into();
 
-        debug_assert!(
-            cls_type_params
-                .iter()
-                .all(|ty| !ty.contains_type_param(self.ctxt))
-        );
-        debug_assert!(
-            fct_type_params
-                .iter()
-                .all(|ty| !ty.contains_type_param(self.ctxt))
-        );
+        debug_assert!(cls_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.ctxt)));
+        debug_assert!(fct_type_params
+            .iter()
+            .all(|ty| !ty.contains_type_param(self.ctxt)));
 
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());

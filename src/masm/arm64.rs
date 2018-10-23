@@ -8,7 +8,7 @@ use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
-use ctxt::{FctId, get_ctxt};
+use ctxt::{get_ctxt, FctId};
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
@@ -163,7 +163,13 @@ impl MacroAssembler {
 
         if write_barrier {
             let scratch = self.get_scratch();
-            self.emit_u32(asm::add_imm(1, *scratch, array, offset_of_array_data() as u32, 0));
+            self.emit_u32(asm::add_imm(
+                1,
+                *scratch,
+                array,
+                offset_of_array_data() as u32,
+                0,
+            ));
 
             let shift = match mode {
                 MachineMode::Int8 => 0,
@@ -531,19 +537,18 @@ impl MacroAssembler {
             _ => unimplemented!(),
         };
 
-        match cond {
-            CondCode::Equal | CondCode::NotEqual => {
-                self.emit_u32(asm::fcmp(dbl, lhs, rhs));
-                self.emit_u32(asm::cset(0, dest, cond.into()));
-            }
-
-            CondCode::Greater | CondCode::GreaterEq | CondCode::Less | CondCode::LessEq => {
-                self.emit_u32(asm::fcmpe(dbl, lhs, rhs));
-                self.emit_u32(asm::cset(0, dest, cond.into()));
-            }
-
+        let cond = match cond {
+            CondCode::Equal => Cond::EQ,
+            CondCode::NotEqual => Cond::NE,
+            CondCode::Greater => Cond::GT,
+            CondCode::GreaterEq => Cond::GE,
+            CondCode::Less => Cond::MI,
+            CondCode::LessEq => Cond::LS,
             _ => unreachable!(),
-        }
+        };
+
+        self.emit_u32(asm::fcmp(dbl, lhs, rhs));
+        self.emit_u32(asm::cset(0, dest, cond));
     }
 
     pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
@@ -573,7 +578,13 @@ impl MacroAssembler {
         self.load_mem(mode, dest.into(), Mem::Base(*scratch, 0));
     }
 
-    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32, with_header: bool) {
+    pub fn determine_array_size(
+        &mut self,
+        dest: Reg,
+        length: Reg,
+        element_size: i32,
+        with_header: bool,
+    ) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
         let header_size = if with_header {
@@ -582,11 +593,12 @@ impl MacroAssembler {
             0
         };
 
-        let size = header_size + if element_size != ptr_width() {
-            ptr_width() - 1
-        } else {
-            0
-        };
+        let size = header_size
+            + if element_size != ptr_width() {
+                ptr_width() - 1
+            } else {
+                0
+            };
 
         if element_size != 1 {
             let shift = match element_size {
