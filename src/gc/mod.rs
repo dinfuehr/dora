@@ -349,3 +349,7 @@ pub fn align_gen(val: usize) -> usize {
     // we can use shifts instead of expensive division
     ((val + (1 << align) - 1) >> align) << align
 }
+
+enum GcReason {
+    PromotionFailure, ForceCollect, ForceMinorCollect
+}
