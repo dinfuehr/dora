@@ -15,6 +15,7 @@ use gc::Collector;
 use gc::{formatted_size, Address, Region};
 use mem;
 pub mod card;
+mod controller;
 mod crossing;
 mod full;
 mod large;
