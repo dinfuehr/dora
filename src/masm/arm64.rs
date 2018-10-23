@@ -311,7 +311,7 @@ impl MacroAssembler {
     pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
-            MachineMode::Int64 => 1,
+            MachineMode::Int64 | MachineMode::Ptr => 1,
             _ => panic!("unimplemented mode {:?}", mode),
         };
 
