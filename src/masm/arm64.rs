@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::BailoutInfo;
@@ -10,7 +8,7 @@ use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
-use ctxt::FctId;
+use ctxt::{FctId, get_ctxt};
 use dora_parser::lexer::position::Position;
 use masm::{Label, MacroAssembler};
 use mem::ptr_width;
@@ -45,7 +43,22 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog(&mut self, stacksize: i32, polling_page: *const u8) {
+    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
+        self.epilog_without_return(stacksize);
+        self.check_polling_page(polling_page);
+
+        let gcpoint = GcPoint::new();
+        self.emit_gcpoint(gcpoint);
+
+        self.emit_u32(asm::ret());
+    }
+
+    pub fn epilog(&mut self, stacksize: i32) {
+        self.epilog_without_return(stacksize);
+        self.emit_u32(asm::ret());
+    }
+
+    pub fn epilog_without_return(&mut self, stacksize: i32) {
         if stacksize > 0 {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, stacksize as i64);
@@ -59,11 +72,6 @@ impl MacroAssembler {
             ));
         }
 
-        self.check_polling_page(polling_page);
-
-        let gcpoint = GcPoint::new();
-        self.emit_gcpoint(gcpoint);
-
         self.emit_u32(asm::add_extreg(
             1,
             REG_SP,
@@ -73,7 +81,6 @@ impl MacroAssembler {
             0,
         ));
         self.emit_u32(asm::ldp_post(1, REG_FP, REG_LR, REG_SP, 2));
-        self.emit_u32(asm::ret());
     }
 
     pub fn direct_call(
@@ -144,12 +151,18 @@ impl MacroAssembler {
         array: Reg,
         index: Reg,
         value: ExprStore,
+        write_barrier: bool,
+        _card_table_offset: usize,
     ) {
         self.store_mem(
             mode,
             Mem::Index(array, index, mode.size(), offset_of_array_data()),
             value,
         );
+
+        if write_barrier {
+            unimplemented!();
+        }
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -175,6 +188,10 @@ impl MacroAssembler {
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         self.emit_u32(asm::cmp_shreg(size_flag(mode), lhs, rhs, Shift::LSL, 0));
+    }
+
+    pub fn cmp_reg_imm(&mut self, _mode: MachineMode, _lhs: Reg, _imm: i32) {
+        unimplemented!();
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
@@ -240,6 +257,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn jump_reg(&mut self, _reg: Reg) {
+        unimplemented!();
+    }
+
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         let x64 = match mode {
             MachineMode::Int32 => 0,
@@ -280,6 +301,10 @@ impl MacroAssembler {
         };
 
         self.emit_u32(asm::add_reg(x64, dest, lhs, rhs));
+    }
+
+    pub fn int_add_imm(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _value: i64) {
+        unimplemented!();
     }
 
     pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -520,10 +545,16 @@ impl MacroAssembler {
         self.load_mem(mode, dest.into(), Mem::Base(*scratch, 0));
     }
 
-    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32) {
+    pub fn determine_array_size(&mut self, dest: Reg, length: Reg, element_size: i32, with_header: bool) {
         assert!(element_size == 1 || element_size == 2 || element_size == 4 || element_size == 8);
 
-        let size = Header::size() + ptr_width() + if element_size != ptr_width() {
+        let header_size = if with_header {
+            Header::size() + ptr_width()
+        } else {
+            0
+        };
+
+        let size = header_size + if element_size != ptr_width() {
             ptr_width() - 1
         } else {
             0
@@ -682,8 +713,14 @@ impl MacroAssembler {
         disp: i32,
         src: ExprStore,
         line: i32,
+        write_barrier: bool,
+        _card_table_offset: usize,
     ) {
         self.store_base(mode, base, disp, src, Some(line));
+
+        if write_barrier {
+            unimplemented!();
+        }
     }
 
     fn store_base(
@@ -796,6 +833,10 @@ impl MacroAssembler {
 
     pub fn copy_pc(&mut self, dest: Reg) {
         self.emit_u32(asm::adr(dest, 0));
+    }
+
+    pub fn copy_ra(&mut self, _dest: Reg) {
+        unimplemented!();
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
@@ -922,8 +963,22 @@ impl MacroAssembler {
         self.emit_u32(uxtb(dest, dest));
     }
 
-    pub fn trap(&mut self, trap: Trap) {
-        self.emit_u32(asm::trap(trap));
+    pub fn trap(&mut self, trap: Trap, pos: Position) {
+        let ctxt = get_ctxt();
+        self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
+        self.direct_call_without_info(ctxt.trap_thunk.to_ptr());
+        self.emit_lineno(pos.line as i32);
+    }
+
+    pub fn throw(&mut self, receiver: Reg, pos: Position) {
+        let ctxt = get_ctxt();
+        self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
+        self.direct_call_without_info(ctxt.throw_thunk.to_ptr());
+        self.emit_lineno(pos.line as i32);
+    }
+
+    pub fn nop(&mut self) {
+        unimplemented!();
     }
 
     pub fn fix_forward_jumps(&mut self) {

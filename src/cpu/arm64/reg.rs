@@ -9,6 +9,7 @@ pub const REG_TMP1: Reg = R10;
 pub const REG_TMP2: Reg = R11;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
+pub const REG_THREAD: Reg = R28;
 
 pub const REG_SP: Reg = Reg(32);
 pub const REG_ZERO: Reg = Reg(33);
