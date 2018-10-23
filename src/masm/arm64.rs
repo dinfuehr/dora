@@ -203,8 +203,10 @@ impl MacroAssembler {
         self.emit_u32(asm::cmp_shreg(size_flag(mode), lhs, rhs, Shift::LSL, 0));
     }
 
-    pub fn cmp_reg_imm(&mut self, _mode: MachineMode, _lhs: Reg, _imm: i32) {
-        unimplemented!();
+    pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
+        let scratch = self.get_scratch();
+        self.load_int_const(mode, *scratch, imm as i64);
+        self.cmp_reg(mode, lhs, *scratch);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
@@ -270,8 +272,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn jump_reg(&mut self, _reg: Reg) {
-        unimplemented!();
+    pub fn jump_reg(&mut self, reg: Reg) {
+        self.emit_u32(asm::br(reg));
     }
 
     pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -316,8 +318,21 @@ impl MacroAssembler {
         self.emit_u32(asm::add_reg(x64, dest, lhs, rhs));
     }
 
-    pub fn int_add_imm(&mut self, _mode: MachineMode, _dest: Reg, _lhs: Reg, _value: i64) {
-        unimplemented!();
+    pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
+        if (value as u32) as i64 == value && asm::fits_u12(value as u32) {
+            let x64 = match mode {
+                MachineMode::Int32 => 0,
+                MachineMode::Int64 => 1,
+                _ => panic!("unimplemented mode {:?}", mode),
+            };
+
+            let inst = asm::add_imm(x64, dest, lhs, value as u32, 0);
+            self.emit_u32(inst);
+        } else {
+            let scratch = self.get_scratch();
+            self.load_int_const(mode, *scratch, value);
+            self.int_add(mode, dest, lhs, *scratch);
+        }
     }
 
     pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {

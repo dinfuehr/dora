@@ -1165,7 +1165,7 @@ fn fits_i7(imm: i32) -> bool {
     -64 <= imm && imm < 64
 }
 
-fn fits_u12(imm: u32) -> bool {
+pub fn fits_u12(imm: u32) -> bool {
     imm < 4096
 }
 
