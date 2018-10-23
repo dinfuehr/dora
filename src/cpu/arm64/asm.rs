@@ -1,7 +1,6 @@
 use baseline::codegen::CondCode;
 use cpu::arm64::reg::*;
 use cpu::{FReg, Reg};
-use os::signal::Trap;
 
 pub fn ret() -> u32 {
     cls_uncond_branch_reg(0b0010, 0b11111, 0, REG_LR, 0)
@@ -308,22 +307,22 @@ pub fn ldrd_ind(rt: FReg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> 
 }
 
 pub fn strb_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regoffset(0b00, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strh_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regoffset(0b01, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strw_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regoffset(0b10, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
 pub fn strx_ind(rt: Reg, rn: Reg, rm: Reg, extend: LdStExtend, amount: u32) -> u32 {
-    assert!(rt.is_gpr());
+    assert!(rt.is_gpr_or_zero());
     cls_ldst_regoffset(0b11, 0, 0b00, rm, extend, amount, rn, rt.asm())
 }
 
@@ -710,6 +709,11 @@ pub fn ubfm(sf: u32, rd: Reg, rn: Reg, immr: u32, imms: u32) -> u32 {
     cls_bitfield(sf, 0b10, sf, immr, imms, rn, rd)
 }
 
+pub fn lsr_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
+    let val = if sf != 0 { 64 } else { 32 };
+    ubfm(sf, rd, rn, shift, val - 1)
+}
+
 pub fn lsl_imm(sf: u32, rd: Reg, rn: Reg, shift: u32) -> u32 {
     let (val, mask) = if sf != 0 { (64, 0x3f) } else { (32, 0x1f) };
     ubfm(sf, rd, rn, (val - shift) & mask, val - 1 - shift)
@@ -832,10 +836,6 @@ fn cls_logical_imm(sf: u32, opc: u32, n_immr_imms: u32, rn: Reg, rd: Reg) -> u32
     assert!(rd.is_gpr());
 
     sf << 31 | opc << 29 | 0b100100u32 << 23 | n_immr_imms << 10 | rn.asm() << 5 | rd.asm()
-}
-
-pub fn trap(trap: Trap) -> u32 {
-    0xE7000000u32 | trap.int()
 }
 
 fn cls_fp_dataproc2(m: u32, s: u32, ty: u32, rm: FReg, opcode: u32, rn: FReg, rd: FReg) -> u32 {
@@ -1719,12 +1719,6 @@ mod tests {
     }
 
     #[test]
-    fn test_trap() {
-        assert_eq!(0xE7000000, trap(Trap::COMPILER));
-        assert_eq!(0xE7000001, trap(Trap::DIV0));
-    }
-
-    #[test]
     fn test_add_extreg() {
         assert_eq!(0x8b22643f, add_extreg(1, REG_SP, R1, R2, Extend::UXTX, 1));
         assert_eq!(0x8b226be1, add_extreg(1, R1, REG_SP, R2, Extend::UXTX, 2));
@@ -1803,6 +1797,14 @@ mod tests {
         assert_eq!(0x531f7820, lsl_imm(0, R0, R1, 1)); // lsl w0, w1, #1
         assert_eq!(0xd37ef462, lsl_imm(1, R2, R3, 2)); // lsl x2, x3, #2
         assert_eq!(0x531e7462, lsl_imm(0, R2, R3, 2)); // lsl w2, w3, #2
+    }
+
+    #[test]
+    fn test_lsr_imm() {
+        assert_eq!(0xd341fc20, lsr_imm(1, R0, R1, 1)); // lsr x0, x1, #1
+        assert_eq!(0x53017c20, lsr_imm(0, R0, R1, 1)); // lsr w0, w1, #1
+        assert_eq!(0xd342fc62, lsr_imm(1, R2, R3, 2)); // lsr x2, x3, #2
+        assert_eq!(0x53027c62, lsr_imm(0, R2, R3, 2)); // lsr w2, w3, #2
     }
 
     #[test]

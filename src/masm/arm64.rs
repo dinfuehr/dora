@@ -10,6 +10,7 @@ use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
 use ctxt::{FctId, get_ctxt};
 use dora_parser::lexer::position::Position;
+use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
 use mem::ptr_width;
 use object::{offset_of_array_data, offset_of_array_length, Header};
@@ -714,13 +715,21 @@ impl MacroAssembler {
         src: ExprStore,
         line: i32,
         write_barrier: bool,
-        _card_table_offset: usize,
+        card_table_offset: usize,
     ) {
         self.store_base(mode, base, disp, src, Some(line));
 
         if write_barrier {
-            unimplemented!();
+            self.emit_barrier(base, card_table_offset);
         }
+    }
+
+    fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
+        self.emit_u32(asm::lsr_imm(1, src, src, CARD_SIZE_BITS as u32));
+        let scratch = self.get_scratch();
+        self.load_int_const(MachineMode::Ptr, *scratch, card_table_offset as i64);
+        let inst = asm::strb_ind(REG_ZERO, src, *scratch, LdStExtend::LSL, 0);
+        self.emit_u32(inst);
     }
 
     fn store_base(
@@ -835,8 +844,8 @@ impl MacroAssembler {
         self.emit_u32(asm::adr(dest, 0));
     }
 
-    pub fn copy_ra(&mut self, _dest: Reg) {
-        unimplemented!();
+    pub fn copy_ra(&mut self, dest: Reg) {
+        self.copy_reg(MachineMode::Ptr, dest, REG_LR);
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
