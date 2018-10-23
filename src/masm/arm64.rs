@@ -1220,8 +1220,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_local_ptr() {
-        let i1 = asm::movz(1, R16, 1, 0);
-        let i2 = asm::ldrx_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 1, 0);
+        let i2 = asm::ldrx_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Ptr, R1.into(), Mem::Local(1));
@@ -1230,8 +1230,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_local_int32() {
-        let i1 = asm::movz(1, R16, 2, 0);
-        let i2 = asm::ldrw_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 2, 0);
+        let i2 = asm::ldrw_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int32, R1.into(), Mem::Local(2));
@@ -1240,8 +1240,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_local_int8() {
-        let i1 = asm::movz(1, R16, 3, 0);
-        let i2 = asm::ldrb_ind(R1, REG_FP, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 3, 0);
+        let i2 = asm::ldrb_ind(R1, REG_FP, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1.into(), Mem::Local(3));
@@ -1250,8 +1250,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_base_ptr() {
-        let i1 = asm::movz(1, R16, 1, 0);
-        let i2 = asm::ldrx_ind(R1, R10, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 1, 0);
+        let i2 = asm::ldrx_ind(R1, R10, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Ptr, R1.into(), Mem::Base(R10, 1));
@@ -1260,8 +1260,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_base_int32() {
-        let i1 = asm::movz(1, R16, 2, 0);
-        let i2 = asm::ldrw_ind(R1, R2, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 2, 0);
+        let i2 = asm::ldrw_ind(R1, R2, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int32, R1.into(), Mem::Base(R2, 2));
@@ -1270,8 +1270,8 @@ mod tests {
 
     #[test]
     fn test_load_mem_base_int8() {
-        let i1 = asm::movz(1, R16, 3, 0);
-        let i2 = asm::ldrb_ind(R1, R3, R16, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 3, 0);
+        let i2 = asm::ldrb_ind(R1, R3, R9, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1.into(), Mem::Base(R3, 3));
@@ -1280,9 +1280,9 @@ mod tests {
 
     #[test]
     fn test_load_mem_index_ptr() {
-        let i1 = asm::movz(1, R16, 1, 0);
-        let i2 = asm::add_reg(1, R16, R16, R10);
-        let i3 = asm::ldrx_ind(R1, R16, R11, LdStExtend::LSL, 1);
+        let i1 = asm::movz(1, R9, 1, 0);
+        let i2 = asm::add_reg(1, R9, R9, R10);
+        let i3 = asm::ldrx_ind(R1, R9, R11, LdStExtend::LSL, 1);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Ptr, R1.into(), Mem::Index(R10, R11, 8, 1));
@@ -1291,9 +1291,9 @@ mod tests {
 
     #[test]
     fn test_load_mem_index_int32() {
-        let i1 = asm::movz(1, R16, 2, 0);
-        let i2 = asm::add_reg(1, R16, R16, R2);
-        let i3 = asm::ldrw_ind(R1, R16, R12, LdStExtend::LSL, 1);
+        let i1 = asm::movz(1, R9, 2, 0);
+        let i2 = asm::add_reg(1, R9, R9, R2);
+        let i3 = asm::ldrw_ind(R1, R9, R12, LdStExtend::LSL, 1);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int32, R1.into(), Mem::Index(R2, R12, 4, 2));
@@ -1302,9 +1302,9 @@ mod tests {
 
     #[test]
     fn test_load_mem_index_int8() {
-        let i1 = asm::movz(1, R16, 3, 0);
-        let i2 = asm::add_reg(1, R16, R16, R3);
-        let i3 = asm::ldrb_ind(R1, R16, R13, LdStExtend::LSL, 0);
+        let i1 = asm::movz(1, R9, 3, 0);
+        let i2 = asm::add_reg(1, R9, R9, R3);
+        let i3 = asm::ldrb_ind(R1, R9, R13, LdStExtend::LSL, 0);
 
         let mut masm = MacroAssembler::new();
         masm.load_mem(Int8, R1.into(), Mem::Index(R3, R13, 1, 3));
