@@ -322,7 +322,7 @@ impl MacroAssembler {
         if (value as u32) as i64 == value && asm::fits_u12(value as u32) {
             let x64 = match mode {
                 MachineMode::Int32 => 0,
-                MachineMode::Int64 => 1,
+                MachineMode::Int64 | MachineMode::Ptr => 1,
                 _ => panic!("unimplemented mode {:?}", mode),
             };
 
