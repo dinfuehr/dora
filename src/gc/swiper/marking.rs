@@ -25,7 +25,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
     }
 
     let shared = Arc::new((Mutex::new(shared), Condvar::new()));
-    let pool = ThreadPool::with_name("gc-worker", number_workers);
+    let pool = ThreadPool::with_name("gc-worker".to_string(), number_workers);
 
     for _ in 0..number_workers {
         let heap_region = heap.clone();
