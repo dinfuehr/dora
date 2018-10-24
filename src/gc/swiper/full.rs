@@ -1,4 +1,6 @@
 use std::cmp;
+use std::mem;
+use std::time::Duration;
 
 use crossbeam_channel as channel;
 use threadpool::ThreadPool;
@@ -206,50 +208,85 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let (gpush, gpop) = channel::unbounded();
 
         for root in self.rootset {
-            gpush.send(root.get());
+            gpush.send(vec![root.get()]);
         }
 
         let number_workers = self.ctxt.args.flag_gc_worker;
         let pool = ThreadPool::new(number_workers);
 
-        for _ in 0..number_workers {
-            let (push, pop) = (gpush.clone(), gpop.clone());
-            let heap_region = self.heap.clone();
-            let perm_region = self.perm_space.total();
+        const SHARED_THRESHOLD: usize = 50;
 
-            pool.execute(move || {
-                println!("start thread");
+        loop {
+            println!("loop marking threads");
 
-                loop {
-                    match pop.recv() {
-                        Some(object_addr) => {
-                            let object = object_addr.to_mut_obj();
+            for _ in 0..number_workers {
+                let (push, pop) = (gpush.clone(), gpop.clone());
+                let heap_region = self.heap.clone();
+                let perm_region = self.perm_space.total();
+                let timeout = Duration::from_millis(1);
 
-                            object.visit_reference_fields(|field| {
-                                let field_addr = field.get();
+                pool.execute(move || {
+                    let mut local_pop = Vec::new();
+                    let mut local_push = Vec::with_capacity(SHARED_THRESHOLD);
 
-                                if heap_region.contains(field_addr) {
-                                    let field_obj = field_addr.to_mut_obj();
+                    loop {
+                        let object_addr = if !local_pop.is_empty() {
+                            local_pop.pop().expect("should be non-empty")
 
-                                    if !field_obj.header().is_marked() {
-                                        push.send(field_addr);
-                                        field_obj.header_mut().mark();
+                        } else if !local_push.is_empty() {
+                            local_push.pop().expect("should be non-empty")
+
+                        } else {
+                            select! {
+                                recv(pop, msg) => match msg {
+                                    Some(pop_segment) => {
+                                        assert!(local_pop.is_empty());
+                                        mem::replace(&mut local_pop, pop_segment);
+                                        continue;
                                     }
-                                } else {
-                                    debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
+
+                                    None => break,
                                 }
-                            });
-                        }
 
-                        None => break,
+                                recv(channel::after(timeout)) => break,
+                            }
+                        };
+
+                        let object = object_addr.to_mut_obj();
+
+                        object.visit_reference_fields(|field| {
+                            let field_addr = field.get();
+
+                            if heap_region.contains(field_addr) {
+                                let field_obj = field_addr.to_mut_obj();
+
+                                if !field_obj.header().is_marked() {
+                                    field_obj.header_mut().mark();
+
+                                    if local_push.len() < SHARED_THRESHOLD {
+                                        local_push.push(field_addr);
+                                    } else {
+                                        let old_local_push = mem::replace(&mut local_push, Vec::with_capacity(SHARED_THRESHOLD));
+                                        push.send(old_local_push);
+                                    }
+                                }
+                            } else {
+                                debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
+                            }
+                        });
                     }
-                }
+                });
+            }
 
-                println!("finish thread");
-            });
+            pool.join();
+
+            match gpop.try_recv() {
+                Some(object_addr) => gpush.send(object_addr),
+                None => break,
+            }
         }
 
-        pool.join();
+        println!("marking finished");
     }
 
     fn compute_forward(&mut self) {

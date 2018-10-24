@@ -9,6 +9,7 @@ extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
 extern crate core;
+#[macro_use]
 extern crate crossbeam_channel;
 extern crate docopt;
 extern crate dora_parser;
