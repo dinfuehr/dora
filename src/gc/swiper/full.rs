@@ -216,12 +216,22 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         for root in self.rootset {
             self.forward_reference(*root);
         }
+
+        self.large_space.visit_objects(|object_start| {
+            let object = object_start.to_mut_obj();
+
+            if object.header().is_marked() {
+                object.visit_reference_fields(|field| {
+                    self.forward_reference(field);
+                });
+            }
+        });
     }
 
     fn relocate(&mut self) {
         self.crossing_map.set_first_object(0.into(), 0);
 
-        self.walk_old_and_young(|full, object, _address, object_size| {
+        self.walk_old_and_young(|full, object, address, object_size| {
             if object.header().is_marked() {
                 // get new location
                 let dest = object.header().fwdptr();
@@ -231,7 +241,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 let next_dest = dest.offset(object_size);
                 debug_assert!(full.old.committed().valid_top(next_dest));
 
-                object.copy_to(dest, object_size);
+                if address != dest {
+                    object.copy_to(dest, object_size);
+                }
 
                 // unmark object for next collection
                 dest.to_mut_obj().header_mut().unmark();
@@ -270,10 +282,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             // unmark object for next collection
             object.header_mut().unmark();
 
-            object.visit_reference_fields(|field| {
-                self.forward_reference(field);
-            });
-
             // keep object
             true
         });
@@ -288,8 +296,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     fn forward_reference(&mut self, slot: Slot) {
         let object_addr = slot.get();
 
-        if self.heap.contains(object_addr) && !self.large_space.contains(object_addr) {
+        if self.heap.contains(object_addr) {
             debug_assert!(object_addr.to_obj().header().is_marked());
+
+            if self.large_space.contains(object_addr) {
+                // large objects do not move in memory
+                return;
+            }
+
             let fwd_addr = object_addr.to_obj().header().fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
@@ -297,7 +311,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             debug_assert!(
                 object_addr.is_null()
                     || self.perm_space.contains(object_addr)
-                    || self.large_space.contains(object_addr)
             );
         }
     }

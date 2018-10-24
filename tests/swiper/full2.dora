@@ -1,0 +1,16 @@
+//= ignore
+//= vm-args "--max-heap-size=256M --gc-verify"
+
+fun main() {
+    let a = Array::<Foo>(10_000_000);
+    var i = 0;
+    while i < a.len() {
+        a[i] = Foo();
+        i = i + 1;
+    }
+
+    forceCollect();
+    forceCollect();
+}
+
+class Foo
