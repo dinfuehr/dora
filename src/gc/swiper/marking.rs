@@ -1,4 +1,7 @@
 use std::mem;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::thread;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use threadpool::ThreadPool;
@@ -31,35 +34,34 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
         }
     }
 
-    // let shared = Arc::new((Mutex::new(shared), Condvar::new()));
     let pool = ThreadPool::with_name("gc-worker".to_string(), number_workers);
+    let nworkers_stage = Arc::new(AtomicUsize::new(number_workers));
 
-    for task_id in 0..number_workers {
+    for (task_id, worker) in workers.into_iter().enumerate() {
         let heap_region = heap.clone();
         let perm_region = perm.clone();
 
-        let worker = workers.pop().unwrap();
         let stealers = stealers.clone();
+        let nworkers_stage = nworkers_stage.clone();
 
         pool.execute(move || {
             let mut local_segment = Segment::new();
-            let mut traced_objects = 0;
 
             loop {
                 let object_addr = if !local_segment.is_empty() {
                     local_segment.pop().expect("should be non-empty")
                 } else {
-                    if let Some(segment) = pop(&worker, &stealers) {
+                    if let Some(segment) = pop(task_id, &worker, &stealers) {
                         local_segment = segment;
                         continue;
-
-                    } else {
+                    } else if try_terminate(&nworkers_stage) {
                         break;
+                    } else {
+                        continue;
                     }
                 };
 
                 let object = object_addr.to_mut_obj();
-                traced_objects += 1;
 
                 object.visit_reference_fields(|field| {
                     let field_addr = field.get();
@@ -82,19 +84,19 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                     }
                 });
             }
-
-            println!("task {}: traced objects: {}", task_id, traced_objects);
         });
     }
 
     pool.join();
 }
 
-fn pop(worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segment> {
+fn pop(task_id: usize, worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segment> {
     loop {
         match worker.pop() {
             Pop::Empty => break,
-            Pop::Data(segment) => return Some(segment),
+            Pop::Data(segment) => {
+                return Some(segment)
+            }
             Pop::Retry => continue,
         }
     }
@@ -103,7 +105,9 @@ fn pop(worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segmen
         loop {
             match stealer.steal() {
                 Steal::Empty => break,
-                Steal::Data(segment) => return Some(segment),
+                Steal::Data(segment) => {
+                    return Some(segment)
+                }
                 Steal::Retry => continue,
             }
         }
@@ -112,7 +116,34 @@ fn pop(worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segmen
     None
 }
 
-const SEGMENT_SIZE: usize = 32;
+fn try_terminate(nworkers_stage: &AtomicUsize) -> bool {
+    enter_stage(nworkers_stage);
+    thread::sleep_ms(1);
+    !try_exit(nworkers_stage)
+}
+
+fn enter_stage(atomic: &AtomicUsize) -> bool {
+    atomic.fetch_sub(1, Ordering::SeqCst) == 1
+}
+
+fn try_exit(atomic: &AtomicUsize) -> bool {
+    let mut nworkers = atomic.load(Ordering::Relaxed);
+
+    loop {
+        if nworkers == 0 {
+            return false;
+        }
+        let prev_nworkers = atomic.compare_and_swap(nworkers, nworkers + 1, Ordering::SeqCst);
+
+        if nworkers == prev_nworkers {
+            return true;
+        }
+
+        nworkers = prev_nworkers;
+    }
+}
+
+const SEGMENT_SIZE: usize = 4;
 
 struct Segment {
     data: Vec<Address>,
