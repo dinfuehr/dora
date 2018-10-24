@@ -1,13 +1,20 @@
 use std::mem;
-use std::sync::{Arc, Condvar, Mutex};
 
+use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use threadpool::ThreadPool;
 
 use gc::root::Slot;
 use gc::{Address, Region};
 
 pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize) {
-    let mut shared = Shared::new();
+    let mut workers = Vec::with_capacity(number_workers);
+    let mut stealers = Vec::with_capacity(number_workers);
+
+    for _ in 0..number_workers {
+        let (w, s) = deque::lifo();
+        workers.push(w);
+        stealers.push(s);
+    }
 
     for root in rootset {
         let root_ptr = root.get();
@@ -17,59 +24,42 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
 
             if !root_obj.header().is_marked_non_atomic() {
                 root_obj.header_mut().mark_non_atomic();
-                shared.queue.push(Segment::with(root_ptr));
+                workers[0].push(Segment::with(root_ptr));
             }
         } else {
             debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
         }
     }
 
-    let shared = Arc::new((Mutex::new(shared), Condvar::new()));
+    // let shared = Arc::new((Mutex::new(shared), Condvar::new()));
     let pool = ThreadPool::with_name("gc-worker".to_string(), number_workers);
 
-    for _ in 0..number_workers {
+    for task_id in 0..number_workers {
         let heap_region = heap.clone();
         let perm_region = perm.clone();
-        let shared = shared.clone();
+
+        let worker = workers.pop().unwrap();
+        let stealers = stealers.clone();
 
         pool.execute(move || {
             let mut local_segment = Segment::new();
-            let (shared, cvar) = (&shared.0, &shared.1);
+            let mut traced_objects = 0;
 
-            'outer: loop {
+            loop {
                 let object_addr = if !local_segment.is_empty() {
                     local_segment.pop().expect("should be non-empty")
                 } else {
-                    let mut shared = shared.lock().unwrap();
+                    if let Some(segment) = pop(&worker, &stealers) {
+                        local_segment = segment;
+                        continue;
 
-                    loop {
-                        if shared.done {
-                            break 'outer;
-                        }
-
-                        match shared.queue.pop() {
-                            Some(segment) => {
-                                local_segment = segment;
-                                continue 'outer;
-                            }
-
-                            None => {
-                                shared.blocked_workers += 1;
-
-                                if shared.blocked_workers == number_workers {
-                                    shared.done = true;
-                                    cvar.notify_all();
-                                    break 'outer;
-                                }
-
-                                shared = cvar.wait(shared).unwrap();
-                                shared.blocked_workers -= 1;
-                            }
-                        };
+                    } else {
+                        break;
                     }
                 };
 
                 let object = object_addr.to_mut_obj();
+                traced_objects += 1;
 
                 object.visit_reference_fields(|field| {
                     let field_addr = field.get();
@@ -84,9 +74,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                                 let new_local_segment = Segment::with(field_addr);
                                 let old_local_segment =
                                     mem::replace(&mut local_segment, new_local_segment);
-                                let mut shared = shared.lock().unwrap();
-                                shared.queue.push(old_local_segment);
-                                cvar.notify_one();
+                                worker.push(old_local_segment);
                             }
                         }
                     } else {
@@ -94,29 +82,37 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                     }
                 });
             }
+
+            println!("task {}: traced objects: {}", task_id, traced_objects);
         });
     }
 
     pool.join();
 }
 
-struct Shared {
-    blocked_workers: usize,
-    queue: Vec<Segment>,
-    done: bool,
-}
-
-impl Shared {
-    fn new() -> Shared {
-        Shared {
-            blocked_workers: 0,
-            queue: Vec::new(),
-            done: false,
+fn pop(worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segment> {
+    loop {
+        match worker.pop() {
+            Pop::Empty => break,
+            Pop::Data(segment) => return Some(segment),
+            Pop::Retry => continue,
         }
     }
+
+    for stealer in stealers {
+        loop {
+            match stealer.steal() {
+                Steal::Empty => break,
+                Steal::Data(segment) => return Some(segment),
+                Steal::Retry => continue,
+            }
+        }
+    }
+
+    None
 }
 
-const SEGMENT_SIZE: usize = 256;
+const SEGMENT_SIZE: usize = 32;
 
 struct Segment {
     data: Vec<Address>,

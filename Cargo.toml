@@ -11,6 +11,7 @@ libc = "*"
 time = "*"
 dora-parser = { path = "lib/dora-parser" }
 threadpool = "*"
+crossbeam-deque = "0.6"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

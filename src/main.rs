@@ -9,6 +9,7 @@ extern crate alloc;
 extern crate byteorder;
 extern crate capstone;
 extern crate core;
+extern crate crossbeam_deque;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
