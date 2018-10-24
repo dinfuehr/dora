@@ -232,10 +232,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     loop {
                         let object_addr = if !local_pop.is_empty() {
                             local_pop.pop().expect("should be non-empty")
-
                         } else if !local_push.is_empty() {
                             local_push.pop().expect("should be non-empty")
-
                         } else {
                             select! {
                                 recv(pop, msg) => match msg {
@@ -266,12 +264,16 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                                     if local_push.len() < SHARED_THRESHOLD {
                                         local_push.push(field_addr);
                                     } else {
-                                        let old_local_push = mem::replace(&mut local_push, Vec::with_capacity(SHARED_THRESHOLD));
+                                        let new_local_push = Vec::with_capacity(SHARED_THRESHOLD);
+                                        let old_local_push =
+                                            mem::replace(&mut local_push, new_local_push);
                                         push.send(old_local_push);
                                     }
                                 }
                             } else {
-                                debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
+                                debug_assert!(
+                                    field_addr.is_null() || perm_region.contains(field_addr)
+                                );
                             }
                         });
                     }
@@ -402,10 +404,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
-            debug_assert!(
-                object_addr.is_null()
-                    || self.perm_space.contains(object_addr)
-            );
+            debug_assert!(object_addr.is_null() || self.perm_space.contains(object_addr));
         }
     }
 
