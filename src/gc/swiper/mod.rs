@@ -19,6 +19,7 @@ mod controller;
 mod crossing;
 mod full;
 mod large;
+mod marking;
 mod minor;
 pub mod old;
 mod verify;

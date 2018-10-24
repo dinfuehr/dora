@@ -1,8 +1,4 @@
 use std::cmp;
-use std::mem;
-use std::sync::{Arc, Mutex};
-
-use threadpool::ThreadPool;
 
 use ctxt::SemContext;
 use gc::root::Slot;
@@ -10,6 +6,7 @@ use gc::space::Space;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
+use gc::swiper::marking;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
@@ -86,10 +83,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
-            if self.ctxt.args.flag_gc_worker > 1 {
-                self.par_mark_live();
-            } else {
+            if self.ctxt.args.flag_gc_worker <= 1 {
                 self.mark_live();
+            } else {
+                marking::start(
+                    self.rootset,
+                    self.heap.clone(),
+                    self.perm_space.total(),
+                    self.ctxt.args.flag_gc_worker,
+                );
             }
         });
 
@@ -201,104 +203,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
-    }
-
-    fn par_mark_live(&mut self) {
-        let shared_queue = Arc::new(Mutex::new(vec![]));
-
-        for root in self.rootset {
-            let root_ptr = root.get();
-
-            if self.heap.contains(root_ptr) {
-                let root_obj = root_ptr.to_mut_obj();
-
-                if !root_obj.header().is_marked() {
-                    root_obj.header_mut().mark();
-
-                    let mut shared_queue = shared_queue.lock().unwrap();
-                    shared_queue.push(vec![root_ptr]);
-                }
-            } else {
-                debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
-            }
-        }
-
-        let number_workers = self.ctxt.args.flag_gc_worker;
-        let pool = ThreadPool::new(number_workers);
-
-        const SHARED_THRESHOLD: usize = 64;
-
-        loop {
-            for _ in 0..number_workers {
-                let heap_region = self.heap.clone();
-                let perm_region = self.perm_space.total();
-                let shared_queue = shared_queue.clone();
-
-                pool.execute(move || {
-                    let mut traced_objects = 0;
-                    let mut local_pop: Vec<Address> = Vec::new();
-                    let mut local_push: Vec<Address> = Vec::with_capacity(SHARED_THRESHOLD);
-
-                    loop {
-                        let object_addr = if !local_pop.is_empty() {
-                            local_pop.pop().expect("should be non-empty")
-                        } else if !local_push.is_empty() {
-                            local_push.pop().expect("should be non-empty")
-                        } else {
-                            let mut shared_queue = shared_queue.lock().unwrap();
-
-                            match shared_queue.pop() {
-                                Some(pop_queue) => {
-                                    local_pop = pop_queue;
-                                    continue;
-                                }
-
-                                None => break,
-                            };
-                        };
-
-                        let object = object_addr.to_mut_obj();
-                        traced_objects += 1;
-
-                        object.visit_reference_fields(|field| {
-                            let field_addr = field.get();
-
-                            if heap_region.contains(field_addr) {
-                                let field_obj = field_addr.to_mut_obj();
-
-                                if !field_obj.header().is_marked() {
-                                    field_obj.header_mut().mark();
-
-                                    if local_push.len() < SHARED_THRESHOLD {
-                                        local_push.push(field_addr);
-                                    } else {
-                                        let mut new_local_push = Vec::with_capacity(SHARED_THRESHOLD);
-                                        new_local_push.push(field_addr);
-                                        let old_local_push =
-                                            mem::replace(&mut local_push, new_local_push);
-                                        let mut shared_queue = shared_queue.lock().unwrap();
-                                        shared_queue.push(old_local_push);
-                                    }
-                                }
-                            } else {
-                                debug_assert!(
-                                    field_addr.is_null() || perm_region.contains(field_addr)
-                                );
-                            }
-                        });
-                    }
-
-                    println!("traced objects: {}", traced_objects);
-                });
-            }
-
-            pool.join();
-
-            let shared_queue = shared_queue.lock().unwrap();
-            if shared_queue.is_empty() { break; }
-        }
-
-        println!("marking finished");
     }
 
     fn compute_forward(&mut self) {
