@@ -175,9 +175,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             if self.heap.contains(root_ptr) {
                 let root_obj = root_ptr.to_mut_obj();
 
-                if !root_obj.header().is_marked() {
+                if !root_obj.header().is_marked_non_atomic() {
                     marking_stack.push(root_ptr);
-                    root_obj.header_mut().mark();
+                    root_obj.header_mut().mark_non_atomic();
                 }
             } else {
                 debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
@@ -194,9 +194,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 if self.heap.contains(field_addr) {
                     let field_obj = field_addr.to_mut_obj();
 
-                    if !field_obj.header().is_marked() {
+                    if !field_obj.header().is_marked_non_atomic() {
                         marking_stack.push(field_addr);
-                        field_obj.header_mut().mark();
+                        field_obj.header_mut().mark_non_atomic();
                     }
                 } else {
                     debug_assert!(field_addr.is_null() || self.perm_space.contains(field_addr));
@@ -207,16 +207,16 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn compute_forward(&mut self) {
         self.walk_old_and_young(|full, object, _address, object_size| {
-            if object.header().is_marked() {
+            if object.header().is_marked_non_atomic() {
                 let fwd = full.allocate(object_size);
-                object.header_mut().set_fwdptr(fwd);
+                object.header_mut().set_fwdptr_non_atomic(fwd);
             }
         });
     }
 
     fn update_references(&mut self) {
         self.walk_old_and_young(|full, object, _address, _| {
-            if object.header().is_marked() {
+            if object.header().is_marked_non_atomic() {
                 object.visit_reference_fields(|field| {
                     full.forward_reference(field);
                 });
@@ -230,7 +230,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.large_space.visit_objects(|object_start| {
             let object = object_start.to_mut_obj();
 
-            if object.header().is_marked() {
+            if object.header().is_marked_non_atomic() {
                 object.visit_reference_fields(|field| {
                     self.forward_reference(field);
                 });
@@ -242,9 +242,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.crossing_map.set_first_object(0.into(), 0);
 
         self.walk_old_and_young(|full, object, address, object_size| {
-            if object.header().is_marked() {
+            if object.header().is_marked_non_atomic() {
                 // get new location
-                let dest = object.header().fwdptr();
+                let dest = object.header().fwdptr_non_atomic();
                 debug_assert!(full.old.committed().contains(dest));
 
                 // determine location after relocated object
@@ -256,7 +256,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
 
                 // unmark object for next collection
-                dest.to_mut_obj().header_mut().unmark();
+                dest.to_mut_obj().header_mut().unmark_non_atomic();
 
                 if on_different_cards(dest, next_dest) {
                     full.old
@@ -284,13 +284,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 self.card_table.reset_addr(object_start);
             }
 
-            if !object.header().is_marked() {
+            if !object.header().is_marked_non_atomic() {
                 // object is unmarked -> free it
                 return false;
             }
 
             // unmark object for next collection
-            object.header_mut().unmark();
+            object.header_mut().unmark_non_atomic();
 
             // keep object
             true
@@ -307,14 +307,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let object_addr = slot.get();
 
         if self.heap.contains(object_addr) {
-            debug_assert!(object_addr.to_obj().header().is_marked());
+            debug_assert!(object_addr.to_obj().header().is_marked_non_atomic());
 
             if self.large_space.contains(object_addr) {
                 // large objects do not move in memory
                 return;
             }
 
-            let fwd_addr = object_addr.to_obj().header().fwdptr();
+            let fwd_addr = object_addr.to_obj().header().fwdptr_non_atomic();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {

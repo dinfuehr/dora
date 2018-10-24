@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
 use std::str;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use class::{ClassDefId, ClassSize};
 use ctxt::SemContext;
@@ -22,7 +23,7 @@ pub struct Header {
 
     // forwarding ptr
     // (used during mark-compact)
-    fwdptr: usize,
+    fwdptr: AtomicUsize,
 }
 
 const MARK_BITS: usize = 2;
@@ -34,7 +35,7 @@ impl Header {
     fn new() -> Header {
         Header {
             vtable: ptr::null_mut(),
-            fwdptr: 0,
+            fwdptr: AtomicUsize::new(0),
         }
     }
 
@@ -70,29 +71,40 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn fwdptr(&self) -> Address {
-        (self.fwdptr & FWD_MASK).into()
+    pub fn fwdptr_non_atomic(&self) -> Address {
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+        (fwdptr & FWD_MASK).into()
     }
 
     #[inline(always)]
-    pub fn set_fwdptr(&mut self, addr: Address) {
+    pub fn set_fwdptr_non_atomic(&mut self, addr: Address) {
         debug_assert!((addr.to_usize() & MARK_MASK) == 0);
-        self.fwdptr = addr.to_usize() | (self.fwdptr & MARK_MASK);
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+        self.fwdptr.store(addr.to_usize() | (fwdptr & MARK_MASK), Ordering::Relaxed);
     }
 
     #[inline(always)]
-    pub fn mark(&mut self) {
-        self.fwdptr = self.fwdptr | 1;
+    pub fn mark_non_atomic(&mut self) {
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+        self.fwdptr.store(fwdptr | 1, Ordering::Relaxed);
     }
 
     #[inline(always)]
-    pub fn unmark(&mut self) {
-        self.fwdptr = self.fwdptr & FWD_MASK;
+    pub fn unmark_non_atomic(&mut self) {
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+        self.fwdptr.store(fwdptr & FWD_MASK, Ordering::Relaxed);
     }
 
     #[inline(always)]
-    pub fn is_marked(&self) -> bool {
-        (self.fwdptr & MARK_MASK) != 0
+    pub fn is_marked_non_atomic(&self) -> bool {
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+        (fwdptr & MARK_MASK) != 0
+    }
+
+    #[inline(always)]
+    pub fn try_mark(&self) -> bool {
+        let old = self.fwdptr.load(Ordering::Relaxed);
+        self.fwdptr.compare_exchange(old, old | 1, Ordering::SeqCst, Ordering::Relaxed).is_ok()
     }
 }
 
@@ -631,17 +643,17 @@ mod tests {
     #[test]
     fn header_markbit() {
         let mut h = Header::new();
-        h.set_fwdptr(8.into());
-        assert_eq!(false, h.is_marked());
-        assert_eq!(8, h.fwdptr().to_usize());
-        h.mark();
-        assert_eq!(true, h.is_marked());
-        assert_eq!(8, h.fwdptr().to_usize());
-        h.set_fwdptr(16.into());
-        assert_eq!(true, h.is_marked());
-        assert_eq!(16, h.fwdptr().to_usize());
-        h.unmark();
-        assert_eq!(false, h.is_marked());
-        assert_eq!(16, h.fwdptr().to_usize());
+        h.set_fwdptr_non_atomic(8.into());
+        assert_eq!(false, h.is_marked_non_atomic());
+        assert_eq!(8, h.fwdptr_non_atomic().to_usize());
+        h.mark_non_atomic();
+        assert_eq!(true, h.is_marked_non_atomic());
+        assert_eq!(8, h.fwdptr_non_atomic().to_usize());
+        h.set_fwdptr_non_atomic(16.into());
+        assert_eq!(true, h.is_marked_non_atomic());
+        assert_eq!(16, h.fwdptr_non_atomic().to_usize());
+        h.unmark_non_atomic();
+        assert_eq!(false, h.is_marked_non_atomic());
+        assert_eq!(16, h.fwdptr_non_atomic().to_usize());
     }
 }

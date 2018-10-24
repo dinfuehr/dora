@@ -15,8 +15,8 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
         if heap.contains(root_ptr) {
             let root_obj = root_ptr.to_mut_obj();
 
-            if !root_obj.header().is_marked() {
-                root_obj.header_mut().mark();
+            if !root_obj.header().is_marked_non_atomic() {
+                root_obj.header_mut().mark_non_atomic();
                 shared.queue.push(Segment::with(root_ptr));
             }
         } else {
@@ -77,9 +77,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                     if heap_region.contains(field_addr) {
                         let field_obj = field_addr.to_mut_obj();
 
-                        if !field_obj.header().is_marked() {
-                            field_obj.header_mut().mark();
-
+                        if field_obj.header().try_mark() {
                             if local_segment.has_capacity() {
                                 local_segment.push(field_addr);
                             } else {
@@ -118,7 +116,7 @@ impl Shared {
     }
 }
 
-const SEGMENT_SIZE: usize = 16;
+const SEGMENT_SIZE: usize = 256;
 
 struct Segment {
     data: Vec<Address>,
