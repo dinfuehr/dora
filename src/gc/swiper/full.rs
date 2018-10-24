@@ -1,8 +1,7 @@
 use std::cmp;
 use std::mem;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
-use crossbeam_channel as channel;
 use threadpool::ThreadPool;
 
 use ctxt::SemContext;
@@ -205,7 +204,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn par_mark_live(&mut self) {
-        let (push, pop) = channel::unbounded();
+        let shared_queue = Arc::new(Mutex::new(vec![]));
 
         for root in self.rootset {
             let root_ptr = root.get();
@@ -215,7 +214,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
                 if !root_obj.header().is_marked() {
                     root_obj.header_mut().mark();
-                    push.send(vec![root_ptr]);
+
+                    let mut shared_queue = shared_queue.lock().unwrap();
+                    shared_queue.push(vec![root_ptr]);
                 }
             } else {
                 debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
@@ -225,20 +226,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let number_workers = self.ctxt.args.flag_gc_worker;
         let pool = ThreadPool::new(number_workers);
 
-        const SHARED_THRESHOLD: usize = 8;
+        const SHARED_THRESHOLD: usize = 64;
 
         loop {
-            println!("loop marking threads");
-
             for _ in 0..number_workers {
-                let (push, pop) = (push.clone(), pop.clone());
                 let heap_region = self.heap.clone();
                 let perm_region = self.perm_space.total();
-                let timeout = Duration::from_millis(1);
+                let shared_queue = shared_queue.clone();
 
                 pool.execute(move || {
-                    let mut local_pop = Vec::new();
-                    let mut local_push = Vec::with_capacity(SHARED_THRESHOLD);
+                    let mut traced_objects = 0;
+                    let mut local_pop: Vec<Address> = Vec::new();
+                    let mut local_push: Vec<Address> = Vec::with_capacity(SHARED_THRESHOLD);
 
                     loop {
                         let object_addr = if !local_pop.is_empty() {
@@ -246,22 +245,20 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                         } else if !local_push.is_empty() {
                             local_push.pop().expect("should be non-empty")
                         } else {
-                            select! {
-                                recv(pop, msg) => match msg {
-                                    Some(pop_segment) => {
-                                        assert!(local_pop.is_empty());
-                                        mem::replace(&mut local_pop, pop_segment);
-                                        continue;
-                                    }
+                            let mut shared_queue = shared_queue.lock().unwrap();
 
-                                    None => break,
+                            match shared_queue.pop() {
+                                Some(pop_queue) => {
+                                    local_pop = pop_queue;
+                                    continue;
                                 }
 
-                                recv(channel::after(timeout)) => break,
-                            }
+                                None => break,
+                            };
                         };
 
                         let object = object_addr.to_mut_obj();
+                        traced_objects += 1;
 
                         object.visit_reference_fields(|field| {
                             let field_addr = field.get();
@@ -275,10 +272,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                                     if local_push.len() < SHARED_THRESHOLD {
                                         local_push.push(field_addr);
                                     } else {
-                                        let new_local_push = Vec::with_capacity(SHARED_THRESHOLD);
+                                        let mut new_local_push = Vec::with_capacity(SHARED_THRESHOLD);
+                                        new_local_push.push(field_addr);
                                         let old_local_push =
                                             mem::replace(&mut local_push, new_local_push);
-                                        push.send(old_local_push);
+                                        let mut shared_queue = shared_queue.lock().unwrap();
+                                        shared_queue.push(old_local_push);
                                     }
                                 }
                             } else {
@@ -288,15 +287,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                             }
                         });
                     }
+
+                    println!("traced objects: {}", traced_objects);
                 });
             }
 
             pool.join();
 
-            match pop.try_recv() {
-                Some(object_addr) => push.send(object_addr),
-                None => break,
-            }
+            let shared_queue = shared_queue.lock().unwrap();
+            if shared_queue.is_empty() { break; }
         }
 
         println!("marking finished");

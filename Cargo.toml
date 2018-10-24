@@ -10,7 +10,6 @@ byteorder = "*"
 libc = "*"
 time = "*"
 dora-parser = { path = "lib/dora-parser" }
-crossbeam-channel = "0.2"
 threadpool = "*"
 
 [dependencies.capstone]
