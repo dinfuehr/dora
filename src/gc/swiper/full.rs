@@ -205,22 +205,33 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     fn par_mark_live(&mut self) {
-        let (gpush, gpop) = channel::unbounded();
+        let (push, pop) = channel::unbounded();
 
         for root in self.rootset {
-            gpush.send(vec![root.get()]);
+            let root_ptr = root.get();
+
+            if self.heap.contains(root_ptr) {
+                let root_obj = root_ptr.to_mut_obj();
+
+                if !root_obj.header().is_marked() {
+                    root_obj.header_mut().mark();
+                    push.send(vec![root_ptr]);
+                }
+            } else {
+                debug_assert!(root_ptr.is_null() || self.perm_space.contains(root_ptr));
+            }
         }
 
         let number_workers = self.ctxt.args.flag_gc_worker;
         let pool = ThreadPool::new(number_workers);
 
-        const SHARED_THRESHOLD: usize = 50;
+        const SHARED_THRESHOLD: usize = 8;
 
         loop {
             println!("loop marking threads");
 
             for _ in 0..number_workers {
-                let (push, pop) = (gpush.clone(), gpop.clone());
+                let (push, pop) = (push.clone(), pop.clone());
                 let heap_region = self.heap.clone();
                 let perm_region = self.perm_space.total();
                 let timeout = Duration::from_millis(1);
@@ -282,8 +293,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             pool.join();
 
-            match gpop.try_recv() {
-                Some(object_addr) => gpush.send(object_addr),
+            match pop.try_recv() {
+                Some(object_addr) => push.send(object_addr),
                 None => break,
             }
         }
