@@ -1,5 +1,8 @@
 use std::cmp;
 
+use crossbeam_channel as channel;
+use threadpool::ThreadPool;
+
 use ctxt::SemContext;
 use gc::root::Slot;
 use gc::space::Space;
@@ -82,7 +85,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
-            self.mark_live();
+            if self.ctxt.args.flag_gc_worker > 1 {
+                self.par_mark_live();
+            } else {
+                self.mark_live();
+            }
         });
 
         if dev_verbose {
@@ -193,6 +200,56 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
             });
         }
+    }
+
+    fn par_mark_live(&mut self) {
+        let (gpush, gpop) = channel::unbounded();
+
+        for root in self.rootset {
+            gpush.send(root.get());
+        }
+
+        let number_workers = self.ctxt.args.flag_gc_worker;
+        let pool = ThreadPool::new(number_workers);
+
+        for _ in 0..number_workers {
+            let (push, pop) = (gpush.clone(), gpop.clone());
+            let heap_region = self.heap.clone();
+            let perm_region = self.perm_space.total();
+
+            pool.execute(move || {
+                println!("start thread");
+
+                loop {
+                    match pop.recv() {
+                        Some(object_addr) => {
+                            let object = object_addr.to_mut_obj();
+
+                            object.visit_reference_fields(|field| {
+                                let field_addr = field.get();
+
+                                if heap_region.contains(field_addr) {
+                                    let field_obj = field_addr.to_mut_obj();
+
+                                    if !field_obj.header().is_marked() {
+                                        push.send(field_addr);
+                                        field_obj.header_mut().mark();
+                                    }
+                                } else {
+                                    debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
+                                }
+                            });
+                        }
+
+                        None => break,
+                    }
+                }
+
+                println!("finish thread");
+            });
+        }
+
+        pool.join();
     }
 
     fn compute_forward(&mut self) {

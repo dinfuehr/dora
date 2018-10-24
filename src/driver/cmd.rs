@@ -42,6 +42,7 @@ Options:
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
+    --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
 
     --disable-tlab          Disable tlab allocation.
@@ -77,6 +78,7 @@ pub struct Args {
     pub flag_gc_verbose: bool,
     pub flag_gc_dev_verbose: bool,
     pub flag_gc_verify: bool,
+    pub flag_gc_worker: usize,
     pub flag_gc: Option<CollectorName>,
     pub flag_min_heap_size: Option<MemSize>,
     pub flag_max_heap_size: Option<MemSize>,
@@ -140,6 +142,7 @@ impl Default for Args {
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,
             flag_gc_verify: false,
+            flag_gc_worker: 1,
             flag_gc: None,
             flag_min_heap_size: None,
             flag_max_heap_size: None,
