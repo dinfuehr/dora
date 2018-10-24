@@ -130,9 +130,7 @@ impl Segment {
     }
 
     fn empty() -> Segment {
-        Segment {
-            data: Vec::new(),
-        }
+        Segment { data: Vec::new() }
     }
 
     fn with(addr: Address) -> Segment {

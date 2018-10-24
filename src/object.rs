@@ -80,7 +80,8 @@ impl Header {
     pub fn set_fwdptr_non_atomic(&mut self, addr: Address) {
         debug_assert!((addr.to_usize() & MARK_MASK) == 0);
         let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr.store(addr.to_usize() | (fwdptr & MARK_MASK), Ordering::Relaxed);
+        self.fwdptr
+            .store(addr.to_usize() | (fwdptr & MARK_MASK), Ordering::Relaxed);
     }
 
     #[inline(always)]
@@ -104,7 +105,9 @@ impl Header {
     #[inline(always)]
     pub fn try_mark(&self) -> bool {
         let old = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr.compare_exchange(old, old | 1, Ordering::SeqCst, Ordering::Relaxed).is_ok()
+        self.fwdptr
+            .compare_exchange(old, old | 1, Ordering::SeqCst, Ordering::Relaxed)
+            .is_ok()
     }
 }
 
