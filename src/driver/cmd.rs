@@ -38,6 +38,8 @@ Options:
     --gc-events             Dump GC events.
     --gc-stress             Collect garbage at every allocation.
     --gc-stress-minor       Minor collection at every allocation.
+    --gc-parallel-marking   Enable experimental parallel marking in full collection.
+    --gc-parallel-minor     Enable experimental minor collection.
     --gc-stats              Print GC statistics.
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
@@ -74,6 +76,8 @@ pub struct Args {
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stress_minor: bool,
+    pub flag_gc_parallel_marking: bool,
+    pub flag_gc_parallel_minor: bool,
     pub flag_gc_stats: bool,
     pub flag_gc_verbose: bool,
     pub flag_gc_dev_verbose: bool,
@@ -138,6 +142,8 @@ impl Default for Args {
             flag_gc_events: false,
             flag_gc_stress: false,
             flag_gc_stress_minor: false,
+            flag_gc_parallel_marking: false,
+            flag_gc_parallel_minor: false,
             flag_gc_stats: false,
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,

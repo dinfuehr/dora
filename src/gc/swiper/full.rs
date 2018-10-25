@@ -83,15 +83,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
-            if self.ctxt.args.flag_gc_worker <= 1 {
-                self.mark_live();
-            } else {
+            if self.ctxt.args.flag_gc_parallel_marking {
                 marking::start(
                     self.rootset,
                     self.heap.clone(),
                     self.perm_space.total(),
                     self.ctxt.args.flag_gc_worker,
                 );
+            } else {
+                self.mark_live();
             }
         });
 

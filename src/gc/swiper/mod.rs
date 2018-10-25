@@ -173,10 +173,10 @@ impl Swiper {
 
         self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
 
-        let promotion_failed = if ctxt.args.flag_gc_worker <= 1 {
-            self.serial_minor_collect(ctxt, reason, &rootset)
-        } else {
+        let promotion_failed = if ctxt.args.flag_gc_parallel_minor {
             self.par_minor_collect(ctxt, reason, &rootset)
+        } else {
+            self.serial_minor_collect(ctxt, reason, &rootset)
         };
 
         self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
