@@ -7,6 +7,7 @@ use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
+use gc::swiper::pminor::ParMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
@@ -22,6 +23,7 @@ mod large;
 mod marking;
 mod minor;
 pub mod old;
+mod pminor;
 mod verify;
 pub mod young;
 
@@ -167,11 +169,22 @@ impl Swiper {
     fn minor_collect_inner(&self, ctxt: &SemContext, reason: GcReason) -> bool {
         // make heap iterable
         tlab::make_iterable(ctxt);
-
         let rootset = get_rootset(ctxt);
 
         self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
 
+        let promotion_failed = if ctxt.args.flag_gc_worker <= 1 {
+            self.serial_minor_collect(ctxt, reason, &rootset)
+        } else {
+            self.par_minor_collect(ctxt, reason, &rootset)
+        };
+
+        self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
+
+        promotion_failed
+    }
+
+    fn serial_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = MinorCollector::new(
             ctxt,
             &self.young,
@@ -179,15 +192,21 @@ impl Swiper {
             &self.large,
             &self.card_table,
             &self.crossing_map,
-            &rootset,
+            rootset,
             reason,
         );
         collector.collect();
+        collector.promotion_failed()
+    }
 
-        let promotion_failed = collector.promotion_failed();
-        self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
-
-        promotion_failed
+    fn par_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
+        let mut collector = ParMinorCollector::new(
+            ctxt,
+            rootset,
+            reason
+        );
+        collector.collect();
+        collector.promotion_failed()
     }
 
     fn full_collect(&self, ctxt: &SemContext, reason: GcReason) {
