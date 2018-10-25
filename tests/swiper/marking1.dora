@@ -1,0 +1,30 @@
+//= ignore
+
+fun main() {
+    let arr = Vec::<Foo>();
+
+    var i = 0;
+    while i < 10 {
+        arr.push(tree(5));
+        i = i + 1;
+    }
+
+    forceCollect();
+    forceCollect();
+}
+
+fun tree(depth: int) -> Foo {
+    if depth == 0 {
+        return Foo(nil, nil, nil, nil, nil);
+    }
+
+    return Foo(
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1),
+        tree(depth-1)
+    );
+}
+
+class Foo(var a: Foo, var b: Foo, var c: Foo, var d: Foo, var e: Foo)
