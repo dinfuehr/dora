@@ -27,7 +27,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
 
             if !root_obj.header().is_marked_non_atomic() {
                 root_obj.header_mut().mark_non_atomic();
-                workers[0].push(Segment::with(root_ptr));
+                workers[0].push(root_ptr);
             }
         } else {
             debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
@@ -51,9 +51,8 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                 let object_addr = if !local_segment.is_empty() {
                     local_segment.pop().expect("should be non-empty")
                 } else {
-                    if let Some(segment) = pop(task_id, &worker, &stealers) {
-                        local_segment = segment;
-                        continue;
+                    if let Some(address) = pop(task_id, &worker, &stealers) {
+                        address
                     } else if try_terminate(&nworkers_stage) {
                         break;
                     } else {
@@ -73,10 +72,10 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                             if local_segment.has_capacity() {
                                 local_segment.push(field_addr);
                             } else {
-                                let new_local_segment = Segment::with(field_addr);
-                                let old_local_segment =
-                                    mem::replace(&mut local_segment, new_local_segment);
-                                worker.push(old_local_segment);
+                                // let new_local_segment = Segment::with(field_addr);
+                                // let old_local_segment =
+                                    // mem::replace(&mut local_segment, new_local_segment);
+                                worker.push(field_addr);
                             }
                         }
                     } else {
@@ -90,12 +89,12 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
     pool.join();
 }
 
-fn pop(task_id: usize, worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) -> Option<Segment> {
+fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
     loop {
         match worker.pop() {
             Pop::Empty => break,
-            Pop::Data(segment) => {
-                return Some(segment)
+            Pop::Data(address) => {
+                return Some(address)
             }
             Pop::Retry => continue,
         }
@@ -105,8 +104,8 @@ fn pop(task_id: usize, worker: &Worker<Segment>, stealers: &[Stealer<Segment>]) 
         loop {
             match stealer.steal() {
                 Steal::Empty => break,
-                Steal::Data(segment) => {
-                    return Some(segment)
+                Steal::Data(address) => {
+                    return Some(address)
                 }
                 Steal::Retry => continue,
             }
@@ -143,7 +142,7 @@ fn try_exit(atomic: &AtomicUsize) -> bool {
     }
 }
 
-const SEGMENT_SIZE: usize = 4;
+const SEGMENT_SIZE: usize = 8;
 
 struct Segment {
     data: Vec<Address>,
