@@ -5,7 +5,7 @@ fun main() {
 
     var i = 0;
     while i < 10 {
-        arr.push(tree(5));
+        arr.push(tree(9));
         i = i + 1;
     }
 
@@ -27,4 +27,4 @@ fun tree(depth: int) -> Foo {
     );
 }
 
-class Foo(var a: Foo, var b: Foo, var c: Foo, var d: Foo, var e: Foo)
+class Foo(let a: Foo, let b: Foo, let c: Foo, let d: Foo, let e: Foo)
