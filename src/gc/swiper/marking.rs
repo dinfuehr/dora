@@ -1,6 +1,6 @@
-use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use std::thread;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
@@ -89,7 +89,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
     pool.join();
 }
 
-fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
+fn pop(_task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
     loop {
         match worker.pop() {
             Pop::Empty => break,
@@ -117,7 +117,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
 
 fn try_terminate(nworkers_stage: &AtomicUsize) -> bool {
     enter_stage(nworkers_stage);
-    thread::sleep_ms(1);
+    thread::sleep(Duration::from_millis(1));
     !try_exit(nworkers_stage)
 }
 
