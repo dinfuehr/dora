@@ -208,7 +208,8 @@ impl Swiper {
             &self.card_table,
             &self.crossing_map,
             rootset,
-            reason
+            reason,
+            ctxt.args.flag_gc_worker,
         );
         collector.collect();
         collector.promotion_failed()

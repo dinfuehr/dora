@@ -18,6 +18,7 @@ pub struct ParMinorCollector<'a, 'ast: 'a> {
 
     rootset: &'a [Slot],
     reason: GcReason,
+    workers: usize,
 }
 
 impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
@@ -30,6 +31,7 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         reason: GcReason,
+        workers: usize,
     ) -> ParMinorCollector<'a, 'ast> {
         ParMinorCollector {
             ctxt: ctxt,
@@ -42,10 +44,25 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
 
             rootset: rootset,
             reason: reason,
+            workers: workers,
         }
     }
 
     pub fn collect(&mut self) {
+        self.visit_roots();
+        self.copy_dirty_cards();
+        self.visit_large_objects();
+    }
+
+    fn visit_roots(&mut self) {
+        unimplemented!();
+    }
+
+    fn copy_dirty_cards(&mut self) {
+        unimplemented!();
+    }
+
+    fn visit_large_objects(&mut self) {
         unimplemented!();
     }
 
