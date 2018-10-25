@@ -18,12 +18,15 @@ use timer::Timer;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
+
     young: &'a YoungGen,
     old: &'a OldGen,
     large: &'a LargeSpace,
-    rootset: &'a [Slot],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
+
+    rootset: &'a [Slot],
+    reason: GcReason,
 
     young_top: Address,
     young_limit: Address,
@@ -34,8 +37,6 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     from_active: Region,
     eden_active: Region,
-
-    reason: GcReason,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {

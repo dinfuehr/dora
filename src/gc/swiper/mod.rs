@@ -202,6 +202,11 @@ impl Swiper {
     fn par_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = ParMinorCollector::new(
             ctxt,
+            &self.young,
+            &self.old,
+            &self.large,
+            &self.card_table,
+            &self.crossing_map,
             rootset,
             reason
         );
