@@ -110,7 +110,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
     let mut rng = thread_rng();
     let range = Uniform::new(0, stealers.len());
 
-    for _ in 0 .. 3 * stealers.len() {
+    for _ in 0 .. 2 * stealers.len() {
         let mut stealer_id = task_id;
 
         while stealer_id == task_id {
@@ -135,7 +135,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
 
 fn try_terminate(nworkers_stage: &AtomicUsize) -> bool {
     enter_stage(nworkers_stage);
-    thread::sleep(Duration::from_millis(1));
+    thread::sleep(Duration::from_micros(1));
     !try_exit(nworkers_stage)
 }
 
