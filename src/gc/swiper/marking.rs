@@ -4,7 +4,7 @@ use std::time::Duration;
 use std::thread;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
-use rand::prng::XorShiftRng;
+use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform};
 use threadpool::ThreadPool;
 
@@ -107,7 +107,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
         return None;
     }
 
-    let mut rng = XorShiftRng::new_unseeded();
+    let mut rng = thread_rng();
     let range = Uniform::new(0, stealers.len());
 
     for _ in 0 .. 3 * stealers.len() {

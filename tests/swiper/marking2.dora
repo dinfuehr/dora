@@ -1,0 +1,19 @@
+//= ignore
+
+fun main() {
+    var list: Foo = nil;
+    var i = 1;
+
+    while i <= 10_000_000 {
+        list = Foo(i, list);
+        i = i + 1;
+    }
+
+    forceCollect();
+    forceCollect();
+    forceCollect();
+    forceCollect();
+    forceCollect();
+}
+
+class Foo(var val: int, var next: Foo)
