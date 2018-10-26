@@ -5,6 +5,7 @@ use ctxt::SemContext;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
+use gc::swiper::controller;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::marking;
@@ -140,6 +141,10 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
+        let old_size = self.old.top().offset_from(self.old.total().start);
+        let (_young_size, _old_size) = controller::compute_young_size(self.heap.size(), old_size);
+        // TODO: actually resize generations
+
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let garbage = init_size - new_size;
@@ -273,7 +278,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.clear();
 
         assert!(self.old.valid_top(self.fwd));
-        self.old.update_free(self.fwd);
+        self.old.update_top(self.fwd);
     }
 
     fn update_large_objects(&mut self) {

@@ -63,8 +63,8 @@ impl OldGen {
         self.top.load(Ordering::Relaxed).into()
     }
 
-    pub fn update_free(&self, free: Address) {
-        self.top.store(free.to_usize(), Ordering::SeqCst);
+    pub fn update_top(&self, top: Address) {
+        self.top.store(top.to_usize(), Ordering::SeqCst);
     }
 
     pub fn bump_alloc(&self, size: usize, array_ref: bool) -> Address {
