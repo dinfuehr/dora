@@ -1,0 +1,7 @@
+fun main() {
+    forceCollect();
+    forceCollect();
+    forceCollect();
+    forceCollect();
+    forceCollect();
+}
