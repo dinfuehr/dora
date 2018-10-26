@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use gc::root::Slot;
 use gc::{Address, Region};
 
-pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize) {
+pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize, threadpool: &ThreadPool) {
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
 
@@ -36,7 +36,6 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
         }
     }
 
-    let pool = ThreadPool::with_name("gc-worker".to_string(), number_workers);
     let nworkers_stage = Arc::new(AtomicUsize::new(number_workers));
 
     for (task_id, worker) in workers.into_iter().enumerate() {
@@ -46,7 +45,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
         let stealers = stealers.clone();
         let nworkers_stage = nworkers_stage.clone();
 
-        pool.execute(move || {
+        threadpool.execute(move || {
             let mut local_segment = Segment::new();
 
             loop {
@@ -71,7 +70,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
         });
     }
 
-    pool.join();
+    threadpool.join();
 }
 
 fn trace_slot(slot: Slot, local_segment: &mut Segment, worker: &Worker<Address>, heap_region: Region, perm_region: Region) {

@@ -1,4 +1,5 @@
 use std::cmp;
+use threadpool::ThreadPool;
 
 use ctxt::SemContext;
 use gc::root::Slot;
@@ -30,6 +31,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     old_top: Address,
 
     reason: GcReason,
+    threadpool: &'a ThreadPool,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -44,6 +46,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         perm_space: &'a Space,
         rootset: &'a [Slot],
         reason: GcReason,
+        threadpool: &'a ThreadPool,
     ) -> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
@@ -63,6 +66,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             old_top: Address::null(),
 
             reason: reason,
+            threadpool: threadpool,
         }
     }
 
@@ -89,6 +93,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     self.heap.clone(),
                     self.perm_space.total(),
                     self.ctxt.args.flag_gc_worker,
+                    self.threadpool,
                 );
             } else {
                 self.mark_live();

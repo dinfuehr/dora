@@ -1,3 +1,5 @@
+use threadpool::ThreadPool;
+
 use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
@@ -15,6 +17,7 @@ use gc::Collector;
 use gc::{align_gen, arena, GcReason};
 use gc::{formatted_size, Address, Region};
 use mem;
+
 pub mod card;
 mod controller;
 mod crossing;
@@ -58,6 +61,8 @@ pub struct Swiper {
     // minimum & maximum heap size
     min_heap_size: usize,
     max_heap_size: usize,
+
+    threadpool: ThreadPool,
 }
 
 impl Swiper {
@@ -148,6 +153,12 @@ impl Swiper {
             );
         }
 
+        let nworkers = if args.flag_gc_worker > 1 {
+            args.flag_gc_worker
+        } else {
+            1
+        };
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
             reserved_area: reserved_area,
@@ -163,6 +174,8 @@ impl Swiper {
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
+
+            threadpool: ThreadPool::with_name("gc-worker".to_string(), nworkers),
         }
     }
 
@@ -234,6 +247,7 @@ impl Swiper {
             &ctxt.gc.perm_space,
             &rootset,
             reason,
+            &self.threadpool,
         );
         collector.collect();
 
