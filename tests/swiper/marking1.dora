@@ -11,6 +11,9 @@ fun main() {
 
     forceCollect();
     forceCollect();
+    forceCollect();
+    forceCollect();
+    forceCollect();
 }
 
 fun tree(depth: int) -> Foo {

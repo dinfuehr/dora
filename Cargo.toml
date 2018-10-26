@@ -12,6 +12,7 @@ time = "*"
 dora-parser = { path = "lib/dora-parser" }
 threadpool = "*"
 crossbeam-deque = "0.6"
+rand = "*"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

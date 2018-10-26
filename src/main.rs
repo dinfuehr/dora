@@ -13,6 +13,7 @@ extern crate crossbeam_deque;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate threadpool;
 extern crate time;

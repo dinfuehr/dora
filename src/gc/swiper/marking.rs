@@ -4,6 +4,8 @@ use std::time::Duration;
 use std::thread;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
+use rand::prng::XorShiftRng;
+use rand::distributions::{Distribution, Uniform};
 use threadpool::ThreadPool;
 
 use gc::root::Slot;
@@ -63,24 +65,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                 let object = object_addr.to_mut_obj();
 
                 object.visit_reference_fields(|field| {
-                    let field_addr = field.get();
-
-                    if heap_region.contains(field_addr) {
-                        let field_obj = field_addr.to_mut_obj();
-
-                        if field_obj.header().try_mark() {
-                            if local_segment.has_capacity() {
-                                local_segment.push(field_addr);
-                            } else {
-                                // let new_local_segment = Segment::with(field_addr);
-                                // let old_local_segment =
-                                    // mem::replace(&mut local_segment, new_local_segment);
-                                worker.push(field_addr);
-                            }
-                        }
-                    } else {
-                        debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
-                    }
+                    trace_slot(field, &mut local_segment, &worker, heap_region.clone(), perm_region.clone());
                 });
             }
         });
@@ -89,7 +74,25 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
     pool.join();
 }
 
-fn pop(_task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
+fn trace_slot(slot: Slot, local_segment: &mut Segment, worker: &Worker<Address>, heap_region: Region, perm_region: Region) {
+    let field_addr = slot.get();
+
+    if heap_region.contains(field_addr) {
+        let field_obj = field_addr.to_mut_obj();
+
+        if field_obj.header().try_mark_non_atomic() {
+            if local_segment.has_capacity() {
+                local_segment.push(field_addr);
+            } else {
+                worker.push(field_addr);
+            }
+        }
+    } else {
+        debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
+    }
+}
+
+fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
     loop {
         match worker.pop() {
             Pop::Empty => break,
@@ -100,7 +103,22 @@ fn pop(_task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>])
         }
     }
 
-    for stealer in stealers {
+    if stealers.len() == 1 {
+        return None;
+    }
+
+    let mut rng = XorShiftRng::new_unseeded();
+    let range = Uniform::new(0, stealers.len());
+
+    for _ in 0 .. 3 * stealers.len() {
+        let mut stealer_id = task_id;
+
+        while stealer_id == task_id {
+            stealer_id = range.sample(&mut rng);
+        }
+
+        let stealer = &stealers[stealer_id];
+
         loop {
             match stealer.steal() {
                 Steal::Empty => break,

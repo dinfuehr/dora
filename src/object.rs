@@ -103,6 +103,18 @@ impl Header {
     }
 
     #[inline(always)]
+    pub fn try_mark_non_atomic(&self) -> bool {
+        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
+
+        if (fwdptr & MARK_MASK) != 0 {
+            return false;
+        }
+
+        self.fwdptr.store(fwdptr | 1, Ordering::Relaxed);
+        true
+    }
+
+    #[inline(always)]
     pub fn try_mark(&self) -> bool {
         let old = self.fwdptr.load(Ordering::Relaxed);
         self.fwdptr
