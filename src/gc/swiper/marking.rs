@@ -1,17 +1,23 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
-use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform};
+use rand::thread_rng;
 use threadpool::ThreadPool;
 
 use gc::root::Slot;
 use gc::{Address, Region};
 
-pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize, threadpool: &ThreadPool) {
+pub fn start(
+    rootset: &[Slot],
+    heap: Region,
+    perm: Region,
+    number_workers: usize,
+    threadpool: &ThreadPool,
+) {
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
 
@@ -64,7 +70,13 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
                 let object = object_addr.to_mut_obj();
 
                 object.visit_reference_fields(|field| {
-                    trace_slot(field, &mut local_segment, &worker, heap_region.clone(), perm_region.clone());
+                    trace_slot(
+                        field,
+                        &mut local_segment,
+                        &worker,
+                        heap_region.clone(),
+                        perm_region.clone(),
+                    );
                 });
             }
         });
@@ -73,7 +85,13 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, number_workers: usize
     threadpool.join();
 }
 
-fn trace_slot(slot: Slot, local_segment: &mut Segment, worker: &Worker<Address>, heap_region: Region, perm_region: Region) {
+fn trace_slot(
+    slot: Slot,
+    local_segment: &mut Segment,
+    worker: &Worker<Address>,
+    heap_region: Region,
+    perm_region: Region,
+) {
     let field_addr = slot.get();
 
     if heap_region.contains(field_addr) {
@@ -95,9 +113,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
     loop {
         match worker.pop() {
             Pop::Empty => break,
-            Pop::Data(address) => {
-                return Some(address)
-            }
+            Pop::Data(address) => return Some(address),
             Pop::Retry => continue,
         }
     }
@@ -109,7 +125,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
     let mut rng = thread_rng();
     let range = Uniform::new(0, stealers.len());
 
-    for _ in 0 .. 2 * stealers.len() {
+    for _ in 0..2 * stealers.len() {
         let mut stealer_id = task_id;
 
         while stealer_id == task_id {
@@ -121,9 +137,7 @@ fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) 
         loop {
             match stealer.steal() {
                 Steal::Empty => break,
-                Steal::Data(address) => {
-                    return Some(address)
-                }
+                Steal::Data(address) => return Some(address),
                 Steal::Retry => continue,
             }
         }

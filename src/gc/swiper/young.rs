@@ -355,8 +355,7 @@ impl Block {
     }
 
     fn commit(&self) {
-        let committed = self.committed.load(Ordering::Relaxed);
-        let size = committed - self.start.to_usize();
+        let size = self.committed_size();
 
         if size > 0 {
             arena::commit(self.start, size, false);
@@ -370,6 +369,34 @@ impl Block {
     fn committed(&self) -> Region {
         let committed = self.committed.load(Ordering::Relaxed);
         Region::new(self.start, committed.into())
+    }
+
+    fn committed_size(&self) -> usize {
+        let committed = self.committed.load(Ordering::Relaxed);
+        committed - self.start.to_usize()
+    }
+
+    fn set_committed_size(&self, new_size: usize) {
+        let old_committed = self.committed.load(Ordering::Relaxed);
+        let new_committed = self.start.offset(new_size).to_usize();
+        assert!(new_committed <= self.end.to_usize());
+
+        if old_committed == new_committed {
+            return;
+        }
+
+        let updated =
+            self.committed
+                .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
+        assert!(updated == old_committed);
+
+        if old_committed < new_committed {
+            let size = new_committed - old_committed;
+            arena::commit(old_committed.into(), size, false);
+        } else if old_committed > new_committed {
+            let size = old_committed - new_committed;
+            arena::forget(new_committed.into(), size);
+        }
     }
 
     fn active(&self) -> Region {
