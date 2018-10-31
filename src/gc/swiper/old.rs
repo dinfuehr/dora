@@ -86,9 +86,9 @@ impl OldGen {
             return;
         }
 
-        let updated =
-            self.limit
-                .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
+        let updated = self
+            .limit
+            .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
         assert!(updated == old_committed);
 
         if old_committed < new_committed {
