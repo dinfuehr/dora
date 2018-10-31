@@ -20,10 +20,12 @@ pub struct YoungGen {
 
 impl YoungGen {
     pub fn new(total: Region, committed_size: usize, protect: bool) -> YoungGen {
-        let half_size = total.size() / 2;
+        let semi_total_size = align_space(total.size() / SEMI_RATIO);
+        let eden_total_size = total.size() - semi_total_size;
 
-        let eden_total = total.start.region_start(half_size);
+        let eden_total = total.start.region_start(eden_total_size);
         let semi_total = Region::new(eden_total.end, total.end);
+        assert!(semi_total.size() == semi_total_size);
 
         let semi_committed = align_space(committed_size / SEMI_RATIO);
         let eden_committed = committed_size - semi_committed;
@@ -125,6 +127,19 @@ impl YoungGen {
 
         return self.semi.bump_alloc(size);
     }
+
+    pub fn set_committed_size(&self, size: usize) {
+        assert!(size <= self.total.size());
+        let semi_committed = align_space(size / SEMI_RATIO);
+        let eden_committed = size - semi_committed;
+
+        self.semi.set_committed_size(semi_committed);
+        self.eden.set_committed_size(eden_committed);
+    }
+
+    pub fn committed_size(&self) -> usize {
+        self.semi.committed_size() + self.eden.committed_size()
+    }
 }
 
 struct Eden {
@@ -156,6 +171,10 @@ impl Eden {
         self.block.committed()
     }
 
+    fn committed_size(&self) -> usize {
+        self.block.committed_size()
+    }
+
     fn active(&self) -> Region {
         self.block.active()
     }
@@ -166,6 +185,10 @@ impl Eden {
 
     fn bump_alloc(&self, size: usize) -> Address {
         self.block.bump_alloc(size)
+    }
+
+    fn set_committed_size(&self, size: usize) {
+        self.block.set_committed_size(size);
     }
 }
 
@@ -332,6 +355,15 @@ impl SemiSpace {
     fn bump_alloc(&self, size: usize) -> Address {
         self.from_block().bump_alloc(size)
     }
+
+    fn set_committed_size(&self, size: usize) {
+        self.from_block().set_committed_size(size / 2);
+        self.to_block().set_committed_size(size / 2);
+    }
+
+    fn committed_size(&self) -> usize {
+        self.from_block().committed_size() + self.to_block().committed_size()
+    }
 }
 
 struct Block {
@@ -380,6 +412,7 @@ impl Block {
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();
         assert!(new_committed <= self.end.to_usize());
+        assert!(self.alloc.top().to_usize() <= new_committed);
 
         if old_committed == new_committed {
             return;
@@ -397,6 +430,8 @@ impl Block {
             let size = old_committed - new_committed;
             arena::forget(new_committed.into(), size);
         }
+
+        self.alloc.reset_limit(new_committed.into());
     }
 
     fn active(&self) -> Region {

@@ -10,9 +10,10 @@ use object::offset_of_array_data;
 
 pub struct OldGen {
     total: Region,
+
     top: AtomicUsize,
-    committed_size: usize,
-    committed_end: Address,
+    limit: AtomicUsize,
+
     crossing_map: CrossingMap,
     card_table: CardTable,
 }
@@ -21,15 +22,18 @@ impl OldGen {
     pub fn new(
         start: Address,
         end: Address,
-        old_size: usize,
+        committed_size: usize,
         crossing_map: CrossingMap,
         card_table: CardTable,
     ) -> OldGen {
+        let limit = start.offset(committed_size);
+
         let old = OldGen {
             total: Region::new(start, end),
+
             top: AtomicUsize::new(start.to_usize()),
-            committed_size: old_size,
-            committed_end: start.offset(old_size),
+            limit: AtomicUsize::new(limit.to_usize()),
+
             crossing_map: crossing_map,
             card_table: card_table,
         };
@@ -40,7 +44,10 @@ impl OldGen {
     }
 
     fn commit(&self) {
-        arena::commit(self.total.start, self.committed_size, false);
+        let start = self.total.start;
+        let size = self.limit.load(Ordering::Relaxed) - start.to_usize();
+
+        arena::commit(start, size, false);
     }
 
     pub fn total(&self) -> Region {
@@ -52,7 +59,9 @@ impl OldGen {
     }
 
     pub fn committed(&self) -> Region {
-        Region::new(self.total.start, self.committed_end)
+        let start = self.total.start;
+        let limit = self.limit.load(Ordering::Relaxed).into();
+        Region::new(start, limit)
     }
 
     pub fn active_size(&self) -> usize {
@@ -67,6 +76,30 @@ impl OldGen {
         self.top.store(top.to_usize(), Ordering::SeqCst);
     }
 
+    pub fn set_committed_size(&self, new_size: usize) {
+        let old_committed = self.limit.load(Ordering::Relaxed);
+        let new_committed = self.total.start.offset(new_size).to_usize();
+        assert!(new_committed <= self.total.end.to_usize());
+        assert!(self.top().to_usize() <= new_committed);
+
+        if old_committed == new_committed {
+            return;
+        }
+
+        let updated =
+            self.limit
+                .compare_and_swap(old_committed, new_committed, Ordering::SeqCst);
+        assert!(updated == old_committed);
+
+        if old_committed < new_committed {
+            let size = new_committed - old_committed;
+            arena::commit(old_committed.into(), size, false);
+        } else if old_committed > new_committed {
+            let size = old_committed - new_committed;
+            arena::forget(new_committed.into(), size);
+        }
+    }
+
     pub fn bump_alloc(&self, size: usize, array_ref: bool) -> Address {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
@@ -74,7 +107,7 @@ impl OldGen {
         loop {
             new = old + size;
 
-            if new >= self.committed_end.to_usize() {
+            if new > self.limit.load(Ordering::Relaxed) {
                 return Address::null();
             }
 

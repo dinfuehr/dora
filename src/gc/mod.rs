@@ -27,8 +27,10 @@ pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
 // every space (eden/from/to/old) is aligned to at least this size
-const SPACE_ALIGNMENT_BITS: usize = 16;
-const GEN_ALIGNMENT_BITS: usize = 18;
+const SPACE_ALIGNMENT_BITS: usize = 17;
+
+// young/old gen are aligned to at least this size
+const GEN_ALIGNMENT_BITS: usize = 19;
 
 pub struct Gc {
     collector: Box<Collector>,

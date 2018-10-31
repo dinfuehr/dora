@@ -33,6 +33,9 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     reason: GcReason,
     threadpool: &'a ThreadPool,
+
+    min_heap_size: usize,
+    max_heap_size: usize,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -48,6 +51,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         rootset: &'a [Slot],
         reason: GcReason,
         threadpool: &'a ThreadPool,
+        min_heap_size: usize,
+        max_heap_size: usize,
     ) -> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
@@ -68,6 +73,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             reason: reason,
             threadpool: threadpool,
+
+            min_heap_size: min_heap_size,
+            max_heap_size: max_heap_size,
         }
     }
 
@@ -142,8 +150,9 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.reset_cards();
 
         let old_size = self.old.top().offset_from(self.old.total().start);
-        let (_young_size, _old_size) = controller::compute_young_size(self.heap.size(), old_size);
-        // TODO: actually resize generations
+        let (young_size, old_size) = controller::compute_young_size(self.max_heap_size, old_size);
+        self.young.set_committed_size(young_size);
+        self.old.set_committed_size(old_size);
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();

@@ -207,6 +207,8 @@ impl Swiper {
             &self.crossing_map,
             rootset,
             reason,
+            self.min_heap_size,
+            self.max_heap_size,
         );
         collector.collect();
         collector.promotion_failed()
@@ -248,6 +250,8 @@ impl Swiper {
             &rootset,
             reason,
             &self.threadpool,
+            self.min_heap_size,
+            self.max_heap_size,
         );
         collector.collect();
 

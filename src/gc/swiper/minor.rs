@@ -4,6 +4,7 @@ use ctxt::SemContext;
 
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
+use gc::swiper::controller;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
@@ -37,6 +38,9 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     from_active: Region,
     eden_active: Region,
+
+    min_heap_size: usize,
+    max_heap_size: usize,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -49,6 +53,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         reason: GcReason,
+        min_heap_size: usize,
+        max_heap_size: usize,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             ctxt: ctxt,
@@ -70,6 +76,9 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             eden_active: young.eden_active(),
 
             reason: reason,
+
+            min_heap_size: min_heap_size,
+            max_heap_size: max_heap_size,
         }
     }
 
@@ -118,6 +127,12 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.young.clear_eden();
         self.young.swap_semi(self.young_top);
         self.young.protect_to();
+
+        let old_size = self.old.top().offset_from(self.old.total().start);
+        let (young_size, old_size) = controller::compute_young_size(self.max_heap_size, old_size);
+        assert!(young_size <= self.young.committed_size());
+        self.young.set_committed_size(young_size);
+        self.old.set_committed_size(old_size);
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
