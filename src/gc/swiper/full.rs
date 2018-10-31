@@ -154,6 +154,16 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.young.set_committed_size(young_size);
         self.old.set_committed_size(old_size);
 
+        if self.ctxt.args.flag_gc_verbose {
+            println!(
+                "GC: Resize after Full GC (young committed {}->{}, old committed {}->{})",
+                formatted_size(self.young.committed_size()),
+                formatted_size(young_size),
+                formatted_size(self.old.committed_size()),
+                formatted_size(old_size),
+            );
+        }
+
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
             let garbage = init_size - new_size;

@@ -64,6 +64,13 @@ impl OldGen {
         Region::new(start, limit)
     }
 
+    pub fn committed_size(&self) -> usize {
+        let start = self.total.start;
+        let limit = self.limit.load(Ordering::Relaxed);
+
+        limit - start.to_usize()
+    }
+
     pub fn active_size(&self) -> usize {
         self.top().offset_from(self.total.start)
     }

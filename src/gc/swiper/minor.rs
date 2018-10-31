@@ -130,6 +130,17 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         let old_size = self.old.top().offset_from(self.old.total().start);
         let (young_size, old_size) = controller::compute_young_size(self.max_heap_size, old_size);
+
+        if self.ctxt.args.flag_gc_verbose {
+            println!(
+                "GC: Resize after Minor GC (young committed {}->{}, old committed {}->{})",
+                formatted_size(self.young.committed_size()),
+                formatted_size(young_size),
+                formatted_size(self.old.committed_size()),
+                formatted_size(old_size),
+            );
+        }
+
         assert!(young_size <= self.young.committed_size());
         self.young.set_committed_size(young_size);
         self.old.set_committed_size(old_size);
