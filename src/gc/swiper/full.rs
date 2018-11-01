@@ -149,20 +149,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
-        let old_size = self.old.top().offset_from(self.old.total().start);
-        let (young_size, old_size) = controller::compute_young_size(self.max_heap_size, old_size);
-        self.young.set_committed_size(young_size);
-        self.old.set_committed_size(old_size);
-
-        if self.ctxt.args.flag_gc_verbose {
-            println!(
-                "GC: Resize after Full GC (young committed {}->{}, old committed {}->{})",
-                formatted_size(self.young.committed_size()),
-                formatted_size(young_size),
-                formatted_size(self.old.committed_size()),
-                formatted_size(old_size),
-            );
-        }
+        controller::resize_gens_after_full(
+            self.min_heap_size,
+            self.max_heap_size,
+            self.young,
+            self.old,
+            self.ctxt.args.flag_gc_verbose,
+        );
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
