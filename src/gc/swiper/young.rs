@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::bump::BumpAllocator;
@@ -130,7 +131,13 @@ impl YoungGen {
 
     pub fn set_committed_size(&self, size: usize) {
         assert!(size <= self.total.size());
-        let semi_committed = align_space(size / SEMI_RATIO);
+        let semi_target_size = align_space(size / SEMI_RATIO);
+
+        // semi-space can't be smaller than current size of from-space though
+        let from_active = self.semi.from_active().size();
+        let semi_minimum_size = align_space(from_active * 2);
+
+        let semi_committed = max(semi_minimum_size, semi_target_size);
         let eden_committed = size - semi_committed;
 
         self.semi.set_committed_size(semi_committed);

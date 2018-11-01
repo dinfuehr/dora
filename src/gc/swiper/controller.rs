@@ -15,6 +15,7 @@ pub fn resize_gens_after_minor(
 
     let (young_size, old_size) = compute_young_size(max_heap_size, old_size);
     assert!(young_size <= young.committed_size());
+
     young.set_committed_size(young_size);
     old.set_committed_size(old_size);
 
