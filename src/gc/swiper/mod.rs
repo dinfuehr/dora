@@ -26,6 +26,7 @@ mod large;
 mod marking;
 mod minor;
 pub mod old;
+mod paged_old;
 mod pminor;
 mod verify;
 pub mod young;
