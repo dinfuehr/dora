@@ -16,9 +16,6 @@ pub fn resize_gens_after_minor(
     let (young_size, old_size) = compute_young_size(max_heap_size, old_size);
     assert!(young_size <= young.committed_size());
 
-    young.set_committed_size(young_size);
-    old.set_committed_size(old_size);
-
     if verbose {
         println!(
             "GC: Resize after Minor GC (young committed {}->{}, old committed {}->{})",
@@ -28,6 +25,9 @@ pub fn resize_gens_after_minor(
             formatted_size(old_size),
         );
     }
+
+    young.set_committed_size(young_size);
+    old.set_committed_size(old_size);
 }
 
 pub fn resize_gens_after_full(
@@ -41,8 +41,6 @@ pub fn resize_gens_after_full(
     assert!(young.active_size() == 0);
 
     let (young_size, old_size) = compute_young_size(max_heap_size, old_size);
-    young.set_committed_size(young_size);
-    old.set_committed_size(old_size);
 
     if verbose {
         println!(
@@ -53,6 +51,9 @@ pub fn resize_gens_after_full(
             formatted_size(old_size),
         );
     }
+
+    young.set_committed_size(young_size);
+    old.set_committed_size(old_size);
 }
 
 // calculate young generation size from old generation and heap size.
