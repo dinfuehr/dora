@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use threadpool::ThreadPool;
 
 use ctxt::SemContext;
@@ -64,6 +66,8 @@ pub struct Swiper {
     max_heap_size: usize,
 
     threadpool: ThreadPool,
+
+    stats: GcStats,
 }
 
 impl Swiper {
@@ -177,6 +181,7 @@ impl Swiper {
             max_heap_size: max_heap_size,
 
             threadpool: ThreadPool::with_name("gc-worker".to_string(), nworkers),
+            stats: GcStats::new(),
         }
     }
 
@@ -210,6 +215,7 @@ impl Swiper {
             reason,
             self.min_heap_size,
             self.max_heap_size,
+            &self.stats,
         );
         collector.collect();
         collector.promotion_failed()
@@ -253,6 +259,7 @@ impl Swiper {
             &self.threadpool,
             self.min_heap_size,
             self.max_heap_size,
+            &self.stats,
         );
         collector.collect();
 
@@ -370,6 +377,18 @@ impl Collector for Swiper {
     fn card_table_offset(&self) -> usize {
         self.card_table_offset
     }
+
+    fn dump_summary(&self) {
+        self.stats.update(|stats| {
+            println!(
+                "GC summary: {:.1}ms minor ({}), {:.1}ms full ({})",
+                stats.minor_runtime(),
+                stats.minor_collections(),
+                stats.full_runtime(),
+                stats.full_collections()
+            );
+        })
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -393,4 +412,81 @@ impl From<usize> for CardIdx {
 
 fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
+}
+
+pub struct GcStats {
+    stats: Mutex<GcStatsProtected>,
+}
+
+impl GcStats {
+    fn new() -> GcStats {
+        GcStats {
+            stats: Mutex::new(GcStatsProtected::new()),
+        }
+    }
+
+    fn update<F>(&self, fct: F)
+    where
+        F: FnOnce(&mut GcStatsProtected),
+    {
+        let mut stats = self.stats.lock().unwrap();
+        fct(&mut *stats);
+    }
+}
+
+struct GcStatsProtected {
+    // number of minor GCs
+    minor_collections: usize,
+
+    // total runtime of minor GCs
+    minor_runtime: f32,
+
+    // number of full GCs
+    full_collections: usize,
+
+    // total runtime of full GCs
+    full_runtime: f32,
+}
+
+impl GcStatsProtected {
+    fn new() -> GcStatsProtected {
+        GcStatsProtected {
+            minor_collections: 0,
+            minor_runtime: 0.0,
+            full_collections: 0,
+            full_runtime: 0.0,
+        }
+    }
+
+    fn incr_minor_collections(&mut self) {
+        self.minor_collections += 1;
+    }
+
+    fn minor_collections(&self) -> usize {
+        self.minor_collections
+    }
+
+    fn incr_minor_runtime(&mut self, time: f32) {
+        self.minor_runtime += time;
+    }
+
+    fn minor_runtime(&self) -> f32 {
+        self.minor_runtime
+    }
+
+    fn incr_full_collections(&mut self) {
+        self.full_collections += 1;
+    }
+
+    fn full_collections(&self) -> usize {
+        self.full_collections
+    }
+
+    fn incr_full_runtime(&mut self, time: f32) {
+        self.full_runtime += time;
+    }
+
+    fn full_runtime(&self) -> f32 {
+        self.full_runtime
+    }
 }

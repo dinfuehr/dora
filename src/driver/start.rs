@@ -79,11 +79,17 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    if ctxt.args.cmd_test {
+    let code = if ctxt.args.cmd_test {
         run_tests(&ctxt)
     } else {
         run_main(&ctxt, main.unwrap())
+    };
+
+    if ctxt.args.flag_gc_verbose {
+        ctxt.dump_gc_summary();
     }
+
+    code
 }
 
 fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {

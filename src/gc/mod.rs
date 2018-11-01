@@ -140,6 +140,10 @@ impl Gc {
     pub fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
         self.collector.minor_collect(ctxt, reason);
     }
+
+    pub fn dump_summary(&self) {
+        self.collector.dump_summary();
+    }
 }
 
 trait Collector {
@@ -164,6 +168,11 @@ trait Collector {
     // only need if write barriers needed
     fn card_table_offset(&self) -> usize {
         0
+    }
+
+    // prints GC summary: minor/full collections, etc.
+    fn dump_summary(&self) {
+        // do nothing
     }
 }
 

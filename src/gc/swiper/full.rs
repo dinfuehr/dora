@@ -12,6 +12,7 @@ use gc::swiper::marking;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
+use gc::swiper::GcStats;
 use gc::{formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
@@ -36,6 +37,8 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     min_heap_size: usize,
     max_heap_size: usize,
+
+    stats: &'a GcStats,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
@@ -53,6 +56,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         threadpool: &'a ThreadPool,
         min_heap_size: usize,
         max_heap_size: usize,
+        stats: &'a GcStats,
     ) -> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
@@ -76,6 +80,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
+
+            stats: stats,
         }
     }
 
@@ -165,6 +171,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             } else {
                 (garbage as f64 / init_size as f64) * 100f64
             };
+
+            self.stats.update(|stats| {
+                stats.incr_full_collections();
+                stats.incr_full_runtime(time_pause);
+            });
 
             println!(
                 "GC: Full GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage); \

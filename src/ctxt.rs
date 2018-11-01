@@ -208,6 +208,10 @@ impl<'ast> SemContext<'ast> {
         })
     }
 
+    pub fn dump_gc_summary(&self) {
+        self.gc.dump_summary();
+    }
+
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
     where
         F: FnOnce() -> R,

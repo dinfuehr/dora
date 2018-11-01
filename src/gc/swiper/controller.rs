@@ -1,7 +1,7 @@
-use gc::{align_gen, formatted_size};
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::GEN_ALIGNMENT_BITS;
+use gc::{align_gen, formatted_size};
 
 pub fn resize_gens_after_minor(
     _min_heap_size: usize,

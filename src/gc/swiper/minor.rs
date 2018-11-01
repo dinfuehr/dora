@@ -10,6 +10,7 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
+use gc::swiper::GcStats;
 use gc::swiper::{CardIdx, CARD_SIZE};
 use gc::{formatted_size, Address, GcReason, Region};
 
@@ -41,6 +42,8 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     min_heap_size: usize,
     max_heap_size: usize,
+
+    stats: &'a GcStats,
 }
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
@@ -55,6 +58,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
+        stats: &'a GcStats,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             ctxt: ctxt,
@@ -79,6 +83,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
+
+            stats: stats,
         }
     }
 
@@ -148,6 +154,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             } else {
                 (garbage as f64 / young_init_size as f64) * 100f64
             };
+
+            self.stats.update(|stats| {
+                stats.incr_minor_collections();
+                stats.incr_minor_runtime(time_pause);
+            });
 
             println!(
                 "GC: Minor GC ({:.1} ms, {}->{}, young {}->{}, \
