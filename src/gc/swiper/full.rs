@@ -155,13 +155,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
-        controller::resize_gens_after_full(
-            self.min_heap_size,
-            self.max_heap_size,
-            self.young,
-            self.old,
-            self.ctxt.args.flag_gc_verbose,
-        );
+        if self.ctxt.args.flag_gc_young_ratio.is_none() {
+            controller::resize_gens_after_full(
+                self.min_heap_size,
+                self.max_heap_size,
+                self.young,
+                self.old,
+                self.ctxt.args.flag_gc_verbose,
+            );
+        }
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();

@@ -75,8 +75,15 @@ impl Swiper {
         let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
 
+        // determine initial young-ratio
+        let mut young_ratio = args.flag_gc_young_ratio.unwrap_or(YOUNG_RATIO);
+
+        if young_ratio == 0 {
+            young_ratio = YOUNG_RATIO;
+        }
+
         // determine size for generations
-        let young_size = align_gen(max_heap_size / YOUNG_RATIO);
+        let young_size = align_gen(max_heap_size / young_ratio);
         let old_size = align_gen(max_heap_size - young_size);
 
         let max_heap_size = young_size + old_size;

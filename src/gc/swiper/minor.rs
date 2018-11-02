@@ -134,13 +134,17 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.young.swap_semi(self.young_top);
         self.young.protect_to();
 
-        let force_full = controller::resize_gens_after_minor(
-            self.min_heap_size,
-            self.max_heap_size,
-            self.young,
-            self.old,
-            self.ctxt.args.flag_gc_verbose,
-        );
+        let force_full = if self.ctxt.args.flag_gc_young_ratio.is_none() {
+            controller::resize_gens_after_minor(
+                self.min_heap_size,
+                self.max_heap_size,
+                self.young,
+                self.old,
+                self.ctxt.args.flag_gc_verbose,
+            )
+        } else {
+            false
+        };
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
