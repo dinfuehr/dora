@@ -29,6 +29,7 @@ pub fn resize_gens_after_minor(
     young.set_committed_size(young_size);
     old.set_committed_size(old_size);
 
+    // force full GC when young collection becomes too small
     young_size < old_size / 16
 }
 
