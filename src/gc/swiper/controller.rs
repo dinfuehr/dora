@@ -9,7 +9,7 @@ pub fn resize_gens_after_minor(
     young: &YoungGen,
     old: &OldGen,
     verbose: bool,
-) {
+) -> bool {
     let old_size = align_gen(old.active_size());
     assert!(young.eden_active().size() == 0);
 
@@ -28,6 +28,8 @@ pub fn resize_gens_after_minor(
 
     young.set_committed_size(young_size);
     old.set_committed_size(old_size);
+
+    young_size < old_size / 16
 }
 
 pub fn resize_gens_after_full(

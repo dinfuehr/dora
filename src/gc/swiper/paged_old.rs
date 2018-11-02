@@ -7,6 +7,8 @@ struct PagedOldGen {
     total: Region,
 
     live_pages: PageSet,
+
+    // completely free pages (no live objects)
     free_pages: PageSet,
 }
 

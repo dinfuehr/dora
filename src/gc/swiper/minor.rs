@@ -88,7 +88,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         }
     }
 
-    pub fn collect(&mut self) {
+    pub fn collect(&mut self) -> bool {
         let active = self.ctxt.args.flag_gc_verbose;
         let mut timer = Timer::new(active);
 
@@ -134,7 +134,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         self.young.swap_semi(self.young_top);
         self.young.protect_to();
 
-        controller::resize_gens_after_minor(
+        let force_full = controller::resize_gens_after_minor(
             self.min_heap_size,
             self.max_heap_size,
             self.young,
@@ -178,6 +178,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 self.reason,
             );
         });
+
+        force_full || self.promotion_failed
     }
 
     fn heap_size(&self) -> usize {
@@ -531,10 +533,6 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         obj.header_mut().vtbl_forward_to(copy_addr);
 
         copy_addr
-    }
-
-    pub fn promotion_failed(&self) -> bool {
-        self.promotion_failed
     }
 }
 

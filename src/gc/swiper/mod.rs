@@ -217,8 +217,7 @@ impl Swiper {
             self.max_heap_size,
             &self.stats,
         );
-        collector.collect();
-        collector.promotion_failed()
+        collector.collect()
     }
 
     fn par_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
@@ -233,8 +232,7 @@ impl Swiper {
             reason,
             ctxt.args.flag_gc_worker,
         );
-        collector.collect();
-        collector.promotion_failed()
+        collector.collect()
     }
 
     fn full_collect(&self, ctxt: &SemContext, reason: GcReason) {

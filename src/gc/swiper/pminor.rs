@@ -48,10 +48,12 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
         }
     }
 
-    pub fn collect(&mut self) {
+    pub fn collect(&mut self) -> bool {
         self.visit_roots();
         self.copy_dirty_cards();
         self.visit_large_objects();
+
+        false
     }
 
     fn visit_roots(&mut self) {
@@ -64,9 +66,5 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
 
     fn visit_large_objects(&mut self) {
         unimplemented!();
-    }
-
-    pub fn promotion_failed(&mut self) -> bool {
-        false
     }
 }
