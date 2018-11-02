@@ -68,8 +68,16 @@ impl YoungGen {
         self.semi.from_total()
     }
 
+    pub fn to_active(&self) -> Region {
+        self.semi.to_active()
+    }
+
     pub fn to_committed(&self) -> Region {
         self.semi.to_committed()
+    }
+
+    pub fn to_total(&self) -> Region {
+        self.semi.to_total()
     }
 
     pub fn total(&self) -> Region {
@@ -87,6 +95,7 @@ impl YoungGen {
     pub fn clear(&self) {
         self.eden.reset_top();
         self.semi.clear_from();
+        self.semi.clear_to();
     }
 
     pub fn active_size(&self) -> usize {
@@ -107,6 +116,10 @@ impl YoungGen {
 
     pub fn swap_semi(&self, top: Address) {
         self.semi.swap(top);
+    }
+
+    pub fn swap_semi_and_keep_to_space(&self, top: Address) {
+        self.semi.swap_and_keep_to_space(top);
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
@@ -325,14 +338,24 @@ impl SemiSpace {
 
         self.age_marker
             .store(from_space.start.to_usize(), Ordering::Relaxed);
-        self.from_block().reset_top();
+        from_space.reset_top();
     }
 
-    // Switch from- & to-semi-space.
+    // Free all objects in to-semi-space.
+    fn clear_to(&self) {
+        self.to_block().reset_top();
+    }
+
+    // Switch from- & to-semi-space. Mark to-space as empty.
     fn swap(&self, top: Address) {
         // current from-space is now empty
         self.from_block().reset_top();
 
+        self.swap_and_keep_to_space(top);
+    }
+
+    // Switch from- & to-semi-space. Do not mark to-space as empty.
+    fn swap_and_keep_to_space(&self, top: Address) {
         // swap from_index
         self.swap_from_index();
 

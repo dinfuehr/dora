@@ -291,6 +291,10 @@ impl Swiper {
                 phase,
             );
             verifier.verify();
+
+            if ctxt.args.flag_gc_dev_verbose {
+                println!("GC: Verify {} finished", _name);
+            }
         }
     }
 }

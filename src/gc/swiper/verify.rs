@@ -31,6 +31,20 @@ impl VerifierPhase {
             VerifierPhase::PostFull => false,
         }
     }
+
+    fn is_post_minor(self) -> bool {
+        match self {
+            VerifierPhase::PostMinor => true,
+            _ => false,
+        }
+    }
+
+    fn is_pre_full(self) -> bool {
+        match self {
+            VerifierPhase::PreFull => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct Verifier<'a> {
@@ -47,8 +61,10 @@ pub struct Verifier<'a> {
     in_large: bool,
 
     old_active: Region,
+    young_total: Region,
     eden_active: Region,
     from_active: Region,
+    to_active: Region,
     reserved_area: Region,
 
     phase: VerifierPhase,
@@ -81,7 +97,9 @@ impl<'a> Verifier<'a> {
 
             eden_active: young.eden_active(),
             from_active: young.from_active(),
+            to_active: young.to_active(),
             old_active: old.active(),
+            young_total: young.total(),
             reserved_area: reserved_area,
 
             phase: phase,
@@ -101,6 +119,12 @@ impl<'a> Verifier<'a> {
 
         let region = self.from_active.clone();
         self.verify_objects(region, "young gen (from)");
+
+        let region = self.to_active.clone();
+        if !self.phase.is_post_minor() && !self.phase.is_pre_full() {
+            assert!(region.size() == 0, "to-space should be empty.");
+        }
+        self.verify_objects(region, "young gen (to)");
     }
 
     fn verify_old(&mut self) {
@@ -309,6 +333,7 @@ impl<'a> Verifier<'a> {
             || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
+            || (self.to_active.contains(reference) && (self.phase.is_post_minor() || self.phase.is_pre_full()))
         {
             let object = reference.to_obj();
 
@@ -318,7 +343,7 @@ impl<'a> Verifier<'a> {
             // make sure that the size doesn't equal 1.
             assert!(object.size() != 1, "object size shouldn't be 1");
 
-            if self.from_active.contains(reference) {
+            if self.young_total.contains(reference) {
                 self.refs_to_young_gen += 1;
             }
 

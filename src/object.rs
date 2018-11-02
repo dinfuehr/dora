@@ -45,8 +45,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> *mut VTable {
-        self.vtable
+    pub fn vtblptr(&self) -> Address {
+        Address::from_ptr(self.vtable)
     }
 
     #[inline(always)]
@@ -56,7 +56,13 @@ impl Header {
 
     #[inline(always)]
     pub fn vtbl_forward_to(&mut self, address: Address) {
-        self.vtable = (address.to_usize() | 1) as *mut VTable;
+        self.vtable = (self.vtable as usize | 1) as *mut VTable;
+        self.set_fwdptr_non_atomic(address);
+    }
+
+    #[inline(always)]
+    pub fn vtbl_clear_forwarding(&mut self) {
+        self.vtable = (self.vtable as usize & !1) as *mut VTable;
     }
 
     #[inline(always)]
@@ -64,7 +70,7 @@ impl Header {
         let addr = self.vtable as usize;
 
         if (addr & 1) == 1 {
-            Some((addr & !1).into())
+            Some(self.fwdptr_non_atomic())
         } else {
             None
         }

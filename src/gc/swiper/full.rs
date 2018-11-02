@@ -301,6 +301,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         self.young.clear();
+        self.young.protect_to();
 
         assert!(self.old.valid_top(self.fwd));
         self.old.update_top(self.fwd);
@@ -368,6 +369,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
         let used_region = self.young.from_active();
+        self.walk_region(used_region.start, used_region.end, &mut fct);
+
+        // This is a bit strange at first: to-space might not be empty,
+        // after too many survivors in the minor GC of the young gen.
+        let used_region = self.young.to_active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
     }
 

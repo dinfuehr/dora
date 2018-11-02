@@ -130,9 +130,18 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse) finished.");
         }
 
-        self.young.clear_eden();
-        self.young.swap_semi(self.young_top);
-        self.young.protect_to();
+        if self.promotion_failed {
+            // oh no: promotion failed, we need a subsequent full GC
+            self.remove_forwarding_pointers();
+            self.young.swap_semi_and_keep_to_space(self.young_top);
+        } else {
+            self.young.clear_eden();
+            self.young.swap_semi(self.young_top);
+            self.young.protect_to();
+
+            assert!(self.young.eden_active().size() == 0);
+            assert!(self.young.to_active().size() == 0);
+        }
 
         let force_full = if self.ctxt.args.flag_gc_young_ratio.is_none() {
             controller::resize_gens_after_minor(
@@ -501,15 +510,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) || next_young_top > self.young_limit {
-            let old_addr = self.try_promote_object(obj, obj_size);
-
-            if old_addr.is_non_null() {
-                return old_addr;
-            }
-        }
-
-        if next_young_top > self.young_limit {
-            panic!("FAIL: not enough space in to-space.");
+            return self.promote_object(obj, obj_size);
         }
 
         self.young_top = next_young_top;
@@ -521,14 +522,17 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         copy_addr
     }
 
-    fn try_promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
+    fn promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
         let copy_addr = self.old.bump_alloc(obj_size, obj.is_array_ref());
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now
         if copy_addr.is_null() {
             self.promotion_failed = true;
-            return Address::null();
+
+            let copy_addr = obj.address();
+            obj.header_mut().vtbl_forward_to(copy_addr);
+            return copy_addr;
         }
 
         obj.copy_to(copy_addr, obj_size);
@@ -537,6 +541,31 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         obj.header_mut().vtbl_forward_to(copy_addr);
 
         copy_addr
+    }
+
+    fn remove_forwarding_pointers(&mut self) {
+        let region = self.eden_active.clone();
+        self.remove_forwarding_pointers_in_region(region);
+
+        let region = self.from_active.clone();
+        self.remove_forwarding_pointers_in_region(region);
+    }
+
+    fn remove_forwarding_pointers_in_region(&mut self, region: Region) {
+        let mut scan = region.start;
+
+        while scan < region.end {
+            let obj = scan.to_mut_obj();
+            obj.header_mut().vtbl_clear_forwarding();
+            let size = if obj.header().vtblptr().is_null() {
+                mem::ptr_width_usize()
+            } else {
+                obj.size()
+            };
+            scan = scan.offset(size);
+        }
+
+        assert!(scan == region.end);
     }
 }
 
