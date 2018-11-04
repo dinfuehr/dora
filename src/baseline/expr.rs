@@ -1818,11 +1818,8 @@ where
     }
 
     fn emit_native_call_insn(&mut self, pos: Position, internal_fct: InternalFct, dest: ExprStore) {
-        let ty = internal_fct.return_type;
-        let ptr = ensure_native_stub(self.ctxt, FctId(0), internal_fct);
-
-        self.asm.direct_call_without_info(ptr);
-        self.emit_after_call_insns(pos, ty, dest);
+        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+        self.asm.native_call(internal_fct, pos, gcpoint, dest);
     }
 
     fn emit_direct_call_insn(
@@ -1836,12 +1833,7 @@ where
         fct_tps: TypeParams,
     ) {
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-
-        if ty.is_unit() {
-            self.asm.direct_call(fid, ptr, cls_tps, fct_tps, pos, gcpoint);
-        } else {
-            self.asm.direct_call_returns(fid, ptr, cls_tps, fct_tps, pos, gcpoint, ty.mode(), dest);
-        }
+        self.asm.direct_call(fid, ptr, cls_tps, fct_tps, pos, gcpoint, ty, dest);
     }
 
     fn emit_indirect_call_insn(
@@ -1852,39 +1844,7 @@ where
         dest: ExprStore,
     ) {
         let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-
-        if ty.is_unit() {
-            self.asm.indirect_call(index, pos, gcpoint);
-        } else {
-            self.asm.indirect_call_returns(index, pos, gcpoint, ty.mode(), dest);
-        }
-    }
-
-    fn emit_after_call_insns(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore) {
-        self.asm.emit_lineno(pos.line as i32);
-
-        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-        self.asm.emit_gcpoint(gcpoint);
-
-        if !ty.is_unit() {
-            self.copy_result_to(ty, dest);
-        }
-    }
-
-    fn copy_result_to(&mut self, ty: BuiltinType, dest: ExprStore) {
-        match dest {
-            ExprStore::FReg(dest) => {
-                if FREG_RESULT != dest {
-                    self.asm.copy_freg(ty.mode(), dest, FREG_RESULT);
-                }
-            }
-
-            ExprStore::Reg(dest) => {
-                if REG_RESULT != dest {
-                    self.asm.copy_reg(ty.mode(), dest, REG_RESULT);
-                }
-            }
-        }
+        self.asm.indirect_call(index, pos, gcpoint, ty, dest);
     }
 
     fn emit_raw_allocation(
@@ -2085,7 +2045,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
+pub fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 
