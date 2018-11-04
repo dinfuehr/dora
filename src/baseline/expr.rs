@@ -8,7 +8,7 @@ use baseline::fct::{CatchType, Comment, GcPoint};
 use baseline::info::JitInfo;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{
-    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_THREAD,
+    FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT,
     REG_TMP1, REG_TMP2,
 };
 use ctxt::*;
@@ -22,8 +22,6 @@ use mem;
 use object::{Header, Str};
 use os::signal::Trap;
 use semck::specialize::{specialize_class_id, specialize_class_ty};
-use stdlib;
-use threads::ThreadLocalData;
 use ty::{BuiltinType, MachineMode};
 use vtable::{VTable, DISPLAY_SIZE};
 
@@ -1835,132 +1833,27 @@ where
         array_ref: bool,
     ) {
         if self.ctxt.args.flag_disable_tlab {
-            self.emit_normal_allocation(dest, size, pos, array_ref);
+            let gcpoint = self.create_gcpoint();
+            self.asm.allocate(dest, size, pos, array_ref, gcpoint);
             return;
         }
 
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < TLAB_OBJECT_SIZE {
-                    self.emit_tlab_allocation(dest, size, pos, array_ref);
+                    let gcpoint = self.create_gcpoint();
+                    self.asm.tlab_allocate(dest, size, pos, array_ref, gcpoint);
                 } else {
-                    self.emit_normal_allocation(dest, size, pos, array_ref);
+                    let gcpoint = self.create_gcpoint();
+                    self.asm.allocate(dest, size, pos, array_ref, gcpoint);
                 }
             }
 
             AllocationSize::Dynamic(_) => {
-                self.emit_tlab_allocation(dest, size, pos, array_ref);
+                let gcpoint = self.create_gcpoint();
+                self.asm.tlab_allocate(dest, size, pos, array_ref, gcpoint);
             }
         }
-    }
-
-    fn emit_normal_allocation(
-        &mut self,
-        dest: Reg,
-        size: AllocationSize,
-        pos: Position,
-        array_ref: bool,
-    ) {
-        match size {
-            AllocationSize::Fixed(size) => {
-                self.asm
-                    .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
-            }
-
-            AllocationSize::Dynamic(reg) => {
-                self.asm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], reg);
-            }
-        }
-
-        self.asm.load_int_const(
-            MachineMode::Int8,
-            REG_PARAMS[1],
-            if array_ref { 1 } else { 0 },
-        );
-
-        let internal_fct = InternalFct {
-            ptr: stdlib::gc_alloc as *mut u8,
-            args: &[BuiltinType::Ptr],
-            return_type: BuiltinType::Ptr,
-            throws: false,
-            desc: InternalFctDescriptor::AllocThunk,
-        };
-
-        let gcpoint = self.create_gcpoint();
-        self.asm
-            .native_call(internal_fct, pos, gcpoint, dest.into());
-        self.asm.test_if_nil_bailout(pos, dest, Trap::OOM);
-    }
-
-    fn emit_tlab_allocation(
-        &mut self,
-        dest: Reg,
-        size: AllocationSize,
-        pos: Position,
-        array_ref: bool,
-    ) {
-        let lbl_success = self.asm.create_label();
-        let lbl_end = self.asm.create_label();
-        let lbl_normal_alloc = self.asm.create_label();
-
-        match size {
-            AllocationSize::Dynamic(reg_size) => {
-                self.asm
-                    .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
-                self.asm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
-            }
-
-            AllocationSize::Fixed(size) => {
-                assert!(size < TLAB_OBJECT_SIZE);
-            }
-        }
-
-        let tlab_next = self.asm.get_scratch();
-        let tlab_end = self.asm.get_scratch();
-
-        self.asm.load_mem(
-            MachineMode::Ptr,
-            REG_TMP1.into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
-        );
-
-        self.asm.load_mem(
-            MachineMode::Ptr,
-            (*tlab_end).into(),
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
-        );
-
-        match size {
-            AllocationSize::Fixed(size) => {
-                self.asm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
-                self.asm
-                    .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
-            }
-
-            AllocationSize::Dynamic(reg_size) => {
-                self.asm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
-                self.asm
-                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
-            }
-        }
-
-        self.asm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.asm.jump_if(CondCode::LessEq, lbl_success);
-
-        self.asm.bind_label(lbl_normal_alloc);
-        self.emit_normal_allocation(dest, size, pos, array_ref);
-        self.asm.jump(lbl_end);
-
-        self.asm.bind_label(lbl_success);
-
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
-            (*tlab_next).into(),
-        );
-
-        self.asm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
-        self.asm.bind_label(lbl_end);
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
@@ -2097,7 +1990,7 @@ fn to_cond_code(cmp: CmpOp) -> CondCode {
     }
 }
 
-enum AllocationSize {
+pub enum AllocationSize {
     Fixed(usize),
     Dynamic(Reg),
 }

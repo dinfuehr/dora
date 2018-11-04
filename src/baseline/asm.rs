@@ -1,15 +1,18 @@
 use dora_parser::lexer::position::Position;
 
 use baseline::codegen::CondCode;
-use baseline::dora_native::InternalFct;
-use baseline::expr::{ensure_native_stub, ExprStore};
+use baseline::dora_native::{InternalFct, InternalFctDescriptor};
+use baseline::expr::{AllocationSize, ensure_native_stub, ExprStore};
 use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use baseline::info::JitInfo;
 use class::TypeParams;
-use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_RESULT};
+use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use ctxt::{FctId, SemContext, VarId};
+use gc::tlab::TLAB_OBJECT_SIZE;
 use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
+use stdlib;
+use threads::ThreadLocalData;
 use ty::{BuiltinType, MachineMode};
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
@@ -471,5 +474,114 @@ where
                 self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
             }
         }
+    }
+
+    pub fn allocate(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+        gcpoint: GcPoint,
+    ) {
+        match size {
+            AllocationSize::Fixed(size) => {
+                self.masm
+                    .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
+            }
+
+            AllocationSize::Dynamic(reg) => {
+                self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], reg);
+            }
+        }
+
+        self.masm.load_int_const(
+            MachineMode::Int8,
+            REG_PARAMS[1],
+            if array_ref { 1 } else { 0 },
+        );
+
+        let internal_fct = InternalFct {
+            ptr: stdlib::gc_alloc as *mut u8,
+            args: &[BuiltinType::Ptr],
+            return_type: BuiltinType::Ptr,
+            throws: false,
+            desc: InternalFctDescriptor::AllocThunk,
+        };
+
+        self.native_call(internal_fct, pos, gcpoint, dest.into());
+        self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+    }
+
+    pub fn tlab_allocate(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+        gcpoint: GcPoint,
+    ) {
+        let lbl_success = self.masm.create_label();
+        let lbl_end = self.masm.create_label();
+        let lbl_normal_alloc = self.masm.create_label();
+
+        match size {
+            AllocationSize::Dynamic(reg_size) => {
+                self.masm
+                    .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
+                self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
+            }
+
+            AllocationSize::Fixed(size) => {
+                assert!(size < TLAB_OBJECT_SIZE);
+            }
+        }
+
+        let tlab_next = self.masm.get_scratch();
+        let tlab_end = self.masm.get_scratch();
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
+        );
+
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            (*tlab_end).into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
+        );
+
+        match size {
+            AllocationSize::Fixed(size) => {
+                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
+                self.masm
+                    .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
+            }
+
+            AllocationSize::Dynamic(reg_size) => {
+                self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
+                self.masm
+                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
+            }
+        }
+
+        self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
+        self.masm.jump_if(CondCode::LessEq, lbl_success);
+
+        self.masm.bind_label(lbl_normal_alloc);
+        self.allocate(dest, size, pos, array_ref, gcpoint);
+        self.masm.jump(lbl_end);
+
+        self.masm.bind_label(lbl_success);
+
+        self.masm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
+            (*tlab_next).into(),
+        );
+
+        self.masm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
+        self.masm.bind_label(lbl_end);
     }
 }
