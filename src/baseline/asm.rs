@@ -472,7 +472,7 @@ where
         }
     }
 
-    pub fn allocate(
+    pub fn gc_allocate(
         &mut self,
         dest: Reg,
         size: AllocationSize,
@@ -566,7 +566,7 @@ where
         self.masm.jump_if(CondCode::LessEq, lbl_success);
 
         self.masm.bind_label(lbl_normal_alloc);
-        self.allocate(dest, size, pos, array_ref, gcpoint);
+        self.gc_allocate(dest, size, pos, array_ref, gcpoint);
         self.masm.jump(lbl_end);
 
         self.masm.bind_label(lbl_success);

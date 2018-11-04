@@ -1834,7 +1834,7 @@ where
     ) {
         if self.ctxt.args.flag_disable_tlab {
             let gcpoint = self.create_gcpoint();
-            self.asm.allocate(dest, size, pos, array_ref, gcpoint);
+            self.asm.gc_allocate(dest, size, pos, array_ref, gcpoint);
             return;
         }
 
@@ -1845,7 +1845,7 @@ where
                     self.asm.tlab_allocate(dest, size, pos, array_ref, gcpoint);
                 } else {
                     let gcpoint = self.create_gcpoint();
-                    self.asm.allocate(dest, size, pos, array_ref, gcpoint);
+                    self.asm.gc_allocate(dest, size, pos, array_ref, gcpoint);
                 }
             }
 
