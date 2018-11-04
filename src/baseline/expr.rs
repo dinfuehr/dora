@@ -4,7 +4,7 @@ use baseline::codegen::{
     TempOffsets,
 };
 use baseline::dora_native::{self, InternalFct, InternalFctDescriptor};
-use baseline::fct::{CatchType, Comment};
+use baseline::fct::{CatchType, Comment, GcPoint};
 use baseline::info::JitInfo;
 use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{
@@ -75,7 +75,11 @@ impl From<FReg> for ExprStore {
     }
 }
 
-pub struct ExprGen<'a, 'b, 'ast> where 'ast: 'a, 'ast: 'b {
+pub struct ExprGen<'a, 'b, 'ast>
+where
+    'ast: 'a,
+    'ast: 'b,
+{
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
@@ -1630,30 +1634,36 @@ where
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallSuper(fid));
-            self.emit_direct_call_insn(
+            let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+            self.asm.direct_call(
                 fid,
                 ptr,
-                pos,
-                return_type,
-                dest,
                 cls_type_params,
                 fct_type_params,
+                pos,
+                gcpoint,
+                return_type,
+                dest,
             );
         } else if fct.is_virtual() {
             let vtable_index = fct.vtable_index.unwrap();
             self.asm.emit_comment(Comment::CallVirtual(fid));
-            self.emit_indirect_call_insn(vtable_index, pos, return_type, dest);
+            let gcpoint = self.create_gcpoint();
+            self.asm
+                .indirect_call(vtable_index, pos, gcpoint, return_type, dest);
         } else {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
             self.asm.emit_comment(Comment::CallDirect(fid));
-            self.emit_direct_call_insn(
+            let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+            self.asm.direct_call(
                 fid,
                 ptr,
-                pos,
-                return_type,
-                dest,
                 cls_type_params,
                 fct_type_params,
+                pos,
+                gcpoint,
+                return_type,
+                dest,
             );
         }
 
@@ -1817,36 +1827,6 @@ where
             .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
     }
 
-    fn emit_native_call_insn(&mut self, pos: Position, internal_fct: InternalFct, dest: ExprStore) {
-        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-        self.asm.native_call(internal_fct, pos, gcpoint, dest);
-    }
-
-    fn emit_direct_call_insn(
-        &mut self,
-        fid: FctId,
-        ptr: *const u8,
-        pos: Position,
-        ty: BuiltinType,
-        dest: ExprStore,
-        cls_tps: TypeParams,
-        fct_tps: TypeParams,
-    ) {
-        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-        self.asm.direct_call(fid, ptr, cls_tps, fct_tps, pos, gcpoint, ty, dest);
-    }
-
-    fn emit_indirect_call_insn(
-        &mut self,
-        index: u32,
-        pos: Position,
-        ty: BuiltinType,
-        dest: ExprStore,
-    ) {
-        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
-        self.asm.indirect_call(index, pos, gcpoint, ty, dest);
-    }
-
     fn emit_raw_allocation(
         &mut self,
         dest: Reg,
@@ -1906,7 +1886,9 @@ where
             desc: InternalFctDescriptor::AllocThunk,
         };
 
-        self.emit_native_call_insn(pos, internal_fct, dest.into());
+        let gcpoint = self.create_gcpoint();
+        self.asm
+            .native_call(internal_fct, pos, gcpoint, dest.into());
         self.asm.test_if_nil_bailout(pos, dest, Trap::OOM);
     }
 
@@ -2013,6 +1995,10 @@ where
         let ty = self.src.ty(id);
         self.specialize_type(ty)
     }
+
+    fn create_gcpoint(&self) -> GcPoint {
+        codegen::create_gcpoint(self.scopes, &self.temps)
+    }
 }
 
 fn result_reg(mode: MachineMode) -> ExprStore {
@@ -2045,7 +2031,11 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-pub fn ensure_native_stub(ctxt: &SemContext, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
+pub fn ensure_native_stub(
+    ctxt: &SemContext,
+    fct_id: FctId,
+    internal_fct: InternalFct,
+) -> *const u8 {
     let mut native_fcts = ctxt.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 

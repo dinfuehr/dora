@@ -6,7 +6,7 @@ use baseline::expr::{ensure_native_stub, ExprStore};
 use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use baseline::info::JitInfo;
 use class::TypeParams;
-use cpu::{FREG_RESULT, FReg, Mem, Reg, REG_RESULT};
+use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_RESULT};
 use ctxt::{FctId, SemContext, VarId};
 use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
@@ -17,7 +17,10 @@ pub struct BaselineAssembler<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
 }
 
-impl<'a, 'ast> BaselineAssembler<'a, 'ast> where 'ast: 'a {
+impl<'a, 'ast> BaselineAssembler<'a, 'ast>
+where
+    'ast: 'a,
+{
     pub fn new(ctxt: &'a SemContext<'ast>) -> BaselineAssembler<'a, 'ast> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
@@ -403,16 +406,17 @@ impl<'a, 'ast> BaselineAssembler<'a, 'ast> where 'ast: 'a {
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(
-        self,
-        stacksize: i32,
-        desc: JitDescriptor,
-        throws: bool,
-    ) -> JitBaselineFct {
+    pub fn jit(self, stacksize: i32, desc: JitDescriptor, throws: bool) -> JitBaselineFct {
         self.masm.jit(self.ctxt, stacksize, desc, throws)
     }
 
-    pub fn native_call(&mut self, internal_fct: InternalFct, pos: Position, gcpoint: GcPoint, dest: ExprStore) {
+    pub fn native_call(
+        &mut self,
+        internal_fct: InternalFct,
+        pos: Position,
+        gcpoint: GcPoint,
+        dest: ExprStore,
+    ) {
         let ty = internal_fct.return_type;
         let ptr = ensure_native_stub(self.ctxt, FctId(0), internal_fct);
 
@@ -420,7 +424,7 @@ impl<'a, 'ast> BaselineAssembler<'a, 'ast> where 'ast: 'a {
         self.call_epilog(pos, ty, dest, gcpoint);
     }
 
-    pub fn direct_call (
+    pub fn direct_call(
         &mut self,
         fct_id: FctId,
         ptr: *const u8,
