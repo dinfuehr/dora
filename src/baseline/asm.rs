@@ -2,14 +2,17 @@ use dora_parser::lexer::position::Position;
 
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
-use baseline::fct::{CatchType, Comment, GcPoint};
+use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
+use baseline::info::JitInfo;
+use class::TypeParams;
 use cpu::{FReg, Mem, Reg};
+use ctxt::{FctId, SemContext, VarId};
 use masm::{MacroAssembler, Label, ScratchReg};
 use ty::MachineMode;
 use os::signal::Trap;
 
 pub struct BaselineAssembler {
-    pub masm: MacroAssembler,
+    masm: MacroAssembler,
 }
 
 impl BaselineAssembler {
@@ -249,6 +252,17 @@ impl BaselineAssembler {
         self.masm.float_cmp_nan(mode, dest, src);
     }
 
+    pub fn float_cmp(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: FReg,
+        rhs: FReg,
+        cond: CondCode,
+    ) {
+        self.masm.float_cmp(mode, dest, lhs, rhs, cond);
+    }
+
     pub fn determine_array_size(
         &mut self,
         dest: Reg,
@@ -291,11 +305,111 @@ impl BaselineAssembler {
         self.masm.store_field(mode, base, offset, src, line, write_barrier, card_table_offset);
     }
 
+    pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
+        self.masm.load_array_elem(mode, dest, array, index);
+    }
+
+    pub fn store_array_elem(
+        &mut self,
+        mode: MachineMode,
+        array: Reg,
+        index: Reg,
+        value: ExprStore,
+        write_barrier: bool,
+        card_table_offset: usize,
+    ) {
+        self.masm.store_array_elem(mode, array, index, value, write_barrier, card_table_offset);
+    }
+
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         self.masm.float_sqrt(mode, dest, src);
     }
 
     pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
         self.masm.copy(mode, dest, src);
+    }
+
+    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+        self.masm.check_index_out_of_bounds(pos, array, index);
+    }
+
+    pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        self.masm.extend_byte(mode, dest, src);
+    }
+
+    pub fn extend_int_long(&mut self, dest: Reg, src: Reg) {
+        self.masm.extend_int_long(dest, src);
+    }
+
+    pub fn float_to_double(&mut self, dest: FReg, src: FReg) {
+        self.masm.float_to_double(dest, src);
+    }
+
+    pub fn double_to_float(&mut self, dest: FReg, src: FReg) {
+        self.masm.double_to_float(dest, src);
+    }
+
+    pub fn int_to_float(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: FReg,
+        src_mode: MachineMode,
+        src: Reg,
+    ) {
+        self.masm.int_to_float(dest_mode, dest, src_mode, src);
+    }
+
+    pub fn float_to_int(
+        &mut self,
+        dest_mode: MachineMode,
+        dest: Reg,
+        src_mode: MachineMode,
+        src: FReg,
+    ) {
+        self.masm.float_to_int(dest_mode, dest, src_mode, src);
+    }
+
+    pub fn emit_lineno(&mut self, lineno: i32) {
+        self.masm.emit_lineno(lineno);
+    }
+
+    pub fn direct_call(
+        &mut self,
+        fct_id: FctId,
+        ptr: *const u8,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
+    ) {
+        self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
+    }
+
+    pub fn direct_call_without_info(&mut self, ptr: *const u8) {
+        self.masm.direct_call_without_info(ptr);
+    }
+
+    pub fn indirect_call(&mut self, line: i32, index: u32) {
+        self.masm.indirect_call(line, index);
+    }
+
+    pub fn var_store(&mut self, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
+        let offset = jit_info.offset(var_id);
+        let ty = jit_info.ty(var_id);
+        self.masm.store_mem(ty.mode(), Mem::Local(offset), src);
+    }
+
+    pub fn var_load(&mut self, jit_info: &JitInfo, var_id: VarId, dest: ExprStore) {
+        let offset = jit_info.offset(var_id);
+        let ty = jit_info.ty(var_id);
+        self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
+    }
+
+    pub fn jit(
+        self,
+        ctxt: &SemContext,
+        stacksize: i32,
+        desc: JitDescriptor,
+        throws: bool,
+    ) -> JitBaselineFct {
+        self.masm.jit(ctxt, stacksize, desc, throws)
     }
 }
