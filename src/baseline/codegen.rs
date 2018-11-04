@@ -83,7 +83,7 @@ pub fn generate_fct<'ast>(
         ctxt: ctxt,
         fct: &fct,
         ast: ast,
-        masm: BaselineAssembler::new(),
+        asm: BaselineAssembler::new(),
         scopes: Scopes::new(),
         src: src,
         jit_info: jit_info,
@@ -264,7 +264,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
-    masm: BaselineAssembler,
+    asm: BaselineAssembler,
     scopes: Scopes,
     src: &'a mut FctSrc,
     jit_info: JitInfo<'ast>,
@@ -317,7 +317,7 @@ where
             self.emit_epilog();
         }
 
-        let jit_fct = self.masm.masm.jit(
+        let jit_fct = self.asm.masm.jit(
             self.ctxt,
             self.jit_info.stacksize(),
             JitDescriptor::DoraFct(self.fct.id),
@@ -339,7 +339,7 @@ where
             let var = self.src.var_self();
             let mode = var.ty.mode();
 
-            self.masm.masm.emit_comment(Comment::StoreParam(var.id));
+            self.asm.masm.emit_comment(Comment::StoreParam(var.id));
 
             let dest = if mode.is_float() {
                 FREG_PARAMS[0].into()
@@ -348,7 +348,7 @@ where
             };
 
             let offset = self.jit_info.offset(var.id);
-            self.masm.masm.store_mem(mode, Mem::Local(offset), dest);
+            self.asm.masm.store_mem(mode, Mem::Local(offset), dest);
 
             self.scopes.add_var(var.id, offset);
 
@@ -373,14 +373,14 @@ where
                 let reg = FREG_PARAMS[freg_idx];
 
                 self.masm().emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm.masm, &self.jit_info, reg.into(), varid);
+                var_store(&mut self.asm.masm, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
                 self.masm().emit_comment(Comment::StoreParam(varid));
-                var_store(&mut self.masm.masm, &self.jit_info, reg.into(), varid);
+                var_store(&mut self.asm.masm, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
             } else {
@@ -416,7 +416,7 @@ where
             if len > 0 {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.masm
+                self.asm.masm
                     .store_mem(rmode, Mem::Local(offset), register_for_mode(rmode));
             }
         }
@@ -443,7 +443,7 @@ where
             if s.expr.is_some() {
                 let offset = self.jit_info.eh_return_value.unwrap();
                 let rmode = return_type.mode();
-                self.masm.masm
+                self.asm.masm
                     .load_mem(rmode, register_for_mode(rmode), Mem::Local(offset));
             }
 
@@ -454,7 +454,7 @@ where
     }
 
     fn masm(&mut self) -> &mut MacroAssembler {
-        &mut self.masm.masm
+        &mut self.asm.masm
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
@@ -473,7 +473,7 @@ where
             // execute condition, when condition is false jump to
             // end of while
             self.emit_expr(&s.cond);
-            self.masm.masm
+            self.asm.masm
                 .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_end);
         }
 
@@ -517,7 +517,7 @@ where
         let dest = self.emit_call_site(&for_info.next, s.pos);
 
         let for_var_id = *self.src.map_vars.get(s.id).unwrap();
-        var_store(&mut self.masm.masm, &self.jit_info, dest, for_var_id);
+        var_store(&mut self.asm.masm, &self.jit_info, dest, for_var_id);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             // execute while body, then jump back to condition
@@ -666,7 +666,7 @@ where
             let value = self.emit_expr(expr);
             initialized = true;
 
-            var_store(&mut self.masm.masm, &self.jit_info, value, var);
+            var_store(&mut self.asm.masm, &self.jit_info, value, var);
         }
 
         let reference_type = {
@@ -684,7 +684,7 @@ where
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
             self.masm().load_nil(REG_RESULT);
-            var_store(&mut self.masm.masm, &self.jit_info, REG_RESULT.into(), var);
+            var_store(&mut self.asm.masm, &self.jit_info, REG_RESULT.into(), var);
         }
     }
 
@@ -745,7 +745,7 @@ where
             let cls_def = self.ctxt.class_defs[cls_def_id].borrow();
 
             let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
-            self.masm.masm
+            self.asm.masm
                 .emit_exception_handler(try_span, catch_span.0, Some(offset), catch_type);
 
             ret.push(catch_span);
@@ -799,7 +799,7 @@ where
 
         self.visit_stmt(&finally_block.block);
 
-        self.masm.masm
+        self.asm.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
         self.masm().throw(REG_RESULT, s.pos);
 
@@ -829,7 +829,7 @@ where
             self.fct,
             self.src,
             self.ast,
-            &mut self.masm.masm,
+            &mut self.asm.masm,
             &mut self.scopes,
             &self.jit_info,
             self.cls_type_params,
@@ -852,7 +852,7 @@ where
             self.fct,
             self.src,
             self.ast,
-            &mut self.masm.masm,
+            &mut self.asm.masm,
             &mut self.scopes,
             &self.jit_info,
             self.cls_type_params,
