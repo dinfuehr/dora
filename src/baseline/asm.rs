@@ -580,4 +580,32 @@ where
         self.masm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
         self.masm.bind_label(lbl_end);
     }
+
+    pub fn allocate(
+        &mut self,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+        gcpoint: GcPoint,
+    ) {
+        if self.ctxt.args.flag_disable_tlab {
+            self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+            return;
+        }
+
+        match size {
+            AllocationSize::Fixed(fixed_size) => {
+                if fixed_size < TLAB_OBJECT_SIZE {
+                    self.tlab_allocate(dest, size, pos, array_ref, gcpoint);
+                } else {
+                    self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+                }
+            }
+
+            AllocationSize::Dynamic(_) => {
+                self.tlab_allocate(dest, size, pos, array_ref, gcpoint);
+            }
+        }
+    }
 }

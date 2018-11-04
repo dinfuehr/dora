@@ -17,7 +17,6 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use driver::cmd::AsmSyntax;
-use gc::tlab::TLAB_OBJECT_SIZE;
 use mem;
 use object::{Header, Str};
 use os::signal::Trap;
@@ -1748,7 +1747,8 @@ where
             _ => false,
         };
 
-        self.emit_raw_allocation(dest, alloc_size, pos, array_ref);
+        let gcpoint = self.create_gcpoint();
+        self.asm.allocate(dest, alloc_size, pos, array_ref, gcpoint);
 
         // store gc object in temporary storage
         self.asm
@@ -1823,37 +1823,6 @@ where
 
         self.asm
             .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
-    }
-
-    fn emit_raw_allocation(
-        &mut self,
-        dest: Reg,
-        size: AllocationSize,
-        pos: Position,
-        array_ref: bool,
-    ) {
-        if self.ctxt.args.flag_disable_tlab {
-            let gcpoint = self.create_gcpoint();
-            self.asm.gc_allocate(dest, size, pos, array_ref, gcpoint);
-            return;
-        }
-
-        match size {
-            AllocationSize::Fixed(fixed_size) => {
-                if fixed_size < TLAB_OBJECT_SIZE {
-                    let gcpoint = self.create_gcpoint();
-                    self.asm.tlab_allocate(dest, size, pos, array_ref, gcpoint);
-                } else {
-                    let gcpoint = self.create_gcpoint();
-                    self.asm.gc_allocate(dest, size, pos, array_ref, gcpoint);
-                }
-            }
-
-            AllocationSize::Dynamic(_) => {
-                let gcpoint = self.create_gcpoint();
-                self.asm.tlab_allocate(dest, size, pos, array_ref, gcpoint);
-            }
-        }
     }
 
     fn specialize_type(&self, ty: BuiltinType) -> BuiltinType {
