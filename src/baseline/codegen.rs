@@ -303,7 +303,7 @@ where
 {
     pub fn generate(mut self) -> JitBaselineFct {
         if should_emit_debug(self.ctxt, self.fct) {
-            self.masm.debug();
+            self.masm().debug();
         }
 
         self.emit_prolog();
@@ -371,14 +371,14 @@ where
             if is_float && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
 
-                self.masm.emit_comment(Comment::StoreParam(varid));
+                self.masm().emit_comment(Comment::StoreParam(varid));
                 var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
-                self.masm.emit_comment(Comment::StoreParam(varid));
+                self.masm().emit_comment(Comment::StoreParam(varid));
                 var_store(&mut self.masm, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
@@ -389,16 +389,20 @@ where
     }
 
     fn emit_prolog(&mut self) {
-        self.masm.prolog(self.jit_info.stacksize());
-        self.masm.emit_comment(Comment::Lit("prolog end"));
-        self.masm.emit_comment(Comment::Newline);
+        let stacksize = self.jit_info.stacksize();
+        self.masm().prolog(stacksize);
+        self.masm().emit_comment(Comment::Lit("prolog end"));
+        self.masm().emit_comment(Comment::Newline);
     }
 
     fn emit_epilog(&mut self) {
-        self.masm.emit_comment(Comment::Newline);
-        self.masm.emit_comment(Comment::Lit("epilog"));
-        self.masm
-            .epilog_with_polling(self.jit_info.stacksize(), self.ctxt.polling_page.addr());
+        self.masm().emit_comment(Comment::Newline);
+        self.masm().emit_comment(Comment::Lit("epilog"));
+
+        let stacksize = self.jit_info.stacksize();
+        let polling_page = self.ctxt.polling_page.addr();
+        self.masm()
+            .epilog_with_polling(stacksize, polling_page);
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {
@@ -417,20 +421,20 @@ where
         }
 
         if let Some(lbl_return) = self.lbl_return {
-            self.masm.jump(lbl_return);
+            self.masm().jump(lbl_return);
             return;
         }
 
         if len > 0 {
             let mut ind = 0;
             while ind < len {
-                let lbl = self.masm.create_label();
+                let lbl = self.masm().create_label();
                 self.lbl_return = Some(lbl);
 
                 let finally = self.active_finallys[len - 1 - ind];
                 self.visit_stmt(finally);
 
-                self.masm.bind_label(lbl);
+                self.masm().bind_label(lbl);
 
                 ind += 1;
             }
@@ -448,14 +452,18 @@ where
         self.emit_epilog();
     }
 
+    fn masm(&mut self) -> &mut MacroAssembler {
+        &mut self.masm
+    }
+
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        let lbl_start = self.masm.create_label();
-        let lbl_end = self.masm.create_label();
+        let lbl_start = self.masm().create_label();
+        let lbl_end = self.masm().create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm.bind_label(lbl_start);
+        self.masm().bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
             // always true => no condition evaluation
@@ -476,7 +484,7 @@ where
             this.masm.jump(lbl_start);
         });
 
-        self.masm.bind_label(lbl_end);
+        self.masm().bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
@@ -491,13 +499,13 @@ where
         self.masm
             .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
-        let lbl_start = self.masm.create_label();
-        let lbl_end = self.masm.create_label();
+        let lbl_start = self.masm().create_label();
+        let lbl_end = self.masm().create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm.bind_label(lbl_start);
+        self.masm().bind_label(lbl_start);
 
         // emit: iterator.hasNext() & jump to lbl_end if false
         let dest = self.emit_call_site(&for_info.has_next, s.pos);
@@ -518,18 +526,18 @@ where
             this.masm.jump(lbl_start);
         });
 
-        self.masm.bind_label(lbl_end);
+        self.masm().bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
-        let lbl_start = self.masm.create_label();
-        let lbl_end = self.masm.create_label();
+        let lbl_start = self.masm().create_label();
+        let lbl_end = self.masm().create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm.bind_label(lbl_start);
+        self.masm().bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
@@ -538,17 +546,17 @@ where
             this.masm.jump(lbl_start);
         });
 
-        self.masm.bind_label(lbl_end);
+        self.masm().bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
     fn emit_safepoint(&mut self) {
-        self.masm.emit_comment(Comment::ReadPollingPage);
-        self.masm.check_polling_page(self.ctxt.polling_page.addr());
+        self.masm().emit_comment(Comment::ReadPollingPage);
+        self.masm().check_polling_page(self.ctxt.polling_page.addr());
 
         let temps = TempOffsets::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
-        self.masm.emit_gcpoint(gcpoint);
+        self.masm().emit_gcpoint(gcpoint);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -568,9 +576,9 @@ where
     }
 
     fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
-        let lbl_end = self.masm.create_label();
+        let lbl_end = self.masm().create_label();
         let lbl_else = if let Some(_) = s.else_block {
-            self.masm.create_label()
+            self.masm().create_label()
         } else {
             lbl_end
         };
@@ -582,13 +590,13 @@ where
         self.visit_stmt(&s.then_block);
 
         if let Some(ref else_block) = s.else_block {
-            self.masm.jump(lbl_end);
-            self.masm.bind_label(lbl_else);
+            self.masm().jump(lbl_end);
+            self.masm().bind_label(lbl_else);
 
             self.visit_stmt(else_block);
         }
 
-        self.masm.bind_label(lbl_end);
+        self.masm().bind_label(lbl_end);
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
@@ -596,7 +604,8 @@ where
         self.emit_finallys_within_loop();
 
         // now jump out of loop
-        self.masm.jump(self.lbl_break.unwrap());
+        let lbl_break = self.lbl_break.unwrap();
+        self.masm().jump(lbl_break);
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
@@ -604,7 +613,8 @@ where
         self.emit_finallys_within_loop();
 
         // now jump to start of loop
-        self.masm.jump(self.lbl_continue.unwrap());
+        let lbl_continue = self.lbl_continue.unwrap();
+        self.masm().jump(lbl_continue);
     }
 
     fn emit_finallys_within_loop(&mut self) {
@@ -672,26 +682,26 @@ where
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
-            self.masm.load_nil(REG_RESULT);
+            self.masm().load_nil(REG_RESULT);
             var_store(&mut self.masm, &self.jit_info, REG_RESULT.into(), var);
         }
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         self.emit_expr(&s.expr);
-        self.masm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
+        self.masm().test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
-        self.masm.throw(REG_RESULT, s.pos);
+        self.masm().throw(REG_RESULT, s.pos);
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
-        let lbl_after = self.masm.create_label();
+        let lbl_after = self.masm().create_label();
 
         let do_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
         let catch_spans = self.emit_do_catch_blocks(s, do_span, lbl_after);
         let finally_start = self.emit_do_finally_block(s);
 
-        self.masm.bind_label(lbl_after);
+        self.masm().bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
@@ -699,7 +709,7 @@ where
                 .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.masm.emit_exception_handler(
+                self.masm().emit_exception_handler(
                     catch_span,
                     finally_start,
                     Some(offset),
@@ -754,9 +764,9 @@ where
             self.active_finallys.push(finally);
         }
 
-        let start = self.masm.pos();
+        let start = self.masm().pos();
         self.visit_stmt(stmt);
-        let end = self.masm.pos();
+        let end = self.masm().pos();
 
         if s.finally_block.is_some() {
             self.active_finallys.pop();
@@ -767,7 +777,7 @@ where
                 self.visit_stmt(&finally_block.block);
             }
 
-            self.masm.jump(lbl_after);
+            self.masm().jump(lbl_after);
         }
 
         (start, end)
@@ -779,7 +789,7 @@ where
         }
         let finally_block = s.finally_block.as_ref().unwrap();
 
-        let finally_pos = self.masm.pos();
+        let finally_pos = self.masm().pos();
 
         self.scopes.push_scope();
 
@@ -790,7 +800,7 @@ where
 
         self.masm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-        self.masm.throw(REG_RESULT, s.pos);
+        self.masm().throw(REG_RESULT, s.pos);
 
         self.scopes.pop_scope();
 
