@@ -5,20 +5,22 @@ use baseline::expr::ExprStore;
 use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use baseline::info::JitInfo;
 use class::TypeParams;
-use cpu::{FReg, Mem, Reg};
+use cpu::{FREG_RESULT, FReg, Mem, Reg, REG_RESULT};
 use ctxt::{FctId, SemContext, VarId};
 use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
 use ty::MachineMode;
 
-pub struct BaselineAssembler {
+pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,
+    ctxt: &'a SemContext<'ast>,
 }
 
-impl BaselineAssembler {
-    pub fn new() -> BaselineAssembler {
+impl<'a, 'ast> BaselineAssembler<'a, 'ast> where 'ast: 'a {
+    pub fn new(ctxt: &'a SemContext<'ast>) -> BaselineAssembler<'a, 'ast> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
+            ctxt: ctxt,
         }
     }
 
@@ -384,22 +386,8 @@ impl BaselineAssembler {
         self.masm.emit_lineno(lineno);
     }
 
-    pub fn direct_call(
-        &mut self,
-        fct_id: FctId,
-        ptr: *const u8,
-        cls_tps: TypeParams,
-        fct_tps: TypeParams,
-    ) {
-        self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
-    }
-
     pub fn direct_call_without_info(&mut self, ptr: *const u8) {
         self.masm.direct_call_without_info(ptr);
-    }
-
-    pub fn indirect_call(&mut self, line: i32, index: u32) {
-        self.masm.indirect_call(line, index);
     }
 
     pub fn var_store(&mut self, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
@@ -416,11 +404,83 @@ impl BaselineAssembler {
 
     pub fn jit(
         self,
-        ctxt: &SemContext,
         stacksize: i32,
         desc: JitDescriptor,
         throws: bool,
     ) -> JitBaselineFct {
-        self.masm.jit(ctxt, stacksize, desc, throws)
+        self.masm.jit(self.ctxt, stacksize, desc, throws)
+    }
+
+    pub fn direct_call_returns (
+        &mut self,
+        fct_id: FctId,
+        ptr: *const u8,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
+        pos: Position,
+        gcpoint: GcPoint,
+        mode: MachineMode,
+        dest: ExprStore,
+    ) {
+        self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
+        self.call_epilog_returns(pos, mode, dest, gcpoint);
+    }
+
+    pub fn direct_call (
+        &mut self,
+        fct_id: FctId,
+        ptr: *const u8,
+        cls_tps: TypeParams,
+        fct_tps: TypeParams,
+        pos: Position,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.direct_call(fct_id, ptr, cls_tps, fct_tps);
+        self.call_epilog(pos, gcpoint);
+    }
+
+    pub fn indirect_call_returns(
+        &mut self,
+        index: u32,
+        pos: Position,
+        gcpoint: GcPoint,
+        mode: MachineMode,
+        dest: ExprStore,
+    ) {
+        self.masm.indirect_call(pos.line as i32, index);
+        self.call_epilog_returns(pos, mode, dest, gcpoint);
+    }
+
+    pub fn indirect_call(
+        &mut self,
+        index: u32,
+        pos: Position,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.indirect_call(pos.line as i32, index);
+        self.call_epilog(pos, gcpoint);
+    }
+
+    fn call_epilog_returns(&mut self, pos: Position, mode: MachineMode, dest: ExprStore, gcpoint: GcPoint) {
+        self.masm.emit_lineno(pos.line as i32);
+        self.masm.emit_gcpoint(gcpoint);
+        self.copy_result(mode, dest);
+    }
+
+    fn call_epilog(&mut self, pos: Position, gcpoint: GcPoint) {
+        self.masm.emit_lineno(pos.line as i32);
+        self.masm.emit_gcpoint(gcpoint);
+    }
+
+    fn copy_result(&mut self, mode: MachineMode, dest: ExprStore) {
+        match dest {
+            ExprStore::Reg(dest) => {
+                self.masm.copy_reg(mode, dest, REG_RESULT);
+            }
+
+            ExprStore::FReg(dest) => {
+                self.masm.copy_freg(mode, dest, FREG_RESULT);
+            }
+        }
     }
 }

@@ -75,12 +75,12 @@ impl From<FReg> for ExprStore {
     }
 }
 
-pub struct ExprGen<'a, 'ast: 'a> {
+pub struct ExprGen<'a, 'b, 'ast> where 'ast: 'a, 'ast: 'b {
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
-    asm: &'a mut BaselineAssembler,
+    asm: &'a mut BaselineAssembler<'b, 'ast>,
     scopes: &'a mut Scopes,
     tempsize: i32,
     temps: TempOffsets,
@@ -89,21 +89,22 @@ pub struct ExprGen<'a, 'ast: 'a> {
     fct_type_params: &'a TypeParams,
 }
 
-impl<'a, 'ast> ExprGen<'a, 'ast>
+impl<'a, 'b, 'ast> ExprGen<'a, 'b, 'ast>
 where
     'ast: 'a,
+    'ast: 'b,
 {
     pub fn new(
         ctxt: &'a SemContext<'ast>,
         fct: &'a Fct<'ast>,
         src: &'a mut FctSrc,
         ast: &'ast Function,
-        asm: &'a mut BaselineAssembler,
+        asm: &'a mut BaselineAssembler<'b, 'ast>,
         scopes: &'a mut Scopes,
         jit_info: &'a JitInfo<'ast>,
         cls_type_params: &'a TypeParams,
         fct_type_params: &'a TypeParams,
-    ) -> ExprGen<'a, 'ast> {
+    ) -> ExprGen<'a, 'b, 'ast> {
         ExprGen {
             ctxt: ctxt,
             fct: fct,
@@ -1834,8 +1835,13 @@ where
         cls_tps: TypeParams,
         fct_tps: TypeParams,
     ) {
-        self.asm.direct_call(fid, ptr, cls_tps, fct_tps);
-        self.emit_after_call_insns(pos, ty, dest);
+        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+
+        if ty.is_unit() {
+            self.asm.direct_call(fid, ptr, cls_tps, fct_tps, pos, gcpoint);
+        } else {
+            self.asm.direct_call_returns(fid, ptr, cls_tps, fct_tps, pos, gcpoint, ty.mode(), dest);
+        }
     }
 
     fn emit_indirect_call_insn(
@@ -1845,8 +1851,13 @@ where
         ty: BuiltinType,
         dest: ExprStore,
     ) {
-        self.asm.indirect_call(pos.line as i32, index);
-        self.emit_after_call_insns(pos, ty, dest);
+        let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
+
+        if ty.is_unit() {
+            self.asm.indirect_call(index, pos, gcpoint);
+        } else {
+            self.asm.indirect_call_returns(index, pos, gcpoint, ty.mode(), dest);
+        }
     }
 
     fn emit_after_call_insns(&mut self, pos: Position, ty: BuiltinType, dest: ExprStore) {

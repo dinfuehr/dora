@@ -83,7 +83,7 @@ pub fn generate_fct<'ast>(
         ctxt: ctxt,
         fct: &fct,
         ast: ast,
-        asm: BaselineAssembler::new(),
+        asm: BaselineAssembler::new(ctxt),
         scopes: Scopes::new(),
         src: src,
         jit_info: jit_info,
@@ -264,7 +264,7 @@ pub struct CodeGen<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
-    asm: BaselineAssembler,
+    asm: BaselineAssembler<'a, 'ast>,
     scopes: Scopes,
     src: &'a mut FctSrc,
     jit_info: JitInfo<'ast>,
@@ -318,7 +318,6 @@ where
         }
 
         let jit_fct = self.asm.jit(
-            self.ctxt,
             self.jit_info.stacksize(),
             JitDescriptor::DoraFct(self.fct.id),
             self.ast.throws,
