@@ -391,7 +391,7 @@ where
 
     fn emit_prolog(&mut self) {
         let stacksize = self.jit_info.stacksize();
-        self.masm().prolog(stacksize);
+        self.asm.prolog(stacksize);
         self.asm.emit_comment(Comment::Lit("prolog end"));
         self.asm.emit_comment(Comment::Newline);
     }
@@ -402,7 +402,7 @@ where
 
         let stacksize = self.jit_info.stacksize();
         let polling_page = self.ctxt.polling_page.addr();
-        self.masm()
+        self.asm
             .epilog_with_polling(stacksize, polling_page);
     }
 
@@ -453,10 +453,6 @@ where
         self.emit_epilog();
     }
 
-    fn masm(&mut self) -> &mut MacroAssembler {
-        &mut self.asm.masm
-    }
-
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
         let lbl_start = self.asm.create_label();
         let lbl_end = self.asm.create_label();
@@ -497,7 +493,7 @@ where
 
         // offset of iterator storage
         let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-        self.masm()
+        self.asm
             .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
         let lbl_start = self.asm.create_label();
@@ -510,7 +506,7 @@ where
 
         // emit: iterator.hasNext() & jump to lbl_end if false
         let dest = self.emit_call_site(&for_info.has_next, s.pos);
-        self.masm()
+        self.asm
             .test_and_jump_if(CondCode::Zero, dest.reg(), lbl_end);
 
         // emit: <for_var> = iterator.next()
@@ -585,7 +581,7 @@ where
         };
 
         self.emit_expr(&s.cond);
-        self.masm()
+        self.asm
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_else);
 
         self.visit_stmt(&s.then_block);
@@ -683,16 +679,16 @@ where
         // uninitialized variables which reference objects need to be initialized to null
         // otherwise the GC  can't know if the stored value is a valid pointer
         if reference_type && !initialized {
-            self.masm().load_nil(REG_RESULT);
+            self.asm.load_nil(REG_RESULT);
             var_store(&mut self.asm.masm, &self.jit_info, REG_RESULT.into(), var);
         }
     }
 
     fn emit_stmt_throw(&mut self, s: &'ast StmtThrowType) {
         self.emit_expr(&s.expr);
-        self.masm().test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
+        self.asm.test_if_nil_bailout(s.pos, REG_RESULT, Trap::NIL);
 
-        self.masm().throw(REG_RESULT, s.pos);
+        self.asm.throw(REG_RESULT, s.pos);
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
@@ -706,11 +702,11 @@ where
 
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
-            self.masm()
+            self.asm
                 .emit_exception_handler(do_span, finally_start, Some(offset), CatchType::Any);
 
             for &catch_span in &catch_spans {
-                self.masm().emit_exception_handler(
+                self.asm.emit_exception_handler(
                     catch_span,
                     finally_start,
                     Some(offset),
@@ -765,9 +761,9 @@ where
             self.active_finallys.push(finally);
         }
 
-        let start = self.masm().pos();
+        let start = self.asm.pos();
         self.visit_stmt(stmt);
-        let end = self.masm().pos();
+        let end = self.asm.pos();
 
         if s.finally_block.is_some() {
             self.active_finallys.pop();
@@ -790,7 +786,7 @@ where
         }
         let finally_block = s.finally_block.as_ref().unwrap();
 
-        let finally_pos = self.masm().pos();
+        let finally_pos = self.asm.pos();
 
         self.scopes.push_scope();
 
@@ -799,9 +795,9 @@ where
 
         self.visit_stmt(&finally_block.block);
 
-        self.asm.masm
+        self.asm
             .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
-        self.masm().throw(REG_RESULT, s.pos);
+        self.asm.throw(REG_RESULT, s.pos);
 
         self.scopes.pop_scope();
 
