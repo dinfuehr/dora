@@ -7,9 +7,9 @@ use baseline::info::JitInfo;
 use class::TypeParams;
 use cpu::{FReg, Mem, Reg};
 use ctxt::{FctId, SemContext, VarId};
-use masm::{MacroAssembler, Label, ScratchReg};
-use ty::MachineMode;
+use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
+use ty::MachineMode;
 
 pub struct BaselineAssembler {
     masm: MacroAssembler,
@@ -137,7 +137,8 @@ impl BaselineAssembler {
         offset: Option<i32>,
         catch_type: CatchType,
     ) {
-        self.masm.emit_exception_handler(span, catch, offset, catch_type);
+        self.masm
+            .emit_exception_handler(span, catch, offset, catch_type);
     }
 
     pub fn get_scratch(&self) -> ScratchReg {
@@ -270,7 +271,8 @@ impl BaselineAssembler {
         element_size: i32,
         with_header: bool,
     ) {
-        self.masm.determine_array_size(dest, length, element_size, with_header);
+        self.masm
+            .determine_array_size(dest, length, element_size, with_header);
     }
 
     pub fn fill_zero(&mut self, obj: Reg, size: usize) {
@@ -302,7 +304,15 @@ impl BaselineAssembler {
         write_barrier: bool,
         card_table_offset: usize,
     ) {
-        self.masm.store_field(mode, base, offset, src, line, write_barrier, card_table_offset);
+        self.masm.store_field(
+            mode,
+            base,
+            offset,
+            src,
+            line,
+            write_barrier,
+            card_table_offset,
+        );
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: ExprStore, array: Reg, index: Reg) {
@@ -318,7 +328,8 @@ impl BaselineAssembler {
         write_barrier: bool,
         card_table_offset: usize,
     ) {
-        self.masm.store_array_elem(mode, array, index, value, write_barrier, card_table_offset);
+        self.masm
+            .store_array_elem(mode, array, index, value, write_barrier, card_table_offset);
     }
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {

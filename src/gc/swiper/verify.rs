@@ -333,7 +333,8 @@ impl<'a> Verifier<'a> {
             || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
-            || (self.to_active.contains(reference) && (self.phase.is_post_minor() || self.phase.is_pre_full()))
+            || (self.to_active.contains(reference)
+                && (self.phase.is_post_minor() || self.phase.is_pre_full()))
         {
             let object = reference.to_obj();
 

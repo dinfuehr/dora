@@ -402,8 +402,7 @@ where
 
         let stacksize = self.jit_info.stacksize();
         let polling_page = self.ctxt.polling_page.addr();
-        self.asm
-            .epilog_with_polling(stacksize, polling_page);
+        self.asm.epilog_with_polling(stacksize, polling_page);
     }
 
     fn emit_stmt_return(&mut self, s: &'ast StmtReturnType) {

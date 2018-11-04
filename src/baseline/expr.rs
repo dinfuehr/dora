@@ -1264,8 +1264,7 @@ where
             _ => unreachable!(),
         };
 
-        self.asm
-            .int_to_float(dest_mode, dest, src_mode, REG_RESULT);
+        self.asm.int_to_float(dest_mode, dest, src_mode, REG_RESULT);
     }
 
     fn emit_intrinsic_float_to_int(
@@ -1595,8 +1594,7 @@ where
 
                     reg_idx += 1;
                 } else {
-                    self.asm
-                        .load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                    self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
                     self.asm
                         .store_mem(mode, Mem::Local(arg_offset), REG_TMP1.into());
 
