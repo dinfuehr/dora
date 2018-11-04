@@ -4,7 +4,7 @@ use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::{CatchType, Comment, GcPoint};
 use cpu::{Mem, Reg};
-use masm::{MacroAssembler, Label};
+use masm::{MacroAssembler, Label, ScratchReg};
 use ty::MachineMode;
 use os::signal::Trap;
 
@@ -99,5 +99,9 @@ impl BaselineAssembler {
         catch_type: CatchType,
     ) {
         self.masm.emit_exception_handler(span, catch, offset, catch_type);
+    }
+
+    pub fn get_scratch(&self) -> ScratchReg {
+        self.masm.get_scratch()
     }
 }
