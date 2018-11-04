@@ -393,10 +393,6 @@ where
         self.masm.emit_lineno(lineno);
     }
 
-    pub fn direct_call_without_info(&mut self, ptr: *const u8) {
-        self.masm.direct_call_without_info(ptr);
-    }
-
     pub fn var_store(&mut self, jit_info: &JitInfo, src: ExprStore, var_id: VarId) {
         let offset = jit_info.offset(var_id);
         let ty = jit_info.ty(var_id);
@@ -423,7 +419,7 @@ where
         let ty = internal_fct.return_type;
         let ptr = ensure_native_stub(self.ctxt, FctId(0), internal_fct);
 
-        self.masm.direct_call_without_info(ptr);
+        self.masm.raw_call(ptr);
         self.call_epilog(pos, ty, dest, gcpoint);
     }
 

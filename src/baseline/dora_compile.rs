@@ -76,7 +76,7 @@ where
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
         self.masm
-            .direct_call_without_info(start_native_call as *const u8);
+            .raw_call(start_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -89,7 +89,7 @@ where
             Mem::Base(REG_SP, offset_params),
         );
         self.masm
-            .direct_call_without_info(compile_request as *const u8);
+            .raw_call(compile_request as *const u8);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_tmp),
@@ -97,7 +97,7 @@ where
         );
 
         self.masm
-            .direct_call_without_info(finish_native_call as *const u8);
+            .raw_call(finish_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,

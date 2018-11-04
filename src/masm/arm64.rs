@@ -103,7 +103,7 @@ impl MacroAssembler {
         self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
     }
 
-    pub fn direct_call_without_info(&mut self, ptr: *const u8) {
+    pub fn raw_call(&mut self, ptr: *const u8) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -1022,14 +1022,14 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let ctxt = get_ctxt();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.direct_call_without_info(ctxt.trap_thunk.to_ptr());
+        self.raw_call(ctxt.trap_thunk.to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
         let ctxt = get_ctxt();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
-        self.direct_call_without_info(ctxt.throw_thunk.to_ptr());
+        self.raw_call(ctxt.throw_thunk.to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
