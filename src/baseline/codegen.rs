@@ -304,7 +304,7 @@ where
 {
     pub fn generate(mut self) -> JitBaselineFct {
         if should_emit_debug(self.ctxt, self.fct) {
-            self.masm().debug();
+            self.asm.debug();
         }
 
         self.emit_prolog();
@@ -372,14 +372,14 @@ where
             if is_float && freg_idx < FREG_PARAMS.len() {
                 let reg = FREG_PARAMS[freg_idx];
 
-                self.masm().emit_comment(Comment::StoreParam(varid));
+                self.asm.emit_comment(Comment::StoreParam(varid));
                 var_store(&mut self.asm.masm, &self.jit_info, reg.into(), varid);
 
                 freg_idx += 1;
             } else if !is_float && reg_idx < REG_PARAMS.len() {
                 let reg = REG_PARAMS[reg_idx];
 
-                self.masm().emit_comment(Comment::StoreParam(varid));
+                self.asm.emit_comment(Comment::StoreParam(varid));
                 var_store(&mut self.asm.masm, &self.jit_info, reg.into(), varid);
 
                 reg_idx += 1;
@@ -392,13 +392,13 @@ where
     fn emit_prolog(&mut self) {
         let stacksize = self.jit_info.stacksize();
         self.masm().prolog(stacksize);
-        self.masm().emit_comment(Comment::Lit("prolog end"));
-        self.masm().emit_comment(Comment::Newline);
+        self.asm.emit_comment(Comment::Lit("prolog end"));
+        self.asm.emit_comment(Comment::Newline);
     }
 
     fn emit_epilog(&mut self) {
-        self.masm().emit_comment(Comment::Newline);
-        self.masm().emit_comment(Comment::Lit("epilog"));
+        self.asm.emit_comment(Comment::Newline);
+        self.asm.emit_comment(Comment::Lit("epilog"));
 
         let stacksize = self.jit_info.stacksize();
         let polling_page = self.ctxt.polling_page.addr();
@@ -422,20 +422,20 @@ where
         }
 
         if let Some(lbl_return) = self.lbl_return {
-            self.masm().jump(lbl_return);
+            self.asm.jump(lbl_return);
             return;
         }
 
         if len > 0 {
             let mut ind = 0;
             while ind < len {
-                let lbl = self.masm().create_label();
+                let lbl = self.asm.create_label();
                 self.lbl_return = Some(lbl);
 
                 let finally = self.active_finallys[len - 1 - ind];
                 self.visit_stmt(finally);
 
-                self.masm().bind_label(lbl);
+                self.asm.bind_label(lbl);
 
                 ind += 1;
             }
@@ -458,13 +458,13 @@ where
     }
 
     fn emit_stmt_while(&mut self, s: &'ast StmtWhileType) {
-        let lbl_start = self.masm().create_label();
-        let lbl_end = self.masm().create_label();
+        let lbl_start = self.asm.create_label();
+        let lbl_end = self.asm.create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm().bind_label(lbl_start);
+        self.asm.bind_label(lbl_start);
 
         if s.cond.is_lit_true() {
             // always true => no condition evaluation
@@ -482,10 +482,10 @@ where
             this.visit_stmt(&s.block);
 
             this.emit_safepoint();
-            this.masm().jump(lbl_start);
+            this.asm.jump(lbl_start);
         });
 
-        self.masm().bind_label(lbl_end);
+        self.asm.bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
@@ -500,13 +500,13 @@ where
         self.masm()
             .store_mem(MachineMode::Ptr, Mem::Local(offset), dest);
 
-        let lbl_start = self.masm().create_label();
-        let lbl_end = self.masm().create_label();
+        let lbl_start = self.asm.create_label();
+        let lbl_end = self.asm.create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm().bind_label(lbl_start);
+        self.asm.bind_label(lbl_start);
 
         // emit: iterator.hasNext() & jump to lbl_end if false
         let dest = self.emit_call_site(&for_info.has_next, s.pos);
@@ -524,40 +524,40 @@ where
             this.visit_stmt(&s.block);
 
             this.emit_safepoint();
-            this.masm().jump(lbl_start);
+            this.asm.jump(lbl_start);
         });
 
-        self.masm().bind_label(lbl_end);
+        self.asm.bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
     fn emit_stmt_loop(&mut self, s: &'ast StmtLoopType) {
-        let lbl_start = self.masm().create_label();
-        let lbl_end = self.masm().create_label();
+        let lbl_start = self.asm.create_label();
+        let lbl_end = self.asm.create_label();
 
         let saved_active_loop = self.active_loop;
 
         self.active_loop = Some(self.active_finallys.len());
-        self.masm().bind_label(lbl_start);
+        self.asm.bind_label(lbl_start);
 
         self.save_label_state(lbl_end, lbl_start, |this| {
             this.visit_stmt(&s.block);
 
             this.emit_safepoint();
-            this.masm().jump(lbl_start);
+            this.asm.jump(lbl_start);
         });
 
-        self.masm().bind_label(lbl_end);
+        self.asm.bind_label(lbl_end);
         self.active_loop = saved_active_loop;
     }
 
     fn emit_safepoint(&mut self) {
-        self.masm().emit_comment(Comment::ReadPollingPage);
-        self.masm().check_polling_page(self.ctxt.polling_page.addr());
+        self.asm.emit_comment(Comment::ReadPollingPage);
+        self.asm.check_polling_page(self.ctxt.polling_page.addr());
 
         let temps = TempOffsets::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
-        self.masm().emit_gcpoint(gcpoint);
+        self.asm.emit_gcpoint(gcpoint);
     }
 
     fn save_label_state<F>(&mut self, lbl_break: Label, lbl_continue: Label, f: F)
@@ -577,9 +577,9 @@ where
     }
 
     fn emit_stmt_if(&mut self, s: &'ast StmtIfType) {
-        let lbl_end = self.masm().create_label();
+        let lbl_end = self.asm.create_label();
         let lbl_else = if let Some(_) = s.else_block {
-            self.masm().create_label()
+            self.asm.create_label()
         } else {
             lbl_end
         };
@@ -591,13 +591,13 @@ where
         self.visit_stmt(&s.then_block);
 
         if let Some(ref else_block) = s.else_block {
-            self.masm().jump(lbl_end);
-            self.masm().bind_label(lbl_else);
+            self.asm.jump(lbl_end);
+            self.asm.bind_label(lbl_else);
 
             self.visit_stmt(else_block);
         }
 
-        self.masm().bind_label(lbl_end);
+        self.asm.bind_label(lbl_end);
     }
 
     fn emit_stmt_break(&mut self, _: &'ast StmtBreakType) {
@@ -606,7 +606,7 @@ where
 
         // now jump out of loop
         let lbl_break = self.lbl_break.unwrap();
-        self.masm().jump(lbl_break);
+        self.asm.jump(lbl_break);
     }
 
     fn emit_stmt_continue(&mut self, _: &'ast StmtContinueType) {
@@ -615,7 +615,7 @@ where
 
         // now jump to start of loop
         let lbl_continue = self.lbl_continue.unwrap();
-        self.masm().jump(lbl_continue);
+        self.asm.jump(lbl_continue);
     }
 
     fn emit_finallys_within_loop(&mut self) {
@@ -696,13 +696,13 @@ where
     }
 
     fn emit_stmt_do(&mut self, s: &'ast StmtDoType) {
-        let lbl_after = self.masm().create_label();
+        let lbl_after = self.asm.create_label();
 
         let do_span = self.stmt_with_finally(s, &s.do_block, lbl_after);
         let catch_spans = self.emit_do_catch_blocks(s, do_span, lbl_after);
         let finally_start = self.emit_do_finally_block(s);
 
-        self.masm().bind_label(lbl_after);
+        self.asm.bind_label(lbl_after);
 
         if let Some(finally_start) = finally_start {
             let offset = *self.jit_info.map_offsets.get(s.id).unwrap();
@@ -778,7 +778,7 @@ where
                 self.visit_stmt(&finally_block.block);
             }
 
-            self.masm().jump(lbl_after);
+            self.asm.jump(lbl_after);
         }
 
         (start, end)
