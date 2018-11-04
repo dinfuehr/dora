@@ -199,7 +199,7 @@ where
 
                 let catch_span = {
                     let start = self.masm.pos();
-                    self.masm.masm.emit_bailout_inplace(Trap::UNEXPECTED, e.pos);
+                    self.masm.emit_bailout_inplace(Trap::UNEXPECTED, e.pos);
                     let end = self.masm.pos();
 
                     (start, end)
@@ -218,13 +218,13 @@ where
         self.emit_expr(&e.object, dest.into());
 
         // return false if object is nil
-        let lbl_nil = self.masm.masm.test_if_nil(dest);
+        let lbl_nil = self.masm.test_if_nil(dest);
         let conv = *self.src.map_convs.get(e.id).unwrap();
 
         if conv.valid {
             if e.is {
                 // return true for object is T
-                self.masm.masm.load_true(dest);
+                self.masm.load_true(dest);
             } else {
                 // do nothing for object as T
             }
@@ -252,15 +252,15 @@ where
             self.masm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(dest, 0));
 
-            let disp = self.masm.masm.add_addr(vtable as *const _ as *mut u8);
+            let disp = self.masm.add_addr(vtable as *const _ as *mut u8);
             let pos = self.masm.pos() as i32;
 
             // tmp2 = <vtable of T>
-            self.masm.masm.load_constpool(REG_TMP2, disp + pos);
+            self.masm.load_constpool(REG_TMP2, disp + pos);
 
             if vtable.subtype_depth >= DISPLAY_SIZE as i32 {
                 // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
-                self.masm.masm.cmp_mem_imm(
+                self.masm.cmp_mem_imm(
                     MachineMode::Int32,
                     Mem::Base(REG_TMP1, VTable::offset_of_depth()),
                     vtable.subtype_depth,
@@ -281,7 +281,7 @@ where
                     mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE as i32);
 
                 // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
-                self.masm.masm.cmp_mem(
+                self.masm.cmp_mem(
                     MachineMode::Ptr,
                     Mem::Base(REG_TMP1, overflow_offset),
                     REG_TMP2,
@@ -289,7 +289,7 @@ where
 
                 if e.is {
                     // dest = if zero then true else false
-                    self.masm.masm.set(dest, CondCode::Equal);
+                    self.masm.set(dest, CondCode::Equal);
                 } else {
                     // jump to lbl_false if cmp did not succeed
                     self.masm.jump_if(CondCode::NonZero, lbl_false);
@@ -308,10 +308,10 @@ where
 
                 if e.is {
                     // dest = false
-                    self.masm.masm.load_false(dest);
+                    self.masm.load_false(dest);
                 } else {
                     // bailout
-                    self.masm.masm.emit_bailout_inplace(Trap::CAST, e.pos);
+                    self.masm.emit_bailout_inplace(Trap::CAST, e.pos);
                 }
 
                 // lbl_finished:
@@ -323,18 +323,18 @@ where
                 // tmp1 = vtable of object
                 // tmp2 = vtable of T
                 // cmp [tmp1 + offset], tmp2
-                self.masm.masm.cmp_mem(
+                self.masm.cmp_mem(
                     MachineMode::Ptr,
                     Mem::Base(REG_TMP1, display_entry),
                     REG_TMP2,
                 );
 
                 if e.is {
-                    self.masm.masm.set(dest, CondCode::Equal);
+                    self.masm.set(dest, CondCode::Equal);
                 } else {
                     let lbl_bailout = self.masm.create_label();
                     self.masm.jump_if(CondCode::NotEqual, lbl_bailout);
-                    self.masm.masm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
+                    self.masm.emit_bailout(lbl_bailout, Trap::CAST, e.pos);
 
                     self.masm
                         .load_mem(MachineMode::Ptr, dest.into(), Mem::Local(offset));
@@ -462,12 +462,12 @@ where
         let field = &cls.fields[fieldid.idx()];
 
         self.masm.emit_comment(Comment::LoadField(cls_id, fieldid));
-        self.masm.masm
+        self.masm
             .load_field(field.ty.mode(), dest, src, field.offset, pos.line as i32);
     }
 
     fn emit_lit_char(&mut self, lit: &'ast ExprLitCharType, dest: Reg) {
-        self.masm.masm
+        self.masm
             .load_int_const(MachineMode::Int32, dest, lit.value as i64);
     }
 
@@ -478,7 +478,7 @@ where
             IntSuffix::Long => MachineMode::Int64,
         };
 
-        self.masm.masm.load_int_const(ty, dest, lit.value as i64);
+        self.masm.load_int_const(ty, dest, lit.value as i64);
     }
 
     fn emit_lit_float(&mut self, lit: &'ast ExprLitFloatType, dest: FReg) {
@@ -487,25 +487,25 @@ where
             FloatSuffix::Double => MachineMode::Float64,
         };
 
-        self.masm.masm.load_float_const(ty, dest, lit.value);
+        self.masm.load_float_const(ty, dest, lit.value);
     }
 
     fn emit_lit_bool(&mut self, lit: &'ast ExprLitBoolType, dest: Reg) {
         if lit.value {
-            self.masm.masm.load_true(dest);
+            self.masm.load_true(dest);
         } else {
-            self.masm.masm.load_false(dest);
+            self.masm.load_false(dest);
         };
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
         let handle = Str::from_buffer_in_perm(self.ctxt, lit.value.as_bytes());
 
-        let disp = self.masm.masm.add_addr(handle.raw() as *const u8);
+        let disp = self.masm.add_addr(handle.raw() as *const u8);
         let pos = self.masm.pos() as i32;
 
         self.masm.emit_comment(Comment::LoadString(handle));
-        self.masm.masm.load_constpool(dest, disp + pos);
+        self.masm.load_constpool(dest, disp + pos);
     }
 
     fn emit_lit_struct(&mut self, _: &'ast ExprLitStructType, _: ExprStore) {
@@ -524,11 +524,11 @@ where
             IdentType::Global(gid) => {
                 let glob = self.ctxt.globals[gid].borrow();
 
-                let disp = self.masm.masm.add_addr(glob.address_value);
+                let disp = self.masm.add_addr(glob.address_value);
                 let pos = self.masm.pos() as i32;
 
                 self.masm.emit_comment(Comment::LoadGlobal(gid));
-                self.masm.masm.load_constpool(REG_TMP1, disp + pos);
+                self.masm.load_constpool(REG_TMP1, disp + pos);
 
                 self.masm
                     .load_mem(glob.ty.mode(), dest, Mem::Base(REG_TMP1, 0));
@@ -556,14 +556,14 @@ where
         match ty {
             BuiltinType::Bool => {
                 if xconst.value.to_bool() {
-                    self.masm.masm.load_true(dest.reg());
+                    self.masm.load_true(dest.reg());
                 } else {
-                    self.masm.masm.load_false(dest.reg());
+                    self.masm.load_false(dest.reg());
                 }
             }
 
             BuiltinType::Char => {
-                self.masm.masm.load_int_const(
+                self.masm.load_int_const(
                     MachineMode::Int32,
                     dest.reg(),
                     xconst.value.to_char() as i64,
@@ -571,12 +571,12 @@ where
             }
 
             BuiltinType::Byte | BuiltinType::Int | BuiltinType::Long => {
-                self.masm.masm
+                self.masm
                     .load_int_const(ty.mode(), dest.reg(), xconst.value.to_int());
             }
 
             BuiltinType::Float | BuiltinType::Double => {
-                self.masm.masm
+                self.masm
                     .load_float_const(ty.mode(), dest.freg(), xconst.value.to_float());
             }
 
@@ -603,7 +603,7 @@ where
                         MachineMode::Int64
                     };
 
-                    self.masm.masm.int_neg(mode, dest, dest);
+                    self.masm.int_neg(mode, dest, dest);
                 }
 
                 Intrinsic::FloatNeg | Intrinsic::DoubleNeg => {
@@ -615,12 +615,12 @@ where
                         MachineMode::Float64
                     };
 
-                    self.masm.masm.float_neg(mode, dest, dest);
+                    self.masm.float_neg(mode, dest, dest);
                 }
 
                 Intrinsic::ByteNot => {
                     let dest = dest.reg();
-                    self.masm.masm.int_not(MachineMode::Int8, dest, dest)
+                    self.masm.int_not(MachineMode::Int8, dest, dest)
                 }
 
                 Intrinsic::IntNot | Intrinsic::LongNot => {
@@ -632,12 +632,12 @@ where
                         MachineMode::Int64
                     };
 
-                    self.masm.masm.int_not(mode, dest, dest);
+                    self.masm.int_not(mode, dest, dest);
                 }
 
                 Intrinsic::BoolNot => {
                     let dest = dest.reg();
-                    self.masm.masm.bool_not(dest, dest)
+                    self.masm.bool_not(dest, dest)
                 }
 
                 _ => panic!("unexpected intrinsic {:?}", intrinsic),
@@ -700,11 +700,11 @@ where
                 let dest = result_reg(glob.ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
-                let disp = self.masm.masm.add_addr(glob.address_value);
+                let disp = self.masm.add_addr(glob.address_value);
                 let pos = self.masm.pos() as i32;
 
                 self.masm.emit_comment(Comment::StoreGlobal(gid));
-                self.masm.masm.load_constpool(REG_TMP1, disp + pos);
+                self.masm.load_constpool(REG_TMP1, disp + pos);
 
                 self.masm
                     .store_mem(glob.ty.mode(), Mem::Base(REG_TMP1, 0), dest);
@@ -740,7 +740,7 @@ where
                 let write_barrier = self.ctxt.gc.needs_write_barrier() && field.ty.reference_type();
                 let card_table_offset = self.ctxt.gc.card_table_offset();
 
-                self.masm.masm.store_field(
+                self.masm.store_field(
                     field.ty.mode(),
                     REG_TMP1,
                     field.offset,
@@ -775,14 +775,14 @@ where
             self.masm
                 .load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Local(offset));
 
-            self.masm.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
+            self.masm.cmp_reg(MachineMode::Ptr, REG_RESULT, REG_TMP1);
 
             let op = match e.op {
                 BinOp::Cmp(CmpOp::Is) => CondCode::Equal,
                 _ => CondCode::NotEqual,
             };
 
-            self.masm.masm.set(dest.reg(), op);
+            self.masm.set(dest.reg(), op);
             self.free_temp_for_node(&e.lhs, offset);
         } else if e.op == BinOp::Or {
             self.emit_bin_or(e, dest.reg());
@@ -795,7 +795,7 @@ where
                 BinOp::Cmp(CmpOp::Eq) => {}
                 BinOp::Cmp(CmpOp::Ne) => {
                     let dest = dest.reg();
-                    self.masm.masm.bool_not(dest, dest);
+                    self.masm.bool_not(dest, dest);
                 }
 
                 BinOp::Cmp(op) => {
@@ -807,9 +807,9 @@ where
                         REG_RESULT
                     };
 
-                    self.masm.masm.load_int_const(MachineMode::Int32, temp, 0);
-                    self.masm.masm.cmp_reg(MachineMode::Int32, dest, temp);
-                    self.masm.masm.set(dest, to_cond_code(op));
+                    self.masm.load_int_const(MachineMode::Int32, temp, 0);
+                    self.masm.cmp_reg(MachineMode::Int32, dest, temp);
+                    self.masm.set(dest, to_cond_code(op));
                 }
                 _ => {}
             }
@@ -830,11 +830,11 @@ where
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
-        self.masm.masm.load_true(dest);
+        self.masm.load_true(dest);
         self.masm.jump(lbl_end);
 
         self.masm.bind_label(lbl_false);
-        self.masm.masm.load_false(dest);
+        self.masm.load_false(dest);
 
         self.masm.bind_label(lbl_end);
     }
@@ -853,11 +853,11 @@ where
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_false);
 
         self.masm.bind_label(lbl_true);
-        self.masm.masm.load_true(dest);
+        self.masm.load_true(dest);
         self.masm.jump(lbl_end);
 
         self.masm.bind_label(lbl_false);
-        self.masm.masm.load_false(dest);
+        self.masm.load_false(dest);
 
         self.masm.bind_label(lbl_end);
     }
@@ -1036,9 +1036,9 @@ where
             | BuiltinType::Byte
             | BuiltinType::Int
             | BuiltinType::Long
-            | BuiltinType::Char => self.masm.masm.load_int_const(ty.mode(), dest.reg(), 0),
+            | BuiltinType::Char => self.masm.load_int_const(ty.mode(), dest.reg(), 0),
             BuiltinType::Float | BuiltinType::Double => {
-                self.masm.masm.load_float_const(ty.mode(), dest.freg(), 0.0)
+                self.masm.load_float_const(ty.mode(), dest.freg(), 0.0)
             }
             _ => self.masm.load_nil(dest.reg()),
         }
@@ -1053,7 +1053,7 @@ where
             _ => unreachable!(),
         };
 
-        self.masm.masm.float_sqrt(mode, dest, dest);
+        self.masm.float_sqrt(mode, dest, dest);
     }
 
     fn emit_array_set(
@@ -1151,7 +1151,7 @@ where
         self.free_temp_for_node(object, offset);
 
         if dest != res {
-            self.masm.masm.copy(mode, dest, res);
+            self.masm.copy(mode, dest, res);
         }
     }
 
@@ -1178,7 +1178,7 @@ where
             _ => unreachable!(),
         };
 
-        self.masm.masm.float_cmp_nan(mode, dest, FREG_RESULT);
+        self.masm.float_cmp_nan(mode, dest, FREG_RESULT);
     }
 
     fn emit_intrinsic_len(&mut self, e: &'ast ExprCallType, dest: Reg) {
@@ -1198,7 +1198,7 @@ where
         self.masm.emit_comment(Comment::Lit("check assert"));
         self.masm
             .test_and_jump_if(CondCode::Zero, REG_RESULT, lbl_div);
-        self.masm.masm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
+        self.masm.emit_bailout(lbl_div, Trap::ASSERT, e.pos);
     }
 
     fn emit_intrinsic_debug(&mut self) {
@@ -1370,8 +1370,8 @@ where
                     _ => CondCode::Equal,
                 };
 
-                self.masm.masm.cmp_reg(mode, lhs, rhs);
-                self.masm.masm.set(dest, cond_code);
+                self.masm.cmp_reg(mode, lhs, rhs);
+                self.masm.set(dest, cond_code);
             }
 
             Intrinsic::ByteCmp | Intrinsic::CharCmp | Intrinsic::IntCmp | Intrinsic::LongCmp => {
@@ -1384,40 +1384,40 @@ where
                 if let Some(BinOp::Cmp(op)) = op {
                     let cond_code = to_cond_code(op);
 
-                    self.masm.masm.cmp_reg(mode, lhs, rhs);
-                    self.masm.masm.set(dest, cond_code);
+                    self.masm.cmp_reg(mode, lhs, rhs);
+                    self.masm.set(dest, cond_code);
                 } else {
-                    self.masm.masm.int_sub(mode, dest, lhs, rhs);
+                    self.masm.int_sub(mode, dest, lhs, rhs);
                 }
             }
 
-            Intrinsic::IntAdd => self.masm.masm.int_add(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSub => self.masm.masm.int_sub(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMul => self.masm.masm.int_mul(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntDiv => self.masm.masm.int_div(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntMod => self.masm.masm.int_mod(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntAdd => self.masm.int_add(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntSub => self.masm.int_sub(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntMul => self.masm.int_mul(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntDiv => self.masm.int_div(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntMod => self.masm.int_mod(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntOr => self.masm.masm.int_or(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntAnd => self.masm.masm.int_and(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntXor => self.masm.masm.int_xor(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntOr => self.masm.int_or(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntAnd => self.masm.int_and(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntXor => self.masm.int_xor(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::IntShl => self.masm.masm.int_shl(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntSar => self.masm.masm.int_sar(MachineMode::Int32, dest, lhs, rhs),
-            Intrinsic::IntShr => self.masm.masm.int_shr(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntShl => self.masm.int_shl(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntSar => self.masm.int_sar(MachineMode::Int32, dest, lhs, rhs),
+            Intrinsic::IntShr => self.masm.int_shr(MachineMode::Int32, dest, lhs, rhs),
 
-            Intrinsic::LongAdd => self.masm.masm.int_add(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSub => self.masm.masm.int_sub(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMul => self.masm.masm.int_mul(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongDiv => self.masm.masm.int_div(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongMod => self.masm.masm.int_mod(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongAdd => self.masm.int_add(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongSub => self.masm.int_sub(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongMul => self.masm.int_mul(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongDiv => self.masm.int_div(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongMod => self.masm.int_mod(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongOr => self.masm.masm.int_or(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongAnd => self.masm.masm.int_and(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongXor => self.masm.masm.int_xor(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongOr => self.masm.int_or(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongAnd => self.masm.int_and(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongXor => self.masm.int_xor(MachineMode::Int64, dest, lhs, rhs),
 
-            Intrinsic::LongShl => self.masm.masm.int_shl(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongSar => self.masm.masm.int_sar(MachineMode::Int64, dest, lhs, rhs),
-            Intrinsic::LongShr => self.masm.masm.int_shr(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongShl => self.masm.int_shl(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongSar => self.masm.int_sar(MachineMode::Int64, dest, lhs, rhs),
+            Intrinsic::LongShr => self.masm.int_shr(MachineMode::Int64, dest, lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
@@ -1465,15 +1465,15 @@ where
                 }
             }
 
-            Intrinsic::FloatAdd => self.masm.masm.float_add(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatSub => self.masm.masm.float_sub(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatMul => self.masm.masm.float_mul(Float32, dest.freg(), lhs, rhs),
-            Intrinsic::FloatDiv => self.masm.masm.float_div(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatAdd => self.masm.float_add(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatSub => self.masm.float_sub(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatMul => self.masm.float_mul(Float32, dest.freg(), lhs, rhs),
+            Intrinsic::FloatDiv => self.masm.float_div(Float32, dest.freg(), lhs, rhs),
 
-            Intrinsic::DoubleAdd => self.masm.masm.float_add(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleSub => self.masm.masm.float_sub(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleMul => self.masm.masm.float_mul(Float64, dest.freg(), lhs, rhs),
-            Intrinsic::DoubleDiv => self.masm.masm.float_div(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleAdd => self.masm.float_add(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleSub => self.masm.float_sub(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleMul => self.masm.float_mul(Float64, dest.freg(), lhs, rhs),
+            Intrinsic::DoubleDiv => self.masm.float_div(Float64, dest.freg(), lhs, rhs),
 
             _ => panic!("unexpected intrinsic {:?}", intr),
         }
@@ -1688,7 +1688,7 @@ where
 
         match cls.size {
             ClassSize::Fixed(size) => {
-                self.masm.masm
+                self.masm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
                 alloc_size = AllocationSize::Fixed(size as usize);
             }
@@ -1697,7 +1697,7 @@ where
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.masm
+                self.masm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, esize, true);
 
                 store_length = true;
@@ -1708,7 +1708,7 @@ where
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.masm
+                self.masm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, mem::ptr_width(), true);
 
                 store_length = true;
@@ -1719,7 +1719,7 @@ where
                 self.masm
                     .load_mem(MachineMode::Int32, REG_TMP1.into(), Mem::Local(temps[1].1));
 
-                self.masm.masm
+                self.masm
                     .determine_array_size(REG_PARAMS[0], REG_TMP1, 1, true);
 
                 store_length = true;
@@ -1728,7 +1728,7 @@ where
 
             ClassSize::Array(_) | ClassSize::ObjArray | ClassSize::Str => {
                 let size = Header::size() as usize + mem::ptr_width_usize();
-                self.masm.masm
+                self.masm
                     .load_int_const(MachineMode::Int32, REG_PARAMS[0], size as i64);
 
                 store_length = true;
@@ -1749,19 +1749,19 @@ where
 
         // store classptr in object
         let cptr = (&**cls.vtable.as_ref().unwrap()) as *const VTable as *const u8;
-        let disp = self.masm.masm.add_addr(cptr);
+        let disp = self.masm.add_addr(cptr);
         let pos = self.masm.pos() as i32;
 
         let temp = if dest == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
 
         self.masm.emit_comment(Comment::StoreVTable(cls_id));
-        self.masm.masm.load_constpool(temp, disp + pos);
+        self.masm.load_constpool(temp, disp + pos);
         self.masm
             .store_mem(MachineMode::Ptr, Mem::Base(dest, 0), temp.into());
 
         // clear mark/fwdptr word in header
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.masm.masm.load_int_const(MachineMode::Ptr, temp, 0);
+        self.masm.load_int_const(MachineMode::Ptr, temp, 0);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(dest, mem::ptr_width()),
@@ -1774,7 +1774,7 @@ where
                 self.masm
                     .load_mem(MachineMode::Int32, temp.into(), Mem::Local(temps[1].1));
             } else {
-                self.masm.masm.load_int_const(MachineMode::Ptr, temp, 0);
+                self.masm.load_int_const(MachineMode::Ptr, temp, 0);
             }
 
             self.masm.store_mem(
@@ -1786,11 +1786,11 @@ where
 
         match cls.size {
             ClassSize::Fixed(size) => {
-                self.masm.masm.fill_zero(dest, size as usize);
+                self.masm.fill_zero(dest, size as usize);
             }
 
             _ if temps.len() > 1 => {
-                self.masm.masm.int_add_imm(
+                self.masm.int_add_imm(
                     MachineMode::Ptr,
                     dest,
                     dest,
@@ -1804,10 +1804,10 @@ where
                     ClassSize::Fixed(_) => unreachable!(),
                 };
 
-                self.masm.masm
+                self.masm
                     .determine_array_size(temp, temp, element_size, false);
-                self.masm.masm.int_add(MachineMode::Ptr, temp, temp, dest);
-                self.masm.masm.fill_zero_dynamic(dest, temp);
+                self.masm.int_add(MachineMode::Ptr, temp, temp, dest);
+                self.masm.fill_zero_dynamic(dest, temp);
             }
 
             // arrays with length 0 do not need to clear any data
@@ -1866,7 +1866,7 @@ where
         match dest {
             ExprStore::FReg(dest) => {
                 if FREG_RESULT != dest {
-                    self.masm.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
+                    self.masm.copy_freg(ty.mode(), dest, FREG_RESULT);
                 }
             }
 
@@ -1914,7 +1914,7 @@ where
     ) {
         match size {
             AllocationSize::Fixed(size) => {
-                self.masm.masm
+                self.masm
                     .load_int_const(MachineMode::Ptr, REG_PARAMS[0], size as i64);
             }
 
@@ -1923,7 +1923,7 @@ where
             }
         }
 
-        self.masm.masm.load_int_const(
+        self.masm.load_int_const(
             MachineMode::Int8,
             REG_PARAMS[1],
             if array_ref { 1 } else { 0 },
@@ -1954,7 +1954,7 @@ where
 
         match size {
             AllocationSize::Dynamic(reg_size) => {
-                self.masm.masm
+                self.masm
                     .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
                 self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
             }
@@ -1982,18 +1982,18 @@ where
         match size {
             AllocationSize::Fixed(size) => {
                 self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
-                self.masm.masm
+                self.masm
                     .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
             }
 
             AllocationSize::Dynamic(reg_size) => {
                 self.masm.copy_reg(MachineMode::Ptr, *tlab_next, REG_TMP1);
-                self.masm.masm
+                self.masm
                     .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
             }
         }
 
-        self.masm.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
+        self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
         self.masm.jump_if(CondCode::LessEq, lbl_success);
 
         self.masm.bind_label(lbl_normal_alloc);

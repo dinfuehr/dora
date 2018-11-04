@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use baseline::codegen::CondCode;
 use baseline::expr::ExprStore;
 use baseline::fct::{CatchType, Comment, GcPoint};
-use cpu::{Mem, Reg};
+use cpu::{FReg, Mem, Reg};
 use masm::{MacroAssembler, Label, ScratchReg};
 use ty::MachineMode;
 use os::signal::Trap;
@@ -37,6 +37,10 @@ impl BaselineAssembler {
 
     pub fn copy_reg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         self.masm.copy_reg(mode, dest, src);
+    }
+
+    pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        self.masm.copy_freg(mode, dest, src);
     }
 
     pub fn check_polling_page(&mut self, page: *const u8) {
@@ -87,8 +91,40 @@ impl BaselineAssembler {
         self.masm.test_if_nil_bailout(pos, reg, trap);
     }
 
+    pub fn test_if_nil(&mut self, reg: Reg) -> Label {
+        self.masm.test_if_nil(reg)
+    }
+
     pub fn load_nil(&mut self, dest: Reg) {
         self.masm.load_nil(dest);
+    }
+
+    pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
+        self.masm.load_int_const(mode, dest, imm);
+    }
+
+    pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
+        self.masm.load_float_const(mode, dest, imm);
+    }
+
+    pub fn load_constpool(&mut self, dest: Reg, disp: i32) {
+        self.masm.load_constpool(dest, disp);
+    }
+
+    pub fn load_true(&mut self, dest: Reg) {
+        self.masm.load_true(dest);
+    }
+
+    pub fn load_false(&mut self, dest: Reg) {
+        self.masm.load_false(dest);
+    }
+
+    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
+        self.masm.emit_bailout(lbl, trap, pos);
+    }
+
+    pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
+        self.masm.emit_bailout_inplace(trap, pos)
     }
 
     pub fn emit_exception_handler(
@@ -103,5 +139,163 @@ impl BaselineAssembler {
 
     pub fn get_scratch(&self) -> ScratchReg {
         self.masm.get_scratch()
+    }
+
+    pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
+        self.masm.cmp_reg(mode, lhs, rhs);
+    }
+
+    pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
+        self.masm.cmp_reg_imm(mode, lhs, imm);
+    }
+
+    pub fn cmp_mem_imm(&mut self, mode: MachineMode, mem: Mem, imm: i32) {
+        self.masm.cmp_mem_imm(mode, mem, imm);
+    }
+
+    pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
+        self.masm.cmp_mem(mode, mem, rhs);
+    }
+
+    pub fn add_addr(&mut self, ptr: *const u8) -> i32 {
+        self.masm.add_addr(ptr)
+    }
+
+    pub fn set(&mut self, dest: Reg, op: CondCode) {
+        self.masm.set(dest, op);
+    }
+
+    pub fn int_add(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_add(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
+        self.masm.int_add_imm(mode, dest, lhs, value);
+    }
+
+    pub fn int_sub(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_sub(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_mul(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_div(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_mod(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        self.masm.int_neg(mode, dest, src);
+    }
+
+    pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
+        self.masm.int_not(mode, dest, src);
+    }
+
+    pub fn int_or(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_or(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_and(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_and(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_xor(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_xor(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_shl(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_shr(mode, dest, lhs, rhs);
+    }
+
+    pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.int_sar(mode, dest, lhs, rhs);
+    }
+
+    pub fn bool_not(&mut self, dest: Reg, src: Reg) {
+        self.masm.bool_not(dest, src);
+    }
+
+    pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        self.masm.float_add(mode, dest, lhs, rhs);
+    }
+
+    pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        self.masm.float_sub(mode, dest, lhs, rhs);
+    }
+
+    pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        self.masm.float_mul(mode, dest, lhs, rhs);
+    }
+
+    pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
+        self.masm.float_div(mode, dest, lhs, rhs);
+    }
+
+    pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        self.masm.float_neg(mode, dest, src);
+    }
+
+    pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
+        self.masm.float_cmp_nan(mode, dest, src);
+    }
+
+    pub fn determine_array_size(
+        &mut self,
+        dest: Reg,
+        length: Reg,
+        element_size: i32,
+        with_header: bool,
+    ) {
+        self.masm.determine_array_size(dest, length, element_size, with_header);
+    }
+
+    pub fn fill_zero(&mut self, obj: Reg, size: usize) {
+        self.masm.fill_zero(obj, size);
+    }
+
+    pub fn fill_zero_dynamic(&mut self, obj: Reg, obj_end: Reg) {
+        self.masm.fill_zero_dynamic(obj, obj_end);
+    }
+
+    pub fn load_field(
+        &mut self,
+        mode: MachineMode,
+        dest: ExprStore,
+        base: Reg,
+        offset: i32,
+        line: i32,
+    ) {
+        self.masm.load_field(mode, dest, base, offset, line);
+    }
+
+    pub fn store_field(
+        &mut self,
+        mode: MachineMode,
+        base: Reg,
+        offset: i32,
+        src: ExprStore,
+        line: i32,
+        write_barrier: bool,
+        card_table_offset: usize,
+    ) {
+        self.masm.store_field(mode, base, offset, src, line, write_barrier, card_table_offset);
+    }
+
+    pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        self.masm.float_sqrt(mode, dest, src);
+    }
+
+    pub fn copy(&mut self, mode: MachineMode, dest: ExprStore, src: ExprStore) {
+        self.masm.copy(mode, dest, src);
     }
 }
