@@ -1,8 +1,10 @@
+use std::mem;
+
 use dora_parser::lexer::position::Position;
 
 use baseline::codegen::CondCode;
 use baseline::dora_native::{InternalFct, InternalFctDescriptor};
-use baseline::expr::{AllocationSize, ensure_native_stub, ExprStore};
+use baseline::expr::{ensure_native_stub, AllocationSize, ExprStore};
 use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use baseline::info::JitInfo;
 use class::TypeParams;
@@ -18,6 +20,7 @@ use ty::{BuiltinType, MachineMode};
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,
     ctxt: &'a SemContext<'ast>,
+    slow_paths: Vec<SlowPathKind>,
 }
 
 impl<'a, 'ast> BaselineAssembler<'a, 'ast>
@@ -28,6 +31,7 @@ where
         BaselineAssembler {
             masm: MacroAssembler::new(),
             ctxt: ctxt,
+            slow_paths: Vec::new(),
         }
     }
 
@@ -405,7 +409,8 @@ where
         self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
-    pub fn jit(self, stacksize: i32, desc: JitDescriptor, throws: bool) -> JitBaselineFct {
+    pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> JitBaselineFct {
+        self.slow_paths();
         self.masm.jit(self.ctxt, stacksize, desc, throws)
     }
 
@@ -517,15 +522,13 @@ where
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
-        let lbl_success = self.masm.create_label();
-        let lbl_end = self.masm.create_label();
-        let lbl_normal_alloc = self.masm.create_label();
+        let lbl_allocate = self.masm.create_label();
 
         match size {
             AllocationSize::Dynamic(reg_size) => {
                 self.masm
                     .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
-                self.masm.jump_if(CondCode::GreaterEq, lbl_normal_alloc);
+                self.masm.jump_if(CondCode::GreaterEq, lbl_allocate);
             }
 
             AllocationSize::Fixed(size) => {
@@ -563,13 +566,7 @@ where
         }
 
         self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
-        self.masm.jump_if(CondCode::LessEq, lbl_success);
-
-        self.masm.bind_label(lbl_normal_alloc);
-        self.gc_allocate(dest, size, pos, array_ref, gcpoint);
-        self.masm.jump(lbl_end);
-
-        self.masm.bind_label(lbl_success);
+        self.masm.jump_if(CondCode::Greater, lbl_allocate);
 
         self.masm.store_mem(
             MachineMode::Ptr,
@@ -578,7 +575,18 @@ where
         );
 
         self.masm.copy_reg(MachineMode::Ptr, dest, REG_TMP1);
-        self.masm.bind_label(lbl_end);
+        let lbl_return = self.masm.create_label();
+        self.masm.bind_label(lbl_return);
+
+        self.slow_paths.push(SlowPathKind::TlabAllocationFailure(
+            lbl_allocate,
+            lbl_return,
+            dest,
+            size,
+            pos,
+            array_ref,
+            gcpoint,
+        ));
     }
 
     pub fn allocate(
@@ -608,4 +616,47 @@ where
             }
         }
     }
+
+    fn slow_paths(&mut self) {
+        let slow_paths = mem::replace(&mut self.slow_paths, Vec::new());
+
+        for slow_path in slow_paths {
+            match slow_path {
+                SlowPathKind::TlabAllocationFailure(
+                    lbl_start,
+                    lbl_return,
+                    dest,
+                    size,
+                    pos,
+                    array_ref,
+                    gcpoint,
+                ) => {
+                    self.slow_path_tlab_allocation_failure(
+                        lbl_start, lbl_return, dest, size, pos, array_ref, gcpoint,
+                    );
+                }
+            }
+        }
+
+        assert!(self.slow_paths.is_empty());
+    }
+
+    fn slow_path_tlab_allocation_failure(
+        &mut self,
+        lbl_start: Label,
+        lbl_return: Label,
+        dest: Reg,
+        size: AllocationSize,
+        pos: Position,
+        array_ref: bool,
+        gcpoint: GcPoint,
+    ) {
+        self.masm.bind_label(lbl_start);
+        self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+        self.masm.jump(lbl_return);
+    }
+}
+
+enum SlowPathKind {
+    TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
 }

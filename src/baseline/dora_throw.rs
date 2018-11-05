@@ -73,8 +73,7 @@ where
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
-        self.masm
-            .raw_call(start_native_call as *const u8);
+        self.masm.raw_call(start_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -90,8 +89,7 @@ where
         );
         self.masm.raw_call(throw as *const u8);
 
-        self.masm
-            .raw_call(finish_native_call as *const u8);
+        self.masm.raw_call(finish_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,
