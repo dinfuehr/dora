@@ -90,7 +90,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
     pub fn collect(&mut self) -> bool {
         let active = self.ctxt.args.flag_gc_verbose;
-        let mut timer = Timer::new(active);
+        let timer = Timer::new(active);
 
         let init_size = self.heap_size();
         let young_init_size = self.young.active_size();

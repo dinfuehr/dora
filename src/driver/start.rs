@@ -11,6 +11,7 @@ use dora_parser::lexer::reader::Reader;
 use driver::cmd;
 use object;
 use os;
+use timer::Timer;
 
 use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
@@ -79,6 +80,8 @@ pub fn start() -> i32 {
         return 0;
     }
 
+    let timer = Timer::new(ctxt.args.flag_gc_verbose);
+
     let code = if ctxt.args.cmd_test {
         run_tests(&ctxt)
     } else {
@@ -86,7 +89,7 @@ pub fn start() -> i32 {
     };
 
     if ctxt.args.flag_gc_verbose {
-        ctxt.dump_gc_summary();
+        ctxt.dump_gc_summary(timer.stop());
     }
 
     code

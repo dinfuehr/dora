@@ -141,8 +141,8 @@ impl Gc {
         self.collector.minor_collect(ctxt, reason);
     }
 
-    pub fn dump_summary(&self) {
-        self.collector.dump_summary();
+    pub fn dump_summary(&self, runtime: f32) {
+        self.collector.dump_summary(runtime);
     }
 }
 
@@ -171,7 +171,7 @@ trait Collector {
     }
 
     // prints GC summary: minor/full collections, etc.
-    fn dump_summary(&self) {
+    fn dump_summary(&self, _runtime: f32) {
         // do nothing
     }
 }

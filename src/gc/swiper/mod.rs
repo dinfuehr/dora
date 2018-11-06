@@ -387,14 +387,21 @@ impl Collector for Swiper {
         self.card_table_offset
     }
 
-    fn dump_summary(&self) {
+    fn dump_summary(&self, runtime: f32) {
         self.stats.update(|stats| {
+            let total_gc = stats.minor_runtime() + stats.full_runtime();
+            let gc_percentage = ((total_gc / runtime) * 100.0).round();
+            let mutator_percentage = 100.0 - gc_percentage;
+
             println!(
-                "GC summary: {:.1}ms minor ({}), {:.1}ms full ({})",
+                "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
                 stats.minor_runtime(),
                 stats.minor_collections(),
                 stats.full_runtime(),
-                stats.full_collections()
+                stats.full_collections(),
+                runtime,
+                mutator_percentage,
+                gc_percentage,
             );
         })
     }

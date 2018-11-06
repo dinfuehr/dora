@@ -88,7 +88,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     pub fn collect(&mut self) {
         let active = self.ctxt.args.flag_gc_verbose;
         let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
-        let mut timer = Timer::new(active);
+        let timer = Timer::new(active);
         let init_size = self.heap_size();
         self.old_top = self.old.active().end;
 

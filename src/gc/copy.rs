@@ -99,7 +99,7 @@ impl Drop for CopyCollector {
 
 impl CopyCollector {
     fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot], reason: GcReason) {
-        let mut timer = Timer::new(ctxt.args.flag_gc_verbose);
+        let timer = Timer::new(ctxt.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
