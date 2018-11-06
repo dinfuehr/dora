@@ -9,7 +9,8 @@ const splayTreePayloadDepth: int = 5;
 class Benchmark {
     var splayTree: SplayTree;
     var splaySamples: int;
-    var splaySumOfSquaredPauses: int = 0;
+    var splaySampleTimeStart: long = 0L;
+    var splaySumOfSquaredPauses: long = 0L;
 
     fun setup() {
         self.splayTree = SplayTree();
@@ -20,23 +21,25 @@ class Benchmark {
             self.insertNewNode();
 
             if (i+1) % 20 == 19 {
-                self.updateStats();
+                self.updateStats(timestamp());
             }
 
             i = i + 1;
         }
     }
 
-    fun updateStats() {
+    fun updateStats(time: long) {
+        let pause = time - self.splaySampleTimeStart;
+        self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1;
-        // self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
+        self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
     fun tearDown() {
         let keys = self.splayTree.exportKeys();
 
         self.splaySamples = 0;
-        self.splaySumOfSquaredPauses = 0;
+        self.splaySumOfSquaredPauses = 0L;
 
         var length = keys.len();
 
@@ -70,16 +73,58 @@ class Benchmark {
 
             i = i + 1;
         }
+
+        self.updateStats(timestamp());
     }
 
     fun insertNewNode() -> int {
         var key: int = 0;
+
+        loop {
+            key = self.generateKey();
+
+            if self.splayTree.find(key) !== nil {
+                break;
+            }
+        }
+
+        let payload = generatePayloadTree(splayTreePayloadDepth, key.toString());
+        self.splayTree.insert(key, payload);
 
         return key;
     }
 
     fun generateKey() -> int {
         return 0;
+    }
+
+    fun rms() {
+        let pauses = self.splaySumOfSquaredPauses;
+        let samples = self.splaySamples;
+
+        (pauses.toDouble() / samples.toDouble());
+    }
+}
+
+fun generatePayloadTree(depth: int, tag: Str) -> PayloadNode {
+    if depth == 0 {
+        let arr = Array::<int>(10);
+        var i = 0;
+
+        while i < 10 {
+            arr[i] = i;
+            i = i + 1;
+        }
+
+        let text = "String for key " + tag + " in leaf node";
+        return PayloadNode(arr, text, nil, nil);
+    } else {
+        return PayloadNode(
+            nil,
+            nil,
+            generatePayloadTree(depth-1, tag),
+            generatePayloadTree(depth-1, tag),
+        );
     }
 }
 
@@ -90,7 +135,7 @@ class SplayTree {
         return self.root === nil;
     }
 
-    fun insert(key: int, value: int) {
+    fun insert(key: int, value: PayloadNode) {
         if self.isEmpty() {
             self.root = SplayNode(key, value);
             return;
@@ -202,7 +247,7 @@ class SplayTree {
             return;
         }
 
-        var dummy = SplayNode(0, 0);
+        var dummy = SplayNode(0, nil);
         var left = dummy;
         var right = dummy;
 
@@ -278,14 +323,9 @@ fun exportKeysTraverse(list: Vec<int>, node: SplayNode) {
     }
 }
 
-class SplayNode(var key: int, var value: int) {
+class SplayNode(var key: int, var value: PayloadNode) {
     var left: SplayNode;
     var right: SplayNode;
 }
 
-class PayloadNode {
-    var array: Array<int>;
-    var string: Str;
-    var left: PayloadNode;
-    var right: PayloadNode;
-}
+class PayloadNode(let array: Array<int>, let text: Str, let left: PayloadNode, let right: PayloadNode)
