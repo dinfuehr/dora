@@ -82,6 +82,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     native_fct(ctxt, "argc", stdlib::argc as *const u8);
     native_fct(ctxt, "argv", stdlib::argv as *const u8);
     native_fct(ctxt, "forceCollect", stdlib::gc_collect as *const u8);
+    native_fct(ctxt, "timestamp", stdlib::timestamp as *const u8);
     native_fct(
         ctxt,
         "forceMinorCollect",

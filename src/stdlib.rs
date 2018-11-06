@@ -82,6 +82,12 @@ pub extern "C" fn exit(status: i32) {
     process::exit(status);
 }
 
+pub extern "C" fn timestamp() -> u64 {
+    use timer;
+
+    timer::timestamp()
+}
+
 pub extern "C" fn println(val: Handle<Str>) {
     print(val);
     println!("");

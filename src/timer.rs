@@ -50,6 +50,6 @@ pub fn in_ms(ns: u64) -> f32 {
     (ns as f32) / 1000.0 / 1000.0
 }
 
-fn timestamp() -> u64 {
+pub fn timestamp() -> u64 {
     time::precise_time_ns()
 }
