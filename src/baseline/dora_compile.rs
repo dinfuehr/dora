@@ -14,6 +14,14 @@ use mem;
 use object::Obj;
 use ty::MachineMode;
 
+// This code generates the compiler thunk, there should only be one instance
+// of this function be used in Dora. It is necessary for lazy compilation, where
+// functions are only compiled on their first invocation. The compiler can use
+// the address of this thunk for invocations of functions that have not been compiled
+// yet. The thunk compiles the function and patches the call site to invoke the
+// now-compiled function directly on the next invocation. In the end the function is
+// executed.
+
 pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
     let ngen = DoraCompileGen {
         ctxt: ctxt,
@@ -57,6 +65,7 @@ where
             self.masm.debug();
         }
 
+        // the return address is the call-site we need to patch
         self.masm.copy_ra(REG_TMP1);
         self.masm.prolog(framesize);
 
@@ -71,12 +80,16 @@ where
             Mem::Base(REG_SP, offset_tmp),
             REG_TMP1.into(),
         );
+
+        // store params passed in registers on the stack
         self.store_params(offset_params);
 
+        // prepare the native call
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
         self.masm.raw_call(start_native_call as *const u8);
 
+        // invoke the compiler for the call site
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_PARAMS[0].into(),
@@ -94,20 +107,30 @@ where
             REG_RESULT.into(),
         );
 
+        // undo the previous native call
         self.masm.raw_call(finish_native_call as *const u8);
 
+        // load the address of the compiled function into REG_TMP1
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_TMP1.into(),
             Mem::Base(REG_SP, offset_tmp),
         );
+
+        // restore thread register
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_THREAD.into(),
             Mem::Base(REG_SP, offset_thread),
         );
+
+        // restore argument registers from the stack
         self.load_params(offset_params);
+
+        // remove the stack frame
         self.masm.epilog_without_return(framesize);
+
+        // jump to compiled function
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
