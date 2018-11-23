@@ -513,6 +513,10 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             return self.promote_object(obj, obj_size);
         }
 
+        if next_young_top > self.young_limit {
+            panic!("Minor GC: out-of-memory error");
+        }
+
         self.young_top = next_young_top;
         debug_assert!(self.young.to_committed().valid_top(self.young_top));
 
