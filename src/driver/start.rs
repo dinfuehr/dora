@@ -9,6 +9,7 @@ use dora_parser::interner::Interner;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::reader::Reader;
 use driver::cmd;
+use boots::bytecodegen::BytecodeGen;
 use object;
 use os;
 
@@ -16,6 +17,7 @@ use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
+
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -46,6 +48,11 @@ pub fn start() -> i32 {
 
     if args.flag_emit_ast {
         ast::dump::dump(&ast, &interner);
+    }
+
+    {
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
     }
 
     let mut ctxt = SemContext::new(args, &ast, interner);
