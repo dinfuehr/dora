@@ -1,5 +1,5 @@
-use std::ptr;
 use ctxt::SemContext;
+use std::ptr;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 

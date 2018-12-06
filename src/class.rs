@@ -10,8 +10,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 use utils::GrowableVec;
-use vtable::VTableBox;
 use vm::VM;
+use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);

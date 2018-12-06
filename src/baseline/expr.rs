@@ -1893,11 +1893,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-pub fn ensure_native_stub(
-    vm: &VM,
-    fct_id: FctId,
-    internal_fct: InternalFct,
-) -> *const u8 {
+pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
     let mut native_fcts = vm.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 

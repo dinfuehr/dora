@@ -235,16 +235,12 @@ impl BuiltinType {
             }
             BuiltinType::ClassTypeParam(cid, id) => {
                 let cls = vm.classes[cid].borrow();
-                vm.interner
-                    .str(cls.type_params[id.idx()].name)
-                    .to_string()
+                vm.interner.str(cls.type_params[id.idx()].name).to_string()
             }
 
             BuiltinType::FctTypeParam(fid, id) => {
                 let fct = vm.fcts[fid].borrow();
-                vm.interner
-                    .str(fct.type_params[id.idx()].name)
-                    .to_string()
+                vm.interner.str(fct.type_params[id.idx()].name).to_string()
             }
 
             BuiltinType::Lambda(id) => {

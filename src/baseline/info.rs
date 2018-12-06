@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use class::TypeParams;
 use cpu::*;
 use ctxt::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
-    Store, TraitId, VarId,
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
+    TraitId, VarId,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;

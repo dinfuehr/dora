@@ -474,9 +474,7 @@ impl Str {
 }
 
 fn str_alloc_heap(vm: &VM, len: usize) -> Handle<Str> {
-    str_alloc(vm, len, |vm, size| {
-        vm.gc.alloc(vm, size, false).to_ptr()
-    })
+    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false).to_ptr())
 }
 
 fn str_alloc_perm(vm: &VM, len: usize) -> Handle<Str> {
