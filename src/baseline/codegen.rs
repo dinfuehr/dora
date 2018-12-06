@@ -22,18 +22,18 @@ use baseline::info::{self, JitInfo};
 use baseline::map::CodeDescriptor;
 use class::{ClassDef, TypeParams};
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
-use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, SemContext, VarId};
+use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
 use masm::*;
-
 use os;
 use os::signal::Trap;
 use semck::always_returns;
 use semck::specialize::specialize_class_ty;
 use ty::{BuiltinType, MachineMode};
+use vm::VM;
 
 pub fn generate<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     id: FctId,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
@@ -46,7 +46,7 @@ pub fn generate<'ast>(
 }
 
 pub fn generate_fct<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &mut FctSrc,
     cls_type_params: &TypeParams,
@@ -153,7 +153,7 @@ fn get_engine() -> Result<Engine, Error> {
 }
 
 pub fn dump_asm<'ast>(
-    ctxt: &SemContext<'ast>,
+    ctxt: &VM<'ast>,
     fct: &Fct<'ast>,
     jit_fct: &JitBaselineFct,
     fct_src: Option<&FctSrc>,
@@ -261,7 +261,7 @@ pub fn dump_asm<'ast>(
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
     asm: BaselineAssembler<'a, 'ast>,
@@ -1029,7 +1029,7 @@ pub enum Next {
     Return,
 }
 
-pub fn should_emit_debug(ctxt: &SemContext, fct: &Fct) -> bool {
+pub fn should_emit_debug(ctxt: &VM, fct: &Fct) -> bool {
     if let Some(ref dbg_names) = ctxt.args.flag_emit_debug {
         fct_pattern_match(ctxt, fct, dbg_names)
     } else {
@@ -1037,7 +1037,7 @@ pub fn should_emit_debug(ctxt: &SemContext, fct: &Fct) -> bool {
     }
 }
 
-pub fn should_emit_asm(ctxt: &SemContext, fct: &Fct) -> bool {
+pub fn should_emit_asm(ctxt: &VM, fct: &Fct) -> bool {
     if let Some(ref dbg_names) = ctxt.args.flag_emit_asm {
         fct_pattern_match(ctxt, fct, dbg_names)
     } else {
@@ -1045,7 +1045,7 @@ pub fn should_emit_asm(ctxt: &SemContext, fct: &Fct) -> bool {
     }
 }
 
-fn fct_pattern_match(ctxt: &SemContext, fct: &Fct, pattern: &str) -> bool {
+fn fct_pattern_match(ctxt: &VM, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }

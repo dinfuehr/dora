@@ -1,4 +1,3 @@
-use ctxt::SemContext;
 use dora_parser::ast::Ast;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
@@ -6,10 +5,11 @@ use dora_parser::parser::{NodeIdGenerator, Parser};
 use driver::cmd::Args;
 use os;
 use semck;
+use vm::VM;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&SemContext) -> T,
+    F: FnOnce(&VM) -> T,
 {
     parse_with_errors(code, |ctxt| {
         if ctxt.diag.borrow().has_errors() {
@@ -24,7 +24,7 @@ where
 
 pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&SemContext) -> T,
+    F: FnOnce(&VM) -> T,
 {
     os::mem::init_page_size();
 
@@ -45,7 +45,7 @@ where
         parser.parse().unwrap()
     }
 
-    let mut ctxt = SemContext::new(args, &ast, interner);
+    let mut ctxt = VM::new(args, &ast, interner);
 
     semck::check(&mut ctxt);
 

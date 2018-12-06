@@ -54,6 +54,7 @@ mod threads;
 mod timer;
 mod ty;
 mod utils;
+mod vm;
 mod vtable;
 
 #[cfg(test)]

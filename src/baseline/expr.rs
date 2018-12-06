@@ -21,6 +21,7 @@ use object::{Header, Str};
 use os::signal::Trap;
 use semck::specialize::{specialize_class_id, specialize_class_ty};
 use ty::{BuiltinType, MachineMode};
+use vm::VM;
 use vtable::{VTable, DISPLAY_SIZE};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -76,7 +77,7 @@ where
     'ast: 'a,
     'ast: 'b,
 {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -95,7 +96,7 @@ where
     'ast: 'b,
 {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        ctxt: &'a VM<'ast>,
         fct: &'a Fct<'ast>,
         src: &'a mut FctSrc,
         ast: &'ast Function,
@@ -1893,7 +1894,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 }
 
 pub fn ensure_native_stub(
-    ctxt: &SemContext,
+    ctxt: &VM,
     fct_id: FctId,
     internal_fct: InternalFct,
 ) -> *const u8 {
@@ -1930,7 +1931,7 @@ pub fn ensure_native_stub(
 
 fn ensure_jit_or_stub_ptr<'ast>(
     src: &mut FctSrc,
-    ctxt: &SemContext,
+    ctxt: &VM,
     cls_type_params: TypeParams,
     fct_type_params: TypeParams,
 ) -> *const u8 {

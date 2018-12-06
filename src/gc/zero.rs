@@ -1,7 +1,7 @@
-use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::{arena, Address, Collector, GcReason, Region};
+use vm::VM;
 
 pub struct ZeroCollector {
     start: Address,
@@ -27,7 +27,7 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc_tlab_area(&self, _ctxt: &SemContext, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, _ctxt: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_null() {
@@ -37,19 +37,19 @@ impl Collector for ZeroCollector {
         }
     }
 
-    fn alloc_normal(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+    fn alloc_normal(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_large(&self, _ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+    fn alloc_large(&self, _ctxt: &VM, size: usize, _array_ref: bool) -> Address {
         self.alloc.bump_alloc(size)
     }
 
-    fn collect(&self, _: &SemContext, _: GcReason) {
+    fn collect(&self, _: &VM, _: GcReason) {
         // do nothing
     }
 
-    fn minor_collect(&self, _: &SemContext, _: GcReason) {
+    fn minor_collect(&self, _: &VM, _: GcReason) {
         // do nothing
     }
 }

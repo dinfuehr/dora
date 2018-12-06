@@ -1,7 +1,6 @@
 use std::cmp;
 use threadpool::ThreadPool;
 
-use ctxt::SemContext;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
@@ -16,9 +15,10 @@ use gc::swiper::GcStats;
 use gc::{formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
+use vm::VM;
 
 pub struct FullCollector<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -43,7 +43,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        ctxt: &'a VM<'ast>,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,

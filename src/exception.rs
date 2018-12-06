@@ -3,11 +3,11 @@ use std::ptr;
 use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeDescriptor;
 use cpu::fp_from_execstate;
-use ctxt::{get_ctxt, SemContext};
 use execstate::ExecState;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use os::signal::Trap;
 use stdlib;
+use vm::{get_vm, VM};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,
@@ -29,7 +29,7 @@ impl Stacktrace {
         });
     }
 
-    pub fn dump(&self, ctxt: &SemContext) {
+    pub fn dump(&self, ctxt: &VM) {
         for (ind, elem) in self.elems.iter().enumerate() {
             let jit_fct = ctxt.jit_fcts[elem.fct_id].borrow();
             let fct_id = jit_fct.fct_id();
@@ -72,7 +72,7 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn stacktrace_from_es(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
+pub fn stacktrace_from_es(ctxt: &VM, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
     let fp = fp_from_execstate(es);
     frames_from_pc(&mut stacktrace, ctxt, es.pc, fp);
@@ -80,13 +80,13 @@ pub fn stacktrace_from_es(ctxt: &SemContext, es: &ExecState) -> Stacktrace {
     return stacktrace;
 }
 
-pub fn stacktrace_from_last_dtn(ctxt: &SemContext) -> Stacktrace {
+pub fn stacktrace_from_last_dtn(ctxt: &VM) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
     frames_from_dtns(&mut stacktrace, ctxt);
     return stacktrace;
 }
 
-fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
+fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &VM) {
     let mut dtn_ptr = *ctxt.dtn.borrow();
 
     while !dtn_ptr.is_null() {
@@ -101,7 +101,7 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &SemContext) {
     }
 }
 
-fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize, mut fp: usize) {
+fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize, mut fp: usize) {
     if !determine_stack_entry(stacktrace, ctxt, pc) {
         return;
     }
@@ -117,7 +117,7 @@ fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize, mut
     }
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &SemContext, pc: usize) -> bool {
+fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
@@ -172,7 +172,7 @@ pub struct ThrowResume {
 }
 
 pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
 
     let dtn = unsafe { &**ctxt.dtn.borrow() };
 
@@ -204,7 +204,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
 }
 
 fn find_handler(
-    ctxt: &SemContext,
+    ctxt: &VM,
     exception: Handle<Obj>,
     pc: usize,
     fp: usize,
@@ -273,12 +273,12 @@ fn find_handler(
 }
 
 pub extern "C" fn retrieve_stack_trace(obj: Handle<Exception>) {
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
     set_exception_backtrace(ctxt, obj, true);
 }
 
 pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<StackTraceElement> {
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
     let obj = ctxt.handles.root(obj);
     let array = obj.backtrace;
 
@@ -301,7 +301,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     ste.direct()
 }
 
-pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception> {
+pub fn alloc_exception(ctxt: &VM, msg: Handle<Str>) -> Handle<Exception> {
     let cls_id = ctxt.vips.exception(ctxt);
     let obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
     let mut obj = ctxt.handles.root(obj);
@@ -312,7 +312,7 @@ pub fn alloc_exception(ctxt: &SemContext, msg: Handle<Str>) -> Handle<Exception>
     obj.direct()
 }
 
-fn set_exception_backtrace(ctxt: &SemContext, obj: Handle<Exception>, via_retrieve: bool) {
+fn set_exception_backtrace(ctxt: &VM, obj: Handle<Exception>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(ctxt);
     let mut obj = ctxt.handles.root(obj);
 

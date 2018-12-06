@@ -1,13 +1,13 @@
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::SemContext;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
+use vm::VM;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>) -> Address {
     let ngen = DoraEntryGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -28,7 +28,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
 }
 
 struct DoraEntryGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }

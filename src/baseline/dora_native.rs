@@ -6,11 +6,12 @@ use dora_parser::lexer::position::Position;
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
-use ctxt::{exception_get_and_clear, get_ctxt, FctId, SemContext};
+use ctxt::{exception_get_and_clear, FctId};
 use exception::DoraToNativeInfo;
 use masm::MacroAssembler;
 use mem;
 use ty::{BuiltinType, MachineMode};
+use vm::{get_vm, VM};
 
 pub struct NativeFcts {
     map: HashMap<*const u8, JitFctId>,
@@ -47,7 +48,7 @@ pub struct InternalFct<'a> {
     pub desc: InternalFctDescriptor,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
@@ -73,7 +74,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>, fct: InternalFct, dbg:
 }
 
 struct NativeGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     masm: MacroAssembler,
 
     fct: InternalFct<'a>,
@@ -229,7 +230,7 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
         dtn.fp = fp as usize;
         dtn.pc = pc;
 
-        let ctxt = get_ctxt();
+        let ctxt = get_vm();
 
         ctxt.push_dtn(dtn);
         ctxt.handles.push_border();
@@ -237,7 +238,7 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
 }
 
 pub fn finish_native_call() -> *const u8 {
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
 
     ctxt.handles.pop_border();
     ctxt.pop_dtn();

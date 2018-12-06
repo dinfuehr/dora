@@ -5,12 +5,13 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-use ctxt::{FctId, ImplId, SemContext, TraitId, TypeParam};
+use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 use utils::GrowableVec;
 use vtable::VTableBox;
+use vm::VM;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassId(usize);
@@ -78,7 +79,7 @@ impl Class {
         self.type_params.len() > 0
     }
 
-    pub fn long_name(&self, ctxt: &SemContext) -> String {
+    pub fn long_name(&self, ctxt: &VM) -> String {
         let name = ctxt.interner.str(self.name);
 
         let params = if self.type_params.len() > 0 {
@@ -94,7 +95,7 @@ impl Class {
         format!("{}<{}>", name, params)
     }
 
-    pub fn find_impl_for_trait(&self, ctxt: &SemContext, trait_id: TraitId) -> Option<ImplId> {
+    pub fn find_impl_for_trait(&self, ctxt: &VM, trait_id: TraitId) -> Option<ImplId> {
         for &impl_id in &self.impls {
             let ximpl = ctxt.impls[impl_id].borrow();
 
@@ -106,7 +107,7 @@ impl Class {
         None
     }
 
-    pub fn find_field(&self, ctxt: &SemContext, name: Name) -> Option<(ClassId, FieldId)> {
+    pub fn find_field(&self, ctxt: &VM, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
         loop {
@@ -126,7 +127,7 @@ impl Class {
         }
     }
 
-    pub fn find_method(&self, ctxt: &SemContext, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, ctxt: &VM, name: Name, is_static: bool) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
@@ -148,7 +149,7 @@ impl Class {
         }
     }
 
-    pub fn find_methods(&self, ctxt: &SemContext, name: Name, is_static: bool) -> Vec<FctId> {
+    pub fn find_methods(&self, ctxt: &VM, name: Name, is_static: bool) -> Vec<FctId> {
         let mut classid = self.id;
         let mut candidates = Vec::new();
         let mut ignores = HashSet::new();
@@ -204,7 +205,7 @@ impl Class {
         candidates
     }
 
-    pub fn subclass_from(&self, ctxt: &SemContext, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, ctxt: &VM, super_id: ClassId) -> bool {
         let mut cls_id = self.id;
 
         loop {
@@ -318,7 +319,7 @@ pub struct ClassDef {
 }
 
 impl ClassDef {
-    pub fn name(&self, ctxt: &SemContext) -> String {
+    pub fn name(&self, ctxt: &VM) -> String {
         let cls = ctxt.classes[self.cls_id].borrow();
         let name = ctxt.interner.str(cls.name);
 

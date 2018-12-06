@@ -1,7 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
-use ctxt::SemContext;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
@@ -10,6 +9,7 @@ use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
 use object::Obj;
+use vm::VM;
 
 pub mod arena;
 pub mod bump;
@@ -87,7 +87,7 @@ impl Gc {
         self.perm_space.alloc(size).to_mut_ptr()
     }
 
-    pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    pub fn alloc(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
         if ctxt.args.flag_gc_stress_minor {
             self.minor_collect(ctxt, GcReason::StressMinor);
         }
@@ -105,7 +105,7 @@ impl Gc {
         }
     }
 
-    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    fn alloc_tlab(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(ctxt, size) {
             return addr;
@@ -133,11 +133,11 @@ impl Gc {
         }
     }
 
-    pub fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+    pub fn collect(&self, ctxt: &VM, reason: GcReason) {
         self.collector.collect(ctxt, reason);
     }
 
-    pub fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
+    pub fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
         self.collector.minor_collect(ctxt, reason);
     }
 
@@ -148,16 +148,16 @@ impl Gc {
 
 trait Collector {
     // allocate object of given size
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region>;
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region>;
+    fn alloc_normal(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc_large(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
-    fn collect(&self, ctxt: &SemContext, reason: GcReason);
+    fn collect(&self, ctxt: &VM, reason: GcReason);
 
     // collect young generation if supported, otherwise
     // collects whole heap
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason);
+    fn minor_collect(&self, ctxt: &VM, reason: GcReason);
 
     // decides whether to emit write barriers needed for
     // generational GC to write into card table

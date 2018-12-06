@@ -1,13 +1,13 @@
-use ctxt::SemContext;
 use gc::{Address, Region};
 use mem;
 use object::Header;
+use vm::VM;
 use vtable::VTable;
 
 pub const TLAB_SIZE: usize = 32 * 1024;
 pub const TLAB_OBJECT_SIZE: usize = 8 * 1024;
 
-pub fn initialize(ctxt: &SemContext, tlab: Region) {
+pub fn initialize(ctxt: &VM, tlab: Region) {
     ctxt.tld.borrow_mut().tlab_initialize(tlab.start, tlab.end);
 }
 
@@ -17,7 +17,7 @@ pub fn calculate_size(additional: usize) -> usize {
     TLAB_SIZE + additional
 }
 
-pub fn allocate(ctxt: &SemContext, size: usize) -> Option<Address> {
+pub fn allocate(ctxt: &VM, size: usize) -> Option<Address> {
     assert!(size < TLAB_OBJECT_SIZE);
     let tlab = ctxt.tld.borrow().tlab_region();
 
@@ -31,12 +31,12 @@ pub fn allocate(ctxt: &SemContext, size: usize) -> Option<Address> {
     }
 }
 
-pub fn make_iterable(ctxt: &SemContext) {
+pub fn make_iterable(ctxt: &VM) {
     let tlab = ctxt.tld.borrow().tlab_region();
     make_iterable_region(ctxt, tlab.start, tlab.end);
 }
 
-pub fn make_iterable_region(ctxt: &SemContext, start: Address, end: Address) {
+pub fn make_iterable_region(ctxt: &VM, start: Address, end: Address) {
     if start == end {
         // nothing to do
 

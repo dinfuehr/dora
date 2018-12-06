@@ -9,17 +9,18 @@ use baseline::fct::{CatchType, Comment, GcPoint, JitBaselineFct, JitDescriptor};
 use baseline::info::JitInfo;
 use class::TypeParams;
 use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
-use ctxt::{FctId, SemContext, VarId};
+use ctxt::{FctId, VarId};
 use gc::tlab::TLAB_OBJECT_SIZE;
 use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
 use stdlib;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, MachineMode};
+use vm::VM;
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     slow_paths: Vec<SlowPathKind>,
 }
 
@@ -27,7 +28,7 @@ impl<'a, 'ast> BaselineAssembler<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn new(ctxt: &'a SemContext<'ast>) -> BaselineAssembler<'a, 'ast> {
+    pub fn new(ctxt: &'a VM<'ast>) -> BaselineAssembler<'a, 'ast> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
             ctxt: ctxt,

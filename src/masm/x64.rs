@@ -5,7 +5,7 @@ use baseline::fct::GcPoint;
 use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::*;
-use ctxt::{get_ctxt, FctId};
+use ctxt::FctId;
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
@@ -13,6 +13,7 @@ use mem::{fits_i32, ptr_width};
 use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
+use vm::get_vm;
 use vtable::VTable;
 
 impl MacroAssembler {
@@ -934,14 +935,14 @@ impl MacroAssembler {
     }
 
     pub fn trap(&mut self, trap: Trap, pos: Position) {
-        let ctxt = get_ctxt();
+        let ctxt = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
         self.raw_call(ctxt.trap_thunk.to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
-        let ctxt = get_ctxt();
+        let ctxt = get_vm();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
         self.raw_call(ctxt.throw_thunk.to_ptr());
         self.emit_lineno(pos.line as i32);

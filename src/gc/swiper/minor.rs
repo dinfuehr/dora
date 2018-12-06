@@ -1,7 +1,5 @@
 use std::cmp;
 
-use ctxt::SemContext;
-
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller;
@@ -17,9 +15,10 @@ use gc::{formatted_size, Address, GcReason, Region};
 use mem;
 use object::Obj;
 use timer::Timer;
+use vm::VM;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -48,7 +47,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        ctxt: &'a VM<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,

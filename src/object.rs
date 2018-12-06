@@ -9,11 +9,11 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use class::{ClassDefId, ClassSize};
-use ctxt::SemContext;
 use gc::root::Slot;
 use gc::Address;
 use handle::Rooted;
 use mem;
+use vm::VM;
 use vtable::VTable;
 
 #[repr(C)]
@@ -379,7 +379,7 @@ impl Str {
     }
 
     /// allocates string from buffer in permanent space
-    pub fn from_buffer_in_perm(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer_in_perm(ctxt: &VM, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_perm(ctxt, buf.len());
         handle.length = buf.len();
 
@@ -394,7 +394,7 @@ impl Str {
     }
 
     /// allocates string from buffer in heap
-    pub fn from_buffer(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer(ctxt: &VM, buf: &[u8]) -> Handle<Str> {
         let mut handle = str_alloc_heap(ctxt, buf.len());
         handle.length = buf.len();
 
@@ -408,7 +408,7 @@ impl Str {
         handle
     }
 
-    pub fn from_str(ctxt: &SemContext, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
+    pub fn from_str(ctxt: &VM, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
         let total_len = val.len();
 
         if offset > total_len {
@@ -440,7 +440,7 @@ impl Str {
         }
     }
 
-    pub fn concat(ctxt: &SemContext, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
+    pub fn concat(ctxt: &VM, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
         let len = lhs.len() + rhs.len();
         let mut handle = ctxt.handles.root(str_alloc_heap(ctxt, len));
 
@@ -459,7 +459,7 @@ impl Str {
     }
 
     // duplicate string into a new object
-    pub fn dup(&self, ctxt: &SemContext) -> Handle<Str> {
+    pub fn dup(&self, ctxt: &VM) -> Handle<Str> {
         let len = self.len();
         let mut handle = str_alloc_heap(ctxt, len);
 
@@ -473,19 +473,19 @@ impl Str {
     }
 }
 
-fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
+fn str_alloc_heap(ctxt: &VM, len: usize) -> Handle<Str> {
     str_alloc(ctxt, len, |ctxt, size| {
         ctxt.gc.alloc(ctxt, size, false).to_ptr()
     })
 }
 
-fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
+fn str_alloc_perm(ctxt: &VM, len: usize) -> Handle<Str> {
     str_alloc(ctxt, len, |ctxt, size| ctxt.gc.alloc_perm(size))
 }
 
-fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
+fn str_alloc<F>(ctxt: &VM, len: usize, alloc: F) -> Handle<Str>
 where
-    F: FnOnce(&SemContext, usize) -> *const u8,
+    F: FnOnce(&VM, usize) -> *const u8,
 {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
@@ -587,7 +587,7 @@ where
             + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc(ctxt: &SemContext, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
+    pub fn alloc(ctxt: &VM, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
@@ -626,7 +626,7 @@ pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
 
-pub fn alloc(ctxt: &SemContext, clsid: ClassDefId) -> Handle<Obj> {
+pub fn alloc(ctxt: &VM, clsid: ClassDefId) -> Handle<Obj> {
     let cls_def = ctxt.class_defs[clsid].borrow();
 
     let size = match cls_def.size {

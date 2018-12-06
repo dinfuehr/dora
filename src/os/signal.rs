@@ -2,10 +2,10 @@ use libc;
 use std;
 
 use baseline::map::CodeDescriptor;
-use ctxt::{get_ctxt, SemContext};
 use exception::stacktrace_from_es;
 use os_cpu::*;
 use safepoint;
+use vm::{get_vm, VM};
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;
@@ -40,7 +40,7 @@ pub fn register_signals() {
 }
 
 #[cfg(target_family = "windows")]
-pub fn register_signals(ctxt: &SemContext) {
+pub fn register_signals(ctxt: &VM) {
     use kernel32::AddVectoredExceptionHandler;
 
     unsafe {
@@ -72,7 +72,7 @@ fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
 #[cfg(target_family = "unix")]
 fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     let es = read_execstate(ucontext);
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
 
     let addr = unsafe { (*info).si_addr } as *const u8;
 
@@ -108,7 +108,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     }
 }
 
-fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
+fn detect_nil_check(ctxt: &VM, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
 
     if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc as *const u8) {
@@ -122,7 +122,7 @@ fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
     }
 }
 
-fn detect_polling_page_check(ctxt: &SemContext, signo: libc::c_int, addr: *const u8) -> bool {
+fn detect_polling_page_check(ctxt: &VM, signo: libc::c_int, addr: *const u8) -> bool {
     signo == libc::SIGSEGV && ctxt.polling_page.addr() == addr
 }
 

@@ -11,13 +11,13 @@ use baseline::fct::{
 };
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Mem, Reg, SCRATCH};
-use ctxt::SemContext;
 use dora_parser::lexer::position::Position;
 use dseg::DSeg;
 use mem;
 use object::Header;
 use os::signal::Trap;
 use ty::MachineMode;
+use vm::VM;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -66,7 +66,7 @@ impl MacroAssembler {
 
     pub fn jit(
         mut self,
-        ctxt: &SemContext,
+        ctxt: &VM,
         stacksize: i32,
         desc: JitDescriptor,
         throws: bool,

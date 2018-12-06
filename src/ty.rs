@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use class::{ClassId, TypeParamId, TypeParams};
-use ctxt::{FctId, SemContext, StructId, TraitId};
+use ctxt::{FctId, StructId, TraitId};
 use mem;
 use semck;
+use vm::VM;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {
@@ -102,7 +103,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls_id(&self, ctxt: &SemContext) -> Option<ClassId> {
+    pub fn cls_id(&self, ctxt: &VM) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
             BuiltinType::Bool => Some(ctxt.vips.bool_class),
@@ -116,7 +117,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn implements_trait(&self, ctxt: &SemContext, trait_id: TraitId) -> bool {
+    pub fn implements_trait(&self, ctxt: &VM, trait_id: TraitId) -> bool {
         if let Some(cls_id) = self.cls_id(ctxt) {
             let cls = ctxt.classes[cls_id].borrow();
             return cls.traits.contains(&trait_id);
@@ -125,7 +126,7 @@ impl BuiltinType {
         false
     }
 
-    pub fn type_params(&self, ctxt: &SemContext) -> TypeParams {
+    pub fn type_params(&self, ctxt: &VM) -> TypeParams {
         match self {
             &BuiltinType::Class(_, list_id) => ctxt.lists.borrow().get(list_id),
 
@@ -133,7 +134,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn contains_type_param(&self, ctxt: &SemContext) -> bool {
+    pub fn contains_type_param(&self, ctxt: &VM) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
             &BuiltinType::FctTypeParam(_, _) => true,
@@ -166,7 +167,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn subclass_from(&self, ctxt: &SemContext, ty: BuiltinType) -> bool {
+    pub fn subclass_from(&self, ctxt: &VM, ty: BuiltinType) -> bool {
         if !self.is_cls() {
             return false;
         }
@@ -179,7 +180,7 @@ impl BuiltinType {
         cls.subclass_from(ctxt, ty.cls_id(ctxt).unwrap())
     }
 
-    pub fn name(&self, ctxt: &SemContext) -> String {
+    pub fn name(&self, ctxt: &VM) -> String {
         match *self {
             BuiltinType::Error => "<error>".into(),
             BuiltinType::Unit => "()".into(),
@@ -261,7 +262,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn allows(&self, ctxt: &SemContext, other: BuiltinType) -> bool {
+    pub fn allows(&self, ctxt: &VM, other: BuiltinType) -> bool {
         match *self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
@@ -303,7 +304,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn size(&self, ctxt: &SemContext) -> i32 {
+    pub fn size(&self, ctxt: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no size for error."),
             BuiltinType::Unit => 0,
@@ -333,7 +334,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn align(&self, ctxt: &SemContext) -> i32 {
+    pub fn align(&self, ctxt: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no alignment for error."),
             BuiltinType::Unit => 0,

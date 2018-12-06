@@ -1,4 +1,3 @@
-use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
@@ -8,6 +7,7 @@ use mem;
 use object::Obj;
 use os::{self, ProtType};
 use timer::Timer;
+use vm::VM;
 
 pub struct CopyCollector {
     total: Region,
@@ -45,7 +45,7 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
@@ -63,7 +63,7 @@ impl Collector for CopyCollector {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+    fn alloc_normal(&self, ctxt: &VM, size: usize, _array_ref: bool) -> Address {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
@@ -74,11 +74,11 @@ impl Collector for CopyCollector {
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    fn alloc_large(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
         self.alloc_normal(ctxt, size, array_ref)
     }
 
-    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn collect(&self, ctxt: &VM, reason: GcReason) {
         // make heap iterable
         tlab::make_iterable(ctxt);
 
@@ -86,7 +86,7 @@ impl Collector for CopyCollector {
         self.copy_collect(ctxt, &rootset, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
         self.collect(ctxt, reason);
     }
 }
@@ -98,7 +98,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot], reason: GcReason) {
+    fn copy_collect(&self, ctxt: &VM, rootset: &[Slot], reason: GcReason) {
         let timer = Timer::new(ctxt.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)

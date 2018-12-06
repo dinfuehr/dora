@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use baseline::fct::JitFctId;
-use ctxt::SemContext;
+use vm::VM;
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeDescriptor>,
@@ -15,7 +15,7 @@ impl CodeMap {
         }
     }
 
-    pub fn dump(&self, ctxt: &SemContext) {
+    pub fn dump(&self, ctxt: &VM) {
         println!("CodeMap {{");
 
         for (key, data) in &self.tree {

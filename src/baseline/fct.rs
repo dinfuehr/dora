@@ -6,11 +6,12 @@ use std::ptr;
 
 use class::{ClassDef, ClassDefId, FieldId, TypeParams};
 use cpu::flush_icache;
-use ctxt::{FctId, FctSrc, GlobalId, SemContext, VarId};
+use ctxt::{FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 use opt::fct::JitOptFct;
 use utils::GrowableVec;
+use vm::VM;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);
@@ -102,7 +103,7 @@ pub struct JitBaselineFct {
 
 impl JitBaselineFct {
     pub fn from_buffer(
-        ctxt: &SemContext,
+        ctxt: &VM,
         dseg: &DSeg,
         buffer: &[u8],
         bailouts: Bailouts,
@@ -305,7 +306,7 @@ impl Comment {
 pub struct CommentFormat<'a, 'ast: 'a> {
     pub comment: &'a Comment,
     pub fct_src: Option<&'a FctSrc>,
-    pub ctxt: &'a SemContext<'ast>,
+    pub ctxt: &'a VM<'ast>,
 }
 
 impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {

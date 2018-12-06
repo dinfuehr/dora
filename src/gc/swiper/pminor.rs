@@ -1,4 +1,3 @@
-use ctxt::SemContext;
 use gc::root::Slot;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -6,11 +5,12 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::GcReason;
+use vm::VM;
 
 use crossbeam_deque::{Stealer, Worker};
 
 pub struct ParMinorCollector<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -25,7 +25,7 @@ pub struct ParMinorCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        ctxt: &'a VM<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,

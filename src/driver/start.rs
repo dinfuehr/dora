@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use ctxt::{exception_get_and_clear, Fct, FctId, SemContext};
+use ctxt::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
@@ -17,6 +17,7 @@ use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
+use vm::VM;
 
 pub fn start() -> i32 {
     let args = cmd::parse();
@@ -49,7 +50,7 @@ pub fn start() -> i32 {
         ast::dump::dump(&ast, &interner);
     }
 
-    let mut ctxt = SemContext::new(args, &ast, interner);
+    let mut ctxt = VM::new(args, &ast, interner);
 
     semck::check(&mut ctxt);
 
@@ -95,7 +96,7 @@ pub fn start() -> i32 {
     code
 }
 
-fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
+fn run_tests<'ast>(ctxt: &VM<'ast>) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -133,7 +134,7 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     }
 }
 
-fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
+fn run_test<'ast>(ctxt: &VM<'ast>, fct: FctId) -> bool {
     let testing_class = ctxt.vips.testing_class;
     let testing_class = specialize_class_id(ctxt, testing_class);
     let testing = object::alloc(ctxt, testing_class).cast();
@@ -145,7 +146,7 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     exception.is_null() && !testing.has_failed()
 }
 
-fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
+fn is_test_fct<'ast>(ctxt: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
@@ -162,7 +163,7 @@ fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
     fct_name.starts_with("test")
 }
 
-fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
+fn run_main<'ast>(ctxt: &VM<'ast>, main: FctId) -> i32 {
     let res = ctxt.run(main);
     let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
 
@@ -236,7 +237,7 @@ fn parse_file(
     Ok(())
 }
 
-fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
+fn find_main<'ast>(ctxt: &VM<'ast>) -> Option<FctId> {
     let name = ctxt.interner.intern("main");
     let fctid = match ctxt.sym.borrow().get_fct(name) {
         Some(id) => id,

@@ -1,5 +1,3 @@
-use ctxt::get_ctxt;
-
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
@@ -10,6 +8,7 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CARD_SIZE;
 use gc::{Address, Region};
+use vm::get_vm;
 
 use mem;
 use object::{offset_of_array_data, Obj};
@@ -400,7 +399,7 @@ impl<'a> Verifier<'a> {
         let object = reference.to_obj();
         println!("\tsize {}", object.size());
         let cls = object.header().vtbl().class();
-        println!("\tclass {}", cls.name(get_ctxt()));
+        println!("\tclass {}", cls.name(get_vm()));
 
         panic!("reference neither pointing into young nor old generation.");
     }

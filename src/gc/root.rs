@@ -1,9 +1,9 @@
 use baseline::map::CodeDescriptor;
-use ctxt::SemContext;
 use exception::DoraToNativeInfo;
 use gc::Address;
+use vm::VM;
 
-pub fn get_rootset(ctxt: &SemContext) -> Vec<Slot> {
+pub fn get_rootset(ctxt: &VM) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
     determine_rootset_from_stack(&mut rootset, ctxt);
@@ -13,14 +13,14 @@ pub fn get_rootset(ctxt: &SemContext) -> Vec<Slot> {
     rootset
 }
 
-fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
+fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, ctxt: &VM) {
     for rooted in ctxt.handles.iter() {
         let slot = Slot::at(Address::from_ptr(rooted.raw()));
         rootset.push(slot);
     }
 }
 
-fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
+fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &VM) {
     for glob in ctxt.globals.iter() {
         let glob = glob.borrow();
 
@@ -33,7 +33,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
+fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, ctxt: &VM) {
     assert!(!ctxt.dtn.borrow().is_null());
 
     let mut dtn = *ctxt.dtn.borrow();
@@ -45,7 +45,7 @@ fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
 
 fn from_dora_to_native_info(
     rootset: &mut Vec<Slot>,
-    ctxt: &SemContext,
+    ctxt: &VM,
     dtn: *const DoraToNativeInfo,
 ) -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
@@ -65,7 +65,7 @@ fn from_dora_to_native_info(
     dtn.last
 }
 
-fn determine_rootset(rootset: &mut Vec<Slot>, ctxt: &SemContext, fp: usize, pc: usize) -> bool {
+fn determine_rootset(rootset: &mut Vec<Slot>, ctxt: &VM, fp: usize, pc: usize) -> bool {
     let code_map = ctxt.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 

@@ -4,15 +4,15 @@ use baseline::dora_native::{finish_native_call, start_native_call};
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
-use ctxt::SemContext;
 use exception::throw;
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
+use vm::VM;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>) -> Address {
     let ngen = DoraThrowGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -33,7 +33,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
 }
 
 struct DoraThrowGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }

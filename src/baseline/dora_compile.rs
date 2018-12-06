@@ -6,13 +6,14 @@ use baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use class::TypeParams;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::{get_ctxt, FctId, SemContext};
+use ctxt::FctId;
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use object::Obj;
 use ty::MachineMode;
+use vm::{get_vm, VM};
 
 // This code generates the compiler thunk, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
@@ -22,7 +23,7 @@ use ty::MachineMode;
 // now-compiled function directly on the next invocation. In the end the function is
 // executed.
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>) -> Address {
     let ngen = DoraCompileGen {
         ctxt: ctxt,
         masm: MacroAssembler::new(),
@@ -42,7 +43,7 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
 }
 
 struct DoraCompileGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
@@ -173,7 +174,7 @@ where
 }
 
 fn compile_request(ra: usize, receiver: Address) -> Address {
-    let ctxt = get_ctxt();
+    let ctxt = get_vm();
 
     let bailout = {
         let data = {
@@ -211,7 +212,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 }
 
 fn patch_vtable_call(
-    ctxt: &SemContext,
+    ctxt: &VM,
     receiver: Address,
     vtable_index: u32,
     fct_tps: &TypeParams,
@@ -240,7 +241,7 @@ fn patch_vtable_call(
 }
 
 fn patch_fct_call(
-    ctxt: &SemContext,
+    ctxt: &VM,
     ra: usize,
     fct_id: FctId,
     cls_tps: &TypeParams,

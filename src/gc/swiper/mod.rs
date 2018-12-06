@@ -2,7 +2,6 @@ use std::sync::Mutex;
 
 use threadpool::ThreadPool;
 
-use ctxt::SemContext;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
@@ -19,6 +18,7 @@ use gc::Collector;
 use gc::{align_gen, arena, GcReason};
 use gc::{formatted_size, Address, Region};
 use mem;
+use vm::VM;
 
 pub mod card;
 mod controller;
@@ -192,7 +192,7 @@ impl Swiper {
         }
     }
 
-    fn minor_collect_inner(&self, ctxt: &SemContext, reason: GcReason) -> bool {
+    fn minor_collect_inner(&self, ctxt: &VM, reason: GcReason) -> bool {
         // make heap iterable
         tlab::make_iterable(ctxt);
         let rootset = get_rootset(ctxt);
@@ -210,7 +210,7 @@ impl Swiper {
         promotion_failed
     }
 
-    fn serial_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn serial_minor_collect(&self, ctxt: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = MinorCollector::new(
             ctxt,
             &self.young,
@@ -227,7 +227,7 @@ impl Swiper {
         collector.collect()
     }
 
-    fn par_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn par_minor_collect(&self, ctxt: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = ParMinorCollector::new(
             ctxt,
             &self.young,
@@ -242,7 +242,7 @@ impl Swiper {
         collector.collect()
     }
 
-    fn full_collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn full_collect(&self, ctxt: &VM, reason: GcReason) {
         // make heap iterable
         tlab::make_iterable(ctxt);
 
@@ -271,7 +271,7 @@ impl Swiper {
         self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
-    fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
+    fn verify(&self, ctxt: &VM, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
         if ctxt.args.flag_gc_verify {
             if ctxt.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", _name);
@@ -300,7 +300,7 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region> {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
@@ -336,7 +336,7 @@ impl Collector for Swiper {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    fn alloc_normal(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
@@ -358,7 +358,7 @@ impl Collector for Swiper {
         self.old.bump_alloc(size, array_ref)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> Address {
+    fn alloc_large(&self, ctxt: &VM, size: usize, _: bool) -> Address {
         let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {
@@ -370,11 +370,11 @@ impl Collector for Swiper {
         self.large.alloc(size)
     }
 
-    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn collect(&self, ctxt: &VM, reason: GcReason) {
         self.full_collect(ctxt, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
         tlab::make_iterable(ctxt);
         self.minor_collect_inner(ctxt, reason);
     }

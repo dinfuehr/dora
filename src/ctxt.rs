@@ -34,8 +34,8 @@ use sym::*;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
+use vm::set_vm;
 
-pub static mut CTXT: Option<*const u8> = None;
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
 pub fn has_exception() -> bool {
@@ -58,10 +58,6 @@ pub fn exception_set(val: *const u8) {
     unsafe {
         EXCEPTION_OBJECT = val;
     }
-}
-
-pub fn get_ctxt() -> &'static SemContext<'static> {
-    unsafe { &*(CTXT.unwrap() as *const SemContext) }
 }
 
 pub struct SemContext<'ast> {
@@ -160,13 +156,7 @@ impl<'ast> SemContext<'ast> {
             tld: RefCell::new(ThreadLocalData::new()),
         });
 
-        {
-            let ptr = &ctxt as &SemContext as *const SemContext as *const u8;
-
-            unsafe {
-                CTXT = Some(ptr);
-            }
-        }
+        set_vm(&ctxt);
 
         ctxt.dora_entry = dora_entry::generate(&ctxt);
         ctxt.compiler_thunk = dora_compile::generate(&ctxt);

@@ -5,7 +5,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
-    SemContext, Store, TraitId, VarId,
+    Store, TraitId, VarId,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
@@ -13,9 +13,10 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use mem;
 use ty::BuiltinType;
+use vm::VM;
 
 pub fn generate<'a, 'ast: 'a>(
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &Fct<'ast>,
     src: &'a FctSrc,
     jit_info: &'a mut JitInfo<'ast>,
@@ -113,7 +114,7 @@ impl<'ast> JitInfo<'ast> {
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    ctxt: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a FctSrc,
     ast: &'ast Function,
@@ -821,7 +822,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 }
 
 fn specialize_type(
-    ctxt: &SemContext,
+    ctxt: &VM,
     ty: BuiltinType,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
