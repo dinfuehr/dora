@@ -60,6 +60,7 @@ pub fn start(
                 nworkers: nworkers_stage,
                 heap_region: heap_region,
                 perm_region: perm_region,
+                marked: 0,
             };
 
             task.run();
@@ -77,6 +78,7 @@ struct MarkingTask {
     nworkers: Arc<AtomicUsize>,
     heap_region: Region,
     perm_region: Region,
+    marked: usize,
 }
 
 impl MarkingTask {
@@ -172,6 +174,16 @@ impl MarkingTask {
                 } else {
                     self.worker.push(field_addr);
                 }
+
+                self.marked += 1;
+                if self.marked > 256 && self.local.len() > 16 {
+                    let target_len = self.local.len() / 2;
+
+                    while self.local.len() > target_len {
+                        let val = self.local.pop().unwrap();
+                        self.worker.push(val);
+                    }
+                }
             }
         } else {
             debug_assert!(field_addr.is_null() || self.perm_region.contains(field_addr));
@@ -201,7 +213,7 @@ fn zero_or_increase_workers(atomic: &AtomicUsize) -> bool {
     }
 }
 
-const SEGMENT_SIZE: usize = 8;
+const SEGMENT_SIZE: usize = 64;
 
 struct Segment {
     data: Vec<Address>,
@@ -240,5 +252,9 @@ impl Segment {
 
     fn pop(&mut self) -> Option<Address> {
         self.data.pop()
+    }
+
+    fn len(&mut self) -> usize {
+        self.data.len()
     }
 }
