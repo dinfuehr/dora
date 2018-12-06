@@ -10,6 +10,7 @@ use baseline::info::JitInfo;
 use class::TypeParams;
 use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use ctxt::{FctId, VarId};
+use gc::Address;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use masm::{Label, MacroAssembler, ScratchReg};
 use os::signal::Trap;
@@ -44,7 +45,7 @@ where
         self.masm.prolog(stacksize);
     }
 
-    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
+    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
         self.masm.epilog_with_polling(stacksize, polling_page);
     }
 
@@ -60,7 +61,7 @@ where
         self.masm.copy_freg(mode, dest, src);
     }
 
-    pub fn check_polling_page(&mut self, page: *const u8) {
+    pub fn check_polling_page(&mut self, page: Address) {
         self.masm.check_polling_page(page);
     }
 

@@ -123,7 +123,7 @@ fn detect_nil_check(vm: &VM, pc: usize) -> bool {
 }
 
 fn detect_polling_page_check(vm: &VM, signo: libc::c_int, addr: *const u8) -> bool {
-    signo == libc::SIGSEGV && vm.polling_page.addr() == addr
+    signo == libc::SIGSEGV && vm.polling_page.addr().to_ptr() == addr
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

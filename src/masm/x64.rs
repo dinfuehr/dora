@@ -7,6 +7,7 @@ use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
 use dora_parser::lexer::position::Position;
+use gc::Address;
 use gc::swiper::CARD_SIZE_BITS;
 use masm::{Label, MacroAssembler};
 use mem::{fits_i32, ptr_width};
@@ -26,7 +27,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
+    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
         self.epilog_without_return(stacksize);
         self.check_polling_page(polling_page);
 
@@ -985,8 +986,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn check_polling_page(&mut self, page: *const u8) {
-        let disp = self.dseg.add_addr_reuse(page);
+    pub fn check_polling_page(&mut self, page: Address) {
+        let disp = self.dseg.add_addr_reuse(page.to_ptr());
         let pos = self.pos() as i32;
 
         let scratch = self.get_scratch();
