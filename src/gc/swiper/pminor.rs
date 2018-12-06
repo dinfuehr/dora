@@ -7,6 +7,8 @@ use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::GcReason;
 
+use crossbeam_deque::{Stealer, Worker};
+
 pub struct ParMinorCollector<'a, 'ast: 'a> {
     ctxt: &'a SemContext<'ast>,
 
@@ -49,6 +51,7 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) -> bool {
+        // do all of that sequentially for now
         self.visit_roots();
         self.copy_dirty_cards();
         self.visit_large_objects();
@@ -67,4 +70,10 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
     fn visit_large_objects(&mut self) {
         unimplemented!();
     }
+}
+
+struct ParMinorCollectorTask {
+    local_queue: Vec<Slot>,
+    thread_queue: Worker<Slot>,
+    rest: Vec<Stealer<Slot>>,
 }

@@ -52,121 +52,149 @@ pub fn start(
         let nworkers_stage = nworkers_stage.clone();
 
         threadpool.execute(move || {
-            let mut local_segment = Segment::new();
+            let mut task = MarkingTask {
+                task_id: task_id,
+                local: Segment::new(),
+                worker: worker,
+                stealers: stealers,
+                nworkers: nworkers_stage,
+                heap_region: heap_region,
+                perm_region: perm_region,
+            };
 
-            loop {
-                let object_addr = if !local_segment.is_empty() {
-                    local_segment.pop().expect("should be non-empty")
-                } else {
-                    if let Some(address) = pop(task_id, &worker, &stealers) {
-                        address
-                    } else if try_terminate(&nworkers_stage) {
-                        break;
-                    } else {
-                        continue;
-                    }
-                };
-
-                let object = object_addr.to_mut_obj();
-
-                object.visit_reference_fields(|field| {
-                    trace_slot(
-                        field,
-                        &mut local_segment,
-                        &worker,
-                        heap_region.clone(),
-                        perm_region.clone(),
-                    );
-                });
-            }
+            task.run();
         });
     }
 
     threadpool.join();
 }
 
-fn trace_slot(
-    slot: Slot,
-    local_segment: &mut Segment,
-    worker: &Worker<Address>,
+struct MarkingTask {
+    task_id: usize,
+    local: Segment,
+    worker: Worker<Address>,
+    stealers: Vec<Stealer<Address>>,
+    nworkers: Arc<AtomicUsize>,
     heap_region: Region,
     perm_region: Region,
-) {
-    let field_addr = slot.get();
-
-    if heap_region.contains(field_addr) {
-        let field_obj = field_addr.to_mut_obj();
-
-        if field_obj.header().try_mark_non_atomic() {
-            if local_segment.has_capacity() {
-                local_segment.push(field_addr);
-            } else {
-                worker.push(field_addr);
-            }
-        }
-    } else {
-        debug_assert!(field_addr.is_null() || perm_region.contains(field_addr));
-    }
 }
 
-fn pop(task_id: usize, worker: &Worker<Address>, stealers: &[Stealer<Address>]) -> Option<Address> {
-    loop {
-        match worker.pop() {
-            Pop::Empty => break,
-            Pop::Data(address) => return Some(address),
-            Pop::Retry => continue,
-        }
+impl MarkingTask {
+    fn pop(&mut self) -> Option<Address> {
+        self.pop_local()
+            .or_else(|| self.pop_worker())
+            .or_else(|| self.steal())
     }
 
-    if stealers.len() == 1 {
-        return None;
-    }
-
-    let mut rng = thread_rng();
-    let range = Uniform::new(0, stealers.len());
-
-    for _ in 0..2 * stealers.len() {
-        let mut stealer_id = task_id;
-
-        while stealer_id == task_id {
-            stealer_id = range.sample(&mut rng);
+    fn pop_local(&mut self) -> Option<Address> {
+        if self.local.is_empty() {
+            return None;
         }
 
-        let stealer = &stealers[stealer_id];
+        let obj = self.local.pop().expect("should be non-empty");
+        Some(obj)
+    }
 
+    fn pop_worker(&mut self) -> Option<Address> {
         loop {
-            match stealer.steal() {
-                Steal::Empty => break,
-                Steal::Data(address) => return Some(address),
-                Steal::Retry => continue,
+            match self.worker.pop() {
+                Pop::Empty => break,
+                Pop::Data(address) => return Some(address),
+                Pop::Retry => continue,
             }
+        }
+
+        None
+    }
+
+    fn steal(&self) -> Option<Address> {
+        if self.stealers.len() == 1 {
+            return None;
+        }
+
+        let mut rng = thread_rng();
+        let range = Uniform::new(0, self.stealers.len());
+
+        for _ in 0..2 * self.stealers.len() {
+            let mut stealer_id = self.task_id;
+
+            while stealer_id == self.task_id {
+                stealer_id = range.sample(&mut rng);
+            }
+
+            let stealer = &self.stealers[stealer_id];
+
+            loop {
+                match stealer.steal() {
+                    Steal::Empty => break,
+                    Steal::Data(address) => return Some(address),
+                    Steal::Retry => continue,
+                }
+            }
+        }
+
+        None
+    }
+
+    fn run(&mut self) {
+        loop {
+            let object_addr = if let Some(object_addr) = self.pop() {
+                object_addr
+            } else if self.try_terminate() {
+                break;
+            } else {
+                continue;
+            };
+
+            let object = object_addr.to_mut_obj();
+
+            object.visit_reference_fields(|field| {
+                self.trace(field);
+            });
         }
     }
 
-    None
+    fn try_terminate(&mut self) -> bool {
+        decrease_workers(self.nworkers.as_ref());
+        thread::sleep(Duration::from_micros(1));
+        zero_or_increase_workers(self.nworkers.as_ref())
+    }
+
+    fn trace(&mut self, slot: Slot) {
+        let field_addr = slot.get();
+
+        if self.heap_region.contains(field_addr) {
+            let field_obj = field_addr.to_mut_obj();
+
+            if field_obj.header().try_mark_non_atomic() {
+                if self.local.has_capacity() {
+                    self.local.push(field_addr);
+                } else {
+                    self.worker.push(field_addr);
+                }
+            }
+        } else {
+            debug_assert!(field_addr.is_null() || self.perm_region.contains(field_addr));
+        }
+    }
 }
 
-fn try_terminate(nworkers_stage: &AtomicUsize) -> bool {
-    enter_stage(nworkers_stage);
-    thread::sleep(Duration::from_micros(1));
-    !try_exit(nworkers_stage)
-}
-
-fn enter_stage(atomic: &AtomicUsize) -> bool {
+fn decrease_workers(atomic: &AtomicUsize) -> bool {
     atomic.fetch_sub(1, Ordering::SeqCst) == 1
 }
 
-fn try_exit(atomic: &AtomicUsize) -> bool {
+fn zero_or_increase_workers(atomic: &AtomicUsize) -> bool {
     let mut nworkers = atomic.load(Ordering::Relaxed);
 
     loop {
         if nworkers == 0 {
-            return false;
+            return true;
         }
+
         let prev_nworkers = atomic.compare_and_swap(nworkers, nworkers + 1, Ordering::SeqCst);
 
         if nworkers == prev_nworkers {
-            return true;
+            return false;
         }
 
         nworkers = prev_nworkers;
