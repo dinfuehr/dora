@@ -64,6 +64,7 @@ pub enum TokenKind {
     Abstract,
     Open,
     Override,
+    Optimize,
 
     // Operators
     Add,
@@ -185,6 +186,7 @@ impl TokenKind {
             TokenKind::Abstract => "abstract",
             TokenKind::Open => "open",
             TokenKind::Override => "override",
+            TokenKind::Optimize => "optimize",
 
             // Operators
             TokenKind::Add => "+",

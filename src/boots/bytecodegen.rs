@@ -71,8 +71,22 @@ pub struct BytecodeGen {
 }
 
 impl<'ast> visit::Visitor<'ast> for BytecodeGen {
-    fn visit_stmt(&mut self, s: &'ast Stmt) {
-        self.visit_stmt(s);
+    fn visit_fct(&mut self, f: &'ast Function) {
+        if  !f.has_optimize {
+            return;
+        }
+
+        for p in &f.params {
+            self.visit_param(p);
+        }
+
+        if let Some(ref ty) = f.return_type {
+            self.visit_type(ty);
+        }
+
+        if let Some(ref block) = f.block {
+            self.visit_stmt(block);
+        }
     }
 }
 

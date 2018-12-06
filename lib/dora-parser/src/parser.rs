@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
 
         match self.token.kind {
             TokenKind::Fun => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Optimize])?;
                 let fct = self.parse_function(&modifiers)?;
                 elements.push(ElemFunction(fct));
             }
@@ -517,7 +517,6 @@ impl<'a> Parser<'a> {
 
     fn parse_modifiers(&mut self) -> Result<Modifiers, MsgWithPos> {
         let mut modifiers = Modifiers::new();
-
         loop {
             let modifier = match self.token.kind {
                 TokenKind::Abstract => Modifier::Abstract,
@@ -527,6 +526,7 @@ impl<'a> Parser<'a> {
                 TokenKind::Internal => Modifier::Internal,
                 TokenKind::Pub => Modifier::Pub,
                 TokenKind::Static => Modifier::Static,
+                TokenKind::Optimize => Modifier::Optimize,
                 _ => {
                     break;
                 }
@@ -589,6 +589,7 @@ impl<'a> Parser<'a> {
                has_open: false,
                has_override: false,
                has_final: false,
+               has_optimize: false,
                is_pub: true,
                is_static: false,
                is_abstract: false,
@@ -686,6 +687,7 @@ impl<'a> Parser<'a> {
                has_open: modifiers.contains(Modifier::Open),
                has_override: modifiers.contains(Modifier::Override),
                has_final: modifiers.contains(Modifier::Final),
+               has_optimize: modifiers.contains(Modifier::Optimize),
                is_pub: modifiers.contains(Modifier::Pub),
                is_static: modifiers.contains(Modifier::Static),
                internal: modifiers.contains(Modifier::Internal),

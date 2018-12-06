@@ -153,6 +153,7 @@ impl<'a> BuilderFct<'a> {
             has_open: false,
             has_override: false,
             has_final: false,
+            has_optimize: false,
             is_pub: self.is_public,
             is_static: false,
             is_abstract: false,
