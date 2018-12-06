@@ -103,7 +103,7 @@ pub struct JitBaselineFct {
 
 impl JitBaselineFct {
     pub fn from_buffer(
-        ctxt: &VM,
+        vm: &VM,
         dseg: &DSeg,
         buffer: &[u8],
         bailouts: Bailouts,
@@ -117,7 +117,7 @@ impl JitBaselineFct {
         mut exception_handlers: Vec<ExHandler>,
     ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
-        let ptr = ctxt.gc.alloc_code(size);
+        let ptr = vm.gc.alloc_code(size);
 
         if ptr.is_null() {
             panic!("out of memory: not enough executable memory left!");
@@ -306,7 +306,7 @@ impl Comment {
 pub struct CommentFormat<'a, 'ast: 'a> {
     pub comment: &'a Comment,
     pub fct_src: Option<&'a FctSrc>,
-    pub ctxt: &'a VM<'ast>,
+    pub vm: &'a VM<'ast>,
 }
 
 impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
@@ -315,39 +315,39 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
             &Comment::Alloc(cls_def_id) => {
-                let name = self.ctxt.class_defs[cls_def_id].borrow().name(self.ctxt);
+                let name = self.vm.class_defs[cls_def_id].borrow().name(self.vm);
                 write!(f, "allocate object of class {}", &name)
             }
 
             &Comment::StoreVTable(cls_def_id) => {
-                let name = self.ctxt.class_defs[cls_def_id].borrow().name(self.ctxt);
+                let name = self.vm.class_defs[cls_def_id].borrow().name(self.vm);
                 write!(f, "store vtable ptr for class {} in object", &name)
             }
 
             &Comment::CallSuper(fid) => {
-                let fct = self.ctxt.fcts[fid].borrow();
-                let name = fct.full_name(self.ctxt);
+                let fct = self.vm.fcts[fid].borrow();
+                let name = fct.full_name(self.vm);
 
                 write!(f, "call super {}", &name)
             }
 
             &Comment::CallVirtual(fid) => {
-                let fct = self.ctxt.fcts[fid].borrow();
-                let name = fct.full_name(self.ctxt);
+                let fct = self.vm.fcts[fid].borrow();
+                let name = fct.full_name(self.vm);
 
                 write!(f, "call virtual {}", &name)
             }
 
             &Comment::CallDirect(fid) => {
-                let fct = self.ctxt.fcts[fid].borrow();
-                let name = fct.full_name(self.ctxt);
+                let fct = self.vm.fcts[fid].borrow();
+                let name = fct.full_name(self.vm);
 
                 write!(f, "call direct {}", &name)
             }
 
             &Comment::StoreParam(vid) => {
                 let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.ctxt.interner.str(var.name);
+                let name = self.vm.interner.str(var.name);
 
                 write!(f, "store param {}", name)
             }
@@ -355,53 +355,53 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Newline => write!(f, ""),
 
             &Comment::StoreField(clsid, fid) => {
-                let cls_def = self.ctxt.class_defs[clsid].borrow();
-                let cname = cls_def.name(self.ctxt);
+                let cls_def = self.vm.class_defs[clsid].borrow();
+                let cname = cls_def.name(self.vm);
 
-                let cls = self.ctxt.classes[cls_def.cls_id].borrow();
+                let cls = self.vm.classes[cls_def.cls_id].borrow();
                 let field = &cls.fields[fid];
                 let fname = field.name;
-                let fname = self.ctxt.interner.str(fname);
+                let fname = self.vm.interner.str(fname);
 
                 write!(f, "store in {}.{}", cname, fname)
             }
 
             &Comment::LoadField(clsid, fid) => {
-                let cls_def = self.ctxt.class_defs[clsid].borrow();
-                let cname = cls_def.name(self.ctxt);
+                let cls_def = self.vm.class_defs[clsid].borrow();
+                let cname = cls_def.name(self.vm);
 
-                let cls = self.ctxt.classes[cls_def.cls_id].borrow();
+                let cls = self.vm.classes[cls_def.cls_id].borrow();
                 let field = &cls.fields[fid];
                 let fname = field.name;
-                let fname = self.ctxt.interner.str(fname);
+                let fname = self.vm.interner.str(fname);
 
                 write!(f, "load from {}.{}", cname, fname)
             }
 
             &Comment::StoreVar(vid) => {
                 let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.ctxt.interner.str(var.name);
+                let name = self.vm.interner.str(var.name);
 
                 write!(f, "store var {}", name)
             }
 
             &Comment::LoadVar(vid) => {
                 let var = &self.fct_src.unwrap().vars[vid];
-                let name = self.ctxt.interner.str(var.name);
+                let name = self.vm.interner.str(var.name);
 
                 write!(f, "load var {}", name)
             }
 
             &Comment::StoreGlobal(gid) => {
-                let glob = self.ctxt.globals[gid].borrow();
-                let name = self.ctxt.interner.str(glob.name);
+                let glob = self.vm.globals[gid].borrow();
+                let name = self.vm.interner.str(glob.name);
 
                 write!(f, "store global {}", name)
             }
 
             &Comment::LoadGlobal(gid) => {
-                let glob = &self.ctxt.globals[gid].borrow();
-                let name = self.ctxt.interner.str(glob.name);
+                let glob = &self.vm.globals[gid].borrow();
+                let name = self.vm.interner.str(glob.name);
 
                 write!(f, "load global {}", name)
             }

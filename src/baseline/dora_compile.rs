@@ -23,27 +23,27 @@ use vm::{get_vm, VM};
 // now-compiled function directly on the next invocation. In the end the function is
 // executed.
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraCompileGen {
-        ctxt: ctxt,
+        vm: vm,
         masm: MacroAssembler::new(),
-        dbg: ctxt.args.flag_emit_debug_compile,
+        dbg: vm.args.flag_emit_debug_compile,
     };
 
     let jit_fct = ngen.generate();
     let addr = Address::from_ptr(jit_fct.fct_ptr());
-    ctxt.insert_code_map(
+    vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
         CodeDescriptor::CompilerThunk,
     );
-    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Base(jit_fct));
 
     addr
 }
 
 struct DoraCompileGen<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
@@ -135,7 +135,7 @@ where
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.ctxt, framesize, JitDescriptor::CompilerThunk, false)
+            .jit(self.vm, framesize, JitDescriptor::CompilerThunk, false)
     }
 
     fn store_params(&mut self, mut offset: i32) {
@@ -174,11 +174,11 @@ where
 }
 
 fn compile_request(ra: usize, receiver: Address) -> Address {
-    let ctxt = get_vm();
+    let vm = get_vm();
 
     let bailout = {
         let data = {
-            let code_map = ctxt.code_map.lock().unwrap();
+            let code_map = vm.code_map.lock().unwrap();
             code_map
                 .get(ra as *const u8)
                 .expect("return address not found")
@@ -189,7 +189,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
             _ => panic!("expected function for code"),
         };
 
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+        let jit_fct = vm.jit_fcts[fct_id].borrow();
 
         let offset = ra - jit_fct.fct_ptr() as usize;
         let jit_fct = jit_fct.to_base().expect("baseline expected");
@@ -202,17 +202,17 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 
     match bailout {
         BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
-            patch_fct_call(ctxt, ra, fct_id, cls_tps, fct_tps, disp)
+            patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, disp)
         }
 
         BailoutInfo::VirtCompile(vtable_index, ref fct_tps) => {
-            patch_vtable_call(ctxt, receiver, vtable_index, fct_tps)
+            patch_vtable_call(vm, receiver, vtable_index, fct_tps)
         }
     }
 }
 
 fn patch_vtable_call(
-    ctxt: &VM,
+    vm: &VM,
     receiver: Address,
     vtable_index: u32,
     fct_tps: &TypeParams,
@@ -220,16 +220,16 @@ fn patch_vtable_call(
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().cls_id;
-    let cls = ctxt.classes[cls_id].borrow();
+    let cls = vm.classes[cls_id].borrow();
 
     let mut fct_ptr = Address::null();
 
     for &fct_id in &cls.methods {
-        let fct = ctxt.fcts[fct_id].borrow();
+        let fct = vm.fcts[fct_id].borrow();
 
         if Some(vtable_index) == fct.vtable_index {
             let empty = TypeParams::empty();
-            fct_ptr = Address::from_ptr(baseline::generate(ctxt, fct_id, &empty, fct_tps));
+            fct_ptr = Address::from_ptr(baseline::generate(vm, fct_id, &empty, fct_tps));
             break;
         }
     }
@@ -241,14 +241,14 @@ fn patch_vtable_call(
 }
 
 fn patch_fct_call(
-    ctxt: &VM,
+    vm: &VM,
     ra: usize,
     fct_id: FctId,
     cls_tps: &TypeParams,
     fct_tps: &TypeParams,
     disp: i32,
 ) -> Address {
-    let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
+    let fct_ptr = baseline::generate(vm, fct_id, cls_tps, fct_tps);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment

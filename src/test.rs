@@ -11,14 +11,14 @@ pub fn parse<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&VM) -> T,
 {
-    parse_with_errors(code, |ctxt| {
-        if ctxt.diag.borrow().has_errors() {
-            ctxt.diag.borrow().dump();
+    parse_with_errors(code, |vm| {
+        if vm.diag.borrow().has_errors() {
+            vm.diag.borrow().dump();
             println!("{}", code);
             panic!("unexpected error in test::parse()");
         }
 
-        f(ctxt)
+        f(vm)
     })
 }
 
@@ -45,9 +45,9 @@ where
         parser.parse().unwrap()
     }
 
-    let mut ctxt = VM::new(args, &ast, interner);
+    let mut vm = VM::new(args, &ast, interner);
 
-    semck::check(&mut ctxt);
+    semck::check(&mut vm);
 
-    f(&ctxt)
+    f(&vm)
 }

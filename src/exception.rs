@@ -29,12 +29,12 @@ impl Stacktrace {
         });
     }
 
-    pub fn dump(&self, ctxt: &VM) {
+    pub fn dump(&self, vm: &VM) {
         for (ind, elem) in self.elems.iter().enumerate() {
-            let jit_fct = ctxt.jit_fcts[elem.fct_id].borrow();
+            let jit_fct = vm.jit_fcts[elem.fct_id].borrow();
             let fct_id = jit_fct.fct_id();
-            let fct = ctxt.fcts[fct_id].borrow();
-            let name = fct.full_name(ctxt);
+            let fct = vm.fcts[fct_id].borrow();
+            let name = fct.full_name(vm);
             print!("{}: {}: ", ind, name);
 
             if elem.lineno == 0 {
@@ -72,22 +72,22 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn stacktrace_from_es(ctxt: &VM, es: &ExecState) -> Stacktrace {
+pub fn stacktrace_from_es(vm: &VM, es: &ExecState) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
     let fp = fp_from_execstate(es);
-    frames_from_pc(&mut stacktrace, ctxt, es.pc, fp);
-    frames_from_dtns(&mut stacktrace, ctxt);
+    frames_from_pc(&mut stacktrace, vm, es.pc, fp);
+    frames_from_dtns(&mut stacktrace, vm);
     return stacktrace;
 }
 
-pub fn stacktrace_from_last_dtn(ctxt: &VM) -> Stacktrace {
+pub fn stacktrace_from_last_dtn(vm: &VM) -> Stacktrace {
     let mut stacktrace = Stacktrace::new();
-    frames_from_dtns(&mut stacktrace, ctxt);
+    frames_from_dtns(&mut stacktrace, vm);
     return stacktrace;
 }
 
-fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &VM) {
-    let mut dtn_ptr = *ctxt.dtn.borrow();
+fn frames_from_dtns(stacktrace: &mut Stacktrace, vm: &VM) {
+    let mut dtn_ptr = *vm.dtn.borrow();
 
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };
@@ -95,21 +95,21 @@ fn frames_from_dtns(stacktrace: &mut Stacktrace, ctxt: &VM) {
         let pc: usize = dtn.pc;
         let fp: usize = dtn.fp;
 
-        frames_from_pc(stacktrace, ctxt, pc, fp);
+        frames_from_pc(stacktrace, vm, pc, fp);
 
         dtn_ptr = dtn.last
     }
 }
 
-fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize, mut fp: usize) {
-    if !determine_stack_entry(stacktrace, ctxt, pc) {
+fn frames_from_pc(stacktrace: &mut Stacktrace, vm: &VM, pc: usize, mut fp: usize) {
+    if !determine_stack_entry(stacktrace, vm, pc) {
         return;
     }
 
     while fp != 0 {
         let ra = unsafe { *((fp + 8) as *const usize) };
 
-        if !determine_stack_entry(stacktrace, ctxt, ra) {
+        if !determine_stack_entry(stacktrace, vm, ra) {
             return;
         }
 
@@ -117,13 +117,13 @@ fn frames_from_pc(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize, mut fp: usi
     }
 }
 
-fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize) -> bool {
-    let code_map = ctxt.code_map.lock().unwrap();
+fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> bool {
+    let code_map = vm.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
-            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let jit_fct = vm.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
             let jit_fct = jit_fct.to_base().expect("baseline expected");
@@ -139,8 +139,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, ctxt: &VM, pc: usize) -> b
         }
 
         Some(CodeDescriptor::NativeThunk(fct_id)) => {
-            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
-            let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
+            let jit_fct = vm.jit_fcts[fct_id].borrow();
+            let fct = vm.fcts[jit_fct.fct_id()].borrow();
 
             stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
 
@@ -172,15 +172,15 @@ pub struct ThrowResume {
 }
 
 pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
-    let ctxt = get_vm();
+    let vm = get_vm();
 
-    let dtn = unsafe { &**ctxt.dtn.borrow() };
+    let dtn = unsafe { &**vm.dtn.borrow() };
 
     let mut pc: usize = dtn.pc;
     let mut fp: usize = dtn.fp;
 
     while fp != 0 {
-        let res = find_handler(ctxt, exception, pc, fp, resume);
+        let res = find_handler(vm, exception, pc, fp, resume);
 
         match res {
             HandlerFound::Yes => {
@@ -204,20 +204,20 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
 }
 
 fn find_handler(
-    ctxt: &VM,
+    vm: &VM,
     exception: Handle<Obj>,
     pc: usize,
     fp: usize,
     resume: &mut ThrowResume,
 ) -> HandlerFound {
     let data = {
-        let code_map = ctxt.code_map.lock().unwrap();
+        let code_map = vm.code_map.lock().unwrap();
         code_map.get(pc as *const u8)
     };
 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
-            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let jit_fct = vm.jit_fcts[fct_id].borrow();
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
 
@@ -273,55 +273,55 @@ fn find_handler(
 }
 
 pub extern "C" fn retrieve_stack_trace(obj: Handle<Exception>) {
-    let ctxt = get_vm();
-    set_exception_backtrace(ctxt, obj, true);
+    let vm = get_vm();
+    set_exception_backtrace(vm, obj, true);
 }
 
 pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<StackTraceElement> {
-    let ctxt = get_vm();
-    let obj = ctxt.handles.root(obj);
+    let vm = get_vm();
+    let obj = vm.handles.root(obj);
     let array = obj.backtrace;
 
     let ind = ind as usize * 2;
 
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
-    let cls_def_id = ctxt.vips.stack_trace_element(ctxt);
+    let cls_def_id = vm.vips.stack_trace_element(vm);
 
-    let ste: Handle<StackTraceElement> = alloc(ctxt, cls_def_id).cast();
-    let mut ste = ctxt.handles.root(ste);
+    let ste: Handle<StackTraceElement> = alloc(vm, cls_def_id).cast();
+    let mut ste = vm.handles.root(ste);
     ste.line = lineno;
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
-    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
-    let name = fct.full_name(ctxt);
-    ste.name = Str::from_buffer(ctxt, name.as_bytes());
+    let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+    let fct = vm.fcts[jit_fct.fct_id()].borrow();
+    let name = fct.full_name(vm);
+    ste.name = Str::from_buffer(vm, name.as_bytes());
 
     ste.direct()
 }
 
-pub fn alloc_exception(ctxt: &VM, msg: Handle<Str>) -> Handle<Exception> {
-    let cls_id = ctxt.vips.exception(ctxt);
-    let obj: Handle<Exception> = alloc(ctxt, cls_id).cast();
-    let mut obj = ctxt.handles.root(obj);
+pub fn alloc_exception(vm: &VM, msg: Handle<Str>) -> Handle<Exception> {
+    let cls_id = vm.vips.exception(vm);
+    let obj: Handle<Exception> = alloc(vm, cls_id).cast();
+    let mut obj = vm.handles.root(obj);
 
     obj.msg = msg;
-    set_exception_backtrace(ctxt, obj.direct(), false);
+    set_exception_backtrace(vm, obj.direct(), false);
 
     obj.direct()
 }
 
-fn set_exception_backtrace(ctxt: &VM, obj: Handle<Exception>, via_retrieve: bool) {
-    let stacktrace = stacktrace_from_last_dtn(ctxt);
-    let mut obj = ctxt.handles.root(obj);
+fn set_exception_backtrace(vm: &VM, obj: Handle<Exception>, via_retrieve: bool) {
+    let stacktrace = stacktrace_from_last_dtn(vm);
+    let mut obj = vm.handles.root(obj);
 
     let skip = if via_retrieve { 2 } else { 0 };
     let len = stacktrace.len() - skip;
 
-    let cls_id = ctxt.vips.int_array(ctxt);
-    let array: Handle<IntArray> = Array::alloc(ctxt, len * 2, 0, cls_id);
-    let mut array = ctxt.handles.root(array);
+    let cls_id = vm.vips.int_array(vm);
+    let array: Handle<IntArray> = Array::alloc(vm, len * 2, 0, cls_id);
+    let mut array = vm.handles.root(array);
     let mut i = 0;
 
     // ignore first element of stack trace (ctor of Exception)

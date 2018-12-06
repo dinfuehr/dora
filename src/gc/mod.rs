@@ -87,58 +87,58 @@ impl Gc {
         self.perm_space.alloc(size).to_mut_ptr()
     }
 
-    pub fn alloc(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
-        if ctxt.args.flag_gc_stress_minor {
-            self.minor_collect(ctxt, GcReason::StressMinor);
+    pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+        if vm.args.flag_gc_stress_minor {
+            self.minor_collect(vm, GcReason::StressMinor);
         }
 
-        if ctxt.args.flag_gc_stress {
-            self.collect(ctxt, GcReason::Stress);
+        if vm.args.flag_gc_stress {
+            self.collect(vm, GcReason::Stress);
         }
 
-        if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
-            self.alloc_tlab(ctxt, size, array_ref)
+        if size < TLAB_OBJECT_SIZE && !vm.args.flag_disable_tlab {
+            self.alloc_tlab(vm, size, array_ref)
         } else if size < LARGE_OBJECT_SIZE {
-            self.collector.alloc_normal(ctxt, size, array_ref)
+            self.collector.alloc_normal(vm, size, array_ref)
         } else {
-            self.collector.alloc_large(ctxt, size, array_ref)
+            self.collector.alloc_large(vm, size, array_ref)
         }
     }
 
-    fn alloc_tlab(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
+    fn alloc_tlab(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
         // try to allocate in current tlab
-        if let Some(addr) = tlab::allocate(ctxt, size) {
+        if let Some(addr) = tlab::allocate(vm, size) {
             return addr;
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
         // allocate new tlab
         if let Some(tlab) = self
             .collector
-            .alloc_tlab_area(ctxt, tlab::calculate_size(size))
+            .alloc_tlab_area(vm, tlab::calculate_size(size))
         {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 
             // initialize TLAB to new boundaries
-            tlab::initialize(ctxt, tlab);
+            tlab::initialize(vm, tlab);
 
             // object is allocated before TLAB
             object_start
         } else {
             // allocate object
-            self.collector.alloc_normal(ctxt, size, array_ref)
+            self.collector.alloc_normal(vm, size, array_ref)
         }
     }
 
-    pub fn collect(&self, ctxt: &VM, reason: GcReason) {
-        self.collector.collect(ctxt, reason);
+    pub fn collect(&self, vm: &VM, reason: GcReason) {
+        self.collector.collect(vm, reason);
     }
 
-    pub fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
-        self.collector.minor_collect(ctxt, reason);
+    pub fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        self.collector.minor_collect(vm, reason);
     }
 
     pub fn dump_summary(&self, runtime: f32) {
@@ -148,16 +148,16 @@ impl Gc {
 
 trait Collector {
     // allocate object of given size
-    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region>;
-    fn alloc_normal(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address;
-    fn alloc_large(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
+    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
-    fn collect(&self, ctxt: &VM, reason: GcReason);
+    fn collect(&self, vm: &VM, reason: GcReason);
 
     // collect young generation if supported, otherwise
     // collects whole heap
-    fn minor_collect(&self, ctxt: &VM, reason: GcReason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason);
 
     // decides whether to emit write barriers needed for
     // generational GC to write into card table

@@ -18,7 +18,7 @@ use timer::Timer;
 use vm::VM;
 
 pub struct FullCollector<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -43,7 +43,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a VM<'ast>,
+        vm: &'a VM<'ast>,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -61,7 +61,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
         FullCollector {
-            ctxt: ctxt,
+            vm: vm,
             heap: heap,
             young: young,
             old: old,
@@ -86,8 +86,8 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) {
-        let active = self.ctxt.args.flag_gc_verbose;
-        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
+        let active = self.vm.args.flag_gc_verbose;
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
         let timer = Timer::new(active);
         let init_size = self.heap_size();
         self.old_top = self.old.active().end;
@@ -102,12 +102,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
-            if self.ctxt.args.flag_gc_parallel_marking {
+            if self.vm.args.flag_gc_parallel_marking {
                 marking::start(
                     self.rootset,
                     self.heap.clone(),
                     self.perm_space.total(),
-                    self.ctxt.args.flag_gc_worker,
+                    self.vm.args.flag_gc_worker,
                     self.threadpool,
                 );
             } else {
@@ -155,13 +155,13 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
-        if self.ctxt.args.flag_gc_young_ratio.is_none() {
+        if self.vm.args.flag_gc_young_ratio.is_none() {
             controller::resize_gens_after_full(
                 self.min_heap_size,
                 self.max_heap_size,
                 self.young,
                 self.old,
-                self.ctxt.args.flag_gc_verbose,
+                self.vm.args.flag_gc_verbose,
             );
         }
 

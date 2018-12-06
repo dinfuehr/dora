@@ -18,7 +18,7 @@ use timer::Timer;
 use vm::VM;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -47,7 +47,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> MinorCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a VM<'ast>,
+        vm: &'a VM<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -60,7 +60,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         stats: &'a GcStats,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
-            ctxt: ctxt,
+            vm: vm,
             young: young,
             old: old,
             large: large,
@@ -88,7 +88,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     pub fn collect(&mut self) -> bool {
-        let active = self.ctxt.args.flag_gc_verbose;
+        let active = self.vm.args.flag_gc_verbose;
         let timer = Timer::new(active);
 
         let init_size = self.heap_size();
@@ -101,7 +101,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         self.young.unprotect_to();
 
-        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
@@ -142,13 +142,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             assert!(self.young.to_active().size() == 0);
         }
 
-        let force_full = if self.ctxt.args.flag_gc_young_ratio.is_none() {
+        let force_full = if self.vm.args.flag_gc_young_ratio.is_none() {
             controller::resize_gens_after_minor(
                 self.min_heap_size,
                 self.max_heap_size,
                 self.young,
                 self.old,
-                self.ctxt.args.flag_gc_verbose,
+                self.vm.args.flag_gc_verbose,
             )
         } else {
             false

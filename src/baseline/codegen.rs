@@ -33,20 +33,20 @@ use ty::{BuiltinType, MachineMode};
 use vm::VM;
 
 pub fn generate<'ast>(
-    ctxt: &VM<'ast>,
+    vm: &VM<'ast>,
     id: FctId,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
 ) -> *const u8 {
-    let fct = ctxt.fcts[id].borrow();
+    let fct = vm.fcts[id].borrow();
     let src = fct.src();
     let mut src = src.borrow_mut();
 
-    generate_fct(ctxt, &fct, &mut src, cls_type_params, fct_type_params)
+    generate_fct(vm, &fct, &mut src, cls_type_params, fct_type_params)
 }
 
 pub fn generate_fct<'ast>(
-    ctxt: &VM<'ast>,
+    vm: &VM<'ast>,
     fct: &Fct<'ast>,
     src: &mut FctSrc,
     cls_type_params: &TypeParams,
@@ -54,17 +54,17 @@ pub fn generate_fct<'ast>(
 ) -> *const u8 {
     debug_assert!(cls_type_params
         .iter()
-        .all(|ty| !ty.contains_type_param(ctxt),));
+        .all(|ty| !ty.contains_type_param(vm),));
     debug_assert!(fct_type_params
         .iter()
-        .all(|ty| !ty.contains_type_param(ctxt),));
+        .all(|ty| !ty.contains_type_param(vm),));
 
     {
         let specials = src.specializations.read().unwrap();
         let key = (cls_type_params.clone(), fct_type_params.clone());
 
         if let Some(&jit_fct_id) = specials.get(&key) {
-            return ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
+            return vm.jit_fcts[jit_fct_id].borrow().fct_ptr();
         }
     }
 
@@ -72,7 +72,7 @@ pub fn generate_fct<'ast>(
 
     let mut jit_info = JitInfo::new();
     info::generate(
-        ctxt,
+        vm,
         fct,
         src,
         &mut jit_info,
@@ -80,10 +80,10 @@ pub fn generate_fct<'ast>(
         fct_type_params,
     );
     let jit_fct = CodeGen {
-        ctxt: ctxt,
+        vm: vm,
         fct: &fct,
         ast: ast,
-        asm: BaselineAssembler::new(ctxt),
+        asm: BaselineAssembler::new(vm),
         scopes: Scopes::new(),
         src: src,
         jit_info: jit_info,
@@ -101,13 +101,13 @@ pub fn generate_fct<'ast>(
     }
     .generate();
 
-    if should_emit_asm(ctxt, &*fct) {
+    if should_emit_asm(vm, &*fct) {
         dump_asm(
-            ctxt,
+            vm,
             &*fct,
             &jit_fct,
             Some(&src),
-            ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+            vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
         );
     }
 
@@ -122,15 +122,15 @@ pub fn generate_fct<'ast>(
         ptr_start = jit_fct.ptr_start();
         ptr_end = jit_fct.ptr_end();
 
-        let jit_fct_id = ctxt.jit_fcts.len().into();
-        ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+        let jit_fct_id = vm.jit_fcts.len().into();
+        vm.jit_fcts.push(JitFct::Base(jit_fct));
         specials.insert(key, jit_fct_id);
 
         jit_fct_id
     };
 
     {
-        let mut code_map = ctxt.code_map.lock().unwrap();
+        let mut code_map = vm.code_map.lock().unwrap();
         let cdata = CodeDescriptor::DoraFct(jit_fct_id);
         code_map.insert(ptr_start, ptr_end, cdata);
     }
@@ -153,7 +153,7 @@ fn get_engine() -> Result<Engine, Error> {
 }
 
 pub fn dump_asm<'ast>(
-    ctxt: &VM<'ast>,
+    vm: &VM<'ast>,
     fct: &Fct<'ast>,
     jit_fct: &JitBaselineFct,
     fct_src: Option<&FctSrc>,
@@ -173,7 +173,7 @@ pub fn dump_asm<'ast>(
         panic!("capstone: syntax couldn't be set");
     }
 
-    let mut w: Box<Write> = if ctxt.args.flag_emit_asm_file {
+    let mut w: Box<Write> = if vm.args.flag_emit_asm_file {
         let pid = unsafe { libc::getpid() };
         let name = format!("code-{}.asm", pid);
         let file = OpenOptions::new()
@@ -194,14 +194,14 @@ pub fn dump_asm<'ast>(
         .disasm(buf, start_addr, jit_fct.fct_len())
         .expect("could not disassemble code");
 
-    let name = fct.full_name(ctxt);
+    let name = fct.full_name(vm);
 
     writeln!(&mut w, "fun {} {:#x} {:#x}", &name, start_addr, end_addr).unwrap();
 
     if let Some(fct_src) = fct_src {
         for var in &fct_src.vars {
-            let name = ctxt.interner.str(var.name);
-            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(ctxt)).unwrap();
+            let name = vm.interner.str(var.name);
+            writeln!(&mut w, "  var `{}`: type {}", name, var.ty.name(vm)).unwrap();
         }
 
         if fct_src.vars.len() > 0 {
@@ -241,7 +241,7 @@ pub fn dump_asm<'ast>(
 
                 let cfmt = CommentFormat {
                     comment: comment,
-                    ctxt: ctxt,
+                    vm: vm,
                     fct_src: fct_src,
                 };
 
@@ -261,7 +261,7 @@ pub fn dump_asm<'ast>(
 }
 
 pub struct CodeGen<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     ast: &'ast Function,
     asm: BaselineAssembler<'a, 'ast>,
@@ -303,7 +303,7 @@ where
     'ast: 'a,
 {
     pub fn generate(mut self) -> JitBaselineFct {
-        if should_emit_debug(self.ctxt, self.fct) {
+        if should_emit_debug(self.vm, self.fct) {
             self.asm.debug();
         }
 
@@ -323,8 +323,8 @@ where
             self.ast.throws,
         );
 
-        if self.ctxt.args.flag_enable_perf {
-            os::perf::register_with_perf(&jit_fct, self.ctxt, self.ast.name);
+        if self.vm.args.flag_enable_perf {
+            os::perf::register_with_perf(&jit_fct, self.vm, self.ast.name);
         }
 
         jit_fct
@@ -400,7 +400,7 @@ where
         self.asm.emit_comment(Comment::Lit("epilog"));
 
         let stacksize = self.jit_info.stacksize();
-        let polling_page = self.ctxt.polling_page.addr();
+        let polling_page = self.vm.polling_page.addr();
         self.asm.epilog_with_polling(stacksize, polling_page);
     }
 
@@ -547,7 +547,7 @@ where
 
     fn emit_safepoint(&mut self) {
         self.asm.emit_comment(Comment::ReadPollingPage);
-        self.asm.check_polling_page(self.ctxt.polling_page.addr());
+        self.asm.check_polling_page(self.vm.polling_page.addr());
 
         let temps = TempOffsets::new();
         let gcpoint = create_gcpoint(&self.scopes, &temps);
@@ -735,8 +735,8 @@ where
 
             let ty = self.src.ty(catch.data_type.id());
             let ty = self.specialize_type(ty);
-            let cls_def_id = specialize_class_ty(self.ctxt, ty);
-            let cls_def = self.ctxt.class_defs[cls_def_id].borrow();
+            let cls_def_id = specialize_class_ty(self.vm, ty);
+            let cls_def = self.vm.class_defs[cls_def_id].borrow();
 
             let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
             self.asm
@@ -819,7 +819,7 @@ where
         };
 
         let expr_gen = ExprGen::new(
-            self.ctxt,
+            self.vm,
             self.fct,
             self.src,
             self.ast,
@@ -836,13 +836,13 @@ where
     }
 
     fn emit_call_site(&mut self, call_site: &CallSite<'ast>, pos: Position) -> ExprStore {
-        let callee = self.ctxt.fcts[call_site.callee].borrow();
+        let callee = self.vm.fcts[call_site.callee].borrow();
         let return_type = self.specialize_type(callee.return_type);
 
         let dest = register_for_mode(return_type.mode());
 
         let mut expr_gen = ExprGen::new(
-            self.ctxt,
+            self.vm,
             self.fct,
             self.src,
             self.ast,
@@ -871,11 +871,11 @@ where
             }
 
             BuiltinType::Class(cls_id, list_id) => {
-                let params = self.ctxt.lists.borrow().get(list_id);
+                let params = self.vm.lists.borrow().get(list_id);
 
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+                let list_id = self.vm.lists.borrow_mut().insert(params.into());
 
                 BuiltinType::Class(cls_id, list_id)
             }
@@ -1029,28 +1029,28 @@ pub enum Next {
     Return,
 }
 
-pub fn should_emit_debug(ctxt: &VM, fct: &Fct) -> bool {
-    if let Some(ref dbg_names) = ctxt.args.flag_emit_debug {
-        fct_pattern_match(ctxt, fct, dbg_names)
+pub fn should_emit_debug(vm: &VM, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = vm.args.flag_emit_debug {
+        fct_pattern_match(vm, fct, dbg_names)
     } else {
         false
     }
 }
 
-pub fn should_emit_asm(ctxt: &VM, fct: &Fct) -> bool {
-    if let Some(ref dbg_names) = ctxt.args.flag_emit_asm {
-        fct_pattern_match(ctxt, fct, dbg_names)
+pub fn should_emit_asm(vm: &VM, fct: &Fct) -> bool {
+    if let Some(ref dbg_names) = vm.args.flag_emit_asm {
+        fct_pattern_match(vm, fct, dbg_names)
     } else {
         false
     }
 }
 
-fn fct_pattern_match(ctxt: &VM, fct: &Fct, pattern: &str) -> bool {
+fn fct_pattern_match(vm: &VM, fct: &Fct, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }
 
-    let name = ctxt.interner.str(fct.name);
+    let name = vm.interner.str(fct.name);
 
     for part in pattern.split(',') {
         if *name == part {

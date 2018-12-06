@@ -192,27 +192,27 @@ impl Swiper {
         }
     }
 
-    fn minor_collect_inner(&self, ctxt: &VM, reason: GcReason) -> bool {
+    fn minor_collect_inner(&self, vm: &VM, reason: GcReason) -> bool {
         // make heap iterable
-        tlab::make_iterable(ctxt);
-        let rootset = get_rootset(ctxt);
+        tlab::make_iterable(vm);
+        let rootset = get_rootset(vm);
 
-        self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
+        self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset);
 
-        let promotion_failed = if ctxt.args.flag_gc_parallel_minor {
-            self.par_minor_collect(ctxt, reason, &rootset)
+        let promotion_failed = if vm.args.flag_gc_parallel_minor {
+            self.par_minor_collect(vm, reason, &rootset)
         } else {
-            self.serial_minor_collect(ctxt, reason, &rootset)
+            self.serial_minor_collect(vm, reason, &rootset)
         };
 
-        self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
+        self.verify(vm, VerifierPhase::PostMinor, "post-minor", &rootset);
 
         promotion_failed
     }
 
-    fn serial_minor_collect(&self, ctxt: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn serial_minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = MinorCollector::new(
-            ctxt,
+            vm,
             &self.young,
             &self.old,
             &self.large,
@@ -227,9 +227,9 @@ impl Swiper {
         collector.collect()
     }
 
-    fn par_minor_collect(&self, ctxt: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn par_minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = ParMinorCollector::new(
-            ctxt,
+            vm,
             &self.young,
             &self.old,
             &self.large,
@@ -237,28 +237,28 @@ impl Swiper {
             &self.crossing_map,
             rootset,
             reason,
-            ctxt.args.flag_gc_worker,
+            vm.args.flag_gc_worker,
         );
         collector.collect()
     }
 
-    fn full_collect(&self, ctxt: &VM, reason: GcReason) {
+    fn full_collect(&self, vm: &VM, reason: GcReason) {
         // make heap iterable
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
-        let rootset = get_rootset(ctxt);
+        let rootset = get_rootset(vm);
 
-        self.verify(ctxt, VerifierPhase::PreFull, "pre-full", &rootset);
+        self.verify(vm, VerifierPhase::PreFull, "pre-full", &rootset);
 
         let mut collector = FullCollector::new(
-            ctxt,
+            vm,
             self.heap.clone(),
             &self.young,
             &self.old,
             &self.large,
             &self.card_table,
             &self.crossing_map,
-            &ctxt.gc.perm_space,
+            &vm.gc.perm_space,
             &rootset,
             reason,
             &self.threadpool,
@@ -268,16 +268,16 @@ impl Swiper {
         );
         collector.collect();
 
-        self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
+        self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
-    fn verify(&self, ctxt: &VM, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
-        if ctxt.args.flag_gc_verify {
-            if ctxt.args.flag_gc_dev_verbose {
+    fn verify(&self, vm: &VM, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
+        if vm.args.flag_gc_verify {
+            if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", _name);
             }
 
-            let perm_space = &ctxt.gc.perm_space;
+            let perm_space = &vm.gc.perm_space;
 
             let mut verifier = Verifier::new(
                 &self.young,
@@ -292,7 +292,7 @@ impl Swiper {
             );
             verifier.verify();
 
-            if ctxt.args.flag_gc_dev_verbose {
+            if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {} finished", _name);
             }
         }
@@ -300,17 +300,17 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return Some(ptr.region_start(size));
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
+        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt, GcReason::PromotionFailure);
+            self.full_collect(vm, GcReason::PromotionFailure);
             let ptr = self.young.bump_alloc(size);
 
             return if ptr.is_null() {
@@ -326,7 +326,7 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        self.full_collect(ctxt, GcReason::AllocationFailure);
+        self.full_collect(vm, GcReason::AllocationFailure);
         let ptr = self.young.bump_alloc(size);
 
         return if ptr.is_null() {
@@ -336,17 +336,17 @@ impl Collector for Swiper {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return ptr;
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
+        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt, GcReason::PromotionFailure);
+            self.full_collect(vm, GcReason::PromotionFailure);
         }
 
         let ptr = self.young.bump_alloc(size);
@@ -358,25 +358,25 @@ impl Collector for Swiper {
         self.old.bump_alloc(size, array_ref)
     }
 
-    fn alloc_large(&self, ctxt: &VM, size: usize, _: bool) -> Address {
+    fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
         let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
         }
 
-        self.full_collect(ctxt, GcReason::AllocationFailure);
+        self.full_collect(vm, GcReason::AllocationFailure);
 
         self.large.alloc(size)
     }
 
-    fn collect(&self, ctxt: &VM, reason: GcReason) {
-        self.full_collect(ctxt, reason);
+    fn collect(&self, vm: &VM, reason: GcReason) {
+        self.full_collect(vm, reason);
     }
 
-    fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
-        tlab::make_iterable(ctxt);
-        self.minor_collect_inner(ctxt, reason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        tlab::make_iterable(vm);
+        self.minor_collect_inner(vm, reason);
     }
 
     fn needs_write_barrier(&self) -> bool {

@@ -20,7 +20,7 @@ use vm::VM;
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     slow_paths: Vec<SlowPathKind>,
 }
 
@@ -28,10 +28,10 @@ impl<'a, 'ast> BaselineAssembler<'a, 'ast>
 where
     'ast: 'a,
 {
-    pub fn new(ctxt: &'a VM<'ast>) -> BaselineAssembler<'a, 'ast> {
+    pub fn new(vm: &'a VM<'ast>) -> BaselineAssembler<'a, 'ast> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
-            ctxt: ctxt,
+            vm: vm,
             slow_paths: Vec::new(),
         }
     }
@@ -412,7 +412,7 @@ where
 
     pub fn jit(mut self, stacksize: i32, desc: JitDescriptor, throws: bool) -> JitBaselineFct {
         self.slow_paths();
-        self.masm.jit(self.ctxt, stacksize, desc, throws)
+        self.masm.jit(self.vm, stacksize, desc, throws)
     }
 
     pub fn native_call(
@@ -423,7 +423,7 @@ where
         dest: ExprStore,
     ) {
         let ty = internal_fct.return_type;
-        let ptr = ensure_native_stub(self.ctxt, FctId(0), internal_fct);
+        let ptr = ensure_native_stub(self.vm, FctId(0), internal_fct);
 
         self.masm.raw_call(ptr);
         self.call_epilog(pos, ty, dest, gcpoint);
@@ -598,7 +598,7 @@ where
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
-        if self.ctxt.args.flag_disable_tlab {
+        if self.vm.args.flag_disable_tlab {
             self.gc_allocate(dest, size, pos, array_ref, gcpoint);
             return;
         }

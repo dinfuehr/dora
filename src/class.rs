@@ -79,13 +79,13 @@ impl Class {
         self.type_params.len() > 0
     }
 
-    pub fn long_name(&self, ctxt: &VM) -> String {
-        let name = ctxt.interner.str(self.name);
+    pub fn long_name(&self, vm: &VM) -> String {
+        let name = vm.interner.str(self.name);
 
         let params = if self.type_params.len() > 0 {
             self.type_params
                 .iter()
-                .map(|p| ctxt.interner.str(p.name).to_string())
+                .map(|p| vm.interner.str(p.name).to_string())
                 .collect::<Vec<_>>()
                 .join(", ")
         } else {
@@ -95,9 +95,9 @@ impl Class {
         format!("{}<{}>", name, params)
     }
 
-    pub fn find_impl_for_trait(&self, ctxt: &VM, trait_id: TraitId) -> Option<ImplId> {
+    pub fn find_impl_for_trait(&self, vm: &VM, trait_id: TraitId) -> Option<ImplId> {
         for &impl_id in &self.impls {
-            let ximpl = ctxt.impls[impl_id].borrow();
+            let ximpl = vm.impls[impl_id].borrow();
 
             if ximpl.trait_id == Some(trait_id) {
                 return Some(impl_id);
@@ -107,11 +107,11 @@ impl Class {
         None
     }
 
-    pub fn find_field(&self, ctxt: &VM, name: Name) -> Option<(ClassId, FieldId)> {
+    pub fn find_field(&self, vm: &VM, name: Name) -> Option<(ClassId, FieldId)> {
         let mut classid = self.id;
 
         loop {
-            let cls = ctxt.classes[classid].borrow();
+            let cls = vm.classes[classid].borrow();
 
             for field in &cls.fields {
                 if field.name == name {
@@ -127,14 +127,14 @@ impl Class {
         }
     }
 
-    pub fn find_method(&self, ctxt: &VM, name: Name, is_static: bool) -> Option<FctId> {
+    pub fn find_method(&self, vm: &VM, name: Name, is_static: bool) -> Option<FctId> {
         let mut classid = self.id;
 
         loop {
-            let cls = ctxt.classes[classid].borrow();
+            let cls = vm.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = ctxt.fcts[method].borrow();
+                let method = vm.fcts[method].borrow();
 
                 if method.name == name && method.is_static == is_static {
                     return Some(method.id);
@@ -149,16 +149,16 @@ impl Class {
         }
     }
 
-    pub fn find_methods(&self, ctxt: &VM, name: Name, is_static: bool) -> Vec<FctId> {
+    pub fn find_methods(&self, vm: &VM, name: Name, is_static: bool) -> Vec<FctId> {
         let mut classid = self.id;
         let mut candidates = Vec::new();
         let mut ignores = HashSet::new();
 
         loop {
-            let cls = ctxt.classes[classid].borrow();
+            let cls = vm.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = ctxt.fcts[method].borrow();
+                let method = vm.fcts[method].borrow();
 
                 if method.name == name && method.is_static == is_static {
                     if let Some(overrides) = method.overrides {
@@ -181,13 +181,13 @@ impl Class {
         classid = self.id;
 
         loop {
-            let cls = ctxt.classes[classid].borrow();
+            let cls = vm.classes[classid].borrow();
 
             for &impl_id in &cls.impls {
-                let ximpl = ctxt.impls[impl_id].borrow();
+                let ximpl = vm.impls[impl_id].borrow();
 
                 for &method in &ximpl.methods {
-                    let method = ctxt.fcts[method].borrow();
+                    let method = vm.fcts[method].borrow();
 
                     if method.name == name && method.is_static == is_static {
                         candidates.push(method.id);
@@ -205,7 +205,7 @@ impl Class {
         candidates
     }
 
-    pub fn subclass_from(&self, ctxt: &VM, super_id: ClassId) -> bool {
+    pub fn subclass_from(&self, vm: &VM, super_id: ClassId) -> bool {
         let mut cls_id = self.id;
 
         loop {
@@ -213,7 +213,7 @@ impl Class {
                 return true;
             }
 
-            let cls = ctxt.classes[cls_id].borrow();
+            let cls = vm.classes[cls_id].borrow();
 
             match cls.parent_class {
                 Some(id) => {
@@ -319,14 +319,14 @@ pub struct ClassDef {
 }
 
 impl ClassDef {
-    pub fn name(&self, ctxt: &VM) -> String {
-        let cls = ctxt.classes[self.cls_id].borrow();
-        let name = ctxt.interner.str(cls.name);
+    pub fn name(&self, vm: &VM) -> String {
+        let cls = vm.classes[self.cls_id].borrow();
+        let name = vm.interner.str(cls.name);
 
         let params = if self.type_params.len() > 0 {
             self.type_params
                 .iter()
-                .map(|p| p.name(ctxt))
+                .map(|p| p.name(vm))
                 .collect::<Vec<_>>()
                 .join(", ")
         } else {

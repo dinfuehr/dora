@@ -103,45 +103,45 @@ impl BuiltinType {
         }
     }
 
-    pub fn cls_id(&self, ctxt: &VM) -> Option<ClassId> {
+    pub fn cls_id(&self, vm: &VM) -> Option<ClassId> {
         match *self {
             BuiltinType::Class(cls_id, _) => Some(cls_id),
-            BuiltinType::Bool => Some(ctxt.vips.bool_class),
-            BuiltinType::Byte => Some(ctxt.vips.byte_class),
-            BuiltinType::Char => Some(ctxt.vips.char_class),
-            BuiltinType::Int => Some(ctxt.vips.int_class),
-            BuiltinType::Long => Some(ctxt.vips.long_class),
-            BuiltinType::Float => Some(ctxt.vips.float_class),
-            BuiltinType::Double => Some(ctxt.vips.double_class),
+            BuiltinType::Bool => Some(vm.vips.bool_class),
+            BuiltinType::Byte => Some(vm.vips.byte_class),
+            BuiltinType::Char => Some(vm.vips.char_class),
+            BuiltinType::Int => Some(vm.vips.int_class),
+            BuiltinType::Long => Some(vm.vips.long_class),
+            BuiltinType::Float => Some(vm.vips.float_class),
+            BuiltinType::Double => Some(vm.vips.double_class),
             _ => None,
         }
     }
 
-    pub fn implements_trait(&self, ctxt: &VM, trait_id: TraitId) -> bool {
-        if let Some(cls_id) = self.cls_id(ctxt) {
-            let cls = ctxt.classes[cls_id].borrow();
+    pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
+        if let Some(cls_id) = self.cls_id(vm) {
+            let cls = vm.classes[cls_id].borrow();
             return cls.traits.contains(&trait_id);
         }
 
         false
     }
 
-    pub fn type_params(&self, ctxt: &VM) -> TypeParams {
+    pub fn type_params(&self, vm: &VM) -> TypeParams {
         match self {
-            &BuiltinType::Class(_, list_id) => ctxt.lists.borrow().get(list_id),
+            &BuiltinType::Class(_, list_id) => vm.lists.borrow().get(list_id),
 
             _ => TypeParams::empty(),
         }
     }
 
-    pub fn contains_type_param(&self, ctxt: &VM) -> bool {
+    pub fn contains_type_param(&self, vm: &VM) -> bool {
         match self {
             &BuiltinType::ClassTypeParam(_, _) => true,
             &BuiltinType::FctTypeParam(_, _) => true,
 
             &BuiltinType::Class(_, list_id) => {
-                let params = ctxt.lists.borrow().get(list_id);
-                params.iter().any(|t| t.contains_type_param(ctxt))
+                let params = vm.lists.borrow().get(list_id);
+                params.iter().any(|t| t.contains_type_param(vm))
             }
 
             &BuiltinType::Lambda(_) => unimplemented!(),
@@ -167,7 +167,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn subclass_from(&self, ctxt: &VM, ty: BuiltinType) -> bool {
+    pub fn subclass_from(&self, vm: &VM, ty: BuiltinType) -> bool {
         if !self.is_cls() {
             return false;
         }
@@ -175,12 +175,12 @@ impl BuiltinType {
             return false;
         }
 
-        let cls_id = self.cls_id(ctxt).unwrap();
-        let cls = ctxt.classes[cls_id].borrow();
-        cls.subclass_from(ctxt, ty.cls_id(ctxt).unwrap())
+        let cls_id = self.cls_id(vm).unwrap();
+        let cls = vm.classes[cls_id].borrow();
+        cls.subclass_from(vm, ty.cls_id(vm).unwrap())
     }
 
-    pub fn name(&self, ctxt: &VM) -> String {
+    pub fn name(&self, vm: &VM) -> String {
         match *self {
             BuiltinType::Error => "<error>".into(),
             BuiltinType::Unit => "()".into(),
@@ -195,16 +195,16 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Class(id, list_id) => {
-                let params = ctxt.lists.borrow().get(list_id);
-                let cls = ctxt.classes[id].borrow();
-                let base = ctxt.interner.str(cls.name);
+                let params = vm.lists.borrow().get(list_id);
+                let cls = vm.classes[id].borrow();
+                let base = vm.interner.str(cls.name);
 
                 if params.len() == 0 {
                     base.to_string()
                 } else {
                     let params = params
                         .iter()
-                        .map(|ty| ty.name(ctxt))
+                        .map(|ty| ty.name(vm))
                         .collect::<Vec<_>>()
                         .join(", ");
 
@@ -212,17 +212,17 @@ impl BuiltinType {
                 }
             }
             BuiltinType::Struct(sid, list_id) => {
-                let name = ctxt.structs[sid].borrow().name;
-                let name = ctxt.interner.str(name).to_string();
+                let name = vm.structs[sid].borrow().name;
+                let name = vm.interner.str(name).to_string();
 
-                let params = ctxt.lists.borrow().get(list_id);
+                let params = vm.lists.borrow().get(list_id);
 
                 if params.len() == 0 {
                     name
                 } else {
                     let params = params
                         .iter()
-                        .map(|ty| ty.name(ctxt))
+                        .map(|ty| ty.name(vm))
                         .collect::<Vec<_>>()
                         .join(", ");
 
@@ -230,39 +230,39 @@ impl BuiltinType {
                 }
             }
             BuiltinType::Trait(tid) => {
-                let name = ctxt.traits[tid].borrow().name;
-                ctxt.interner.str(name).to_string()
+                let name = vm.traits[tid].borrow().name;
+                vm.interner.str(name).to_string()
             }
             BuiltinType::ClassTypeParam(cid, id) => {
-                let cls = ctxt.classes[cid].borrow();
-                ctxt.interner
+                let cls = vm.classes[cid].borrow();
+                vm.interner
                     .str(cls.type_params[id.idx()].name)
                     .to_string()
             }
 
             BuiltinType::FctTypeParam(fid, id) => {
-                let fct = ctxt.fcts[fid].borrow();
-                ctxt.interner
+                let fct = vm.fcts[fid].borrow();
+                vm.interner
                     .str(fct.type_params[id.idx()].name)
                     .to_string()
             }
 
             BuiltinType::Lambda(id) => {
-                let lambda = ctxt.lambda_types.borrow().get(id);
+                let lambda = vm.lambda_types.borrow().get(id);
                 let params = lambda
                     .params
                     .iter()
-                    .map(|ty| ty.name(ctxt))
+                    .map(|ty| ty.name(vm))
                     .collect::<Vec<_>>()
                     .join(", ");
-                let ret = lambda.ret.name(ctxt);
+                let ret = lambda.ret.name(vm);
 
                 format!("({}) -> {}", params, ret)
             }
         }
     }
 
-    pub fn allows(&self, ctxt: &VM, other: BuiltinType) -> bool {
+    pub fn allows(&self, vm: &VM, other: BuiltinType) -> bool {
         match *self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
@@ -280,7 +280,7 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("ptr does not allow any other types"),
             BuiltinType::This => unreachable!(),
             BuiltinType::Class(_, _) => {
-                *self == other || other.is_nil() || other.subclass_from(ctxt, *self)
+                *self == other || other.is_nil() || other.subclass_from(vm, *self)
             }
             BuiltinType::Trait(_) => unimplemented!(),
 
@@ -304,7 +304,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn size(&self, ctxt: &VM) -> i32 {
+    pub fn size(&self, vm: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no size for error."),
             BuiltinType::Unit => 0,
@@ -321,9 +321,9 @@ impl BuiltinType {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
-                let params = ctxt.lists.borrow().get(list_id);
-                let sid = semck::specialize::specialize_struct_id_params(ctxt, sid, params);
-                let struc = ctxt.struct_defs[sid].borrow();
+                let params = vm.lists.borrow().get(list_id);
+                let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
+                let struc = vm.struct_defs[sid].borrow();
 
                 struc.size
             }
@@ -334,7 +334,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn align(&self, ctxt: &VM) -> i32 {
+    pub fn align(&self, vm: &VM) -> i32 {
         match *self {
             BuiltinType::Error => panic!("no alignment for error."),
             BuiltinType::Unit => 0,
@@ -351,9 +351,9 @@ impl BuiltinType {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
-                let params = ctxt.lists.borrow().get(list_id);
-                let sid = semck::specialize::specialize_struct_id_params(ctxt, sid, params);
-                let struc = ctxt.struct_defs[sid].borrow();
+                let params = vm.lists.borrow().get(list_id);
+                let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
+                let struc = vm.struct_defs[sid].borrow();
 
                 struc.align
             }

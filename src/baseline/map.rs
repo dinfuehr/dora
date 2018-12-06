@@ -15,7 +15,7 @@ impl CodeMap {
         }
     }
 
-    pub fn dump(&self, ctxt: &VM) {
+    pub fn dump(&self, vm: &VM) {
         println!("CodeMap {{");
 
         for (key, data) in &self.tree {
@@ -23,20 +23,20 @@ impl CodeMap {
 
             match data {
                 &CodeDescriptor::DoraFct(jit_fct_id) => {
-                    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-                    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
+                    let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+                    let fct = vm.fcts[jit_fct.fct_id()].borrow();
 
-                    println!("dora {}", fct.full_name(ctxt));
+                    println!("dora {}", fct.full_name(vm));
                 }
                 &CodeDescriptor::CompilerThunk => println!("compiler_thunk"),
                 &CodeDescriptor::ThrowThunk => println!("throw_thunk"),
                 &CodeDescriptor::TrapThunk => println!("trap_thunk"),
                 &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
                 &CodeDescriptor::NativeThunk(jit_fct_id) => {
-                    let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
-                    let fct = ctxt.fcts[jit_fct.fct_id()].borrow();
+                    let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+                    let fct = vm.fcts[jit_fct.fct_id()].borrow();
 
-                    println!("native {}", fct.full_name(ctxt));
+                    println!("native {}", fct.full_name(vm));
                 }
                 &CodeDescriptor::DoraEntry => println!("dora_entry"),
             }

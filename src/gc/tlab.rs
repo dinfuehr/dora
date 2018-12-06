@@ -7,8 +7,8 @@ use vtable::VTable;
 pub const TLAB_SIZE: usize = 32 * 1024;
 pub const TLAB_OBJECT_SIZE: usize = 8 * 1024;
 
-pub fn initialize(ctxt: &VM, tlab: Region) {
-    ctxt.tld.borrow_mut().tlab_initialize(tlab.start, tlab.end);
+pub fn initialize(vm: &VM, tlab: Region) {
+    vm.tld.borrow_mut().tlab_initialize(tlab.start, tlab.end);
 }
 
 pub fn calculate_size(additional: usize) -> usize {
@@ -17,12 +17,12 @@ pub fn calculate_size(additional: usize) -> usize {
     TLAB_SIZE + additional
 }
 
-pub fn allocate(ctxt: &VM, size: usize) -> Option<Address> {
+pub fn allocate(vm: &VM, size: usize) -> Option<Address> {
     assert!(size < TLAB_OBJECT_SIZE);
-    let tlab = ctxt.tld.borrow().tlab_region();
+    let tlab = vm.tld.borrow().tlab_region();
 
     if size <= tlab.size() {
-        ctxt.tld
+        vm.tld
             .borrow_mut()
             .tlab_initialize(tlab.start.offset(size), tlab.end);
         Some(tlab.start)
@@ -31,12 +31,12 @@ pub fn allocate(ctxt: &VM, size: usize) -> Option<Address> {
     }
 }
 
-pub fn make_iterable(ctxt: &VM) {
-    let tlab = ctxt.tld.borrow().tlab_region();
-    make_iterable_region(ctxt, tlab.start, tlab.end);
+pub fn make_iterable(vm: &VM) {
+    let tlab = vm.tld.borrow().tlab_region();
+    make_iterable_region(vm, tlab.start, tlab.end);
 }
 
-pub fn make_iterable_region(ctxt: &VM, start: Address, end: Address) {
+pub fn make_iterable_region(vm: &VM, start: Address, end: Address) {
     if start == end {
         // nothing to do
 
@@ -46,8 +46,8 @@ pub fn make_iterable_region(ctxt: &VM, start: Address, end: Address) {
         }
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
-        let cls_id = ctxt.vips.obj(ctxt);
-        let cls = ctxt.class_defs[cls_id].borrow();
+        let cls_id = vm.vips.obj(vm);
+        let cls = vm.class_defs[cls_id].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
 
         unsafe {
@@ -55,8 +55,8 @@ pub fn make_iterable_region(ctxt: &VM, start: Address, end: Address) {
         }
     } else {
         // fill with int array
-        let cls_id = ctxt.vips.int_array(ctxt);
-        let cls = ctxt.class_defs[cls_id].borrow();
+        let cls_id = vm.vips.int_array(vm);
+        let cls = vm.class_defs[cls_id].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
 
         // determine of header+length in bytes
@@ -72,5 +72,5 @@ pub fn make_iterable_region(ctxt: &VM, start: Address, end: Address) {
     }
 
     let n = Address::null();
-    ctxt.tld.borrow_mut().tlab_initialize(n, n);
+    vm.tld.borrow_mut().tlab_initialize(n, n);
 }

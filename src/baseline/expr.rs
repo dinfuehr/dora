@@ -77,7 +77,7 @@ where
     'ast: 'a,
     'ast: 'b,
 {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a mut FctSrc,
     ast: &'ast Function,
@@ -96,7 +96,7 @@ where
     'ast: 'b,
 {
     pub fn new(
-        ctxt: &'a VM<'ast>,
+        vm: &'a VM<'ast>,
         fct: &'a Fct<'ast>,
         src: &'a mut FctSrc,
         ast: &'ast Function,
@@ -107,7 +107,7 @@ where
         fct_type_params: &'a TypeParams,
     ) -> ExprGen<'a, 'b, 'ast> {
         ExprGen {
-            ctxt: ctxt,
+            vm: vm,
             fct: fct,
             src: src,
             ast: ast,
@@ -232,8 +232,8 @@ where
             }
         } else {
             let cls_id = conv.cls_id;
-            let cls_id = specialize_class_id(self.ctxt, cls_id);
-            let cls = self.ctxt.class_defs[cls_id].borrow();
+            let cls_id = specialize_class_id(self.vm, cls_id);
+            let cls = self.vm.class_defs[cls_id].borrow();
 
             let vtable: &VTable = cls.vtable.as_ref().unwrap();
 
@@ -459,8 +459,8 @@ where
         src: Reg,
         dest: ExprStore,
     ) {
-        let cls_id = specialize_class_ty(self.ctxt, ty);
-        let cls = self.ctxt.class_defs[cls_id].borrow();
+        let cls_id = specialize_class_ty(self.vm, ty);
+        let cls = self.vm.class_defs[cls_id].borrow();
         let field = &cls.fields[fieldid.idx()];
 
         self.asm.emit_comment(Comment::LoadField(cls_id, fieldid));
@@ -501,7 +501,7 @@ where
     }
 
     fn emit_lit_str(&mut self, lit: &'ast ExprLitStrType, dest: Reg) {
-        let handle = Str::from_buffer_in_perm(self.ctxt, lit.value.as_bytes());
+        let handle = Str::from_buffer_in_perm(self.vm, lit.value.as_bytes());
 
         let disp = self.asm.add_addr(handle.raw() as *const u8);
         let pos = self.asm.pos() as i32;
@@ -524,7 +524,7 @@ where
             }
 
             IdentType::Global(gid) => {
-                let glob = self.ctxt.globals[gid].borrow();
+                let glob = self.vm.globals[gid].borrow();
 
                 let disp = self.asm.add_addr(glob.address_value);
                 let pos = self.asm.pos() as i32;
@@ -552,7 +552,7 @@ where
     }
 
     fn emit_const(&mut self, const_id: ConstId, dest: ExprStore) {
-        let xconst = self.ctxt.consts[const_id].borrow();
+        let xconst = self.vm.consts[const_id].borrow();
         let ty = xconst.ty;
 
         match ty {
@@ -698,7 +698,7 @@ where
             }
 
             IdentType::Global(gid) => {
-                let glob = self.ctxt.globals[gid].borrow();
+                let glob = self.vm.globals[gid].borrow();
                 let dest = result_reg(glob.ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
@@ -714,8 +714,8 @@ where
 
             IdentType::Field(ty, fieldid) => {
                 let ty = self.specialize_type(ty);
-                let cls_id = specialize_class_ty(self.ctxt, ty);
-                let cls = self.ctxt.class_defs[cls_id].borrow();
+                let cls_id = specialize_class_ty(self.vm, ty);
+                let cls = self.vm.class_defs[cls_id].borrow();
                 let field = &cls.fields[fieldid.idx()];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
@@ -739,8 +739,8 @@ where
 
                 self.asm.emit_comment(Comment::StoreField(cls_id, fieldid));
 
-                let write_barrier = self.ctxt.gc.needs_write_barrier() && field.ty.reference_type();
-                let card_table_offset = self.ctxt.gc.card_table_offset();
+                let write_barrier = self.vm.gc.needs_write_barrier() && field.ty.reference_type();
+                let card_table_offset = self.vm.gc.card_table_offset();
 
                 self.asm.store_field(
                     field.ty.mode(),
@@ -872,16 +872,16 @@ where
     ) -> *const u8 {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
-            ensure_jit_or_stub_ptr(self.src, self.ctxt, cls_type_params, fct_type_params)
+            ensure_jit_or_stub_ptr(self.src, self.vm, cls_type_params, fct_type_params)
         } else {
-            let fct = self.ctxt.fcts[fid].borrow();
+            let fct = self.vm.fcts[fid].borrow();
 
             match fct.kind {
                 FctKind::Source(_) => {
                     let src = fct.src();
                     let mut src = src.borrow_mut();
 
-                    ensure_jit_or_stub_ptr(&mut src, self.ctxt, cls_type_params, fct_type_params)
+                    ensure_jit_or_stub_ptr(&mut src, self.vm, cls_type_params, fct_type_params)
                 }
 
                 FctKind::Native(ptr) => {
@@ -893,7 +893,7 @@ where
                         desc: InternalFctDescriptor::NativeThunk(fid),
                     };
 
-                    ensure_native_stub(self.ctxt, fid, internal_fct)
+                    ensure_native_stub(self.vm, fid, internal_fct)
                 }
 
                 FctKind::Definition => panic!("prototype for fct call"),
@@ -1099,14 +1099,14 @@ where
 
         self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::NIL);
 
-        if !self.ctxt.args.flag_omit_bounds_check {
+        if !self.vm.args.flag_omit_bounds_check {
             self.asm.check_index_out_of_bounds(pos, REG_TMP1, REG_TMP2);
         }
 
         self.asm.load_mem(mode, res, Mem::Local(offset_value));
 
-        let write_barrier = self.ctxt.gc.needs_write_barrier() && element_type.reference_type();
-        let card_table_offset = self.ctxt.gc.card_table_offset();
+        let write_barrier = self.vm.gc.needs_write_barrier() && element_type.reference_type();
+        let card_table_offset = self.vm.gc.card_table_offset();
 
         self.asm.store_array_elem(
             mode,
@@ -1141,7 +1141,7 @@ where
 
         self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::NIL);
 
-        if !self.ctxt.args.flag_omit_bounds_check {
+        if !self.vm.args.flag_omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(pos, REG_RESULT, REG_TMP1);
         }
@@ -1497,7 +1497,7 @@ where
         let mut temps: Vec<(BuiltinType, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;
-        let fct = self.ctxt.fcts[fid].borrow();
+        let fct = self.vm.fcts[fid].borrow();
 
         for (idx, arg) in csite.args.iter().enumerate() {
             let mode = arg.ty().mode();
@@ -1531,7 +1531,7 @@ where
                 }
 
                 Arg::SelfieNew(ty, _) => {
-                    let cls_id = specialize_class_ty(self.ctxt, ty);
+                    let cls_id = specialize_class_ty(self.vm, ty);
                     // do NOT invoke `reserve_temp_for_arg` here, since
                     // this would also add it to the set of temporaries, which
                     // leads to this address being part of the gc point for
@@ -1623,10 +1623,10 @@ where
 
         debug_assert!(cls_type_params
             .iter()
-            .all(|ty| !ty.contains_type_param(self.ctxt)));
+            .all(|ty| !ty.contains_type_param(self.vm)));
         debug_assert!(fct_type_params
             .iter()
-            .all(|ty| !ty.contains_type_param(self.ctxt)));
+            .all(|ty| !ty.contains_type_param(self.vm)));
 
         if csite.super_call {
             let ptr = self.ptr_for_fct_id(fid, cls_type_params.clone(), fct_type_params.clone());
@@ -1684,7 +1684,7 @@ where
         offset: i32,
         dest: Reg,
     ) {
-        let cls = self.ctxt.class_defs[cls_id].borrow();
+        let cls = self.vm.class_defs[cls_id].borrow();
         let mut store_length = false;
 
         // allocate storage for object
@@ -1838,11 +1838,11 @@ where
             }
 
             BuiltinType::Class(cls_id, list_id) => {
-                let params = self.ctxt.lists.borrow().get(list_id);
+                let params = self.vm.lists.borrow().get(list_id);
 
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+                let list_id = self.vm.lists.borrow_mut().insert(params.into());
 
                 BuiltinType::Class(cls_id, list_id)
             }
@@ -1894,33 +1894,33 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 }
 
 pub fn ensure_native_stub(
-    ctxt: &VM,
+    vm: &VM,
     fct_id: FctId,
     internal_fct: InternalFct,
 ) -> *const u8 {
-    let mut native_fcts = ctxt.native_fcts.lock().unwrap();
+    let mut native_fcts = vm.native_fcts.lock().unwrap();
     let ptr = internal_fct.ptr;
 
     if let Some(jit_fct_id) = native_fcts.find_fct(ptr) {
-        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
         jit_fct.fct_ptr()
     } else {
-        let fct = ctxt.fcts[fct_id].borrow();
-        let dbg = should_emit_debug(ctxt, &*fct);
+        let fct = vm.fcts[fct_id].borrow();
+        let dbg = should_emit_debug(vm, &*fct);
 
-        let jit_fct_id = dora_native::generate(ctxt, internal_fct, dbg);
-        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
+        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
 
         let fct_start = jit_fct.fct_start;
 
-        if should_emit_asm(ctxt, &*fct) {
+        if should_emit_asm(vm, &*fct) {
             dump_asm(
-                ctxt,
+                vm,
                 &*fct,
                 &jit_fct,
                 None,
-                ctxt.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+                vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
             );
         }
 
@@ -1931,7 +1931,7 @@ pub fn ensure_native_stub(
 
 fn ensure_jit_or_stub_ptr<'ast>(
     src: &mut FctSrc,
-    ctxt: &VM,
+    vm: &VM,
     cls_type_params: TypeParams,
     fct_type_params: TypeParams,
 ) -> *const u8 {
@@ -1939,11 +1939,11 @@ fn ensure_jit_or_stub_ptr<'ast>(
     let key = (cls_type_params, fct_type_params);
 
     if let Some(&jit_fct_id) = specials.get(&key) {
-        let jit_fct = ctxt.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
         return jit_fct.fct_ptr();
     }
 
-    ctxt.compiler_thunk.to_ptr()
+    vm.compiler_thunk.to_ptr()
 }
 
 fn to_cond_code(cmp: CmpOp) -> CondCode {

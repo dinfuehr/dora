@@ -48,18 +48,18 @@ pub struct InternalFct<'a> {
     pub desc: InternalFctDescriptor,
 }
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> JitFctId {
     let fct_desc = fct.desc.clone();
 
     let ngen = NativeGen {
-        ctxt: ctxt,
+        vm: vm,
         masm: MacroAssembler::new(),
         fct: fct,
         dbg: dbg,
     };
 
     let jit_fct = ngen.generate();
-    let jit_fct_id = ctxt.jit_fcts.len().into();
+    let jit_fct_id = vm.jit_fcts.len().into();
 
     let code_desc = match fct_desc {
         InternalFctDescriptor::NativeThunk(_) => CodeDescriptor::NativeThunk(jit_fct_id),
@@ -67,14 +67,14 @@ pub fn generate<'a, 'ast: 'a>(ctxt: &'a VM<'ast>, fct: InternalFct, dbg: bool) -
         InternalFctDescriptor::AllocThunk => CodeDescriptor::AllocThunk,
     };
 
-    ctxt.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), code_desc);
-    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), code_desc);
+    vm.jit_fcts.push(JitFct::Base(jit_fct));
 
     jit_fct_id
 }
 
 struct NativeGen<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
     masm: MacroAssembler,
 
     fct: InternalFct<'a>,
@@ -151,7 +151,7 @@ where
         );
 
         self.masm
-            .epilog_with_polling(framesize, self.ctxt.polling_page.addr());
+            .epilog_with_polling(framesize, self.vm.polling_page.addr());
 
         self.masm.bind_label(lbl_exception);
         self.masm.throw(REG_RESULT, Position::new(1, 1));
@@ -163,7 +163,7 @@ where
             InternalFctDescriptor::TrapThunk => JitDescriptor::TrapThunk,
         };
 
-        self.masm.jit(self.ctxt, framesize, desc, self.fct.throws)
+        self.masm.jit(self.vm, framesize, desc, self.fct.throws)
     }
 }
 
@@ -230,18 +230,18 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
         dtn.fp = fp as usize;
         dtn.pc = pc;
 
-        let ctxt = get_vm();
+        let vm = get_vm();
 
-        ctxt.push_dtn(dtn);
-        ctxt.handles.push_border();
+        vm.push_dtn(dtn);
+        vm.handles.push_border();
     }
 }
 
 pub fn finish_native_call() -> *const u8 {
-    let ctxt = get_vm();
+    let vm = get_vm();
 
-    ctxt.handles.pop_border();
-    ctxt.pop_dtn();
+    vm.handles.pop_border();
+    vm.pop_dtn();
 
     exception_get_and_clear()
 }

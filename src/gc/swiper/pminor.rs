@@ -10,7 +10,7 @@ use vm::VM;
 use crossbeam_deque::{Stealer, Worker};
 
 pub struct ParMinorCollector<'a, 'ast: 'a> {
-    ctxt: &'a VM<'ast>,
+    vm: &'a VM<'ast>,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -25,7 +25,7 @@ pub struct ParMinorCollector<'a, 'ast: 'a> {
 
 impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a VM<'ast>,
+        vm: &'a VM<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -36,7 +36,7 @@ impl<'a, 'ast> ParMinorCollector<'a, 'ast> {
         workers: usize,
     ) -> ParMinorCollector<'a, 'ast> {
         ParMinorCollector {
-            ctxt: ctxt,
+            vm: vm,
 
             young: young,
             old: old,

@@ -45,14 +45,14 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_tlab_area(&self, ctxt: &VM, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return Some(ptr.region_start(size));
         }
 
-        self.collect(ctxt, GcReason::AllocationFailure);
+        self.collect(vm, GcReason::AllocationFailure);
 
         let ptr = self.alloc.bump_alloc(size);
 
@@ -63,31 +63,31 @@ impl Collector for CopyCollector {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return ptr;
         }
 
-        self.collect(ctxt, GcReason::AllocationFailure);
+        self.collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_large(&self, ctxt: &VM, size: usize, array_ref: bool) -> Address {
-        self.alloc_normal(ctxt, size, array_ref)
+    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+        self.alloc_normal(vm, size, array_ref)
     }
 
-    fn collect(&self, ctxt: &VM, reason: GcReason) {
+    fn collect(&self, vm: &VM, reason: GcReason) {
         // make heap iterable
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
-        let rootset = get_rootset(ctxt);
-        self.copy_collect(ctxt, &rootset, reason);
+        let rootset = get_rootset(vm);
+        self.copy_collect(vm, &rootset, reason);
     }
 
-    fn minor_collect(&self, ctxt: &VM, reason: GcReason) {
-        self.collect(ctxt, reason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        self.collect(vm, reason);
     }
 }
 
@@ -98,8 +98,8 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, ctxt: &VM, rootset: &[Slot], reason: GcReason) {
-        let timer = Timer::new(ctxt.args.flag_gc_verbose);
+    fn copy_collect(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
+        let timer = Timer::new(vm.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {

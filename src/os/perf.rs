@@ -3,7 +3,7 @@ use dora_parser::interner::Name;
 use vm::VM;
 
 #[cfg(target_os = "linux")]
-pub fn register_with_perf(jit_fct: &JitBaselineFct, ctxt: &VM, name: Name) {
+pub fn register_with_perf(jit_fct: &JitBaselineFct, vm: &VM, name: Name) {
     use libc;
     use std::fs::OpenOptions;
     use std::io::prelude::*;
@@ -16,7 +16,7 @@ pub fn register_with_perf(jit_fct: &JitBaselineFct, ctxt: &VM, name: Name) {
 
     let code_start = jit_fct.ptr_start() as usize;
     let code_end = jit_fct.ptr_end() as usize;
-    let name = ctxt.interner.str(name);
+    let name = vm.interner.str(name);
 
     let line = format!(
         "{:x} {:x} dora::{}\n",
