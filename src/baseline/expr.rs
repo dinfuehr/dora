@@ -1939,7 +1939,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
         return jit_fct.fct_ptr();
     }
 
-    vm.compiler_thunk.to_ptr()
+    vm.compiler_thunk().to_ptr()
 }
 
 fn to_cond_code(cmp: CmpOp) -> CondCode {

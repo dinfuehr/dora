@@ -96,14 +96,14 @@ pub struct SemContext<'ast> {
     pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_fcts: Mutex<NativeFcts>,
-    pub compiler_thunk: Address,
     pub polling_page: PollingPage,
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
-    pub dora_entry: Address,
-    pub trap_thunk: Address,
-    pub throw_thunk: Address,
+    pub compiler_thunk: Mutex<Address>,
+    pub dora_entry: Mutex<Address>,
+    pub trap_thunk: Mutex<Address>,
+    pub throw_thunk: Mutex<Address>,
     pub tld: RefCell<ThreadLocalData>,
 }
 
@@ -113,7 +113,7 @@ impl<'ast> SemContext<'ast> {
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        let mut ctxt = Box::new(SemContext {
+        let ctxt = Box::new(SemContext {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -160,47 +160,34 @@ impl<'ast> SemContext<'ast> {
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
             native_fcts: Mutex::new(NativeFcts::new()),
-            compiler_thunk: Address::null(),
             polling_page: PollingPage::new(),
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
-            dora_entry: Address::null(),
-            trap_thunk: Address::null(),
-            throw_thunk: Address::null(),
+            compiler_thunk: Mutex::new(Address::null()),
+            dora_entry: Mutex::new(Address::null()),
+            trap_thunk: Mutex::new(Address::null()),
+            throw_thunk: Mutex::new(Address::null()),
             tld: RefCell::new(ThreadLocalData::new()),
         });
 
         set_vm(&ctxt);
-
-        ctxt.dora_entry = dora_entry::generate(&ctxt);
-        ctxt.compiler_thunk = dora_compile::generate(&ctxt);
-        ctxt.throw_thunk = dora_throw::generate(&ctxt);
-
-        let ifct = InternalFct {
-            ptr: stdlib::trap as *const u8,
-            args: &[BuiltinType::Int],
-            return_type: BuiltinType::Unit,
-            throws: false,
-            desc: InternalFctDescriptor::TrapThunk,
-        };
-        let jit_fct_id = dora_native::generate(&ctxt, ifct, false);
-        let fct_ptr = ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
-        ctxt.trap_thunk = Address::from_ptr(fct_ptr);
 
         ctxt
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
         let ptr = self.ensure_compiled(fct_id);
-        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(self.dora_entry) };
+        let dora_entry_thunk = self.dora_entry_thunk();
+        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(dora_entry_thunk) };
         fct(ptr)
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Handle<Testing>) {
         let ptr = self.ensure_compiled(fct_id);
+        let dora_entry_thunk = self.dora_entry_thunk();
         let fct: extern "C" fn(Address, Handle<Testing>) -> i32 =
-            unsafe { mem::transmute(self.dora_entry) };
+            unsafe { mem::transmute(dora_entry_thunk) };
         fct(ptr, testing);
     }
 
@@ -295,6 +282,55 @@ impl<'ast> SemContext<'ast> {
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
         let list_id = self.lists.borrow_mut().insert(TypeParams::empty());
         BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn dora_entry_thunk(&self) -> Address {
+        let mut dora_entry_thunk = self.dora_entry.lock().unwrap();
+
+        if dora_entry_thunk.is_null() {
+            *dora_entry_thunk = dora_entry::generate(self);
+        }
+
+        *dora_entry_thunk
+    }
+
+    pub fn throw_thunk(&self) -> Address {
+        let mut throw_thunk = self.throw_thunk.lock().unwrap();
+
+        if throw_thunk.is_null() {
+            *throw_thunk = dora_throw::generate(self);
+        }
+
+        *throw_thunk
+    }
+
+    pub fn compiler_thunk(&self) -> Address {
+        let mut compiler_thunk = self.compiler_thunk.lock().unwrap();
+
+        if compiler_thunk.is_null() {
+            *compiler_thunk = dora_compile::generate(self);
+        }
+
+        *compiler_thunk
+    }
+
+    pub fn trap_thunk(&self) -> Address {
+        let mut trap_thunk = self.trap_thunk.lock().unwrap();
+
+        if trap_thunk.is_null() {
+            let ifct = InternalFct {
+                ptr: stdlib::trap as *const u8,
+                args: &[BuiltinType::Int],
+                return_type: BuiltinType::Unit,
+                throws: false,
+                desc: InternalFctDescriptor::TrapThunk,
+            };
+            let jit_fct_id = dora_native::generate(self, ifct, false);
+            let fct_ptr = self.jit_fcts[jit_fct_id].borrow().fct_ptr();
+            *trap_thunk = Address::from_ptr(fct_ptr);
+        }
+
+        *trap_thunk
     }
 }
 
