@@ -1,6 +1,7 @@
 use std::cmp;
 use threadpool::ThreadPool;
 
+use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
@@ -15,7 +16,6 @@ use gc::swiper::GcStats;
 use gc::{formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
-use vm::VM;
 
 pub struct FullCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

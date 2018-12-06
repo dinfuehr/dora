@@ -1,3 +1,4 @@
+use ctxt::get_vm;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::{CardEntry, CardTable};
@@ -8,7 +9,6 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::CARD_SIZE;
 use gc::{Address, Region};
-use vm::get_vm;
 
 use mem;
 use object::{offset_of_array_data, Obj};

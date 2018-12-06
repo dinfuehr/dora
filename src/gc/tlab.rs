@@ -1,7 +1,7 @@
+use ctxt::VM;
 use gc::{Address, Region};
 use mem;
 use object::Header;
-use vm::VM;
 use vtable::VTable;
 
 pub const TLAB_SIZE: usize = 32 * 1024;

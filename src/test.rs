@@ -2,10 +2,11 @@ use dora_parser::ast::Ast;
 use dora_parser::interner::Interner;
 use dora_parser::lexer::reader::Reader;
 use dora_parser::parser::{NodeIdGenerator, Parser};
+
+use ctxt::VM;
 use driver::cmd::Args;
 use os;
 use semck;
-use vm::VM;
 
 pub fn parse<F, T>(code: &'static str, f: F) -> T
 where

@@ -9,11 +9,11 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use class::{ClassDefId, ClassSize};
+use ctxt::VM;
 use gc::root::Slot;
 use gc::Address;
 use handle::Rooted;
 use mem;
-use vm::VM;
 use vtable::VTable;
 
 #[repr(C)]

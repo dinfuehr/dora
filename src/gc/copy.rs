@@ -1,3 +1,4 @@
+use ctxt::VM;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
@@ -7,7 +8,6 @@ use mem;
 use object::Obj;
 use os::{self, ProtType};
 use timer::Timer;
-use vm::VM;
 
 pub struct CopyCollector {
     total: Region,

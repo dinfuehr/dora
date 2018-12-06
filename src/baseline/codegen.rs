@@ -23,6 +23,7 @@ use baseline::map::CodeDescriptor;
 use class::{ClassDef, TypeParams};
 use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
+use ctxt::VM;
 use driver::cmd::AsmSyntax;
 use masm::*;
 use os;
@@ -30,7 +31,6 @@ use os::signal::Trap;
 use semck::always_returns;
 use semck::specialize::specialize_class_ty;
 use ty::{BuiltinType, MachineMode};
-use vm::VM;
 
 pub fn generate<'ast>(
     vm: &VM<'ast>,

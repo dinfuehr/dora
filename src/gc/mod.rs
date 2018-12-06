@@ -1,6 +1,7 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
+use ctxt::VM;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
@@ -9,7 +10,6 @@ use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
 use object::Obj;
-use vm::VM;
 
 pub mod arena;
 pub mod bump;

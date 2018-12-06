@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use threadpool::ThreadPool;
 
+use ctxt::VM;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
@@ -18,7 +19,6 @@ use gc::Collector;
 use gc::{align_gen, arena, GcReason};
 use gc::{formatted_size, Address, Region};
 use mem;
-use vm::VM;
 
 pub mod card;
 mod controller;

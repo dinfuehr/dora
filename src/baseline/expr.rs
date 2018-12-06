@@ -11,6 +11,7 @@ use cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
 use ctxt::*;
+use ctxt::VM;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
@@ -21,7 +22,6 @@ use object::{Header, Str};
 use os::signal::Trap;
 use semck::specialize::{specialize_class_id, specialize_class_ty};
 use ty::{BuiltinType, MachineMode};
-use vm::VM;
 use vtable::{VTable, DISPLAY_SIZE};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

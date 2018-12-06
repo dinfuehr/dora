@@ -9,12 +9,12 @@ use std::thread;
 
 use class::TypeParams;
 use ctxt::exception_set;
+use ctxt::get_vm;
 use exception::{alloc_exception, stacktrace_from_last_dtn};
 use gc::GcReason;
 use object::{ByteArray, Handle, Obj, Str};
 use os::signal::Trap;
 use sym::Sym::SymFct;
-use vm::get_vm;
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();

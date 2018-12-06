@@ -7,11 +7,11 @@ use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, FctId};
+use ctxt::{get_vm, VM};
 use exception::DoraToNativeInfo;
 use masm::MacroAssembler;
 use mem;
 use ty::{BuiltinType, MachineMode};
-use vm::{get_vm, VM};
 
 pub struct NativeFcts {
     map: HashMap<*const u8, JitFctId>,

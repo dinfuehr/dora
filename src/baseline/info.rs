@@ -7,13 +7,13 @@ use ctxt::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
     TraitId, VarId,
 };
+use ctxt::VM;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;
 use dora_parser::ast::*;
 use mem;
 use ty::BuiltinType;
-use vm::VM;
 
 pub fn generate<'a, 'ast: 'a>(
     vm: &'a VM<'ast>,

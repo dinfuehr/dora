@@ -1,5 +1,6 @@
 use std::cmp;
 
+use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
 use gc::swiper::controller;
@@ -15,7 +16,6 @@ use gc::{formatted_size, Address, GcReason, Region};
 use mem;
 use object::Obj;
 use timer::Timer;
-use vm::VM;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,

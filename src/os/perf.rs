@@ -1,6 +1,6 @@
 use baseline::fct::JitBaselineFct;
+use ctxt::VM;
 use dora_parser::interner::Name;
-use vm::VM;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(jit_fct: &JitBaselineFct, vm: &VM, name: Name) {

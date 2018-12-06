@@ -1,3 +1,4 @@
+use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
@@ -5,7 +6,6 @@ use gc::swiper::large::LargeSpace;
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::GcReason;
-use vm::VM;
 
 use crossbeam_deque::{Stealer, Worker};
 

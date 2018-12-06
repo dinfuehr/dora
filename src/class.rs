@@ -6,11 +6,11 @@ use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
 use ctxt::{FctId, ImplId, TraitId, TypeParam};
+use ctxt::VM;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
 use utils::GrowableVec;
-use vm::VM;
 use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]

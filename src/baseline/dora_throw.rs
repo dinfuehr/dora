@@ -4,13 +4,13 @@ use baseline::dora_native::{finish_native_call, start_native_call};
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
+use ctxt::VM;
 use exception::throw;
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
-use vm::VM;
 
 pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraThrowGen {

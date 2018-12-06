@@ -1,7 +1,7 @@
+use ctxt::VM;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::{arena, Address, Collector, GcReason, Region};
-use vm::VM;
 
 pub struct ZeroCollector {
     start: Address,

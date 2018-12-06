@@ -1,7 +1,7 @@
 use baseline::map::CodeDescriptor;
+use ctxt::VM;
 use exception::DoraToNativeInfo;
 use gc::Address;
-use vm::VM;
 
 pub fn get_rootset(vm: &VM) -> Vec<Slot> {
     let mut rootset = Vec::new();

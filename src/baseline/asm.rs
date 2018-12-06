@@ -10,6 +10,7 @@ use baseline::info::JitInfo;
 use class::TypeParams;
 use cpu::{FReg, Mem, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1};
 use ctxt::{FctId, VarId};
+use ctxt::VM;
 use gc::Address;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use masm::{Label, MacroAssembler, ScratchReg};
@@ -17,7 +18,6 @@ use os::signal::Trap;
 use stdlib;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, MachineMode};
-use vm::VM;
 
 pub struct BaselineAssembler<'a, 'ast: 'a> {
     masm: MacroAssembler,

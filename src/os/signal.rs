@@ -2,10 +2,10 @@ use libc;
 use std;
 
 use baseline::map::CodeDescriptor;
+use ctxt::{get_vm, VM};
 use exception::stacktrace_from_es;
 use os_cpu::*;
 use safepoint;
-use vm::{get_vm, VM};
 
 #[cfg(target_family = "windows")]
 use winapi::winnt::EXCEPTION_POINTERS;

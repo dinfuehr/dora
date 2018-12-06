@@ -3,9 +3,9 @@ use std::rc::Rc;
 
 use class::{ClassId, TypeParamId, TypeParams};
 use ctxt::{FctId, StructId, TraitId};
+use ctxt::VM;
 use mem;
 use semck;
-use vm::VM;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BuiltinType {

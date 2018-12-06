@@ -2,12 +2,12 @@ use std::ptr;
 
 use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeDescriptor;
+use ctxt::{get_vm, VM};
 use cpu::fp_from_execstate;
 use execstate::ExecState;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use os::signal::Trap;
 use stdlib;
-use vm::{get_vm, VM};
 
 pub struct Stacktrace {
     elems: Vec<StackElem>,

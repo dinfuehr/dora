@@ -6,6 +6,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::*;
 use ctxt::FctId;
+use ctxt::get_vm;
 use dora_parser::lexer::position::Position;
 use gc::Address;
 use gc::swiper::CARD_SIZE_BITS;
@@ -14,7 +15,6 @@ use mem::{fits_i32, ptr_width};
 use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
-use vm::get_vm;
 use vtable::VTable;
 
 impl MacroAssembler {

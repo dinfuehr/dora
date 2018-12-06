@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use baseline::fct::JitFctId;
-use vm::VM;
+use ctxt::VM;
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeDescriptor>,

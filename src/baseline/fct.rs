@@ -7,11 +7,11 @@ use std::ptr;
 use class::{ClassDef, ClassDefId, FieldId, TypeParams};
 use cpu::flush_icache;
 use ctxt::{FctId, FctSrc, GlobalId, VarId};
+use ctxt::VM;
 use dseg::DSeg;
 use object::{Handle, Str};
 use opt::fct::JitOptFct;
 use utils::GrowableVec;
-use vm::VM;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);

@@ -7,13 +7,13 @@ use baseline::map::CodeDescriptor;
 use class::TypeParams;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
 use ctxt::FctId;
+use ctxt::{get_vm, VM};
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use object::Obj;
 use ty::MachineMode;
-use vm::{get_vm, VM};
 
 // This code generates the compiler thunk, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
