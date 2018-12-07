@@ -7,7 +7,7 @@ use dora_parser::lexer::position::Position;
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     for ximpl in &ctxt.impls {
         let ximpl = ximpl.borrow();
-        let xtrait = ctxt.traits[ximpl.trait_id()].borrow();
+        let xtrait = ctxt.traits[ximpl.trait_id()].read().unwrap();
         let cls = ctxt.classes[ximpl.cls_id()].borrow().ty;
 
         let all: HashSet<_> = xtrait.methods.iter().cloned().collect();

@@ -156,7 +156,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             }
 
             FctParent::Trait(traitid) => {
-                let xtrait = ctxt.traits[traitid].borrow();
+                let xtrait = ctxt.traits[traitid].read().unwrap();
                 let ty = BuiltinType::Trait(traitid);
                 check_against_methods(ctxt, ty, &*fct, &xtrait.methods);
             }

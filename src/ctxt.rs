@@ -89,7 +89,7 @@ pub struct SemContext<'ast> {
     pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
-    pub traits: Vec<RefCell<TraitData>>,      // stores all trait definitions
+    pub traits: Vec<RwLock<TraitData>>,      // stores all trait definitions
     pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
@@ -517,10 +517,10 @@ fn params_match(
     true
 }
 
-impl Index<TraitId> for Vec<RefCell<TraitData>> {
-    type Output = RefCell<TraitData>;
+impl Index<TraitId> for Vec<RwLock<TraitData>> {
+    type Output = RwLock<TraitData>;
 
-    fn index(&self, index: TraitId) -> &RefCell<TraitData> {
+    fn index(&self, index: TraitId) -> &RwLock<TraitData> {
         &self[index.0 as usize]
     }
 }

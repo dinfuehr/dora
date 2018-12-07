@@ -151,7 +151,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 // find fct next() & hasNext() in iterator-trait
                 let has_next_name = self.ctxt.interner.intern("hasNext");
                 let next_name = self.ctxt.interner.intern("next");
-                let trai = self.ctxt.traits[iterator_trait_id].borrow();
+                let trai = self.ctxt.traits[iterator_trait_id].read().unwrap();
                 let next_id = trai
                     .find_method(self.ctxt, false, next_name, None, &[])
                     .expect("next() not found");
@@ -1012,7 +1012,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         tp: &ctxt::TypeParam,
     ) {
         for &trait_id in &tp.trait_bounds {
-            let trai = self.ctxt.traits[trait_id].borrow();
+            let trai = self.ctxt.traits[trait_id].read().unwrap();
 
             if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
                 let call_type = CallType::Method(obj, fid, TypeParams::empty());
@@ -2107,7 +2107,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
-        let bound = self.ctxt.traits[trait_id].borrow();
+        let bound = self.ctxt.traits[trait_id].read().unwrap();
         let name = ty.name(self.ctxt);
         let trait_name = self.ctxt.interner.str(bound.name).to_string();
         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);

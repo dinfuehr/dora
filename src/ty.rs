@@ -230,8 +230,8 @@ impl BuiltinType {
                 }
             }
             BuiltinType::Trait(tid) => {
-                let name = vm.traits[tid].borrow().name;
-                vm.interner.str(name).to_string()
+                let xtrait = vm.traits[tid].read().unwrap();
+                vm.interner.str(xtrait.name).to_string()
             }
             BuiltinType::ClassTypeParam(cid, id) => {
                 let cls = vm.classes[cid].borrow();
