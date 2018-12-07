@@ -13,13 +13,13 @@ use masm::MacroAssembler;
 use mem;
 use ty::{BuiltinType, MachineMode};
 
-pub struct NativeFcts {
+pub struct NativeThunks {
     map: HashMap<*const u8, JitFctId>,
 }
 
-impl NativeFcts {
-    pub fn new() -> NativeFcts {
-        NativeFcts {
+impl NativeThunks {
+    pub fn new() -> NativeThunks {
+        NativeThunks {
             map: HashMap::new(),
         }
     }

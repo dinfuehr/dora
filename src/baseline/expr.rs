@@ -1894,10 +1894,10 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 }
 
 pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
-    let mut native_fcts = vm.native_fcts.lock().unwrap();
+    let mut native_thunks = vm.native_thunks.lock().unwrap();
     let ptr = internal_fct.ptr;
 
-    if let Some(jit_fct_id) = native_fcts.find_fct(ptr) {
+    if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
         let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
         jit_fct.fct_ptr()
     } else {
@@ -1920,7 +1920,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
             );
         }
 
-        native_fcts.insert_fct(ptr, jit_fct_id);
+        native_thunks.insert_fct(ptr, jit_fct_id);
         fct_start
     }
 }

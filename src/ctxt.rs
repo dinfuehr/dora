@@ -14,7 +14,7 @@ use driver::cmd::Args;
 use baseline;
 use baseline::dora_compile;
 use baseline::dora_entry;
-use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeFcts};
+use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
 use baseline::dora_throw;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::{CodeDescriptor, CodeMap};
@@ -95,7 +95,7 @@ pub struct SemContext<'ast> {
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
-    pub native_fcts: Mutex<NativeFcts>,
+    pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
@@ -159,11 +159,11 @@ impl<'ast> SemContext<'ast> {
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
-            native_fcts: Mutex::new(NativeFcts::new()),
             polling_page: PollingPage::new(),
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
+            native_thunks: Mutex::new(NativeThunks::new()),
             compiler_thunk: Mutex::new(Address::null()),
             dora_entry: Mutex::new(Address::null()),
             trap_thunk: Mutex::new(Address::null()),
