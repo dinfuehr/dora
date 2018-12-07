@@ -42,14 +42,14 @@ pub fn start(
         }
     }
 
-    let nworkers_stage = Arc::new(AtomicUsize::new(number_workers));
+    let terminator = Arc::new(Terminator::new(number_workers));
 
     for (task_id, worker) in workers.into_iter().enumerate() {
         let heap_region = heap.clone();
         let perm_region = perm.clone();
 
         let stealers = stealers.clone();
-        let nworkers_stage = nworkers_stage.clone();
+        let terminator = terminator.clone();
 
         threadpool.execute(move || {
             let mut task = MarkingTask {
@@ -57,7 +57,7 @@ pub fn start(
                 local: Segment::new(),
                 worker: worker,
                 stealers: stealers,
-                nworkers: nworkers_stage,
+                terminator: terminator,
                 heap_region: heap_region,
                 perm_region: perm_region,
                 marked: 0,
@@ -70,12 +70,54 @@ pub fn start(
     threadpool.join();
 }
 
+pub struct Terminator {
+    nworkers: AtomicUsize,
+}
+
+impl Terminator {
+    pub fn new(number_workers: usize) -> Terminator {
+        Terminator {
+            nworkers: AtomicUsize::new(number_workers),
+        }
+    }
+
+    pub fn try_terminate(&self) -> bool {
+        self.decrease_workers();
+        thread::sleep(Duration::from_micros(1));
+        self.zero_or_increase_workers()
+    }
+
+    fn decrease_workers(&self) -> bool {
+        self.nworkers.fetch_sub(1, Ordering::SeqCst) == 1
+    }
+
+    fn zero_or_increase_workers(&self) -> bool {
+        let mut nworkers = self.nworkers.load(Ordering::Relaxed);
+
+        loop {
+            if nworkers == 0 {
+                return true;
+            }
+
+            let prev_nworkers =
+                self.nworkers
+                    .compare_and_swap(nworkers, nworkers + 1, Ordering::SeqCst);
+
+            if nworkers == prev_nworkers {
+                return false;
+            }
+
+            nworkers = prev_nworkers;
+        }
+    }
+}
+
 struct MarkingTask {
     task_id: usize,
     local: Segment,
     worker: Worker<Address>,
     stealers: Vec<Stealer<Address>>,
-    nworkers: Arc<AtomicUsize>,
+    terminator: Arc<Terminator>,
     heap_region: Region,
     perm_region: Region,
     marked: usize,
@@ -142,7 +184,7 @@ impl MarkingTask {
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
                 object_addr
-            } else if self.try_terminate() {
+            } else if self.terminator.try_terminate() {
                 break;
             } else {
                 continue;
@@ -154,12 +196,6 @@ impl MarkingTask {
                 self.trace(field);
             });
         }
-    }
-
-    fn try_terminate(&mut self) -> bool {
-        decrease_workers(self.nworkers.as_ref());
-        thread::sleep(Duration::from_micros(1));
-        zero_or_increase_workers(self.nworkers.as_ref())
     }
 
     fn trace(&mut self, slot: Slot) {
@@ -188,28 +224,6 @@ impl MarkingTask {
         } else {
             debug_assert!(field_addr.is_null() || self.perm_region.contains(field_addr));
         }
-    }
-}
-
-fn decrease_workers(atomic: &AtomicUsize) -> bool {
-    atomic.fetch_sub(1, Ordering::SeqCst) == 1
-}
-
-fn zero_or_increase_workers(atomic: &AtomicUsize) -> bool {
-    let mut nworkers = atomic.load(Ordering::Relaxed);
-
-    loop {
-        if nworkers == 0 {
-            return true;
-        }
-
-        let prev_nworkers = atomic.compare_and_swap(nworkers, nworkers + 1, Ordering::SeqCst);
-
-        if nworkers == prev_nworkers {
-            return false;
-        }
-
-        nworkers = prev_nworkers;
     }
 }
 

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use class::{ClassId, TypeParamId, TypeParams};
-use ctxt::{FctId, StructId, TraitId};
 use ctxt::VM;
+use ctxt::{FctId, StructId, TraitId};
 use mem;
 use semck;
 

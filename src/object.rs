@@ -19,7 +19,7 @@ use vtable::VTable;
 #[repr(C)]
 pub struct Header {
     // ptr to class
-    vtable: *mut VTable,
+    vtable: AtomicUsize,
 
     // forwarding ptr
     // (used during mark-compact)
@@ -34,7 +34,7 @@ impl Header {
     #[cfg(test)]
     fn new() -> Header {
         Header {
-            vtable: ptr::null_mut(),
+            vtable: AtomicUsize::new(0),
             fwdptr: AtomicUsize::new(0),
         }
     }
@@ -46,28 +46,34 @@ impl Header {
 
     #[inline(always)]
     pub fn vtblptr(&self) -> Address {
-        Address::from_ptr(self.vtable)
+        self.vtable.load(Ordering::Relaxed).into()
+    }
+
+    pub fn set_vtblptr(&mut self, addr: Address) {
+        self.vtable.store(addr.to_usize(), Ordering::Relaxed);
     }
 
     #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
-        unsafe { &mut *self.vtable }
+        unsafe { &mut *self.vtblptr().to_mut_ptr::<VTable>() }
     }
 
     #[inline(always)]
-    pub fn vtbl_forward_to(&mut self, address: Address) {
-        self.vtable = (self.vtable as usize | 1) as *mut VTable;
+    pub fn vtbl_forward_to_non_atomic(&mut self, address: Address) {
+        let old = self.vtable.load(Ordering::Relaxed);
+        self.vtable.store(old | 1, Ordering::Relaxed);
         self.set_fwdptr_non_atomic(address);
     }
 
     #[inline(always)]
-    pub fn vtbl_clear_forwarding(&mut self) {
-        self.vtable = (self.vtable as usize & !1) as *mut VTable;
+    pub fn vtbl_clear_forwarding_non_atomic(&mut self) {
+        let old = self.vtable.load(Ordering::Relaxed);
+        self.vtable.store(old & !1, Ordering::Relaxed);
     }
 
     #[inline(always)]
-    pub fn vtbl_forwarded(&self) -> Option<Address> {
-        let addr = self.vtable as usize;
+    pub fn vtbl_forwarded_non_atomic(&self) -> Option<Address> {
+        let addr = self.vtable.load(Ordering::Relaxed);
 
         if (addr & 1) == 1 {
             Some(self.fwdptr_non_atomic())
@@ -496,7 +502,7 @@ where
     let cls = vm.class_defs[clsid].borrow();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Str> = ptr.into();
-    handle.header_mut().vtable = vtable as *mut VTable;
+    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
 }
@@ -594,7 +600,7 @@ where
         let cls = vm.class_defs[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
-        handle.header_mut().vtable = vtable as *mut VTable;
+        handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -637,7 +643,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
     let ptr = vm.gc.alloc(vm, size, false).to_usize();
     let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
     let mut handle: Handle<Obj> = ptr.into();
-    handle.header_mut().vtable = vtable as *mut VTable;
+    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
 }

@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use ctxt::VM;
+use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;

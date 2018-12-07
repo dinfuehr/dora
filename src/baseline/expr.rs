@@ -10,8 +10,8 @@ use class::{ClassDefId, ClassSize, FieldId, TypeParams};
 use cpu::{
     FReg, Mem, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_TMP1, REG_TMP2,
 };
-use ctxt::*;
 use ctxt::VM;
+use ctxt::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;

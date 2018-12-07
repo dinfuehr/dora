@@ -9,7 +9,8 @@ use gc::swiper::Swiper;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
-use object::Obj;
+use object::{Header, Obj};
+use vtable::VTable;
 
 pub mod arena;
 pub mod bump;
@@ -386,5 +387,41 @@ impl GcReason {
 impl fmt::Display for GcReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message())
+    }
+}
+
+pub fn fill_region(vm: &VM, start: Address, end: Address) {
+    if start == end {
+        // nothing to do
+
+    } else if end.offset_from(start) == mem::ptr_width_usize() {
+        unsafe {
+            *start.to_mut_ptr::<usize>() = 0;
+        }
+    } else if end.offset_from(start) == Header::size() as usize {
+        // fill with object
+        let cls_id = vm.vips.obj(vm);
+        let cls = vm.class_defs[cls_id].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+        }
+    } else {
+        // fill with int array
+        let cls_id = vm.vips.int_array(vm);
+        let cls = vm.class_defs[cls_id].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        // determine of header+length in bytes
+        let header_size = Header::size() as usize + mem::ptr_width_usize();
+
+        // calculate int array length
+        let length: usize = end.offset_from(start.offset(header_size)) / 4;
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+            *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
+        }
     }
 }

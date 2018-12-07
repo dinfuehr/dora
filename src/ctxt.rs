@@ -89,8 +89,8 @@ pub struct SemContext<'ast> {
     pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
-    pub traits: Vec<RwLock<TraitData>>,      // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,        // stores all impl definitions
+    pub traits: Vec<RwLock<TraitData>>,       // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,         // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc,                               // garbage collector

@@ -11,7 +11,6 @@ use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
-use gc::swiper::pminor::ParMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
@@ -29,7 +28,6 @@ mod marking;
 mod minor;
 pub mod old;
 mod paged_old;
-mod pminor;
 mod verify;
 pub mod young;
 
@@ -198,19 +196,13 @@ impl Swiper {
         let rootset = get_rootset(vm);
 
         self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset);
-
-        let promotion_failed = if vm.args.flag_gc_parallel_minor {
-            self.par_minor_collect(vm, reason, &rootset)
-        } else {
-            self.serial_minor_collect(vm, reason, &rootset)
-        };
-
+        let promotion_failed = self.minor_collect(vm, reason, &rootset);
         self.verify(vm, VerifierPhase::PostMinor, "post-minor", &rootset);
 
         promotion_failed
     }
 
-    fn serial_minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = MinorCollector::new(
             vm,
             &self.young,
@@ -223,21 +215,7 @@ impl Swiper {
             self.min_heap_size,
             self.max_heap_size,
             &self.stats,
-        );
-        collector.collect()
-    }
-
-    fn par_minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
-        let mut collector = ParMinorCollector::new(
-            vm,
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            rootset,
-            reason,
-            vm.args.flag_gc_worker,
+            &self.threadpool,
         );
         collector.collect()
     }

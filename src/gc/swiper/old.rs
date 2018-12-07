@@ -1,10 +1,11 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use ctxt::VM;
 use gc::arena;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
-use gc::{Address, Region};
+use gc::{fill_region, Address, Region};
 use mem;
 use object::offset_of_array_data;
 
@@ -77,6 +78,15 @@ impl OldGen {
 
     pub fn top(&self) -> Address {
         self.top.load(Ordering::Relaxed).into()
+    }
+
+    pub fn align_to_card(&self, vm: &VM) -> Address {
+        let ctop = self.top();
+        let ntop = mem::align_usize(ctop.to_usize(), CARD_SIZE).into();
+        fill_region(vm, ctop, ntop);
+
+        self.update_top(ntop);
+        ntop
     }
 
     pub fn update_top(&self, top: Address) {

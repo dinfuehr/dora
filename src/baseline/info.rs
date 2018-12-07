@@ -3,11 +3,11 @@ use std::collections::HashMap;
 
 use class::TypeParams;
 use cpu::*;
+use ctxt::VM;
 use ctxt::{
     Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
     TraitId, VarId,
 };
-use ctxt::VM;
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
 use dora_parser::ast::Stmt::*;

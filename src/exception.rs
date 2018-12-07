@@ -2,8 +2,8 @@ use std::ptr;
 
 use baseline::fct::{CatchType, JitFctId};
 use baseline::map::CodeDescriptor;
-use ctxt::{get_vm, VM};
 use cpu::fp_from_execstate;
+use ctxt::{get_vm, VM};
 use execstate::ExecState;
 use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
 use os::signal::Trap;
