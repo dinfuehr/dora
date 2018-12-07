@@ -167,7 +167,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .expect("impl not found for Iterator");
 
                 // find method in impl that implements next()
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 let impl_next_id = ximpl
                     .find_implements(self.ctxt, next_id)
                     .expect("next() impl not found");
@@ -1101,7 +1101,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 let ty = self.ctxt.classes[ximpl.cls_id()].borrow().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
@@ -1870,7 +1870,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls_id = match fct.parent {
             FctParent::Class(cls_id) => Some(cls_id),
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 Some(ximpl.cls_id())
             }
             _ => None,
@@ -2162,7 +2162,7 @@ fn lookup_method<'ast>(
             let cls_id = match method.parent {
                 FctParent::Class(cls_id) => cls_id,
                 FctParent::Impl(impl_id) => {
-                    let ximpl = ctxt.impls[impl_id].borrow();
+                    let ximpl = ctxt.impls[impl_id].read().unwrap();
                     ximpl.cls_id()
                 }
 

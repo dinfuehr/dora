@@ -90,7 +90,7 @@ pub struct SemContext<'ast> {
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
     pub traits: Vec<RwLock<TraitData>>,      // stores all trait definitions
-    pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
+    pub impls: Vec<RwLock<ImplData>>,        // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc,                               // garbage collector
@@ -442,10 +442,10 @@ impl ImplData {
     }
 }
 
-impl Index<ImplId> for Vec<RefCell<ImplData>> {
-    type Output = RefCell<ImplData>;
+impl Index<ImplId> for Vec<RwLock<ImplData>> {
+    type Output = RwLock<ImplData>;
 
-    fn index(&self, index: ImplId) -> &RefCell<ImplData> {
+    fn index(&self, index: ImplId) -> &RwLock<ImplData> {
         &self[index.0 as usize]
     }
 }

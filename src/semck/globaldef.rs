@@ -100,7 +100,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
         };
 
-        self.ctxt.impls.push(RefCell::new(ximpl));
+        self.ctxt.impls.push(RwLock::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
     }
 

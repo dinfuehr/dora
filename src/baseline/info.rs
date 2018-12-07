@@ -302,7 +302,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             FctParent::Class(clsid) => self.vm.classes[clsid].borrow().ty,
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.vm.impls[impl_id].borrow();
+                let ximpl = self.vm.impls[impl_id].read().unwrap();
                 self.vm.classes[ximpl.cls_id()].borrow().ty
             }
 
@@ -470,7 +470,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         let cls = self.vm.classes[cls_id].borrow();
 
         for &impl_id in &cls.impls {
-            let ximpl = self.vm.impls[impl_id].borrow();
+            let ximpl = self.vm.impls[impl_id].read().unwrap();
 
             if ximpl.trait_id() != trait_id {
                 continue;

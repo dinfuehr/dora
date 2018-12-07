@@ -97,7 +97,7 @@ impl Class {
 
     pub fn find_impl_for_trait(&self, vm: &VM, trait_id: TraitId) -> Option<ImplId> {
         for &impl_id in &self.impls {
-            let ximpl = vm.impls[impl_id].borrow();
+            let ximpl = vm.impls[impl_id].read().unwrap();
 
             if ximpl.trait_id == Some(trait_id) {
                 return Some(impl_id);
@@ -184,7 +184,7 @@ impl Class {
             let cls = vm.classes[classid].borrow();
 
             for &impl_id in &cls.impls {
-                let ximpl = vm.impls[impl_id].borrow();
+                let ximpl = vm.impls[impl_id].read().unwrap();
 
                 for &method in &ximpl.methods {
                     let method = vm.fcts[method].borrow();
