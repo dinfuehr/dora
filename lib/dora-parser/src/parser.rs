@@ -1621,8 +1621,7 @@ impl NodeIdGenerator {
     }
 }
 
-#[cfg(test)]
-mod tests {
+pub mod tests {
     use ast::*;
     use interner::*;
 
@@ -1707,7 +1706,7 @@ mod tests {
         (ty, interner)
     }
 
-    fn parse(code: &'static str) -> (Ast, Interner) {
+    pub fn parse(code: &'static str) -> (Ast, Interner) {
         let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
         let mut ast = Ast::new();

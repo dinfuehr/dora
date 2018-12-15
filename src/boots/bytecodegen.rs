@@ -6,7 +6,9 @@ use dora_parser::ast::Stmt::*;
 use dora_parser::interner::Name;
 use dora_parser::ast::visit::Visitor;
 
+#[derive(PartialEq,Debug)]
 pub struct Register(usize);
+#[derive(PartialEq,Debug)]
 pub struct Label(usize);
 
 pub struct Context {
@@ -36,6 +38,7 @@ pub struct LoopLabels {
     end: Label
 }
 
+#[derive(PartialEq,Debug)]
 pub enum Bytecode {
     Add(Register),
     BitwiseAnd(Register),
@@ -110,6 +113,66 @@ impl BytecodeGen {
 
     pub fn gen(&mut self, ast: &Ast) {
         self.visit_ast(ast);
+    }
+
+    pub fn dump(&self) {
+        for btcode in self.code.iter() {
+            match btcode {
+                Bytecode::Add(Register(register)) =>
+                    println!("Add {}", register),
+                Bytecode::BitwiseAnd(Register(register)) =>
+                    println!("BitwiseAnd {}", register),
+                Bytecode::BitwiseOr(Register(register)) =>
+                    println!("BitwiseOr {}", register),
+                Bytecode::BitwiseXor(Register(register)) =>
+                    println!("BitwiseXor {}", register),
+                Bytecode::Div(Register(register)) =>
+                    println!("Div {}", register),
+                Bytecode::Ldar(Register(register)) =>
+                    println!("Ldar {}", register),
+                Bytecode::LdaInt(value) =>
+                    println!("LdaInt {}", value),
+                Bytecode::LdaZero =>
+                    println!("LdaZero"),
+                Bytecode::LogicalNot =>
+                    println!("LogicalNot"),
+                Bytecode::Star(Register(register)) =>
+                    println!("Star {}", register),
+                Bytecode::JumpIfFalse(Label(label)) =>
+                    println!("JumpIfFalse {}", label),
+                Bytecode::Jump(Label(label)) =>
+                    println!("Jump {}", label),
+                Bytecode::Mod(Register(register)) =>
+                    println!("Mod {}", register),
+                Bytecode::Mul(Register(register)) =>
+                    println!("Mul {}", register),
+                Bytecode::Neg =>
+                    println!("Neg"),
+                Bytecode::ShiftLeft(Register(register)) =>
+                    println!("ShiftLeft {}", register),
+                Bytecode::ShiftRight(Register(register)) =>
+                    println!("ShiftRight {}", register),
+                Bytecode::Sub(Register(register)) =>
+                    println!("Sub {}", register),
+                Bytecode::Return =>
+                    println!("Return"),
+                Bytecode::ReturnVoid =>
+                    println!("ReturnVoid"),
+                Bytecode::TestEqual(Register(register)) =>
+                    println!("TestEqual {}", register),
+                Bytecode::TestGreatherThan(Register(register)) =>
+                    println!("TestGreaterThan {}", register),
+                Bytecode::TestGreatherThanOrEqual(Register(register)) =>
+                    println!("TestGreatherThanOrEqual {}", register),
+                Bytecode::TestLessThan(Register(register)) =>
+                    println!("TestLessThan {}", register),
+                Bytecode::TestLessThanOrEqual(Register(register)) =>
+                    println!("TestLessThanOrEqual {}", register),
+                Bytecode::TestNotEqual(Register(register)) =>
+                    println!("TestNotEqual {}", register),
+            }
+        }
+
     }
 
     pub fn get_reg(&self, var: Name) -> Option<&Register> {
@@ -321,5 +384,59 @@ impl BytecodeGen {
     fn visit_expr_ident(&mut self, ident: &ExprIdentType) {
         let Register(reg) = *self.get_reg(ident.name).unwrap();
         self.code.push(Bytecode::Ldar(Register(reg)));
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use boots::bytecodegen::*;
+
+    #[test]
+    fn gen_add() {
+        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 + 2;}");
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
+        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
+        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
+        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
+        assert_eq!(Bytecode::Add(Register(0)), bytecodegen.code[3]);
+        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+    }
+
+    #[test]
+    fn gen_sub() {
+        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 - 2;}");
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
+        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
+        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
+        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
+        assert_eq!(Bytecode::Sub(Register(0)), bytecodegen.code[3]);
+        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+    }
+
+    #[test]
+    fn gen_div() {
+        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 / 2;}");
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
+        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
+        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
+        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
+        assert_eq!(Bytecode::Div(Register(0)), bytecodegen.code[3]);
+        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+    }
+
+    #[test]
+    fn gen_mul() {
+        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 * 2;}");
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
+        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
+        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
+        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
+        assert_eq!(Bytecode::Mul(Register(0)), bytecodegen.code[3]);
+        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
     }
 }
