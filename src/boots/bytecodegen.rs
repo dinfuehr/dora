@@ -8,8 +8,16 @@ use dora_parser::ast::visit::Visitor;
 
 #[derive(PartialEq,Debug)]
 pub struct Register(usize);
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq,Debug,Eq,Hash)]
 pub struct Label(usize);
+
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
 
 pub struct Context {
     var_map: HashMap<Name, Register>,
@@ -72,7 +80,7 @@ pub struct BytecodeGen {
     code: Vec<Bytecode>,
     ctxs: Vec<Context>,
     loops: Vec<LoopLabels>,
-    labels: HashMap<usize, usize>,
+    labels: HashMap<Label, usize>,
     regs: usize,
 }
 
@@ -94,7 +102,7 @@ impl<'ast> visit::Visitor<'ast> for BytecodeGen {
             self.visit_stmt(block);
         }
 
-        if f.return_type.is_none() {
+        if self.code.len() == 0 || self.code.last().unwrap() != &Bytecode::Return {
             self.code.push(Bytecode::ReturnVoid);
         }
     }
@@ -116,61 +124,63 @@ impl BytecodeGen {
     }
 
     pub fn dump(&self) {
+        let mut btidx = 0;
         for btcode in self.code.iter() {
             match btcode {
                 Bytecode::Add(Register(register)) =>
-                    println!("Add {}", register),
+                    println!("{}: Add {}", btidx, register),
                 Bytecode::BitwiseAnd(Register(register)) =>
-                    println!("BitwiseAnd {}", register),
+                    println!("{}: BitwiseAnd {}", btidx, register),
                 Bytecode::BitwiseOr(Register(register)) =>
-                    println!("BitwiseOr {}", register),
+                    println!("{}: BitwiseOr {}", btidx, register),
                 Bytecode::BitwiseXor(Register(register)) =>
-                    println!("BitwiseXor {}", register),
+                    println!("{}: BitwiseXor {}", btidx, register),
                 Bytecode::Div(Register(register)) =>
-                    println!("Div {}", register),
+                    println!("{}: Div {}", btidx, register),
                 Bytecode::Ldar(Register(register)) =>
-                    println!("Ldar {}", register),
+                    println!("{}: Ldar {}", btidx, register),
                 Bytecode::LdaInt(value) =>
-                    println!("LdaInt {}", value),
+                    println!("{}: LdaInt {}", btidx, value),
                 Bytecode::LdaZero =>
-                    println!("LdaZero"),
+                    println!("{}: LdaZero", btidx),
                 Bytecode::LogicalNot =>
-                    println!("LogicalNot"),
+                    println!("{}: LogicalNot", btidx),
                 Bytecode::Star(Register(register)) =>
-                    println!("Star {}", register),
-                Bytecode::JumpIfFalse(Label(label)) =>
-                    println!("JumpIfFalse {}", label),
-                Bytecode::Jump(Label(label)) =>
-                    println!("Jump {}", label),
+                    println!("{}: Star {}", btidx, register),
+                Bytecode::JumpIfFalse(label) =>
+                    println!("{}: JumpIfFalse {}", btidx, self.labels.get(label).unwrap()),
+                Bytecode::Jump(label) =>
+                    println!("{}: Jump {}", btidx, self.labels.get(label).unwrap()),
                 Bytecode::Mod(Register(register)) =>
-                    println!("Mod {}", register),
+                    println!("{}: Mod {}", btidx, register),
                 Bytecode::Mul(Register(register)) =>
-                    println!("Mul {}", register),
+                    println!("{}: Mul {}", btidx, register),
                 Bytecode::Neg =>
-                    println!("Neg"),
+                    println!("{}: Neg", btidx),
                 Bytecode::ShiftLeft(Register(register)) =>
-                    println!("ShiftLeft {}", register),
+                    println!("{}: ShiftLeft {}", btidx, register),
                 Bytecode::ShiftRight(Register(register)) =>
-                    println!("ShiftRight {}", register),
+                    println!("{}: ShiftRight {}", btidx, register),
                 Bytecode::Sub(Register(register)) =>
-                    println!("Sub {}", register),
+                    println!("{}: Sub {}", btidx, register),
                 Bytecode::Return =>
-                    println!("Return"),
+                    println!("{}: Return", btidx),
                 Bytecode::ReturnVoid =>
-                    println!("ReturnVoid"),
+                    println!("{}: ReturnVoid", btidx),
                 Bytecode::TestEqual(Register(register)) =>
-                    println!("TestEqual {}", register),
+                    println!("{}: TestEqual {}", btidx, register),
                 Bytecode::TestGreatherThan(Register(register)) =>
-                    println!("TestGreaterThan {}", register),
+                    println!("{}: TestGreaterThan {}", btidx, register),
                 Bytecode::TestGreatherThanOrEqual(Register(register)) =>
-                    println!("TestGreatherThanOrEqual {}", register),
+                    println!("{}: TestGreatherThanOrEqual {}", btidx, register),
                 Bytecode::TestLessThan(Register(register)) =>
-                    println!("TestLessThan {}", register),
+                    println!("{}: TestLessThan {}", btidx, register),
                 Bytecode::TestLessThanOrEqual(Register(register)) =>
-                    println!("TestLessThanOrEqual {}", register),
+                    println!("{}: TestLessThanOrEqual {}", btidx, register),
                 Bytecode::TestNotEqual(Register(register)) =>
-                    println!("TestNotEqual {}", register),
+                    println!("{}: TestNotEqual {}", btidx, register),
             }
+            btidx = btidx + 1;
         }
 
     }
@@ -225,14 +235,14 @@ impl BytecodeGen {
         let end_lbl = cond_lbl + 1;
         self.loops.push(LoopLabels{ cond: Label(cond_lbl), end: Label(end_lbl)});
 
-        self.labels.insert(cond_lbl, self.code.len());
-        self.labels.insert(end_lbl, 0); // Just a place holder
+        self.labels.insert(Label(cond_lbl), self.code.len());
+        self.labels.insert(Label(end_lbl), 0); // Just a place holder
 
         self.visit_expr(&stmt.cond);
         self.code.push(Bytecode::JumpIfFalse(Label(end_lbl)));
         self.visit_stmt(&stmt.block);
         self.code.push(Bytecode::Jump(Label(cond_lbl)));
-        self.labels.insert(end_lbl, self.code.len());
+        self.labels.insert(Label(end_lbl), self.code.len());
         self.loops.pop();
     }
 
@@ -240,16 +250,19 @@ impl BytecodeGen {
         let else_lbl = self.labels.len();
         let end_lbl = else_lbl + 1;
 
-        self.labels.insert(else_lbl, 0); // Just a place holder
-        self.labels.insert(end_lbl, 0);  // Just a place holder
+        self.labels.insert(Label(else_lbl), 0); // Just a place holder
+        self.labels.insert(Label(end_lbl), 0);  // Just a place holder
 
         self.visit_expr(&stmt.cond);
         self.code.push(Bytecode::JumpIfFalse(Label(else_lbl)));
         self.visit_stmt(&stmt.then_block);
         self.code.push(Bytecode::Jump(Label(end_lbl)));
-        self.labels.insert(else_lbl, self.code.len());
-        self.visit_stmt(&stmt.then_block);
-        self.labels.insert(end_lbl, self.code.len());
+        self.labels.insert(Label(else_lbl), self.code.len());
+        match &stmt.else_block {
+            Some(else_block) => { self.visit_stmt(&else_block); },
+            _ => {},
+        }
+        self.labels.insert(Label(end_lbl), self.code.len());
     }
 
     fn visit_stmt_expr(&mut self, stmt: &StmtExprType) {
@@ -311,7 +324,11 @@ impl BytecodeGen {
     }
 
     fn visit_expr_lit_int(&mut self, lit: &ExprLitIntType) {
-        self.code.push(Bytecode::LdaInt(lit.value));
+        if lit.value == 0 {
+            self.code.push(Bytecode::LdaZero);
+        } else {
+            self.code.push(Bytecode::LdaInt(lit.value));
+        }
     }
 
     fn visit_expr_un(&mut self, expr: &ExprUnType) {
@@ -354,12 +371,12 @@ impl BytecodeGen {
                     CmpOp::Le => {
                         self.code.push(
                             Bytecode::TestLessThanOrEqual(Register(rhs_reg))) },
-                    CmpOp::Ge => {
-                        self.code.push(
-                            Bytecode::TestGreatherThan(Register(rhs_reg))) },
                     CmpOp::Gt => {
                         self.code.push(
-                            Bytecode::TestGreatherThanOrEqual (Register(rhs_reg))) },
+                            Bytecode::TestGreatherThan(Register(rhs_reg))) },
+                    CmpOp::Ge => {
+                        self.code.push(
+                            Bytecode::TestGreatherThanOrEqual(Register(rhs_reg))) },
                     // CmpOp::Is => { },
                     // CmpOp::IsNot => { },
                     _ => unimplemented!(),
@@ -391,52 +408,465 @@ impl BytecodeGen {
 #[cfg(test)]
 mod tests {
     use boots::bytecodegen::*;
+    use boots::bytecodegen::Bytecode::*;
+
+    #[test]
+    fn gen_nooptimize() {
+        let (ast, _) = dora_parser::parser::tests::parse("fun f() {1 + 2;}");
+        let mut bytecodegen = BytecodeGen::new();
+        bytecodegen.gen(&ast);
+        assert!(bytecodegen.code.is_empty());
+    }
 
     #[test]
     fn gen_add() {
-        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 + 2;}");
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() {1 + 2;}");
         let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            Add(Register(0)),
+            ReturnVoid];
         bytecodegen.gen(&ast);
-        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
-        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
-        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
-        assert_eq!(Bytecode::Add(Register(0)), bytecodegen.code[3]);
-        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+        assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_sub() {
-        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 - 2;}");
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() {1 - 2;}");
         let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            Sub(Register(0)),
+            ReturnVoid];
         bytecodegen.gen(&ast);
-        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
-        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
-        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
-        assert_eq!(Bytecode::Sub(Register(0)), bytecodegen.code[3]);
-        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+        assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_div() {
-        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 / 2;}");
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() {1 / 2;}");
         let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            Div(Register(0)),
+            ReturnVoid];
         bytecodegen.gen(&ast);
-        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
-        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
-        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
-        assert_eq!(Bytecode::Div(Register(0)), bytecodegen.code[3]);
-        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+        assert_eq!(expected, bytecodegen.code);
     }
 
     #[test]
     fn gen_mul() {
-        let (ast, _) = dora_parser::parser::tests::parse("optimize fun f() {1 * 2;}");
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() {1 * 2;}");
         let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            Mul(Register(0)),
+            ReturnVoid];
         bytecodegen.gen(&ast);
-        assert_eq!(Bytecode::LdaInt(2), bytecodegen.code[0]);
-        assert_eq!(Bytecode::Star(Register(0)), bytecodegen.code[1]);
-        assert_eq!(Bytecode::LdaInt(1), bytecodegen.code[2]);
-        assert_eq!(Bytecode::Mul(Register(0)), bytecodegen.code[3]);
-        assert_eq!(Bytecode::ReturnVoid, bytecodegen.code[4]);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_stmt_var_noinit() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { let x; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let mut expected = Vec::new();
+        expected.push(Bytecode::LdaZero);
+        expected.push(Bytecode::Star(Register(0)));
+        expected.push(Bytecode::ReturnVoid);
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+
+    }
+
+     #[test]
+    fn gen_stmt_var_init() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { let x = 1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(1),
+            Star(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_stmt_while() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { while 1 { 0; } }");
+        let mut bytecodegen = BytecodeGen::new();
+        let code = vec![
+            LdaInt(1),
+            JumpIfFalse(Label(1)),
+            LdaZero,
+            Jump(Label(0)),
+            ReturnVoid];
+        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        bytecodegen.gen(&ast);
+        assert_eq!(code, bytecodegen.code);
+        assert_eq!(labels, bytecodegen.labels);
+    }
+
+    #[test]
+    fn gen_stmt_if() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { if 0 { 1; } }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaZero,
+            JumpIfFalse(Label(0)),
+            LdaInt(1),
+            Jump(Label(1)),
+            ReturnVoid];
+        let labels = hashmap![Label(0) => 4, Label(1) => 4];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+        assert_eq!(labels, bytecodegen.labels);
+    }
+
+    #[test]
+    fn gen_stmt_if_else() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { if 0 { 1; } else { 2; } }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaZero,
+            JumpIfFalse(Label(0)),
+            LdaInt(1),
+            Jump(Label(1)),
+            LdaInt(2),
+            ReturnVoid];
+        let labels = hashmap![Label(0) => 4, Label(1) => 5];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+        assert_eq!(labels, bytecodegen.labels);
+    }
+
+    #[test]
+    fn gen_stmt_break() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { while 1 { break; } }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(1),
+            JumpIfFalse(Label(1)),
+            Jump(Label(1)),
+            Jump(Label(0)),
+            ReturnVoid];
+        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+        assert_eq!(labels, bytecodegen.labels);
+    }
+
+    #[test]
+    fn gen_stmt_continue() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { while 1 { continue; } }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(1),
+            JumpIfFalse(Label(1)),
+            Jump(Label(0)),
+            Jump(Label(0)),
+            ReturnVoid];
+        let labels = hashmap![Label(0) => 0, Label(1) => 4];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+        assert_eq!(labels, bytecodegen.labels);
+    }
+
+    #[test]
+    fn gen_expr_lit_int() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaInt(1), ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_lit_zero() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 0; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaZero, ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_puls() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { +1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaInt(1), ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_neg() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { -1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaInt(1), Neg, ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_not() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { !1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaInt(1), LogicalNot, ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_mod() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 % 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            Mod(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_bit_or() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 | 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            BitwiseOr(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_bit_and() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 & 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            BitwiseAnd(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_bit_xor() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 ^ 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            BitwiseXor(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_bit_shiftl() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 << 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            ShiftLeft(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_bit_shiftr() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 >> 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            ShiftRight(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_equal() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 == 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestEqual(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_notequal() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 != 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestNotEqual(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_lessthan() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 < 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestLessThan(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_lessthanequal() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 <= 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestLessThanOrEqual(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_greaterthan() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 > 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestGreatherThan(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_test_greaterthanequall() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { 1 >= 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(2),
+            Star(Register(0)),
+            LdaInt(1),
+            TestGreatherThanOrEqual(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_ident() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { let x = 1; x; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(1),
+            Star(Register(0)),
+            Ldar(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_assign() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { var x = 1; x = 2; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![
+            LdaInt(1),
+            Star(Register(0)),
+            LdaInt(2),
+            Star(Register(0)),
+            ReturnVoid];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_return() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { return 1; }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ LdaInt(1), Return ];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
+    }
+
+    #[test]
+    fn gen_expr_returnvoid() {
+        let (ast, _) = dora_parser::parser::tests::parse("
+            optimize fun f() { }");
+        let mut bytecodegen = BytecodeGen::new();
+        let expected = vec![ ReturnVoid ];
+        bytecodegen.gen(&ast);
+        assert_eq!(expected, bytecodegen.code);
     }
 }
