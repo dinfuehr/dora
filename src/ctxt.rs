@@ -14,7 +14,7 @@ use driver::cmd::Args;
 use baseline;
 use baseline::dora_compile;
 use baseline::dora_entry;
-use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeFcts};
+use baseline::dora_native::{self, InternalFct, InternalFctDescriptor, NativeThunks};
 use baseline::dora_throw;
 use baseline::fct::{JitFct, JitFctId};
 use baseline::map::{CodeDescriptor, CodeMap};
@@ -35,7 +35,6 @@ use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
-pub static mut CTXT: Option<*const u8> = None;
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
 pub fn has_exception() -> bool {
@@ -60,9 +59,21 @@ pub fn exception_set(val: *const u8) {
     }
 }
 
-pub fn get_ctxt() -> &'static SemContext<'static> {
-    unsafe { &*(CTXT.unwrap() as *const SemContext) }
+static mut VM_GLOBAL: *const u8 = ptr::null();
+
+pub fn get_vm() -> &'static VM<'static> {
+    unsafe { &*(VM_GLOBAL as *const VM) }
 }
+
+pub fn set_vm(vm: &VM) {
+    let ptr = vm as *const _ as *const u8;
+
+    unsafe {
+        VM_GLOBAL = ptr;
+    }
+}
+
+pub type VM<'ast> = SemContext<'ast>;
 
 pub struct SemContext<'ast> {
     pub args: Args,
@@ -78,21 +89,21 @@ pub struct SemContext<'ast> {
     pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
     pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
-    pub traits: Vec<RefCell<TraitData>>,      // stores all trait definitions
-    pub impls: Vec<RefCell<ImplData>>,        // stores all impl definitions
+    pub traits: Vec<RwLock<TraitData>>,       // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,         // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
     pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
-    pub native_fcts: Mutex<NativeFcts>,
-    pub compiler_thunk: Address,
+    pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
     pub lists: RefCell<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
-    pub dora_entry: Address,
-    pub trap_thunk: Address,
-    pub throw_thunk: Address,
+    pub compiler_thunk: Mutex<Address>,
+    pub dora_entry: Mutex<Address>,
+    pub trap_thunk: Mutex<Address>,
+    pub throw_thunk: Mutex<Address>,
     pub tld: RefCell<ThreadLocalData>,
 }
 
@@ -102,7 +113,7 @@ impl<'ast> SemContext<'ast> {
         let empty_trait_id: TraitId = 0.into();
         let gc = Gc::new(&args);
 
-        let mut ctxt = Box::new(SemContext {
+        let ctxt = Box::new(SemContext {
             args: args,
             consts: GrowableVec::new(),
             structs: GrowableVec::new(),
@@ -148,54 +159,35 @@ impl<'ast> SemContext<'ast> {
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
-            native_fcts: Mutex::new(NativeFcts::new()),
-            compiler_thunk: Address::null(),
             polling_page: PollingPage::new(),
             lists: RefCell::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
-            dora_entry: Address::null(),
-            trap_thunk: Address::null(),
-            throw_thunk: Address::null(),
+            native_thunks: Mutex::new(NativeThunks::new()),
+            compiler_thunk: Mutex::new(Address::null()),
+            dora_entry: Mutex::new(Address::null()),
+            trap_thunk: Mutex::new(Address::null()),
+            throw_thunk: Mutex::new(Address::null()),
             tld: RefCell::new(ThreadLocalData::new()),
         });
 
-        {
-            let ptr = &ctxt as &SemContext as *const SemContext as *const u8;
-
-            unsafe {
-                CTXT = Some(ptr);
-            }
-        }
-
-        ctxt.dora_entry = dora_entry::generate(&ctxt);
-        ctxt.compiler_thunk = dora_compile::generate(&ctxt);
-        ctxt.throw_thunk = dora_throw::generate(&ctxt);
-
-        let ifct = InternalFct {
-            ptr: stdlib::trap as *const u8,
-            args: &[BuiltinType::Int],
-            return_type: BuiltinType::Unit,
-            throws: false,
-            desc: InternalFctDescriptor::TrapThunk,
-        };
-        let jit_fct_id = dora_native::generate(&ctxt, ifct, false);
-        let fct_ptr = ctxt.jit_fcts[jit_fct_id].borrow().fct_ptr();
-        ctxt.trap_thunk = Address::from_ptr(fct_ptr);
+        set_vm(&ctxt);
 
         ctxt
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
         let ptr = self.ensure_compiled(fct_id);
-        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(self.dora_entry) };
+        let dora_entry_thunk = self.dora_entry_thunk();
+        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(dora_entry_thunk) };
         fct(ptr)
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Handle<Testing>) {
         let ptr = self.ensure_compiled(fct_id);
+        let dora_entry_thunk = self.dora_entry_thunk();
         let fct: extern "C" fn(Address, Handle<Testing>) -> i32 =
-            unsafe { mem::transmute(self.dora_entry) };
+            unsafe { mem::transmute(dora_entry_thunk) };
         fct(ptr, testing);
     }
 
@@ -206,6 +198,10 @@ impl<'ast> SemContext<'ast> {
         self.use_dtn(&mut dtn, || {
             Address::from_ptr(baseline::generate(self, fct_id, &type_params, &type_params))
         })
+    }
+
+    pub fn dump_gc_summary(&self, runtime: f32) {
+        self.gc.dump_summary(runtime);
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
@@ -286,6 +282,55 @@ impl<'ast> SemContext<'ast> {
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
         let list_id = self.lists.borrow_mut().insert(TypeParams::empty());
         BuiltinType::Class(cls_id, list_id)
+    }
+
+    pub fn dora_entry_thunk(&self) -> Address {
+        let mut dora_entry_thunk = self.dora_entry.lock().unwrap();
+
+        if dora_entry_thunk.is_null() {
+            *dora_entry_thunk = dora_entry::generate(self);
+        }
+
+        *dora_entry_thunk
+    }
+
+    pub fn throw_thunk(&self) -> Address {
+        let mut throw_thunk = self.throw_thunk.lock().unwrap();
+
+        if throw_thunk.is_null() {
+            *throw_thunk = dora_throw::generate(self);
+        }
+
+        *throw_thunk
+    }
+
+    pub fn compiler_thunk(&self) -> Address {
+        let mut compiler_thunk = self.compiler_thunk.lock().unwrap();
+
+        if compiler_thunk.is_null() {
+            *compiler_thunk = dora_compile::generate(self);
+        }
+
+        *compiler_thunk
+    }
+
+    pub fn trap_thunk(&self) -> Address {
+        let mut trap_thunk = self.trap_thunk.lock().unwrap();
+
+        if trap_thunk.is_null() {
+            let ifct = InternalFct {
+                ptr: stdlib::trap as *const u8,
+                args: &[BuiltinType::Int],
+                return_type: BuiltinType::Unit,
+                throws: false,
+                desc: InternalFctDescriptor::TrapThunk,
+            };
+            let jit_fct_id = dora_native::generate(self, ifct, false);
+            let fct_ptr = self.jit_fcts[jit_fct_id].borrow().fct_ptr();
+            *trap_thunk = Address::from_ptr(fct_ptr);
+        }
+
+        *trap_thunk
     }
 }
 
@@ -397,10 +442,10 @@ impl ImplData {
     }
 }
 
-impl Index<ImplId> for Vec<RefCell<ImplData>> {
-    type Output = RefCell<ImplData>;
+impl Index<ImplId> for Vec<RwLock<ImplData>> {
+    type Output = RwLock<ImplData>;
 
-    fn index(&self, index: ImplId) -> &RefCell<ImplData> {
+    fn index(&self, index: ImplId) -> &RwLock<ImplData> {
         &self[index.0 as usize]
     }
 }
@@ -472,10 +517,10 @@ fn params_match(
     true
 }
 
-impl Index<TraitId> for Vec<RefCell<TraitData>> {
-    type Output = RefCell<TraitData>;
+impl Index<TraitId> for Vec<RwLock<TraitData>> {
+    type Output = RwLock<TraitData>;
 
-    fn index(&self, index: TraitId) -> &RefCell<TraitData> {
+    fn index(&self, index: TraitId) -> &RwLock<TraitData> {
         &self[index.0 as usize]
     }
 }

@@ -15,7 +15,13 @@ impl Timer {
         }
     }
 
-    pub fn stop_with<F>(&mut self, f: F) -> u64
+    pub fn stop(&self) -> f32 {
+        assert!(self.active);
+
+        in_ms(timestamp() - self.timestamp)
+    }
+
+    pub fn stop_with<F>(&self, f: F) -> u64
     where
         F: FnOnce(f32),
     {
@@ -50,6 +56,6 @@ pub fn in_ms(ns: u64) -> f32 {
     (ns as f32) / 1000.0 / 1000.0
 }
 
-fn timestamp() -> u64 {
+pub fn timestamp() -> u64 {
     time::precise_time_ns()
 }

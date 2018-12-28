@@ -8,54 +8,54 @@ use std::str;
 use std::thread;
 
 use class::TypeParams;
-use ctxt::{exception_set, get_ctxt};
+use ctxt::exception_set;
+use ctxt::get_vm;
 use exception::{alloc_exception, stacktrace_from_last_dtn};
 use gc::GcReason;
 use object::{ByteArray, Handle, Obj, Str};
 use os::signal::Trap;
-
 use sym::Sym::SymFct;
 
 pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn char_to_string(val: char) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn long_to_string(val: i64) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn float_to_string(val: f32) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn double_to_string(val: f64) -> Handle<Str> {
     let buffer = val.to_string();
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    Str::from_buffer(ctxt, buffer.as_bytes())
+    Str::from_buffer(vm, buffer.as_bytes())
 }
 
 pub extern "C" fn print(val: Handle<Str>) {
@@ -82,6 +82,12 @@ pub extern "C" fn exit(status: i32) {
     process::exit(status);
 }
 
+pub extern "C" fn timestamp() -> u64 {
+    use timer;
+
+    timer::timestamp()
+}
+
 pub extern "C" fn println(val: Handle<Str>) {
     print(val);
     println!("");
@@ -89,9 +95,9 @@ pub extern "C" fn println(val: Handle<Str>) {
 
 pub extern "C" fn throw_native(val: bool) {
     if val {
-        let ctxt = get_ctxt();
-        let obj = alloc_exception(ctxt, Handle::null());
-        let obj = ctxt.handles.root(obj);
+        let vm = get_vm();
+        let obj = alloc_exception(vm, Handle::null());
+        let obj = vm.handles.root(obj);
 
         exception_set(obj.direct().raw() as *const u8);
     }
@@ -101,15 +107,15 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let fct_name = fct.to_cstring();
     let fct_name = fct_name.to_str().unwrap();
 
-    let ctxt = get_ctxt();
-    let name = ctxt.interner.intern(fct_name);
+    let vm = get_vm();
+    let name = vm.interner.intern(fct_name);
 
-    let sym = ctxt.sym.borrow().get(name);
+    let sym = vm.sym.borrow().get(name);
 
     match sym {
         Some(SymFct(fct_id)) => {
             {
-                let fct = ctxt.fcts[fct_id].borrow();
+                let fct = vm.fcts[fct_id].borrow();
 
                 if !fct.param_types.is_empty() {
                     writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)
@@ -118,7 +124,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
                 }
             }
 
-            ctxt.run(fct_id);
+            vm.run(fct_id);
         }
 
         _ => {
@@ -139,40 +145,40 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
 }
 
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
-    let ctxt = get_ctxt();
-    let lhs = ctxt.handles.root(lhs);
-    let rhs = ctxt.handles.root(rhs);
+    let vm = get_vm();
+    let lhs = vm.handles.root(lhs);
+    let rhs = vm.handles.root(rhs);
 
-    Str::concat(ctxt, lhs, rhs).direct()
+    Str::concat(vm, lhs, rhs).direct()
 }
 
 pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    val.dup(ctxt)
+    val.dup(vm)
 }
 
 pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Handle<Str> {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
     let val: Handle<Str> = val.cast();
-    let val = ctxt.handles.root(val);
+    let val = vm.handles.root(val);
 
-    Str::from_str(ctxt, val, offset, len)
+    Str::from_str(vm, val, offset, len)
 }
 
 pub extern "C" fn gc_alloc(size: usize, array_ref: bool) -> *mut Obj {
-    let ctxt = get_ctxt();
-    ctxt.gc.alloc(ctxt, size, array_ref).to_mut_ptr()
+    let vm = get_vm();
+    vm.gc.alloc(vm, size, array_ref).to_mut_ptr()
 }
 
 pub extern "C" fn gc_collect() {
-    let ctxt = get_ctxt();
-    ctxt.gc.collect(ctxt, GcReason::ForceCollect);
+    let vm = get_vm();
+    vm.gc.collect(vm, GcReason::ForceCollect);
 }
 
 pub extern "C" fn gc_minor_collect() {
-    let ctxt = get_ctxt();
-    ctxt.gc.minor_collect(ctxt, GcReason::ForceMinorCollect);
+    let vm = get_vm();
+    vm.gc.minor_collect(vm, GcReason::ForceMinorCollect);
 }
 
 pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
@@ -180,9 +186,9 @@ pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
 }
 
 pub extern "C" fn argc() -> i32 {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    if let Some(ref args) = ctxt.args.arg_argument {
+    if let Some(ref args) = vm.args.arg_argument {
         args.len() as i32
     } else {
         0
@@ -190,13 +196,13 @@ pub extern "C" fn argc() -> i32 {
 }
 
 pub extern "C" fn argv(ind: i32) -> Handle<Str> {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
-    if let Some(ref args) = ctxt.args.arg_argument {
+    if let Some(ref args) = vm.args.arg_argument {
         if ind >= 0 && ind < args.len() as i32 {
             let value = &args[ind as usize];
 
-            return Str::from_buffer(ctxt, value.as_bytes());
+            return Str::from_buffer(vm, value.as_bytes());
         }
     }
 
@@ -256,7 +262,7 @@ pub extern "C" fn native_free(addr: *const u8) {
 }
 
 pub extern "C" fn trap(trap_id: u32) {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
     let trap = Trap::from(trap_id).expect("invalid trap id!");
 
     let msg = match trap {
@@ -271,8 +277,8 @@ pub extern "C" fn trap(trap_id: u32) {
     };
 
     println!("{}", msg);
-    let stacktrace = stacktrace_from_last_dtn(ctxt);
-    stacktrace.dump(ctxt);
+    let stacktrace = stacktrace_from_last_dtn(vm);
+    stacktrace.dump(vm);
     unsafe {
         libc::_exit(100 + trap_id as i32);
     }
@@ -283,21 +289,21 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
     use exception::DoraToNativeInfo;
 
     thread::spawn(move || {
-        let ctxt = get_ctxt();
+        let vm = get_vm();
 
         let main = {
             let cls_id = obj.header().vtbl().class().cls_id;
-            let cls = ctxt.classes[cls_id].borrow();
-            let name = ctxt.interner.intern("run");
-            cls.find_method(ctxt, name, false)
+            let cls = vm.classes[cls_id].borrow();
+            let name = vm.interner.intern("run");
+            cls.find_method(vm, name, false)
                 .expect("run() method not found")
         };
 
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
             let type_params = TypeParams::empty();
-            ctxt.use_dtn(&mut dtn, || {
-                baseline::generate(ctxt, main, &type_params, &type_params)
+            vm.use_dtn(&mut dtn, || {
+                baseline::generate(vm, main, &type_params, &type_params)
             })
         };
 

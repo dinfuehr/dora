@@ -1,7 +1,7 @@
 use std::cmp;
 use threadpool::ThreadPool;
 
-use ctxt::SemContext;
+use ctxt::VM;
 use gc::root::Slot;
 use gc::space::Space;
 use gc::swiper::card::CardTable;
@@ -12,12 +12,13 @@ use gc::swiper::marking;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
+use gc::swiper::GcStats;
 use gc::{formatted_size, Address, GcReason, Region};
 use object::Obj;
 use timer::Timer;
 
 pub struct FullCollector<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -33,11 +34,16 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     reason: GcReason,
     threadpool: &'a ThreadPool,
+
+    min_heap_size: usize,
+    max_heap_size: usize,
+
+    stats: &'a GcStats,
 }
 
 impl<'a, 'ast> FullCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        vm: &'a VM<'ast>,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -48,11 +54,14 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         rootset: &'a [Slot],
         reason: GcReason,
         threadpool: &'a ThreadPool,
+        min_heap_size: usize,
+        max_heap_size: usize,
+        stats: &'a GcStats,
     ) -> FullCollector<'a, 'ast> {
         let old_committed = old.committed();
 
         FullCollector {
-            ctxt: ctxt,
+            vm: vm,
             heap: heap,
             young: young,
             old: old,
@@ -68,13 +77,18 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             reason: reason,
             threadpool: threadpool,
+
+            min_heap_size: min_heap_size,
+            max_heap_size: max_heap_size,
+
+            stats: stats,
         }
     }
 
     pub fn collect(&mut self) {
-        let active = self.ctxt.args.flag_gc_verbose;
-        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
-        let mut timer = Timer::new(active);
+        let active = self.vm.args.flag_gc_verbose;
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
+        let timer = Timer::new(active);
         let init_size = self.heap_size();
         self.old_top = self.old.active().end;
 
@@ -88,12 +102,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             println!("Full GC: Phase 1 (marking)");
         }
         let time_mark = Timer::ms(active, || {
-            if self.ctxt.args.flag_gc_parallel_marking {
+            if self.vm.args.flag_gc_parallel_marking {
                 marking::start(
                     self.rootset,
                     self.heap.clone(),
                     self.perm_space.total(),
-                    self.ctxt.args.flag_gc_worker,
+                    self.vm.args.flag_gc_worker,
                     self.threadpool,
                 );
             } else {
@@ -141,9 +155,15 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
         self.reset_cards();
 
-        let old_size = self.old.top().offset_from(self.old.total().start);
-        let (_young_size, _old_size) = controller::compute_young_size(self.heap.size(), old_size);
-        // TODO: actually resize generations
+        if self.vm.args.flag_gc_young_ratio.is_none() {
+            controller::resize_gens_after_full(
+                self.min_heap_size,
+                self.max_heap_size,
+                self.young,
+                self.old,
+                self.vm.args.flag_gc_verbose,
+            );
+        }
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
@@ -153,6 +173,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
             } else {
                 (garbage as f64 / init_size as f64) * 100f64
             };
+
+            self.stats.update(|stats| {
+                stats.incr_full_collections();
+                stats.incr_full_runtime(time_pause);
+            });
 
             println!(
                 "GC: Full GC ({:.1} ms, {}->{} size, {}/{:.0}% garbage); \
@@ -276,6 +301,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         });
 
         self.young.clear();
+        self.young.protect_to();
 
         assert!(self.old.valid_top(self.fwd));
         self.old.update_top(self.fwd);
@@ -343,6 +369,11 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         self.walk_region(used_region.start, used_region.end, &mut fct);
 
         let used_region = self.young.from_active();
+        self.walk_region(used_region.start, used_region.end, &mut fct);
+
+        // This is a bit strange at first: to-space might not be empty,
+        // after too many survivors in the minor GC of the young gen.
+        let used_region = self.young.to_active();
         self.walk_region(used_region.start, used_region.end, &mut fct);
     }
 

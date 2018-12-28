@@ -11,7 +11,7 @@ use baseline::fct::{
 };
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use cpu::{Mem, Reg, SCRATCH};
-use ctxt::SemContext;
+use ctxt::VM;
 use dora_parser::lexer::position::Position;
 use dseg::DSeg;
 use mem;
@@ -66,7 +66,7 @@ impl MacroAssembler {
 
     pub fn jit(
         mut self,
-        ctxt: &SemContext,
+        vm: &VM,
         stacksize: i32,
         desc: JitDescriptor,
         throws: bool,
@@ -78,7 +78,7 @@ impl MacroAssembler {
         self.dseg.align(16);
 
         JitBaselineFct::from_buffer(
-            ctxt,
+            vm,
             &self.dseg,
             &self.data,
             self.bailout_infos,

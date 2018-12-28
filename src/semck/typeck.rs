@@ -151,7 +151,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 // find fct next() & hasNext() in iterator-trait
                 let has_next_name = self.ctxt.interner.intern("hasNext");
                 let next_name = self.ctxt.interner.intern("next");
-                let trai = self.ctxt.traits[iterator_trait_id].borrow();
+                let trai = self.ctxt.traits[iterator_trait_id].read().unwrap();
                 let next_id = trai
                     .find_method(self.ctxt, false, next_name, None, &[])
                     .expect("next() not found");
@@ -167,7 +167,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .expect("impl not found for Iterator");
 
                 // find method in impl that implements next()
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 let impl_next_id = ximpl
                     .find_implements(self.ctxt, next_id)
                     .expect("next() impl not found");
@@ -1012,7 +1012,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         tp: &ctxt::TypeParam,
     ) {
         for &trait_id in &tp.trait_bounds {
-            let trai = self.ctxt.traits[trait_id].borrow();
+            let trai = self.ctxt.traits[trait_id].read().unwrap();
 
             if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
                 let call_type = CallType::Method(obj, fid, TypeParams::empty());
@@ -1101,7 +1101,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 let ty = self.ctxt.classes[ximpl.cls_id()].borrow().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
@@ -1870,7 +1870,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let cls_id = match fct.parent {
             FctParent::Class(cls_id) => Some(cls_id),
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 Some(ximpl.cls_id())
             }
             _ => None,
@@ -2107,7 +2107,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn fail_trait_bound(&self, trait_id: TraitId, ty: BuiltinType) {
-        let bound = self.ctxt.traits[trait_id].borrow();
+        let bound = self.ctxt.traits[trait_id].read().unwrap();
         let name = ty.name(self.ctxt);
         let trait_name = self.ctxt.interner.str(bound.name).to_string();
         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
@@ -2162,7 +2162,7 @@ fn lookup_method<'ast>(
             let cls_id = match method.parent {
                 FctParent::Class(cls_id) => cls_id,
                 FctParent::Impl(impl_id) => {
-                    let ximpl = ctxt.impls[impl_id].borrow();
+                    let ximpl = ctxt.impls[impl_id].read().unwrap();
                     ximpl.cls_id()
                 }
 

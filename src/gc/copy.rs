@@ -1,4 +1,4 @@
-use ctxt::SemContext;
+use ctxt::VM;
 use driver::cmd::Args;
 use gc::bump::BumpAllocator;
 use gc::root::{get_rootset, Slot};
@@ -45,14 +45,14 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return Some(ptr.region_start(size));
         }
 
-        self.collect(ctxt, GcReason::AllocationFailure);
+        self.collect(vm, GcReason::AllocationFailure);
 
         let ptr = self.alloc.bump_alloc(size);
 
@@ -63,31 +63,31 @@ impl Collector for CopyCollector {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, _array_ref: bool) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
         let ptr = self.alloc.bump_alloc(size);
 
         if ptr.is_non_null() {
             return ptr;
         }
 
-        self.collect(ctxt, GcReason::AllocationFailure);
+        self.collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        self.alloc_normal(ctxt, size, array_ref)
+    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+        self.alloc_normal(vm, size, array_ref)
     }
 
-    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn collect(&self, vm: &VM, reason: GcReason) {
         // make heap iterable
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
-        let rootset = get_rootset(ctxt);
-        self.copy_collect(ctxt, &rootset, reason);
+        let rootset = get_rootset(vm);
+        self.copy_collect(vm, &rootset, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
-        self.collect(ctxt, reason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        self.collect(vm, reason);
     }
 }
 
@@ -98,8 +98,8 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, ctxt: &SemContext, rootset: &[Slot], reason: GcReason) {
-        let mut timer = Timer::new(ctxt.args.flag_gc_verbose);
+    fn copy_collect(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
+        let timer = Timer::new(vm.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
@@ -171,7 +171,7 @@ impl CopyCollector {
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_mut_obj();
 
-        if let Some(fwd) = obj.header().vtbl_forwarded() {
+        if let Some(fwd) = obj.header().vtbl_forwarded_non_atomic() {
             return fwd;
         }
 
@@ -181,7 +181,7 @@ impl CopyCollector {
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header_mut().vtbl_forward_to(addr);
+        obj.header_mut().vtbl_forward_to_non_atomic(addr);
 
         addr
     }

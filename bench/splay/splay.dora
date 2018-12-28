@@ -1,0 +1,331 @@
+fun main() {
+
+}
+
+const splayTreeSize: int = 8000;
+const splayTreeModifications: int = 80;
+const splayTreePayloadDepth: int = 5;
+
+class Benchmark {
+    var splayTree: SplayTree;
+    var splaySamples: int;
+    var splaySampleTimeStart: long = 0L;
+    var splaySumOfSquaredPauses: long = 0L;
+
+    fun setup() {
+        self.splayTree = SplayTree();
+
+        var i = 0;
+
+        while i < splayTreeSize {
+            self.insertNewNode();
+
+            if (i+1) % 20 == 19 {
+                self.updateStats(timestamp());
+            }
+
+            i = i + 1;
+        }
+    }
+
+    fun updateStats(time: long) {
+        let pause = time - self.splaySampleTimeStart;
+        self.splaySampleTimeStart = time;
+        self.splaySamples = self.splaySamples + 1;
+        self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
+    }
+
+    fun tearDown() {
+        let keys = self.splayTree.exportKeys();
+
+        self.splaySamples = 0;
+        self.splaySumOfSquaredPauses = 0L;
+
+        var length = keys.len();
+
+        if length != splayTreeSize {
+            fatalError("Splay tree has wrong sie");
+        }
+
+        var i = 0;
+
+        while i < length - 1 {
+            if keys[i] >= keys[i+1] {
+                fatalError("Splay tree not sorted");
+            }
+
+            i = i + 1;
+        }
+    }
+
+    fun run() {
+        var i = 0;
+
+        while i < splayTreeModifications {
+            let key = self.insertNewNode();
+            let greatest = self.splayTree.findGreatestLessThan(key);
+
+            if greatest === nil {
+                self.splayTree.remove(key);
+            } else {
+                self.splayTree.remove(greatest.key);
+            }
+
+            i = i + 1;
+        }
+
+        self.updateStats(timestamp());
+    }
+
+    fun insertNewNode() -> int {
+        var key: int = 0;
+
+        loop {
+            key = self.generateKey();
+
+            if self.splayTree.find(key) !== nil {
+                break;
+            }
+        }
+
+        let payload = generatePayloadTree(splayTreePayloadDepth, key.toString());
+        self.splayTree.insert(key, payload);
+
+        return key;
+    }
+
+    fun generateKey() -> int {
+        return 0;
+    }
+
+    fun rms() {
+        let pauses = self.splaySumOfSquaredPauses;
+        let samples = self.splaySamples;
+
+        (pauses.toDouble() / samples.toDouble());
+    }
+}
+
+fun generatePayloadTree(depth: int, tag: Str) -> PayloadNode {
+    if depth == 0 {
+        let arr = Array::<int>(10);
+        var i = 0;
+
+        while i < 10 {
+            arr[i] = i;
+            i = i + 1;
+        }
+
+        let text = "String for key " + tag + " in leaf node";
+        return PayloadNode(arr, text, nil, nil);
+    } else {
+        return PayloadNode(
+            nil,
+            nil,
+            generatePayloadTree(depth-1, tag),
+            generatePayloadTree(depth-1, tag),
+        );
+    }
+}
+
+class SplayTree {
+    var root: SplayNode;
+
+    fun isEmpty() -> bool {
+        return self.root === nil;
+    }
+
+    fun insert(key: int, value: PayloadNode) {
+        if self.isEmpty() {
+            self.root = SplayNode(key, value);
+            return;
+        }
+
+        self.splay(key);
+
+        if self.root.key == key {
+            return;
+        }
+
+        let node = SplayNode(key, value);
+
+        if key > self.root.key {
+            node.left = self.root;
+            node.right = self.root.right;
+            self.root.right = nil;
+
+        } else {
+            node.right = self.root;
+            node.left = self.root.left;
+            self.root.left = nil;
+        }
+
+        self.root = node;
+    }
+
+    fun remove(key: int) -> SplayNode {
+        if self.isEmpty() {
+            return nil;
+        }
+
+        self.splay(key);
+
+        if self.root.key != key {
+            return nil;
+        }
+
+        let removed = self.root;
+
+        if self.root.left === nil {
+            self.root = self.root.right;
+        } else {
+            let right = self.root.right;
+            self.root = self.root.left;
+            self.splay(key);
+            self.root.right = right;
+        }
+
+        return removed;
+    }
+
+    fun find(key: int) -> SplayNode {
+        if self.isEmpty() {
+            return nil;
+        }
+
+        self.splay(key);
+
+        if self.root.key == key {
+            return self.root;
+        } else {
+            return nil;
+        }
+    }
+
+    fun findMax(startNode: SplayNode) -> SplayNode {
+        if self.isEmpty() {
+            return nil;
+        }
+
+        var current = startNode;
+
+        if current === nil {
+            current = self.root;
+        }
+
+        while current.right !== nil {
+            current = current.right;
+        }
+
+        return current;
+    }
+
+    fun findGreatestLessThan(key: int) -> SplayNode {
+        if self.isEmpty() {
+            return nil;
+        }
+
+        self.splay(key);
+
+        if self.root.key < key {
+            return self.root;
+        } else if self.root.left !== nil {
+            return self.findMax(self.root.left);
+        } else {
+            return nil;
+        }
+    }
+
+    fun exportKeys() -> Vec<int> {
+        let keys = Vec::<int>();
+        exportKeysTraverse(keys, self.root);
+        return keys;
+    }
+
+    fun splay(key: int) {
+        if self.isEmpty() {
+            return;
+        }
+
+        var dummy = SplayNode(0, nil);
+        var left = dummy;
+        var right = dummy;
+
+        var current = self.root;
+
+        loop {
+            if key < current.key {
+                if current.left === nil {
+                    break;
+                }
+
+                if key < current.left.key {
+                    // Rotate right
+                    let tmp = current.left;
+                    current.left = tmp.right;
+                    tmp.right = current;
+                    current = tmp;
+
+                    if current.left === nil {
+                        break;
+                    }
+                }
+
+                // Link right
+                right.left = current;
+                right = current;
+                current = current.left;
+            } else if key > current.key {
+                if current.right === nil {
+                    break;
+                }
+
+                if key > current.right.key {
+                    // Rotate left
+                    let tmp = current.right;
+                    current.right = tmp.left;
+                    tmp.left = current;
+                    current = tmp;
+
+                    if current.right === nil {
+                        break;
+                    }
+                }
+
+                // Link left
+                left.right = current;
+                left = current;
+                current = current.right;
+            } else {
+                break;
+            }
+        }
+
+        // Assemble
+        left.right = current.left;
+        right.left = current.right;
+        current.left = dummy.right;
+        current.right = dummy.left;
+        self.root = current;
+    }
+}
+
+fun exportKeysTraverse(list: Vec<int>, node: SplayNode) {
+    var current = node;
+
+    while current !== nil {
+        var left = current.left;
+        if left !== nil {
+            exportKeysTraverse(list, left);
+        }
+        list.push(current.key);
+        current = current.right;
+    }
+}
+
+class SplayNode(var key: int, var value: PayloadNode) {
+    var left: SplayNode;
+    var right: SplayNode;
+}
+
+class PayloadNode(let array: Array<int>, let text: Str, let left: PayloadNode, let right: PayloadNode)

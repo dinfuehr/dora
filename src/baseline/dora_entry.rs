@@ -1,34 +1,34 @@
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::SemContext;
+use ctxt::VM;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraEntryGen {
-        ctxt: ctxt,
+        vm: vm,
         masm: MacroAssembler::new(),
-        dbg: ctxt.args.flag_emit_debug_entry,
+        dbg: vm.args.flag_emit_debug_entry,
     };
 
     let jit_fct = ngen.generate();
     let ptr = Address::from_ptr(jit_fct.fct_ptr());
 
-    ctxt.insert_code_map(
+    vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
         CodeDescriptor::DoraEntry,
     );
-    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Base(jit_fct));
 
     ptr
 }
 
 struct DoraEntryGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
@@ -54,7 +54,7 @@ where
             REG_THREAD.into(),
         );
 
-        let addr = self.ctxt.tld.as_ptr() as usize as i64;
+        let addr = self.vm.tld.as_ptr() as usize as i64;
         self.masm.load_int_const(MachineMode::Ptr, REG_THREAD, addr);
         self.masm
             .copy_reg(MachineMode::Ptr, REG_TMP1, REG_PARAMS[0]);
@@ -70,6 +70,6 @@ where
         self.masm.epilog(framesize);
 
         self.masm
-            .jit(self.ctxt, framesize, JitDescriptor::DoraEntry, false)
+            .jit(self.vm, framesize, JitDescriptor::DoraEntry, false)
     }
 }

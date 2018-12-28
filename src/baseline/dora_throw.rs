@@ -4,7 +4,7 @@ use baseline::dora_native::{finish_native_call, start_native_call};
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, REG_FP, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2};
-use ctxt::SemContext;
+use ctxt::VM;
 use exception::throw;
 use exception::DoraToNativeInfo;
 use gc::Address;
@@ -12,28 +12,28 @@ use masm::MacroAssembler;
 use mem;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraThrowGen {
-        ctxt: ctxt,
+        vm: vm,
         masm: MacroAssembler::new(),
-        dbg: ctxt.args.flag_emit_debug_compile,
+        dbg: vm.args.flag_emit_debug_compile,
     };
 
     let jit_fct = ngen.generate();
-    ctxt.insert_code_map(
+    vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
         CodeDescriptor::ThrowThunk,
     );
     let addr = Address::from_ptr(jit_fct.fct_ptr());
 
-    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Base(jit_fct));
 
     addr
 }
 
 struct DoraThrowGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
@@ -73,8 +73,7 @@ where
 
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
-        self.masm
-            .direct_call_without_info(start_native_call as *const u8);
+        self.masm.raw_call(start_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -88,10 +87,9 @@ where
             REG_PARAMS[1],
             offset_result as i64,
         );
-        self.masm.direct_call_without_info(throw as *const u8);
+        self.masm.raw_call(throw as *const u8);
 
-        self.masm
-            .direct_call_without_info(finish_native_call as *const u8);
+        self.masm.raw_call(finish_native_call as *const u8);
 
         self.masm.load_mem(
             MachineMode::Ptr,
@@ -119,6 +117,6 @@ where
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.ctxt, framesize, JitDescriptor::ThrowThunk, false)
+            .jit(self.vm, framesize, JitDescriptor::ThrowThunk, false)
     }
 }

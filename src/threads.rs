@@ -7,6 +7,7 @@ pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,
     tlab_top: Address,
     tlab_end: Address,
+    concurrent_marking: bool,
 }
 
 impl ThreadLocalData {
@@ -15,6 +16,7 @@ impl ThreadLocalData {
             d2n: ptr::null(),
             tlab_top: Address::null(),
             tlab_end: Address::null(),
+            concurrent_marking: false,
         }
     }
 
@@ -37,5 +39,9 @@ impl ThreadLocalData {
 
     pub fn tlab_end_offset() -> i32 {
         offset_of!(ThreadLocalData, tlab_end) as i32
+    }
+
+    pub fn concurrent_marking_offset() -> i32 {
+        offset_of!(ThreadLocalData, concurrent_marking) as i32
     }
 }

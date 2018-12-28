@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::Path;
 
-use ctxt::{exception_get_and_clear, Fct, FctId, SemContext};
+use ctxt::VM;
+use ctxt::{exception_get_and_clear, Fct, FctId};
 use dora_parser::ast::{self, Ast};
 use dora_parser::error::msg::Msg;
 
@@ -12,6 +13,7 @@ use driver::cmd;
 use boots::bytecodegen::BytecodeGen;
 use object;
 use os;
+use timer::Timer;
 
 use dora_parser::parser::{NodeIdGenerator, Parser};
 use semck;
@@ -55,22 +57,22 @@ pub fn start() -> i32 {
         bytecodegen.gen(&ast);
     }
 
-    let mut ctxt = SemContext::new(args, &ast, interner);
+    let mut vm = VM::new(args, &ast, interner);
 
-    semck::check(&mut ctxt);
+    semck::check(&mut vm);
 
     // register signal handler
     os::register_signals();
 
-    let main = if ctxt.args.cmd_test {
+    let main = if vm.args.cmd_test {
         None
     } else {
-        find_main(&ctxt)
+        find_main(&vm)
     };
 
-    if ctxt.diag.borrow().has_errors() {
-        ctxt.diag.borrow().dump();
-        let no_errors = ctxt.diag.borrow().errors().len();
+    if vm.diag.borrow().has_errors() {
+        vm.diag.borrow().dump();
+        let no_errors = vm.diag.borrow().errors().len();
 
         if no_errors == 1 {
             println!("{} error found.", no_errors);
@@ -82,33 +84,41 @@ pub fn start() -> i32 {
     }
 
     // if --check given, stop after type/semantic check
-    if ctxt.args.flag_check {
+    if vm.args.flag_check {
         return 0;
     }
 
-    if ctxt.args.cmd_test {
-        run_tests(&ctxt)
+    let timer = Timer::new(vm.args.flag_gc_verbose);
+
+    let code = if vm.args.cmd_test {
+        run_tests(&vm)
     } else {
-        run_main(&ctxt, main.unwrap())
+        run_main(&vm, main.unwrap())
+    };
+
+    if vm.args.flag_gc_verbose {
+        vm.dump_gc_summary(timer.stop());
     }
+
+    code
 }
 
-fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
+fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
-    for fct in ctxt.fcts.iter() {
+    for fct in vm.fcts.iter() {
         let fct = fct.borrow();
 
-        if !is_test_fct(ctxt, &*fct) {
+        if !is_test_fct(vm, &*fct) {
             continue;
         }
 
         tests += 1;
 
-        print!("test {} ... ", ctxt.interner.str(fct.name));
+        print!("test {} ... ", vm.interner.str(fct.name));
 
-        if run_test(ctxt, fct.id) {
+        if run_test(vm, fct.id) {
             passed += 1;
             println!("ok");
         } else {
@@ -131,11 +141,11 @@ fn run_tests<'ast>(ctxt: &SemContext<'ast>) -> i32 {
     }
 }
 
-fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
-    let testing_class = ctxt.vips.testing_class;
-    let testing_class = specialize_class_id(ctxt, testing_class);
-    let testing = object::alloc(ctxt, testing_class).cast();
-    ctxt.run_test(fct, testing);
+fn run_test<'ast>(vm: &VM<'ast>, fct: FctId) -> bool {
+    let testing_class = vm.vips.testing_class;
+    let testing_class = specialize_class_id(vm, testing_class);
+    let testing = object::alloc(vm, testing_class).cast();
+    vm.run_test(fct, testing);
 
     // see if test failed with exception
     let exception = exception_get_and_clear();
@@ -143,26 +153,26 @@ fn run_test<'ast>(ctxt: &SemContext<'ast>, fct: FctId) -> bool {
     exception.is_null() && !testing.has_failed()
 }
 
-fn is_test_fct<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) -> bool {
+fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
     // tests need to be standalone functions, with no return type and a single parameter
     if !fct.parent.is_none() || !fct.return_type.is_unit() || fct.param_types.len() != 1 {
         return false;
     }
 
     // parameter needs to be of type Testing
-    let testing_cls = ctxt.cls(ctxt.vips.testing_class);
+    let testing_cls = vm.cls(vm.vips.testing_class);
     if fct.param_types[0] != testing_cls {
         return false;
     }
 
     // the functions name needs to start with `test`
-    let fct_name = ctxt.interner.str(fct.name);
+    let fct_name = vm.interner.str(fct.name);
     fct_name.starts_with("test")
 }
 
-fn run_main<'ast>(ctxt: &SemContext<'ast>, main: FctId) -> i32 {
-    let res = ctxt.run(main);
-    let is_unit = ctxt.fcts[main].borrow().return_type.is_unit();
+fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {
+    let res = vm.run(main);
+    let is_unit = vm.fcts[main].borrow().return_type.is_unit();
 
     // main-fct without return value exits with status 0
     if is_unit {
@@ -234,25 +244,25 @@ fn parse_file(
     Ok(())
 }
 
-fn find_main<'ast>(ctxt: &SemContext<'ast>) -> Option<FctId> {
-    let name = ctxt.interner.intern("main");
-    let fctid = match ctxt.sym.borrow().get_fct(name) {
+fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
+    let name = vm.interner.intern("main");
+    let fctid = match vm.sym.borrow().get_fct(name) {
         Some(id) => id,
         None => {
-            ctxt.diag
+            vm.diag
                 .borrow_mut()
                 .report(Position::new(1, 1), Msg::MainNotFound);
             return None;
         }
     };
 
-    let fct = ctxt.fcts[fctid].borrow();
+    let fct = vm.fcts[fctid].borrow();
     let ret = fct.return_type;
 
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
-        ctxt.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
+        vm.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
         return None;
     }
 

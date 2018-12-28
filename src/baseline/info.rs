@@ -3,9 +3,10 @@ use std::collections::HashMap;
 
 use class::TypeParams;
 use cpu::*;
+use ctxt::VM;
 use ctxt::{
-    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap,
-    SemContext, Store, TraitId, VarId,
+    Arg, CallSite, CallType, Fct, FctId, FctKind, FctParent, FctSrc, Intrinsic, NodeMap, Store,
+    TraitId, VarId,
 };
 use dora_parser::ast::visit::*;
 use dora_parser::ast::Expr::*;
@@ -15,7 +16,7 @@ use mem;
 use ty::BuiltinType;
 
 pub fn generate<'a, 'ast: 'a>(
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     fct: &Fct<'ast>,
     src: &'a FctSrc,
     jit_info: &'a mut JitInfo<'ast>,
@@ -25,7 +26,7 @@ pub fn generate<'a, 'ast: 'a>(
     let start = if fct.has_self() { 1 } else { 0 };
 
     let mut ig = InfoGenerator {
-        ctxt: ctxt,
+        vm: vm,
         fct: fct,
         ast: fct.ast,
         src: src,
@@ -113,7 +114,7 @@ impl<'ast> JitInfo<'ast> {
 }
 
 struct InfoGenerator<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     fct: &'a Fct<'ast>,
     src: &'a FctSrc,
     ast: &'ast Function,
@@ -298,11 +299,11 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn reserve_stack_for_self(&mut self) {
         let ty = match self.fct.parent {
-            FctParent::Class(clsid) => self.ctxt.classes[clsid].borrow().ty,
+            FctParent::Class(clsid) => self.vm.classes[clsid].borrow().ty,
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
-                self.ctxt.classes[ximpl.cls_id()].borrow().ty
+                let ximpl = self.vm.impls[impl_id].read().unwrap();
+                self.vm.classes[ximpl.cls_id()].borrow().ty
             }
 
             _ => unreachable!(),
@@ -326,7 +327,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_stack_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size(self.ctxt);
+        let ty_size = ty.size(self.vm);
         self.localsize = mem::align_i32(self.localsize + ty_size, ty_size);
 
         -self.localsize
@@ -374,7 +375,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return None;
         }
 
-        let fct = self.ctxt.fcts[fid].borrow();
+        let fct = self.vm.fcts[fid].borrow();
 
         match fct.kind {
             FctKind::Builtin(intr) => Some(intr),
@@ -425,7 +426,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         }
 
-        let fct = self.ctxt.fcts[fct_id].borrow();
+        let fct = self.vm.fcts[fct_id].borrow();
 
         let callee_id = if fct.kind.is_definition() {
             let trait_id = fct.trait_id();
@@ -441,7 +442,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             fct_id
         };
 
-        let callee = self.ctxt.fcts[callee_id].borrow();
+        let callee = self.vm.fcts[callee_id].borrow();
 
         if let FctKind::Builtin(intrinsic) = callee.kind {
             self.reserve_args(expr);
@@ -465,18 +466,18 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
-        let cls_id = object_type.cls_id(self.ctxt).unwrap();
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls_id = object_type.cls_id(self.vm).unwrap();
+        let cls = self.vm.classes[cls_id].borrow();
 
         for &impl_id in &cls.impls {
-            let ximpl = self.ctxt.impls[impl_id].borrow();
+            let ximpl = self.vm.impls[impl_id].read().unwrap();
 
             if ximpl.trait_id() != trait_id {
                 continue;
             }
 
             for &mtd_id in &ximpl.methods {
-                let mtd = self.ctxt.fcts[mtd_id].borrow();
+                let mtd = self.vm.fcts[mtd_id].borrow();
 
                 if mtd.impl_for == Some(fct_id) {
                     return mtd_id;
@@ -524,7 +525,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // function invokes another function
         self.leaf = false;
 
-        let callee = self.ctxt.fcts[callee_id].borrow();
+        let callee = self.vm.fcts[callee_id].borrow();
 
         let (args, return_type, super_call) =
             self.determine_call_args_and_types(&*call_type, &*callee, args);
@@ -594,7 +595,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             CallType::Method(ty, _, ref type_params) => {
                 let ty = self.specialize_type(ty);
 
-                cls_type_params = ty.type_params(self.ctxt);
+                cls_type_params = ty.type_params(self.vm);
                 fct_type_params = type_params.clone();
             }
 
@@ -757,7 +758,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     }
 
     fn reserve_temp_for_type(&mut self, ty: BuiltinType) -> i32 {
-        let ty_size = ty.size(self.ctxt);
+        let ty_size = ty.size(self.vm);
         self.cur_tempsize = mem::align_i32(self.cur_tempsize + ty_size, ty_size);
 
         self.cur_tempsize
@@ -771,13 +772,13 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
     fn specialize_type_for_call(&self, call_type: &CallType, ty: BuiltinType) -> BuiltinType {
         let ty = match *call_type {
             CallType::Fct(_, ref cls_type_params, ref fct_type_params) => {
-                specialize_type(self.ctxt, ty, cls_type_params, fct_type_params)
+                specialize_type(self.vm, ty, cls_type_params, fct_type_params)
             }
 
             CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
                 BuiltinType::Class(_, list_id) => {
-                    let params = self.ctxt.lists.borrow().get(list_id);
-                    specialize_type(self.ctxt, ty, &params, type_params)
+                    let params = self.vm.lists.borrow().get(list_id);
+                    specialize_type(self.vm, ty, &params, type_params)
                 }
 
                 _ => ty,
@@ -785,7 +786,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             CallType::Ctor(_, _, ref type_params) | CallType::CtorNew(_, _, ref type_params) => {
                 let empty = TypeParams::empty();
-                specialize_type(self.ctxt, ty, type_params, &empty)
+                specialize_type(self.vm, ty, type_params, &empty)
             }
         };
 
@@ -805,10 +806,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             BuiltinType::Class(cls_id, list_id) => {
-                let params = self.ctxt.lists.borrow().get(list_id);
+                let params = self.vm.lists.borrow().get(list_id);
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+                let list_id = self.vm.lists.borrow_mut().insert(params.into());
 
                 BuiltinType::Class(cls_id, list_id)
             }
@@ -821,7 +822,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 }
 
 fn specialize_type(
-    ctxt: &SemContext,
+    vm: &VM,
     ty: BuiltinType,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
@@ -832,14 +833,14 @@ fn specialize_type(
         BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
 
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = vm.lists.borrow().get(list_id);
 
             let params: Vec<_> = params
                 .iter()
-                .map(|t| specialize_type(ctxt, t, cls_type_params, fct_type_params))
+                .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
                 .collect();
 
-            let list_id = ctxt.lists.borrow_mut().insert(params.into());
+            let list_id = vm.lists.borrow_mut().insert(params.into());
 
             BuiltinType::Class(cls_id, list_id)
         }
@@ -871,15 +872,15 @@ mod tests {
     {
         os::init_page_size();
 
-        test::parse(code, |ctxt| {
-            let fid = ctxt.fct_by_name("f").unwrap();
-            let fct = ctxt.fcts[fid].borrow();
+        test::parse(code, |vm| {
+            let fid = vm.fct_by_name("f").unwrap();
+            let fct = vm.fcts[fid].borrow();
             let src = fct.src();
             let mut src = src.borrow_mut();
             let mut jit_info = JitInfo::new();
             let empty = TypeParams::empty();
 
-            generate(ctxt, &fct, &mut src, &mut jit_info, &empty, &empty);
+            generate(vm, &fct, &mut src, &mut jit_info, &empty, &empty);
 
             f(&src, &jit_info);
         });

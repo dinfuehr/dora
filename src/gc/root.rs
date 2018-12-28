@@ -1,27 +1,27 @@
 use baseline::map::CodeDescriptor;
-use ctxt::SemContext;
+use ctxt::VM;
 use exception::DoraToNativeInfo;
 use gc::Address;
 
-pub fn get_rootset(ctxt: &SemContext) -> Vec<Slot> {
+pub fn get_rootset(vm: &VM) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
-    determine_rootset_from_stack(&mut rootset, ctxt);
-    determine_rootset_from_globals(&mut rootset, ctxt);
-    determine_rootset_from_handles(&mut rootset, ctxt);
+    determine_rootset_from_stack(&mut rootset, vm);
+    determine_rootset_from_globals(&mut rootset, vm);
+    determine_rootset_from_handles(&mut rootset, vm);
 
     rootset
 }
 
-fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
-    for rooted in ctxt.handles.iter() {
+fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, vm: &VM) {
+    for rooted in vm.handles.iter() {
         let slot = Slot::at(Address::from_ptr(rooted.raw()));
         rootset.push(slot);
     }
 }
 
-fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
-    for glob in ctxt.globals.iter() {
+fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
+    for glob in vm.globals.iter() {
         let glob = glob.borrow();
 
         if !glob.ty.reference_type() {
@@ -33,19 +33,19 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, ctxt: &SemContext) {
-    assert!(!ctxt.dtn.borrow().is_null());
+fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
+    assert!(!vm.dtn.borrow().is_null());
 
-    let mut dtn = *ctxt.dtn.borrow();
+    let mut dtn = *vm.dtn.borrow();
 
     while !dtn.is_null() {
-        dtn = from_dora_to_native_info(rootset, ctxt, dtn);
+        dtn = from_dora_to_native_info(rootset, vm, dtn);
     }
 }
 
 fn from_dora_to_native_info(
     rootset: &mut Vec<Slot>,
-    ctxt: &SemContext,
+    vm: &VM,
     dtn: *const DoraToNativeInfo,
 ) -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
@@ -54,7 +54,7 @@ fn from_dora_to_native_info(
     let mut fp: usize = dtn.fp;
 
     while fp != 0 {
-        if !determine_rootset(rootset, ctxt, fp, pc) {
+        if !determine_rootset(rootset, vm, fp, pc) {
             break;
         }
 
@@ -65,13 +65,13 @@ fn from_dora_to_native_info(
     dtn.last
 }
 
-fn determine_rootset(rootset: &mut Vec<Slot>, ctxt: &SemContext, fp: usize, pc: usize) -> bool {
-    let code_map = ctxt.code_map.lock().unwrap();
+fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> bool {
+    let code_map = vm.code_map.lock().unwrap();
     let data = code_map.get(pc as *const u8);
 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
-            let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+            let jit_fct = vm.jit_fcts[fct_id].borrow();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
             let jit_fct = jit_fct.to_base().expect("baseline expected");

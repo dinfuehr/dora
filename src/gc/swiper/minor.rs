@@ -1,23 +1,30 @@
 use std::cmp;
+use std::sync::Arc;
 
-use ctxt::SemContext;
-
+use ctxt::VM;
 use gc::root::Slot;
 use gc::swiper::card::{CardEntry, CardTable};
+use gc::swiper::controller;
 use gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use gc::swiper::large::LargeSpace;
+use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
+use gc::swiper::GcStats;
 use gc::swiper::{CardIdx, CARD_SIZE};
 use gc::{formatted_size, Address, GcReason, Region};
-
 use mem;
 use object::Obj;
 use timer::Timer;
 
+use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
+use rand::distributions::{Distribution, Uniform};
+use rand::thread_rng;
+use threadpool::ThreadPool;
+
 pub struct MinorCollector<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
 
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -37,11 +44,21 @@ pub struct MinorCollector<'a, 'ast: 'a> {
 
     from_active: Region,
     eden_active: Region,
+
+    min_heap_size: usize,
+    max_heap_size: usize,
+
+    stats: &'a GcStats,
+
+    parallel: bool,
+    threadpool: &'a ThreadPool,
+    number_workers: usize,
+    worklist: Vec<Address>,
 }
 
-impl<'a, 'ast> MinorCollector<'a, 'ast> {
+impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     pub fn new(
-        ctxt: &'a SemContext<'ast>,
+        vm: &'a VM<'ast>,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -49,9 +66,13 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         reason: GcReason,
+        min_heap_size: usize,
+        max_heap_size: usize,
+        stats: &'a GcStats,
+        threadpool: &'a ThreadPool,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
-            ctxt: ctxt,
+            vm: vm,
             young: young,
             old: old,
             large: large,
@@ -70,12 +91,23 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             eden_active: young.eden_active(),
 
             reason: reason,
+
+            min_heap_size: min_heap_size,
+            max_heap_size: max_heap_size,
+
+            stats: stats,
+
+            parallel: vm.args.flag_gc_parallel_minor,
+            number_workers: vm.args.flag_gc_worker,
+            threadpool: threadpool,
+
+            worklist: Vec::new(),
         }
     }
 
-    pub fn collect(&mut self) {
-        let active = self.ctxt.args.flag_gc_verbose;
-        let mut timer = Timer::new(active);
+    pub fn collect(&mut self) -> bool {
+        let active = self.vm.args.flag_gc_verbose;
+        let timer = Timer::new(active);
 
         let init_size = self.heap_size();
         let young_init_size = self.young.active_size();
@@ -83,11 +115,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
-        self.old_end = self.old.top();
+        self.old_end = self.old.align_to_card(self.vm);
 
         self.young.unprotect_to();
 
-        let dev_verbose = self.ctxt.args.flag_gc_dev_verbose;
+        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
 
         if dev_verbose {
             println!("Minor GC: Phase 1 (roots)");
@@ -115,9 +147,30 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse) finished.");
         }
 
-        self.young.clear_eden();
-        self.young.swap_semi(self.young_top);
-        self.young.protect_to();
+        if self.promotion_failed {
+            // oh no: promotion failed, we need a subsequent full GC
+            self.remove_forwarding_pointers();
+            self.young.swap_semi_and_keep_to_space(self.young_top);
+        } else {
+            self.young.clear_eden();
+            self.young.swap_semi(self.young_top);
+            self.young.protect_to();
+
+            assert!(self.young.eden_active().size() == 0);
+            assert!(self.young.to_active().size() == 0);
+        }
+
+        let force_full = if self.vm.args.flag_gc_young_ratio.is_none() {
+            controller::resize_gens_after_minor(
+                self.min_heap_size,
+                self.max_heap_size,
+                self.young,
+                self.old,
+                self.vm.args.flag_gc_verbose,
+            )
+        } else {
+            false
+        };
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();
@@ -131,6 +184,11 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
             } else {
                 (garbage as f64 / young_init_size as f64) * 100f64
             };
+
+            self.stats.update(|stats| {
+                stats.incr_minor_collections();
+                stats.incr_minor_runtime(time_pause);
+            });
 
             println!(
                 "GC: Minor GC ({:.1} ms, {}->{}, young {}->{}, \
@@ -150,6 +208,8 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
                 self.reason,
             );
         });
+
+        force_full || self.promotion_failed
     }
 
     fn heap_size(&self) -> usize {
@@ -233,6 +293,14 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     }
 
     fn visit_gray_objects(&mut self) {
+        if self.parallel {
+            self.visit_gray_objects_par();
+        } else {
+            self.visit_gray_objects_seq();
+        }
+    }
+
+    fn visit_gray_objects_seq(&mut self) {
         let mut young_scan = self.young.to_committed().start;
         let mut old_scan = self.old_end;
 
@@ -250,6 +318,53 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         assert!(young_scan == self.young_top);
         assert!(old_scan == self.old.top());
+    }
+
+    fn visit_gray_objects_par(&mut self) {
+        let mut workers = Vec::with_capacity(self.number_workers);
+        let mut stealers = Vec::with_capacity(self.number_workers);
+
+        for _ in 0..self.number_workers {
+            let (w, s) = deque::lifo();
+            workers.push(w);
+            stealers.push(s);
+        }
+
+        let worklist = std::mem::replace(&mut self.worklist, Vec::new());
+
+        for (id, object) in worklist.into_iter().enumerate() {
+            workers[id % self.number_workers].push(object);
+        }
+
+        let terminator = Arc::new(Terminator::new(self.number_workers));
+
+        for (task_id, worker) in workers.into_iter().enumerate() {
+            let stealers = stealers.clone();
+            let terminator = terminator.clone();
+            let young_region = self.young.total();
+
+            self.threadpool.execute(move || {
+                let mut task = CopyTask {
+                    task_id: task_id,
+                    local: Vec::new(),
+                    worker: worker,
+                    stealers: stealers,
+                    terminator: terminator,
+
+                    young_region: young_region,
+
+                    old_top: Address::null(),
+                    old_limit: Address::null(),
+
+                    young_top: Address::null(),
+                    young_limit: Address::null(),
+                };
+
+                task.run();
+            });
+        }
+
+        self.threadpool.join();
     }
 
     fn visit_gray_object(&mut self, addr: Address) -> Address {
@@ -452,7 +567,7 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
     fn copy(&mut self, obj_addr: Address) -> Address {
         let obj = obj_addr.to_mut_obj();
 
-        if let Some(fwd) = obj.header().vtbl_forwarded() {
+        if let Some(fwd) = obj.header().vtbl_forwarded_non_atomic() {
             return fwd;
         }
 
@@ -467,46 +582,77 @@ impl<'a, 'ast> MinorCollector<'a, 'ast> {
 
         // if object is old enough we copy it into the old generation
         if self.young.should_be_promoted(obj_addr) || next_young_top > self.young_limit {
-            let old_addr = self.try_promote_object(obj, obj_size);
-
-            if old_addr.is_non_null() {
-                return old_addr;
-            }
+            return self.promote_object(obj, obj_size);
         }
 
         if next_young_top > self.young_limit {
-            panic!("FAIL: not enough space in to-space.");
+            panic!("Minor GC: out-of-memory error");
+        }
+
+        // When doing parallel minor collection, keep track of all objects to process in worklist.
+        if self.parallel {
+            self.worklist.push(copy_addr);
         }
 
         self.young_top = next_young_top;
         debug_assert!(self.young.to_committed().valid_top(self.young_top));
 
         obj.copy_to(copy_addr, obj_size);
-        obj.header_mut().vtbl_forward_to(copy_addr);
+        obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
 
         copy_addr
     }
 
-    fn try_promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
+    fn promote_object(&mut self, obj: &mut Obj, obj_size: usize) -> Address {
         let copy_addr = self.old.bump_alloc(obj_size, obj.is_array_ref());
 
         // if there isn't enough space in old gen keep it in the
-        // young generation for now
+        // young generation for now. A full collection will be forced later and
+        // cleans this up.
         if copy_addr.is_null() {
             self.promotion_failed = true;
-            return Address::null();
+
+            let copy_addr = obj.address();
+            obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
+            return copy_addr;
+        }
+
+        // When doing parallel minor collection, keep track of all objects to process in worklist.
+        if self.parallel {
+            self.worklist.push(copy_addr);
         }
 
         obj.copy_to(copy_addr, obj_size);
         self.promoted_size += obj_size;
 
-        obj.header_mut().vtbl_forward_to(copy_addr);
+        obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
 
         copy_addr
     }
 
-    pub fn promotion_failed(&self) -> bool {
-        self.promotion_failed
+    fn remove_forwarding_pointers(&mut self) {
+        let region = self.eden_active.clone();
+        self.remove_forwarding_pointers_in_region(region);
+
+        let region = self.from_active.clone();
+        self.remove_forwarding_pointers_in_region(region);
+    }
+
+    fn remove_forwarding_pointers_in_region(&mut self, region: Region) {
+        let mut scan = region.start;
+
+        while scan < region.end {
+            let obj = scan.to_mut_obj();
+            obj.header_mut().vtbl_clear_forwarding_non_atomic();
+            let size = if obj.header().vtblptr().is_null() {
+                mem::ptr_width_usize()
+            } else {
+                obj.size()
+            };
+            scan = scan.offset(size);
+        }
+
+        assert!(scan == region.end);
     }
 }
 
@@ -515,5 +661,134 @@ fn saturating_sub(lhs: usize, rhs: usize) -> usize {
         lhs - rhs
     } else {
         0
+    }
+}
+
+const CLAB_SIZE: usize = 32 * 1024;
+
+struct CopyTask {
+    task_id: usize,
+    local: Vec<Address>,
+    worker: Worker<Address>,
+    stealers: Vec<Stealer<Address>>,
+    terminator: Arc<Terminator>,
+
+    young_region: Region,
+
+    old_top: Address,
+    old_limit: Address,
+
+    young_top: Address,
+    young_limit: Address,
+}
+
+impl CopyTask {
+    fn run(&mut self) {
+        loop {
+            let object_addr = if let Some(object_addr) = self.pop() {
+                object_addr
+            } else if self.terminator.try_terminate() {
+                break;
+            } else {
+                continue;
+            };
+
+            if self.young_region.contains(object_addr) {
+                self.trace_young_object(object_addr);
+            } else {
+                self.trace_old_object(object_addr);
+            }
+        }
+    }
+
+    fn trace_young_object(&mut self, object_addr: Address) {
+        let object = object_addr.to_mut_obj();
+
+        object.visit_reference_fields(|field| {
+            self.trace(field);
+        });
+    }
+
+    fn trace_old_object(&mut self, _object_addr: Address) {
+        unimplemented!();
+    }
+
+    fn trace(&mut self, slot: Slot) {
+        let object_addr = slot.get();
+
+        if self.young_region.contains(object_addr) {
+            slot.set(self.copy(object_addr));
+        }
+    }
+
+    fn alloc_young(&mut self, size: usize) -> Address {
+        let next = self.young_top.offset(size);
+
+        if next <= self.young_limit {
+            self.young_top = next;
+            return next;
+        }
+
+        Address::null()
+    }
+
+    fn copy(&mut self, _addr: Address) -> Address {
+        Address::null()
+    }
+
+    fn pop(&mut self) -> Option<Address> {
+        self.pop_local()
+            .or_else(|| self.pop_worker())
+            .or_else(|| self.steal())
+    }
+
+    fn pop_local(&mut self) -> Option<Address> {
+        if self.local.is_empty() {
+            return None;
+        }
+
+        let obj = self.local.pop().expect("should be non-empty");
+        Some(obj)
+    }
+
+    fn pop_worker(&mut self) -> Option<Address> {
+        loop {
+            match self.worker.pop() {
+                Pop::Empty => break,
+                Pop::Data(address) => return Some(address),
+                Pop::Retry => continue,
+            }
+        }
+
+        None
+    }
+
+    fn steal(&self) -> Option<Address> {
+        if self.stealers.len() == 1 {
+            return None;
+        }
+
+        let mut rng = thread_rng();
+        let range = Uniform::new(0, self.stealers.len());
+
+        for _ in 0..2 * self.stealers.len() {
+            let mut stealer_id = self.task_id;
+
+            while stealer_id == self.task_id {
+                stealer_id = range.sample(&mut rng);
+            }
+
+            let stealer = &self.stealers[stealer_id];
+
+            loop {
+                match stealer.steal() {
+                    Steal::Empty => break,
+                    Steal::Data(address) => return Some(address),
+                    Steal::Retry => continue,
+                }
+            }
+        }
+
+        None
     }
 }
