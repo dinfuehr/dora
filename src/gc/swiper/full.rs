@@ -1,5 +1,5 @@
 use std::cmp;
-use threadpool::ThreadPool;
+use scoped_threadpool::Pool;
 
 use ctxt::VM;
 use gc::root::Slot;
@@ -33,7 +33,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
     old_top: Address,
 
     reason: GcReason,
-    threadpool: &'a ThreadPool,
+    threadpool: &'a mut Pool,
 
     min_heap_size: usize,
     max_heap_size: usize,
@@ -53,7 +53,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         perm_space: &'a Space,
         rootset: &'a [Slot],
         reason: GcReason,
-        threadpool: &'a ThreadPool,
+        threadpool: &'a mut Pool,
         min_heap_size: usize,
         max_heap_size: usize,
         stats: &'a GcStats,

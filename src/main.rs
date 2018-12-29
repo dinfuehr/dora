@@ -13,9 +13,10 @@ extern crate crossbeam_deque;
 extern crate docopt;
 extern crate dora_parser;
 extern crate libc;
+extern crate parking_lot;
 extern crate rand;
 extern crate rustc_serialize;
-extern crate threadpool;
+extern crate scoped_threadpool;
 extern crate time;
 
 #[cfg(target_os = "windows")]

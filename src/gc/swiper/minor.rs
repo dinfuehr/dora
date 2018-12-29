@@ -21,7 +21,7 @@ use timer::Timer;
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
-use threadpool::ThreadPool;
+use scoped_threadpool::Pool;
 
 pub struct MinorCollector<'a, 'ast: 'a> {
     vm: &'a VM<'ast>,
@@ -51,7 +51,7 @@ pub struct MinorCollector<'a, 'ast: 'a> {
     stats: &'a GcStats,
 
     parallel: bool,
-    threadpool: &'a ThreadPool,
+    threadpool: &'a mut Pool,
     number_workers: usize,
     worklist: Vec<Address>,
 }
@@ -69,7 +69,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         min_heap_size: usize,
         max_heap_size: usize,
         stats: &'a GcStats,
-        threadpool: &'a ThreadPool,
+        threadpool: &'a mut Pool,
     ) -> MinorCollector<'a, 'ast> {
         MinorCollector {
             vm: vm,
@@ -337,34 +337,35 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         }
 
         let terminator = Arc::new(Terminator::new(self.number_workers));
+        let young_region = self.young.total();
 
-        for (task_id, worker) in workers.into_iter().enumerate() {
-            let stealers = stealers.clone();
-            let terminator = terminator.clone();
-            let young_region = self.young.total();
+        self.threadpool.scoped(|scoped| {
+            for (task_id, worker) in workers.into_iter().enumerate() {
+                let stealers = stealers.clone();
+                let terminator = terminator.clone();
+                let young_region = young_region.clone();
 
-            self.threadpool.execute(move || {
-                let mut task = CopyTask {
-                    task_id: task_id,
-                    local: Vec::new(),
-                    worker: worker,
-                    stealers: stealers,
-                    terminator: terminator,
+                scoped.execute(move || {
+                    let mut task = CopyTask {
+                        task_id: task_id,
+                        local: Vec::new(),
+                        worker: worker,
+                        stealers: stealers,
+                        terminator: terminator,
 
-                    young_region: young_region,
+                        young_region: young_region,
 
-                    old_top: Address::null(),
-                    old_limit: Address::null(),
+                        old_top: Address::null(),
+                        old_limit: Address::null(),
 
-                    young_top: Address::null(),
-                    young_limit: Address::null(),
-                };
+                        young_top: Address::null(),
+                        young_limit: Address::null(),
+                    };
 
-                task.run();
-            });
-        }
-
-        self.threadpool.join();
+                    task.run();
+                });
+            }
+        });
     }
 
     fn visit_gray_object(&mut self, addr: Address) -> Address {

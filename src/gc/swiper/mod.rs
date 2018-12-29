@@ -1,6 +1,7 @@
-use std::sync::Mutex;
+// use std::sync::Mutex;
 
-use threadpool::ThreadPool;
+use parking_lot::Mutex;
+use scoped_threadpool::Pool;
 
 use ctxt::VM;
 use driver::cmd::Args;
@@ -63,7 +64,7 @@ pub struct Swiper {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    threadpool: ThreadPool,
+    threadpool: Mutex<Pool>,
 
     stats: GcStats,
 }
@@ -185,7 +186,7 @@ impl Swiper {
             min_heap_size: min_heap_size,
             max_heap_size: max_heap_size,
 
-            threadpool: ThreadPool::with_name("gc-worker".to_string(), nworkers),
+            threadpool: Mutex::new(Pool::new(nworkers as u32)),
             stats: GcStats::new(),
         }
     }
@@ -203,6 +204,7 @@ impl Swiper {
     }
 
     fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
+        let mut pool = self.threadpool.lock();
         let mut collector = MinorCollector::new(
             vm,
             &self.young,
@@ -215,7 +217,7 @@ impl Swiper {
             self.min_heap_size,
             self.max_heap_size,
             &self.stats,
-            &self.threadpool,
+            &mut pool,
         );
         collector.collect()
     }
@@ -228,6 +230,7 @@ impl Swiper {
 
         self.verify(vm, VerifierPhase::PreFull, "pre-full", &rootset);
 
+        let mut pool = self.threadpool.lock();
         let mut collector = FullCollector::new(
             vm,
             self.heap.clone(),
@@ -239,7 +242,7 @@ impl Swiper {
             &vm.gc.perm_space,
             &rootset,
             reason,
-            &self.threadpool,
+            &mut pool,
             self.min_heap_size,
             self.max_heap_size,
             &self.stats,
@@ -421,9 +424,9 @@ impl GcStats {
 
     fn update<F>(&self, fct: F)
     where
-        F: FnOnce(&mut GcStatsProtected),
+        F: FnOnce(&mut GcStatsProtected)
     {
-        let mut stats = self.stats.lock().unwrap();
+        let mut stats = self.stats.lock();
         fct(&mut *stats);
     }
 }

@@ -1,5 +1,5 @@
 use std::mem::size_of;
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use gc::arena;
 use gc::swiper::LARGE_OBJECT_SIZE;
@@ -23,7 +23,7 @@ impl LargeSpace {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         let size = mem::page_align(size_of::<LargeAlloc>() + size);
 
-        let mut space = self.space.lock().unwrap();
+        let mut space = self.space.lock();
         space.alloc(size)
     }
 
@@ -39,7 +39,7 @@ impl LargeSpace {
     where
         F: FnMut(Address),
     {
-        let mut space = self.space.lock().unwrap();
+        let mut space = self.space.lock();
         space.visit_objects(f);
     }
 
@@ -47,7 +47,7 @@ impl LargeSpace {
     where
         F: FnMut(Address) -> bool,
     {
-        let mut space = self.space.lock().unwrap();
+        let mut space = self.space.lock();
         space.remove_objects(f);
     }
 }

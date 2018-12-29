@@ -6,7 +6,7 @@ use std::time::Duration;
 use crossbeam_deque::{self as deque, Pop, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
-use threadpool::ThreadPool;
+use scoped_threadpool::Pool;
 
 use gc::root::Slot;
 use gc::{Address, Region};
@@ -16,7 +16,7 @@ pub fn start(
     heap: Region,
     perm: Region,
     number_workers: usize,
-    threadpool: &ThreadPool,
+    threadpool: &mut Pool,
 ) {
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
@@ -44,30 +44,30 @@ pub fn start(
 
     let terminator = Arc::new(Terminator::new(number_workers));
 
-    for (task_id, worker) in workers.into_iter().enumerate() {
-        let heap_region = heap.clone();
-        let perm_region = perm.clone();
+    threadpool.scoped(|scoped| {
+        for (task_id, worker) in workers.into_iter().enumerate() {
+            let heap_region = heap.clone();
+            let perm_region = perm.clone();
 
-        let stealers = stealers.clone();
-        let terminator = terminator.clone();
+            let stealers = stealers.clone();
+            let terminator = terminator.clone();
 
-        threadpool.execute(move || {
-            let mut task = MarkingTask {
-                task_id: task_id,
-                local: Segment::new(),
-                worker: worker,
-                stealers: stealers,
-                terminator: terminator,
-                heap_region: heap_region,
-                perm_region: perm_region,
-                marked: 0,
-            };
+            scoped.execute(move || {
+                let mut task = MarkingTask {
+                    task_id: task_id,
+                    local: Segment::new(),
+                    worker: worker,
+                    stealers: stealers,
+                    terminator: terminator,
+                    heap_region: heap_region,
+                    perm_region: perm_region,
+                    marked: 0,
+                };
 
-            task.run();
-        });
-    }
-
-    threadpool.join();
+                task.run();
+            });
+        }
+    });
 }
 
 pub struct Terminator {
