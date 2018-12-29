@@ -717,7 +717,7 @@ impl CopyTask {
         let object = object_addr.to_mut_obj();
 
         object.visit_reference_fields(|field| {
-            self.trace(field);
+            self.trace_slot(field);
         });
     }
 
@@ -725,7 +725,7 @@ impl CopyTask {
         unimplemented!();
     }
 
-    fn trace(&mut self, slot: Slot) {
+    fn trace_slot(&mut self, slot: Slot) {
         let object_addr = slot.get();
 
         if self.young_region.contains(object_addr) {

@@ -76,6 +76,38 @@ impl Header {
     }
 
     #[inline(always)]
+    pub fn vtblptr_forwarded_atomic(&self) -> Result<Address, Address> {
+        let addr = self.vtable.load(Ordering::Relaxed);
+
+        if (addr & 1) == 1 {
+            Ok((addr & !1).into())
+        } else {
+            Err(addr.into())
+        }
+    }
+
+    #[inline(always)]
+    pub fn vtblptr_forward_atomic(
+        &mut self,
+        expected_vtblptr: Address,
+        new_address: Address,
+    ) -> Result<(), Address> {
+        let fwd = new_address.to_usize() | 1;
+        let result =
+            self.vtable
+                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::AcqRel);
+
+        if result == fwd {
+            Ok(())
+        } else {
+            // If update fails, this needs to be a forwarding pointer
+            debug_assert!((result | 1) != 0);
+
+            Err((result & !1).into())
+        }
+    }
+
+    #[inline(always)]
     pub fn fwdptr_non_atomic(&self) -> Address {
         let fwdptr = self.fwdptr.load(Ordering::Relaxed);
         (fwdptr & FWD_MASK).into()
