@@ -60,7 +60,7 @@ pub fn generate_fct<'ast>(
         .all(|ty| !ty.contains_type_param(vm),));
 
     {
-        let specials = src.specializations.read().unwrap();
+        let specials = src.specializations.read();
         let key = (cls_type_params.clone(), fct_type_params.clone());
 
         if let Some(&jit_fct_id) = specials.get(&key) {
@@ -116,7 +116,7 @@ pub fn generate_fct<'ast>(
     let ptr_end;
 
     let jit_fct_id = {
-        let mut specials = src.specializations.write().unwrap();
+        let mut specials = src.specializations.write();
         let key = (cls_type_params.clone(), fct_type_params.clone());
 
         ptr_start = jit_fct.ptr_start();
@@ -130,7 +130,7 @@ pub fn generate_fct<'ast>(
     };
 
     {
-        let mut code_map = vm.code_map.lock().unwrap();
+        let mut code_map = vm.code_map.lock();
         let cdata = CodeDescriptor::DoraFct(jit_fct_id);
         code_map.insert(ptr_start, ptr_end, cdata);
     }

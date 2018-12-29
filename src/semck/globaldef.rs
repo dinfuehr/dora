@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr;
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 use class::{self, ClassId};
 use ctxt;

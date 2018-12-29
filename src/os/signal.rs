@@ -100,7 +100,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         println!("polling page = {:?}", vm.polling_page.addr());
         println!();
 
-        let code_map = vm.code_map.lock().unwrap();
+        let code_map = vm.code_map.lock();
         code_map.dump(vm);
 
         unsafe {
@@ -114,7 +114,7 @@ fn detect_nil_check(vm: &VM, pc: usize, signo: libc::c_int, addr: *const u8) -> 
         return false;
     }
 
-    let code_map = vm.code_map.lock().unwrap();
+    let code_map = vm.code_map.lock();
 
     if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc as *const u8) {
         let jit_fct = vm.jit_fcts[fid].borrow();

@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use gc::arena;
 use gc::{Address, Region};
@@ -104,7 +104,7 @@ impl Space {
     }
 
     fn extend(&self, size: usize) -> bool {
-        let _lock = self.allocate.lock().expect("couldn't take lock.");
+        let _lock = self.allocate.lock();
 
         let top = self.top.load(Ordering::Relaxed);
         let end = self.end.load(Ordering::Relaxed);

@@ -1,5 +1,3 @@
-// use std::sync::Mutex;
-
 use parking_lot::Mutex;
 use scoped_threadpool::Pool;
 

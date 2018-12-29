@@ -6,7 +6,7 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::rc::Rc;
-use std::sync::{Mutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 
 use dora_parser::error::diag::Diagnostic;
 use driver::cmd::Args;
@@ -237,7 +237,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn insert_code_map(&self, start: *const u8, end: *const u8, desc: CodeDescriptor) {
-        let mut code_map = self.code_map.lock().unwrap();
+        let mut code_map = self.code_map.lock();
         code_map.insert(start, end, desc);
     }
 
@@ -285,7 +285,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn dora_entry_thunk(&self) -> Address {
-        let mut dora_entry_thunk = self.dora_entry.lock().unwrap();
+        let mut dora_entry_thunk = self.dora_entry.lock();
 
         if dora_entry_thunk.is_null() {
             *dora_entry_thunk = dora_entry::generate(self);
@@ -295,7 +295,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn throw_thunk(&self) -> Address {
-        let mut throw_thunk = self.throw_thunk.lock().unwrap();
+        let mut throw_thunk = self.throw_thunk.lock();
 
         if throw_thunk.is_null() {
             *throw_thunk = dora_throw::generate(self);
@@ -305,7 +305,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn compiler_thunk(&self) -> Address {
-        let mut compiler_thunk = self.compiler_thunk.lock().unwrap();
+        let mut compiler_thunk = self.compiler_thunk.lock();
 
         if compiler_thunk.is_null() {
             *compiler_thunk = dora_compile::generate(self);
@@ -315,7 +315,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn trap_thunk(&self) -> Address {
-        let mut trap_thunk = self.trap_thunk.lock().unwrap();
+        let mut trap_thunk = self.trap_thunk.lock();
 
         if trap_thunk.is_null() {
             let ifct = InternalFct {

@@ -77,7 +77,7 @@ impl<'x, 'ast> Visitor<'ast> for TraitCheck<'x, 'ast> {
 
         let fctid = self.ctxt.add_fct(fct);
 
-        let mut xtrait = self.ctxt.traits[self.trait_id.unwrap()].write().unwrap();
+        let mut xtrait = self.ctxt.traits[self.trait_id.unwrap()].write();
         xtrait.methods.push(fctid);
     }
 }

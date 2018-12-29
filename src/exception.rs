@@ -118,7 +118,7 @@ fn frames_from_pc(stacktrace: &mut Stacktrace, vm: &VM, pc: usize, mut fp: usize
 }
 
 fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> bool {
-    let code_map = vm.code_map.lock().unwrap();
+    let code_map = vm.code_map.lock();
     let data = code_map.get(pc as *const u8);
 
     match data {
@@ -211,7 +211,7 @@ fn find_handler(
     resume: &mut ThrowResume,
 ) -> HandlerFound {
     let data = {
-        let code_map = vm.code_map.lock().unwrap();
+        let code_map = vm.code_map.lock();
         code_map.get(pc as *const u8)
     };
 

@@ -178,7 +178,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 
     let bailout = {
         let data = {
-            let code_map = vm.code_map.lock().unwrap();
+            let code_map = vm.code_map.lock();
             code_map
                 .get(ra as *const u8)
                 .expect("return address not found")

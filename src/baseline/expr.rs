@@ -1894,7 +1894,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
 }
 
 pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
-    let mut native_thunks = vm.native_thunks.lock().unwrap();
+    let mut native_thunks = vm.native_thunks.lock();
     let ptr = internal_fct.ptr;
 
     if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
@@ -1931,7 +1931,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
     cls_type_params: TypeParams,
     fct_type_params: TypeParams,
 ) -> *const u8 {
-    let specials = src.specializations.read().unwrap();
+    let specials = src.specializations.read();
     let key = (cls_type_params, fct_type_params);
 
     if let Some(&jit_fct_id) = specials.get(&key) {

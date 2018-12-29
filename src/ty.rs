@@ -230,7 +230,7 @@ impl BuiltinType {
                 }
             }
             BuiltinType::Trait(tid) => {
-                let xtrait = vm.traits[tid].read().unwrap();
+                let xtrait = vm.traits[tid].read();
                 vm.interner.str(xtrait.name).to_string()
             }
             BuiltinType::ClassTypeParam(cid, id) => {

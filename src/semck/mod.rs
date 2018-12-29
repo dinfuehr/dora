@@ -237,7 +237,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
 
                                 for &trait_bound in &tp.trait_bounds {
                                     if !cls.traits.contains(&trait_bound) {
-                                        let bound = ctxt.traits[trait_bound].read().unwrap();
+                                        let bound = ctxt.traits[trait_bound].read();
                                         let name = ty.name(ctxt);
                                         let trait_name = ctxt.interner.str(bound.name).to_string();
                                         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);

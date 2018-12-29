@@ -366,7 +366,7 @@ fn internal_impl<'ast>(
     let cls = ctxt.classes[clsid].borrow();
 
     for &iid in &cls.impls {
-        let i = ctxt.impls[iid].read().unwrap();
+        let i = ctxt.impls[iid].read();
 
         if Some(tid) == i.trait_id {
             for &fid in &i.methods {
