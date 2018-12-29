@@ -652,7 +652,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             }
 
             if let Some(fwd) = obj.header().vtblptr_forwarded() {
-                debug_assert!(self.young.to_committed().contains(fwd) || self.old.committed().contains(fwd));
+                debug_assert!(
+                    self.young.to_committed().contains(fwd) || self.old.committed().contains(fwd)
+                );
 
                 let fwd = fwd.to_mut_obj();
                 let vtblptr = fwd.header().vtblptr();

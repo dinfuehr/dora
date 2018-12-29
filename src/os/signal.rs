@@ -4,8 +4,8 @@ use std;
 use baseline::map::CodeDescriptor;
 use ctxt::{get_vm, VM};
 use exception::stacktrace_from_es;
-use os_cpu::*;
 use os;
+use os_cpu::*;
 use safepoint;
 
 #[cfg(target_family = "windows")]
