@@ -5,6 +5,7 @@ use baseline::map::CodeDescriptor;
 use ctxt::{get_vm, VM};
 use exception::stacktrace_from_es;
 use os_cpu::*;
+use os;
 use safepoint;
 
 #[cfg(target_family = "windows")]
@@ -76,7 +77,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
 
     let addr = unsafe { (*info).si_addr } as *const u8;
 
-    if detect_nil_check(vm, es.pc) {
+    if detect_nil_check(vm, es.pc, signo, addr) {
         println!("nil check failed");
         let stacktrace = stacktrace_from_es(vm, &es);
         stacktrace.dump(vm);
@@ -108,7 +109,11 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     }
 }
 
-fn detect_nil_check(vm: &VM, pc: usize) -> bool {
+fn detect_nil_check(vm: &VM, pc: usize, signo: libc::c_int, addr: *const u8) -> bool {
+    if signo != libc::SIGSEGV || addr as usize >= os::page_size() as usize {
+        return false;
+    }
+
     let code_map = vm.code_map.lock().unwrap();
 
     if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc as *const u8) {
