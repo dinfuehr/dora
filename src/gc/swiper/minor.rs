@@ -593,9 +593,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             return self.promote_object(obj, obj_size);
         }
 
-        if next_young_top > self.young_limit {
-            panic!("Minor GC: out-of-memory error");
-        }
+        assert!(next_young_top <= self.young_limit);
 
         // When doing parallel minor collection, keep track of all objects to process in worklist.
         if self.parallel {
