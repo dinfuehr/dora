@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+cargo build --release
+perf stat -r3 --null target/release/dora --max-heap-size=512M bench/binarytrees/binarytrees.dora 21 2>&1 >/dev/null | grep "seconds time elapsed" | grep -Eo "[0-9]+[.,][0-9]+" | head -1
+
