@@ -1,5 +1,5 @@
-use std::mem::size_of;
 use parking_lot::Mutex;
+use std::mem::size_of;
 
 use gc::arena;
 use gc::swiper::LARGE_OBJECT_SIZE;

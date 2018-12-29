@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use parking_lot::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::arena;
 use gc::{Address, Region};

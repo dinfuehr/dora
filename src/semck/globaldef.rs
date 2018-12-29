@@ -1,7 +1,7 @@
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr;
-use parking_lot::RwLock;
 
 use class::{self, ClassId};
 use ctxt;

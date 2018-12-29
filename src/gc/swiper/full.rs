@@ -1,5 +1,5 @@
-use std::cmp;
 use scoped_threadpool::Pool;
+use std::cmp;
 
 use ctxt::VM;
 use gc::root::Slot;

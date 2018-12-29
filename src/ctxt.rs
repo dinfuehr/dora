@@ -1,3 +1,4 @@
+use parking_lot::{Mutex, RwLock};
 use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -6,7 +7,6 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::rc::Rc;
-use parking_lot::{Mutex, RwLock};
 
 use dora_parser::error::diag::Diagnostic;
 use driver::cmd::Args;

@@ -422,7 +422,7 @@ impl GcStats {
 
     fn update<F>(&self, fct: F)
     where
-        F: FnOnce(&mut GcStatsProtected)
+        F: FnOnce(&mut GcStatsProtected),
     {
         let mut stats = self.stats.lock();
         fct(&mut *stats);
