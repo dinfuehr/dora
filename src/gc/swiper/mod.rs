@@ -76,7 +76,7 @@ impl Swiper {
         // determine initial young-ratio
         let mut young_ratio = args.flag_gc_young_ratio.unwrap_or(YOUNG_RATIO);
 
-        if young_ratio == 0 {
+        if young_ratio < 2 {
             young_ratio = YOUNG_RATIO;
         }
 
