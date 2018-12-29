@@ -86,6 +86,8 @@ impl OldGen {
         fill_region(vm, ctop, ntop);
 
         self.update_top(ntop);
+        self.update_crossing(ctop, ntop, false);
+
         ntop
     }
 
