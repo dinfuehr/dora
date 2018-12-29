@@ -567,8 +567,13 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
     fn copy(&mut self, obj_addr: Address) -> Address {
         let obj = obj_addr.to_mut_obj();
 
-        if let Some(fwd) = obj.header().vtbl_forwarded_non_atomic() {
+        if let Some(fwd) = obj.header().vtblptr_forwarded() {
             return fwd;
+        }
+
+        // As soon as promotion of an object failed, objects are not copied anymore.
+        if self.promotion_failed {
+            return obj_addr;
         }
 
         let obj_size = obj.size();
@@ -598,7 +603,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         debug_assert!(self.young.to_committed().valid_top(self.young_top));
 
         obj.copy_to(copy_addr, obj_size);
-        obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
+        obj.header_mut().vtblptr_forward(copy_addr);
 
         copy_addr
     }
@@ -611,10 +616,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         // cleans this up.
         if copy_addr.is_null() {
             self.promotion_failed = true;
-
-            let copy_addr = obj.address();
-            obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
-            return copy_addr;
+            return obj.address();
         }
 
         // When doing parallel minor collection, keep track of all objects to process in worklist.
@@ -625,7 +627,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         obj.copy_to(copy_addr, obj_size);
         self.promoted_size += obj_size;
 
-        obj.header_mut().vtbl_forward_to_non_atomic(copy_addr);
+        obj.header_mut().vtblptr_forward(copy_addr);
 
         copy_addr
     }
@@ -643,13 +645,21 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         while scan < region.end {
             let obj = scan.to_mut_obj();
-            obj.header_mut().vtbl_clear_forwarding_non_atomic();
-            let size = if obj.header().vtblptr().is_null() {
-                mem::ptr_width_usize()
-            } else {
-                obj.size()
-            };
-            scan = scan.offset(size);
+
+            if obj.header().vtblptr().is_null() {
+                scan = scan.add_ptr(1);
+                continue;
+            }
+
+            if let Some(fwd) = obj.header().vtblptr_forwarded() {
+                debug_assert!(self.young.to_committed().contains(fwd) || self.old.committed().contains(fwd));
+
+                let fwd = fwd.to_mut_obj();
+                let vtblptr = fwd.header().vtblptr();
+                obj.header_mut().set_vtblptr(vtblptr);
+            }
+
+            scan = scan.offset(obj.size());
         }
 
         assert!(scan == region.end);

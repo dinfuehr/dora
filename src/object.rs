@@ -45,38 +45,31 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> Address {
-        self.vtable.load(Ordering::Relaxed).into()
-    }
-
-    pub fn set_vtblptr(&mut self, addr: Address) {
-        self.vtable.store(addr.to_usize(), Ordering::Relaxed);
-    }
-
-    #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
         unsafe { &mut *self.vtblptr().to_mut_ptr::<VTable>() }
     }
 
     #[inline(always)]
-    pub fn vtbl_forward_to_non_atomic(&mut self, address: Address) {
-        let old = self.vtable.load(Ordering::Relaxed);
-        self.vtable.store(old | 1, Ordering::Relaxed);
-        self.set_fwdptr_non_atomic(address);
+    pub fn vtblptr(&self) -> Address {
+        self.vtable.load(Ordering::Relaxed).into()
     }
 
     #[inline(always)]
-    pub fn vtbl_clear_forwarding_non_atomic(&mut self) {
-        let old = self.vtable.load(Ordering::Relaxed);
-        self.vtable.store(old & !1, Ordering::Relaxed);
+    pub fn set_vtblptr(&mut self, addr: Address) {
+        self.vtable.store(addr.to_usize(), Ordering::Relaxed);
     }
 
     #[inline(always)]
-    pub fn vtbl_forwarded_non_atomic(&self) -> Option<Address> {
+    pub fn vtblptr_forward(&mut self, address: Address) {
+        self.vtable.store(address.to_usize() | 1, Ordering::Relaxed);
+    }
+
+    #[inline(always)]
+    pub fn vtblptr_forwarded(&self) -> Option<Address> {
         let addr = self.vtable.load(Ordering::Relaxed);
 
         if (addr & 1) == 1 {
-            Some(self.fwdptr_non_atomic())
+            Some((addr & !1).into())
         } else {
             None
         }

@@ -171,7 +171,7 @@ impl CopyCollector {
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_mut_obj();
 
-        if let Some(fwd) = obj.header().vtbl_forwarded_non_atomic() {
+        if let Some(fwd) = obj.header().vtblptr_forwarded() {
             return fwd;
         }
 
@@ -181,7 +181,7 @@ impl CopyCollector {
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header_mut().vtbl_forward_to_non_atomic(addr);
+        obj.header_mut().vtblptr_forward(addr);
 
         addr
     }
