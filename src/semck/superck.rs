@@ -7,7 +7,7 @@ use dora_parser::error::msg::Msg;
 pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     cycle_detection(ctxt);
 
-    if ctxt.diag.borrow().has_errors() {
+    if ctxt.diag.lock().has_errors() {
         return;
     }
 
@@ -28,9 +28,7 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
             let p = parent.unwrap();
 
             if !map.insert(p) {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(cls.pos, Msg::CycleInHierarchy);
+                ctxt.diag.lock().report(cls.pos, Msg::CycleInHierarchy);
                 break;
             }
 
@@ -174,7 +172,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
     if fct.has_open && (!cls.has_open || fct.has_final) {
         let name = ctxt.interner.str(fct.name).to_string();
         ctxt.diag
-            .borrow_mut()
+            .lock()
             .report(fct.pos(), Msg::SuperfluousOpen(name));
         return;
     }
@@ -183,7 +181,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(fct.pos(), Msg::SuperfluousOverride(name));
             return;
         }
@@ -204,21 +202,21 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
         if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(fct.pos(), Msg::MissingOverride(name));
         }
 
         if !(super_method.has_open || super_method.has_override) || super_method.has_final {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(fct.pos(), Msg::MethodNotOverridable(name));
         }
 
         if super_method.throws != fct.throws {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(fct.pos(), Msg::ThrowsDifference(name));
         }
 
@@ -227,7 +225,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
             let fct = fct.return_type.name(ctxt);
             let sup = super_method.return_type.name(ctxt);
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(pos, Msg::ReturnTypeMismatch(fct, sup));
         }
 
@@ -236,7 +234,7 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
         if fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();
             ctxt.diag
-                .borrow_mut()
+                .lock()
                 .report(fct.pos(), Msg::SuperfluousOverride(name));
         }
     }

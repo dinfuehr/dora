@@ -71,7 +71,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                     if !names.insert(type_param.name) {
                         let name = ctxt.interner.str(type_param.name).to_string();
                         let msg = Msg::TypeParamNameNotUnique(name);
-                        ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                        ctxt.diag.lock().report(type_param.pos, msg);
                     }
 
                     fct.type_params.push(ctxt::TypeParam::new(type_param.name));
@@ -85,14 +85,14 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                                     fct.type_params[type_param_id].class_bound = Some(cls_id);
                                 } else {
                                     let msg = Msg::MultipleClassBounds;
-                                    ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                    ctxt.diag.lock().report(type_param.pos, msg);
                                 }
                             }
 
                             Some(BuiltinType::Trait(trait_id)) => {
                                 if !fct.type_params[type_param_id].trait_bounds.insert(trait_id) {
                                     let msg = Msg::DuplicateTraitBound;
-                                    ctxt.diag.borrow_mut().report(type_param.pos, msg);
+                                    ctxt.diag.lock().report(type_param.pos, msg);
                                 }
                             }
 
@@ -102,7 +102,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
                             _ => {
                                 let msg = Msg::BoundExpected;
-                                ctxt.diag.borrow_mut().report(bound.pos(), msg);
+                                ctxt.diag.lock().report(bound.pos(), msg);
                             }
                         }
                     }
@@ -113,7 +113,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                 }
             } else {
                 let msg = Msg::TypeParamsExpected;
-                ctxt.diag.borrow_mut().report(fct.pos, msg);
+                ctxt.diag.lock().report(fct.pos, msg);
             }
         }
 
@@ -122,7 +122,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
             if ty == BuiltinType::This && !fct.in_trait() {
                 ctxt.diag
-                    .borrow_mut()
+                    .lock()
                     .report(p.data_type.pos(), Msg::SelfTypeUnavailable);
             }
 
@@ -141,9 +141,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             let ty = semck::read_type(ctxt, ret).unwrap_or(BuiltinType::Unit);
 
             if ty == BuiltinType::This && !fct.in_trait() {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(ret.pos(), Msg::SelfTypeUnavailable);
+                ctxt.diag.lock().report(ret.pos(), Msg::SelfTypeUnavailable);
             }
 
             fct.return_type = ty;
@@ -207,12 +205,12 @@ fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
 
     if !fct.kind.is_definition() {
         let msg = Msg::AbstractMethodWithImplementation;
-        ctxt.diag.borrow_mut().report(fct.pos, msg);
+        ctxt.diag.lock().report(fct.pos, msg);
     }
 
     if !cls.is_abstract {
         let msg = Msg::AbstractMethodNotInAbstractClass;
-        ctxt.diag.borrow_mut().report(fct.pos, msg);
+        ctxt.diag.lock().report(fct.pos, msg);
     }
 }
 
@@ -234,7 +232,7 @@ fn check_static<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
         };
 
         let msg = Msg::ModifierNotAllowedForStaticMethod(modifier.into());
-        ctxt.diag.borrow_mut().report(fct.pos, msg);
+        ctxt.diag.lock().report(fct.pos, msg);
     }
 }
 
@@ -252,7 +250,7 @@ fn check_against_methods(ctxt: &SemContext, ty: BuiltinType, fct: &Fct, methods:
             let method_name = ctxt.interner.str(method.name).to_string();
 
             let msg = Msg::MethodExists(cls_name, method_name, method.pos);
-            ctxt.diag.borrow_mut().report(fct.ast.pos, msg);
+            ctxt.diag.lock().report(fct.ast.pos, msg);
             return;
         }
     }
@@ -304,7 +302,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                         let ty = ty.name(self.ctxt);
                         self.ctxt
                             .diag
-                            .borrow_mut()
+                            .lock()
                             .report(catch.data_type.pos(), Msg::ReferenceTypeExpected(ty));
                     }
                 }
@@ -312,7 +310,7 @@ impl<'a, 'ast> Visitor<'ast> for FctDefCheck<'a, 'ast> {
                 if try.catch_blocks.is_empty() && try.finally_block.is_none() {
                     self.ctxt
                         .diag
-                        .borrow_mut()
+                        .lock()
                         .report(try.pos, Msg::CatchOrFinallyExpected);
                 }
             }

@@ -63,9 +63,9 @@ pub fn start() -> i32 {
         find_main(&vm)
     };
 
-    if vm.diag.borrow().has_errors() {
-        vm.diag.borrow().dump();
-        let no_errors = vm.diag.borrow().errors().len();
+    if vm.diag.lock().has_errors() {
+        vm.diag.lock().dump();
+        let no_errors = vm.diag.lock().errors().len();
 
         if no_errors == 1 {
             println!("{} error found.", no_errors);
@@ -245,7 +245,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         Some(id) => id,
         None => {
             vm.diag
-                .borrow_mut()
+                .lock()
                 .report(Position::new(1, 1), Msg::MainNotFound);
             return None;
         }
@@ -258,7 +258,7 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0
     {
         let pos = fct.ast.pos;
-        vm.diag.borrow_mut().report(pos, Msg::WrongMainDefinition);
+        vm.diag.lock().report(pos, Msg::WrongMainDefinition);
         return None;
     }
 

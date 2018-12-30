@@ -27,7 +27,7 @@ mod typeck;
 
 macro_rules! return_on_error {
     ($ctxt: ident) => {{
-        if $ctxt.diag.borrow().has_errors() {
+        if $ctxt.diag.lock().has_errors() {
             return;
         }
     }};
@@ -119,13 +119,11 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if fct.internal && !fct.internal_resolved {
-            ctxt.diag
-                .borrow_mut()
-                .report(fct.pos, Msg::UnresolvedInternal);
+            ctxt.diag.lock().report(fct.pos, Msg::UnresolvedInternal);
         }
 
         if fct.kind.is_definition() && !fct.in_trait() {
-            ctxt.diag.borrow_mut().report(fct.pos, Msg::MissingFctBody);
+            ctxt.diag.lock().report(fct.pos, Msg::MissingFctBody);
         }
     }
 
@@ -133,9 +131,7 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
-            ctxt.diag
-                .borrow_mut()
-                .report(cls.pos, Msg::UnresolvedInternal);
+            ctxt.diag.lock().report(cls.pos, Msg::UnresolvedInternal);
         }
 
         for method in &cls.methods {
@@ -143,15 +139,11 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
             let method = method.read();
 
             if method.internal && !method.internal_resolved {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(method.pos, Msg::UnresolvedInternal);
+                ctxt.diag.lock().report(method.pos, Msg::UnresolvedInternal);
             }
 
             if method.kind.is_definition() && !method.is_abstract {
-                ctxt.diag
-                    .borrow_mut()
-                    .report(method.pos, Msg::MissingFctBody);
+                ctxt.diag.lock().report(method.pos, Msg::MissingFctBody);
             }
         }
     }
@@ -212,7 +204,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                     cls.type_params.len(),
                                     type_params.len(),
                                 );
-                                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                ctxt.diag.lock().report(basic.pos, msg);
                                 return None;
                             }
 
@@ -225,7 +217,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                         let cls = cls.name(ctxt);
 
                                         let msg = Msg::ClassBoundNotSatisfied(name, cls);
-                                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                                        ctxt.diag.lock().report(basic.pos, msg);
                                     }
                                 }
 
@@ -244,7 +236,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                         let name = ty.name(ctxt);
                                         let trait_name = ctxt.interner.str(bound.name).to_string();
                                         let msg = Msg::TraitBoundNotSatisfied(name, trait_name);
-                                        ctxt.diag.borrow_mut().report(bound.pos, msg);
+                                        ctxt.diag.lock().report(bound.pos, msg);
                                     }
                                 }
                             }
@@ -264,7 +256,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymTrait(trait_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            ctxt.diag.lock().report(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::Trait(trait_id));
@@ -273,7 +265,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymStruct(struct_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            ctxt.diag.lock().report(basic.pos, msg);
                         }
 
                         let list_id = ctxt.lists.borrow_mut().insert(TypeParams::empty());
@@ -283,7 +275,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymClassTypeParam(cls_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            ctxt.diag.lock().report(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::ClassTypeParam(cls_id, type_param_id));
@@ -292,7 +284,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     SymFctTypeParam(fct_id, type_param_id) => {
                         if basic.params.len() > 0 {
                             let msg = Msg::NoTypeParamsExpected;
-                            ctxt.diag.borrow_mut().report(basic.pos, msg);
+                            ctxt.diag.lock().report(basic.pos, msg);
                         }
 
                         return Some(BuiltinType::FctTypeParam(fct_id, type_param_id));
@@ -301,13 +293,13 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                     _ => {
                         let name = ctxt.interner.str(basic.name).to_string();
                         let msg = Msg::ExpectedType(name);
-                        ctxt.diag.borrow_mut().report(basic.pos, msg);
+                        ctxt.diag.lock().report(basic.pos, msg);
                     }
                 }
             } else {
                 let name = ctxt.interner.str(basic.name).to_string();
                 let msg = Msg::UnknownType(name);
-                ctxt.diag.borrow_mut().report(basic.pos, msg);
+                ctxt.diag.lock().report(basic.pos, msg);
             }
         }
 
@@ -338,7 +330,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
             return Some(ty);
         }
 
-        _ => ctxt.diag.borrow_mut().report_unimplemented(t.pos()),
+        _ => ctxt.diag.lock().report_unimplemented(t.pos()),
     }
 
     None
@@ -360,7 +352,7 @@ mod tests {
 
     pub fn ok(code: &'static str) {
         test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.borrow();
+            let diag = ctxt.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -369,7 +361,7 @@ mod tests {
                 println!("{}", e.message());
             }
 
-            assert!(!ctxt.diag.borrow().has_errors());
+            assert!(!diag.has_errors());
         });
     }
 
@@ -378,7 +370,7 @@ mod tests {
         F: FnOnce(&SemContext) -> R,
     {
         test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.borrow();
+            let diag = ctxt.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -387,7 +379,7 @@ mod tests {
                 println!("{}", e.message());
             }
 
-            assert!(!ctxt.diag.borrow().has_errors());
+            assert!(!diag.has_errors());
 
             f(ctxt)
         })
@@ -395,7 +387,7 @@ mod tests {
 
     pub fn err(code: &'static str, pos: Position, msg: Msg) {
         test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.borrow();
+            let diag = ctxt.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);
@@ -408,7 +400,7 @@ mod tests {
 
     pub fn errors(code: &'static str, vec: &[(Position, Msg)]) {
         test::parse_with_errors(code, |ctxt| {
-            let diag = ctxt.diag.borrow();
+            let diag = ctxt.diag.lock();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);

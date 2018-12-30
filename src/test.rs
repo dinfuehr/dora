@@ -13,8 +13,8 @@ where
     F: FnOnce(&VM) -> T,
 {
     parse_with_errors(code, |vm| {
-        if vm.diag.borrow().has_errors() {
-            vm.diag.borrow().dump();
+        if vm.diag.lock().has_errors() {
+            vm.diag.lock().dump();
             println!("{}", code);
             panic!("unexpected error in test::parse()");
         }

@@ -71,7 +71,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
-    ctxt.diag.borrow_mut().report(pos, msg);
+    ctxt.diag.lock().report(pos, msg);
 }
 
 #[cfg(test)]

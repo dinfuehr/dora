@@ -68,7 +68,7 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
 }
 
 fn report(ctxt: &SemContext, pos: Position, msg: Msg) {
-    ctxt.diag.borrow_mut().report(pos, msg);
+    ctxt.diag.lock().report(pos, msg);
 }
 
 #[cfg(test)]

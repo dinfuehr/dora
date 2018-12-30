@@ -80,7 +80,7 @@ pub struct SemContext<'ast> {
     pub args: Args,
     pub interner: Interner,
     pub ast: &'ast ast::Ast,
-    pub diag: RefCell<Diagnostic>,
+    pub diag: Mutex<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
@@ -154,7 +154,7 @@ impl<'ast> SemContext<'ast> {
             },
             gc: gc,
             ast: ast,
-            diag: RefCell::new(Diagnostic::new()),
+            diag: Mutex::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fcts: GrowableVecMutex::new(),
             jit_fcts: GrowableVecMutex::new(),

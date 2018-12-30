@@ -42,7 +42,7 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         if g.expr.is_some() {
             self.ctxt
                 .diag
-                .borrow_mut()
+                .lock()
                 .report(g.pos, Msg::GlobalInitializerNotSupported);
         }
     }

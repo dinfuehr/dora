@@ -243,7 +243,7 @@ fn report(ctxt: &SemContext, name: Name, pos: Position, sym: Sym) {
         _ => unimplemented!(),
     };
 
-    ctxt.diag.borrow_mut().report(pos, msg);
+    ctxt.diag.lock().report(pos, msg);
 }
 
 #[cfg(test)]
