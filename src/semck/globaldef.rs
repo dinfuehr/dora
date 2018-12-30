@@ -1,4 +1,4 @@
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr;
@@ -80,7 +80,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             address_value: ptr::null(),
         };
 
-        self.ctxt.globals.push(global);
+        self.ctxt.globals.push(Mutex::new(global));
 
         let sym = SymGlobal(id);
         self.map_global_defs.insert(g.id, id);
@@ -115,7 +115,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             value: ConstValue::None,
         };
 
-        self.ctxt.consts.push(xconst);
+        self.ctxt.consts.push(Mutex::new(xconst));
         self.map_const_defs.insert(c.id, id);
 
         let sym = SymConst(id);
@@ -180,7 +180,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             specializations: RefCell::new(HashMap::new()),
         };
 
-        self.ctxt.structs.push(struc);
+        self.ctxt.structs.push(Mutex::new(struc));
         let sym = SymStruct(id);
 
         self.map_struct_defs.insert(s.id, id);

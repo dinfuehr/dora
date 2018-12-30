@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::ptr;
+use parking_lot::Mutex;
 
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
 use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
@@ -97,12 +98,12 @@ fn create_specialized_struct(
         .insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    ctxt.struct_defs.push(StructDef {
+    ctxt.struct_defs.push(Mutex::new(StructDef {
         size: 0,
         align: 0,
         fields: Vec::new(),
         ref_fields: Vec::new(),
-    });
+    }));
 
     let mut size = 0;
     let mut align = 0;

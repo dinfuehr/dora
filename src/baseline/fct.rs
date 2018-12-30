@@ -1,4 +1,3 @@
-use parking_lot::Mutex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::ptr;
@@ -27,7 +26,7 @@ impl JitFctId {
 }
 
 impl GrowableVecMutex<JitFct> {
-    pub fn idx(&self, index: JitFctId) -> Arc<Mutex<JitFct>> {
+    pub fn idx(&self, index: JitFctId) -> Arc<JitFct> {
         self.idx_usize(index.0)
     }
 }

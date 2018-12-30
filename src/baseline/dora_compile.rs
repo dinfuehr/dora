@@ -190,7 +190,6 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
         };
 
         let jit_fct = vm.jit_fcts.idx(fct_id);
-        let jit_fct = jit_fct.lock();
 
         let offset = ra - jit_fct.fct_ptr() as usize;
         let jit_fct = jit_fct.to_base().expect("baseline expected");

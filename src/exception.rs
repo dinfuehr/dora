@@ -32,7 +32,6 @@ impl Stacktrace {
     pub fn dump(&self, vm: &VM) {
         for (ind, elem) in self.elems.iter().enumerate() {
             let jit_fct = vm.jit_fcts.idx(elem.fct_id);
-            let jit_fct = jit_fct.lock();
             let fct_id = jit_fct.fct_id();
             let fct = vm.fcts[fct_id].borrow();
             let name = fct.full_name(vm);
@@ -125,7 +124,6 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let jit_fct = jit_fct.lock();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
             let jit_fct = jit_fct.to_base().expect("baseline expected");
@@ -142,7 +140,6 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
 
         Some(CodeDescriptor::NativeThunk(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let jit_fct = jit_fct.lock();
             let fct = vm.fcts[jit_fct.fct_id()].borrow();
 
             stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
@@ -221,7 +218,6 @@ fn find_handler(
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) | Some(CodeDescriptor::NativeThunk(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let jit_fct = jit_fct.lock();
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let clsptr = exception.header().vtbl().classptr();
 
@@ -298,7 +294,6 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-    let jit_fct = jit_fct.lock();
     let fct = vm.fcts[jit_fct.fct_id()].borrow();
     let name = fct.full_name(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());

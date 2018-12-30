@@ -83,9 +83,9 @@ pub struct SemContext<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
-    pub consts: GrowableVecMutex<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVecMutex<StructData>,     // stores all struct source definitions
-    pub struct_defs: GrowableVecMutex<StructDef>,  // stores all struct definitions
+    pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
+    pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
+    pub struct_defs: GrowableVecMutex<Mutex<StructDef>>,  // stores all struct definitions
     pub classes: GrowableVec<Class>,               // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,              // stores all function definitions
@@ -93,7 +93,7 @@ pub struct SemContext<'ast> {
     pub traits: Vec<RwLock<TraitData>>,            // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,              // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                  // stores all compiled functions
-    pub globals: GrowableVecMutex<GlobalData<'ast>>, // stores all global variables
+    pub globals: GrowableVecMutex<Mutex<GlobalData<'ast>>>, // stores all global variables
     pub gc: Gc,                                    // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
@@ -328,7 +328,6 @@ impl<'ast> SemContext<'ast> {
             };
             let jit_fct_id = dora_native::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);
-            let jit_fct = jit_fct.lock();
             let fct_ptr = jit_fct.fct_ptr();
             *trap_thunk = Address::from_ptr(fct_ptr);
         }
@@ -356,7 +355,7 @@ impl From<usize> for StructDefId {
     }
 }
 
-impl GrowableVecMutex<StructDef> {
+impl GrowableVecMutex<Mutex<StructDef>> {
     pub fn idx(&self, index: StructDefId) -> Arc<Mutex<StructDef>> {
         self.idx_usize(index.0)
     }
@@ -397,7 +396,7 @@ pub struct GlobalData<'ast> {
     pub address_value: *const u8,
 }
 
-impl<'ast> GrowableVecMutex<GlobalData<'ast>> {
+impl<'ast> GrowableVecMutex<Mutex<GlobalData<'ast>>> {
     pub fn idx(&self, index: GlobalId) -> Arc<Mutex<GlobalData<'ast>>> {
         self.idx_usize(index.0 as usize)
     }
@@ -529,7 +528,7 @@ impl Index<TraitId> for Vec<RwLock<TraitData>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl GrowableVecMutex<StructData> {
+impl GrowableVecMutex<Mutex<StructData>> {
     pub fn idx(&self, index: StructId) -> Arc<Mutex<StructData>> {
         self.idx_usize(index.0 as usize)
     }
@@ -1282,7 +1281,7 @@ impl From<usize> for ConstId {
     }
 }
 
-impl<'ast> GrowableVecMutex<ConstData<'ast>> {
+impl<'ast> GrowableVecMutex<Mutex<ConstData<'ast>>> {
     pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData<'ast>>> {
         self.idx_usize(index.0 as usize)
     }

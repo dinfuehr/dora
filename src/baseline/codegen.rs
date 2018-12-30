@@ -65,7 +65,6 @@ pub fn generate_fct<'ast>(
 
         if let Some(&jit_fct_id) = specials.get(&key) {
             let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-            let jit_fct = jit_fct.lock();
             return jit_fct.fct_ptr();
         }
     }

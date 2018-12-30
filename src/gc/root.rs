@@ -72,7 +72,6 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let jit_fct = jit_fct.lock();
 
             let offset = pc - (jit_fct.fct_ptr() as usize);
             let jit_fct = jit_fct.to_base().expect("baseline expected");
