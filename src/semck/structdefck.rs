@@ -44,7 +44,8 @@ impl<'x, 'ast> Visitor<'ast> for StructCheck<'x, 'ast> {
         let ty = semck::read_type(self.ctxt, &f.data_type).unwrap_or(BuiltinType::Unit);
         let id = self.struct_id.unwrap();
 
-        let mut struc = self.ctxt.structs[id].borrow_mut();
+        let struc = self.ctxt.structs.idx(id);
+        let mut struc = struc.lock();
 
         for field in &struc.fields {
             if field.name == f.name {

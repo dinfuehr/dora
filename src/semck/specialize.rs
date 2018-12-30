@@ -57,7 +57,8 @@ pub enum SpecializeFor {
 }
 
 pub fn specialize_struct_id(ctxt: &SemContext, struct_id: StructId) -> StructDefId {
-    let struc = ctxt.structs[struct_id].borrow();
+    let struc = ctxt.structs.idx(struct_id);
+    let struc = struc.lock();
     specialize_struct(ctxt, &*struc, TypeParams::empty())
 }
 
@@ -66,7 +67,8 @@ pub fn specialize_struct_id_params(
     struct_id: StructId,
     type_params: TypeParams,
 ) -> StructDefId {
-    let struc = ctxt.structs[struct_id].borrow();
+    let struc = ctxt.structs.idx(struct_id);
+    let struc = struc.lock();
     specialize_struct(ctxt, &*struc, type_params)
 }
 

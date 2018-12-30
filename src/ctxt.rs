@@ -84,7 +84,7 @@ pub struct SemContext<'ast> {
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVecMutex<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVec<StructData>,          // stores all struct source definitions
+    pub structs: GrowableVecMutex<StructData>,     // stores all struct source definitions
     pub struct_defs: GrowableVecMutex<StructDef>,  // stores all struct definitions
     pub classes: GrowableVec<Class>,               // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
@@ -117,7 +117,7 @@ impl<'ast> SemContext<'ast> {
         let ctxt = Box::new(SemContext {
             args: args,
             consts: GrowableVecMutex::new(),
-            structs: GrowableVec::new(),
+            structs: GrowableVecMutex::new(),
             struct_defs: GrowableVecMutex::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
@@ -529,11 +529,9 @@ impl Index<TraitId> for Vec<RwLock<TraitData>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl Index<StructId> for GrowableVec<StructData> {
-    type Output = RefCell<StructData>;
-
-    fn index(&self, index: StructId) -> &RefCell<StructData> {
-        &self[index.0 as usize]
+impl GrowableVecMutex<StructData> {
+    pub fn idx(&self, index: StructId) -> Arc<Mutex<StructData>> {
+        self.idx_usize(index.0 as usize)
     }
 }
 

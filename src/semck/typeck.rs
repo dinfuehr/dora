@@ -1281,7 +1281,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn check_expr_lit_struct(&mut self, e: &'ast ExprLitStructType) {
         let sid = self.src.map_idents.get(e.id).unwrap().struct_id();
-        let struc = self.ctxt.structs[sid].borrow();
+        let struc = self.ctxt.structs.idx(sid);
+        let struc = struc.lock();
 
         let mut initialized: HashMap<Name, BuiltinType> = Default::default();
 

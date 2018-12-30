@@ -212,7 +212,9 @@ impl BuiltinType {
                 }
             }
             BuiltinType::Struct(sid, list_id) => {
-                let name = vm.structs[sid].borrow().name;
+                let struc = vm.structs.idx(sid);
+                let struc = struc.lock();
+                let name = struc.name;
                 let name = vm.interner.str(name).to_string();
 
                 let params = vm.lists.borrow().get(list_id);
