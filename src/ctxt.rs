@@ -95,7 +95,7 @@ pub struct SemContext<'ast> {
     pub code_map: Mutex<CodeMap>,                         // stores all compiled functions
     pub globals: GrowableVecMutex<Mutex<GlobalData<'ast>>>, // stores all global variables
     pub gc: Gc,                                           // garbage collector
-    pub dtn: RefCell<*const DoraToNativeInfo>,
+    pub dtn: Mutex<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
@@ -159,7 +159,7 @@ impl<'ast> SemContext<'ast> {
             fcts: GrowableVecMutex::new(),
             jit_fcts: GrowableVecMutex::new(),
             code_map: Mutex::new(CodeMap::new()),
-            dtn: RefCell::new(ptr::null()),
+            dtn: Mutex::new(ptr::null()),
             polling_page: PollingPage::new(),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -209,32 +209,32 @@ impl<'ast> SemContext<'ast> {
     where
         F: FnOnce() -> R,
     {
-        dtn.last = *self.dtn.borrow();
+        dtn.last = *self.dtn.lock();
 
-        *self.dtn.borrow_mut() = dtn as *const DoraToNativeInfo;
+        *self.dtn.lock() = dtn as *const DoraToNativeInfo;
 
         let ret = fct();
 
-        *self.dtn.borrow_mut() = dtn.last;
+        *self.dtn.lock() = dtn.last;
 
         ret
     }
 
     pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
-        let last = *self.dtn.borrow();
+        let last = *self.dtn.lock();
 
         dtn.last = last;
 
-        *self.dtn.borrow_mut() = dtn as *const DoraToNativeInfo;
+        *self.dtn.lock() = dtn as *const DoraToNativeInfo;
     }
 
     pub fn pop_dtn(&self) {
-        let current_dtn = *self.dtn.borrow();
+        let current_dtn = *self.dtn.lock();
         assert!(!current_dtn.is_null());
         let dtn = unsafe { &*current_dtn };
 
         let last_dtn = dtn.last as *const DoraToNativeInfo;
-        *self.dtn.borrow_mut() = last_dtn;
+        *self.dtn.lock() = last_dtn;
     }
 
     pub fn insert_code_map(&self, start: *const u8, end: *const u8, desc: CodeDescriptor) {

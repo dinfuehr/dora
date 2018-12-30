@@ -88,7 +88,7 @@ pub fn stacktrace_from_last_dtn(vm: &VM) -> Stacktrace {
 }
 
 fn frames_from_dtns(stacktrace: &mut Stacktrace, vm: &VM) {
-    let mut dtn_ptr = *vm.dtn.borrow();
+    let mut dtn_ptr = *vm.dtn.lock();
 
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };
@@ -176,7 +176,8 @@ pub struct ThrowResume {
 pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
     let vm = get_vm();
 
-    let dtn = unsafe { &**vm.dtn.borrow() };
+    let dtn: *const DoraToNativeInfo = *vm.dtn.lock();
+    let dtn = unsafe { &*dtn };
 
     let mut pc: usize = dtn.pc;
     let mut fp: usize = dtn.fp;

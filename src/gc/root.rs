@@ -34,9 +34,9 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 }
 
 fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
-    assert!(!vm.dtn.borrow().is_null());
+    assert!(!vm.dtn.lock().is_null());
 
-    let mut dtn = *vm.dtn.borrow();
+    let mut dtn = *vm.dtn.lock();
 
     while !dtn.is_null() {
         dtn = from_dora_to_native_info(rootset, vm, dtn);
