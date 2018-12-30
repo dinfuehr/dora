@@ -83,18 +83,18 @@ pub struct SemContext<'ast> {
     pub diag: RefCell<Diagnostic>,
     pub sym: RefCell<SymTable>,
     pub vips: KnownElements,
-    pub consts: GrowableVec<ConstData<'ast>>, // stores all const definitions
-    pub structs: GrowableVec<StructData>,     // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructDef>,  // stores all struct definitions
-    pub classes: GrowableVec<Class>,          // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>,    // stores all class definitions
-    pub fcts: GrowableVec<Fct<'ast>>,         // stores all function definitions
-    pub jit_fcts: GrowableVec<JitFct>,        // stores all function implementations
-    pub traits: Vec<RwLock<TraitData>>,       // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,         // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,             // stores all compiled functions
+    pub consts: GrowableVecMutex<ConstData<'ast>>, // stores all const definitions
+    pub structs: GrowableVec<StructData>,          // stores all struct source definitions
+    pub struct_defs: GrowableVec<StructDef>,       // stores all struct definitions
+    pub classes: GrowableVec<Class>,               // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
+    pub fcts: GrowableVec<Fct<'ast>>,              // stores all function definitions
+    pub jit_fcts: GrowableVec<JitFct>,             // stores all function implementations
+    pub traits: Vec<RwLock<TraitData>>,            // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,              // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                  // stores all compiled functions
     pub globals: GrowableVecMutex<GlobalData<'ast>>, // stores all global variables
-    pub gc: Gc,                               // garbage collector
+    pub gc: Gc,                                    // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
@@ -116,7 +116,7 @@ impl<'ast> SemContext<'ast> {
 
         let ctxt = Box::new(SemContext {
             args: args,
-            consts: GrowableVec::new(),
+            consts: GrowableVecMutex::new(),
             structs: GrowableVec::new(),
             struct_defs: GrowableVec::new(),
             classes: GrowableVec::new(),
@@ -1284,11 +1284,9 @@ impl From<usize> for ConstId {
     }
 }
 
-impl<'ast> Index<ConstId> for GrowableVec<ConstData<'ast>> {
-    type Output = RefCell<ConstData<'ast>>;
-
-    fn index(&self, index: ConstId) -> &RefCell<ConstData<'ast>> {
-        &self[index.0 as usize]
+impl<'ast> GrowableVecMutex<ConstData<'ast>> {
+    pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData<'ast>>> {
+        self.idx_usize(index.0 as usize)
     }
 }
 

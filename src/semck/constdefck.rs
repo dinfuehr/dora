@@ -35,7 +35,8 @@ impl<'x, 'ast> Visitor<'ast> for ConstCheck<'x, 'ast> {
     fn visit_const(&mut self, c: &'ast ast::Const) {
         let const_id = *self.map_const_defs.get(c.id).unwrap();
 
-        let mut xconst = self.ctxt.consts[const_id].borrow_mut();
+        let xconst = self.ctxt.consts.idx(const_id);
+        let mut xconst = xconst.lock();
         xconst.ty = semck::read_type(self.ctxt, &c.data_type).unwrap_or(BuiltinType::Unit);
     }
 }

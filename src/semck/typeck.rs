@@ -46,7 +46,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     }
 
     for xconst in ctxt.consts.iter() {
-        let mut xconst = xconst.borrow_mut();
+        let mut xconst = xconst.lock();
 
         let (_, value) = {
             let mut constck = ConstCheck {
@@ -334,7 +334,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Const(const_id) => {
-                let xconst = self.ctxt.consts[const_id].borrow();
+                let xconst = self.ctxt.consts.idx(const_id);
+                let xconst = xconst.lock();
 
                 self.src.set_ty(e.id, xconst.ty);
                 self.expr_type = xconst.ty;
@@ -3369,13 +3370,47 @@ mod tests {
                         const d: float = 3.0F;
                         const e: double = 6.0;",
             |ctxt| {
-                assert_eq!(ConstValue::Bool(true), ctxt.consts[0].borrow().value);
-                assert_eq!(ConstValue::Int(255), ctxt.consts[1].borrow().value);
-                assert_eq!(ConstValue::Int(100), ctxt.consts[2].borrow().value);
-                assert_eq!(ConstValue::Int(200), ctxt.consts[3].borrow().value);
-                assert_eq!(ConstValue::Char('A'), ctxt.consts[4].borrow().value);
-                assert_eq!(ConstValue::Float(3.0), ctxt.consts[5].borrow().value);
-                assert_eq!(ConstValue::Float(6.0), ctxt.consts[6].borrow().value);
+                {
+                    let xconst = ctxt.consts.idx_usize(0);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Bool(true), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(1);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Int(255), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(2);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Int(100), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(3);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Int(200), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(4);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Char('A'), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(5);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Float(3.0), xconst.value);
+                }
+
+                {
+                    let xconst = ctxt.consts.idx_usize(6);
+                    let xconst = xconst.lock();
+                    assert_eq!(ConstValue::Float(6.0), xconst.value);
+                }
             },
         );
     }

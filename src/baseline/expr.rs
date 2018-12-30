@@ -553,7 +553,8 @@ where
     }
 
     fn emit_const(&mut self, const_id: ConstId, dest: ExprStore) {
-        let xconst = self.vm.consts[const_id].borrow();
+        let xconst = self.vm.consts.idx(const_id);
+        let xconst = xconst.lock();
         let ty = xconst.ty;
 
         match ty {

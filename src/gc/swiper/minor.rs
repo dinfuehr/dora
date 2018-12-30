@@ -698,7 +698,10 @@ struct CopyTask<'a, 'ast: 'a> {
     young_limit: Address,
 }
 
-impl<'a, 'ast> CopyTask<'a, 'ast> where 'ast: 'a {
+impl<'a, 'ast> CopyTask<'a, 'ast>
+where
+    'ast: 'a,
+{
     fn run(&mut self) {
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {
