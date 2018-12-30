@@ -7,6 +7,7 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use dora_parser::error::diag::Diagnostic;
 use driver::cmd::Args;
@@ -33,7 +34,7 @@ use sym::Sym::*;
 use sym::*;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
-use utils::GrowableVec;
+use utils::{GrowableVec, GrowableVecMutex};
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -92,7 +93,7 @@ pub struct SemContext<'ast> {
     pub traits: Vec<RwLock<TraitData>>,       // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,         // stores all impl definitions
     pub code_map: Mutex<CodeMap>,             // stores all compiled functions
-    pub globals: GrowableVec<GlobalData<'ast>>, // stores all global variables
+    pub globals: GrowableVecMutex<GlobalData<'ast>>, // stores all global variables
     pub gc: Gc,                               // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
@@ -122,7 +123,7 @@ impl<'ast> SemContext<'ast> {
             class_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
-            globals: GrowableVec::new(),
+            globals: GrowableVecMutex::new(),
             interner: interner,
             vips: KnownElements {
                 bool_class: empty_class_id,
@@ -334,6 +335,8 @@ impl<'ast> SemContext<'ast> {
     }
 }
 
+unsafe impl<'ast> Sync for SemContext<'ast> {}
+
 impl<'ast> Index<FctId> for GrowableVec<Fct<'ast>> {
     type Output = RefCell<Fct<'ast>>;
 
@@ -394,11 +397,9 @@ pub struct GlobalData<'ast> {
     pub address_value: *const u8,
 }
 
-impl<'ast> Index<GlobalId> for GrowableVec<GlobalData<'ast>> {
-    type Output = RefCell<GlobalData<'ast>>;
-
-    fn index(&self, index: GlobalId) -> &RefCell<GlobalData<'ast>> {
-        &self[index.0 as usize]
+impl<'ast> GrowableVecMutex<GlobalData<'ast>> {
+    pub fn idx(&self, index: GlobalId) -> Arc<Mutex<GlobalData<'ast>>> {
+        self.idx_usize(index.0 as usize)
     }
 }
 

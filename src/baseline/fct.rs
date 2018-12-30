@@ -393,14 +393,16 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::StoreGlobal(gid) => {
-                let glob = self.vm.globals[gid].borrow();
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.lock();
                 let name = self.vm.interner.str(glob.name);
 
                 write!(f, "store global {}", name)
             }
 
             &Comment::LoadGlobal(gid) => {
-                let glob = &self.vm.globals[gid].borrow();
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.lock();
                 let name = self.vm.interner.str(glob.name);
 
                 write!(f, "load global {}", name)

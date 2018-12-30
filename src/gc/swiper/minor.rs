@@ -338,6 +338,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
         let terminator = Arc::new(Terminator::new(self.number_workers));
         let young_region = self.young.total();
+        let vm = self.vm;
 
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
@@ -354,6 +355,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         terminator: terminator,
 
                         young_region: young_region,
+                        vm: vm,
 
                         old_top: Address::null(),
                         old_limit: Address::null(),
@@ -679,7 +681,7 @@ fn saturating_sub(lhs: usize, rhs: usize) -> usize {
 
 const CLAB_SIZE: usize = 32 * 1024;
 
-struct CopyTask {
+struct CopyTask<'a, 'ast: 'a> {
     task_id: usize,
     local: Vec<Address>,
     worker: Worker<Address>,
@@ -687,6 +689,7 @@ struct CopyTask {
     terminator: Arc<Terminator>,
 
     young_region: Region,
+    vm: &'a VM<'ast>,
 
     old_top: Address,
     old_limit: Address,
@@ -695,7 +698,7 @@ struct CopyTask {
     young_limit: Address,
 }
 
-impl CopyTask {
+impl<'a, 'ast> CopyTask<'a, 'ast> where 'ast: 'a {
     fn run(&mut self) {
         loop {
             let object_addr = if let Some(object_addr) = self.pop() {

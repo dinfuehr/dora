@@ -311,7 +311,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Global(globalid) => {
-                let ty = self.ctxt.globals[globalid].borrow().ty;
+                let glob = self.ctxt.globals.idx(globalid);
+                let ty = glob.lock().ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
@@ -413,7 +414,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     }
 
                     &IdentType::Global(gid) => {
-                        if !self.ctxt.globals[gid].borrow().reassignable {
+                        let glob = self.ctxt.globals.idx(gid);
+                        if !glob.lock().reassignable {
                             self.ctxt
                                 .diag
                                 .borrow_mut()

@@ -22,7 +22,7 @@ fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, vm: &VM) {
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     for glob in vm.globals.iter() {
-        let glob = glob.borrow();
+        let glob = glob.lock();
 
         if !glob.ty.reference_type() {
             continue;

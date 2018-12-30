@@ -36,7 +36,8 @@ impl<'a, 'ast> Visitor<'ast> for GlobalDefCheck<'a, 'ast> {
         let global_id = *self.map_global_defs.get(g.id).unwrap();
 
         let ty = semck::read_type(self.ctxt, &g.data_type).unwrap_or(BuiltinType::Unit);
-        self.ctxt.globals[global_id].borrow_mut().ty = ty;
+        let glob = self.ctxt.globals.idx(global_id);
+        glob.lock().ty = ty;
 
         if g.expr.is_some() {
             self.ctxt

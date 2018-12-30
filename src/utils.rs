@@ -1,6 +1,64 @@
 use std::cell::RefCell;
 use std::ops::Index;
 
+use std::sync::Arc;
+use parking_lot::Mutex;
+
+pub struct GrowableVecMutex<T> {
+    elements: Mutex<Vec<Arc<Mutex<T>>>>,
+}
+
+impl<T> GrowableVecMutex<T> {
+    pub fn new() -> GrowableVecMutex<T> {
+        GrowableVecMutex {
+            elements: Mutex::new(Vec::new()),
+        }
+    }
+
+    pub fn push(&self, val: T) {
+        let mut elements = self.elements.lock();
+        elements.push(Arc::new(Mutex::new(val)));
+    }
+
+    pub fn len(&self) -> usize {
+        let elements = self.elements.lock();
+        elements.len()
+    }
+
+    pub fn iter(&self) -> GrowableVecMutexIter<T> {
+        GrowableVecMutexIter { vec: self, idx: 0 }
+    }
+
+    pub fn idx_usize(&self, idx: usize) -> Arc<Mutex<T>> {
+        let elements = self.elements.lock();
+        elements[idx].clone()
+    }
+}
+
+pub struct GrowableVecMutexIter<'a, T>
+where
+    T: 'a,
+{
+    vec: &'a GrowableVecMutex<T>,
+    idx: usize,
+}
+
+impl<'a, T> Iterator for GrowableVecMutexIter<'a, T> {
+    type Item = Arc<Mutex<T>>;
+
+    fn next(&mut self) -> Option<Arc<Mutex<T>>> {
+        let length = self.vec.len();
+
+        if self.idx < length {
+            let idx = self.idx;
+            self.idx += 1;
+            Some(self.vec.idx_usize(idx))
+        } else {
+            None
+        }
+    }
+}
+
 pub struct GrowableVec<T> {
     elements: RefCell<Vec<Box<RefCell<T>>>>,
 }

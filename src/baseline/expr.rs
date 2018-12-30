@@ -524,7 +524,8 @@ where
             }
 
             IdentType::Global(gid) => {
-                let glob = self.vm.globals[gid].borrow();
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.lock();
 
                 let disp = self.asm.add_addr(glob.address_value);
                 let pos = self.asm.pos() as i32;
@@ -698,7 +699,8 @@ where
             }
 
             IdentType::Global(gid) => {
-                let glob = self.vm.globals[gid].borrow();
+                let glob = self.vm.globals.idx(gid);
+                let glob = glob.lock();
                 let dest = result_reg(glob.ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
