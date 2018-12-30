@@ -117,7 +117,8 @@ fn detect_nil_check(vm: &VM, pc: usize, signo: libc::c_int, addr: *const u8) -> 
     let code_map = vm.code_map.lock();
 
     if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc as *const u8) {
-        let jit_fct = vm.jit_fcts[fid].borrow();
+        let jit_fct = vm.jit_fcts.idx(fid);
+        let jit_fct = jit_fct.lock();
         let offset = pc - (jit_fct.fct_ptr() as usize);
 
         let jit_fct = jit_fct.to_base().expect("baseline expected");

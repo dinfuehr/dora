@@ -89,7 +89,7 @@ pub struct SemContext<'ast> {
     pub classes: GrowableVec<Class>,               // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,              // stores all function definitions
-    pub jit_fcts: GrowableVec<JitFct>,             // stores all function implementations
+    pub jit_fcts: GrowableVecMutex<JitFct>,        // stores all function implementations
     pub traits: Vec<RwLock<TraitData>>,            // stores all trait definitions
     pub impls: Vec<RwLock<ImplData>>,              // stores all impl definitions
     pub code_map: Mutex<CodeMap>,                  // stores all compiled functions
@@ -157,7 +157,7 @@ impl<'ast> SemContext<'ast> {
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
             fcts: GrowableVec::new(),
-            jit_fcts: GrowableVec::new(),
+            jit_fcts: GrowableVecMutex::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
             polling_page: PollingPage::new(),
@@ -327,7 +327,9 @@ impl<'ast> SemContext<'ast> {
                 desc: InternalFctDescriptor::TrapThunk,
             };
             let jit_fct_id = dora_native::generate(self, ifct, false);
-            let fct_ptr = self.jit_fcts[jit_fct_id].borrow().fct_ptr();
+            let jit_fct = self.jit_fcts.idx(jit_fct_id);
+            let jit_fct = jit_fct.lock();
+            let fct_ptr = jit_fct.fct_ptr();
             *trap_thunk = Address::from_ptr(fct_ptr);
         }
 

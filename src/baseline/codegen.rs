@@ -64,7 +64,9 @@ pub fn generate_fct<'ast>(
         let key = (cls_type_params.clone(), fct_type_params.clone());
 
         if let Some(&jit_fct_id) = specials.get(&key) {
-            return vm.jit_fcts[jit_fct_id].borrow().fct_ptr();
+            let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+            let jit_fct = jit_fct.lock();
+            return jit_fct.fct_ptr();
         }
     }
 

@@ -1901,14 +1901,16 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
     let ptr = internal_fct.ptr;
 
     if let Some(jit_fct_id) = native_thunks.find_fct(ptr) {
-        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        let jit_fct = jit_fct.lock();
         jit_fct.fct_ptr()
     } else {
         let fct = vm.fcts[fct_id].borrow();
         let dbg = should_emit_debug(vm, &*fct);
 
         let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);
-        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        let jit_fct = jit_fct.lock();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
 
         let fct_start = jit_fct.fct_start;
@@ -1938,7 +1940,8 @@ fn ensure_jit_or_stub_ptr<'ast>(
     let key = (cls_type_params, fct_type_params);
 
     if let Some(&jit_fct_id) = specials.get(&key) {
-        let jit_fct = vm.jit_fcts[jit_fct_id].borrow();
+        let jit_fct = vm.jit_fcts.idx(jit_fct_id);
+        let jit_fct = jit_fct.lock();
         return jit_fct.fct_ptr();
     }
 

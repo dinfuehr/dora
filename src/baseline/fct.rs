@@ -1,8 +1,8 @@
-use std::cell::RefCell;
+use parking_lot::Mutex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::ops::Index;
 use std::ptr;
+use std::sync::Arc;
 
 use class::{ClassDef, ClassDefId, FieldId, TypeParams};
 use cpu::flush_icache;
@@ -11,7 +11,7 @@ use ctxt::{FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Handle, Str};
 use opt::fct::JitOptFct;
-use utils::GrowableVec;
+use utils::GrowableVecMutex;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);
@@ -26,11 +26,9 @@ impl JitFctId {
     }
 }
 
-impl<'ast> Index<JitFctId> for GrowableVec<JitFct> {
-    type Output = RefCell<JitFct>;
-
-    fn index(&self, index: JitFctId) -> &RefCell<JitFct> {
-        &self[index.0]
+impl GrowableVecMutex<JitFct> {
+    pub fn idx(&self, index: JitFctId) -> Arc<Mutex<JitFct>> {
+        self.idx_usize(index.0)
     }
 }
 
