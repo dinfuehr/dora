@@ -110,7 +110,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     let vm = get_vm();
     let name = vm.interner.intern(fct_name);
 
-    let sym = vm.sym.borrow().get(name);
+    let sym = vm.sym.lock().get(name);
 
     match sym {
         Some(SymFct(fct_id)) => {

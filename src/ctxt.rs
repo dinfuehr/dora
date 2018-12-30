@@ -81,7 +81,7 @@ pub struct SemContext<'ast> {
     pub interner: Interner,
     pub ast: &'ast ast::Ast,
     pub diag: Mutex<Diagnostic>,
-    pub sym: RefCell<SymTable>,
+    pub sym: Mutex<SymTable>,
     pub vips: KnownElements,
     pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
     pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
@@ -155,7 +155,7 @@ impl<'ast> SemContext<'ast> {
             gc: gc,
             ast: ast,
             diag: Mutex::new(Diagnostic::new()),
-            sym: RefCell::new(SymTable::new()),
+            sym: Mutex::new(SymTable::new()),
             fcts: GrowableVecMutex::new(),
             jit_fcts: GrowableVecMutex::new(),
             code_map: Mutex::new(CodeMap::new()),
@@ -256,7 +256,7 @@ impl<'ast> SemContext<'ast> {
         let name = fct.name;
         let fctid = self.add_fct(fct);
 
-        let mut sym = self.sym.borrow_mut();
+        let mut sym = self.sym.lock();
 
         match sym.get(name) {
             Some(sym) => Err(sym),
@@ -271,13 +271,13 @@ impl<'ast> SemContext<'ast> {
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassId {
         let name = self.interner.intern(name);
-        self.sym.borrow().get_class(name).expect("class not found")
+        self.sym.lock().get_class(name).expect("class not found")
     }
 
     #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctId> {
         let name = self.interner.intern(name);
-        self.sym.borrow().get_fct(name)
+        self.sym.lock().get_fct(name)
     }
 
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {

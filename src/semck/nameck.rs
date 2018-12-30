@@ -47,7 +47,7 @@ struct NameCheck<'a, 'ast: 'a> {
 
 impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check(&mut self) {
-        self.ctxt.sym.borrow_mut().push_level();
+        self.ctxt.sym.lock().push_level();
 
         if self.fct.has_self() {
             // add hidden this parameter for ctors and methods
@@ -60,7 +60,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         self.visit_stmt(self.ast.block());
 
-        self.ctxt.sym.borrow_mut().pop_level();
+        self.ctxt.sym.lock().pop_level();
     }
 
     pub fn add_hidden_parameter_self(&mut self) {
@@ -106,7 +106,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         var.id = var_id;
 
-        let result = match self.ctxt.sym.borrow().get(name) {
+        let result = match self.ctxt.sym.lock().get(name) {
             Some(sym) => {
                 if replacable(&sym) {
                     Ok(var_id)
@@ -118,7 +118,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         };
 
         if result.is_ok() {
-            self.ctxt.sym.borrow_mut().insert(name, SymVar(var_id));
+            self.ctxt.sym.lock().insert(name, SymVar(var_id));
         }
 
         self.src.vars.push(var);
@@ -156,7 +156,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     fn check_stmt_for(&mut self, for_loop: &'ast StmtForType) {
         self.visit_expr(&for_loop.expr);
 
-        self.ctxt.sym.borrow_mut().push_level();
+        self.ctxt.sym.lock().push_level();
 
         let var_ctxt = Var {
             id: VarId(0),
@@ -178,14 +178,14 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
         }
 
         self.visit_stmt(&for_loop.block);
-        self.ctxt.sym.borrow_mut().pop_level();
+        self.ctxt.sym.lock().pop_level();
     }
 
     fn check_stmt_do(&mut self, try: &'ast StmtDoType) {
         self.visit_stmt(&try.do_block);
 
         for catch in &try.catch_blocks {
-            self.ctxt.sym.borrow_mut().push_level();
+            self.ctxt.sym.lock().push_level();
 
             let var_ctxt = Var {
                 id: VarId(0),
@@ -209,7 +209,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             }
 
             self.visit_stmt(&catch.block);
-            self.ctxt.sym.borrow_mut().pop_level();
+            self.ctxt.sym.lock().pop_level();
         }
 
         if let Some(ref finally_block) = try.finally_block {
@@ -218,15 +218,15 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_stmt_block(&mut self, block: &'ast StmtBlockType) {
-        self.ctxt.sym.borrow_mut().push_level();
+        self.ctxt.sym.lock().push_level();
         for stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
-        self.ctxt.sym.borrow_mut().pop_level();
+        self.ctxt.sym.lock().pop_level();
     }
 
     fn check_expr_ident(&mut self, ident: &'ast ExprIdentType) {
-        let sym = self.ctxt.sym.borrow().get(ident.name);
+        let sym = self.ctxt.sym.lock().get(ident.name);
 
         match sym {
             Some(SymVar(id)) => {
@@ -282,7 +282,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
         let name = call.path.name();
 
-        if let Some(sym) = self.ctxt.sym.borrow().get(name) {
+        if let Some(sym) = self.ctxt.sym.lock().get(name) {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
@@ -312,7 +312,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
     }
 
     fn check_expr_struct(&mut self, struc: &'ast ExprLitStructType) {
-        if let Some(sid) = self.ctxt.sym.borrow().get_struct(struc.path.name()) {
+        if let Some(sid) = self.ctxt.sym.lock().get_struct(struc.path.name()) {
             self.src.map_idents.insert(struc.id, IdentType::Struct(sid));
         } else {
             let name = self.ctxt.interner.str(struc.path.name()).to_string();

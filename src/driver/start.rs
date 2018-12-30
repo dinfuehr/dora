@@ -241,7 +241,7 @@ fn parse_file(
 
 fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
     let name = vm.interner.intern("main");
-    let fctid = match vm.sym.borrow().get_fct(name) {
+    let fctid = match vm.sym.lock().get_fct(name) {
         Some(id) => id,
         None => {
             vm.diag

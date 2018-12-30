@@ -61,7 +61,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_trait_defs.insert(t.id, id);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(t.name, sym) {
+        if let Some(sym) = self.ctxt.sym.lock().insert(t.name, sym) {
             report(self.ctxt, t.name, t.pos, sym);
         }
     }
@@ -85,7 +85,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
         let sym = SymGlobal(id);
         self.map_global_defs.insert(g.id, id);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(g.name, sym) {
+        if let Some(sym) = self.ctxt.sym.lock().insert(g.name, sym) {
             report(self.ctxt, g.name, g.pos, sym);
         }
     }
@@ -120,7 +120,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         let sym = SymConst(id);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
+        if let Some(sym) = self.ctxt.sym.lock().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);
         }
     }
@@ -165,7 +165,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_cls_defs.insert(c.id, id);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(c.name, sym) {
+        if let Some(sym) = self.ctxt.sym.lock().insert(c.name, sym) {
             report(self.ctxt, c.name, c.pos, sym);
         }
     }
@@ -185,7 +185,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
         self.map_struct_defs.insert(s.id, id);
 
-        if let Some(sym) = self.ctxt.sym.borrow_mut().insert(s.name, sym) {
+        if let Some(sym) = self.ctxt.sym.lock().insert(s.name, sym) {
             report(self.ctxt, s.name, s.pos, sym);
         }
     }

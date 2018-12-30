@@ -10,7 +10,7 @@ use sym::Sym;
 use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
-    debug_assert!(ctxt.sym.borrow().levels() == 1);
+    debug_assert!(ctxt.sym.lock().levels() == 1);
 
     for fct in ctxt.fcts.iter() {
         let mut fct = fct.write();
@@ -24,7 +24,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             continue;
         }
 
-        ctxt.sym.borrow_mut().push_level();
+        ctxt.sym.lock().push_level();
 
         match fct.parent {
             FctParent::Class(owner_class) => {
@@ -34,7 +34,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
                 for param in &cls.type_params {
                     let sym = Sym::SymClassTypeParam(cls.id, type_param_id.into());
-                    ctxt.sym.borrow_mut().insert(param.name, sym);
+                    ctxt.sym.lock().insert(param.name, sym);
                     type_param_id += 1;
                 }
 
@@ -108,7 +108,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
                     }
 
                     let sym = Sym::SymFctTypeParam(fct.id, type_param_id.into());
-                    ctxt.sym.borrow_mut().insert(type_param.name, sym);
+                    ctxt.sym.lock().insert(type_param.name, sym);
                     type_param_id += 1;
                 }
             } else {
@@ -172,7 +172,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
         }
 
         if !fct.is_src() {
-            ctxt.sym.borrow_mut().pop_level();
+            ctxt.sym.lock().pop_level();
             continue;
         }
 
@@ -188,10 +188,10 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
         defck.check();
 
-        ctxt.sym.borrow_mut().pop_level();
+        ctxt.sym.lock().pop_level();
     }
 
-    debug_assert!(ctxt.sym.borrow().levels() == 1);
+    debug_assert!(ctxt.sym.lock().levels() == 1);
 }
 
 fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {

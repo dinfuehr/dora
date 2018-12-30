@@ -180,7 +180,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
         }
 
         TypeBasic(ref basic) => {
-            if let Some(sym) = ctxt.sym.borrow().get(basic.name) {
+            let sym = ctxt.sym.lock().get(basic.name);
+            if let Some(sym) = sym {
                 match sym {
                     SymClass(cls_id) => {
                         let ty = if basic.params.len() > 0 {

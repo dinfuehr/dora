@@ -786,7 +786,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         }
 
         let call_type = if e.path.len() > 1 {
-            match self.ctxt.sym.borrow().get(e.path[0]) {
+            match self.ctxt.sym.lock().get(e.path[0]) {
                 Some(SymClass(cls_id)) => {
                     assert_eq!(2, e.path.len());
 

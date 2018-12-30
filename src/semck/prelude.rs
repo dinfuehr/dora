@@ -45,7 +45,7 @@ fn internal_class<'ast>(
     ty: Option<BuiltinType>,
 ) -> ClassId {
     let iname = ctxt.interner.intern(name);
-    let clsid = ctxt.sym.borrow().get_class(iname);
+    let clsid = ctxt.sym.lock().get_class(iname);
 
     if let Some(clsid) = clsid {
         let cls = ctxt.classes.idx(clsid);
@@ -67,7 +67,7 @@ fn internal_class<'ast>(
 
 fn find_trait<'ast>(ctxt: &mut SemContext<'ast>, name: &str) -> TraitId {
     let iname = ctxt.interner.intern(name);
-    let tid = ctxt.sym.borrow().get_trait(iname);
+    let tid = ctxt.sym.lock().get_trait(iname);
 
     if let Some(tid) = tid {
         tid
@@ -295,7 +295,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
     );
 
     let iname = ctxt.interner.intern("Thread");
-    let clsid = ctxt.sym.borrow().get_class(iname);
+    let clsid = ctxt.sym.lock().get_class(iname);
 
     if let Some(clsid) = clsid {
         native_method(ctxt, clsid, "start", stdlib::spawn_thread as *const u8);
@@ -342,7 +342,7 @@ fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intri
 
 fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     let name = ctxt.interner.intern(name);
-    let fctid = ctxt.sym.borrow().get_fct(name);
+    let fctid = ctxt.sym.lock().get_fct(name);
 
     if let Some(fctid) = fctid {
         let fct = ctxt.fcts.idx(fctid);
