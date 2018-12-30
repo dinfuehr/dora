@@ -118,7 +118,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
                     type_param_id += 1;
                 }
 
-                let list_id = self.ctxt.lists.borrow_mut().insert(params.into());
+                let list_id = self.ctxt.lists.lock().insert(params.into());
                 cls.ty = BuiltinType::Class(cls.id, list_id);
             } else {
                 let msg = Msg::TypeParamsExpected;

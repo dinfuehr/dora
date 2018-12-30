@@ -792,7 +792,7 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
             CallType::Method(cls_ty, _, ref type_params) => match cls_ty {
                 BuiltinType::Class(_, list_id) => {
-                    let params = self.vm.lists.borrow().get(list_id);
+                    let params = self.vm.lists.lock().get(list_id);
                     specialize_type(self.vm, ty, &params, type_params)
                 }
 
@@ -821,10 +821,10 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             BuiltinType::Class(cls_id, list_id) => {
-                let params = self.vm.lists.borrow().get(list_id);
+                let params = self.vm.lists.lock().get(list_id);
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let list_id = self.vm.lists.borrow_mut().insert(params.into());
+                let list_id = self.vm.lists.lock().insert(params.into());
 
                 BuiltinType::Class(cls_id, list_id)
             }
@@ -848,14 +848,14 @@ fn specialize_type(
         BuiltinType::FctTypeParam(_, id) => fct_type_params[id.idx()],
 
         BuiltinType::Class(cls_id, list_id) => {
-            let params = vm.lists.borrow().get(list_id);
+            let params = vm.lists.lock().get(list_id);
 
             let params: Vec<_> = params
                 .iter()
                 .map(|t| specialize_type(vm, t, cls_type_params, fct_type_params))
                 .collect();
 
-            let list_id = vm.lists.borrow_mut().insert(params.into());
+            let list_id = vm.lists.lock().insert(params.into());
 
             BuiltinType::Class(cls_id, list_id)
         }

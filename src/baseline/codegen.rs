@@ -875,11 +875,11 @@ where
             }
 
             BuiltinType::Class(cls_id, list_id) => {
-                let params = self.vm.lists.borrow().get(list_id);
+                let params = self.vm.lists.lock().get(list_id);
 
                 let params: Vec<_> = params.iter().map(|t| self.specialize_type(t)).collect();
 
-                let list_id = self.vm.lists.borrow_mut().insert(params.into());
+                let list_id = self.vm.lists.lock().insert(params.into());
 
                 BuiltinType::Class(cls_id, list_id)
             }

@@ -327,7 +327,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             IdentType::Struct(sid) => {
-                let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
+                let list_id = self.ctxt.lists.lock().insert(TypeParams::empty());
                 let ty = BuiltinType::Struct(sid, list_id);
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
@@ -1324,7 +1324,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 .report(e.pos, Msg::UnknownStructField(struc_name.clone(), fname));
         }
 
-        let list_id = self.ctxt.lists.borrow_mut().insert(TypeParams::empty());
+        let list_id = self.ctxt.lists.lock().insert(TypeParams::empty());
         let ty = BuiltinType::Struct(sid, list_id);
         self.src.set_ty(e.id, ty);
         self.expr_type = ty;
@@ -1508,8 +1508,8 @@ fn arg_allows(
                 }
             };
 
-            let params = ctxt.lists.borrow().get(list_id);
-            let other_params = ctxt.lists.borrow().get(other_list_id);
+            let params = ctxt.lists.lock().get(list_id);
+            let other_params = ctxt.lists.lock().get(other_list_id);
 
             if params.len() == 0 && other_params.len() == 0 {
                 return arg.subclass_from(ctxt, def);
@@ -1936,7 +1936,7 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
         let cmp_type = match kind {
             LookupKind::Ctor(cls_id) => {
-                let list_id = self.ctxt.lists.borrow_mut().insert(cls_tps);
+                let list_id = self.ctxt.lists.lock().insert(cls_tps);
                 BuiltinType::Class(cls_id, list_id)
             }
 
@@ -2163,7 +2163,7 @@ fn lookup_method<'ast>(
 ) -> Option<(ClassId, FctId, BuiltinType)> {
     let values: Option<(ClassId, TypeParams)> = match object_type {
         BuiltinType::Class(cls_id, list_id) if !is_static => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = ctxt.lists.lock().get(list_id);
             Some((cls_id, params))
         }
         _ => ctxt
@@ -2230,7 +2230,7 @@ fn replace_type_param(
         BuiltinType::FctTypeParam(_, tpid) => fct_tp[tpid.idx()],
 
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = ctxt.lists.lock().get(list_id);
 
             let params: TypeParams = params
                 .iter()
@@ -2238,7 +2238,7 @@ fn replace_type_param(
                 .collect::<Vec<_>>()
                 .into();
 
-            let list_id = ctxt.lists.borrow_mut().insert(params);
+            let list_id = ctxt.lists.lock().insert(params);
             BuiltinType::Class(cls_id, list_id)
         }
 

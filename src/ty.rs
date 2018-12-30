@@ -129,7 +129,7 @@ impl BuiltinType {
 
     pub fn type_params(&self, vm: &VM) -> TypeParams {
         match self {
-            &BuiltinType::Class(_, list_id) => vm.lists.borrow().get(list_id),
+            &BuiltinType::Class(_, list_id) => vm.lists.lock().get(list_id),
 
             _ => TypeParams::empty(),
         }
@@ -141,7 +141,7 @@ impl BuiltinType {
             &BuiltinType::FctTypeParam(_, _) => true,
 
             &BuiltinType::Class(_, list_id) => {
-                let params = vm.lists.borrow().get(list_id);
+                let params = vm.lists.lock().get(list_id);
                 params.iter().any(|t| t.contains_type_param(vm))
             }
 
@@ -197,7 +197,7 @@ impl BuiltinType {
             BuiltinType::Ptr => panic!("type Ptr only for internal use."),
             BuiltinType::This => "Self".into(),
             BuiltinType::Class(id, list_id) => {
-                let params = vm.lists.borrow().get(list_id);
+                let params = vm.lists.lock().get(list_id);
                 let cls = vm.classes.idx(id);
                 let cls = cls.read();
                 let base = vm.interner.str(cls.name);
@@ -220,7 +220,7 @@ impl BuiltinType {
                 let name = struc.name;
                 let name = vm.interner.str(name).to_string();
 
-                let params = vm.lists.borrow().get(list_id);
+                let params = vm.lists.lock().get(list_id);
 
                 if params.len() == 0 {
                     name
@@ -324,7 +324,7 @@ impl BuiltinType {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
-                let params = vm.lists.borrow().get(list_id);
+                let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
                 let struc = struc.lock();
@@ -355,7 +355,7 @@ impl BuiltinType {
                 mem::ptr_width()
             }
             BuiltinType::Struct(sid, list_id) => {
-                let params = vm.lists.borrow().get(list_id);
+                let params = vm.lists.lock().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
                 let struc = vm.struct_defs.idx(sid);
                 let struc = struc.lock();

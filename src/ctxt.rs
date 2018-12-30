@@ -98,7 +98,7 @@ pub struct SemContext<'ast> {
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
-    pub lists: RefCell<TypeLists>,
+    pub lists: Mutex<TypeLists>,
     pub lambda_types: RefCell<LambdaTypes>,
     pub handles: HandleMemory,
     pub compiler_thunk: Mutex<Address>,
@@ -161,7 +161,7 @@ impl<'ast> SemContext<'ast> {
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
             polling_page: PollingPage::new(),
-            lists: RefCell::new(TypeLists::new()),
+            lists: Mutex::new(TypeLists::new()),
             lambda_types: RefCell::new(LambdaTypes::new()),
             handles: HandleMemory::new(),
             native_thunks: Mutex::new(NativeThunks::new()),
@@ -281,7 +281,7 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn cls(&self, cls_id: ClassId) -> BuiltinType {
-        let list_id = self.lists.borrow_mut().insert(TypeParams::empty());
+        let list_id = self.lists.lock().insert(TypeParams::empty());
         BuiltinType::Class(cls_id, list_id)
     }
 

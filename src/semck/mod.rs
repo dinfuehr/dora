@@ -242,7 +242,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                 }
                             }
 
-                            let list_id = ctxt.lists.borrow_mut().insert(type_params.into());
+                            let list_id = ctxt.lists.lock().insert(type_params.into());
                             BuiltinType::Class(cls.id, list_id)
                         } else {
                             let cls = ctxt.classes.idx(cls_id);
@@ -269,7 +269,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                             ctxt.diag.lock().report(basic.pos, msg);
                         }
 
-                        let list_id = ctxt.lists.borrow_mut().insert(TypeParams::empty());
+                        let list_id = ctxt.lists.lock().insert(TypeParams::empty());
                         return Some(BuiltinType::Struct(struct_id, list_id));
                     }
 

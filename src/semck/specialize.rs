@@ -20,7 +20,7 @@ pub fn specialize_type<'ast>(
         BuiltinType::FctTypeParam(_, _) => panic!("no fct type params expected"),
 
         BuiltinType::Struct(struct_id, list_id) => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = ctxt.lists.lock().get(list_id);
 
             let params: TypeParams = params
                 .iter()
@@ -28,13 +28,13 @@ pub fn specialize_type<'ast>(
                 .collect::<Vec<_>>()
                 .into();
 
-            let list_id = ctxt.lists.borrow_mut().insert(params);
+            let list_id = ctxt.lists.lock().insert(params);
 
             BuiltinType::Struct(struct_id, list_id)
         }
 
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = ctxt.lists.lock().get(list_id);
 
             let params: TypeParams = params
                 .iter()
@@ -42,7 +42,7 @@ pub fn specialize_type<'ast>(
                 .collect::<Vec<_>>()
                 .into();
 
-            let list_id = ctxt.lists.borrow_mut().insert(params);
+            let list_id = ctxt.lists.lock().insert(params);
 
             BuiltinType::Class(cls_id, list_id)
         }
@@ -160,7 +160,7 @@ pub fn specialize_class_id_params(
 pub fn specialize_class_ty(ctxt: &SemContext, ty: BuiltinType) -> ClassDefId {
     match ty {
         BuiltinType::Class(cls_id, list_id) => {
-            let params = ctxt.lists.borrow().get(list_id);
+            let params = ctxt.lists.lock().get(list_id);
             specialize_class_id_params(ctxt, cls_id, params)
         }
 

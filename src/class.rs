@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
-use std::rc::Rc;
 use std::sync::Arc;
 
 use ctxt::VM;
@@ -353,7 +352,7 @@ pub struct FieldDef {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TypeParams {
     Empty,
-    List(Rc<Vec<BuiltinType>>),
+    List(Arc<Vec<BuiltinType>>),
 }
 
 impl TypeParams {
@@ -365,7 +364,7 @@ impl TypeParams {
         if type_params.len() == 0 {
             TypeParams::Empty
         } else {
-            TypeParams::List(Rc::new(type_params))
+            TypeParams::List(Arc::new(type_params))
         }
     }
 
