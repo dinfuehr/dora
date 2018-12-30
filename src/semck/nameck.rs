@@ -65,11 +65,19 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
 
     pub fn add_hidden_parameter_self(&mut self) {
         let ty = match self.fct.parent {
-            FctParent::Class(cls_id) => self.ctxt.classes[cls_id].borrow().ty,
+            FctParent::Class(cls_id) => {
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
+
+                cls.ty
+            }
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.ctxt.impls[impl_id].read();
-                self.ctxt.classes[ximpl.cls_id()].borrow().ty
+                let cls = self.ctxt.classes.idx(ximpl.cls_id());
+                let cls = cls.read();
+
+                cls.ty
             }
 
             _ => unreachable!(),

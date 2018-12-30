@@ -161,7 +161,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                 // find impl for ret that implements Iterator
                 let cls_id = make_iterator_ret.cls_id(self.ctxt).unwrap();
-                let cls = self.ctxt.classes[cls_id].borrow();
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
                 let impl_id = cls
                     .find_impl_for_trait(self.ctxt, iterator_trait_id)
                     .expect("impl not found for Iterator");
@@ -320,7 +321,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             IdentType::Field(ty, fieldid) => {
                 let clsid = ty.cls_id(self.ctxt).unwrap();
-                let cls = self.ctxt.classes[clsid].borrow();
+                let cls = self.ctxt.classes.idx(clsid);
+                let cls = cls.read();
                 let field = &cls.fields[fieldid];
 
                 self.src.set_ty(e.id, field.ty);
@@ -427,10 +429,10 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     &IdentType::Field(ty, fieldid) => {
                         let clsid = ty.cls_id(self.ctxt).unwrap();
+                        let cls = self.ctxt.classes.idx(clsid);
+                        let cls = cls.read();
 
-                        if !self.fct.ctor.is()
-                            && !self.ctxt.classes[clsid].borrow().fields[fieldid].reassignable
-                        {
+                        if !self.fct.ctor.is() && !cls.fields[fieldid].reassignable {
                             self.ctxt
                                 .diag
                                 .borrow_mut()
@@ -853,7 +855,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let ty = if lookup.find() {
                     let fct_id = lookup.found_fct_id().unwrap();
                     let cls_id = lookup.found_cls_id().unwrap();
-                    let cls = self.ctxt.classes[cls_id].borrow();
+                    let cls = self.ctxt.classes.idx(cls_id);
+                    let cls = cls.read();
 
                     let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
                     self.src.map_calls.replace(e.id, Rc::new(call_type));
@@ -919,7 +922,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             })
             .collect();
 
-        let owner = self.ctxt.classes[self.fct.cls_id()].borrow();
+        let owner = self.ctxt.classes.idx(self.fct.cls_id());
+        let owner = owner.read();
 
         // init(..) : super(..) is not allowed for classes with primary ctor
         if e.ty.is_super() && owner.primary_ctor && self.fct.ctor.is_secondary() {
@@ -945,7 +949,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             owner.id
         };
 
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.classes.idx(cls_id);
+        let cls = cls.read();
 
         for &ctor_id in &cls.ctors {
             let ctor = self.ctxt.fcts.idx(ctor_id);
@@ -976,10 +981,13 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
     fn super_type(&self, pos: Position) -> BuiltinType {
         if let FctParent::Class(clsid) = self.fct.parent {
-            let cls = self.ctxt.classes[clsid].borrow();
+            let cls = self.ctxt.classes.idx(clsid);
+            let cls = cls.read();
 
             if let Some(superid) = cls.parent_class {
-                return self.ctxt.classes[superid].borrow().ty;
+                let cls = self.ctxt.classes.idx(superid);
+                let cls = cls.read();
+                return cls.ty;
             }
         }
 
@@ -1003,7 +1011,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             }
 
             BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                let cls = self.ctxt.classes[cls_id].borrow();
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
                 let tp = &cls.type_params[tpid.idx()];
                 self.check_generic_method_call_for_type_param(e, in_try, obj, args, tp);
             }
@@ -1064,7 +1073,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls_id = ty.cls_id(self.ctxt);
 
         if let Some(cls_id) = cls_id {
-            let cls = self.ctxt.classes[cls_id].borrow();
+            let cls = self.ctxt.classes.idx(cls_id);
+            let cls = cls.read();
 
             if let Some((cls_id, field_id)) = cls.find_field(self.ctxt, e.name) {
                 let ty = match ty {
@@ -1073,7 +1083,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     _ => unreachable!(),
                 };
 
-                let cls = self.ctxt.classes[cls_id].borrow();
+                let cls = self.ctxt.classes.idx(cls_id);
+                let cls = cls.read();
                 let ident_type = IdentType::Field(ty, field_id);
                 self.src.map_idents.insert_or_replace(e.id, ident_type);
 
@@ -1105,14 +1116,18 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
     fn check_expr_this(&mut self, e: &'ast ExprSelfType) {
         match self.fct.parent {
             FctParent::Class(clsid) => {
-                let ty = self.ctxt.classes[clsid].borrow().ty;
+                let cls = self.ctxt.classes.idx(clsid);
+                let cls = cls.read();
+                let ty = cls.ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.ctxt.impls[impl_id].read();
-                let ty = self.ctxt.classes[ximpl.cls_id()].borrow().ty;
+                let cls = self.ctxt.classes.idx(ximpl.cls_id());
+                let cls = cls.read();
+                let ty = cls.ty;
                 self.src.set_ty(e.id, ty);
                 self.expr_type = ty;
             }
@@ -1839,7 +1854,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         } else {
             let name = match kind {
                 LookupKind::Ctor(cls_id) => {
-                    let cls = self.ctxt.classes[cls_id].borrow();
+                    let cls = self.ctxt.classes.idx(cls_id);
+                    let cls = cls.read();
                     cls.name
                 }
                 _ => self.name.expect("name not set"),
@@ -1865,7 +1881,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                 }
 
                 LookupKind::Ctor(cls_id) => {
-                    let cls = self.ctxt.classes[cls_id].borrow();
+                    let cls = self.ctxt.classes.idx(cls_id);
+                    let cls = cls.read();
                     let name = self.ctxt.interner.str(cls.name).to_string();
                     Msg::UnknownCtor(name, param_names)
                 }
@@ -1960,7 +1977,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn find_ctor(&self, cls_id: ClassId) -> Option<FctId> {
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.classes.idx(cls_id);
+        let cls = cls.read();
 
         let type_params = self.cls_tps.as_ref().unwrap();
         let args = self.args.unwrap();
@@ -1986,7 +2004,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     }
 
     fn find_method(&self, cls_id: ClassId, name: Name, is_static: bool) -> Option<FctId> {
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.classes.idx(cls_id);
+        let cls = cls.read();
 
         let candidates = cls.find_methods(self.ctxt, name, is_static);
 
@@ -2000,7 +2019,9 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     fn check_cls_tps(&self, tps: &TypeParams) -> bool {
         let cls_tps = {
             let cls_id = self.found_cls_id.expect("found_cls_id not set");
-            self.ctxt.classes[cls_id].borrow().type_params.to_vec()
+            let cls = self.ctxt.classes.idx(cls_id);
+            let cls = cls.read();
+            cls.type_params.to_vec()
         };
 
         self.check_tps(&cls_tps, tps)
@@ -2034,7 +2055,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             if ty.is_type_param() {
                 let ok = match ty {
                     BuiltinType::ClassTypeParam(cls_id, tpid) => {
-                        let cls = self.ctxt.classes[cls_id].borrow();
+                        let cls = self.ctxt.classes.idx(cls_id);
+                        let cls = cls.read();
                         self.check_tp_against_tp(tp, &cls.type_params[tpid.idx()], ty)
                     }
 
@@ -2070,7 +2092,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         }
 
         let cls_id = ty.cls_id(self.ctxt).unwrap();
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.classes.idx(cls_id);
+        let cls = cls.read();
 
         for &trait_bound in &tp.trait_bounds {
             if !cls.traits.contains(&trait_bound) {
@@ -2115,7 +2138,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
 
     fn fail_cls_bound(&self, cls_id: ClassId, ty: BuiltinType) {
         let name = ty.name(self.ctxt);
-        let cls = self.ctxt.classes[cls_id].borrow();
+        let cls = self.ctxt.classes.idx(cls_id);
+        let cls = cls.read();
         let cls = self.ctxt.interner.str(cls.name).to_string();
 
         let msg = Msg::ClassBoundNotSatisfied(name, cls);
@@ -2170,7 +2194,8 @@ fn lookup_method<'ast>(
     };
 
     if let Some((cls_id, ref cls_type_params)) = values {
-        let cls = ctxt.classes[cls_id].borrow();
+        let cls = ctxt.classes.idx(cls_id);
+        let cls = cls.read();
 
         let candidates = cls.find_methods(ctxt, name, is_static);
 

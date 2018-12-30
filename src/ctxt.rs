@@ -34,7 +34,7 @@ use sym::Sym::*;
 use sym::*;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
-use utils::{GrowableVec, GrowableVecMutex};
+use utils::GrowableVecMutex;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -86,7 +86,7 @@ pub struct SemContext<'ast> {
     pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
     pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
     pub struct_defs: GrowableVecMutex<Mutex<StructDef>>,  // stores all struct definitions
-    pub classes: GrowableVec<Class>,                      // stores all class source definitions
+    pub classes: GrowableVecMutex<RwLock<Class>>,         // stores all class source definitions
     pub class_defs: GrowableVecMutex<RwLock<ClassDef>>,   // stores all class definitions
     pub fcts: GrowableVecMutex<RwLock<Fct<'ast>>>,        // stores all function definitions
     pub jit_fcts: GrowableVecMutex<JitFct>,               // stores all function implementations
@@ -119,7 +119,7 @@ impl<'ast> SemContext<'ast> {
             consts: GrowableVecMutex::new(),
             structs: GrowableVecMutex::new(),
             struct_defs: GrowableVecMutex::new(),
-            classes: GrowableVec::new(),
+            classes: GrowableVecMutex::new(),
             class_defs: GrowableVecMutex::new(),
             traits: Vec::new(),
             impls: Vec::new(),
@@ -791,7 +791,9 @@ impl<'ast> Fct<'ast> {
         let mut repr = String::new();
 
         if let FctParent::Class(class_id) = self.parent {
-            let name = ctxt.classes[class_id].borrow().name;
+            let cls = ctxt.classes.idx(class_id);
+            let cls = cls.read();
+            let name = cls.name;
             repr.push_str(&ctxt.interner.str(name));
 
             if self.is_static {

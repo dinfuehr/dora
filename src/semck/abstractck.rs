@@ -10,7 +10,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     let mut abstract_methods: HashMap<ClassId, Rc<Vec<FctId>>> = HashMap::new();
 
     for cls in ctxt.classes.iter() {
-        let cls = cls.borrow();
+        let cls = cls.read();
 
         // we are only interested in non-abstract classes
         // with abstract super classes
@@ -20,7 +20,8 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
         }
 
         if let Some(super_cls_id) = cls.parent_class {
-            let super_cls = ctxt.classes[super_cls_id].borrow();
+            let super_cls = ctxt.classes.idx(super_cls_id);
+            let super_cls = super_cls.read();
 
             if super_cls.is_abstract {
                 check_abstract(ctxt, &*cls, &*super_cls, &mut abstract_methods);
@@ -55,7 +56,8 @@ pub fn check_abstract<'ast>(
             let mtd = ctxt.fcts.idx(mtd);
             let mtd = mtd.read();
 
-            let mtd_cls = ctxt.classes[mtd.parent.cls_id()].borrow();
+            let mtd_cls = ctxt.classes.idx(mtd.parent.cls_id());
+            let mtd_cls = mtd_cls.read();
             let cls_name = ctxt.interner.str(mtd_cls.name).to_string();
             let mtd_name = ctxt.interner.str(mtd.name).to_string();
 
@@ -94,7 +96,8 @@ fn find_abstract_methods<'ast>(
     }
 
     if let Some(super_cls_id) = cls.parent_class {
-        let super_cls = ctxt.classes[super_cls_id].borrow();
+        let super_cls = ctxt.classes.idx(super_cls_id);
+        let super_cls = super_cls.read();
 
         if super_cls.is_abstract {
             let super_abstracts = find_abstract_methods(ctxt, &*super_cls, abstract_methods);

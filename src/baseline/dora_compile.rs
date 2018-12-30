@@ -220,7 +220,8 @@ fn patch_vtable_call(
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().cls_id;
-    let cls = vm.classes[cls_id].borrow();
+    let cls = vm.classes.idx(cls_id);
+    let cls = cls.read();
 
     let mut fct_ptr = Address::null();
 

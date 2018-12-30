@@ -142,7 +142,8 @@ fn create_specialized_struct(
 }
 
 pub fn specialize_class_id(ctxt: &SemContext, cls_id: ClassId) -> ClassDefId {
-    let cls = ctxt.classes[cls_id].borrow();
+    let cls = ctxt.classes.idx(cls_id);
+    let cls = cls.read();
     specialize_class(ctxt, &*cls, TypeParams::empty())
 }
 
@@ -151,7 +152,8 @@ pub fn specialize_class_id_params(
     cls_id: ClassId,
     type_params: TypeParams,
 ) -> ClassDefId {
-    let cls = ctxt.classes[cls_id].borrow();
+    let cls = ctxt.classes.idx(cls_id);
+    let cls = cls.read();
     specialize_class(ctxt, &*cls, type_params)
 }
 

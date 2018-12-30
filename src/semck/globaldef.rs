@@ -160,7 +160,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             }
         }
 
-        self.ctxt.classes.push(cls);
+        self.ctxt.classes.push(RwLock::new(cls));
         let sym = SymClass(id);
 
         self.map_cls_defs.insert(c.id, id);

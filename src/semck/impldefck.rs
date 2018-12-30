@@ -56,7 +56,8 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
         }
 
         if ximpl.trait_id.is_some() && ximpl.class_id.is_some() {
-            let mut cls = self.ctxt.classes[ximpl.cls_id()].borrow_mut();
+            let cls = self.ctxt.classes.idx(ximpl.cls_id());
+            let mut cls = cls.write();
             cls.traits.push(ximpl.trait_id());
             cls.impls.push(ximpl.id);
         }

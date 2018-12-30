@@ -8,7 +8,9 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
     for ximpl in &ctxt.impls {
         let ximpl = ximpl.read();
         let xtrait = ctxt.traits[ximpl.trait_id()].read();
-        let cls = ctxt.classes[ximpl.cls_id()].borrow().ty;
+        let cls = ctxt.classes.idx(ximpl.cls_id());
+        let cls = cls.read();
+        let cls = cls.ty;
 
         let all: HashSet<_> = xtrait.methods.iter().cloned().collect();
         let mut defined = HashSet::new();

@@ -119,7 +119,8 @@ impl BuiltinType {
 
     pub fn implements_trait(&self, vm: &VM, trait_id: TraitId) -> bool {
         if let Some(cls_id) = self.cls_id(vm) {
-            let cls = vm.classes[cls_id].borrow();
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
             return cls.traits.contains(&trait_id);
         }
 
@@ -176,7 +177,8 @@ impl BuiltinType {
         }
 
         let cls_id = self.cls_id(vm).unwrap();
-        let cls = vm.classes[cls_id].borrow();
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
         cls.subclass_from(vm, ty.cls_id(vm).unwrap())
     }
 
@@ -196,7 +198,8 @@ impl BuiltinType {
             BuiltinType::This => "Self".into(),
             BuiltinType::Class(id, list_id) => {
                 let params = vm.lists.borrow().get(list_id);
-                let cls = vm.classes[id].borrow();
+                let cls = vm.classes.idx(id);
+                let cls = cls.read();
                 let base = vm.interner.str(cls.name);
 
                 if params.len() == 0 {
@@ -236,7 +239,8 @@ impl BuiltinType {
                 vm.interner.str(xtrait.name).to_string()
             }
             BuiltinType::ClassTypeParam(cid, id) => {
-                let cls = vm.classes[cid].borrow();
+                let cls = vm.classes.idx(cid);
+                let cls = cls.read();
                 vm.interner.str(cls.type_params[id.idx()].name).to_string()
             }
 

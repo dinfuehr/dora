@@ -28,7 +28,8 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
         match fct.parent {
             FctParent::Class(owner_class) => {
-                let cls = ctxt.classes[owner_class].borrow();
+                let cls = ctxt.classes.idx(owner_class);
+                let cls = cls.read();
                 let mut type_param_id = 0;
 
                 for param in &cls.type_params {
@@ -44,7 +45,8 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
             FctParent::Impl(impl_id) => {
                 let ximpl = ctxt.impls[impl_id].read();
-                let cls = ctxt.classes[ximpl.cls_id()].borrow();
+                let cls = ctxt.classes.idx(ximpl.cls_id());
+                let cls = cls.read();
 
                 if fct.has_self() {
                     fct.param_types.push(cls.ty);
@@ -151,7 +153,8 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
         match fct.parent {
             FctParent::Class(clsid) => {
-                let cls = ctxt.classes[clsid].borrow();
+                let cls = ctxt.classes.idx(clsid);
+                let cls = cls.read();
                 check_against_methods(ctxt, cls.ty, &*fct, &cls.methods);
             }
 
@@ -199,7 +202,8 @@ fn check_abstract<'ast>(ctxt: &SemContext<'ast>, fct: &Fct<'ast>) {
     }
 
     let cls_id = fct.cls_id();
-    let cls = ctxt.classes[cls_id].borrow();
+    let cls = ctxt.classes.idx(cls_id);
+    let cls = cls.read();
 
     if !fct.kind.is_definition() {
         let msg = Msg::AbstractMethodWithImplementation;

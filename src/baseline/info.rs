@@ -299,11 +299,20 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn reserve_stack_for_self(&mut self) {
         let ty = match self.fct.parent {
-            FctParent::Class(clsid) => self.vm.classes[clsid].borrow().ty,
+            FctParent::Class(clsid) => {
+                let cls = self.vm.classes.idx(clsid);
+                let cls = cls.read();
+
+                cls.ty
+            }
 
             FctParent::Impl(impl_id) => {
                 let ximpl = self.vm.impls[impl_id].read();
-                self.vm.classes[ximpl.cls_id()].borrow().ty
+
+                let cls = self.vm.classes.idx(ximpl.cls_id());
+                let cls = cls.read();
+
+                cls.ty
             }
 
             _ => unreachable!(),
@@ -470,7 +479,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
 
     fn find_trait_impl(&self, fct_id: FctId, trait_id: TraitId, object_type: BuiltinType) -> FctId {
         let cls_id = object_type.cls_id(self.vm).unwrap();
-        let cls = self.vm.classes[cls_id].borrow();
+        let cls = self.vm.classes.idx(cls_id);
+        let cls = cls.read();
 
         for &impl_id in &cls.impls {
             let ximpl = self.vm.impls[impl_id].read();

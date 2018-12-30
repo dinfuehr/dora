@@ -130,7 +130,7 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
     }
 
     for cls in ctxt.classes.iter() {
-        let cls = cls.borrow();
+        let cls = cls.read();
 
         if cls.internal && !cls.internal_resolved {
             ctxt.diag
@@ -204,7 +204,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                 }
                             }
 
-                            let cls = ctxt.classes[cls_id].borrow();
+                            let cls = ctxt.classes.idx(cls_id);
+                            let cls = cls.read();
 
                             if cls.type_params.len() != type_params.len() {
                                 let msg = Msg::WrongNumberTypeParams(
@@ -234,7 +235,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                                     continue;
                                 };
 
-                                let cls = ctxt.classes[cls_id].borrow();
+                                let cls = ctxt.classes.idx(cls_id);
+                                let cls = cls.read();
 
                                 for &trait_bound in &tp.trait_bounds {
                                     if !cls.traits.contains(&trait_bound) {
@@ -250,7 +252,8 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                             let list_id = ctxt.lists.borrow_mut().insert(type_params.into());
                             BuiltinType::Class(cls.id, list_id)
                         } else {
-                            let cls = ctxt.classes[cls_id].borrow();
+                            let cls = ctxt.classes.idx(cls_id);
+                            let cls = cls.read();
 
                             cls.ty
                         };

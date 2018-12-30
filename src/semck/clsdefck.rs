@@ -37,7 +37,8 @@ impl<'x, 'ast> ClsCheck<'x, 'ast> {
     }
 
     fn add_field(&mut self, pos: Position, name: Name, ty: BuiltinType, reassignable: bool) {
-        let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let mut cls = cls.write();
 
         for field in &cls.fields {
             if field.name == name {
@@ -68,7 +69,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             if type_params.len() > 0 {
                 let mut names = HashSet::new();
                 let mut type_param_id = 0;
-                let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+                let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+                let mut cls = cls.write();
                 let mut params = Vec::new();
 
                 for type_param in type_params {
@@ -132,11 +134,12 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
             match sym {
                 Some(Sym::SymClass(clsid)) => {
-                    let super_cls = &self.ctxt.classes[clsid];
-                    let super_cls = super_cls.borrow();
+                    let super_cls = self.ctxt.classes.idx(clsid);
+                    let super_cls = super_cls.read();
 
                     if super_cls.has_open {
-                        let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+                        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+                        let mut cls = cls.write();
                         cls.parent_class = Some(clsid);
                     } else {
                         let msg = Msg::UnderivableType(name);
@@ -168,7 +171,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
             let cls_id = self.cls_id.unwrap();
 
             if cls_id != object_cls {
-                let mut cls = self.ctxt.classes[cls_id].borrow_mut();
+                let cls = self.ctxt.classes.idx(cls_id);
+                let mut cls = cls.write();
                 cls.parent_class = Some(object_cls);
             }
         }
@@ -227,7 +231,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
         let fctid = self.ctxt.add_fct(fct);
 
-        let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let mut cls = cls.write();
         cls.ctors.push(fctid);
     }
 
@@ -274,7 +279,8 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
 
         let fctid = self.ctxt.add_fct(fct);
 
-        let mut cls = self.ctxt.classes[self.cls_id.unwrap()].borrow_mut();
+        let cls = self.ctxt.classes.idx(self.cls_id.unwrap());
+        let mut cls = cls.write();
         cls.methods.push(fctid);
     }
 }

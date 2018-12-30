@@ -17,7 +17,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
 fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
-        let cls = cls.borrow();
+        let cls = cls.read();
 
         let mut map: HashSet<ClassId> = HashSet::new();
         map.insert(cls.id);
@@ -34,7 +34,9 @@ fn cycle_detection<'ast>(ctxt: &mut SemContext<'ast>) {
                 break;
             }
 
-            parent = ctxt.classes[p].borrow().parent_class;
+            let cls = ctxt.classes.idx(p);
+            let cls = cls.read();
+            parent = cls.parent_class;
         }
     }
 }
@@ -43,7 +45,7 @@ fn determine_vtables<'ast>(ctxt: &SemContext<'ast>) {
     let mut lens = HashMap::new();
 
     for cls in ctxt.classes.iter() {
-        let mut cls = cls.borrow_mut();
+        let mut cls = cls.write();
         determine_vtable(ctxt, &mut lens, &mut *cls);
     }
 }
@@ -59,7 +61,8 @@ fn determine_vtable<'ast>(
         if let Some(parent_vtable_len) = parent_vtable_len {
             parent_vtable_len
         } else {
-            let mut parent = ctxt.classes[parent_cls_id].borrow_mut();
+            let parent = ctxt.classes.idx(parent_cls_id);
+            let mut parent = parent.write();
             determine_vtable(ctxt, lens, &mut *parent)
         }
     } else {
@@ -155,7 +158,7 @@ fn determine_vtable<'ast>(
 
 pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
     for cls in ctxt.classes.iter() {
-        let cls = cls.borrow();
+        let cls = cls.read();
 
         for &fct_id in &cls.methods {
             let fct = ctxt.fcts.idx(fct_id);
@@ -189,7 +192,8 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
     }
 
     let parent = cls.parent_class.unwrap();
-    let parent = ctxt.classes[parent].borrow();
+    let parent = ctxt.classes.idx(parent);
+    let parent = parent.read();
 
     let super_method = parent.find_method(ctxt, fct.name, false);
 
@@ -426,13 +430,15 @@ mod tests {
     fn test_vtable_index_and_len() {
         ok_with_test("class A {}", |ctxt| {
             let cls_id = ctxt.cls_by_name("A");
-            let cls = ctxt.classes[cls_id].borrow();
+            let cls = ctxt.classes.idx(cls_id);
+            let cls = cls.read();
             assert_eq!(cls.vtable_len, 0);
         });
 
         ok_with_test("open class A { open fun f() {} }", |ctxt| {
             let cls_id = ctxt.cls_by_name("A");
-            let cls = ctxt.classes[cls_id].borrow();
+            let cls = ctxt.classes.idx(cls_id);
+            let cls = cls.read();
             assert_eq!(cls.vtable_len, 1);
         });
 
@@ -442,11 +448,13 @@ mod tests {
                                         open fun g() {} }",
             |ctxt| {
                 let cls_id = ctxt.cls_by_name("A");
-                let cls = ctxt.classes[cls_id].borrow();
+                let cls = ctxt.classes.idx(cls_id);
+                let cls = cls.read();
                 assert_eq!(cls.vtable_len, 1);
 
                 let cls_id = ctxt.cls_by_name("B");
-                let cls = ctxt.classes[cls_id].borrow();
+                let cls = ctxt.classes.idx(cls_id);
+                let cls = cls.read();
                 assert_eq!(cls.vtable_len, 2);
             },
         );

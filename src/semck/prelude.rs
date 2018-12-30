@@ -18,10 +18,16 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.vips.object_class = internal_class(ctxt, "Object", None);
     ctxt.vips.str_class = internal_class(ctxt, "Str", None);
-    ctxt.classes[ctxt.vips.str_class].borrow_mut().is_str = true;
+
+    let cls = ctxt.classes.idx(ctxt.vips.str_class);
+    let mut cls = cls.write();
+    cls.is_str = true;
 
     ctxt.vips.array_class = internal_class(ctxt, "Array", None);
-    ctxt.classes[ctxt.vips.array_class].borrow_mut().is_array = true;
+
+    let cls = ctxt.classes.idx(ctxt.vips.array_class);
+    let mut cls = cls.write();
+    cls.is_array = true;
 
     ctxt.vips.testing_class = internal_class(ctxt, "Testing", None);
 
@@ -42,7 +48,8 @@ fn internal_class<'ast>(
     let clsid = ctxt.sym.borrow().get_class(iname);
 
     if let Some(clsid) = clsid {
-        let mut cls = ctxt.classes[clsid].borrow_mut();
+        let cls = ctxt.classes.idx(clsid);
+        let mut cls = cls.write();
 
         if cls.internal {
             if let Some(ty) = ty {
@@ -309,7 +316,8 @@ fn intrinsic_method<'ast>(
 }
 
 fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, kind: FctKind) {
-    let cls = ctxt.classes[clsid].borrow();
+    let cls = ctxt.classes.idx(clsid);
+    let cls = cls.read();
     let name = ctxt.interner.intern(name);
 
     for &mid in &cls.methods {
@@ -365,7 +373,8 @@ fn internal_impl<'ast>(
     kind: FctKind,
 ) {
     let name = ctxt.interner.intern(name);
-    let cls = ctxt.classes[clsid].borrow();
+    let cls = ctxt.classes.idx(clsid);
+    let cls = cls.read();
 
     for &iid in &cls.impls {
         let i = ctxt.impls[iid].read();

@@ -363,7 +363,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
-                let cls = self.vm.classes[cls_def.cls_id].borrow();
+                let cls = self.vm.classes.idx(cls_def.cls_id);
+                let cls = cls.read();
                 let field = &cls.fields[fid];
                 let fname = field.name;
                 let fname = self.vm.interner.str(fname);
@@ -376,7 +377,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
                 let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
-                let cls = self.vm.classes[cls_def.cls_id].borrow();
+                let cls = self.vm.classes.idx(cls_def.cls_id);
+                let cls = cls.read();
                 let field = &cls.fields[fid];
                 let fname = field.name;
                 let fname = self.vm.interner.str(fname);

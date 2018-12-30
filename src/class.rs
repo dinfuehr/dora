@@ -12,7 +12,7 @@ use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
-use utils::{GrowableVec, GrowableVecMutex};
+use utils::GrowableVecMutex;
 use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -36,11 +36,9 @@ impl From<usize> for ClassId {
     }
 }
 
-impl Index<ClassId> for GrowableVec<Class> {
-    type Output = RefCell<Class>;
-
-    fn index(&self, index: ClassId) -> &RefCell<Class> {
-        &self[index.0]
+impl GrowableVecMutex<RwLock<Class>> {
+    pub fn idx(&self, index: ClassId) -> Arc<RwLock<Class>> {
+        self.idx_usize(index.0)
     }
 }
 
@@ -113,7 +111,8 @@ impl Class {
         let mut classid = self.id;
 
         loop {
-            let cls = vm.classes[classid].borrow();
+            let cls = vm.classes.idx(classid);
+            let cls = cls.read();
 
             for field in &cls.fields {
                 if field.name == name {
@@ -133,7 +132,8 @@ impl Class {
         let mut classid = self.id;
 
         loop {
-            let cls = vm.classes[classid].borrow();
+            let cls = vm.classes.idx(classid);
+            let cls = cls.read();
 
             for &method in &cls.methods {
                 let method = vm.fcts.idx(method);
@@ -158,7 +158,8 @@ impl Class {
         let mut ignores = HashSet::new();
 
         loop {
-            let cls = vm.classes[classid].borrow();
+            let cls = vm.classes.idx(classid);
+            let cls = cls.read();
 
             for &method in &cls.methods {
                 let method = vm.fcts.idx(method);
@@ -185,7 +186,8 @@ impl Class {
         classid = self.id;
 
         loop {
-            let cls = vm.classes[classid].borrow();
+            let cls = vm.classes.idx(classid);
+            let cls = cls.read();
 
             for &impl_id in &cls.impls {
                 let ximpl = vm.impls[impl_id].read();
@@ -218,7 +220,8 @@ impl Class {
                 return true;
             }
 
-            let cls = vm.classes[cls_id].borrow();
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
 
             match cls.parent_class {
                 Some(id) => {
@@ -323,7 +326,8 @@ pub struct ClassDef {
 
 impl ClassDef {
     pub fn name(&self, vm: &VM) -> String {
-        let cls = vm.classes[self.cls_id].borrow();
+        let cls = vm.classes.idx(self.cls_id);
+        let cls = cls.read();
         let name = vm.interner.str(cls.name);
 
         let params = if self.type_params.len() > 0 {
