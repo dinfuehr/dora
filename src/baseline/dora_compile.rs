@@ -225,7 +225,8 @@ fn patch_vtable_call(
     let mut fct_ptr = Address::null();
 
     for &fct_id in &cls.methods {
-        let fct = vm.fcts[fct_id].borrow();
+        let fct = vm.fcts.idx(fct_id);
+        let fct = fct.read();
 
         if Some(vtable_index) == fct.vtable_index {
             let empty = TypeParams::empty();

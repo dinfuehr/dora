@@ -86,15 +86,15 @@ pub struct SemContext<'ast> {
     pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
     pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
     pub struct_defs: GrowableVecMutex<Mutex<StructDef>>,  // stores all struct definitions
-    pub classes: GrowableVec<Class>,               // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
-    pub fcts: GrowableVec<Fct<'ast>>,              // stores all function definitions
-    pub jit_fcts: GrowableVecMutex<JitFct>,        // stores all function implementations
-    pub traits: Vec<RwLock<TraitData>>,            // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,              // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                  // stores all compiled functions
+    pub classes: GrowableVec<Class>,                      // stores all class source definitions
+    pub class_defs: GrowableVec<ClassDef>,                // stores all class definitions
+    pub fcts: GrowableVecMutex<RwLock<Fct<'ast>>>,        // stores all function definitions
+    pub jit_fcts: GrowableVecMutex<JitFct>,               // stores all function implementations
+    pub traits: Vec<RwLock<TraitData>>,                   // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,                     // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                         // stores all compiled functions
     pub globals: GrowableVecMutex<Mutex<GlobalData<'ast>>>, // stores all global variables
-    pub gc: Gc,                                    // garbage collector
+    pub gc: Gc,                                           // garbage collector
     pub dtn: RefCell<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
@@ -156,7 +156,7 @@ impl<'ast> SemContext<'ast> {
             ast: ast,
             diag: RefCell::new(Diagnostic::new()),
             sym: RefCell::new(SymTable::new()),
-            fcts: GrowableVec::new(),
+            fcts: GrowableVecMutex::new(),
             jit_fcts: GrowableVecMutex::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: RefCell::new(ptr::null()),
@@ -247,7 +247,7 @@ impl<'ast> SemContext<'ast> {
 
         fct.id = fctid;
 
-        self.fcts.push(fct);
+        self.fcts.push(RwLock::new(fct));
 
         fctid
     }
@@ -338,11 +338,9 @@ impl<'ast> SemContext<'ast> {
 
 unsafe impl<'ast> Sync for SemContext<'ast> {}
 
-impl<'ast> Index<FctId> for GrowableVec<Fct<'ast>> {
-    type Output = RefCell<Fct<'ast>>;
-
-    fn index(&self, index: FctId) -> &RefCell<Fct<'ast>> {
-        &self[index.0]
+impl<'ast> GrowableVecMutex<RwLock<Fct<'ast>>> {
+    pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
+        self.idx_usize(index.0)
     }
 }
 
@@ -431,7 +429,8 @@ impl ImplData {
 
     pub fn find_implements(&self, ctxt: &SemContext, fct_id: FctId) -> Option<FctId> {
         for &mtd_id in &self.methods {
-            let mtd = ctxt.fcts[mtd_id].borrow();
+            let mtd = ctxt.fcts.idx(mtd_id);
+            let mtd = mtd.read();
 
             if mtd.impl_for == Some(fct_id) {
                 return Some(mtd_id);
@@ -477,7 +476,8 @@ impl TraitData {
         args: &[BuiltinType],
     ) -> Option<FctId> {
         for &method in &self.methods {
-            let method = ctxt.fcts[method].borrow();
+            let method = ctxt.fcts.idx(method);
+            let method = method.read();
 
             if method.name == name
                 && method.is_static == is_static

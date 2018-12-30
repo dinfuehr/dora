@@ -24,7 +24,8 @@ impl CodeMap {
             match data {
                 &CodeDescriptor::DoraFct(jit_fct_id) => {
                     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-                    let fct = vm.fcts[jit_fct.fct_id()].borrow();
+                    let fct = vm.fcts.idx(jit_fct.fct_id());
+                    let fct = fct.read();
 
                     println!("dora {}", fct.full_name(vm));
                 }
@@ -34,7 +35,8 @@ impl CodeMap {
                 &CodeDescriptor::AllocThunk => println!("alloc_thunk"),
                 &CodeDescriptor::NativeThunk(jit_fct_id) => {
                     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-                    let fct = vm.fcts[jit_fct.fct_id()].borrow();
+                    let fct = vm.fcts.idx(jit_fct.fct_id());
+                    let fct = fct.read();
 
                     println!("native {}", fct.full_name(vm));
                 }

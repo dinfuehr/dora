@@ -313,7 +313,8 @@ fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str
     let name = ctxt.interner.intern(name);
 
     for &mid in &cls.methods {
-        let mut mtd = ctxt.fcts[mid].borrow_mut();
+        let mtd = ctxt.fcts.idx(mid);
+        let mut mtd = mtd.write();
 
         if mtd.name == name && mtd.internal {
             mtd.kind = kind;
@@ -336,7 +337,8 @@ fn internal_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, kind: FctKind) {
     let fctid = ctxt.sym.borrow().get_fct(name);
 
     if let Some(fctid) = fctid {
-        let mut fct = ctxt.fcts[fctid].borrow_mut();
+        let fct = ctxt.fcts.idx(fctid);
+        let mut fct = fct.write();
 
         if fct.internal {
             fct.kind = kind;
@@ -370,7 +372,8 @@ fn internal_impl<'ast>(
 
         if Some(tid) == i.trait_id {
             for &fid in &i.methods {
-                let mut fct = ctxt.fcts[fid].borrow_mut();
+                let fct = ctxt.fcts.idx(fid);
+                let mut fct = fct.write();
 
                 if fct.internal && fct.name == name {
                     fct.kind = kind;

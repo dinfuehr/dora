@@ -9,7 +9,7 @@ use ty::BuiltinType;
 
 pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
-        let fct = fct.borrow();
+        let fct = fct.read();
 
         if !fct.is_src() {
             continue;
@@ -135,7 +135,8 @@ mod tests {
             let name = ctxt.interner.intern("f");
             let fct_id = ctxt.sym.borrow().get_fct(name).unwrap();
 
-            let fct = ctxt.fcts[fct_id].borrow();
+            let fct = ctxt.fcts.idx(fct_id);
+            let fct = fct.read();
             let src = fct.src();
             let src = src.borrow();
 

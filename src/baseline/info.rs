@@ -375,7 +375,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             return None;
         }
 
-        let fct = self.vm.fcts[fid].borrow();
+        let fct = self.vm.fcts.idx(fid);
+        let fct = fct.read();
 
         match fct.kind {
             FctKind::Builtin(intr) => Some(intr),
@@ -426,7 +427,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
         }
 
-        let fct = self.vm.fcts[fct_id].borrow();
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
 
         let callee_id = if fct.kind.is_definition() {
             let trait_id = fct.trait_id();
@@ -442,7 +444,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             fct_id
         };
 
-        let callee = self.vm.fcts[callee_id].borrow();
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
 
         if let FctKind::Builtin(intrinsic) = callee.kind {
             self.reserve_args(expr);
@@ -477,7 +480,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
             }
 
             for &mtd_id in &ximpl.methods {
-                let mtd = self.vm.fcts[mtd_id].borrow();
+                let mtd = self.vm.fcts.idx(mtd_id);
+                let mtd = mtd.read();
 
                 if mtd.impl_for == Some(fct_id) {
                     return mtd_id;
@@ -525,7 +529,8 @@ impl<'a, 'ast> InfoGenerator<'a, 'ast> {
         // function invokes another function
         self.leaf = false;
 
-        let callee = self.vm.fcts[callee_id].borrow();
+        let callee = self.vm.fcts.idx(callee_id);
+        let callee = callee.read();
 
         let (args, return_type, super_call) =
             self.determine_call_args_and_types(&*call_type, &*callee, args);
@@ -874,7 +879,8 @@ mod tests {
 
         test::parse(code, |vm| {
             let fid = vm.fct_by_name("f").unwrap();
-            let fct = vm.fcts[fid].borrow();
+            let fct = vm.fcts.idx(fid);
+            let fct = fct.read();
             let src = fct.src();
             let mut src = src.borrow_mut();
             let mut jit_info = JitInfo::new();

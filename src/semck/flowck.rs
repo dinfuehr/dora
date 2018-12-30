@@ -7,7 +7,7 @@ use dora_parser::ast::*;
 
 pub fn check<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
-        let fct = fct.borrow();
+        let fct = fct.read();
 
         if !fct.is_src() {
             continue;

@@ -1,6 +1,6 @@
+use parking_lot::Mutex;
 use std::cmp::max;
 use std::ptr;
-use parking_lot::Mutex;
 
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
 use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};

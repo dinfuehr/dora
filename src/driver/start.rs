@@ -101,7 +101,7 @@ fn run_tests<'ast>(vm: &VM<'ast>) -> i32 {
     let mut passed = 0;
 
     for fct in vm.fcts.iter() {
-        let fct = fct.borrow();
+        let fct = fct.read();
 
         if !is_test_fct(vm, &*fct) {
             continue;
@@ -165,7 +165,9 @@ fn is_test_fct<'ast>(vm: &VM<'ast>, fct: &Fct<'ast>) -> bool {
 
 fn run_main<'ast>(vm: &VM<'ast>, main: FctId) -> i32 {
     let res = vm.run(main);
-    let is_unit = vm.fcts[main].borrow().return_type.is_unit();
+    let fct = vm.fcts.idx(main);
+    let fct = fct.read();
+    let is_unit = fct.return_type.is_unit();
 
     // main-fct without return value exits with status 0
     if is_unit {
@@ -249,7 +251,8 @@ fn find_main<'ast>(vm: &VM<'ast>) -> Option<FctId> {
         }
     };
 
-    let fct = vm.fcts[fctid].borrow();
+    let fct = vm.fcts.idx(fctid);
+    let fct = fct.read();
     let ret = fct.return_type;
 
     if (ret != BuiltinType::Unit && ret != BuiltinType::Int) || fct.params_without_self().len() > 0

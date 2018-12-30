@@ -13,7 +13,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     debug_assert!(ctxt.sym.borrow().levels() == 1);
 
     for fct in ctxt.fcts.iter() {
-        let mut fct = fct.borrow_mut();
+        let mut fct = fct.write();
         let ast = fct.ast;
 
         // check modifiers for function
@@ -240,7 +240,8 @@ fn check_against_methods(ctxt: &SemContext, ty: BuiltinType, fct: &Fct, methods:
             continue;
         }
 
-        let method = ctxt.fcts[method].borrow();
+        let method = ctxt.fcts.idx(method);
+        let method = method.read();
 
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
             let cls_name = ty.name(ctxt);

@@ -67,13 +67,16 @@ fn determine_vtable<'ast>(
     };
 
     for &mid in &cls.methods {
-        let mut fct = ctxt.fcts[mid].borrow_mut();
+        let fct = ctxt.fcts.idx(mid);
+        let mut fct = fct.write();
 
         assert!(fct.vtable_index.is_none());
 
         if fct.is_virtual() {
             let vtable_index = if let Some(overrides) = fct.overrides {
-                ctxt.fcts[overrides].borrow().vtable_index.unwrap()
+                let overrides = ctxt.fcts.idx(overrides);
+                let overrides = overrides.read();
+                overrides.vtable_index.unwrap()
             } else {
                 let vtable_index = vtable_len;
                 vtable_len += 1;
@@ -155,7 +158,8 @@ pub fn check_override<'ast>(ctxt: &SemContext<'ast>) {
         let cls = cls.borrow();
 
         for &fct_id in &cls.methods {
-            let mut fct = ctxt.fcts[fct_id].borrow_mut();
+            let fct = ctxt.fcts.idx(fct_id);
+            let mut fct = fct.write();
             check_fct_modifier(ctxt, &*cls, &mut *fct);
         }
     }
@@ -190,7 +194,8 @@ fn check_fct_modifier<'ast>(ctxt: &SemContext<'ast>, cls: &Class, fct: &mut Fct<
     let super_method = parent.find_method(ctxt, fct.name, false);
 
     if let Some(super_method) = super_method {
-        let super_method = ctxt.fcts[super_method].borrow();
+        let super_method = ctxt.fcts.idx(super_method);
+        let super_method = super_method.read();
 
         if !fct.has_override {
             let name = ctxt.interner.str(fct.name).to_string();

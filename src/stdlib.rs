@@ -115,7 +115,8 @@ pub extern "C" fn call(fct: Handle<Str>) {
     match sym {
         Some(SymFct(fct_id)) => {
             {
-                let fct = vm.fcts[fct_id].borrow();
+                let fct = vm.fcts.idx(fct_id);
+                let fct = fct.read();
 
                 if !fct.param_types.is_empty() {
                     writeln!(&mut io::stderr(), "fct `{}` takes arguments.", fct_name)

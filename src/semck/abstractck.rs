@@ -42,7 +42,8 @@ pub fn check_abstract<'ast>(
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = ctxt.fcts[mtd].borrow();
+        let mtd = ctxt.fcts.idx(mtd);
+        let mtd = mtd.read();
 
         if let Some(overrides_mtd) = mtd.overrides {
             overrides.insert(overrides_mtd);
@@ -51,7 +52,8 @@ pub fn check_abstract<'ast>(
 
     for &mtd in mtds.iter() {
         if !overrides.contains(&mtd) {
-            let mtd = ctxt.fcts[mtd].borrow();
+            let mtd = ctxt.fcts.idx(mtd);
+            let mtd = mtd.read();
 
             let mtd_cls = ctxt.classes[mtd.parent.cls_id()].borrow();
             let cls_name = ctxt.interner.str(mtd_cls.name).to_string();
@@ -79,7 +81,8 @@ fn find_abstract_methods<'ast>(
     let mut overrides = HashSet::new();
 
     for &mtd in &cls.methods {
-        let mtd = ctxt.fcts[mtd].borrow();
+        let mtd = ctxt.fcts.idx(mtd);
+        let mtd = mtd.read();
 
         if mtd.is_abstract {
             abstracts.push(mtd.id);

@@ -38,7 +38,8 @@ pub fn generate<'ast>(
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
 ) -> *const u8 {
-    let fct = vm.fcts[id].borrow();
+    let fct = vm.fcts.idx(id);
+    let fct = fct.read();
     let src = fct.src();
     let mut src = src.borrow_mut();
 
@@ -837,7 +838,8 @@ where
     }
 
     fn emit_call_site(&mut self, call_site: &CallSite<'ast>, pos: Position) -> ExprStore {
-        let callee = self.vm.fcts[call_site.callee].borrow();
+        let callee = self.vm.fcts.idx(call_site.callee);
+        let callee = callee.read();
         let return_type = self.specialize_type(callee.return_type);
 
         let dest = register_for_mode(return_type.mode());

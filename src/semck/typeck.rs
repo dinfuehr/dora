@@ -23,7 +23,7 @@ use ty::BuiltinType;
 
 pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
-        let fct = fct.borrow();
+        let fct = fct.read();
 
         if !fct.is_src() {
             continue;
@@ -178,7 +178,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .expect("hasNext() impl not found");
 
                 // get return type of next() in impl
-                let fct = self.ctxt.fcts[impl_next_id].borrow();
+                let fct = self.ctxt.fcts.idx(impl_next_id);
+                let fct = fct.read();
                 let ret = fct.return_type;
 
                 // set variable type to return type of next
@@ -381,8 +382,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     .map_calls
                     .insert_or_replace(e.id, Rc::new(call_type));
 
-                let fct = &self.ctxt.fcts[fct_id];
-                let fct = fct.borrow();
+                let fct = self.ctxt.fcts.idx(fct_id);
+                let fct = fct.read();
 
                 let element_type = fct.params_without_self()[1];
                 let object_type_params = object_type.type_params(self.ctxt);
@@ -783,7 +784,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.expr_type = return_type;
 
                 if !in_try {
-                    let throws = self.ctxt.fcts[fct_id].borrow().throws;
+                    let fct = self.ctxt.fcts.idx(fct_id);
+                    let fct = fct.read();
+                    let throws = fct.throws;
 
                     if throws {
                         let msg = Msg::ThrowingCallWithoutTry;
@@ -895,7 +898,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
         if !in_try {
             let fct_id = call_type.fct_id();
-            let throws = self.ctxt.fcts[fct_id].borrow().throws;
+            let fct = self.ctxt.fcts.idx(fct_id);
+            let fct = fct.read();
+            let throws = fct.throws;
 
             if throws {
                 let msg = Msg::ThrowingCallWithoutTry;
@@ -943,7 +948,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
         let cls = self.ctxt.classes[cls_id].borrow();
 
         for &ctor_id in &cls.ctors {
-            let ctor = self.ctxt.fcts[ctor_id].borrow();
+            let ctor = self.ctxt.fcts.idx(ctor_id);
+            let ctor = ctor.read();
 
             if args_compatible(
                 self.ctxt,
@@ -1021,7 +1027,8 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(obj, fid, TypeParams::empty());
                 self.src.map_calls.insert(e.id, Rc::new(call_type));
 
-                let fct = self.ctxt.fcts[fid].borrow();
+                let fct = self.ctxt.fcts.idx(fid);
+                let fct = fct.read();
                 let return_type = fct.return_type;
 
                 if fct.throws && !in_try {
@@ -1178,7 +1185,9 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some(call_type) = self.src.map_calls.get(call.id) {
                 let fct_id = call_type.fct_id();
-                let throws = self.ctxt.fcts[fct_id].borrow().throws;
+                let fct = self.ctxt.fcts.idx(fct_id);
+                let fct = fct.read();
+                let throws = fct.throws;
 
                 if !throws {
                     self.ctxt
@@ -1869,7 +1878,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
             return false;
         };
 
-        let fct = self.ctxt.fcts[fct_id].borrow();
+        let fct = self.ctxt.fcts.idx(fct_id);
+        let fct = fct.read();
 
         let cls_id = match fct.parent {
             FctParent::Class(cls_id) => Some(cls_id),
@@ -1956,7 +1966,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
         let args = self.args.unwrap();
 
         for &ctor_id in &cls.ctors {
-            let ctor = self.ctxt.fcts[ctor_id].borrow();
+            let ctor = self.ctxt.fcts.idx(ctor_id);
+            let ctor = ctor.read();
 
             if args_compatible(
                 self.ctxt,
@@ -1998,7 +2009,10 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
     fn check_fct_tps(&self, tps: &TypeParams) -> bool {
         let fct_tps = {
             let fct_id = self.found_fct_id.expect("found_fct_id not set");
-            self.ctxt.fcts[fct_id].borrow().type_params.to_vec()
+
+            let fct = self.ctxt.fcts.idx(fct_id);
+            let fct = fct.read();
+            fct.type_params.to_vec()
         };
 
         self.check_tps(&fct_tps, tps)
@@ -2025,7 +2039,8 @@ impl<'a, 'ast> MethodLookup<'a, 'ast> {
                     }
 
                     BuiltinType::FctTypeParam(fct_id, tpid) => {
-                        let fct = self.ctxt.fcts[fct_id].borrow();
+                        let fct = self.ctxt.fcts.idx(fct_id);
+                        let fct = fct.read();
                         self.check_tp_against_tp(tp, &fct.type_params[tpid.idx()], ty)
                     }
 
@@ -2161,7 +2176,8 @@ fn lookup_method<'ast>(
 
         if candidates.len() == 1 {
             let candidate = candidates[0];
-            let method = ctxt.fcts[candidate].borrow();
+            let method = ctxt.fcts.idx(candidate);
+            let method = method.read();
 
             let cls_id = match method.parent {
                 FctParent::Class(cls_id) => cls_id,

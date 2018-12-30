@@ -322,21 +322,24 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::CallSuper(fid) => {
-                let fct = self.vm.fcts[fid].borrow();
+                let fct = self.vm.fcts.idx(fid);
+                let fct = fct.read();
                 let name = fct.full_name(self.vm);
 
                 write!(f, "call super {}", &name)
             }
 
             &Comment::CallVirtual(fid) => {
-                let fct = self.vm.fcts[fid].borrow();
+                let fct = self.vm.fcts.idx(fid);
+                let fct = fct.read();
                 let name = fct.full_name(self.vm);
 
                 write!(f, "call virtual {}", &name)
             }
 
             &Comment::CallDirect(fid) => {
-                let fct = self.vm.fcts[fid].borrow();
+                let fct = self.vm.fcts.idx(fid);
+                let fct = fct.read();
                 let name = fct.full_name(self.vm);
 
                 write!(f, "call direct {}", &name)

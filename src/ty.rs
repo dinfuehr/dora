@@ -241,7 +241,8 @@ impl BuiltinType {
             }
 
             BuiltinType::FctTypeParam(fid, id) => {
-                let fct = vm.fcts[fid].borrow();
+                let fct = vm.fcts.idx(fid);
+                let fct = fct.read();
                 vm.interner.str(fct.type_params[id.idx()].name).to_string()
             }
 

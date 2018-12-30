@@ -877,7 +877,8 @@ where
             // we want to recursively invoke the function we are compiling right now
             ensure_jit_or_stub_ptr(self.src, self.vm, cls_type_params, fct_type_params)
         } else {
-            let fct = self.vm.fcts[fid].borrow();
+            let fct = self.vm.fcts.idx(fid);
+            let fct = fct.read();
 
             match fct.kind {
                 FctKind::Source(_) => {
@@ -1500,7 +1501,8 @@ where
         let mut temps: Vec<(BuiltinType, i32, Option<ClassDefId>)> = Vec::new();
 
         let fid = csite.callee;
-        let fct = self.vm.fcts[fid].borrow();
+        let fct = self.vm.fcts.idx(fid);
+        let fct = fct.read();
 
         for (idx, arg) in csite.args.iter().enumerate() {
             let mode = arg.ty().mode();
@@ -1904,7 +1906,8 @@ pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> 
         let jit_fct = vm.jit_fcts.idx(jit_fct_id);
         jit_fct.fct_ptr()
     } else {
-        let fct = vm.fcts[fct_id].borrow();
+        let fct = vm.fcts.idx(fct_id);
+        let fct = fct.read();
         let dbg = should_emit_debug(vm, &*fct);
 
         let jit_fct_id = dora_native::generate(vm, internal_fct, dbg);

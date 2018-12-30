@@ -134,7 +134,8 @@ impl Class {
             let cls = vm.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = vm.fcts[method].borrow();
+                let method = vm.fcts.idx(method);
+                let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
                     return Some(method.id);
@@ -158,7 +159,8 @@ impl Class {
             let cls = vm.classes[classid].borrow();
 
             for &method in &cls.methods {
-                let method = vm.fcts[method].borrow();
+                let method = vm.fcts.idx(method);
+                let method = method.read();
 
                 if method.name == name && method.is_static == is_static {
                     if let Some(overrides) = method.overrides {
@@ -187,7 +189,8 @@ impl Class {
                 let ximpl = vm.impls[impl_id].read();
 
                 for &method in &ximpl.methods {
-                    let method = vm.fcts[method].borrow();
+                    let method = vm.fcts.idx(method);
+                    let method = method.read();
 
                     if method.name == name && method.is_static == is_static {
                         candidates.push(method.id);

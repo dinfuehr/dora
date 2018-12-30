@@ -112,7 +112,7 @@ pub fn check<'ast>(ctxt: &mut SemContext<'ast>) {
 
 fn internalck<'ast>(ctxt: &SemContext<'ast>) {
     for fct in ctxt.fcts.iter() {
-        let fct = fct.borrow();
+        let fct = fct.read();
 
         if fct.in_class() {
             continue;
@@ -139,7 +139,8 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         for method in &cls.methods {
-            let method = ctxt.fcts[*method].borrow();
+            let method = ctxt.fcts.idx(*method);
+            let method = method.read();
 
             if method.internal && !method.internal_resolved {
                 ctxt.diag

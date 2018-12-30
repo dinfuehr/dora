@@ -33,7 +33,8 @@ impl Stacktrace {
         for (ind, elem) in self.elems.iter().enumerate() {
             let jit_fct = vm.jit_fcts.idx(elem.fct_id);
             let fct_id = jit_fct.fct_id();
-            let fct = vm.fcts[fct_id].borrow();
+            let fct = vm.fcts.idx(fct_id);
+            let fct = fct.read();
             let name = fct.full_name(vm);
             print!("{}: {}: ", ind, name);
 
@@ -140,7 +141,8 @@ fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> boo
 
         Some(CodeDescriptor::NativeThunk(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
-            let fct = vm.fcts[jit_fct.fct_id()].borrow();
+            let fct = vm.fcts.idx(jit_fct.fct_id());
+            let fct = fct.read();
 
             stacktrace.push_entry(fct_id, fct.ast.pos.line as i32);
 
@@ -294,7 +296,8 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
     let jit_fct = vm.jit_fcts.idx(jit_fct_id);
-    let fct = vm.fcts[jit_fct.fct_id()].borrow();
+    let fct = vm.fcts.idx(jit_fct.fct_id());
+    let fct = fct.read();
     let name = fct.full_name(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());
 
