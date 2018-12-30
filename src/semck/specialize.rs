@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use std::cmp::max;
 use std::ptr;
 
@@ -191,7 +191,7 @@ fn create_specialized_class(
         .insert(type_params.clone(), id);
     assert!(old.is_none());
 
-    ctxt.class_defs.push(ClassDef {
+    ctxt.class_defs.push(RwLock::new(ClassDef {
         id: id,
         cls_id: cls.id,
         type_params: type_params.clone(),
@@ -200,7 +200,7 @@ fn create_specialized_class(
         fields: Vec::new(),
         ref_fields: Vec::new(),
         vtable: None,
-    });
+    }));
 
     let mut fields;
     let mut ref_fields;
@@ -231,7 +231,8 @@ fn create_specialized_class(
 
         if let Some(super_id) = cls.parent_class {
             let id = specialize_class_id(ctxt, super_id);
-            let cls_def = ctxt.class_defs[id].borrow();
+            let cls_def = ctxt.class_defs.idx(id);
+            let cls_def = cls_def.read();
 
             fields = Vec::new();
             ref_fields = cls_def.ref_fields.clone();
@@ -273,7 +274,8 @@ fn create_specialized_class(
     let stub = ctxt.compiler_thunk().to_usize();
     let vtable_entries = vec![stub; cls.vtable_len as usize];
 
-    let mut cls_def = ctxt.class_defs[id].borrow_mut();
+    let cls_def = ctxt.class_defs.idx(id);
+    let mut cls_def = cls_def.write();
     cls_def.size = size;
     cls_def.fields = fields;
     cls_def.ref_fields = ref_fields;
@@ -297,7 +299,8 @@ fn ensure_display<'ast>(ctxt: &SemContext<'ast>, cls_def: &mut ClassDef) -> usiz
     }
 
     if let Some(parent_id) = cls_def.parent_id {
-        let mut parent = ctxt.class_defs[parent_id].borrow_mut();
+        let parent = ctxt.class_defs.idx(parent_id);
+        let mut parent = parent.write();
         let depth = 1 + ensure_display(ctxt, &mut *parent);
 
         let parent_vtable = parent.vtable.as_ref().unwrap();

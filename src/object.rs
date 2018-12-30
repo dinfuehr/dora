@@ -524,7 +524,8 @@ where
     let ptr = alloc(vm, size) as usize;
 
     let clsid = vm.vips.str(vm);
-    let cls = vm.class_defs[clsid].borrow();
+    let cls = vm.class_defs.idx(clsid);
+    let cls = cls.read();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Str> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
@@ -622,7 +623,8 @@ where
                    + len * std::mem::size_of::<T>(); // array content
 
         let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
-        let cls = vm.class_defs[clsid].borrow();
+        let cls = vm.class_defs.idx(clsid);
+        let cls = cls.read();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
         handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
@@ -656,7 +658,8 @@ pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
-    let cls_def = vm.class_defs[clsid].borrow();
+    let cls_def = vm.class_defs.idx(clsid);
+    let cls_def = cls_def.read();
 
     let size = match cls_def.size {
         ClassSize::Fixed(size) => size as usize,

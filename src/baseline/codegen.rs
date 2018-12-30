@@ -738,7 +738,8 @@ where
             let ty = self.src.ty(catch.data_type.id());
             let ty = self.specialize_type(ty);
             let cls_def_id = specialize_class_ty(self.vm, ty);
-            let cls_def = self.vm.class_defs[cls_def_id].borrow();
+            let cls_def = self.vm.class_defs.idx(cls_def_id);
+            let cls_def = cls_def.read();
 
             let catch_type = CatchType::Class(&*cls_def as *const ClassDef);
             self.asm

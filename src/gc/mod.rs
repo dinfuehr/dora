@@ -401,7 +401,8 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
         let cls_id = vm.vips.obj(vm);
-        let cls = vm.class_defs[cls_id].borrow();
+        let cls = vm.class_defs.idx(cls_id);
+        let cls = cls.read();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
 
         unsafe {
@@ -410,7 +411,8 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
     } else {
         // fill with int array
         let cls_id = vm.vips.int_array(vm);
-        let cls = vm.class_defs[cls_id].borrow();
+        let cls = vm.class_defs.idx(cls_id);
+        let cls = cls.read();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
 
         // determine of header+length in bytes

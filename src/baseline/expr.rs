@@ -233,7 +233,8 @@ where
         } else {
             let cls_id = conv.cls_id;
             let cls_id = specialize_class_id(self.vm, cls_id);
-            let cls = self.vm.class_defs[cls_id].borrow();
+            let cls = self.vm.class_defs.idx(cls_id);
+            let cls = cls.read();
 
             let vtable: &VTable = cls.vtable.as_ref().unwrap();
 
@@ -460,7 +461,8 @@ where
         dest: ExprStore,
     ) {
         let cls_id = specialize_class_ty(self.vm, ty);
-        let cls = self.vm.class_defs[cls_id].borrow();
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
         let field = &cls.fields[fieldid.idx()];
 
         self.asm.emit_comment(Comment::LoadField(cls_id, fieldid));
@@ -718,7 +720,8 @@ where
             IdentType::Field(ty, fieldid) => {
                 let ty = self.specialize_type(ty);
                 let cls_id = specialize_class_ty(self.vm, ty);
-                let cls = self.vm.class_defs[cls_id].borrow();
+                let cls = self.vm.class_defs.idx(cls_id);
+                let cls = cls.read();
                 let field = &cls.fields[fieldid.idx()];
 
                 let temp = if let Some(expr_field) = e.lhs.to_field() {
@@ -1689,7 +1692,8 @@ where
         offset: i32,
         dest: Reg,
     ) {
-        let cls = self.vm.class_defs[cls_id].borrow();
+        let cls = self.vm.class_defs.idx(cls_id);
+        let cls = cls.read();
         let mut store_length = false;
 
         // allocate storage for object

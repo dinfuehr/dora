@@ -312,12 +312,16 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Lit(val) => write!(f, "{}", val),
             &Comment::LoadString(_) => write!(f, "load string"),
             &Comment::Alloc(cls_def_id) => {
-                let name = self.vm.class_defs[cls_def_id].borrow().name(self.vm);
+                let cls_def = self.vm.class_defs.idx(cls_def_id);
+                let cls_def = cls_def.read();
+                let name = cls_def.name(self.vm);
                 write!(f, "allocate object of class {}", &name)
             }
 
             &Comment::StoreVTable(cls_def_id) => {
-                let name = self.vm.class_defs[cls_def_id].borrow().name(self.vm);
+                let cls_def = self.vm.class_defs.idx(cls_def_id);
+                let cls_def = cls_def.read();
+                let name = cls_def.name(self.vm);
                 write!(f, "store vtable ptr for class {} in object", &name)
             }
 
@@ -355,7 +359,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             &Comment::Newline => write!(f, ""),
 
             &Comment::StoreField(clsid, fid) => {
-                let cls_def = self.vm.class_defs[clsid].borrow();
+                let cls_def = self.vm.class_defs.idx(clsid);
+                let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
                 let cls = self.vm.classes[cls_def.cls_id].borrow();
@@ -367,7 +372,8 @@ impl<'a, 'ast> fmt::Display for CommentFormat<'a, 'ast> {
             }
 
             &Comment::LoadField(clsid, fid) => {
-                let cls_def = self.vm.class_defs[clsid].borrow();
+                let cls_def = self.vm.class_defs.idx(clsid);
+                let cls_def = cls_def.read();
                 let cname = cls_def.name(self.vm);
 
                 let cls = self.vm.classes[cls_def.cls_id].borrow();

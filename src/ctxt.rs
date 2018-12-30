@@ -87,7 +87,7 @@ pub struct SemContext<'ast> {
     pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
     pub struct_defs: GrowableVecMutex<Mutex<StructDef>>,  // stores all struct definitions
     pub classes: GrowableVec<Class>,                      // stores all class source definitions
-    pub class_defs: GrowableVec<ClassDef>,                // stores all class definitions
+    pub class_defs: GrowableVecMutex<RwLock<ClassDef>>,   // stores all class definitions
     pub fcts: GrowableVecMutex<RwLock<Fct<'ast>>>,        // stores all function definitions
     pub jit_fcts: GrowableVecMutex<JitFct>,               // stores all function implementations
     pub traits: Vec<RwLock<TraitData>>,                   // stores all trait definitions
@@ -120,7 +120,7 @@ impl<'ast> SemContext<'ast> {
             structs: GrowableVecMutex::new(),
             struct_defs: GrowableVecMutex::new(),
             classes: GrowableVec::new(),
-            class_defs: GrowableVec::new(),
+            class_defs: GrowableVecMutex::new(),
             traits: Vec::new(),
             impls: Vec::new(),
             globals: GrowableVecMutex::new(),

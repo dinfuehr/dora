@@ -1,16 +1,18 @@
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
+use std::sync::Arc;
 
 use ctxt::VM;
 use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
-use utils::GrowableVec;
+use utils::{GrowableVec, GrowableVecMutex};
 use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -293,11 +295,9 @@ impl From<usize> for ClassDefId {
     }
 }
 
-impl Index<ClassDefId> for GrowableVec<ClassDef> {
-    type Output = RefCell<ClassDef>;
-
-    fn index(&self, index: ClassDefId) -> &RefCell<ClassDef> {
-        &self[index.0]
+impl GrowableVecMutex<RwLock<ClassDef>> {
+    pub fn idx(&self, index: ClassDefId) -> Arc<RwLock<ClassDef>> {
+        self.idx_usize(index.0)
     }
 }
 
