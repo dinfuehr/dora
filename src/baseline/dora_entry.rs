@@ -54,7 +54,7 @@ where
             REG_THREAD.into(),
         );
 
-        let addr = self.vm.tld.as_ptr() as usize as i64;
+        let addr = &*self.vm.tld.lock() as *const _ as usize as i64;
         self.masm.load_int_const(MachineMode::Ptr, REG_THREAD, addr);
         self.masm
             .copy_reg(MachineMode::Ptr, REG_TMP1, REG_PARAMS[0]);

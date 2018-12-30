@@ -105,7 +105,7 @@ pub struct SemContext<'ast> {
     pub dora_entry: Mutex<Address>,
     pub trap_thunk: Mutex<Address>,
     pub throw_thunk: Mutex<Address>,
-    pub tld: RefCell<ThreadLocalData>,
+    pub tld: Mutex<ThreadLocalData>,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -169,7 +169,7 @@ impl<'ast> SemContext<'ast> {
             dora_entry: Mutex::new(Address::null()),
             trap_thunk: Mutex::new(Address::null()),
             throw_thunk: Mutex::new(Address::null()),
-            tld: RefCell::new(ThreadLocalData::new()),
+            tld: Mutex::new(ThreadLocalData::new()),
         });
 
         set_vm(&ctxt);
