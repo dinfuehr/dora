@@ -325,7 +325,7 @@ pub fn read_type<'ast>(ctxt: &SemContext<'ast>, t: &'ast Type) -> Option<Builtin
                 return None;
             };
 
-            let ty = ctxt.lambda_types.borrow_mut().insert(params, ret);
+            let ty = ctxt.lambda_types.lock().insert(params, ret);
             let ty = BuiltinType::Lambda(ty);
 
             return Some(ty);

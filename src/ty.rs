@@ -251,7 +251,7 @@ impl BuiltinType {
             }
 
             BuiltinType::Lambda(id) => {
-                let lambda = vm.lambda_types.borrow().get(id);
+                let lambda = vm.lambda_types.lock().get(id);
                 let params = lambda
                     .params
                     .iter()

@@ -1231,7 +1231,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             .map(|p| self.src.ty(p.data_type.id()))
             .collect::<Vec<_>>();
 
-        let ty = self.ctxt.lambda_types.borrow_mut().insert(params, ret);
+        let ty = self.ctxt.lambda_types.lock().insert(params, ret);
         let ty = BuiltinType::Lambda(ty);
 
         self.expr_type = ty;
