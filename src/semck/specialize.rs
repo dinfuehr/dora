@@ -128,7 +128,8 @@ fn create_specialized_struct(
         }
     }
 
-    let mut struct_def = ctxt.struct_defs[id].borrow_mut();
+    let struct_def = ctxt.struct_defs.idx(id);
+    let mut struct_def = struct_def.lock();
     struct_def.size = size;
     struct_def.align = align;
     struct_def.fields = fields;

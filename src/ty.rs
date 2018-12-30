@@ -319,7 +319,8 @@ impl BuiltinType {
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.borrow().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
-                let struc = vm.struct_defs[sid].borrow();
+                let struc = vm.struct_defs.idx(sid);
+                let struc = struc.lock();
 
                 struc.size
             }
@@ -349,7 +350,8 @@ impl BuiltinType {
             BuiltinType::Struct(sid, list_id) => {
                 let params = vm.lists.borrow().get(list_id);
                 let sid = semck::specialize::specialize_struct_id_params(vm, sid, params);
-                let struc = vm.struct_defs[sid].borrow();
+                let struc = vm.struct_defs.idx(sid);
+                let struc = struc.lock();
 
                 struc.align
             }

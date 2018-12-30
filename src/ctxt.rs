@@ -85,7 +85,7 @@ pub struct SemContext<'ast> {
     pub vips: KnownElements,
     pub consts: GrowableVecMutex<ConstData<'ast>>, // stores all const definitions
     pub structs: GrowableVec<StructData>,          // stores all struct source definitions
-    pub struct_defs: GrowableVec<StructDef>,       // stores all struct definitions
+    pub struct_defs: GrowableVecMutex<StructDef>,  // stores all struct definitions
     pub classes: GrowableVec<Class>,               // stores all class source definitions
     pub class_defs: GrowableVec<ClassDef>,         // stores all class definitions
     pub fcts: GrowableVec<Fct<'ast>>,              // stores all function definitions
@@ -118,7 +118,7 @@ impl<'ast> SemContext<'ast> {
             args: args,
             consts: GrowableVecMutex::new(),
             structs: GrowableVec::new(),
-            struct_defs: GrowableVec::new(),
+            struct_defs: GrowableVecMutex::new(),
             classes: GrowableVec::new(),
             class_defs: GrowableVec::new(),
             traits: Vec::new(),
@@ -356,11 +356,9 @@ impl From<usize> for StructDefId {
     }
 }
 
-impl Index<StructDefId> for GrowableVec<StructDef> {
-    type Output = RefCell<StructDef>;
-
-    fn index(&self, index: StructDefId) -> &RefCell<StructDef> {
-        &self[index.0]
+impl GrowableVecMutex<StructDef> {
+    pub fn idx(&self, index: StructDefId) -> Arc<Mutex<StructDef>> {
+        self.idx_usize(index.0)
     }
 }
 
