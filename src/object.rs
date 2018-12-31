@@ -12,7 +12,7 @@ use class::{ClassDefId, ClassSize};
 use ctxt::VM;
 use gc::root::Slot;
 use gc::Address;
-use handle::Rooted;
+use handle::Handle;
 use mem;
 use vtable::VTable;
 
@@ -446,7 +446,7 @@ impl Str {
         handle
     }
 
-    pub fn from_str(vm: &VM, val: Rooted<Str>, offset: usize, len: usize) -> Ref<Str> {
+    pub fn from_str(vm: &VM, val: Handle<Str>, offset: usize, len: usize) -> Ref<Str> {
         let total_len = val.len();
 
         if offset > total_len {
@@ -478,7 +478,7 @@ impl Str {
         }
     }
 
-    pub fn concat(vm: &VM, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
+    pub fn concat(vm: &VM, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
         let mut handle = vm.handles.root(str_alloc_heap(vm, len));
 

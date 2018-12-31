@@ -28,7 +28,7 @@ impl HandleMemory {
         }
     }
 
-    pub fn root<T>(&self, obj: Ref<T>) -> Rooted<T> {
+    pub fn root<T>(&self, obj: Ref<T>) -> Handle<T> {
         if self.free.get() >= HANDLE_SIZE {
             self.push_buffer();
             self.free.set(0);
@@ -43,7 +43,7 @@ impl HandleMemory {
 
         *elem = obj.cast::<Obj>();
 
-        Rooted(elem as *mut Ref<Obj> as *mut Ref<T>)
+        Handle(elem as *mut Ref<Obj> as *mut Ref<T>)
     }
 
     fn push_buffer(&self) {
@@ -97,9 +97,9 @@ struct BorderData {
     element: usize,
 }
 
-pub struct Rooted<T>(*mut Ref<T>);
+pub struct Handle<T>(*mut Ref<T>);
 
-impl<T> Rooted<T> {
+impl<T> Handle<T> {
     pub fn direct(self) -> Ref<T> {
         unsafe { *self.0 }
     }
@@ -108,12 +108,12 @@ impl<T> Rooted<T> {
         self.0
     }
 
-    pub fn cast<R>(self) -> Rooted<R> {
-        Rooted(self.0 as *mut Ref<R>)
+    pub fn cast<R>(self) -> Handle<R> {
+        Handle(self.0 as *mut Ref<R>)
     }
 }
 
-impl<T> Deref for Rooted<T> {
+impl<T> Deref for Handle<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -121,7 +121,7 @@ impl<T> Deref for Rooted<T> {
     }
 }
 
-impl<T> DerefMut for Rooted<T> {
+impl<T> DerefMut for Handle<T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *self.0 }.deref_mut()
     }
@@ -129,9 +129,9 @@ impl<T> DerefMut for Rooted<T> {
 
 // known limitation of #[derive(Copy, Clone)]
 // traits need to be implemented manually
-impl<T> Copy for Rooted<T> {}
-impl<T> Clone for Rooted<T> {
-    fn clone(&self) -> Rooted<T> {
+impl<T> Copy for Handle<T> {}
+impl<T> Clone for Handle<T> {
+    fn clone(&self) -> Handle<T> {
         *self
     }
 }
@@ -145,9 +145,9 @@ pub struct HandleMemoryIter<'a> {
 }
 
 impl<'a> Iterator for HandleMemoryIter<'a> {
-    type Item = Rooted<Obj>;
+    type Item = Handle<Obj>;
 
-    fn next(&mut self) -> Option<Rooted<Obj>> {
+    fn next(&mut self) -> Option<Handle<Obj>> {
         if self.buffer_idx < self.full_buffer_len {
             if self.element_idx < HANDLE_SIZE {
                 let idx = self.element_idx;
@@ -155,7 +155,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
 
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
-                return Some(Rooted(&mut buffer.elements[idx] as *mut Ref<Obj>));
+                return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 self.buffer_idx += 1;
                 self.element_idx = 0;
@@ -169,7 +169,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
 
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
-                return Some(Rooted(&mut buffer.elements[idx] as *mut Ref<Obj>));
+                return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 return None;
             }
