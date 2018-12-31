@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use class::{ClassId, TypeParamId, TypeParams};
 use ctxt::VM;
@@ -472,8 +472,8 @@ impl From<usize> for LambdaId {
 }
 
 pub struct LambdaTypes {
-    types: HashMap<Rc<LambdaType>, LambdaId>,
-    values: Vec<Rc<LambdaType>>,
+    types: HashMap<Arc<LambdaType>, LambdaId>,
+    values: Vec<Arc<LambdaType>>,
     next_lambda_id: usize,
 }
 
@@ -501,7 +501,7 @@ impl LambdaTypes {
         }
 
         let id = LambdaId(self.next_lambda_id);
-        let ty = Rc::new(ty);
+        let ty = Arc::new(ty);
         self.types.insert(ty.clone(), id);
 
         self.values.push(ty);
@@ -511,7 +511,7 @@ impl LambdaTypes {
         id
     }
 
-    pub fn get(&self, id: LambdaId) -> Rc<LambdaType> {
+    pub fn get(&self, id: LambdaId) -> Arc<LambdaType> {
         self.values[id.0].clone()
     }
 }
