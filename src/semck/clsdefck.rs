@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use parking_lot::RwLock;
 use std::collections::HashSet;
 
 use class::*;
@@ -197,7 +197,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         let clsid = self.cls_id.unwrap();
 
         let kind = if f.block.is_some() {
-            FctKind::Source(RefCell::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };
@@ -242,7 +242,7 @@ impl<'x, 'ast> Visitor<'ast> for ClsCheck<'x, 'ast> {
         }
 
         let kind = if f.block.is_some() {
-            FctKind::Source(RefCell::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };

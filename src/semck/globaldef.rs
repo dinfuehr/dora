@@ -192,7 +192,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
 
     fn visit_fct(&mut self, f: &'ast Function) {
         let kind = if f.block.is_some() {
-            FctKind::Source(RefCell::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(FctSrc::new()))
         } else {
             FctKind::Definition
         };

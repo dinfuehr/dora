@@ -853,7 +853,7 @@ impl<'ast> Fct<'ast> {
         self.ast.pos
     }
 
-    pub fn src(&self) -> &RefCell<FctSrc> {
+    pub fn src(&self) -> &RwLock<FctSrc> {
         match self.kind {
             FctKind::Source(ref src) => src,
             _ => panic!("source expected"),
@@ -883,7 +883,7 @@ impl<'ast> Fct<'ast> {
 
 #[derive(Debug)]
 pub enum FctKind {
-    Source(RefCell<FctSrc>),
+    Source(RwLock<FctSrc>),
     Definition,
     Native(*const u8),
     Builtin(Intrinsic),

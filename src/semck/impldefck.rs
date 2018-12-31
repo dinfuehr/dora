@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use parking_lot::RwLock;
 
 use ctxt::{Fct, FctId, FctKind, FctParent, FctSrc, ImplId, NodeMap, SemContext};
 use dora_parser::ast;
@@ -77,7 +77,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
         let kind = if f.internal {
             FctKind::Definition
         } else {
-            FctKind::Source(RefCell::new(FctSrc::new()))
+            FctKind::Source(RwLock::new(FctSrc::new()))
         };
 
         let fct = Fct {

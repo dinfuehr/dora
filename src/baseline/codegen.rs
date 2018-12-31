@@ -41,7 +41,7 @@ pub fn generate<'ast>(
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
-    let mut src = src.borrow_mut();
+    let mut src = src.write();
 
     generate_fct(vm, &fct, &mut src, cls_type_params, fct_type_params)
 }

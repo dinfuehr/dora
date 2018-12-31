@@ -892,7 +892,7 @@ mod tests {
             let fct = vm.fcts.idx(fid);
             let fct = fct.read();
             let src = fct.src();
-            let mut src = src.borrow_mut();
+            let mut src = src.write();
             let mut jit_info = JitInfo::new();
             let empty = TypeParams::empty();
 

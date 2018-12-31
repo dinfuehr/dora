@@ -16,7 +16,7 @@ pub fn check<'ast>(ctxt: &SemContext<'ast>) {
         }
 
         let src = fct.src();
-        let mut src = src.borrow_mut();
+        let mut src = src.write();
         let ast = fct.ast;
 
         let mut returnck = ReturnCheck {
@@ -138,7 +138,7 @@ mod tests {
             let fct = ctxt.fcts.idx(fct_id);
             let fct = fct.read();
             let src = fct.src();
-            let src = src.borrow();
+            let src = src.read();
 
             assert_eq!(value, src.always_returns);
         });

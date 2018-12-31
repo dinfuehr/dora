@@ -886,7 +886,7 @@ where
             match fct.kind {
                 FctKind::Source(_) => {
                     let src = fct.src();
-                    let mut src = src.borrow_mut();
+                    let mut src = src.write();
 
                     ensure_jit_or_stub_ptr(&mut src, self.vm, cls_type_params, fct_type_params)
                 }

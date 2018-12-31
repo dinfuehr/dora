@@ -130,7 +130,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
 
             if fct.is_src() {
                 let src = fct.src();
-                let mut src = src.borrow_mut();
+                let mut src = src.write();
 
                 let var = *src.map_vars.get(p.id).unwrap();
                 src.vars[var].ty = ty;
@@ -177,7 +177,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
         }
 
         let src = fct.src();
-        let mut src = src.borrow_mut();
+        let mut src = src.write();
 
         let mut defck = FctDefCheck {
             ctxt: ctxt,
