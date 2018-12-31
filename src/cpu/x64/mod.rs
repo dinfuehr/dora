@@ -1,3 +1,5 @@
+use std::sync::atomic::{compiler_fence, Ordering};
+
 use execstate::ExecState;
 use object::{Obj, Ref};
 use os::signal::Trap;
@@ -11,10 +13,7 @@ pub mod reg;
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier
-
-    unsafe {
-        asm!("" ::: "memory" : "volatile");
-    }
+    compiler_fence(Ordering::SeqCst);
 }
 
 pub fn get_exception_object(es: &ExecState) -> Ref<Obj> {
