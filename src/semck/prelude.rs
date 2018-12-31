@@ -1,6 +1,7 @@
 use class::ClassId;
 use ctxt::{FctKind, Intrinsic, SemContext, TraitId};
 use exception;
+use gc::Address;
 use stdlib;
 use ty::BuiltinType;
 
@@ -301,7 +302,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
-    internal_method(ctxt, clsid, name, FctKind::Native(fctptr));
+    internal_method(ctxt, clsid, name, FctKind::Native(Address::from_ptr(fctptr)));
 }
 
 fn intrinsic_method<'ast>(
@@ -331,7 +332,7 @@ fn internal_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str
 }
 
 fn native_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, fctptr: *const u8) {
-    internal_fct(ctxt, name, FctKind::Native(fctptr));
+    internal_fct(ctxt, name, FctKind::Native(Address::from_ptr(fctptr)));
 }
 
 fn intrinsic_fct<'ast>(ctxt: &mut SemContext<'ast>, name: &str, intrinsic: Intrinsic) {

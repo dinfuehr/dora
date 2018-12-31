@@ -318,7 +318,7 @@ impl<'ast> SemContext<'ast> {
 
         if trap_thunk.is_null() {
             let ifct = InternalFct {
-                ptr: stdlib::trap as *const u8,
+                ptr: Address::from_ptr(stdlib::trap as *const u8),
                 args: &[BuiltinType::Int],
                 return_type: BuiltinType::Unit,
                 throws: false,
@@ -883,7 +883,7 @@ impl<'ast> Fct<'ast> {
 pub enum FctKind {
     Source(RwLock<FctSrc>),
     Definition,
-    Native(*const u8),
+    Native(Address),
     Builtin(Intrinsic),
 }
 

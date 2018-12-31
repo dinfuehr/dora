@@ -505,7 +505,7 @@ where
         );
 
         let internal_fct = InternalFct {
-            ptr: stdlib::gc_alloc as *mut u8,
+            ptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: &[BuiltinType::Ptr],
             return_type: BuiltinType::Ptr,
             throws: false,

@@ -9,12 +9,13 @@ use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
 use ctxt::{exception_get_and_clear, FctId};
 use ctxt::{get_vm, VM};
 use exception::DoraToNativeInfo;
+use gc::Address;
 use masm::MacroAssembler;
 use mem;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeThunks {
-    map: HashMap<*const u8, JitFctId>,
+    map: HashMap<Address, JitFctId>,
 }
 
 impl NativeThunks {
@@ -24,11 +25,11 @@ impl NativeThunks {
         }
     }
 
-    pub fn find_fct(&self, ptr: *const u8) -> Option<JitFctId> {
+    pub fn find_fct(&self, ptr: Address) -> Option<JitFctId> {
         self.map.get(&ptr).map(|&jit_fct_id| jit_fct_id)
     }
 
-    pub fn insert_fct(&mut self, ptr: *const u8, fct: JitFctId) {
+    pub fn insert_fct(&mut self, ptr: Address, fct: JitFctId) {
         self.map.entry(ptr).or_insert(fct);
     }
 }
@@ -41,7 +42,7 @@ pub enum InternalFctDescriptor {
 }
 
 pub struct InternalFct<'a> {
-    pub ptr: *const u8,
+    pub ptr: Address,
     pub args: &'a [BuiltinType],
     pub return_type: BuiltinType,
     pub throws: bool,
@@ -122,7 +123,7 @@ where
 
         restore_params(&mut self.masm, self.fct.args, offset_args);
 
-        self.masm.raw_call(self.fct.ptr);
+        self.masm.raw_call(self.fct.ptr.to_ptr());
 
         if save_return {
             self.masm.store_mem(
