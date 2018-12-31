@@ -1,5 +1,4 @@
 use parking_lot::{Mutex, RwLock};
-use std::cell::RefCell;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -545,7 +544,7 @@ pub struct StructData {
     pub pos: Position,
     pub name: Name,
     pub fields: Vec<StructFieldData>,
-    pub specializations: RefCell<HashMap<TypeParams, StructDefId>>,
+    pub specializations: RwLock<HashMap<TypeParams, StructDefId>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

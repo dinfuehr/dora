@@ -78,7 +78,7 @@ pub fn specialize_struct(
     struc: &StructData,
     type_params: TypeParams,
 ) -> StructDefId {
-    if let Some(&id) = struc.specializations.borrow().get(&type_params) {
+    if let Some(&id) = struc.specializations.read().get(&type_params) {
         return id;
     }
 
@@ -94,7 +94,7 @@ fn create_specialized_struct(
 
     let old = struc
         .specializations
-        .borrow_mut()
+        .write()
         .insert(type_params.clone(), id);
     assert!(old.is_none());
 

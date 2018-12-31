@@ -1,5 +1,4 @@
 use parking_lot::{Mutex, RwLock};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr;
 
@@ -177,7 +176,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             pos: s.pos,
             name: s.name,
             fields: Vec::new(),
-            specializations: RefCell::new(HashMap::new()),
+            specializations: RwLock::new(HashMap::new()),
         };
 
         self.ctxt.structs.push(Mutex::new(struc));
