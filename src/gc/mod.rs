@@ -34,7 +34,7 @@ const SPACE_ALIGNMENT_BITS: usize = 17;
 const GEN_ALIGNMENT_BITS: usize = 19;
 
 pub struct Gc {
-    collector: Box<Collector>,
+    collector: Box<Collector + Sync>,
 
     code_space: Space,
     perm_space: Space,
@@ -58,7 +58,7 @@ impl Gc {
 
         let collector_name = args.flag_gc.unwrap_or(CollectorName::Swiper);
 
-        let collector: Box<Collector> = match collector_name {
+        let collector: Box<Collector + Sync> = match collector_name {
             CollectorName::Zero => box ZeroCollector::new(args),
             CollectorName::Copy => box CopyCollector::new(args),
             CollectorName::Swiper => box Swiper::new(args),
