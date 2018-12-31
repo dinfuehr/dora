@@ -1,5 +1,5 @@
 use parking_lot::{Mutex, RwLock};
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -144,13 +144,13 @@ impl<'ast> SemContext<'ast> {
 
                 equals_trait: empty_trait_id,
                 comparable_trait: empty_trait_id,
-                iterator_trait: Cell::new(None),
+                iterator_trait: Mutex::new(None),
 
-                int_array_def: Cell::new(None),
-                str_class_def: Cell::new(None),
-                obj_class_def: Cell::new(None),
-                ste_class_def: Cell::new(None),
-                ex_class_def: Cell::new(None),
+                int_array_def: Mutex::new(None),
+                str_class_def: Mutex::new(None),
+                obj_class_def: Mutex::new(None),
+                ste_class_def: Mutex::new(None),
+                ex_class_def: Mutex::new(None),
             },
             gc: gc,
             ast: ast,
@@ -586,77 +586,77 @@ pub struct KnownElements {
 
     pub equals_trait: TraitId,
     pub comparable_trait: TraitId,
-    pub iterator_trait: Cell<Option<TraitId>>,
+    pub iterator_trait: Mutex<Option<TraitId>>,
 
-    int_array_def: Cell<Option<ClassDefId>>,
-    str_class_def: Cell<Option<ClassDefId>>,
-    obj_class_def: Cell<Option<ClassDefId>>,
-    ste_class_def: Cell<Option<ClassDefId>>,
-    ex_class_def: Cell<Option<ClassDefId>>,
+    int_array_def: Mutex<Option<ClassDefId>>,
+    str_class_def: Mutex<Option<ClassDefId>>,
+    obj_class_def: Mutex<Option<ClassDefId>>,
+    ste_class_def: Mutex<Option<ClassDefId>>,
+    ex_class_def: Mutex<Option<ClassDefId>>,
 }
 
 impl KnownElements {
     pub fn iterator(&self) -> TraitId {
-        self.iterator_trait.get().expect("iterator trait not set")
+        self.iterator_trait.lock().expect("iterator trait not set")
     }
 
     pub fn int_array(&self, ctxt: &SemContext) -> ClassDefId {
-        let cls_id = self.int_array_def.get();
+        let mut int_array_def = self.int_array_def.lock();
 
-        if let Some(cls_id) = cls_id {
+        if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
             let type_args = vec![BuiltinType::Int];
             let cls_id = specialize_class_id_params(ctxt, self.array_class, type_args.into());
-            self.int_array_def.set(Some(cls_id));
+            *int_array_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn str(&self, ctxt: &SemContext) -> ClassDefId {
-        let cls_id = self.str_class_def.get();
+        let mut str_class_def = self.str_class_def.lock();
 
-        if let Some(cls_id) = cls_id {
+        if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
             let cls_id = specialize_class_id(ctxt, self.str_class);
-            self.str_class_def.set(Some(cls_id));
+            *str_class_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn obj(&self, ctxt: &SemContext) -> ClassDefId {
-        let cls_id = self.obj_class_def.get();
+        let mut obj_class_def = self.obj_class_def.lock();
 
-        if let Some(cls_id) = cls_id {
+        if let Some(cls_id) = *obj_class_def {
             cls_id
         } else {
             let cls_id = specialize_class_id(ctxt, self.object_class);
-            self.obj_class_def.set(Some(cls_id));
+            *obj_class_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn stack_trace_element(&self, ctxt: &SemContext) -> ClassDefId {
-        let cls_id = self.ste_class_def.get();
+        let mut ste_class_def = self.ste_class_def.lock();
 
-        if let Some(cls_id) = cls_id {
+        if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
             let cls_id = specialize_class_id(ctxt, self.stack_trace_element_class);
-            self.ste_class_def.set(Some(cls_id));
+            *ste_class_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn exception(&self, ctxt: &SemContext) -> ClassDefId {
-        let cls_id = self.ex_class_def.get();
+        let mut ex_class_def = self.ex_class_def.lock();
 
-        if let Some(cls_id) = cls_id {
+        if let Some(cls_id) = *ex_class_def {
             cls_id
         } else {
             let cls_id = specialize_class_id(ctxt, self.exception_class);
-            self.ex_class_def.set(Some(cls_id));
+            *ex_class_def = Some(cls_id);
             cls_id
         }
     }

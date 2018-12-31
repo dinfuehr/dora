@@ -36,7 +36,7 @@ pub fn internal_classes<'ast>(ctxt: &mut SemContext<'ast>) {
 
     ctxt.vips.comparable_trait = find_trait(ctxt, "Comparable");
     ctxt.vips.equals_trait = find_trait(ctxt, "Equals");
-    ctxt.vips.iterator_trait = Cell::new(Some(find_trait(ctxt, "Iterator")));
+    *ctxt.vips.iterator_trait.lock() = Some(find_trait(ctxt, "Iterator"));
 }
 
 fn internal_class<'ast>(
