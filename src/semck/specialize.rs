@@ -173,7 +173,7 @@ pub fn specialize_class(
     cls: &class::Class,
     type_params: TypeParams,
 ) -> ClassDefId {
-    if let Some(&id) = cls.specializations.borrow().get(&type_params) {
+    if let Some(&id) = cls.specializations.read().get(&type_params) {
         return id;
     }
 
@@ -189,7 +189,7 @@ fn create_specialized_class(
 
     let old = cls
         .specializations
-        .borrow_mut()
+        .write()
         .insert(type_params.clone(), id);
     assert!(old.is_none());
 

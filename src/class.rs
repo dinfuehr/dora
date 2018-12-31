@@ -1,5 +1,4 @@
 use parking_lot::RwLock;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::iter::Iterator;
@@ -65,7 +64,7 @@ pub struct Class {
 
     pub type_params: Vec<TypeParam>,
 
-    pub specializations: RefCell<HashMap<TypeParams, ClassDefId>>,
+    pub specializations: RwLock<HashMap<TypeParams, ClassDefId>>,
     pub vtable_len: u32,
 
     // true if this class is the generic Array class
