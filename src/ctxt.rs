@@ -388,8 +388,8 @@ pub struct GlobalData<'ast> {
     pub reassignable: bool,
     pub name: Name,
     pub getter: Option<FctId>,
-    pub address_init: *const u8,
-    pub address_value: *const u8,
+    pub address_init: Address,
+    pub address_value: Address,
 }
 
 impl<'ast> GrowableVec<Mutex<GlobalData<'ast>>> {

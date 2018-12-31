@@ -1,6 +1,5 @@
 use parking_lot::{Mutex, RwLock};
 use std::collections::HashMap;
-use std::ptr;
 
 use class::{self, ClassId};
 use ctxt;
@@ -10,6 +9,7 @@ use dora_parser::ast::*;
 use dora_parser::error::msg::Msg;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
+use gc::Address;
 use sym::Sym::{self, SymClass, SymConst, SymFct, SymGlobal, SymStruct, SymTrait};
 use ty::BuiltinType;
 
@@ -75,8 +75,8 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             ty: BuiltinType::Unit,
             reassignable: g.reassignable,
             getter: None,
-            address_init: ptr::null(),
-            address_value: ptr::null(),
+            address_init: Address::null(),
+            address_value: Address::null(),
         };
 
         self.ctxt.globals.push(Mutex::new(global));

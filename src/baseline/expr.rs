@@ -530,7 +530,7 @@ where
                 let glob = self.vm.globals.idx(gid);
                 let glob = glob.lock();
 
-                let disp = self.asm.add_addr(glob.address_value);
+                let disp = self.asm.add_addr(glob.address_value.to_ptr());
                 let pos = self.asm.pos() as i32;
 
                 self.asm.emit_comment(Comment::LoadGlobal(gid));
@@ -708,7 +708,7 @@ where
                 let dest = result_reg(glob.ty.mode());
                 self.emit_expr(&e.rhs, dest);
 
-                let disp = self.asm.add_addr(glob.address_value);
+                let disp = self.asm.add_addr(glob.address_value.to_ptr());
                 let pos = self.asm.pos() as i32;
 
                 self.asm.emit_comment(Comment::StoreGlobal(gid));

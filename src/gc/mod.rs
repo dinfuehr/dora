@@ -80,12 +80,12 @@ impl Gc {
         self.collector.card_table_offset()
     }
 
-    pub fn alloc_code(&self, size: usize) -> *mut u8 {
-        self.code_space.alloc(size).to_mut_ptr()
+    pub fn alloc_code(&self, size: usize) -> Address {
+        self.code_space.alloc(size)
     }
 
-    pub fn alloc_perm(&self, size: usize) -> *mut u8 {
-        self.perm_space.alloc(size).to_mut_ptr()
+    pub fn alloc_perm(&self, size: usize) -> Address {
+        self.perm_space.alloc(size)
     }
 
     pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {

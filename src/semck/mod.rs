@@ -169,7 +169,7 @@ fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
         let mut glob = glob.lock();
         let offset = offsets[ind];
 
-        glob.address_value = unsafe { ptr.offset(offset as isize) };
+        glob.address_value = ptr.offset(offset as usize);
     }
 }
 

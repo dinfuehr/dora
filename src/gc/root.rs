@@ -28,7 +28,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
             continue;
         }
 
-        let slot = Slot::at(Address::from_ptr(glob.address_value));
+        let slot = Slot::at(glob.address_value);
         rootset.push(slot);
     }
 }

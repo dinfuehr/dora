@@ -358,6 +358,12 @@ impl<T> Into<Ref<T>> for usize {
     }
 }
 
+impl<T> Into<Ref<T>> for Address {
+    fn into(self) -> Ref<T> {
+        Ref { ptr: self.to_ptr() }
+    }
+}
+
 #[repr(C)]
 pub struct Testing {
     header: Header,
@@ -506,7 +512,7 @@ impl Str {
 }
 
 fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false).to_ptr())
+    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false))
 }
 
 fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
@@ -515,14 +521,14 @@ fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
 
 fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Ref<Str>
 where
-    F: FnOnce(&VM, usize) -> *const u8,
+    F: FnOnce(&VM, usize) -> Address,
 {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
                 + len; // string content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
-    let ptr = alloc(vm, size) as usize;
+    let ptr = alloc(vm, size);
 
     let clsid = vm.vips.str(vm);
     let cls = vm.class_defs.idx(clsid);

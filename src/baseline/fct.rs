@@ -115,7 +115,7 @@ impl JitBaselineFct {
         mut exception_handlers: Vec<ExHandler>,
     ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
-        let ptr = Address::from_ptr(vm.gc.alloc_code(size));
+        let ptr = vm.gc.alloc_code(size);
 
         if ptr.is_null() {
             panic!("out of memory: not enough executable memory left!");

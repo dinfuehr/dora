@@ -302,7 +302,12 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
 }
 
 fn native_method<'ast>(ctxt: &mut SemContext<'ast>, clsid: ClassId, name: &str, fctptr: *const u8) {
-    internal_method(ctxt, clsid, name, FctKind::Native(Address::from_ptr(fctptr)));
+    internal_method(
+        ctxt,
+        clsid,
+        name,
+        FctKind::Native(Address::from_ptr(fctptr)),
+    );
 }
 
 fn intrinsic_method<'ast>(
