@@ -5,6 +5,7 @@ use std::mem;
 use std::process;
 use std::ptr;
 use std::str;
+use std::sync::Arc;
 use std::thread;
 
 use class::TypeParams;
@@ -15,6 +16,7 @@ use gc::GcReason;
 use object::{ByteArray, Obj, Ref, Str};
 use os::signal::Trap;
 use sym::Sym::SymFct;
+use threads::THREAD;
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();
@@ -292,6 +294,11 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
     thread::spawn(move || {
         let vm = get_vm();
 
+        THREAD.with(|thread| {
+            let mut threads = vm.threads.lock();
+            threads.push(thread.clone());
+        });
+
         let main = {
             let cls_id = obj.header().vtbl().class().cls_id;
             let cls = vm.classes.idx(cls_id);
@@ -311,5 +318,10 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
 
         let fct: extern "C" fn(Ref<Obj>) = unsafe { mem::transmute(fct_ptr) };
         fct(obj);
+
+        THREAD.with(|thread| {
+            let mut threads = vm.threads.lock();
+            threads.retain(|elem| !Arc::ptr_eq(elem, thread));
+        });
     });
 }

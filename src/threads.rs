@@ -1,7 +1,20 @@
 use std::ptr;
+use std::sync::Arc;
 
 use exception::DoraToNativeInfo;
 use gc::{Address, Region};
+
+thread_local! {
+    pub static THREAD: Arc<DoraThread> = DoraThread::new();
+}
+
+pub struct DoraThread {}
+
+impl DoraThread {
+    fn new() -> Arc<DoraThread> {
+        Arc::new(DoraThread {})
+    }
+}
 
 pub struct ThreadLocalData {
     d2n: *const DoraToNativeInfo,

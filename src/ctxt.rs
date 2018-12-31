@@ -30,7 +30,7 @@ use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use stdlib;
 use sym::Sym::*;
 use sym::*;
-use threads::ThreadLocalData;
+use threads::{DoraThread, ThreadLocalData};
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
@@ -104,6 +104,7 @@ pub struct SemContext<'ast> {
     pub trap_thunk: Mutex<Address>,
     pub throw_thunk: Mutex<Address>,
     pub tld: Mutex<ThreadLocalData>,
+    pub threads: Mutex<Vec<Arc<DoraThread>>>,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -168,6 +169,7 @@ impl<'ast> SemContext<'ast> {
             trap_thunk: Mutex::new(Address::null()),
             throw_thunk: Mutex::new(Address::null()),
             tld: Mutex::new(ThreadLocalData::new()),
+            threads: Mutex::new(Vec::new()),
         });
 
         set_vm(&ctxt);
