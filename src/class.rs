@@ -11,7 +11,7 @@ use ctxt::{FctId, ImplId, TraitId, TypeParam};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use ty::BuiltinType;
-use utils::GrowableVecMutex;
+use utils::GrowableVec;
 use vtable::VTableBox;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -35,7 +35,7 @@ impl From<usize> for ClassId {
     }
 }
 
-impl GrowableVecMutex<RwLock<Class>> {
+impl GrowableVec<RwLock<Class>> {
     pub fn idx(&self, index: ClassId) -> Arc<RwLock<Class>> {
         self.idx_usize(index.0)
     }
@@ -297,7 +297,7 @@ impl From<usize> for ClassDefId {
     }
 }
 
-impl GrowableVecMutex<RwLock<ClassDef>> {
+impl GrowableVec<RwLock<ClassDef>> {
     pub fn idx(&self, index: ClassDefId) -> Arc<RwLock<ClassDef>> {
         self.idx_usize(index.0)
     }

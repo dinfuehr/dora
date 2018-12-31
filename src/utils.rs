@@ -1,16 +1,13 @@
-use std::cell::RefCell;
-use std::ops::Index;
-
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-pub struct GrowableVecMutex<T> {
+pub struct GrowableVec<T> {
     elements: Mutex<Vec<Arc<T>>>,
 }
 
-impl<T> GrowableVecMutex<T> {
-    pub fn new() -> GrowableVecMutex<T> {
-        GrowableVecMutex {
+impl<T> GrowableVec<T> {
+    pub fn new() -> GrowableVec<T> {
+        GrowableVec {
             elements: Mutex::new(Vec::new()),
         }
     }
@@ -25,8 +22,8 @@ impl<T> GrowableVecMutex<T> {
         elements.len()
     }
 
-    pub fn iter(&self) -> GrowableVecMutexIter<T> {
-        GrowableVecMutexIter { vec: self, idx: 0 }
+    pub fn iter(&self) -> GrowableVecIter<T> {
+        GrowableVecIter { vec: self, idx: 0 }
     }
 
     pub fn idx_usize(&self, idx: usize) -> Arc<T> {
@@ -35,15 +32,15 @@ impl<T> GrowableVecMutex<T> {
     }
 }
 
-pub struct GrowableVecMutexIter<'a, T>
+pub struct GrowableVecIter<'a, T>
 where
     T: 'a,
 {
-    vec: &'a GrowableVecMutex<T>,
+    vec: &'a GrowableVec<T>,
     idx: usize,
 }
 
-impl<'a, T> Iterator for GrowableVecMutexIter<'a, T> {
+impl<'a, T> Iterator for GrowableVecIter<'a, T> {
     type Item = Arc<T>;
 
     fn next(&mut self) -> Option<Arc<T>> {
@@ -59,77 +56,20 @@ impl<'a, T> Iterator for GrowableVecMutexIter<'a, T> {
     }
 }
 
-pub struct GrowableVec<T> {
-    elements: RefCell<Vec<Box<RefCell<T>>>>,
-}
-
-impl<T> GrowableVec<T> {
-    pub fn new() -> GrowableVec<T> {
-        GrowableVec {
-            elements: RefCell::new(Vec::new()),
-        }
-    }
-
-    pub fn push(&self, val: T) {
-        self.elements.borrow_mut().push(Box::new(RefCell::new(val)));
-    }
-
-    pub fn len(&self) -> usize {
-        self.elements.borrow().len()
-    }
-
-    pub fn iter(&self) -> GrowableVecIter<T> {
-        GrowableVecIter { vec: self, idx: 0 }
-    }
-}
-
-impl<T> Index<usize> for GrowableVec<T> {
-    type Output = RefCell<T>;
-
-    fn index(&self, idx: usize) -> &RefCell<T> {
-        let elements = self.elements.borrow();
-        let ptr = elements[idx].as_ref() as *const _;
-
-        unsafe { &*ptr }
-    }
-}
-
-pub struct GrowableVecIter<'a, T>
-where
-    T: 'a,
-{
-    vec: &'a GrowableVec<T>,
-    idx: usize,
-}
-
-impl<'a, T> Iterator for GrowableVecIter<'a, T> {
-    type Item = &'a RefCell<T>;
-
-    fn next(&mut self) -> Option<&'a RefCell<T>> {
-        let length = self.vec.len();
-
-        if self.idx < length {
-            let idx = self.idx;
-            self.idx += 1;
-            Some(&self.vec[idx])
-        } else {
-            None
-        }
-    }
-}
-
 #[test]
 fn test_push() {
-    let vec = GrowableVec::<i32>::new();
+    let vec: GrowableVec<Mutex<i32>> = GrowableVec::new();
 
     {
-        vec.push(1);
-        vec.push(2);
-        let mut elem = vec[1].borrow_mut();
+        vec.push(Mutex::new(1));
+        vec.push(Mutex::new(2));
+
+        let elem = vec.idx_usize(1);
+        let mut elem = elem.lock();
 
         *elem = 10;
         for i in 3..8 {
-            vec.push(i);
+            vec.push(Mutex::new(i));
         }
     }
 

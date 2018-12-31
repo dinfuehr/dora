@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::{f32, f64};
 
 use class::{ClassId, TypeParams};
@@ -379,7 +379,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
                 self.src
                     .map_calls
-                    .insert_or_replace(e.id, Rc::new(call_type));
+                    .insert_or_replace(e.id, Arc::new(call_type));
 
                 let fct = self.ctxt.fcts.idx(fct_id);
                 let fct = fct.read();
@@ -540,7 +540,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 None,
             ) {
                 let call_type = CallType::Method(ty, fct_id, TypeParams::empty());
-                self.src.map_calls.insert(e.id, Rc::new(call_type));
+                self.src.map_calls.insert(e.id, Arc::new(call_type));
 
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
@@ -618,7 +618,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let call_type = CallType::Method(lhs_type, fct_id, TypeParams::empty());
             self.src
                 .map_calls
-                .insert_or_replace(e.id, Rc::new(call_type));
+                .insert_or_replace(e.id, Arc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;
@@ -763,7 +763,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
                 self.src
                     .map_calls
-                    .insert_or_replace(e.id, Rc::new(call_type));
+                    .insert_or_replace(e.id, Arc::new(call_type));
                 self.src.set_ty(e.id, return_type);
                 self.expr_type = return_type;
 
@@ -799,7 +799,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
                     if lookup.find() {
                         let fct_id = lookup.found_fct_id().unwrap();
-                        let call_type = Rc::new(CallType::Fct(
+                        let call_type = Arc::new(CallType::Fct(
                             fct_id,
                             TypeParams::empty(),
                             type_params.clone(),
@@ -841,7 +841,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                     let cls = cls.read();
 
                     let call_type = CallType::CtorNew(cls_id, fct_id, type_params.clone());
-                    self.src.map_calls.replace(e.id, Rc::new(call_type));
+                    self.src.map_calls.replace(e.id, Arc::new(call_type));
 
                     if cls.is_abstract {
                         let msg = Msg::NewAbstractClass;
@@ -867,7 +867,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 let ty = if lookup.find() {
                     let call_type =
                         CallType::Fct(callee_id, TypeParams::empty(), type_params.clone());
-                    self.src.map_calls.replace(e.id, Rc::new(call_type));
+                    self.src.map_calls.replace(e.id, Arc::new(call_type));
 
                     lookup.found_ret().unwrap()
                 } else {
@@ -950,7 +950,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
                 self.src.map_tys.insert(e.id, self.ctxt.cls(cls.id));
 
                 let call_type = CallType::Ctor(cls.id, ctor.id, TypeParams::empty());
-                self.src.map_calls.insert(e.id, Rc::new(call_type));
+                self.src.map_calls.insert(e.id, Arc::new(call_type));
                 return;
             }
         }
@@ -1016,7 +1016,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
 
             if let Some(fid) = trai.find_method(self.ctxt, false, e.path.name(), None, args) {
                 let call_type = CallType::Method(obj, fid, TypeParams::empty());
-                self.src.map_calls.insert(e.id, Rc::new(call_type));
+                self.src.map_calls.insert(e.id, Arc::new(call_type));
 
                 let fct = self.ctxt.fcts.idx(fid);
                 let fct = fct.read();
@@ -1164,7 +1164,7 @@ impl<'a, 'ast> TypeCheck<'a, 'ast> {
             let call_type = CallType::Method(object_type, fct_id, TypeParams::empty());
             self.src
                 .map_calls
-                .insert_or_replace(e.id, Rc::new(call_type));
+                .insert_or_replace(e.id, Arc::new(call_type));
 
             self.src.set_ty(e.id, return_type);
             self.expr_type = return_type;

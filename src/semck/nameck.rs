@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use class::TypeParams;
 use ctxt::*;
@@ -286,13 +286,13 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             match sym {
                 SymFct(fct_id) => {
                     let call_type = CallType::Fct(fct_id, TypeParams::empty(), TypeParams::empty());
-                    self.src.map_calls.insert(call.id, Rc::new(call_type));
+                    self.src.map_calls.insert(call.id, Arc::new(call_type));
                     found = true;
                 }
 
                 SymClass(cls_id) => {
                     let call_type = CallType::CtorNew(cls_id, FctId(0), TypeParams::empty());
-                    self.src.map_calls.insert(call.id, Rc::new(call_type));
+                    self.src.map_calls.insert(call.id, Arc::new(call_type));
                     found = true;
                 }
 

@@ -6,7 +6,6 @@ use std::collections::HashSet;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::ptr;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use dora_parser::error::diag::Diagnostic;
@@ -34,7 +33,7 @@ use sym::Sym::*;
 use sym::*;
 use threads::ThreadLocalData;
 use ty::{BuiltinType, LambdaTypes, TypeLists};
-use utils::GrowableVecMutex;
+use utils::GrowableVec;
 
 pub static mut EXCEPTION_OBJECT: *const u8 = 0 as *const u8;
 
@@ -83,18 +82,18 @@ pub struct SemContext<'ast> {
     pub diag: Mutex<Diagnostic>,
     pub sym: Mutex<SymTable>,
     pub vips: KnownElements,
-    pub consts: GrowableVecMutex<Mutex<ConstData<'ast>>>, // stores all const definitions
-    pub structs: GrowableVecMutex<Mutex<StructData>>,     // stores all struct source definitions
-    pub struct_defs: GrowableVecMutex<Mutex<StructDef>>,  // stores all struct definitions
-    pub classes: GrowableVecMutex<RwLock<Class>>,         // stores all class source definitions
-    pub class_defs: GrowableVecMutex<RwLock<ClassDef>>,   // stores all class definitions
-    pub fcts: GrowableVecMutex<RwLock<Fct<'ast>>>,        // stores all function definitions
-    pub jit_fcts: GrowableVecMutex<JitFct>,               // stores all function implementations
-    pub traits: Vec<RwLock<TraitData>>,                   // stores all trait definitions
-    pub impls: Vec<RwLock<ImplData>>,                     // stores all impl definitions
-    pub code_map: Mutex<CodeMap>,                         // stores all compiled functions
-    pub globals: GrowableVecMutex<Mutex<GlobalData<'ast>>>, // stores all global variables
-    pub gc: Gc,                                           // garbage collector
+    pub consts: GrowableVec<Mutex<ConstData<'ast>>>, // stores all const definitions
+    pub structs: GrowableVec<Mutex<StructData>>,     // stores all struct source definitions
+    pub struct_defs: GrowableVec<Mutex<StructDef>>,  // stores all struct definitions
+    pub classes: GrowableVec<RwLock<Class>>,         // stores all class source definitions
+    pub class_defs: GrowableVec<RwLock<ClassDef>>,   // stores all class definitions
+    pub fcts: GrowableVec<RwLock<Fct<'ast>>>,        // stores all function definitions
+    pub jit_fcts: GrowableVec<JitFct>,               // stores all function implementations
+    pub traits: Vec<RwLock<TraitData>>,              // stores all trait definitions
+    pub impls: Vec<RwLock<ImplData>>,                // stores all impl definitions
+    pub code_map: Mutex<CodeMap>,                    // stores all compiled functions
+    pub globals: GrowableVec<Mutex<GlobalData<'ast>>>, // stores all global variables
+    pub gc: Gc,                                      // garbage collector
     pub dtn: Mutex<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
@@ -116,14 +115,14 @@ impl<'ast> SemContext<'ast> {
 
         let ctxt = Box::new(SemContext {
             args: args,
-            consts: GrowableVecMutex::new(),
-            structs: GrowableVecMutex::new(),
-            struct_defs: GrowableVecMutex::new(),
-            classes: GrowableVecMutex::new(),
-            class_defs: GrowableVecMutex::new(),
+            consts: GrowableVec::new(),
+            structs: GrowableVec::new(),
+            struct_defs: GrowableVec::new(),
+            classes: GrowableVec::new(),
+            class_defs: GrowableVec::new(),
             traits: Vec::new(),
             impls: Vec::new(),
-            globals: GrowableVecMutex::new(),
+            globals: GrowableVec::new(),
             interner: interner,
             vips: KnownElements {
                 bool_class: empty_class_id,
@@ -156,8 +155,8 @@ impl<'ast> SemContext<'ast> {
             ast: ast,
             diag: Mutex::new(Diagnostic::new()),
             sym: Mutex::new(SymTable::new()),
-            fcts: GrowableVecMutex::new(),
-            jit_fcts: GrowableVecMutex::new(),
+            fcts: GrowableVec::new(),
+            jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
             dtn: Mutex::new(ptr::null()),
             polling_page: PollingPage::new(),
@@ -338,7 +337,7 @@ impl<'ast> SemContext<'ast> {
 
 unsafe impl<'ast> Sync for SemContext<'ast> {}
 
-impl<'ast> GrowableVecMutex<RwLock<Fct<'ast>>> {
+impl<'ast> GrowableVec<RwLock<Fct<'ast>>> {
     pub fn idx(&self, index: FctId) -> Arc<RwLock<Fct<'ast>>> {
         self.idx_usize(index.0)
     }
@@ -353,7 +352,7 @@ impl From<usize> for StructDefId {
     }
 }
 
-impl GrowableVecMutex<Mutex<StructDef>> {
+impl GrowableVec<Mutex<StructDef>> {
     pub fn idx(&self, index: StructDefId) -> Arc<Mutex<StructDef>> {
         self.idx_usize(index.0)
     }
@@ -394,7 +393,7 @@ pub struct GlobalData<'ast> {
     pub address_value: *const u8,
 }
 
-impl<'ast> GrowableVecMutex<Mutex<GlobalData<'ast>>> {
+impl<'ast> GrowableVec<Mutex<GlobalData<'ast>>> {
     pub fn idx(&self, index: GlobalId) -> Arc<Mutex<GlobalData<'ast>>> {
         self.idx_usize(index.0 as usize)
     }
@@ -528,7 +527,7 @@ impl Index<TraitId> for Vec<RwLock<TraitData>> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(u32);
 
-impl GrowableVecMutex<Mutex<StructData>> {
+impl GrowableVec<Mutex<StructData>> {
     pub fn idx(&self, index: StructId) -> Arc<Mutex<StructData>> {
         self.idx_usize(index.0 as usize)
     }
@@ -1041,7 +1040,7 @@ pub enum Intrinsic {
 
 #[derive(Debug)]
 pub struct FctSrc {
-    pub map_calls: NodeMap<Rc<CallType>>, // maps function call to FctId
+    pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<BuiltinType>,
     pub map_vars: NodeMap<VarId>,
@@ -1283,7 +1282,7 @@ impl From<usize> for ConstId {
     }
 }
 
-impl<'ast> GrowableVecMutex<Mutex<ConstData<'ast>>> {
+impl<'ast> GrowableVec<Mutex<ConstData<'ast>>> {
     pub fn idx(&self, index: ConstId) -> Arc<Mutex<ConstData<'ast>>> {
         self.idx_usize(index.0 as usize)
     }

@@ -10,7 +10,7 @@ use ctxt::{FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
 use object::{Ref, Str};
 use opt::fct::JitOptFct;
-use utils::GrowableVecMutex;
+use utils::GrowableVec;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct JitFctId(usize);
@@ -25,7 +25,7 @@ impl JitFctId {
     }
 }
 
-impl GrowableVecMutex<JitFct> {
+impl GrowableVec<JitFct> {
     pub fn idx(&self, index: JitFctId) -> Arc<JitFct> {
         self.idx_usize(index.0)
     }
