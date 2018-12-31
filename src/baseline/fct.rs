@@ -8,7 +8,7 @@ use cpu::flush_icache;
 use ctxt::VM;
 use ctxt::{FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
-use object::{Handle, Str};
+use object::{Ref, Str};
 use opt::fct::JitOptFct;
 use utils::GrowableVecMutex;
 
@@ -273,7 +273,7 @@ impl Comments {
 
 pub enum Comment {
     Lit(&'static str),
-    LoadString(Handle<Str>),
+    LoadString(Ref<Str>),
     Alloc(ClassDefId),
     StoreVTable(ClassDefId),
     CallSuper(FctId),

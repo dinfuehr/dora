@@ -12,61 +12,61 @@ use ctxt::exception_set;
 use ctxt::get_vm;
 use exception::{alloc_exception, stacktrace_from_last_dtn};
 use gc::GcReason;
-use object::{ByteArray, Handle, Obj, Str};
+use object::{ByteArray, Obj, Ref, Str};
 use os::signal::Trap;
 use sym::Sym::SymFct;
 
-pub extern "C" fn byte_to_string(val: u8) -> Handle<Str> {
+pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn char_to_string(val: char) -> Handle<Str> {
+pub extern "C" fn char_to_string(val: char) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn int_to_string(val: i32) -> Handle<Str> {
+pub extern "C" fn int_to_string(val: i32) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn long_to_string(val: i64) -> Handle<Str> {
+pub extern "C" fn long_to_string(val: i64) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn float_to_string(val: f32) -> Handle<Str> {
+pub extern "C" fn float_to_string(val: f32) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn double_to_string(val: f64) -> Handle<Str> {
+pub extern "C" fn double_to_string(val: f64) -> Ref<Str> {
     let buffer = val.to_string();
     let vm = get_vm();
 
     Str::from_buffer(vm, buffer.as_bytes())
 }
 
-pub extern "C" fn print(val: Handle<Str>) {
+pub extern "C" fn print(val: Ref<Str>) {
     io::stdout().write(val.content()).unwrap();
 }
 
-pub extern "C" fn addr(val: Handle<Obj>) -> u64 {
+pub extern "C" fn addr(val: Ref<Obj>) -> u64 {
     val.raw() as usize as u64
 }
 
-pub extern "C" fn fatal_error(msg: Handle<Str>) {
+pub extern "C" fn fatal_error(msg: Ref<Str>) {
     write!(&mut io::stderr(), "fatal error: ").expect("could not print to stderr");
     io::stderr().write(msg.content()).unwrap();
     writeln!(&mut io::stderr(), "").expect("could not print to stderr");
@@ -88,7 +88,7 @@ pub extern "C" fn timestamp() -> u64 {
     timer::timestamp()
 }
 
-pub extern "C" fn println(val: Handle<Str>) {
+pub extern "C" fn println(val: Ref<Str>) {
     print(val);
     println!("");
 }
@@ -96,14 +96,14 @@ pub extern "C" fn println(val: Handle<Str>) {
 pub extern "C" fn throw_native(val: bool) {
     if val {
         let vm = get_vm();
-        let obj = alloc_exception(vm, Handle::null());
+        let obj = alloc_exception(vm, Ref::null());
         let obj = vm.handles.root(obj);
 
         exception_set(obj.direct().raw() as *const u8);
     }
 }
 
-pub extern "C" fn call(fct: Handle<Str>) {
+pub extern "C" fn call(fct: Ref<Str>) {
     let fct_name = fct.to_cstring();
     let fct_name = fct_name.to_str().unwrap();
 
@@ -136,7 +136,7 @@ pub extern "C" fn call(fct: Handle<Str>) {
     }
 }
 
-pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
+pub extern "C" fn strcmp(lhs: Ref<Str>, rhs: Ref<Str>) -> i32 {
     unsafe {
         libc::strcmp(
             lhs.data() as *const libc::c_char,
@@ -145,7 +145,7 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     }
 }
 
-pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
+pub extern "C" fn strcat(lhs: Ref<Str>, rhs: Ref<Str>) -> Ref<Str> {
     let vm = get_vm();
     let lhs = vm.handles.root(lhs);
     let rhs = vm.handles.root(rhs);
@@ -153,15 +153,15 @@ pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
     Str::concat(vm, lhs, rhs).direct()
 }
 
-pub extern "C" fn str_clone(val: Handle<Str>) -> Handle<Str> {
+pub extern "C" fn str_clone(val: Ref<Str>) -> Ref<Str> {
     let vm = get_vm();
 
     val.dup(vm)
 }
 
-pub extern "C" fn str_from_bytes(val: Handle<ByteArray>, offset: usize, len: usize) -> Handle<Str> {
+pub extern "C" fn str_from_bytes(val: Ref<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
     let vm = get_vm();
-    let val: Handle<Str> = val.cast();
+    let val: Ref<Str> = val.cast();
     let val = vm.handles.root(val);
 
     Str::from_str(vm, val, offset, len)
@@ -182,7 +182,7 @@ pub extern "C" fn gc_minor_collect() {
     vm.gc.minor_collect(vm, GcReason::ForceMinorCollect);
 }
 
-pub extern "C" fn str_len(s: Handle<Str>) -> i32 {
+pub extern "C" fn str_len(s: Ref<Str>) -> i32 {
     s.len() as i32
 }
 
@@ -196,7 +196,7 @@ pub extern "C" fn argc() -> i32 {
     }
 }
 
-pub extern "C" fn argv(ind: i32) -> Handle<Str> {
+pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     let vm = get_vm();
 
     if let Some(ref args) = vm.args.arg_argument {
@@ -210,14 +210,14 @@ pub extern "C" fn argv(ind: i32) -> Handle<Str> {
     panic!("argument does not exist");
 }
 
-pub extern "C" fn str_parse_int(val: Handle<Str>) -> i32 {
+pub extern "C" fn str_parse_int(val: Ref<Str>) -> i32 {
     let slice = val.content();
     let val = str::from_utf8(slice).unwrap();
 
     val.parse::<i32>().unwrap_or(0)
 }
 
-pub extern "C" fn load_function(name: Handle<Str>) -> usize {
+pub extern "C" fn load_function(name: Ref<Str>) -> usize {
     let name = name.to_cstring();
 
     unsafe {
@@ -285,7 +285,7 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
+pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
     use baseline;
     use exception::DoraToNativeInfo;
 
@@ -309,7 +309,7 @@ pub extern "C" fn spawn_thread(obj: Handle<Obj>) {
             })
         };
 
-        let fct: extern "C" fn(Handle<Obj>) = unsafe { mem::transmute(fct_ptr) };
+        let fct: extern "C" fn(Ref<Obj>) = unsafe { mem::transmute(fct_ptr) };
         fct(obj);
     });
 }

@@ -208,7 +208,7 @@ impl Obj {
             ClassSize::Array(element_size) => determine_array_size(self, element_size),
 
             ClassSize::Str => {
-                let handle: Handle<Str> = Handle {
+                let handle: Ref<Str> = Ref {
                     ptr: self as *const Obj as *const Str,
                 };
                 mem::align_usize(handle.size(), mem::ptr_width() as usize)
@@ -292,7 +292,7 @@ impl Obj {
 }
 
 fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
-    let handle: Handle<ByteArray> = Handle {
+    let handle: Ref<ByteArray> = Ref {
         ptr: obj as *const Obj as *const ByteArray,
     };
 
@@ -304,19 +304,20 @@ fn determine_array_size(obj: &Obj, element_size: i32) -> usize {
 }
 
 #[repr(C)]
-pub struct Handle<T> {
+pub struct Ref<T> {
     ptr: *const T,
 }
 
-unsafe impl<T> Send for Handle<T> {}
+unsafe impl<T> Send for Ref<T> {}
+unsafe impl<T> Sync for Ref<T> {}
 
-impl<T> Handle<T> {
-    pub fn null() -> Handle<T> {
-        Handle { ptr: ptr::null() }
+impl<T> Ref<T> {
+    pub fn null() -> Ref<T> {
+        Ref { ptr: ptr::null() }
     }
 
-    pub fn cast<R>(&self) -> Handle<R> {
-        Handle {
+    pub fn cast<R>(&self) -> Ref<R> {
+        Ref {
             ptr: self.ptr as *const R,
         }
     }
@@ -328,14 +329,14 @@ impl<T> Handle<T> {
 
 // known limitation of #[derive(Copy, Clone)]
 // traits need to be implemented manually
-impl<T> Copy for Handle<T> {}
-impl<T> Clone for Handle<T> {
-    fn clone(&self) -> Handle<T> {
+impl<T> Copy for Ref<T> {}
+impl<T> Clone for Ref<T> {
+    fn clone(&self) -> Ref<T> {
         *self
     }
 }
 
-impl<T> Deref for Handle<T> {
+impl<T> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -343,15 +344,15 @@ impl<T> Deref for Handle<T> {
     }
 }
 
-impl<T> DerefMut for Handle<T> {
+impl<T> DerefMut for Ref<T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { &mut *(self.ptr as *mut T) }
     }
 }
 
-impl<T> Into<Handle<T>> for usize {
-    fn into(self) -> Handle<T> {
-        Handle {
+impl<T> Into<Ref<T>> for usize {
+    fn into(self) -> Ref<T> {
+        Ref {
             ptr: self as *const T,
         }
     }
@@ -410,7 +411,7 @@ impl Str {
     }
 
     /// allocates string from buffer in permanent space
-    pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(vm, buf.len());
         handle.length = buf.len();
 
@@ -425,7 +426,7 @@ impl Str {
     }
 
     /// allocates string from buffer in heap
-    pub fn from_buffer(vm: &VM, buf: &[u8]) -> Handle<Str> {
+    pub fn from_buffer(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_heap(vm, buf.len());
         handle.length = buf.len();
 
@@ -439,11 +440,11 @@ impl Str {
         handle
     }
 
-    pub fn from_str(vm: &VM, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
+    pub fn from_str(vm: &VM, val: Rooted<Str>, offset: usize, len: usize) -> Ref<Str> {
         let total_len = val.len();
 
         if offset > total_len {
-            return Handle::null();
+            return Ref::null();
         }
 
         let len = std::cmp::min(total_len - offset, len);
@@ -467,7 +468,7 @@ impl Str {
 
             handle
         } else {
-            Handle::null()
+            Ref::null()
         }
     }
 
@@ -490,7 +491,7 @@ impl Str {
     }
 
     // duplicate string into a new object
-    pub fn dup(&self, vm: &VM) -> Handle<Str> {
+    pub fn dup(&self, vm: &VM) -> Ref<Str> {
         let len = self.len();
         let mut handle = str_alloc_heap(vm, len);
 
@@ -504,15 +505,15 @@ impl Str {
     }
 }
 
-fn str_alloc_heap(vm: &VM, len: usize) -> Handle<Str> {
+fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
     str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false).to_ptr())
 }
 
-fn str_alloc_perm(vm: &VM, len: usize) -> Handle<Str> {
+fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
     str_alloc(vm, len, |vm, size| vm.gc.alloc_perm(size))
 }
 
-fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Handle<Str>
+fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Ref<Str>
 where
     F: FnOnce(&VM, usize) -> *const u8,
 {
@@ -527,7 +528,7 @@ where
     let cls = vm.class_defs.idx(clsid);
     let cls = cls.read();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-    let mut handle: Handle<Str> = ptr.into();
+    let mut handle: Ref<Str> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
@@ -565,7 +566,7 @@ impl ArrayElement for f64 {
     const REF: bool = false;
 }
 
-impl ArrayElement for Handle<Str> {
+impl ArrayElement for Ref<Str> {
     const REF: bool = true;
 }
 
@@ -617,7 +618,7 @@ where
             + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
+    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassDefId) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
@@ -626,7 +627,7 @@ where
         let cls = vm.class_defs.idx(clsid);
         let cls = cls.read();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
-        let mut handle: Handle<Array<T>> = ptr.into();
+        let mut handle: Ref<Array<T>> = ptr.into();
         handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
         handle.length = len;
 
@@ -655,9 +656,9 @@ pub type IntArray = Array<i32>;
 pub type LongArray = Array<i64>;
 pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
-pub type StrArray = Array<Handle<Str>>;
+pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
+pub fn alloc(vm: &VM, clsid: ClassDefId) -> Ref<Obj> {
     let cls_def = vm.class_defs.idx(clsid);
     let cls_def = cls_def.read();
 
@@ -670,7 +671,7 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
 
     let ptr = vm.gc.alloc(vm, size, false).to_usize();
     let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
-    let mut handle: Handle<Obj> = ptr.into();
+    let mut handle: Ref<Obj> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
@@ -678,14 +679,14 @@ pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
 
 pub struct Exception {
     pub header: Header,
-    pub msg: Handle<Str>,
-    pub backtrace: Handle<IntArray>,
-    pub elements: Handle<Obj>,
+    pub msg: Ref<Str>,
+    pub backtrace: Ref<IntArray>,
+    pub elements: Ref<Obj>,
 }
 
 pub struct StackTraceElement {
     pub header: Header,
-    pub name: Handle<Str>,
+    pub name: Ref<Str>,
     pub line: i32,
 }
 

@@ -1,5 +1,5 @@
 use execstate::ExecState;
-use object::{Handle, Obj};
+use object::{Obj, Ref};
 use os::signal::Trap;
 
 pub use self::param::*;
@@ -17,8 +17,8 @@ pub fn flush_icache(_: *const u8, _: usize) {
     }
 }
 
-pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
-    let obj: Handle<Obj> = es.regs[REG_RESULT.int() as usize].into();
+pub fn get_exception_object(es: &ExecState) -> Ref<Obj> {
+    let obj: Ref<Obj> = es.regs[REG_RESULT.int() as usize].into();
 
     obj
 }

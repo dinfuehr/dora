@@ -1,5 +1,3 @@
-use std::cell::Cell;
-
 use class::ClassId;
 use ctxt::{FctKind, Intrinsic, SemContext, TraitId};
 use exception;

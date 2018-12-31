@@ -5,7 +5,7 @@ use baseline::map::CodeDescriptor;
 use cpu::fp_from_execstate;
 use ctxt::{get_vm, VM};
 use execstate::ExecState;
-use object::{alloc, Array, Exception, Handle, IntArray, Obj, StackTraceElement, Str};
+use object::{alloc, Array, Exception, IntArray, Obj, Ref, StackTraceElement, Str};
 use os::signal::Trap;
 use stdlib;
 
@@ -173,7 +173,7 @@ pub struct ThrowResume {
     fp: usize,
 }
 
-pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
+pub extern "C" fn throw(exception: Ref<Obj>, resume: &mut ThrowResume) {
     let vm = get_vm();
 
     let dtn: *const DoraToNativeInfo = *vm.dtn.lock();
@@ -208,7 +208,7 @@ pub extern "C" fn throw(exception: Handle<Obj>, resume: &mut ThrowResume) {
 
 fn find_handler(
     vm: &VM,
-    exception: Handle<Obj>,
+    exception: Ref<Obj>,
     pc: usize,
     fp: usize,
     resume: &mut ThrowResume,
@@ -275,12 +275,12 @@ fn find_handler(
     }
 }
 
-pub extern "C" fn retrieve_stack_trace(obj: Handle<Exception>) {
+pub extern "C" fn retrieve_stack_trace(obj: Ref<Exception>) {
     let vm = get_vm();
     set_exception_backtrace(vm, obj, true);
 }
 
-pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<StackTraceElement> {
+pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTraceElement> {
     let vm = get_vm();
     let obj = vm.handles.root(obj);
     let array = obj.backtrace;
@@ -291,7 +291,7 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     let fct_id = array.get_at(ind + 1);
     let cls_def_id = vm.vips.stack_trace_element(vm);
 
-    let ste: Handle<StackTraceElement> = alloc(vm, cls_def_id).cast();
+    let ste: Ref<StackTraceElement> = alloc(vm, cls_def_id).cast();
     let mut ste = vm.handles.root(ste);
     ste.line = lineno;
 
@@ -305,9 +305,9 @@ pub extern "C" fn stack_element(obj: Handle<Exception>, ind: i32) -> Handle<Stac
     ste.direct()
 }
 
-pub fn alloc_exception(vm: &VM, msg: Handle<Str>) -> Handle<Exception> {
+pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Exception> {
     let cls_id = vm.vips.exception(vm);
-    let obj: Handle<Exception> = alloc(vm, cls_id).cast();
+    let obj: Ref<Exception> = alloc(vm, cls_id).cast();
     let mut obj = vm.handles.root(obj);
 
     obj.msg = msg;
@@ -316,7 +316,7 @@ pub fn alloc_exception(vm: &VM, msg: Handle<Str>) -> Handle<Exception> {
     obj.direct()
 }
 
-fn set_exception_backtrace(vm: &VM, obj: Handle<Exception>, via_retrieve: bool) {
+fn set_exception_backtrace(vm: &VM, obj: Ref<Exception>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut obj = vm.handles.root(obj);
 
@@ -324,7 +324,7 @@ fn set_exception_backtrace(vm: &VM, obj: Handle<Exception>, via_retrieve: bool) 
     let len = stacktrace.len() - skip;
 
     let cls_id = vm.vips.int_array(vm);
-    let array: Handle<IntArray> = Array::alloc(vm, len * 2, 0, cls_id);
+    let array: Ref<IntArray> = Array::alloc(vm, len * 2, 0, cls_id);
     let mut array = vm.handles.root(array);
     let mut i = 0;
 

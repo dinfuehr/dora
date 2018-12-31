@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
 
-use object::{Handle, Obj};
+use object::{Obj, Ref};
 
 pub const HANDLE_SIZE: usize = 256;
 
@@ -28,7 +28,7 @@ impl HandleMemory {
         }
     }
 
-    pub fn root<T>(&self, obj: Handle<T>) -> Rooted<T> {
+    pub fn root<T>(&self, obj: Ref<T>) -> Rooted<T> {
         if self.free.get() >= HANDLE_SIZE {
             self.push_buffer();
             self.free.set(0);
@@ -43,7 +43,7 @@ impl HandleMemory {
 
         *elem = obj.cast::<Obj>();
 
-        Rooted(elem as *mut Handle<Obj> as *mut Handle<T>)
+        Rooted(elem as *mut Ref<Obj> as *mut Ref<T>)
     }
 
     fn push_buffer(&self) {
@@ -81,13 +81,13 @@ impl HandleMemory {
 }
 
 struct HandleBuffer {
-    elements: [Handle<Obj>; HANDLE_SIZE],
+    elements: [Ref<Obj>; HANDLE_SIZE],
 }
 
 impl HandleBuffer {
     fn new() -> HandleBuffer {
         HandleBuffer {
-            elements: [Handle::null(); HANDLE_SIZE],
+            elements: [Ref::null(); HANDLE_SIZE],
         }
     }
 }
@@ -97,19 +97,19 @@ struct BorderData {
     element: usize,
 }
 
-pub struct Rooted<T>(*mut Handle<T>);
+pub struct Rooted<T>(*mut Ref<T>);
 
 impl<T> Rooted<T> {
-    pub fn direct(self) -> Handle<T> {
+    pub fn direct(self) -> Ref<T> {
         unsafe { *self.0 }
     }
 
-    pub fn raw(self) -> *mut Handle<T> {
+    pub fn raw(self) -> *mut Ref<T> {
         self.0
     }
 
     pub fn cast<R>(self) -> Rooted<R> {
-        Rooted(self.0 as *mut Handle<R>)
+        Rooted(self.0 as *mut Ref<R>)
     }
 }
 
@@ -155,7 +155,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
 
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
-                return Some(Rooted(&mut buffer.elements[idx] as *mut Handle<Obj>));
+                return Some(Rooted(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 self.buffer_idx += 1;
                 self.element_idx = 0;
@@ -169,7 +169,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
 
                 let mut buffers = self.mem.buffers.borrow_mut();
                 let buffer = &mut buffers[self.buffer_idx];
-                return Some(Rooted(&mut buffer.elements[idx] as *mut Handle<Obj>));
+                return Some(Rooted(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 return None;
             }

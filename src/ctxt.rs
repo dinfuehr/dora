@@ -26,7 +26,7 @@ use dora_parser::lexer::position::Position;
 use exception::DoraToNativeInfo;
 use gc::{Address, Gc};
 use handle::HandleMemory;
-use object::{Handle, Testing};
+use object::{Ref, Testing};
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use stdlib;
@@ -184,10 +184,10 @@ impl<'ast> SemContext<'ast> {
         fct(ptr)
     }
 
-    pub fn run_test(&self, fct_id: FctId, testing: Handle<Testing>) {
+    pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
         let ptr = self.ensure_compiled(fct_id);
         let dora_entry_thunk = self.dora_entry_thunk();
-        let fct: extern "C" fn(Address, Handle<Testing>) -> i32 =
+        let fct: extern "C" fn(Address, Ref<Testing>) -> i32 =
             unsafe { mem::transmute(dora_entry_thunk) };
         fct(ptr, testing);
     }
