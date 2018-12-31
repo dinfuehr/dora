@@ -1,8 +1,9 @@
 use ctxt::FctId;
+use gc::Address;
 
 pub struct JitOptFct {
     pub fct_id: FctId,
-    pub fct_start: *const u8,
+    pub fct_start: Address,
 }
 
 impl JitOptFct {
@@ -10,7 +11,7 @@ impl JitOptFct {
         self.fct_id
     }
 
-    pub fn fct_ptr(&self) -> *const u8 {
+    pub fn fct_ptr(&self) -> Address {
         self.fct_start
     }
 }

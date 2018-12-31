@@ -25,6 +25,7 @@ use cpu::{Mem, FREG_PARAMS, FREG_RESULT, REG_PARAMS, REG_RESULT};
 use ctxt::VM;
 use ctxt::{CallSite, Fct, FctId, FctParent, FctSrc, VarId};
 use driver::cmd::AsmSyntax;
+use gc::Address;
 use masm::*;
 use os;
 use os::signal::Trap;
@@ -37,7 +38,7 @@ pub fn generate<'ast>(
     id: FctId,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
-) -> *const u8 {
+) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     let src = fct.src();
@@ -52,7 +53,7 @@ pub fn generate_fct<'ast>(
     src: &mut FctSrc,
     cls_type_params: &TypeParams,
     fct_type_params: &TypeParams,
-) -> *const u8 {
+) -> Address {
     debug_assert!(cls_type_params
         .iter()
         .all(|ty| !ty.contains_type_param(vm),));
@@ -163,7 +164,8 @@ pub fn dump_asm<'ast>(
 ) {
     use capstone::*;
 
-    let buf: &[u8] = unsafe { slice::from_raw_parts(jit_fct.fct_ptr(), jit_fct.fct_len()) };
+    let buf: &[u8] =
+        unsafe { slice::from_raw_parts(jit_fct.fct_ptr().to_ptr(), jit_fct.fct_len()) };
 
     let asm_syntax = match asm_syntax {
         AsmSyntax::Intel => 1,
@@ -189,8 +191,8 @@ pub fn dump_asm<'ast>(
         Box::new(io::stdout())
     };
 
-    let start_addr = jit_fct.fct_ptr() as u64;
-    let end_addr = jit_fct.fct_end() as u64;
+    let start_addr = jit_fct.fct_ptr().to_usize() as u64;
+    let end_addr = jit_fct.fct_end().to_usize() as u64;
 
     let instrs = engine
         .disasm(buf, start_addr, jit_fct.fct_len())

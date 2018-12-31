@@ -8,6 +8,7 @@ use cpu::flush_icache;
 use ctxt::VM;
 use ctxt::{FctId, FctSrc, GlobalId, VarId};
 use dseg::DSeg;
+use gc::Address;
 use object::{Ref, Str};
 use opt::fct::JitOptFct;
 use utils::GrowableVec;
@@ -50,7 +51,7 @@ impl JitFct {
         }
     }
 
-    pub fn fct_ptr(&self) -> *const u8 {
+    pub fn fct_ptr(&self) -> Address {
         match self {
             &JitFct::Base(ref base) => base.fct_ptr(),
             &JitFct::Opt(ref opt) => opt.fct_ptr(),
@@ -77,14 +78,14 @@ pub enum JitDescriptor {
 }
 
 pub struct JitBaselineFct {
-    code_start: *const u8,
-    code_end: *const u8,
+    code_start: Address,
+    code_end: Address,
 
     pub desc: JitDescriptor,
     pub throws: bool,
 
     // pointer to beginning of function
-    pub fct_start: *const u8,
+    pub fct_start: Address,
 
     // machine code length in bytes
     fct_len: usize,
@@ -114,34 +115,31 @@ impl JitBaselineFct {
         mut exception_handlers: Vec<ExHandler>,
     ) -> JitBaselineFct {
         let size = dseg.size() as usize + buffer.len();
-        let ptr = vm.gc.alloc_code(size);
+        let ptr = Address::from_ptr(vm.gc.alloc_code(size));
 
         if ptr.is_null() {
             panic!("out of memory: not enough executable memory left!");
         }
 
-        dseg.finish(ptr);
+        dseg.finish(ptr.to_ptr());
 
-        let fct_start;
+        let fct_start = ptr.offset(dseg.size() as usize);
 
         unsafe {
-            fct_start = ptr.offset(dseg.size() as isize);
-            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start as *mut u8, buffer.len());
+            ptr::copy_nonoverlapping(buffer.as_ptr(), fct_start.to_mut_ptr(), buffer.len());
         }
 
-        flush_icache(ptr, size);
+        flush_icache(ptr.to_ptr(), size);
 
         for handler in &mut exception_handlers {
-            let fct_start = fct_start as usize;
-
-            handler.try_start = fct_start + handler.try_start;
-            handler.try_end = fct_start + handler.try_end;
-            handler.catch = fct_start + handler.catch;
+            handler.try_start = fct_start.offset(handler.try_start).to_usize();
+            handler.try_end = fct_start.offset(handler.try_end).to_usize();
+            handler.catch = fct_start.offset(handler.catch).to_usize();
         }
 
         JitBaselineFct {
             code_start: ptr,
-            code_end: unsafe { ptr.offset(size as isize) },
+            code_end: ptr.offset(size as usize),
             bailouts: bailouts,
             nil_checks: nil_checks,
             gcpoints: gcpoints,
@@ -168,11 +166,11 @@ impl JitBaselineFct {
         self.nil_checks.contains(&offset)
     }
 
-    pub fn ptr_start(&self) -> *const u8 {
+    pub fn ptr_start(&self) -> Address {
         self.code_start
     }
 
-    pub fn ptr_end(&self) -> *const u8 {
+    pub fn ptr_end(&self) -> Address {
         self.code_end
     }
 
@@ -184,12 +182,12 @@ impl JitBaselineFct {
         }
     }
 
-    pub fn fct_ptr(&self) -> *const u8 {
+    pub fn fct_ptr(&self) -> Address {
         self.fct_start
     }
 
-    pub fn fct_end(&self) -> *const u8 {
-        (self.fct_start as usize + self.fct_len) as *const u8
+    pub fn fct_end(&self) -> Address {
+        self.fct_start.offset(self.fct_len())
     }
 
     pub fn fct_len(&self) -> usize {

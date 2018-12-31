@@ -187,10 +187,7 @@ fn create_specialized_class(
 ) -> ClassDefId {
     let id: ClassDefId = ctxt.class_defs.len().into();
 
-    let old = cls
-        .specializations
-        .write()
-        .insert(type_params.clone(), id);
+    let old = cls.specializations.write().insert(type_params.clone(), id);
     assert!(old.is_none());
 
     ctxt.class_defs.push(RwLock::new(ClassDef {

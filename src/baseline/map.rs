@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use baseline::fct::JitFctId;
 use ctxt::VM;
+use gc::Address;
 
 pub struct CodeMap {
     tree: BTreeMap<CodeSpan, CodeDescriptor>,
@@ -47,13 +48,13 @@ impl CodeMap {
         println!("}}");
     }
 
-    pub fn insert(&mut self, start: *const u8, end: *const u8, data: CodeDescriptor) {
+    pub fn insert(&mut self, start: Address, end: Address, data: CodeDescriptor) {
         let span = CodeSpan::new(start, end);
         assert!(self.tree.insert(span, data).is_none());
     }
 
-    pub fn get(&self, ptr: *const u8) -> Option<CodeDescriptor> {
-        let span = CodeSpan::new(ptr, unsafe { ptr.offset(1) });
+    pub fn get(&self, ptr: Address) -> Option<CodeDescriptor> {
+        let span = CodeSpan::new(ptr, ptr.offset(1));
 
         self.tree.get(&span).map(|el| *el)
     }
@@ -72,8 +73,8 @@ pub enum CodeDescriptor {
 
 #[derive(Copy, Clone, Debug)]
 struct CodeSpan {
-    start: *const u8,
-    end: *const u8,
+    start: Address,
+    end: Address,
 }
 
 impl CodeSpan {
@@ -111,7 +112,7 @@ impl Ord for CodeSpan {
 }
 
 impl CodeSpan {
-    fn new(start: *const u8, end: *const u8) -> CodeSpan {
+    fn new(start: Address, end: Address) -> CodeSpan {
         assert!(start < end);
 
         CodeSpan {
@@ -144,12 +145,7 @@ fn test_intersect() {
 
 #[cfg(test)]
 fn span(v1: usize, v2: usize) -> CodeSpan {
-    CodeSpan::new(ptr(v1), ptr(v2))
-}
-
-#[cfg(test)]
-pub fn ptr(val: usize) -> *const u8 {
-    val as *const u8
+    CodeSpan::new(v1.into(), v2.into())
 }
 
 #[cfg(test)]
@@ -160,15 +156,15 @@ mod tests {
     fn test_insert() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), CodeDescriptor::DoraFct(1.into()));
-        map.insert(ptr(7), ptr(9), CodeDescriptor::DoraFct(2.into()));
+        map.insert(5.into(), 7.into(), CodeDescriptor::DoraFct(1.into()));
+        map.insert(7.into(), 9.into(), CodeDescriptor::DoraFct(2.into()));
 
-        assert_eq!(None, map.get(ptr(4)));
-        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(ptr(5)));
-        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(ptr(6)));
-        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(ptr(7)));
-        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(ptr(8)));
-        assert_eq!(None, map.get(ptr(9)));
+        assert_eq!(None, map.get(4.into()));
+        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(5.into()));
+        assert_eq!(Some(CodeDescriptor::DoraFct(1.into())), map.get(6.into()));
+        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(7.into()));
+        assert_eq!(Some(CodeDescriptor::DoraFct(2.into())), map.get(8.into()));
+        assert_eq!(None, map.get(9.into()));
     }
 
     #[test]
@@ -176,7 +172,7 @@ mod tests {
     fn test_insert_fails() {
         let mut map = CodeMap::new();
 
-        map.insert(ptr(5), ptr(7), CodeDescriptor::DoraFct(1.into()));
-        map.insert(ptr(6), ptr(7), CodeDescriptor::DoraFct(2.into()));
+        map.insert(5.into(), 7.into(), CodeDescriptor::DoraFct(1.into()));
+        map.insert(6.into(), 7.into(), CodeDescriptor::DoraFct(2.into()));
     }
 }

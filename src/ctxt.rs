@@ -195,7 +195,7 @@ impl<'ast> SemContext<'ast> {
         let type_params = TypeParams::empty();
 
         self.use_dtn(&mut dtn, || {
-            Address::from_ptr(baseline::generate(self, fct_id, &type_params, &type_params))
+            baseline::generate(self, fct_id, &type_params, &type_params)
         })
     }
 
@@ -235,7 +235,7 @@ impl<'ast> SemContext<'ast> {
         *self.dtn.lock() = last_dtn;
     }
 
-    pub fn insert_code_map(&self, start: *const u8, end: *const u8, desc: CodeDescriptor) {
+    pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeDescriptor) {
         let mut code_map = self.code_map.lock();
         code_map.insert(start, end, desc);
     }
@@ -327,7 +327,7 @@ impl<'ast> SemContext<'ast> {
             let jit_fct_id = dora_native::generate(self, ifct, false);
             let jit_fct = self.jit_fcts.idx(jit_fct_id);
             let fct_ptr = jit_fct.fct_ptr();
-            *trap_thunk = Address::from_ptr(fct_ptr);
+            *trap_thunk = fct_ptr;
         }
 
         *trap_thunk

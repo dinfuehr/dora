@@ -31,7 +31,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     };
 
     let jit_fct = ngen.generate();
-    let addr = Address::from_ptr(jit_fct.fct_ptr());
+    let addr = jit_fct.fct_ptr();
     vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
@@ -179,9 +179,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
     let bailout = {
         let data = {
             let code_map = vm.code_map.lock();
-            code_map
-                .get(ra as *const u8)
-                .expect("return address not found")
+            code_map.get(ra.into()).expect("return address not found")
         };
 
         let fct_id = match data {
@@ -191,7 +189,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 
         let jit_fct = vm.jit_fcts.idx(fct_id);
 
-        let offset = ra - jit_fct.fct_ptr() as usize;
+        let offset = ra - jit_fct.fct_ptr().to_usize();
         let jit_fct = jit_fct.to_base().expect("baseline expected");
         jit_fct
             .bailouts
@@ -231,7 +229,7 @@ fn patch_vtable_call(
 
         if Some(vtable_index) == fct.vtable_index {
             let empty = TypeParams::empty();
-            fct_ptr = Address::from_ptr(baseline::generate(vm, fct_id, &empty, fct_tps));
+            fct_ptr = baseline::generate(vm, fct_id, &empty, fct_tps);
             break;
         }
     }
@@ -255,8 +253,8 @@ fn patch_fct_call(
 
     // update function pointer in data segment
     unsafe {
-        *fct_addr = fct_ptr as usize;
+        *fct_addr = fct_ptr.to_usize();
     }
 
-    Address::from_ptr(fct_ptr)
+    fct_ptr
 }

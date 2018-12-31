@@ -120,13 +120,13 @@ fn frames_from_pc(stacktrace: &mut Stacktrace, vm: &VM, pc: usize, mut fp: usize
 
 fn determine_stack_entry(stacktrace: &mut Stacktrace, vm: &VM, pc: usize) -> bool {
     let code_map = vm.code_map.lock();
-    let data = code_map.get(pc as *const u8);
+    let data = code_map.get(pc.into());
 
     match data {
         Some(CodeDescriptor::DoraFct(fct_id)) => {
             let jit_fct = vm.jit_fcts.idx(fct_id);
 
-            let offset = pc - (jit_fct.fct_ptr() as usize);
+            let offset = pc - jit_fct.fct_ptr().to_usize();
             let jit_fct = jit_fct.to_base().expect("baseline expected");
             let lineno = jit_fct.lineno_for_offset(offset as i32);
 
@@ -215,7 +215,7 @@ fn find_handler(
 ) -> HandlerFound {
     let data = {
         let code_map = vm.code_map.lock();
-        code_map.get(pc as *const u8)
+        code_map.get(pc.into())
     };
 
     match data {

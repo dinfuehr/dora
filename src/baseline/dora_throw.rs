@@ -25,7 +25,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
         jit_fct.ptr_end(),
         CodeDescriptor::ThrowThunk,
     );
-    let addr = Address::from_ptr(jit_fct.fct_ptr());
+    let addr = jit_fct.fct_ptr();
 
     vm.jit_fcts.push(JitFct::Base(jit_fct));
 

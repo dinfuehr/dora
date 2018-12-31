@@ -426,7 +426,7 @@ where
         let ty = internal_fct.return_type;
         let ptr = ensure_native_stub(self.vm, FctId(0), internal_fct);
 
-        self.masm.raw_call(ptr);
+        self.masm.raw_call(ptr.to_ptr());
         self.call_epilog(pos, ty, dest, gcpoint);
     }
 

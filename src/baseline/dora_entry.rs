@@ -15,7 +15,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     };
 
     let jit_fct = ngen.generate();
-    let ptr = Address::from_ptr(jit_fct.fct_ptr());
+    let ptr = jit_fct.fct_ptr();
 
     vm.insert_code_map(
         jit_fct.ptr_start(),

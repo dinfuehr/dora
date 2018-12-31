@@ -14,8 +14,8 @@ pub fn register_with_perf(jit_fct: &JitBaselineFct, vm: &VM, name: Name) {
     let mut options = OpenOptions::new();
     let mut file = options.create(true).append(true).open(&fname).unwrap();
 
-    let code_start = jit_fct.ptr_start() as usize;
-    let code_end = jit_fct.ptr_end() as usize;
+    let code_start = jit_fct.ptr_start().to_usize();
+    let code_end = jit_fct.ptr_end().to_usize();
     let name = vm.interner.str(name);
 
     let line = format!(

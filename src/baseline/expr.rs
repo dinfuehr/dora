@@ -17,6 +17,7 @@ use dora_parser::ast::*;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntSuffix};
 use driver::cmd::AsmSyntax;
+use gc::Address;
 use mem;
 use object::{Header, Str};
 use os::signal::Trap;
@@ -875,7 +876,7 @@ where
         fid: FctId,
         cls_type_params: TypeParams,
         fct_type_params: TypeParams,
-    ) -> *const u8 {
+    ) -> Address {
         if self.fct.id == fid {
             // we want to recursively invoke the function we are compiling right now
             ensure_jit_or_stub_ptr(self.src, self.vm, cls_type_params, fct_type_params)
@@ -1642,7 +1643,7 @@ where
             let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
             self.asm.direct_call(
                 fid,
-                ptr,
+                ptr.to_ptr(),
                 cls_type_params,
                 fct_type_params,
                 pos,
@@ -1662,7 +1663,7 @@ where
             let gcpoint = codegen::create_gcpoint(self.scopes, &self.temps);
             self.asm.direct_call(
                 fid,
-                ptr,
+                ptr.to_ptr(),
                 cls_type_params,
                 fct_type_params,
                 pos,
@@ -1902,7 +1903,7 @@ fn check_for_nil(ty: BuiltinType) -> bool {
     }
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> *const u8 {
+pub fn ensure_native_stub(vm: &VM, fct_id: FctId, internal_fct: InternalFct) -> Address {
     let mut native_thunks = vm.native_thunks.lock();
     let ptr = internal_fct.ptr;
 
@@ -1940,7 +1941,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
     vm: &VM,
     cls_type_params: TypeParams,
     fct_type_params: TypeParams,
-) -> *const u8 {
+) -> Address {
     let specials = src.specializations.read();
     let key = (cls_type_params, fct_type_params);
 
@@ -1949,7 +1950,7 @@ fn ensure_jit_or_stub_ptr<'ast>(
         return jit_fct.fct_ptr();
     }
 
-    vm.compiler_thunk().to_ptr()
+    vm.compiler_thunk()
 }
 
 fn to_cond_code(cmp: CmpOp) -> CondCode {
