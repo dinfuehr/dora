@@ -3,39 +3,40 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Deref;
-use std::rc::Rc;
+use std::sync::Arc;
+use parking_lot::Mutex;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Name(pub usize);
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct RcStr(Rc<String>);
+pub struct ArcStr(Arc<String>);
 
-impl fmt::Display for RcStr {
+impl fmt::Display for ArcStr {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", &*self.0)
     }
 }
 
-impl fmt::Debug for RcStr {
+impl fmt::Debug for ArcStr {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", &*self.0)
     }
 }
 
-impl RcStr {
-    fn new(value: String) -> RcStr {
-        RcStr(Rc::new(value))
+impl ArcStr {
+    fn new(value: String) -> ArcStr {
+        ArcStr(Arc::new(value))
     }
 }
 
-impl Borrow<str> for RcStr {
+impl Borrow<str> for ArcStr {
     fn borrow(&self) -> &str {
         &self.0[..]
     }
 }
 
-impl Deref for RcStr {
+impl Deref for ArcStr {
     type Target = String;
 
     fn deref<'a>(&'a self) -> &'a String {
@@ -44,36 +45,43 @@ impl Deref for RcStr {
 }
 
 pub struct Interner {
-    map: RefCell<HashMap<RcStr, Name>>,
-    vec: RefCell<Vec<RcStr>>,
+    data: Mutex<Internal>,
+}
+
+struct Internal {
+    map: HashMap<ArcStr, Name>,
+    vec: Vec<ArcStr>,
 }
 
 impl Interner {
     pub fn new() -> Interner {
         Interner {
-            map: RefCell::new(HashMap::new()),
-            vec: RefCell::new(Vec::new()),
+            data: Mutex::new(Internal {
+                map: HashMap::new(),
+                vec: Vec::new(),
+            }),
         }
     }
 
     pub fn intern(&self, name: &str) -> Name {
-        if let Some(&val) = self.map.borrow().get(name) {
+        let mut data = self.data.lock();
+
+        if let Some(&val) = data.map.get(name) {
             return val;
         }
 
-        let key = RcStr::new(String::from(name));
-        let value = Name(self.vec.borrow().len());
+        let key = ArcStr::new(String::from(name));
+        let value = Name(data.vec.len());
 
-        self.vec.borrow_mut().push(key.clone());
-        self.map.borrow_mut().insert(key, value);
+        data.vec.push(key.clone());
+        data.map.insert(key, value);
 
         value
     }
 
-    pub fn str(&self, name: Name) -> RcStr {
-        let elem = &self.vec.borrow()[name.0];
-
-        elem.clone()
+    pub fn str(&self, name: Name) -> ArcStr {
+        let data = self.data.lock();
+        data.vec[name.0].clone()
     }
 }
 

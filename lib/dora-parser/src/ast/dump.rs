@@ -2,7 +2,7 @@ use ast::*;
 use ast::Elem::*;
 use ast::Expr::*;
 use ast::Stmt::*;
-use interner::{Interner, Name, RcStr};
+use interner::{Interner, Name, ArcStr};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
@@ -574,7 +574,7 @@ impl<'a> AstDumper<'a> {
         self.indent = old;
     }
 
-    fn str(&self, name: Name) -> RcStr {
+    fn str(&self, name: Name) -> ArcStr {
         self.interner.str(name)
     }
 }

@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 
 [dependencies]
+parking_lot = "0.6"

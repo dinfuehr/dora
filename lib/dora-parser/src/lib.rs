@@ -1,3 +1,5 @@
+extern crate parking_lot;
+
 pub mod ast;
 mod builder;
 pub mod error;
