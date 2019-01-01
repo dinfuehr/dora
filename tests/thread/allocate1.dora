@@ -1,6 +1,5 @@
 //= output "one\ntwo\n"
-//= vm-args "--gc-young-ratio=2 --max-heap-size=512M"
-//= ignore
+//= vm-args "--gc-young-ratio=2 --max-heap-size=128M"
 
 class MyThread() : Thread {
     override fun run() {
