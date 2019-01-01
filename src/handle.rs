@@ -1,5 +1,6 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use object::{Obj, Ref};
 use threads::THREAD;
@@ -15,7 +16,7 @@ pub struct HandleMemory {
     borders: RefCell<Vec<BorderData>>,
 
     // index of next free position in buffer
-    free: Cell<usize>,
+    free: AtomicUsize,
 }
 
 impl HandleMemory {
@@ -25,22 +26,22 @@ impl HandleMemory {
         HandleMemory {
             buffers: RefCell::new(vec![buffer]),
             borders: RefCell::new(Vec::new()),
-            free: Cell::new(0),
+            free: AtomicUsize::new(0),
         }
     }
 
     pub fn root<T>(&self, obj: Ref<T>) -> Handle<T> {
-        if self.free.get() >= HANDLE_SIZE {
+        if self.free.load(Ordering::Relaxed) >= HANDLE_SIZE {
             self.push_buffer();
-            self.free.set(0);
+            self.free.store(0, Ordering::Relaxed);
         }
 
         let mut buffers = self.buffers.borrow_mut();
         let buffer = buffers.last_mut().unwrap();
 
-        let idx = self.free.get();
+        let idx = self.free.load(Ordering::Relaxed);
         let elem = &mut buffer.elements[idx];
-        self.free.set(idx + 1);
+        self.free.store(idx + 1, Ordering::Relaxed);
 
         *elem = obj.cast::<Obj>();
 
@@ -53,7 +54,7 @@ impl HandleMemory {
 
     pub fn push_border(&self) {
         let buffer = self.buffers.borrow().len();
-        let element = self.free.get();
+        let element = self.free.load(Ordering::Relaxed);
 
         self.borders.borrow_mut().push(BorderData {
             buffer: buffer,
@@ -65,7 +66,7 @@ impl HandleMemory {
         let border = self.borders.borrow_mut().pop().expect("no border left");
 
         self.buffers.borrow_mut().truncate(border.buffer);
-        self.free.set(border.element);
+        self.free.store(border.element, Ordering::Relaxed);
     }
 
     pub fn iter(&self) -> HandleMemoryIter {
@@ -76,7 +77,7 @@ impl HandleMemory {
             buffer_idx: 0,
             element_idx: 0,
             full_buffer_len: if len == 0 { 0 } else { len - 1 },
-            last_buffer_len: self.free.get(),
+            last_buffer_len: self.free.load(Ordering::Relaxed),
         }
     }
 }
