@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
@@ -10,6 +10,10 @@ impl<T> GrowableVec<T> {
         GrowableVec {
             elements: Mutex::new(Vec::new()),
         }
+    }
+
+    pub fn lock(&self) -> MutexGuard<Vec<Arc<T>>> {
+        self.elements.lock()
     }
 
     pub fn push(&self, val: T) {

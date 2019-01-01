@@ -1,6 +1,7 @@
 use parking_lot::{Mutex, RwLock};
 use std::cmp::max;
 use std::ptr;
+use std::sync::Arc;
 
 use class::{self, ClassDef, ClassDefId, ClassId, ClassSize, FieldDef, TypeParams};
 use ctxt::{SemContext, StructData, StructDef, StructDefId, StructFieldDef, StructId};
@@ -90,20 +91,25 @@ fn create_specialized_struct(
     struc: &StructData,
     type_params: TypeParams,
 ) -> StructDefId {
-    let id: StructDefId = ctxt.struct_defs.len().into();
+    let id = {
+        let mut struct_defs = ctxt.struct_defs.lock();
+        let id: StructDefId = struct_defs.len().into();
 
-    let old = struc
-        .specializations
-        .write()
-        .insert(type_params.clone(), id);
-    assert!(old.is_none());
+        let old = struc
+            .specializations
+            .write()
+            .insert(type_params.clone(), id);
+        assert!(old.is_none());
 
-    ctxt.struct_defs.push(Mutex::new(StructDef {
-        size: 0,
-        align: 0,
-        fields: Vec::new(),
-        ref_fields: Vec::new(),
-    }));
+        struct_defs.push(Arc::new(Mutex::new(StructDef {
+            size: 0,
+            align: 0,
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+        })));
+
+        id
+    };
 
     let mut size = 0;
     let mut align = 0;
@@ -185,21 +191,26 @@ fn create_specialized_class(
     cls: &class::Class,
     type_params: TypeParams,
 ) -> ClassDefId {
-    let id: ClassDefId = ctxt.class_defs.len().into();
+    let id = {
+        let mut class_defs = ctxt.class_defs.lock();
+        let id: ClassDefId = class_defs.len().into();
 
-    let old = cls.specializations.write().insert(type_params.clone(), id);
-    assert!(old.is_none());
+        let old = cls.specializations.write().insert(type_params.clone(), id);
+        assert!(old.is_none());
 
-    ctxt.class_defs.push(RwLock::new(ClassDef {
-        id: id,
-        cls_id: cls.id,
-        type_params: type_params.clone(),
-        parent_id: None,
-        size: ClassSize::Fixed(0),
-        fields: Vec::new(),
-        ref_fields: Vec::new(),
-        vtable: None,
-    }));
+        class_defs.push(Arc::new(RwLock::new(ClassDef {
+            id: id,
+            cls_id: cls.id,
+            type_params: type_params.clone(),
+            parent_id: None,
+            size: ClassSize::Fixed(0),
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+            vtable: None,
+        })));
+
+        id
+    };
 
     let mut fields;
     let mut ref_fields;

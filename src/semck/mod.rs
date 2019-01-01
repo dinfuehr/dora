@@ -150,10 +150,11 @@ fn internalck<'ast>(ctxt: &SemContext<'ast>) {
 }
 
 fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
+    let globals = ctxt.globals.lock();
     let mut size = 0;
-    let mut offsets = Vec::with_capacity(ctxt.globals.len());
+    let mut offsets = Vec::with_capacity(globals.len());
 
-    for glob in ctxt.globals.iter() {
+    for glob in globals.iter() {
         let glob = glob.lock();
 
         let ty_size = glob.ty.size(ctxt);
@@ -165,7 +166,7 @@ fn init_global_addresses<'ast>(ctxt: &SemContext<'ast>) {
 
     let ptr = ctxt.gc.alloc_perm(size as usize);
 
-    for (ind, glob) in ctxt.globals.iter().enumerate() {
+    for (ind, glob) in globals.iter().enumerate() {
         let mut glob = glob.lock();
         let offset = offsets[ind];
 

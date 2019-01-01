@@ -1,5 +1,6 @@
 use parking_lot::{Mutex, RwLock};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use class::{self, ClassId};
 use ctxt;
@@ -66,20 +67,25 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_global(&mut self, g: &'ast Global) {
-        let id: GlobalId = (self.ctxt.globals.len() as u32).into();
-        let global = GlobalData {
-            id: id,
-            ast: g,
-            pos: g.pos,
-            name: g.name,
-            ty: BuiltinType::Unit,
-            reassignable: g.reassignable,
-            getter: None,
-            address_init: Address::null(),
-            address_value: Address::null(),
-        };
+        let id = {
+            let mut globals = self.ctxt.globals.lock();
+            let id: GlobalId = (globals.len() as u32).into();
+            let global = GlobalData {
+                id: id,
+                ast: g,
+                pos: g.pos,
+                name: g.name,
+                ty: BuiltinType::Unit,
+                reassignable: g.reassignable,
+                getter: None,
+                address_init: Address::null(),
+                address_value: Address::null(),
+            };
 
-        self.ctxt.globals.push(Mutex::new(global));
+            globals.push(Arc::new(Mutex::new(global)));
+
+            id
+        };
 
         let sym = SymGlobal(id);
         self.map_global_defs.insert(g.id, id);
@@ -104,17 +110,23 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_const(&mut self, c: &'ast Const) {
-        let id: ConstId = self.ctxt.consts.len().into();
-        let xconst = ConstData {
-            id: id,
-            pos: c.pos,
-            name: c.name,
-            ty: BuiltinType::Unit,
-            expr: &c.expr,
-            value: ConstValue::None,
+        let id = {
+            let mut consts = self.ctxt.consts.lock();
+            let id: ConstId = consts.len().into();
+            let xconst = ConstData {
+                id: id,
+                pos: c.pos,
+                name: c.name,
+                ty: BuiltinType::Unit,
+                expr: &c.expr,
+                value: ConstValue::None,
+            };
+
+            consts.push(Arc::new(Mutex::new(xconst)));
+
+            id
         };
 
-        self.ctxt.consts.push(Mutex::new(xconst));
         self.map_const_defs.insert(c.id, id);
 
         let sym = SymConst(id);
@@ -125,41 +137,48 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_class(&mut self, c: &'ast Class) {
-        let id: ClassId = self.ctxt.classes.len().into();
-        let mut cls = class::Class {
-            id: id,
-            name: c.name,
-            pos: c.pos,
-            ty: self.ctxt.cls(id),
-            parent_class: None,
-            has_open: c.has_open,
-            is_abstract: c.is_abstract,
-            internal: c.internal,
-            internal_resolved: false,
-            primary_ctor: c.primary_ctor,
+        let id = {
+            let mut classes = self.ctxt.classes.lock();
 
-            ctors: Vec::new(),
-            fields: Vec::new(),
-            methods: Vec::new(),
+            let id: ClassId = classes.len().into();
+            let mut cls = class::Class {
+                id: id,
+                name: c.name,
+                pos: c.pos,
+                ty: self.ctxt.cls(id),
+                parent_class: None,
+                has_open: c.has_open,
+                is_abstract: c.is_abstract,
+                internal: c.internal,
+                internal_resolved: false,
+                primary_ctor: c.primary_ctor,
 
-            traits: Vec::new(),
-            impls: Vec::new(),
+                ctors: Vec::new(),
+                fields: Vec::new(),
+                methods: Vec::new(),
 
-            type_params: Vec::new(),
-            specializations: RwLock::new(HashMap::new()),
-            vtable_len: 0,
+                traits: Vec::new(),
+                impls: Vec::new(),
 
-            is_array: false,
-            is_str: false,
+                type_params: Vec::new(),
+                specializations: RwLock::new(HashMap::new()),
+                vtable_len: 0,
+
+                is_array: false,
+                is_str: false,
+            };
+
+            if let Some(ref type_params) = c.type_params {
+                for param in type_params {
+                    cls.type_params.push(ctxt::TypeParam::new(param.name));
+                }
+            }
+
+            classes.push(Arc::new(RwLock::new(cls)));
+
+            id
         };
 
-        if let Some(ref type_params) = c.type_params {
-            for param in type_params {
-                cls.type_params.push(ctxt::TypeParam::new(param.name));
-            }
-        }
-
-        self.ctxt.classes.push(RwLock::new(cls));
         let sym = SymClass(id);
 
         self.map_cls_defs.insert(c.id, id);
@@ -170,16 +189,22 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
     }
 
     fn visit_struct(&mut self, s: &'ast Struct) {
-        let id: StructId = (self.ctxt.structs.len() as u32).into();
-        let struc = StructData {
-            id: id,
-            pos: s.pos,
-            name: s.name,
-            fields: Vec::new(),
-            specializations: RwLock::new(HashMap::new()),
+        let id = {
+            let mut structs = self.ctxt.structs.lock();
+            let id: StructId = (structs.len() as u32).into();
+            let struc = StructData {
+                id: id,
+                pos: s.pos,
+                name: s.name,
+                fields: Vec::new(),
+                specializations: RwLock::new(HashMap::new()),
+            };
+
+            structs.push(Arc::new(Mutex::new(struc)));
+
+            id
         };
 
-        self.ctxt.structs.push(Mutex::new(struc));
         let sym = SymStruct(id);
 
         self.map_struct_defs.insert(s.id, id);

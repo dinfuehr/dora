@@ -206,11 +206,12 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn add_fct(&mut self, mut fct: Fct<'ast>) -> FctId {
-        let fctid = FctId(self.fcts.len());
+        let mut fcts = self.fcts.lock();
+        let fctid = FctId(fcts.len());
 
         fct.id = fctid;
 
-        self.fcts.push(RwLock::new(fct));
+        fcts.push(Arc::new(RwLock::new(fct)));
 
         fctid
     }

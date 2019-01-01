@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::io::{self, BufWriter, Write};
 use std::slice;
+use std::sync::Arc;
 
 use capstone::{Engine, Error};
 
@@ -115,22 +116,22 @@ pub fn generate_fct<'ast>(
     }
 
     let fct_ptr = jit_fct.fct_ptr();
-    let ptr_start;
-    let ptr_end;
+    let ptr_start = jit_fct.ptr_start();
+    let ptr_end = jit_fct.ptr_end();
 
     let jit_fct_id = {
-        let mut specials = src.specializations.write();
-        let key = (cls_type_params.clone(), fct_type_params.clone());
-
-        ptr_start = jit_fct.ptr_start();
-        ptr_end = jit_fct.ptr_end();
-
-        let jit_fct_id = vm.jit_fcts.len().into();
-        vm.jit_fcts.push(JitFct::Base(jit_fct));
-        specials.insert(key, jit_fct_id);
+        let mut jit_fcts = vm.jit_fcts.lock();
+        let jit_fct_id = jit_fcts.len().into();
+        jit_fcts.push(Arc::new(JitFct::Base(jit_fct)));
 
         jit_fct_id
     };
+
+    {
+        let mut specials = src.specializations.write();
+        let key = (cls_type_params.clone(), fct_type_params.clone());
+        specials.insert(key, jit_fct_id);
+    }
 
     {
         let mut code_map = vm.code_map.lock();
