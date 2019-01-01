@@ -1,5 +1,4 @@
 //= output "one\ntwo\n"
-//= ignore
 
 class MyThread() : Thread {
     override fun run() {
