@@ -14,10 +14,12 @@ pub fn get_rootset(vm: &VM) -> Vec<Slot> {
 }
 
 fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, vm: &VM) {
-    for rooted in vm.handles.iter() {
-        let slot = Slot::at(Address::from_ptr(rooted.raw()));
-        rootset.push(slot);
-    }
+    vm.threads.each(|thread| {
+        for rooted in thread.handles.iter() {
+            let slot = Slot::at(Address::from_ptr(rooted.raw()));
+            rootset.push(slot);
+        }
+    })
 }
 
 fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
@@ -36,11 +38,11 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
     vm.threads.each(|thread| {
         let dtn = *thread.dtn.lock();
-        determine_rootset_from_thread(rootset, vm, dtn);
+        determine_rootset_from_stack_for_thread(rootset, vm, dtn);
     })
 }
 
-fn determine_rootset_from_thread(rootset: &mut Vec<Slot>, vm: &VM, dtn: Address) {
+fn determine_rootset_from_stack_for_thread(rootset: &mut Vec<Slot>, vm: &VM, dtn: Address) {
     let mut dtn = dtn.to_ptr::<DoraToNativeInfo>();
 
     while !dtn.is_null() {

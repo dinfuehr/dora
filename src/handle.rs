@@ -2,6 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
 
 use object::{Obj, Ref};
+use threads::THREAD;
 
 pub const HANDLE_SIZE: usize = 256;
 
@@ -78,6 +79,10 @@ impl HandleMemory {
             last_buffer_len: self.free.get(),
         }
     }
+}
+
+pub fn root<T>(obj: Ref<T>) -> Handle<T> {
+    THREAD.with(|thread| thread.borrow().handles.root(obj))
 }
 
 struct HandleBuffer {

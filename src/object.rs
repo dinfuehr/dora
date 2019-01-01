@@ -12,7 +12,7 @@ use class::{ClassDefId, ClassSize};
 use ctxt::VM;
 use gc::root::Slot;
 use gc::Address;
-use handle::Handle;
+use handle::{root, Handle};
 use mem;
 use vtable::VTable;
 
@@ -480,7 +480,7 @@ impl Str {
 
     pub fn concat(vm: &VM, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = vm.handles.root(str_alloc_heap(vm, len));
+        let mut handle = root(str_alloc_heap(vm, len));
 
         unsafe {
             handle.length = len;

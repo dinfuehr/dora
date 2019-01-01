@@ -13,6 +13,7 @@ use ctxt::exception_set;
 use ctxt::get_vm;
 use exception::{alloc_exception, stacktrace_from_last_dtn};
 use gc::GcReason;
+use handle::root;
 use object::{ByteArray, Obj, Ref, Str};
 use os::signal::Trap;
 use sym::Sym::SymFct;
@@ -104,7 +105,7 @@ pub extern "C" fn throw_native(val: bool) {
     if val {
         let vm = get_vm();
         let obj = alloc_exception(vm, Ref::null());
-        let obj = vm.handles.root(obj);
+        let obj = root(obj);
 
         exception_set(obj.direct().raw() as *const u8);
     }
@@ -154,8 +155,8 @@ pub extern "C" fn strcmp(lhs: Ref<Str>, rhs: Ref<Str>) -> i32 {
 
 pub extern "C" fn strcat(lhs: Ref<Str>, rhs: Ref<Str>) -> Ref<Str> {
     let vm = get_vm();
-    let lhs = vm.handles.root(lhs);
-    let rhs = vm.handles.root(rhs);
+    let lhs = root(lhs);
+    let rhs = root(rhs);
 
     Str::concat(vm, lhs, rhs).direct()
 }
@@ -169,7 +170,7 @@ pub extern "C" fn str_clone(val: Ref<Str>) -> Ref<Str> {
 pub extern "C" fn str_from_bytes(val: Ref<ByteArray>, offset: usize, len: usize) -> Ref<Str> {
     let vm = get_vm();
     let val: Ref<Str> = val.cast();
-    let val = vm.handles.root(val);
+    let val = root(val);
 
     Str::from_str(vm, val, offset, len)
 }

@@ -23,7 +23,6 @@ use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 use exception::DoraToNativeInfo;
 use gc::{Address, Gc};
-use handle::HandleMemory;
 use object::{Ref, Testing};
 use safepoint::PollingPage;
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
@@ -97,7 +96,6 @@ pub struct SemContext<'ast> {
     pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
     pub lambda_types: Mutex<LambdaTypes>,
-    pub handles: HandleMemory,
     pub compiler_thunk: Mutex<Address>,
     pub dora_entry: Mutex<Address>,
     pub trap_thunk: Mutex<Address>,
@@ -160,7 +158,6 @@ impl<'ast> SemContext<'ast> {
             polling_page: PollingPage::new(),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
-            handles: HandleMemory::new(),
             native_thunks: Mutex::new(NativeThunks::new()),
             compiler_thunk: Mutex::new(Address::null()),
             dora_entry: Mutex::new(Address::null()),

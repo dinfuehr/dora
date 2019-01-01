@@ -6,8 +6,8 @@ use dora_parser::lexer::position::Position;
 use baseline::fct::{JitBaselineFct, JitDescriptor, JitFct, JitFctId};
 use baseline::map::CodeDescriptor;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD};
+use ctxt::VM;
 use ctxt::{exception_get_and_clear, FctId};
-use ctxt::{get_vm, VM};
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
@@ -232,20 +232,16 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
         dtn.fp = fp as usize;
         dtn.pc = pc;
 
-        let vm = get_vm();
-
         THREAD.with(|thread| {
             thread.borrow().push_dtn(dtn);
+            thread.borrow().handles.push_border();
         });
-        vm.handles.push_border();
     }
 }
 
 pub fn finish_native_call() -> *const u8 {
-    let vm = get_vm();
-
-    vm.handles.pop_border();
     THREAD.with(|thread| {
+        thread.borrow().handles.pop_border();
         thread.borrow().pop_dtn();
     });
 

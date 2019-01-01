@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use exception::DoraToNativeInfo;
 use gc::{Address, Region};
+use handle::HandleMemory;
 
 thread_local! {
     pub static THREAD: RefCell<Arc<DoraThread>> = RefCell::new(DoraThread::new());
@@ -65,12 +66,17 @@ impl Threads {
 
 pub struct DoraThread {
     pub dtn: Mutex<Address>,
+    pub handles: HandleMemory,
 }
+
+unsafe impl Sync for DoraThread {}
+unsafe impl Send for DoraThread {}
 
 impl DoraThread {
     pub fn new() -> Arc<DoraThread> {
         Arc::new(DoraThread {
             dtn: Mutex::new(Address::null()),
+            handles: HandleMemory::new(),
         })
     }
 

@@ -5,6 +5,7 @@ use baseline::map::CodeDescriptor;
 use cpu::fp_from_execstate;
 use ctxt::{get_vm, VM};
 use execstate::ExecState;
+use handle::root;
 use object::{alloc, Array, Exception, IntArray, Obj, Ref, StackTraceElement, Str};
 use os::signal::Trap;
 use stdlib;
@@ -297,7 +298,7 @@ pub extern "C" fn retrieve_stack_trace(obj: Ref<Exception>) {
 
 pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTraceElement> {
     let vm = get_vm();
-    let obj = vm.handles.root(obj);
+    let obj = root(obj);
     let array = obj.backtrace;
 
     let ind = ind as usize * 2;
@@ -307,7 +308,7 @@ pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTrace
     let cls_def_id = vm.vips.stack_trace_element(vm);
 
     let ste: Ref<StackTraceElement> = alloc(vm, cls_def_id).cast();
-    let mut ste = vm.handles.root(ste);
+    let mut ste = root(ste);
     ste.line = lineno;
 
     let jit_fct_id = JitFctId::from(fct_id as usize);
@@ -323,7 +324,7 @@ pub extern "C" fn stack_element(obj: Ref<Exception>, ind: i32) -> Ref<StackTrace
 pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Exception> {
     let cls_id = vm.vips.exception(vm);
     let obj: Ref<Exception> = alloc(vm, cls_id).cast();
-    let mut obj = vm.handles.root(obj);
+    let mut obj = root(obj);
 
     obj.msg = msg;
     set_exception_backtrace(vm, obj.direct(), false);
@@ -333,14 +334,14 @@ pub fn alloc_exception(vm: &VM, msg: Ref<Str>) -> Ref<Exception> {
 
 fn set_exception_backtrace(vm: &VM, obj: Ref<Exception>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
-    let mut obj = vm.handles.root(obj);
+    let mut obj = root(obj);
 
     let skip = if via_retrieve { 2 } else { 0 };
     let len = stacktrace.len() - skip;
 
     let cls_id = vm.vips.int_array(vm);
     let array: Ref<IntArray> = Array::alloc(vm, len * 2, 0, cls_id);
-    let mut array = vm.handles.root(array);
+    let mut array = root(array);
     let mut i = 0;
 
     // ignore first element of stack trace (ctor of Exception)
