@@ -5,8 +5,8 @@ use std::mem;
 use std::process;
 use std::ptr;
 use std::str;
-use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 use class::TypeParams;
 use ctxt::exception_set;
@@ -16,7 +16,7 @@ use gc::GcReason;
 use object::{ByteArray, Obj, Ref, Str};
 use os::signal::Trap;
 use sym::Sym::SymFct;
-use threads::THREAD;
+use threads::{DoraThread, THREAD};
 
 pub extern "C" fn byte_to_string(val: u8) -> Ref<Str> {
     let buffer = val.to_string();
@@ -93,6 +93,11 @@ pub extern "C" fn timestamp() -> u64 {
 pub extern "C" fn println(val: Ref<Str>) {
     print(val);
     println!("");
+}
+
+pub extern "C" fn sleep(seconds: i32) {
+    assert!(seconds >= 0);
+    thread::sleep(Duration::from_secs(seconds as u64));
 }
 
 pub extern "C" fn throw_native(val: bool) {
@@ -291,12 +296,14 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
     use baseline;
     use exception::DoraToNativeInfo;
 
-    thread::spawn(move || {
-        let vm = get_vm();
+    let vm = get_vm();
+    let thread = DoraThread::new();
 
-        THREAD.with(|thread| {
-            let mut threads = vm.threads.lock();
-            threads.push(thread.clone());
+    vm.threads.attach_thread(thread.clone());
+
+    thread::spawn(move || {
+        THREAD.with(|tld| {
+            *tld.borrow_mut() = thread;
         });
 
         let main = {
@@ -319,9 +326,6 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
         let fct: extern "C" fn(Ref<Obj>) = unsafe { mem::transmute(fct_ptr) };
         fct(obj);
 
-        THREAD.with(|thread| {
-            let mut threads = vm.threads.lock();
-            threads.retain(|elem| !Arc::ptr_eq(elem, thread));
-        });
+        vm.threads.detach_current_thread();
     });
 }

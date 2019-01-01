@@ -1,0 +1,16 @@
+//= output "one\ntwo\n"
+//= ignore
+
+class MyThread() : Thread {
+    override fun run() {
+        sleep(2);
+        println("two");
+    }
+}
+
+fun main() {
+    let thread = MyThread();
+    thread.start();
+
+    println("one");
+}

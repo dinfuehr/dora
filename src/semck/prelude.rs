@@ -94,6 +94,7 @@ pub fn internal_functions<'ast>(ctxt: &mut SemContext<'ast>) {
         "forceMinorCollect",
         stdlib::gc_minor_collect as *const u8,
     );
+    native_fct(ctxt, "sleep", stdlib::sleep as *const u8);
 
     native_fct(ctxt, "call", stdlib::call as *const u8);
     native_fct(ctxt, "throwFromNative", stdlib::throw_native as *const u8);

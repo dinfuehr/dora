@@ -83,11 +83,16 @@ pub fn start() -> i32 {
 
     let timer = Timer::new(vm.args.flag_gc_verbose);
 
+    vm.threads.attach_current_thread();
+
     let code = if vm.args.cmd_test {
         run_tests(&vm)
     } else {
         run_main(&vm, main.unwrap())
     };
+
+    vm.threads.detach_current_thread();
+    vm.threads.join_all();
 
     if vm.args.flag_gc_verbose {
         vm.dump_gc_summary(timer.stop());

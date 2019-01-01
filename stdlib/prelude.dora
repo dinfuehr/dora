@@ -355,10 +355,7 @@ fun getppid() -> int {
   return call0(fct).toInt();
 }
 
-fun sleep(seconds: int) {
-  let fct = loadFunction("sleep");
-  call1(fct, seconds.toLong());
-}
+internal fun sleep(seconds: int);
 
 class Exception {
   var msg: Str = nil;
