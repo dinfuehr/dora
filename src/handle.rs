@@ -1,6 +1,5 @@
-use std::cell::RefCell;
+use parking_lot::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use object::{Obj, Ref};
 use threads::THREAD;
@@ -8,77 +7,102 @@ use threads::THREAD;
 pub const HANDLE_SIZE: usize = 256;
 
 pub struct HandleMemory {
-    /// all buffers, Box is important since HandleBuffer
-    /// is a big struct that needs to get moved/copied on resizes
-    buffers: RefCell<Vec<Box<HandleBuffer>>>,
-
-    // store addresses of inserted borders
-    borders: RefCell<Vec<BorderData>>,
-
-    // index of next free position in buffer
-    free: AtomicUsize,
+    inner: Mutex<HandleMemoryInner>,
 }
 
 impl HandleMemory {
     pub fn new() -> HandleMemory {
-        let buffer = box HandleBuffer::new();
-
         HandleMemory {
-            buffers: RefCell::new(vec![buffer]),
-            borders: RefCell::new(Vec::new()),
-            free: AtomicUsize::new(0),
+            inner: Mutex::new(HandleMemoryInner::new()),
         }
     }
 
     pub fn root<T>(&self, obj: Ref<T>) -> Handle<T> {
-        if self.free.load(Ordering::Relaxed) >= HANDLE_SIZE {
+        self.inner.lock().root(obj)
+    }
+
+    pub fn push_border(&self) {
+        self.inner.lock().push_border();
+    }
+
+    pub fn pop_border(&self) {
+        self.inner.lock().pop_border();
+    }
+
+    pub fn iter(&self) -> HandleMemoryIter {
+        let inner = self.inner.lock();
+        let len = inner.buffers.len();
+        let free = inner.free;
+
+        HandleMemoryIter {
+            mem: inner,
+            buffer_idx: 0,
+            element_idx: 0,
+            full_buffer_len: if len == 0 { 0 } else { len - 1 },
+            last_buffer_len: free,
+        }
+    }
+}
+
+pub struct HandleMemoryInner {
+    /// all buffers, Box is important since HandleBuffer
+    /// is a big struct that needs to get moved/copied on resizes
+    buffers: Vec<Box<HandleBuffer>>,
+
+    // store addresses of inserted borders
+    borders: Vec<BorderData>,
+
+    // index of next free position in buffer
+    free: usize,
+}
+
+impl HandleMemoryInner {
+    pub fn new() -> HandleMemoryInner {
+        let buffer = box HandleBuffer::new();
+
+        HandleMemoryInner {
+            buffers: vec![buffer],
+            borders: Vec::new(),
+            free: 0,
+        }
+    }
+
+    pub fn root<T>(&mut self, obj: Ref<T>) -> Handle<T> {
+        if self.free >= HANDLE_SIZE {
             self.push_buffer();
-            self.free.store(0, Ordering::Relaxed);
+            self.free = 0;
         }
 
-        let mut buffers = self.buffers.borrow_mut();
-        let buffer = buffers.last_mut().unwrap();
+        let buffer = self.buffers.last_mut().unwrap();
 
-        let idx = self.free.load(Ordering::Relaxed);
+        let idx = self.free;
         let elem = &mut buffer.elements[idx];
-        self.free.store(idx + 1, Ordering::Relaxed);
+        self.free = idx + 1;
 
         *elem = obj.cast::<Obj>();
 
         Handle(elem as *mut Ref<Obj> as *mut Ref<T>)
     }
 
-    fn push_buffer(&self) {
-        self.buffers.borrow_mut().push(box HandleBuffer::new());
+    pub fn push_buffer(&mut self) {
+        self.buffers.push(box HandleBuffer::new());
     }
 
-    pub fn push_border(&self) {
-        let buffer = self.buffers.borrow().len();
-        let element = self.free.load(Ordering::Relaxed);
+    pub fn push_border(&mut self) {
+        let buffer = self.buffers.len();
+        let element = self.free;
 
-        self.borders.borrow_mut().push(BorderData {
+        self.borders.push(BorderData {
             buffer: buffer,
             element: element,
         });
     }
 
-    pub fn pop_border(&self) {
-        let border = self.borders.borrow_mut().pop().expect("no border left");
+    pub fn pop_border(&mut self) {
+        let border = self.borders.pop().expect("no border left");
 
-        self.buffers.borrow_mut().truncate(border.buffer);
-        self.free.store(border.element, Ordering::Relaxed);
-    }
-
-    pub fn iter(&self) -> HandleMemoryIter {
-        let len = self.buffers.borrow().len();
-
-        HandleMemoryIter {
-            mem: self,
-            buffer_idx: 0,
-            element_idx: 0,
-            full_buffer_len: if len == 0 { 0 } else { len - 1 },
-            last_buffer_len: self.free.load(Ordering::Relaxed),
-        }
+        self.buffers.truncate(border.buffer);
+        self.free = border.element;
     }
 }
 
@@ -143,7 +167,7 @@ impl<T> Clone for Handle<T> {
 }
 
 pub struct HandleMemoryIter<'a> {
-    mem: &'a HandleMemory,
+    mem: MutexGuard<'a, HandleMemoryInner>,
     buffer_idx: usize,
     element_idx: usize,
     full_buffer_len: usize,
@@ -159,8 +183,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
                 let idx = self.element_idx;
                 self.element_idx += 1;
 
-                let mut buffers = self.mem.buffers.borrow_mut();
-                let buffer = &mut buffers[self.buffer_idx];
+                let buffer = &mut self.mem.buffers[self.buffer_idx];
                 return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 self.buffer_idx += 1;
@@ -173,8 +196,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
                 let idx = self.element_idx;
                 self.element_idx += 1;
 
-                let mut buffers = self.mem.buffers.borrow_mut();
-                let buffer = &mut buffers[self.buffer_idx];
+                let buffer = &mut self.mem.buffers[self.buffer_idx];
                 return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
             } else {
                 return None;
