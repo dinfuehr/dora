@@ -1,6 +1,6 @@
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use exception::DoraToNativeInfo;
@@ -67,6 +67,7 @@ impl Threads {
 pub struct DoraThread {
     pub dtn: AtomicUsize,
     pub handles: HandleMemory,
+    pub tld: ThreadLocalData,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -77,6 +78,7 @@ impl DoraThread {
         Arc::new(DoraThread {
             dtn: AtomicUsize::new(0),
             handles: HandleMemory::new(),
+            tld: ThreadLocalData::new(),
         })
     }
 
@@ -117,31 +119,39 @@ impl DoraThread {
 }
 
 pub struct ThreadLocalData {
-    tlab_top: Address,
-    tlab_end: Address,
-    concurrent_marking: bool,
+    tlab_top: AtomicUsize,
+    tlab_end: AtomicUsize,
+    concurrent_marking: AtomicBool,
 }
 
 impl ThreadLocalData {
     pub fn new() -> ThreadLocalData {
         ThreadLocalData {
-            tlab_top: Address::null(),
-            tlab_end: Address::null(),
-            concurrent_marking: false,
+            tlab_top: AtomicUsize::new(0),
+            tlab_end: AtomicUsize::new(0),
+            concurrent_marking: AtomicBool::new(false),
         }
     }
 
-    pub fn tlab_initialize(&mut self, start: Address, end: Address) {
-        self.tlab_top = start;
-        self.tlab_end = end;
+    pub fn tlab_initialize(&self, start: Address, end: Address) {
+        assert!(start <= end);
+
+        self.tlab_top.store(start.to_usize(), Ordering::Relaxed);
+        self.tlab_end.store(end.to_usize(), Ordering::Relaxed);
     }
 
     pub fn tlab_rest(&self) -> usize {
-        self.tlab_end.offset_from(self.tlab_top)
+        let tlab_top = self.tlab_top.load(Ordering::Relaxed);
+        let tlab_end = self.tlab_end.load(Ordering::Relaxed);
+
+        tlab_end - tlab_top
     }
 
     pub fn tlab_region(&self) -> Region {
-        Region::new(self.tlab_top, self.tlab_end)
+        let tlab_top = self.tlab_top.load(Ordering::Relaxed);
+        let tlab_end = self.tlab_end.load(Ordering::Relaxed);
+
+        Region::new(tlab_top.into(), tlab_end.into())
     }
 
     pub fn tlab_top_offset() -> i32 {

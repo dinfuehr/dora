@@ -108,7 +108,7 @@ impl Gc {
 
     fn alloc_tlab(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
         // try to allocate in current tlab
-        if let Some(addr) = tlab::allocate(vm, size) {
+        if let Some(addr) = tlab::allocate(size) {
             return addr;
         }
 
@@ -124,7 +124,7 @@ impl Gc {
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 
             // initialize TLAB to new boundaries
-            tlab::initialize(vm, tlab);
+            tlab::initialize(tlab);
 
             // object is allocated before TLAB
             object_start
