@@ -22,6 +22,7 @@ fun allocator() {
 
     while i < 10_000 {
         Foo();
+        i = i + 1;
     }
 }
 
