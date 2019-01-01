@@ -12,6 +12,7 @@ use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
+use threads::THREAD;
 use ty::{BuiltinType, MachineMode};
 
 pub struct NativeThunks {
@@ -233,7 +234,9 @@ pub fn start_native_call(fp: *const u8, pc: usize) {
 
         let vm = get_vm();
 
-        vm.push_dtn(dtn);
+        THREAD.with(|thread| {
+            thread.borrow().push_dtn(dtn);
+        });
         vm.handles.push_border();
     }
 }
@@ -242,7 +245,9 @@ pub fn finish_native_call() -> *const u8 {
     let vm = get_vm();
 
     vm.handles.pop_border();
-    vm.pop_dtn();
+    THREAD.with(|thread| {
+        thread.borrow().pop_dtn();
+    });
 
     exception_get_and_clear()
 }

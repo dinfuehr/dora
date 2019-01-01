@@ -30,7 +30,7 @@ use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use stdlib;
 use sym::Sym::*;
 use sym::*;
-use threads::{ThreadLocalData, Threads};
+use threads::{ThreadLocalData, Threads, THREAD};
 use ty::{BuiltinType, LambdaTypes, TypeLists};
 use utils::GrowableVec;
 
@@ -93,7 +93,6 @@ pub struct SemContext<'ast> {
     pub code_map: Mutex<CodeMap>,                    // stores all compiled functions
     pub globals: GrowableVec<Mutex<GlobalData<'ast>>>, // stores all global variables
     pub gc: Gc,                                      // garbage collector
-    pub dtn: Mutex<*const DoraToNativeInfo>,
     pub native_thunks: Mutex<NativeThunks>,
     pub polling_page: PollingPage,
     pub lists: Mutex<TypeLists>,
@@ -158,7 +157,6 @@ impl<'ast> SemContext<'ast> {
             fcts: GrowableVec::new(),
             jit_fcts: GrowableVec::new(),
             code_map: Mutex::new(CodeMap::new()),
-            dtn: Mutex::new(ptr::null()),
             polling_page: PollingPage::new(),
             lists: Mutex::new(TypeLists::new()),
             lambda_types: Mutex::new(LambdaTypes::new()),
@@ -196,45 +194,15 @@ impl<'ast> SemContext<'ast> {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = TypeParams::empty();
 
-        self.use_dtn(&mut dtn, || {
-            baseline::generate(self, fct_id, &type_params, &type_params)
+        THREAD.with(|thread| {
+            thread.borrow().use_dtn(&mut dtn, || {
+                baseline::generate(self, fct_id, &type_params, &type_params)
+            })
         })
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
         self.gc.dump_summary(runtime);
-    }
-
-    pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
-    where
-        F: FnOnce() -> R,
-    {
-        dtn.last = *self.dtn.lock();
-
-        *self.dtn.lock() = dtn as *const DoraToNativeInfo;
-
-        let ret = fct();
-
-        *self.dtn.lock() = dtn.last;
-
-        ret
-    }
-
-    pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
-        let last = *self.dtn.lock();
-
-        dtn.last = last;
-
-        *self.dtn.lock() = dtn as *const DoraToNativeInfo;
-    }
-
-    pub fn pop_dtn(&self) {
-        let current_dtn = *self.dtn.lock();
-        assert!(!current_dtn.is_null());
-        let dtn = unsafe { &*current_dtn };
-
-        let last_dtn = dtn.last as *const DoraToNativeInfo;
-        *self.dtn.lock() = last_dtn;
     }
 
     pub fn insert_code_map(&self, start: Address, end: Address, desc: CodeDescriptor) {

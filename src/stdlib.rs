@@ -318,8 +318,11 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
             let type_params = TypeParams::empty();
-            vm.use_dtn(&mut dtn, || {
-                baseline::generate(vm, main, &type_params, &type_params)
+
+            THREAD.with(|thread| {
+                thread.borrow().use_dtn(&mut dtn, || {
+                    baseline::generate(vm, main, &type_params, &type_params)
+                })
             })
         };
 

@@ -34,9 +34,14 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 }
 
 fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
-    assert!(!vm.dtn.lock().is_null());
+    vm.threads.each(|thread| {
+        let dtn = *thread.dtn.lock();
+        determine_rootset_from_thread(rootset, vm, dtn);
+    })
+}
 
-    let mut dtn = *vm.dtn.lock();
+fn determine_rootset_from_thread(rootset: &mut Vec<Slot>, vm: &VM, dtn: Address) {
+    let mut dtn = dtn.to_ptr::<DoraToNativeInfo>();
 
     while !dtn.is_null() {
         dtn = from_dora_to_native_info(rootset, vm, dtn);

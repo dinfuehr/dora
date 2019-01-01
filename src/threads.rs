@@ -50,13 +50,60 @@ impl Threads {
             self.cond_join.wait(&mut threads);
         }
     }
+
+    pub fn each<F>(&self, mut f: F)
+    where
+        F: FnMut(&Arc<DoraThread>),
+    {
+        let threads = self.threads.lock();
+
+        for thread in threads.iter() {
+            f(thread)
+        }
+    }
 }
 
-pub struct DoraThread {}
+pub struct DoraThread {
+    pub dtn: Mutex<Address>,
+}
 
 impl DoraThread {
     pub fn new() -> Arc<DoraThread> {
-        Arc::new(DoraThread {})
+        Arc::new(DoraThread {
+            dtn: Mutex::new(Address::null()),
+        })
+    }
+
+    pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        dtn.last = self.dtn.lock().to_ptr::<DoraToNativeInfo>();
+
+        *self.dtn.lock() = Address::from_ptr(dtn as *const DoraToNativeInfo);
+
+        let ret = fct();
+
+        *self.dtn.lock() = Address::from_ptr(dtn.last);
+
+        ret
+    }
+
+    pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
+        let last = *self.dtn.lock();
+
+        dtn.last = last.to_ptr::<DoraToNativeInfo>();
+
+        *self.dtn.lock() = Address::from_ptr(dtn as *const DoraToNativeInfo);
+    }
+
+    pub fn pop_dtn(&self) {
+        let current_dtn = *self.dtn.lock();
+        assert!(!current_dtn.is_null());
+        let dtn = unsafe { &*current_dtn.to_ptr::<DoraToNativeInfo>() };
+
+        let last_dtn = dtn.last as *const DoraToNativeInfo;
+        *self.dtn.lock() = Address::from_ptr(last_dtn);
     }
 }
 
