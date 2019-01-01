@@ -1,6 +1,6 @@
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
-use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use exception::DoraToNativeInfo;
@@ -65,7 +65,7 @@ impl Threads {
 }
 
 pub struct DoraThread {
-    pub dtn: Mutex<Address>,
+    pub dtn: AtomicUsize,
     pub handles: HandleMemory,
 }
 
@@ -75,46 +75,48 @@ unsafe impl Send for DoraThread {}
 impl DoraThread {
     pub fn new() -> Arc<DoraThread> {
         Arc::new(DoraThread {
-            dtn: Mutex::new(Address::null()),
+            dtn: AtomicUsize::new(0),
             handles: HandleMemory::new(),
         })
+    }
+
+    pub fn dtn(&self) -> *const DoraToNativeInfo {
+        self.dtn.load(Ordering::Relaxed) as *const _
+    }
+
+    pub fn set_dtn(&self, ptr: *const DoraToNativeInfo) {
+        self.dtn.store(ptr as usize, Ordering::Relaxed);
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
     where
         F: FnOnce() -> R,
     {
-        dtn.last = self.dtn.lock().to_ptr::<DoraToNativeInfo>();
+        dtn.last = self.dtn();
 
-        *self.dtn.lock() = Address::from_ptr(dtn as *const DoraToNativeInfo);
+        self.set_dtn(dtn as *const _);
 
         let ret = fct();
 
-        *self.dtn.lock() = Address::from_ptr(dtn.last);
+        self.set_dtn(dtn.last);
 
         ret
     }
 
     pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
-        let last = *self.dtn.lock();
-
-        dtn.last = last.to_ptr::<DoraToNativeInfo>();
-
-        *self.dtn.lock() = Address::from_ptr(dtn as *const DoraToNativeInfo);
+        dtn.last = self.dtn();
+        self.set_dtn(dtn as *const _);
     }
 
     pub fn pop_dtn(&self) {
-        let current_dtn = *self.dtn.lock();
+        let current_dtn = self.dtn();
         assert!(!current_dtn.is_null());
-        let dtn = unsafe { &*current_dtn.to_ptr::<DoraToNativeInfo>() };
-
-        let last_dtn = dtn.last as *const DoraToNativeInfo;
-        *self.dtn.lock() = Address::from_ptr(last_dtn);
+        let dtn = unsafe { &*current_dtn };
+        self.set_dtn(dtn.last);
     }
 }
 
 pub struct ThreadLocalData {
-    d2n: *const DoraToNativeInfo,
     tlab_top: Address,
     tlab_end: Address,
     concurrent_marking: bool,
@@ -123,7 +125,6 @@ pub struct ThreadLocalData {
 impl ThreadLocalData {
     pub fn new() -> ThreadLocalData {
         ThreadLocalData {
-            d2n: ptr::null(),
             tlab_top: Address::null(),
             tlab_end: Address::null(),
             concurrent_marking: false,

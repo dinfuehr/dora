@@ -90,14 +90,12 @@ pub fn stacktrace_from_last_dtn(vm: &VM) -> Stacktrace {
 }
 
 fn frames_from_dtns(stacktrace: &mut Stacktrace, vm: &VM) {
-    let mut dtn_ptr = THREAD
-        .with(|thread| {
-            let thread = thread.borrow();
-            let dtn = *thread.dtn.lock();
+    let mut dtn_ptr = THREAD.with(|thread| {
+        let thread = thread.borrow();
+        let dtn = thread.dtn();
 
-            dtn
-        })
-        .to_ptr::<DoraToNativeInfo>();
+        dtn
+    });
 
     while !dtn_ptr.is_null() {
         let dtn = unsafe { &*dtn_ptr };
@@ -185,14 +183,12 @@ pub struct ThrowResume {
 pub extern "C" fn throw(exception: Ref<Obj>, resume: &mut ThrowResume) {
     let vm = get_vm();
 
-    let dtn = THREAD
-        .with(|thread| {
-            let thread = thread.borrow();
-            let dtn = *thread.dtn.lock();
+    let dtn = THREAD.with(|thread| {
+        let thread = thread.borrow();
+        let dtn = thread.dtn();
 
-            dtn
-        })
-        .to_ptr::<DoraToNativeInfo>();
+        dtn
+    });
     let dtn = unsafe { &*dtn };
 
     let mut pc: usize = dtn.pc;

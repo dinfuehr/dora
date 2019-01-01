@@ -37,7 +37,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 
 fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM) {
     vm.threads.each(|thread| {
-        let dtn = *thread.dtn.lock();
+        let dtn = Address::from_ptr(thread.dtn());
         determine_rootset_from_stack_for_thread(rootset, vm, dtn);
     })
 }
