@@ -1,0 +1,28 @@
+//= output "one\ntwo\n"
+//= vm-args "--gc-young-ratio=2 --max-heap-size=512M"
+//= ignore
+
+class MyThread() : Thread {
+    override fun run() {
+        allocator();
+        println("two");
+    }
+}
+
+fun main() {
+    let thread = MyThread();
+    thread.start();
+
+    allocator();
+    println("one");
+}
+
+fun allocator() {
+    var i = 0;
+
+    while i < 10_000 {
+        Foo();
+    }
+}
+
+class Foo
