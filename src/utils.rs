@@ -16,9 +16,12 @@ impl<T> GrowableVec<T> {
         self.elements.lock()
     }
 
-    pub fn push(&self, val: T) {
+    pub fn push(&self, val: T) -> usize {
         let mut elements = self.elements.lock();
+        let idx = elements.len();
         elements.push(Arc::new(val));
+
+        idx
     }
 
     pub fn len(&self) -> usize {

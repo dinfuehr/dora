@@ -20,7 +20,7 @@ impl CodeMap {
         println!("CodeMap {{");
 
         for (key, data) in &self.tree {
-            print!("  {:?} - {:?} => ", key.start, key.end);
+            print!("  {} - {} => ", key.start, key.end);
 
             match data {
                 &CodeDescriptor::DoraFct(jit_fct_id) => {

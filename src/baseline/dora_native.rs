@@ -61,7 +61,9 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> 
     };
 
     let jit_fct = ngen.generate();
-    let jit_fct_id = vm.jit_fcts.len().into();
+    let jit_start = jit_fct.ptr_start();
+    let jit_end = jit_fct.ptr_end();
+    let jit_fct_id: JitFctId = vm.jit_fcts.push(JitFct::Base(jit_fct)).into();
 
     let code_desc = match fct_desc {
         InternalFctDescriptor::NativeThunk(_) => CodeDescriptor::NativeThunk(jit_fct_id),
@@ -69,8 +71,7 @@ pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>, fct: InternalFct, dbg: bool) -> 
         InternalFctDescriptor::AllocThunk => CodeDescriptor::AllocThunk,
     };
 
-    vm.insert_code_map(jit_fct.ptr_start(), jit_fct.ptr_end(), code_desc);
-    vm.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.insert_code_map(jit_start, jit_end, code_desc);
 
     jit_fct_id
 }
