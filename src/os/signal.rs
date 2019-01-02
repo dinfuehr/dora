@@ -97,7 +97,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         println!();
         println!("{:?}", &es);
         println!();
-        println!("polling page = {:?}", vm.polling_page.addr());
+        println!("polling page = {}", vm.polling_page.addr());
         println!();
 
         let code_map = vm.code_map.lock();

@@ -12,8 +12,8 @@ thread_local! {
 }
 
 pub struct Threads {
-    threads: Mutex<Vec<Arc<DoraThread>>>,
-    cond_join: Condvar,
+    pub threads: Mutex<Vec<Arc<DoraThread>>>,
+    pub cond_join: Condvar,
 }
 
 impl Threads {
@@ -68,6 +68,9 @@ pub struct DoraThread {
     pub dtn: AtomicUsize,
     pub handles: HandleMemory,
     pub tld: ThreadLocalData,
+    pub state: AtomicUsize,
+    pub saved_pc: AtomicUsize,
+    pub saved_fp: AtomicUsize,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -79,6 +82,9 @@ impl DoraThread {
             dtn: AtomicUsize::new(0),
             handles: HandleMemory::new(),
             tld: ThreadLocalData::new(),
+            state: AtomicUsize::new(ThreadState::Uninitialized as usize),
+            saved_pc: AtomicUsize::new(0),
+            saved_fp: AtomicUsize::new(0),
         })
     }
 
@@ -115,6 +121,19 @@ impl DoraThread {
         assert!(!current_dtn.is_null());
         let dtn = unsafe { &*current_dtn };
         self.set_dtn(dtn.last);
+    }
+}
+
+pub enum ThreadState {
+    Uninitialized,
+    Native,
+    Dora,
+    Blocked,
+}
+
+impl Default for ThreadState {
+    fn default() -> ThreadState {
+        ThreadState::Uninitialized
     }
 }
 
