@@ -92,8 +92,10 @@ pub extern "C" fn timestamp() -> u64 {
 }
 
 pub extern "C" fn println(val: Ref<Str>) {
-    print(val);
-    println!("");
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+    handle.write(val.content()).unwrap();
+    handle.write(b"\n").unwrap();
 }
 
 pub extern "C" fn sleep(seconds: i32) {

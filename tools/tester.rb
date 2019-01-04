@@ -191,7 +191,7 @@ def run_test(file)
 
   end
 
-  return "output does not match" if
+  return "output does not match (#{expectation.output.inspect} != #{temp_out_content.inspect})" if
     expectation.output && expectation.output != temp_out_content
 
   true
