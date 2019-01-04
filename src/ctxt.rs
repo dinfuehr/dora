@@ -24,7 +24,7 @@ use dora_parser::lexer::position::Position;
 use exception::DoraToNativeInfo;
 use gc::{Address, Gc};
 use object::{Ref, Testing};
-use safepoint::PollingPage;
+use safepoint::{PollingPage, Safepoint};
 use semck::specialize::{specialize_class_id, specialize_class_id_params};
 use stdlib;
 use sym::Sym::*;
@@ -101,6 +101,7 @@ pub struct SemContext<'ast> {
     pub trap_thunk: Mutex<Address>,
     pub throw_thunk: Mutex<Address>,
     pub threads: Threads,
+    pub safepoint: Safepoint,
 }
 
 impl<'ast> SemContext<'ast> {
@@ -163,6 +164,7 @@ impl<'ast> SemContext<'ast> {
             trap_thunk: Mutex::new(Address::null()),
             throw_thunk: Mutex::new(Address::null()),
             threads: Threads::new(),
+            safepoint: Safepoint::new(),
         });
 
         set_vm(&ctxt);

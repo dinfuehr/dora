@@ -122,13 +122,29 @@ impl DoraThread {
         let dtn = unsafe { &*current_dtn };
         self.set_dtn(dtn.last);
     }
+
+    pub fn state(&self) -> ThreadState {
+        let state = self.state.load(Ordering::Relaxed);
+
+        match state {
+            0 => ThreadState::Uninitialized,
+            1 => ThreadState::Native,
+            2 => ThreadState::Dora,
+            3 => ThreadState::Blocked,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn set_state(&self, state: ThreadState) {
+        self.state.store(state as usize, Ordering::Relaxed);
+    }
 }
 
 pub enum ThreadState {
-    Uninitialized,
-    Native,
-    Dora,
-    Blocked,
+    Uninitialized = 0,
+    Native = 1,
+    Dora = 2,
+    Blocked = 3,
 }
 
 impl Default for ThreadState {

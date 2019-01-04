@@ -1,10 +1,11 @@
 use libc;
+use parking_lot::{Condvar, Mutex};
 use std::ptr;
 use std::sync::atomic::{fence, Ordering};
 use std::sync::Arc;
 
 use cpu::fp_from_execstate;
-use ctxt::get_vm;
+use ctxt::{get_vm, VM};
 use execstate::ExecState;
 use gc::Address;
 use os;
@@ -79,28 +80,65 @@ fn alloc_polling_page() -> Address {
     Address::from_ptr(ptr)
 }
 
-pub fn enter(es: &ExecState) {
+pub fn block(es: &ExecState) {
     let vm = get_vm();
 
     THREAD.with(|thread| {
         let thread = thread.borrow();
-        let old_state = thread.state.load(Ordering::Relaxed);
+        let old_state = thread.state();
 
-        thread.saved_pc.store(es.pc, Ordering::Relaxed);
-        thread
-            .saved_fp
-            .store(fp_from_execstate(es), Ordering::Relaxed);
-        thread
-            .state
-            .store(ThreadState::Blocked as usize, Ordering::SeqCst);
+        match old_state {
+            ThreadState::Dora => {
+                block_dora(vm, &*thread, es);
+            }
+
+            ThreadState::Native => {
+                // do nothing
+            }
+
+            _ => unreachable!(),
+        }
 
         // During the stop-the-world-pause, the thread that initiates the pause
         // holds this lock. When the thread gives up the lock, execution can continue.
         let _mtx = vm.threads.threads.lock();
 
         // Restore old state.
-        thread.state.store(old_state, Ordering::Relaxed);
+        thread.set_state(old_state);
     });
+}
+
+fn block_dora(vm: &VM, thread: &Arc<DoraThread>, es: &ExecState) {
+    thread.saved_pc.store(es.pc, Ordering::Relaxed);
+    thread
+        .saved_fp
+        .store(fp_from_execstate(es), Ordering::Relaxed);
+    thread
+        .state
+        .store(ThreadState::Blocked as usize, Ordering::SeqCst);
+
+    let mut blocking = vm.safepoint.blocking.lock();
+
+    assert!(*blocking > 0);
+    *blocking -= 1;
+
+    if *blocking == 0 {
+        vm.safepoint.reached_zero.notify_all();
+    }
+}
+
+pub struct Safepoint {
+    blocking: Mutex<usize>,
+    reached_zero: Condvar,
+}
+
+impl Safepoint {
+    pub fn new() -> Safepoint {
+        Safepoint {
+            blocking: Mutex::new(0),
+            reached_zero: Condvar::new(),
+        }
+    }
 }
 
 pub fn stop_the_world<F, R>(f: F) -> R
@@ -114,8 +152,13 @@ where
 
     fence(Ordering::SeqCst);
 
+    {
+        let mut blocking = vm.safepoint.blocking.lock();
+        *blocking = threads.len();
+    }
+
     vm.polling_page.arm();
-    pause_threads(&*threads);
+    pause_threads(vm, &*threads);
 
     let ret = f();
 
@@ -124,6 +167,41 @@ where
     ret
 }
 
-fn pause_threads(_threads: &[Arc<DoraThread>]) {
-    unimplemented!();
+fn pause_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
+    check_thread_states(vm, threads);
+    wait_until_threads_reach_safepoints(vm);
+}
+
+fn check_thread_states(vm: &VM, threads: &[Arc<DoraThread>]) {
+    for thread in threads {
+        let state = thread.state();
+
+        match state {
+            ThreadState::Dora => {
+                // let this thread continue until it reaches safepoint
+            }
+
+            ThreadState::Native => {
+                // native threads can continue to run, we don't need to
+                // wait for those threads to reach safepoints.
+                let mut blocking = vm.safepoint.blocking.lock();
+                assert!(*blocking > 0);
+                *blocking -= 1;
+            }
+
+            ThreadState::Blocked => {
+                // thread is already blocked via safepoint
+            }
+
+            ThreadState::Uninitialized => unreachable!(),
+        }
+    }
+}
+
+fn wait_until_threads_reach_safepoints(vm: &VM) {
+    let mut blocking = vm.safepoint.blocking.lock();
+
+    while *blocking > 0 {
+        vm.safepoint.reached_zero.wait(&mut blocking);
+    }
 }

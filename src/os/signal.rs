@@ -86,7 +86,7 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         }
     } else if detect_polling_page_check(vm, signo, addr) {
         // polling page read failed => enter safepoint
-        safepoint::enter(&es);
+        safepoint::block(&es);
 
     // otherwise trap not dected => crash
     } else {
