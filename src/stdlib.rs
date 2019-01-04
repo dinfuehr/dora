@@ -12,7 +12,7 @@ use class::TypeParams;
 use ctxt::exception_set;
 use ctxt::get_vm;
 use exception::{alloc_exception, stacktrace_from_last_dtn};
-use gc::GcReason;
+use gc::{Address, GcReason};
 use handle::root;
 use object::{ByteArray, Obj, Ref, Str};
 use os::signal::Trap;
@@ -316,6 +316,13 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
                 .expect("run() method not found")
         };
 
+        let tld = THREAD.with(|thread| {
+            let thread = thread.borrow();
+            let ptr = &thread.tld;
+
+            Address::from_ptr(ptr as *const _)
+        });
+
         let fct_ptr = {
             let mut dtn = DoraToNativeInfo::new();
             let type_params = TypeParams::empty();
@@ -327,8 +334,10 @@ pub extern "C" fn spawn_thread(obj: Ref<Obj>) {
             })
         };
 
-        let fct: extern "C" fn(Ref<Obj>) = unsafe { mem::transmute(fct_ptr) };
-        fct(obj);
+        let dora_entry_thunk = vm.dora_entry_thunk();
+        let fct: extern "C" fn(Address, Address, Ref<Obj>) =
+            unsafe { mem::transmute(dora_entry_thunk) };
+        fct(tld, fct_ptr, obj);
 
         vm.threads.detach_current_thread();
     });

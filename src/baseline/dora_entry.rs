@@ -5,7 +5,6 @@ use ctxt::VM;
 use gc::Address;
 use masm::MacroAssembler;
 use mem;
-use threads::THREAD;
 use ty::MachineMode;
 
 pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
@@ -55,19 +54,12 @@ where
             REG_THREAD.into(),
         );
 
-        let addr = THREAD.with(|thread| {
-            let thread = thread.borrow();
-            let ptr = &thread.tld;
-
-            ptr as *const _ as usize
-        });
-
         self.masm
-            .load_int_const(MachineMode::Ptr, REG_THREAD, addr as i64);
+            .copy_reg(MachineMode::Ptr, REG_THREAD, REG_PARAMS[0]);
         self.masm
-            .copy_reg(MachineMode::Ptr, REG_TMP1, REG_PARAMS[0]);
+            .copy_reg(MachineMode::Ptr, REG_TMP1, REG_PARAMS[1]);
         self.masm
-            .copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_PARAMS[1]);
+            .copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_PARAMS[2]);
         self.masm.call_reg(REG_TMP1);
 
         self.masm.load_mem(

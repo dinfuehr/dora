@@ -171,18 +171,31 @@ impl<'ast> SemContext<'ast> {
     }
 
     pub fn run(&self, fct_id: FctId) -> i32 {
+        let tld = THREAD.with(|thread| {
+            let thread = thread.borrow();
+            let ptr = &thread.tld;
+
+            Address::from_ptr(ptr as *const _)
+        });
         let ptr = self.ensure_compiled(fct_id);
         let dora_entry_thunk = self.dora_entry_thunk();
-        let fct: extern "C" fn(Address) -> i32 = unsafe { mem::transmute(dora_entry_thunk) };
-        fct(ptr)
+        let fct: extern "C" fn(Address, Address) -> i32 =
+            unsafe { mem::transmute(dora_entry_thunk) };
+        fct(tld, ptr)
     }
 
     pub fn run_test(&self, fct_id: FctId, testing: Ref<Testing>) {
+        let tld = THREAD.with(|thread| {
+            let thread = thread.borrow();
+            let ptr = &thread.tld;
+
+            Address::from_ptr(ptr as *const _)
+        });
         let ptr = self.ensure_compiled(fct_id);
         let dora_entry_thunk = self.dora_entry_thunk();
-        let fct: extern "C" fn(Address, Ref<Testing>) -> i32 =
+        let fct: extern "C" fn(Address, Address, Ref<Testing>) -> i32 =
             unsafe { mem::transmute(dora_entry_thunk) };
-        fct(ptr, testing);
+        fct(tld, ptr, testing);
     }
 
     fn ensure_compiled(&self, fct_id: FctId) -> Address {
