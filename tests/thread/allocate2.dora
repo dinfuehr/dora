@@ -1,10 +1,10 @@
-//= output "one\ntwo\n"
+//= output "done\ndone\n"
 //= vm-args "--gc-young-ratio=2 --max-heap-size=128M"
 
 class MyThread() : Thread {
     override fun run() {
         allocator();
-        println("two");
+        println("done");
     }
 }
 
@@ -13,7 +13,7 @@ fun main() {
     thread.start();
 
     allocator();
-    println("one");
+    println("done");
 }
 
 fun allocator() {
