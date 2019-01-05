@@ -1,5 +1,4 @@
-//= vm-args "--gc-parallel-minor --gc-verify"
-//= ignore
+//= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main() {
     let x = Foo(Foo(nil));
