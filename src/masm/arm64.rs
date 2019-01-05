@@ -8,7 +8,7 @@ use cpu::asm;
 use cpu::asm::*;
 use cpu::reg::*;
 use cpu::{FReg, Mem, Reg};
-use ctxt::FctId;
+use ctxt::{get_vm, FctId};
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
 use gc::Address;
@@ -17,7 +17,6 @@ use mem::ptr_width;
 use object::{offset_of_array_data, offset_of_array_length, Header};
 use os::signal::Trap;
 use ty::MachineMode;
-use vm::get_vm;
 use vtable::VTable;
 
 impl MacroAssembler {
@@ -1024,14 +1023,14 @@ impl MacroAssembler {
     pub fn trap(&mut self, trap: Trap, pos: Position) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.raw_call(vm.trap_thunk.to_ptr());
+        self.raw_call(vm.trap_thunk().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
         let vm = get_vm();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
-        self.raw_call(vm.throw_thunk.to_ptr());
+        self.raw_call(vm.throw_thunk().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 

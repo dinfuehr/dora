@@ -1,5 +1,5 @@
 use execstate::ExecState;
-use object::{Handle, Obj};
+use object::{Ref, Obj};
 
 pub use self::param::*;
 pub use self::reg::*;
@@ -65,8 +65,8 @@ pub fn fp_from_execstate(es: &ExecState) -> usize {
     es.regs[REG_FP.asm() as usize]
 }
 
-pub fn get_exception_object(es: &ExecState) -> Handle<Obj> {
-    let obj: Handle<Obj> = es.regs[REG_RESULT.asm() as usize].into();
+pub fn get_exception_object(es: &ExecState) -> Ref<Obj> {
+    let obj: Ref<Obj> = es.regs[REG_RESULT.asm() as usize].into();
 
     obj
 }
