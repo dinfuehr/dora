@@ -355,6 +355,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let young = self.young;
         let old = self.old;
 
+        let promoted_size = Arc::new(Mutex::new(self.promoted_size));
+        let promotion_failed = Arc::new(Mutex::new(self.promotion_failed));
+
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
                 let stealers = stealers.clone();
@@ -362,6 +365,8 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 let young_region = young_region.clone();
                 let old_top = old_top.clone();
                 let young_top = young_top.clone();
+                let promoted_size = promoted_size.clone();
+                let promotion_failed = promotion_failed.clone();
 
                 scoped.execute(move || {
                     let mut task = CopyTask {
@@ -391,12 +396,22 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                     };
 
                     task.run();
+
+                    *promoted_size.lock() += task.promoted_size;
+
+                    if task.promotion_failed() {
+                        let mut promotion_failed = promotion_failed.lock();
+                        *promotion_failed = true;
+                    }
                 });
             }
         });
 
         self.young_top = *young_top.lock();
         self.old.update_top(*old_top.lock());
+
+        self.promoted_size = *promoted_size.lock();
+        self.promotion_failed = *promotion_failed.lock();
     }
 
     fn trace_young_object(&mut self, addr: Address) -> Address {
@@ -829,6 +844,10 @@ where
                 self.trace_old_object(object_addr);
             }
         }
+    }
+
+    fn promotion_failed(&self) -> bool {
+        self.old_alloc.failed
     }
 
     fn trace_young_object(&mut self, object_addr: Address) {
