@@ -1003,19 +1003,17 @@ where
             return self.promote_object(vtblptr, obj, obj_size);
         }
 
+        obj.copy_to(copy_addr, obj_size);
         let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
 
         match res {
             Ok(()) => {
-                obj.copy_to(copy_addr, obj_size);
                 self.push(copy_addr);
-
                 copy_addr
             }
 
             Err(fwdptr) => {
                 self.young_lab.undo_alloc(obj_size);
-
                 fwdptr
             }
         }
@@ -1036,11 +1034,11 @@ where
             };
         }
 
+        obj.copy_to(copy_addr, obj_size);
         let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
 
         match res {
             Ok(()) => {
-                obj.copy_to(copy_addr, obj_size);
                 self.promoted_size += obj_size;
                 self.push(copy_addr);
 
