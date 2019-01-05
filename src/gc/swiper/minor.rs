@@ -381,17 +381,13 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
 
-                        promotion_failed: false,
                         promoted_size: 0,
-                        copy_failed: false,
 
-                        old_top: old_top,
-                        old_limit: old_limit,
                         old_lab: Lab::new(),
+                        old_alloc: LabAlloc::new(old_top, old_limit),
 
-                        young_top: young_top,
-                        young_limit: young_limit,
                         young_lab: Lab::new(),
+                        young_alloc: LabAlloc::new(young_top, young_limit),
                     };
 
                     task.run();
@@ -744,7 +740,48 @@ impl Lab {
     }
 }
 
+struct LabAlloc {
+    top: Arc<Mutex<Address>>,
+    limit: Address,
+    failed: bool,
+}
+
+impl LabAlloc {
+    fn new(top: Arc<Mutex<Address>>, limit: Address) -> LabAlloc {
+        LabAlloc {
+            top: top,
+            limit: limit,
+            failed: false,
+        }
+    }
+
+    fn alloc(&mut self, lab: &mut Lab) -> bool {
+        if self.failed {
+            lab.reset(Address::null(), Address::null());
+            return false;
+        }
+
+        let mut top = self.top.lock();
+
+        let lab_start = *top;
+        let lab_end = lab_start.offset(CLAB_SIZE);
+
+        if lab_end <= self.limit {
+            *top = lab_end;
+            lab.reset(lab_start, lab_end);
+
+            true
+        } else {
+            self.failed = true;
+            lab.reset(Address::null(), Address::null());
+
+            false
+        }
+    }
+}
+
 const CLAB_SIZE: usize = 32 * 1024;
+const LOCAL_MAXIMUM: usize = 64;
 
 struct CopyTask<'a, 'ast: 'a> {
     task_id: usize,
@@ -763,17 +800,13 @@ struct CopyTask<'a, 'ast: 'a> {
     from_active: Region,
     eden_active: Region,
 
-    promotion_failed: bool,
     promoted_size: usize,
-    copy_failed: bool,
 
-    old_top: Arc<Mutex<Address>>,
-    old_limit: Address,
     old_lab: Lab,
+    old_alloc: LabAlloc,
 
-    young_top: Arc<Mutex<Address>>,
-    young_limit: Address,
     young_lab: Lab,
+    young_alloc: LabAlloc,
 }
 
 impl<'a, 'ast> CopyTask<'a, 'ast>
@@ -870,32 +903,38 @@ where
 
         if object_start.is_non_null() {
             return object_start;
-        } else if self.copy_failed {
+        } else if self.young_alloc.failed {
             return Address::null();
         }
 
         debug_assert!(size <= CLAB_SIZE);
-        self.alloc_young_lab();
+        self.young_lab.make_iterable(self.vm);
+        if !self.young_alloc.alloc(&mut self.young_lab) {
+            return Address::null();
+        }
 
         self.young_lab.alloc(size)
     }
 
     fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
-        let object_start = self.alloc_old_inner(size, array_ref);
+        let object_start = self.alloc_object_in_old_lab(size, array_ref);
 
         if object_start.is_non_null() {
             return object_start;
-        } else if self.promotion_failed {
+        } else if self.old_alloc.failed {
             return Address::null();
         }
 
         debug_assert!(size <= CLAB_SIZE);
-        self.alloc_old_lab();
+        self.old_lab.make_iterable(self.vm);
+        if !self.old_alloc.alloc(&mut self.old_lab) {
+            return Address::null();
+        }
 
-        self.alloc_old_inner(size, array_ref)
+        self.alloc_object_in_old_lab(size, array_ref)
     }
 
-    fn alloc_old_inner(&mut self, size: usize, array_ref: bool) -> Address {
+    fn alloc_object_in_old_lab(&mut self, size: usize, array_ref: bool) -> Address {
         let object_start = self.old_lab.alloc(size);
 
         if object_start.is_non_null() {
@@ -905,36 +944,6 @@ where
             object_start
         } else {
             Address::null()
-        }
-    }
-
-    fn alloc_young_lab(&mut self) {
-        alloc_lab(
-            self.vm,
-            &mut self.young_lab,
-            &mut self.copy_failed,
-            &self.young_top,
-            self.young_limit,
-        )
-    }
-
-    fn alloc_old_lab(&mut self) {
-        self.old_lab.make_iterable(self.vm);
-        let mut old_top = self.old_top.lock();
-
-        let lab_start = *old_top;
-        let lab_end = lab_start.offset(CLAB_SIZE);
-
-        if lab_end <= self.old_limit {
-            *old_top = lab_end;
-
-            self.old_lab.top = lab_start;
-            self.old_lab.limit = lab_end;
-        } else {
-            self.promotion_failed = true;
-
-            self.old_lab.top = Address::null();
-            self.old_lab.limit = Address::null();
         }
     }
 
@@ -951,7 +960,7 @@ where
         };
 
         // As soon as promotion of an object failed, objects are not copied anymore.
-        if self.promotion_failed {
+        if self.old_alloc.failed {
             return obj_addr;
         }
 
@@ -966,6 +975,7 @@ where
             return self.promote_object(vtblptr, obj, obj_size);
         }
 
+        // Try to allocate memory in to-space.
         let copy_addr = self.alloc_young(obj_size);
 
         // Couldn't allocate object in young generation, try to promote
@@ -1002,11 +1012,7 @@ where
             let res = obj.header_mut().vtblptr_forward_failure_atomic(vtblptr);
 
             return match res {
-                Ok(()) => {
-                    self.promotion_failed = true;
-                    obj.address()
-                }
-
+                Ok(()) => obj.address(),
                 Err(fwdptr) => fwdptr,
             };
         }
@@ -1031,7 +1037,11 @@ where
     }
 
     fn push(&mut self, addr: Address) {
-        self.local.push(addr);
+        if self.local.len() < LOCAL_MAXIMUM {
+            self.local.push(addr);
+        } else {
+            self.worker.push(addr);
+        }
     }
 
     fn pop(&mut self) -> Option<Address> {
@@ -1088,21 +1098,5 @@ where
         }
 
         None
-    }
-}
-
-fn alloc_lab(vm: &VM, lab: &mut Lab, failed: &mut bool, top: &Arc<Mutex<Address>>, limit: Address) {
-    lab.make_iterable(vm);
-    let mut top = top.lock();
-
-    let lab_start = *top;
-    let lab_end = lab_start.offset(CLAB_SIZE);
-
-    if lab_end <= limit {
-        *top = lab_end;
-        lab.reset(lab_start, lab_end);
-    } else {
-        lab.reset(Address::null(), Address::null());
-        *failed = true;
     }
 }
