@@ -1,5 +1,5 @@
 use execstate::ExecState;
-use object::{Ref, Obj};
+use object::{Obj, Ref};
 
 pub use self::param::*;
 pub use self::reg::*;

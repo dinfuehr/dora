@@ -1,3 +1,4 @@
+use parking_lot::Mutex;
 use std::cmp;
 use std::sync::Arc;
 
@@ -13,7 +14,7 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::GcStats;
 use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{formatted_size, Address, GcReason, Region};
+use gc::{fill_region, formatted_size, Address, GcReason, Region};
 use mem;
 use object::Obj;
 use timer::Timer;
@@ -340,11 +341,21 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let young_region = self.young.total();
         let vm = self.vm;
 
+        let old_top = Arc::new(Mutex::new(Address::null()));
+        let old_limit = Address::null();
+
+        let young_top = Arc::new(Mutex::new(Address::null()));
+        let young_limit = Address::null();
+
+        let young = self.young;
+
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
                 let stealers = stealers.clone();
                 let terminator = terminator.clone();
                 let young_region = young_region.clone();
+                let old_top = old_top.clone();
+                let young_top = young_top.clone();
 
                 scoped.execute(move || {
                     let mut task = CopyTask {
@@ -354,14 +365,22 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         stealers: stealers,
                         terminator: terminator,
 
-                        young_region: young_region,
                         vm: vm,
+                        young: young,
+                        young_region: young_region,
+                        from_active: young.from_active(),
+                        eden_active: young.eden_active(),
 
-                        old_top: Address::null(),
-                        old_limit: Address::null(),
+                        promotion_failed: false,
+                        copy_failed: false,
 
-                        young_top: Address::null(),
-                        young_limit: Address::null(),
+                        old_top: old_top,
+                        old_limit: old_limit,
+                        old_lab: Lab::new(),
+
+                        young_top: young_top,
+                        young_limit: young_limit,
+                        young_lab: Lab::new(),
                     };
 
                     task.run();
@@ -677,6 +696,44 @@ fn saturating_sub(lhs: usize, rhs: usize) -> usize {
     }
 }
 
+struct Lab {
+    top: Address,
+    limit: Address,
+}
+
+impl Lab {
+    fn new() -> Lab {
+        Lab {
+            top: Address::null(),
+            limit: Address::null(),
+        }
+    }
+
+    fn make_iterable(&mut self, vm: &VM) {
+        fill_region(vm, self.top, self.limit);
+
+        self.top = Address::null();
+        self.limit = Address::null();
+    }
+
+    fn alloc(&mut self, size: usize) -> Address {
+        let object_start = self.top;
+        let object_end = object_start.offset(size);
+
+        if object_end <= self.limit {
+            self.top = object_end;
+            object_start
+        } else {
+            Address::null()
+        }
+    }
+
+    fn undo_alloc(&mut self, size: usize) {
+        self.top = (self.top.to_usize() - size).into();
+        debug_assert!(self.limit.offset_from(self.top) <= CLAB_SIZE);
+    }
+}
+
 const CLAB_SIZE: usize = 32 * 1024;
 
 struct CopyTask<'a, 'ast: 'a> {
@@ -686,14 +743,22 @@ struct CopyTask<'a, 'ast: 'a> {
     stealers: Vec<Stealer<Address>>,
     terminator: Arc<Terminator>,
 
-    young_region: Region,
     vm: &'a VM<'ast>,
+    young: &'a YoungGen,
+    young_region: Region,
+    from_active: Region,
+    eden_active: Region,
 
-    old_top: Address,
+    promotion_failed: bool,
+    copy_failed: bool,
+
+    old_top: Arc<Mutex<Address>>,
     old_limit: Address,
+    old_lab: Lab,
 
-    young_top: Address,
+    young_top: Arc<Mutex<Address>>,
     young_limit: Address,
+    young_lab: Lab,
 }
 
 impl<'a, 'ast> CopyTask<'a, 'ast>
@@ -739,18 +804,100 @@ where
     }
 
     fn alloc_young(&mut self, size: usize) -> Address {
-        let next = self.young_top.offset(size);
+        let object_start = self.young_lab.alloc(size);
 
-        if next <= self.young_limit {
-            self.young_top = next;
-            return next;
+        if object_start.is_non_null() {
+            return object_start;
+        } else if self.copy_failed {
+            return Address::null();
         }
 
-        Address::null()
+        debug_assert!(size <= CLAB_SIZE);
+        self.alloc_young_lab();
+
+        self.young_lab.alloc(size)
     }
 
-    fn copy(&mut self, _addr: Address) -> Address {
-        Address::null()
+    fn alloc_young_lab(&mut self) {
+        self.young_lab.make_iterable(self.vm);
+        let mut young_top = self.young_top.lock();
+
+        let lab_start = *young_top;
+        let lab_end = lab_start.offset(CLAB_SIZE);
+
+        if lab_end <= self.young_limit {
+            *young_top = lab_end;
+
+            self.young_lab.top = lab_start;
+            self.young_lab.limit = lab_end;
+        } else {
+            self.copy_failed = true;
+
+            self.young_lab.top = Address::null();
+            self.young_lab.limit = Address::null();
+        }
+    }
+
+    fn copy(&mut self, obj_addr: Address) -> Address {
+        let obj = obj_addr.to_mut_obj();
+
+        // Check if object was already copied
+        let vtblptr = match obj.header().vtblptr_forwarded_atomic() {
+            Ok(fwd_addr) => {
+                return fwd_addr;
+            }
+
+            Err(vtblptr) => vtblptr,
+        };
+
+        // As soon as promotion of an object failed, objects are not copied anymore.
+        if self.promotion_failed {
+            return obj_addr;
+        }
+
+        let obj_size = obj.size();
+        debug_assert!(
+            self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
+            "copy objects only from from-space."
+        );
+
+        // If object is old enough we copy it into the old generation
+        if self.young.should_be_promoted(obj_addr) {
+            return self.promote_object(vtblptr, obj, obj_size);
+        }
+
+        let copy_addr = self.alloc_young(obj_size);
+
+        // Couldn't allocate object in young generation, try to promote
+        // object into old generation instead.
+        if copy_addr.is_null() {
+            return self.promote_object(vtblptr, obj, obj_size);
+        }
+
+        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
+
+        match res {
+            Ok(()) => {
+                obj.copy_to(copy_addr, obj_size);
+                self.push(copy_addr);
+
+                copy_addr
+            }
+
+            Err(fwdptr) => {
+                self.young_lab.undo_alloc(obj_size);
+
+                fwdptr
+            }
+        }
+    }
+
+    fn promote_object(&mut self, _vtblptr: Address, _obj: &mut Obj, _obj_size: usize) -> Address {
+        unimplemented!()
+    }
+
+    fn push(&mut self, addr: Address) {
+        self.local.push(addr);
     }
 
     fn pop(&mut self) -> Option<Address> {
