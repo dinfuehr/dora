@@ -1,0 +1,10 @@
+//= vm-args "--gc-parallel-minor --gc-verify"
+//= ignore
+
+fun main() {
+    let x = Foo(Foo(nil));
+    forceMinorCollect();
+    assert(x.next.next === nil);
+}
+
+class Foo(let next: Foo)

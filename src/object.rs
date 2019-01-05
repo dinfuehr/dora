@@ -118,7 +118,7 @@ impl Header {
             self.vtable
                 .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
 
-        if result == fwd {
+        if result == expected_vtblptr.to_usize() {
             Ok(())
         } else {
             // If update fails, this needs to be a forwarding pointer
@@ -142,7 +142,7 @@ impl Header {
             self.vtable
                 .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
 
-        if result == fwd {
+        if result == expected_vtblptr.to_usize() {
             Ok(())
         } else {
             // If update fails, this needs to be a forwarding pointer
