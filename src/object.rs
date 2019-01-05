@@ -75,11 +75,32 @@ impl Header {
         }
     }
 
+    pub fn vtblptr_repair(&mut self) {
+        let addr = self.vtable.load(Ordering::Relaxed);
+
+        if (addr & 3) == 3 {
+            // forwarding failed
+            let vtblptr = (addr & !3).into();
+            self.set_vtblptr(vtblptr);
+        } else if (addr & 1) == 1 {
+            // object was forwarded
+            let fwd: Address = (addr & !1).into();
+            let fwd = fwd.to_obj();
+            let vtblptr = fwd.header().vtblptr();
+
+            self.set_vtblptr(vtblptr);
+        } else {
+            // nothing to do
+        }
+    }
+
     #[inline(always)]
     pub fn vtblptr_forwarded_atomic(&self) -> Result<Address, Address> {
         let addr = self.vtable.load(Ordering::Relaxed);
 
-        if (addr & 1) == 1 {
+        if (addr & 3) == 3 {
+            Ok(Address::from_ptr(self as *const _))
+        } else if (addr & 1) == 1 {
             Ok((addr & !1).into())
         } else {
             Err(addr.into())
@@ -95,7 +116,7 @@ impl Header {
         let fwd = new_address.to_usize() | 1;
         let result =
             self.vtable
-                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::AcqRel);
+                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
 
         if result == fwd {
             Ok(())
@@ -103,7 +124,35 @@ impl Header {
             // If update fails, this needs to be a forwarding pointer
             debug_assert!((result | 1) != 0);
 
-            Err((result & !1).into())
+            if (result & 3) == 3 {
+                Err(Address::from_ptr(self as *const _))
+            } else {
+                Err((result & !1).into())
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub fn vtblptr_forward_failure_atomic(
+        &mut self,
+        expected_vtblptr: Address,
+    ) -> Result<(), Address> {
+        let fwd = expected_vtblptr.to_usize() | 3;
+        let result =
+            self.vtable
+                .compare_and_swap(expected_vtblptr.to_usize(), fwd, Ordering::SeqCst);
+
+        if result == fwd {
+            Ok(())
+        } else {
+            // If update fails, this needs to be a forwarding pointer
+            debug_assert!((result | 1) != 0);
+
+            if (result & 3) == 3 {
+                Err(Address::from_ptr(self as *const _))
+            } else {
+                Err((result & !1).into())
+            }
         }
     }
 

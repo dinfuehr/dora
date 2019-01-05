@@ -341,11 +341,14 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let young_region = self.young.total();
         let vm = self.vm;
 
-        let old_top = Arc::new(Mutex::new(Address::null()));
-        let old_limit = Address::null();
+        // align old generation to card boundary
+        let old_top = self.old.align_to_card(self.vm);
 
-        let young_top = Arc::new(Mutex::new(Address::null()));
-        let young_limit = Address::null();
+        let old_top = Arc::new(Mutex::new(old_top));
+        let old_limit = self.old.committed().end;
+
+        let young_top = Arc::new(Mutex::new(self.young_top));
+        let young_limit = self.young_limit;
 
         let young = self.young;
 
@@ -372,6 +375,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         eden_active: young.eden_active(),
 
                         promotion_failed: false,
+                        promoted_size: 0,
                         copy_failed: false,
 
                         old_top: old_top,
@@ -671,16 +675,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 continue;
             }
 
-            if let Some(fwd) = obj.header().vtblptr_forwarded() {
-                debug_assert!(
-                    self.young.to_committed().contains(fwd) || self.old.committed().contains(fwd)
-                );
-
-                let fwd = fwd.to_mut_obj();
-                let vtblptr = fwd.header().vtblptr();
-                obj.header_mut().set_vtblptr(vtblptr);
-            }
-
+            obj.header_mut().vtblptr_repair();
             scan = scan.offset(obj.size());
         }
 
@@ -750,6 +745,7 @@ struct CopyTask<'a, 'ast: 'a> {
     eden_active: Region,
 
     promotion_failed: bool,
+    promoted_size: usize,
     copy_failed: bool,
 
     old_top: Arc<Mutex<Address>>,
@@ -818,6 +814,21 @@ where
         self.young_lab.alloc(size)
     }
 
+    fn alloc_old(&mut self, size: usize, _array_ref: bool) -> Address {
+        let object_start = self.old_lab.alloc(size);
+
+        if object_start.is_non_null() {
+            return object_start;
+        } else if self.promotion_failed {
+            return Address::null();
+        }
+
+        debug_assert!(size <= CLAB_SIZE);
+        self.alloc_old_lab();
+
+        self.old_lab.alloc(size)
+    }
+
     fn alloc_young_lab(&mut self) {
         self.young_lab.make_iterable(self.vm);
         let mut young_top = self.young_top.lock();
@@ -835,6 +846,26 @@ where
 
             self.young_lab.top = Address::null();
             self.young_lab.limit = Address::null();
+        }
+    }
+
+    fn alloc_old_lab(&mut self) {
+        self.old_lab.make_iterable(self.vm);
+        let mut old_top = self.old_top.lock();
+
+        let lab_start = *old_top;
+        let lab_end = lab_start.offset(CLAB_SIZE);
+
+        if lab_end <= self.old_limit {
+            *old_top = lab_end;
+
+            self.old_lab.top = lab_start;
+            self.old_lab.limit = lab_end;
+        } else {
+            self.promotion_failed = true;
+
+            self.old_lab.top = Address::null();
+            self.old_lab.limit = Address::null();
         }
     }
 
@@ -892,8 +923,42 @@ where
         }
     }
 
-    fn promote_object(&mut self, _vtblptr: Address, _obj: &mut Obj, _obj_size: usize) -> Address {
-        unimplemented!()
+    fn promote_object(&mut self, vtblptr: Address, obj: &mut Obj, obj_size: usize) -> Address {
+        let copy_addr = self.alloc_old(obj_size, obj.is_array_ref());
+
+        // if there isn't enough space in old gen keep it in the
+        // young generation for now. A full collection will be forced later and
+        // cleans this up.
+        if copy_addr.is_null() {
+            let res = obj.header_mut().vtblptr_forward_failure_atomic(vtblptr);
+
+            return match res {
+                Ok(()) => {
+                    self.promotion_failed = true;
+                    obj.address()
+                }
+
+                Err(fwdptr) => fwdptr,
+            };
+        }
+
+        let res = obj.header_mut().vtblptr_forward_atomic(vtblptr, copy_addr);
+
+        match res {
+            Ok(()) => {
+                obj.copy_to(copy_addr, obj_size);
+                self.promoted_size += obj_size;
+                self.push(copy_addr);
+
+                copy_addr
+            }
+
+            Err(fwdptr) => {
+                self.old_lab.undo_alloc(obj_size);
+
+                fwdptr
+            }
+        }
     }
 
     fn push(&mut self, addr: Address) {
