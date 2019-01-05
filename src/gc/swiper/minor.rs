@@ -141,7 +141,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse)");
         }
         let time_traverse = Timer::ms(active, || {
-            self.visit_gray_objects();
+            self.trace_objects();
         });
 
         if dev_verbose {
@@ -293,15 +293,15 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         self.update_card(card_idx, ref_to_young_gen);
     }
 
-    fn visit_gray_objects(&mut self) {
+    fn trace_objects(&mut self) {
         if self.parallel {
-            self.visit_gray_objects_par();
+            self.trace_gray_objects_par();
         } else {
-            self.visit_gray_objects_seq();
+            self.trace_gray_objects_seq();
         }
     }
 
-    fn visit_gray_objects_seq(&mut self) {
+    fn trace_gray_objects_seq(&mut self) {
         let mut young_scan = self.young.to_committed().start;
         let mut old_scan = self.old_end;
 
@@ -309,11 +309,11 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         // there can be gray objects in old & young gen
         while young_scan < self.young_top || old_scan < self.old.top() {
             while young_scan < self.young_top {
-                young_scan = self.visit_gray_object(young_scan);
+                young_scan = self.trace_young_object(young_scan);
             }
 
             while old_scan < self.old.top() {
-                old_scan = self.visit_gray_object_in_old(old_scan);
+                old_scan = self.trace_old_object(old_scan);
             }
         }
 
@@ -321,7 +321,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         assert!(old_scan == self.old.top());
     }
 
-    fn visit_gray_objects_par(&mut self) {
+    fn trace_gray_objects_par(&mut self) {
         let mut workers = Vec::with_capacity(self.number_workers);
         let mut stealers = Vec::with_capacity(self.number_workers);
 
@@ -353,6 +353,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let card_table = self.card_table;
         let crossing_map = self.crossing_map;
         let young = self.young;
+        let old = self.old;
 
         self.threadpool.scoped(|scoped| {
             for (task_id, worker) in workers.into_iter().enumerate() {
@@ -372,6 +373,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
                         vm: vm,
                         young: young,
+                        old: old,
                         young_region: young_region,
                         card_table: card_table,
                         crossing_map: crossing_map,
@@ -396,9 +398,12 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                 });
             }
         });
+
+        self.young_top = *young_top.lock();
+        self.old.update_top(*old_top.lock());
     }
 
-    fn visit_gray_object(&mut self, addr: Address) -> Address {
+    fn trace_young_object(&mut self, addr: Address) -> Address {
         let object = addr.to_mut_obj();
 
         object.visit_reference_fields(|field| {
@@ -412,7 +417,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         addr.offset(object.size())
     }
 
-    fn visit_gray_object_in_old(&mut self, object_start: Address) -> Address {
+    fn trace_old_object(&mut self, object_start: Address) -> Address {
         let object = object_start.to_mut_obj();
 
         if object.is_array_ref() {
@@ -709,6 +714,11 @@ impl Lab {
         }
     }
 
+    fn reset(&mut self, top: Address, limit: Address) {
+        self.top = top;
+        self.limit = limit;
+    }
+
     fn make_iterable(&mut self, vm: &VM) {
         fill_region(vm, self.top, self.limit);
 
@@ -745,6 +755,7 @@ struct CopyTask<'a, 'ast: 'a> {
 
     vm: &'a VM<'ast>,
     young: &'a YoungGen,
+    old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
 
@@ -869,8 +880,8 @@ where
         self.young_lab.alloc(size)
     }
 
-    fn alloc_old(&mut self, size: usize, _array_ref: bool) -> Address {
-        let object_start = self.old_lab.alloc(size);
+    fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
+        let object_start = self.alloc_old_inner(size, array_ref);
 
         if object_start.is_non_null() {
             return object_start;
@@ -881,27 +892,30 @@ where
         debug_assert!(size <= CLAB_SIZE);
         self.alloc_old_lab();
 
-        self.old_lab.alloc(size)
+        self.alloc_old_inner(size, array_ref)
+    }
+
+    fn alloc_old_inner(&mut self, size: usize, array_ref: bool) -> Address {
+        let object_start = self.old_lab.alloc(size);
+
+        if object_start.is_non_null() {
+            let old = object_start;
+            let new = old.offset(size);
+            self.old.update_crossing(old, new, array_ref);
+            object_start
+        } else {
+            Address::null()
+        }
     }
 
     fn alloc_young_lab(&mut self) {
-        self.young_lab.make_iterable(self.vm);
-        let mut young_top = self.young_top.lock();
-
-        let lab_start = *young_top;
-        let lab_end = lab_start.offset(CLAB_SIZE);
-
-        if lab_end <= self.young_limit {
-            *young_top = lab_end;
-
-            self.young_lab.top = lab_start;
-            self.young_lab.limit = lab_end;
-        } else {
-            self.copy_failed = true;
-
-            self.young_lab.top = Address::null();
-            self.young_lab.limit = Address::null();
-        }
+        alloc_lab(
+            self.vm,
+            &mut self.young_lab,
+            &mut self.copy_failed,
+            &self.young_top,
+            self.young_limit,
+        )
     }
 
     fn alloc_old_lab(&mut self) {
@@ -1074,5 +1088,21 @@ where
         }
 
         None
+    }
+}
+
+fn alloc_lab(vm: &VM, lab: &mut Lab, failed: &mut bool, top: &Arc<Mutex<Address>>, limit: Address) {
+    lab.make_iterable(vm);
+    let mut top = top.lock();
+
+    let lab_start = *top;
+    let lab_end = lab_start.offset(CLAB_SIZE);
+
+    if lab_end <= limit {
+        *top = lab_end;
+        lab.reset(lab_start, lab_end);
+    } else {
+        lab.reset(Address::null(), Address::null());
+        *failed = true;
     }
 }
