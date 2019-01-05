@@ -350,6 +350,8 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let young_top = Arc::new(Mutex::new(self.young_top));
         let young_limit = self.young_limit;
 
+        let card_table = self.card_table;
+        let crossing_map = self.crossing_map;
         let young = self.young;
 
         self.threadpool.scoped(|scoped| {
@@ -371,6 +373,9 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         vm: vm,
                         young: young,
                         young_region: young_region,
+                        card_table: card_table,
+                        crossing_map: crossing_map,
+
                         from_active: young.from_active(),
                         eden_active: young.eden_active(),
 
@@ -740,6 +745,9 @@ struct CopyTask<'a, 'ast: 'a> {
 
     vm: &'a VM<'ast>,
     young: &'a YoungGen,
+    card_table: &'a CardTable,
+    crossing_map: &'a CrossingMap,
+
     young_region: Region,
     from_active: Region,
     eden_active: Region,
@@ -782,20 +790,67 @@ where
     fn trace_young_object(&mut self, object_addr: Address) {
         let object = object_addr.to_mut_obj();
 
-        object.visit_reference_fields(|field| {
-            self.trace_slot(field);
+        object.visit_reference_fields(|slot| {
+            let object_addr = slot.get();
+
+            if self.young_region.contains(object_addr) {
+                slot.set(self.copy(object_addr));
+            }
         });
     }
 
-    fn trace_old_object(&mut self, _object_addr: Address) {
-        unimplemented!();
-    }
+    fn trace_old_object(&mut self, object_addr: Address) {
+        let object = object_addr.to_mut_obj();
 
-    fn trace_slot(&mut self, slot: Slot) {
-        let object_addr = slot.get();
+        if object.is_array_ref() {
+            let mut ref_to_young_gen = false;
+            let mut last = object_addr;
 
-        if self.young_region.contains(object_addr) {
-            slot.set(self.copy(object_addr));
+            object.visit_reference_fields(|slot| {
+                let field_ptr = slot.get();
+
+                if on_different_cards(last, slot.address()) && ref_to_young_gen {
+                    let card_idx = self.card_table.card_idx(last);
+                    self.card_table.set(card_idx, CardEntry::Dirty);
+                    ref_to_young_gen = false;
+                }
+
+                if self.young.contains(field_ptr) {
+                    let copied_addr = self.copy(field_ptr);
+                    slot.set(copied_addr);
+
+                    if self.young.contains(copied_addr) {
+                        ref_to_young_gen = true;
+                    }
+                }
+
+                last = slot.address();
+            });
+
+            if ref_to_young_gen {
+                let card_idx = self.card_table.card_idx(last);
+                self.card_table.set(card_idx, CardEntry::Dirty);
+            }
+        } else {
+            let mut ref_to_young_gen = false;
+
+            object.visit_reference_fields(|slot| {
+                let field_ptr = slot.get();
+
+                if self.young.contains(field_ptr) {
+                    let copied_addr = self.copy(field_ptr);
+                    slot.set(copied_addr);
+
+                    if self.young.contains(copied_addr) {
+                        ref_to_young_gen = true;
+                    }
+                }
+            });
+
+            if ref_to_young_gen {
+                let card_idx = self.card_table.card_idx(object_addr);
+                self.card_table.set(card_idx, CardEntry::Dirty);
+            }
         }
     }
 
