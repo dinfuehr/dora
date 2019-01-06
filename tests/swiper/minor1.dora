@@ -6,6 +6,8 @@ fun main() {
     assert(x.next.next === nil);
     forceMinorCollect();
     assert(x.next.next === nil);
+    forceMinorCollect();
+    assert(x.next.next === nil);
 }
 
 class Foo(let next: Foo)

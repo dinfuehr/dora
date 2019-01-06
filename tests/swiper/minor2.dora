@@ -1,5 +1,4 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
-//= ignore
 
 fun main() {
     var x = Foo(nil);
@@ -22,6 +21,8 @@ fun main() {
         i = i + 1;
     }
 
+    forceMinorCollect();
+    assert(x.next.next !== nil);
     forceMinorCollect();
     assert(x.next.next !== nil);
 }

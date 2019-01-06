@@ -730,8 +730,18 @@ impl Lab {
         self.limit = limit;
     }
 
-    fn make_iterable(&mut self, vm: &VM) {
+    fn make_iterable_young(&mut self, vm: &VM) {
         fill_region(vm, self.top, self.limit);
+
+        self.top = Address::null();
+        self.limit = Address::null();
+    }
+
+    fn make_iterable_old(&mut self, vm: &VM, old: &OldGen) {
+        fill_region(vm, self.top, self.limit);
+        if self.limit.is_non_null() {
+            old.update_crossing(self.top, self.limit, false);
+        }
 
         self.top = Address::null();
         self.limit = Address::null();
@@ -844,6 +854,9 @@ where
                 self.trace_old_object(object_addr);
             }
         }
+
+        self.young_lab.make_iterable_young(self.vm);
+        self.old_lab.make_iterable_old(self.vm, self.old);
     }
 
     fn promotion_failed(&self) -> bool {
@@ -927,7 +940,7 @@ where
         }
 
         debug_assert!(size <= CLAB_SIZE);
-        self.young_lab.make_iterable(self.vm);
+        self.young_lab.make_iterable_young(self.vm);
         if !self.young_alloc.alloc(&mut self.young_lab) {
             return Address::null();
         }
@@ -945,7 +958,7 @@ where
         }
 
         debug_assert!(size <= CLAB_SIZE);
-        self.old_lab.make_iterable(self.vm);
+        self.old_lab.make_iterable_old(self.vm, self.old);
         if !self.old_alloc.alloc(&mut self.old_lab) {
             return Address::null();
         }
