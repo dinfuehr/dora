@@ -387,6 +387,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         eden_active: young.eden_active(),
 
                         promoted_size: 0,
+                        traced: 0,
 
                         old_lab: Lab::new(),
                         old_alloc: LabAlloc::new(old_top, old_limit),
@@ -831,6 +832,7 @@ struct CopyTask<'a, 'ast: 'a> {
     eden_active: Region,
 
     promoted_size: usize,
+    traced: usize,
 
     old_lab: Lab,
     old_alloc: LabAlloc,
@@ -1074,8 +1076,26 @@ where
     fn push(&mut self, addr: Address) {
         if self.local.len() < LOCAL_MAXIMUM {
             self.local.push(addr);
+            self.defensive_push();
         } else {
             self.worker.push(addr);
+        }
+    }
+
+    fn defensive_push(&mut self) {
+        self.traced += 1;
+
+        if self.traced > 256 {
+            if self.local.len() > 4 {
+                let target_len = self.local.len() / 2;
+
+                while self.local.len() > target_len {
+                    let val = self.local.pop().unwrap();
+                    self.worker.push(val);
+                }
+            }
+
+            self.traced = 0;
         }
     }
 

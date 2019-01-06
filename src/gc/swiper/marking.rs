@@ -207,22 +207,30 @@ impl MarkingTask {
             if field_obj.header().try_mark_non_atomic() {
                 if self.local.has_capacity() {
                     self.local.push(field_addr);
+                    self.defensive_push();
                 } else {
                     self.worker.push(field_addr);
-                }
-
-                self.marked += 1;
-                if self.marked > 256 && self.local.len() > 16 {
-                    let target_len = self.local.len() / 2;
-
-                    while self.local.len() > target_len {
-                        let val = self.local.pop().unwrap();
-                        self.worker.push(val);
-                    }
                 }
             }
         } else {
             debug_assert!(field_addr.is_null() || self.perm_region.contains(field_addr));
+        }
+    }
+
+    fn defensive_push(&mut self) {
+        self.marked += 1;
+
+        if self.marked > 256 {
+            if self.local.len() > 4 {
+                let target_len = self.local.len() / 2;
+
+                while self.local.len() > target_len {
+                    let val = self.local.pop().unwrap();
+                    self.worker.push(val);
+                }
+            }
+
+            self.marked = 0;
         }
     }
 }
