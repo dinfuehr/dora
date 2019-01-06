@@ -194,9 +194,15 @@ impl Swiper {
         tlab::make_iterable(vm);
         let rootset = get_rootset(vm);
 
-        self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset);
+        self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset, false);
         let promotion_failed = self.minor_collect(vm, reason, &rootset);
-        self.verify(vm, VerifierPhase::PostMinor, "post-minor", &rootset);
+        self.verify(
+            vm,
+            VerifierPhase::PostMinor,
+            "post-minor",
+            &rootset,
+            promotion_failed,
+        );
 
         promotion_failed
     }
@@ -226,7 +232,13 @@ impl Swiper {
 
         let rootset = get_rootset(vm);
 
-        self.verify(vm, VerifierPhase::PreFull, "pre-full", &rootset);
+        self.verify(
+            vm,
+            VerifierPhase::PreFull,
+            "pre-full",
+            &rootset,
+            reason == GcReason::PromotionFailure,
+        );
 
         let mut pool = self.threadpool.lock();
         let mut collector = FullCollector::new(
@@ -247,10 +259,17 @@ impl Swiper {
         );
         collector.collect();
 
-        self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset);
+        self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset, false);
     }
 
-    fn verify(&self, vm: &VM, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
+    fn verify(
+        &self,
+        vm: &VM,
+        phase: VerifierPhase,
+        _name: &str,
+        rootset: &[Slot],
+        promotion_failed: bool,
+    ) {
         if vm.args.flag_gc_verify {
             if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", _name);
@@ -268,6 +287,7 @@ impl Swiper {
                 &*perm_space,
                 self.reserved_area.clone(),
                 phase,
+                promotion_failed,
             );
             verifier.verify();
 

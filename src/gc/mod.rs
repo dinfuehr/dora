@@ -362,6 +362,7 @@ pub fn align_gen(val: usize) -> usize {
     ((val + (1 << align) - 1) >> align) << align
 }
 
+#[derive(PartialEq, Eq)]
 pub enum GcReason {
     PromotionFailure,
     AllocationFailure,

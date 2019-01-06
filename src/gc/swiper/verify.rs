@@ -67,6 +67,7 @@ pub struct Verifier<'a> {
     reserved_area: Region,
 
     phase: VerifierPhase,
+    promotion_failed: bool,
 }
 
 impl<'a> Verifier<'a> {
@@ -80,6 +81,7 @@ impl<'a> Verifier<'a> {
         perm_space: &'a Space,
         reserved_area: Region,
         phase: VerifierPhase,
+        promotion_failed: bool,
     ) -> Verifier<'a> {
         Verifier {
             young: young,
@@ -102,6 +104,7 @@ impl<'a> Verifier<'a> {
             reserved_area: reserved_area,
 
             phase: phase,
+            promotion_failed: promotion_failed,
         }
     }
 
@@ -120,7 +123,7 @@ impl<'a> Verifier<'a> {
         self.verify_objects(region, "young gen (from)");
 
         let region = self.to_active.clone();
-        if !self.phase.is_post_minor() && !self.phase.is_pre_full() {
+        if !self.promotion_failed {
             assert!(region.size() == 0, "to-space should be empty.");
         }
         self.verify_objects(region, "young gen (to)");
@@ -332,8 +335,7 @@ impl<'a> Verifier<'a> {
             || self.from_active.contains(reference)
             || self.perm_space.contains(reference)
             || self.large.contains(reference)
-            || (self.to_active.contains(reference)
-                && (self.phase.is_post_minor() || self.phase.is_pre_full()))
+            || (self.to_active.contains(reference) && self.promotion_failed)
         {
             let object = reference.to_obj();
 
