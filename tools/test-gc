@@ -7,6 +7,13 @@ for type in "" "--release"; do
   cargo run $type -- --max-heap-size=512M --gc-young-ratio=3 --gc-verify bench/binarytrees/binarytrees.dora 21
   cargo run $type -- --max-heap-size=512M --gc-young-ratio=4 --gc-verify bench/binarytrees/binarytrees.dora 21
 
+  # test parallel minor collection
+  cargo run $type -- --max-heap-size=512M --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=512M --gc-young-ratio=2 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=512M --gc-young-ratio=3 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
+  cargo run $type -- --max-heap-size=512M --gc-young-ratio=4 --gc-verify --gc-parallel-minor bench/binarytrees/binarytrees.dora 21
+
+  # test parallel marking
   cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-marking tests/swiper/marking1.dora
   cargo run $type -- --max-heap-size=4G --gc-worker=4 --gc-verify --gc-parallel-marking tests/swiper/marking2.dora
   cargo run $type -- --gc-verify --gc-parallel-marking tests/swiper/marking3.dora

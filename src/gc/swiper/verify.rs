@@ -166,7 +166,14 @@ impl<'a> Verifier<'a> {
             let object = unsafe { &mut *curr.to_mut_ptr::<Obj>() };
 
             if object.header().vtblptr().is_null() {
-                curr = curr.add_ptr(1);
+                let next = curr.add_ptr(1);
+
+                if self.in_old && on_different_cards(curr, next) {
+                    self.verify_card(curr);
+                    self.verify_crossing(curr, next, false);
+                }
+
+                curr = next;
                 continue;
             }
 
@@ -249,9 +256,14 @@ impl<'a> Verifier<'a> {
                 CardEntry::Clean => "clean",
             };
 
+            let card_start = self.card_table.to_address(curr_card);
+            let card_end = card_start.offset(CARD_SIZE);
+
             println!(
-                "CARD: {} is marked {} but has {} reference(s).",
+                "CARD: {} ({}-{}) is marked {} but has {} reference(s).",
                 curr_card.to_usize(),
+                card_start,
+                card_end,
                 card_text,
                 self.refs_to_young_gen
             );

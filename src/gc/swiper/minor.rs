@@ -583,6 +583,11 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         while ptr < end {
             let object = ptr.to_mut_obj();
 
+            if object.header().vtblptr().is_null() {
+                ptr = ptr.add_ptr(1);
+                continue;
+            }
+
             object.visit_reference_fields_within(end, |field| {
                 let field_ptr = field.get();
 
