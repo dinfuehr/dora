@@ -56,6 +56,10 @@ impl YoungGen {
         self.eden.committed()
     }
 
+    pub fn eden_total(&self) -> Region {
+        self.eden.total()
+    }
+
     pub fn from_active(&self) -> Region {
         self.semi.from_active()
     }

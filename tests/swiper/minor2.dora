@@ -1,0 +1,29 @@
+//= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
+//= ignore
+
+fun main() {
+    var x = Foo(nil);
+    var i = 0;
+
+    while i < 100 {
+        x = Foo(x);
+        Foo(x);
+        i = i + 1;
+    }
+
+    forceMinorCollect();
+    assert(x.next.next !== nil);
+
+    i = 0;
+
+    while i < 100 {
+        x = Foo(x);
+        Foo(x);
+        i = i + 1;
+    }
+
+    forceMinorCollect();
+    assert(x.next.next !== nil);
+}
+
+class Foo(let next: Foo)

@@ -359,10 +359,22 @@ impl<'a> Verifier<'a> {
             perm_region.size(),
         );
         println!(
+            "EDN: {}; active: {} (size 0x{:x})",
+            self.young.eden_total(),
+            self.eden_active,
+            self.eden_active.size(),
+        );
+        println!(
             "FRM: {}; active: {} (size 0x{:x})",
             self.young.from_total(),
             self.from_active,
             self.from_active.size(),
+        );
+        println!(
+            " TO: {}; active: {} (size 0x{:x})",
+            self.young.to_total(),
+            self.to_active,
+            self.to_active.size(),
         );
         println!(
             "OLD: {}; active: {} (size 0x{:x})",
