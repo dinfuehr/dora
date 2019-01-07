@@ -5,6 +5,7 @@ use ctxt::VM;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
+use gc::swiper::controller::compute_young_size;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
@@ -14,7 +15,7 @@ use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
-use gc::{align_gen, arena, GcReason};
+use gc::{arena, GcReason};
 use gc::{formatted_size, Address, Region};
 use mem;
 
@@ -72,18 +73,7 @@ impl Swiper {
         let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
 
-        // determine initial young-ratio
-        let mut young_ratio = args.flag_gc_young_ratio.unwrap_or(YOUNG_RATIO);
-
-        if young_ratio < 2 {
-            young_ratio = YOUNG_RATIO;
-        }
-
-        // determine size for generations
-        let young_size = align_gen(max_heap_size / young_ratio);
-        let old_size = align_gen(max_heap_size - young_size);
-
-        let max_heap_size = young_size + old_size;
+        let (young_size, old_size) = compute_young_size(max_heap_size, 0);
 
         // determine size for card table
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);

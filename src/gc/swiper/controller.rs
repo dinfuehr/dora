@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
 use gc::GEN_ALIGNMENT_BITS;
@@ -30,7 +32,7 @@ pub fn resize_gens_after_minor(
     old.set_committed_size(old_size);
 
     // force full GC when young collection becomes too small
-    young_size < old_size / 16
+    young_size < MIN_YOUNG_SIZE
 }
 
 pub fn resize_gens_after_full(
@@ -59,13 +61,16 @@ pub fn resize_gens_after_full(
     old.set_committed_size(old_size);
 }
 
+const MAX_YOUNG_SIZE: usize = 256 * 1024 * 1024;
+const MIN_YOUNG_SIZE: usize = 32 * 1024 * 1024;
+
 // calculate young generation size from old generation and heap size.
-fn compute_young_size(heap_size: usize, old_size: usize) -> (usize, usize) {
+pub fn compute_young_size(heap_size: usize, old_size: usize) -> (usize, usize) {
     assert!(old_size <= heap_size);
     let old_size = align_gen(old_size);
     let rest = ((heap_size - old_size) >> (GEN_ALIGNMENT_BITS + 1)) << GEN_ALIGNMENT_BITS;
 
-    let young_size = rest;
+    let young_size = min(rest, MAX_YOUNG_SIZE);
     let old_size = heap_size - young_size;
 
     assert!(young_size > 0 && old_size > 0 && old_size + young_size <= heap_size);
