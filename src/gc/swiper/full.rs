@@ -291,11 +291,12 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                 }
 
                 // unmark object for next collection
-                dest.to_mut_obj().header_mut().unmark_non_atomic();
+                let dest_obj = dest.to_mut_obj();
+                dest_obj.header_mut().unmark_non_atomic();
 
                 if on_different_cards(dest, next_dest) {
                     full.old
-                        .update_crossing(dest, next_dest, object.is_array_ref());
+                        .update_crossing(dest, next_dest, dest_obj.is_array_ref());
                 }
             }
         });
