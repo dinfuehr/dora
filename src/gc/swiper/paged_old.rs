@@ -1,3 +1,5 @@
+use fixedbitset::FixedBitSet;
+
 use gc::Region;
 
 // experimental implementation of an Old generation consisting of pages
@@ -6,7 +8,10 @@ struct PagedOldGen {
     // total size of old generation
     total: Region,
 
-    live_pages: PageSet,
+    pages: Vec<Page>,
+
+    // all used pages
+    used_pages: PageSet,
 
     // completely free pages (no live objects)
     free_pages: PageSet,
@@ -14,22 +19,44 @@ struct PagedOldGen {
 
 // Choose 512K as page size for now
 const PAGE_SIZE_BITS: usize = 19;
+const PAGE_SIZE: usize = 2 << PAGE_SIZE_BITS;
 
 struct PageId(usize);
 
 struct Page {
+    // page boundaries
+    region: Region,
+
     // end of allocated area in page
     top: usize,
 
     // live objects in bytes
     live: usize,
 
-    // amount of garbage in bytes
-    garbage: usize,
+    // state of page
+    state: PageState,
 }
 
 // An array of Pages
-// TODO: implement this as bitset
 struct PageSet {
-    pages: Vec<PageId>,
+    leftmost: usize,
+    rightmost: usize,
+    pages: FixedBitSet,
+}
+
+impl PageSet {
+    fn empty(pages: usize) -> PageSet {
+        assert!(pages > 0);
+
+        PageSet {
+            leftmost: 0,
+            rightmost: pages - 1,
+            pages: FixedBitSet::with_capacity(pages),
+        }
+    }
+}
+
+enum PageState {
+    Free,
+    Used,
 }

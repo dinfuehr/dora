@@ -12,6 +12,7 @@ extern crate core;
 extern crate crossbeam_deque;
 extern crate docopt;
 extern crate dora_parser;
+extern crate fixedbitset;
 extern crate libc;
 extern crate parking_lot;
 extern crate rand;

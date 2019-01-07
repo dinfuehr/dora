@@ -278,7 +278,7 @@ impl From<usize> for Address {
     }
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Region {
     pub start: Address,
     pub end: Address,
@@ -286,6 +286,8 @@ pub struct Region {
 
 impl Region {
     pub fn new(start: Address, end: Address) -> Region {
+        debug_assert!(start <= end);
+
         Region {
             start: start,
             end: end,
