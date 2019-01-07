@@ -29,9 +29,11 @@ pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
 // every space (eden/from/to/old) is aligned to at least this size
 const SPACE_ALIGNMENT_BITS: usize = 17;
+const SPACE_SIZE: usize = 1 << SPACE_ALIGNMENT_BITS;
 
 // young/old gen are aligned to at least this size
 const GEN_ALIGNMENT_BITS: usize = 19;
+const GEN_SIZE: usize = 1 << GEN_ALIGNMENT_BITS;
 
 pub struct Gc {
     collector: Box<Collector + Sync>,
@@ -356,12 +358,22 @@ pub fn align_space(val: usize) -> usize {
     ((val + (1 << align) - 1) >> align) << align
 }
 
+/// returns true if given size is space aligned
+pub fn space_aligned(size: usize) -> bool {
+    (size & (SPACE_ALIGNMENT_BITS - 1)) == 0
+}
+
 /// round the given value up to the nearest multiple of a generation
 pub fn align_gen(val: usize) -> usize {
     let align = GEN_ALIGNMENT_BITS;
     // we know that page size is power of 2, hence
     // we can use shifts instead of expensive division
     ((val + (1 << align) - 1) >> align) << align
+}
+
+/// returns true if given size is gen aligned
+pub fn gen_aligned(size: usize) -> bool {
+    (size & (GEN_SIZE - 1)) == 0
 }
 
 #[derive(PartialEq, Eq)]

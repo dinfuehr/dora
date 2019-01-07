@@ -148,6 +148,8 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             println!("Minor GC: Phase 3 (traverse) finished.");
         }
 
+        let mut force_full = false;
+
         if self.promotion_failed {
             // oh no: promotion failed, we need a subsequent full GC
             self.remove_forwarding_pointers();
@@ -159,19 +161,17 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
 
             assert!(self.young.eden_active().size() == 0);
             assert!(self.young.to_active().size() == 0);
-        }
 
-        let force_full = if self.vm.args.flag_gc_young_ratio.is_none() {
-            controller::resize_gens_after_minor(
-                self.min_heap_size,
-                self.max_heap_size,
-                self.young,
-                self.old,
-                self.vm.args.flag_gc_verbose,
-            )
-        } else {
-            false
-        };
+            if self.vm.args.flag_gc_young_ratio.is_none() {
+                force_full = controller::resize_gens_after_minor(
+                    self.min_heap_size,
+                    self.max_heap_size,
+                    self.young,
+                    self.old,
+                    self.vm.args.flag_gc_verbose,
+                );
+            }
+        }
 
         timer.stop_with(|time_pause| {
             let new_size = self.heap_size();

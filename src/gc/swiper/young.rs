@@ -2,7 +2,7 @@ use std::cmp::max;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gc::bump::BumpAllocator;
-use gc::{align_space, arena};
+use gc::{align_space, arena, gen_aligned, space_aligned};
 use gc::{Address, Region};
 use os::{self, ProtType};
 
@@ -147,7 +147,9 @@ impl YoungGen {
     }
 
     pub fn set_committed_size(&self, size: usize) {
+        assert!(gen_aligned(size));
         assert!(size <= self.total.size());
+
         let semi_target_size = align_space(size / SEMI_RATIO);
 
         // semi-space can't be smaller than current size of from-space though
@@ -443,6 +445,8 @@ impl Block {
     }
 
     fn set_committed_size(&self, new_size: usize) {
+        assert!(space_aligned(new_size));
+
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();
         assert!(new_committed <= self.end.to_usize());

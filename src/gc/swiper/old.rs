@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ctxt::VM;
-use gc::arena;
 use gc::swiper::card::CardTable;
 use gc::swiper::crossing::CrossingMap;
 use gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use gc::{arena, gen_aligned};
 use gc::{fill_region, Address, Region};
 use mem;
 use object::offset_of_array_data;
@@ -96,6 +96,8 @@ impl OldGen {
     }
 
     pub fn set_committed_size(&self, new_size: usize) {
+        assert!(gen_aligned(new_size));
+
         let old_committed = self.limit.load(Ordering::Relaxed);
         let new_committed = self.total.start.offset(new_size).to_usize();
         assert!(new_committed <= self.total.end.to_usize());
