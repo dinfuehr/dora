@@ -14,7 +14,8 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::GcStats;
 use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{fill_region, formatted_size, Address, GcReason, K, Region};
+use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
+use gc::{fill_region, formatted_size, Address, GcReason, Region};
 use mem;
 use object::Obj;
 use timer::Timer;
@@ -116,7 +117,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
-        self.old_end = self.old.align_to_card(self.vm);
+        self.old_end = self.old.top();
 
         self.young.unprotect_to();
 
@@ -342,9 +343,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
         let vm = self.vm;
 
         // align old generation to card boundary
-        let old_top = self.old.align_to_card(self.vm);
-
-        let old_top = Arc::new(Mutex::new(old_top));
+        let old_top = Arc::new(Mutex::new(self.old.top()));
         let old_limit = self.old.committed().end;
 
         let young_top = Arc::new(Mutex::new(self.young_top));
@@ -811,7 +810,9 @@ impl LabAlloc {
     }
 }
 
-const CLAB_SIZE: usize = 32 * K;
+const CLAB_SIZE: usize = TLAB_SIZE;
+const CLAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
+
 const LOCAL_MAXIMUM: usize = 64;
 
 struct CopyTask<'a, 'ast: 'a> {

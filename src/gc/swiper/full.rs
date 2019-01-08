@@ -30,7 +30,7 @@ pub struct FullCollector<'a, 'ast: 'a> {
 
     fwd: Address,
     fwd_end: Address,
-    old_top: Address,
+    init_old_top: Address,
 
     reason: GcReason,
     threadpool: &'a mut Pool,
@@ -73,7 +73,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
             fwd: old_committed.start,
             fwd_end: old_committed.end,
-            old_top: Address::null(),
+            init_old_top: Address::null(),
 
             reason: reason,
             threadpool: threadpool,
@@ -90,7 +90,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
         let dev_verbose = self.vm.args.flag_gc_dev_verbose;
         let timer = Timer::new(active);
         let init_size = self.heap_size();
-        self.old_top = self.old.active().end;
+        self.init_old_top = self.old.active().end;
 
         if dev_verbose {
             println!(
@@ -336,7 +336,7 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
 
     fn reset_cards(&mut self) {
         let start = self.old.total().start;
-        let end = cmp::max(self.fwd, self.old_top);
+        let end = cmp::max(self.fwd, self.init_old_top);
         self.card_table.reset_region(start, end);
     }
 
