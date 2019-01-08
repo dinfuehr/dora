@@ -21,11 +21,14 @@ pub mod swiper;
 pub mod tlab;
 pub mod zero;
 
-const LARGE_OBJECT_SIZE: usize = 64 * 1024;
+pub const K: usize = 1024;
+pub const M: usize = K * K;
 
-const CHUNK_SIZE: usize = 8 * 1024;
-pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
-pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
+const LARGE_OBJECT_SIZE: usize = 64 * K;
+
+const CHUNK_SIZE: usize = 8 * K;
+pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * K;
+pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * K;
 
 // every space (eden/from/to/old) is aligned to at least this size
 const SPACE_ALIGNMENT_BITS: usize = 17;

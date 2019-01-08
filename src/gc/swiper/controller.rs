@@ -2,7 +2,7 @@ use std::cmp::{max, min};
 
 use gc::swiper::old::OldGen;
 use gc::swiper::young::YoungGen;
-use gc::{align_gen, formatted_size};
+use gc::{align_gen, formatted_size, M};
 use gc::{GEN_ALIGNMENT_BITS, GEN_SIZE};
 
 pub fn resize_gens_after_minor(
@@ -61,8 +61,8 @@ pub fn resize_gens_after_full(
     old.set_committed_size(old_size);
 }
 
-const MAX_YOUNG_SIZE: usize = 256 * 1024 * 1024;
-const MIN_YOUNG_SIZE: usize = 32 * 1024 * 1024;
+const MAX_YOUNG_SIZE: usize = 256 * M;
+const MIN_YOUNG_SIZE: usize = 32 * M;
 
 // calculate young generation size from old generation and heap size.
 pub fn compute_young_size(heap_size: usize, init_old_size: usize) -> (usize, usize) {

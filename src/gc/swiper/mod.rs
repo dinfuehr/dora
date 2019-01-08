@@ -16,7 +16,7 @@ use gc::swiper::young::YoungGen;
 use gc::tlab;
 use gc::Collector;
 use gc::{arena, GcReason};
-use gc::{formatted_size, Address, Region};
+use gc::{formatted_size, Address, K, Region};
 use mem;
 
 pub mod card;
@@ -41,7 +41,7 @@ const YOUNG_RATIO: usize = 2;
 pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
 
-pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
+pub const LARGE_OBJECT_SIZE: usize = 16 * K;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space

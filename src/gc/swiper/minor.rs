@@ -14,7 +14,7 @@ use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
 use gc::swiper::GcStats;
 use gc::swiper::{CardIdx, CARD_SIZE};
-use gc::{fill_region, formatted_size, Address, GcReason, Region};
+use gc::{fill_region, formatted_size, Address, GcReason, K, Region};
 use mem;
 use object::Obj;
 use timer::Timer;
@@ -811,7 +811,7 @@ impl LabAlloc {
     }
 }
 
-const CLAB_SIZE: usize = 32 * 1024;
+const CLAB_SIZE: usize = 32 * K;
 const LOCAL_MAXIMUM: usize = 64;
 
 struct CopyTask<'a, 'ast: 'a> {

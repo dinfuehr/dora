@@ -1,9 +1,9 @@
 use ctxt::VM;
-use gc::{fill_region, Address, Region};
+use gc::{fill_region, Address, K, Region};
 use threads::THREAD;
 
-pub const TLAB_SIZE: usize = 32 * 1024;
-pub const TLAB_OBJECT_SIZE: usize = 8 * 1024;
+pub const TLAB_SIZE: usize = 32 * K;
+pub const TLAB_OBJECT_SIZE: usize = 8 * K;
 
 pub fn initialize(tlab: Region) {
     THREAD.with(|thread| {
