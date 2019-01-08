@@ -12,7 +12,7 @@ use gc::swiper::marking::Terminator;
 use gc::swiper::old::OldGen;
 use gc::swiper::on_different_cards;
 use gc::swiper::young::YoungGen;
-use gc::swiper::GcStats;
+use gc::swiper::{GcStats, LARGE_OBJECT_SIZE};
 use gc::swiper::{CardIdx, CARD_SIZE};
 use gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use gc::{fill_region, formatted_size, Address, GcReason, Region};
@@ -389,10 +389,10 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
                         traced: 0,
 
                         old_lab: Lab::new(),
-                        old_alloc: LabAlloc::new(old_top, old_limit),
+                        old_alloc: SpaceAlloc::new(old_top, old_limit),
 
                         young_lab: Lab::new(),
-                        young_alloc: LabAlloc::new(young_top, young_limit),
+                        young_alloc: SpaceAlloc::new(young_top, young_limit),
                     };
 
                     task.run();
@@ -770,22 +770,22 @@ impl Lab {
     }
 }
 
-struct LabAlloc {
+struct SpaceAlloc {
     top: Arc<Mutex<Address>>,
     limit: Address,
     failed: bool,
 }
 
-impl LabAlloc {
-    fn new(top: Arc<Mutex<Address>>, limit: Address) -> LabAlloc {
-        LabAlloc {
+impl SpaceAlloc {
+    fn new(top: Arc<Mutex<Address>>, limit: Address) -> SpaceAlloc {
+        SpaceAlloc {
             top: top,
             limit: limit,
             failed: false,
         }
     }
 
-    fn alloc(&mut self, lab: &mut Lab) -> bool {
+    fn alloc_lab(&mut self, lab: &mut Lab) -> bool {
         if self.failed {
             lab.reset(Address::null(), Address::null());
             return false;
@@ -806,6 +806,26 @@ impl LabAlloc {
             lab.reset(Address::null(), Address::null());
 
             false
+        }
+    }
+
+    fn alloc_obj(&mut self, size: usize) -> Address {
+        if self.failed {
+            return Address::null();
+        }
+
+        let mut top = self.top.lock();
+
+        let obj_start = *top;
+        let obj_end = obj_start.offset(size);
+
+        if obj_end <= self.limit {
+            *top = obj_end;
+
+            obj_start
+        } else {
+            self.failed = true;
+            Address::null()
         }
     }
 }
@@ -836,10 +856,10 @@ struct CopyTask<'a, 'ast: 'a> {
     traced: usize,
 
     old_lab: Lab,
-    old_alloc: LabAlloc,
+    old_alloc: SpaceAlloc,
 
     young_lab: Lab,
-    young_alloc: LabAlloc,
+    young_alloc: SpaceAlloc,
 }
 
 impl<'a, 'ast> CopyTask<'a, 'ast>
@@ -939,6 +959,15 @@ where
     }
 
     fn alloc_young(&mut self, size: usize) -> Address {
+        if size < CLAB_OBJECT_SIZE {
+            self.alloc_young_small(size)
+        } else {
+            self.alloc_young_medium(size)
+        }
+    }
+
+    fn alloc_young_small(&mut self, size: usize) -> Address {
+        debug_assert!(size < CLAB_OBJECT_SIZE);
         let object_start = self.young_lab.alloc(size);
 
         if object_start.is_non_null() {
@@ -949,14 +978,28 @@ where
 
         debug_assert!(size <= CLAB_SIZE);
         self.young_lab.make_iterable_young(self.vm);
-        if !self.young_alloc.alloc(&mut self.young_lab) {
+        if !self.young_alloc.alloc_lab(&mut self.young_lab) {
             return Address::null();
         }
 
         self.young_lab.alloc(size)
     }
 
+    fn alloc_young_medium(&mut self, size: usize) -> Address {
+        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        self.young_alloc.alloc_obj(size)
+    }
+
     fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
+        if size < CLAB_OBJECT_SIZE {
+            self.alloc_old_small(size, array_ref)
+        } else {
+            self.alloc_old_medium(size, array_ref)
+        }
+    }
+
+    fn alloc_old_small(&mut self, size: usize, array_ref: bool) -> Address {
+        debug_assert!(size < CLAB_OBJECT_SIZE);
         let object_start = self.alloc_object_in_old_lab(size, array_ref);
 
         if object_start.is_non_null() {
@@ -965,13 +1008,26 @@ where
             return Address::null();
         }
 
-        debug_assert!(size <= CLAB_SIZE);
         self.old_lab.make_iterable_old(self.vm, self.old);
-        if !self.old_alloc.alloc(&mut self.old_lab) {
+        if !self.old_alloc.alloc_lab(&mut self.old_lab) {
             return Address::null();
         }
 
         self.alloc_object_in_old_lab(size, array_ref)
+    }
+
+    fn alloc_old_medium(&mut self, size: usize, array_ref: bool) -> Address {
+        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        let object_start = self.old_alloc.alloc_obj(size);
+
+        if object_start.is_non_null() {
+            let old = object_start;
+            let new = old.offset(size);
+            self.old.update_crossing(old, new, array_ref);
+            object_start
+        } else {
+            Address::null()
+        }
     }
 
     fn alloc_object_in_old_lab(&mut self, size: usize, array_ref: bool) -> Address {

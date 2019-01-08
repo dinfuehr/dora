@@ -1,0 +1,22 @@
+//= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
+
+fun main() {
+    var x = Vec::<Array<int> >();
+    var i = 0;
+
+    while i < 100 {
+        if i % 2 == 0 {
+            x.push(Array::<int>(2));
+        } else {
+            x.push(Array::<int>(4));
+        }
+        x.push(Array::<int>(512));
+        x.push(Array::<int>(2048));
+        if i % 5 == 0 {
+            forceMinorCollect();
+        }
+        i = i + 1;
+    }
+}
+
+class Foo(let next: Foo)
