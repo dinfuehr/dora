@@ -1,3 +1,5 @@
+use num_cpus;
+use std::cmp::min;
 use std::default::Default;
 use std::ops::Deref;
 
@@ -120,6 +122,14 @@ impl Args {
             .map(|s| *s)
             .unwrap_or(DEFAULT_PERM_SPACE_LIMIT)
     }
+
+    pub fn gc_workers(&self) -> usize {
+        if self.flag_gc_worker > 0 {
+            self.flag_gc_worker
+        } else {
+            min(num_cpus::get(), 8)
+        }
+    }
 }
 
 impl Default for Args {
@@ -150,7 +160,7 @@ impl Default for Args {
             flag_gc_verbose: false,
             flag_gc_dev_verbose: false,
             flag_gc_verify: false,
-            flag_gc_worker: 1,
+            flag_gc_worker: 0,
             flag_gc_young_ratio: None,
             flag_gc: None,
             flag_min_heap_size: None,

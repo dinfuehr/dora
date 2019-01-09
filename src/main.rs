@@ -14,6 +14,7 @@ extern crate docopt;
 extern crate dora_parser;
 extern crate fixedbitset;
 extern crate libc;
+extern crate num_cpus;
 extern crate parking_lot;
 extern crate rand;
 extern crate rustc_serialize;

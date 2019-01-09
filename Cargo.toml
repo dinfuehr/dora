@@ -16,6 +16,7 @@ rand = "*"
 scoped_threadpool = "0.1.*"
 parking_lot = "0.6"
 fixedbitset = "*"
+num_cpus = "*"
 
 [dependencies.capstone]
 git = "https://github.com/ebfe/rust-capstone.git"

@@ -100,7 +100,7 @@ impl<'a, 'ast: 'a> MinorCollector<'a, 'ast> {
             stats: stats,
 
             parallel: vm.args.flag_gc_parallel_minor,
-            number_workers: vm.args.flag_gc_worker,
+            number_workers: threadpool.thread_count() as usize,
             threadpool: threadpool,
 
             worklist: Vec::new(),

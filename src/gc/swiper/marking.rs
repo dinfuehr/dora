@@ -15,9 +15,9 @@ pub fn start(
     rootset: &[Slot],
     heap: Region,
     perm: Region,
-    number_workers: usize,
     threadpool: &mut Pool,
 ) {
+    let number_workers = threadpool.thread_count() as usize;
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
 

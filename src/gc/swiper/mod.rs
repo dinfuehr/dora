@@ -152,11 +152,7 @@ impl Swiper {
             );
         }
 
-        let nworkers = if args.flag_gc_worker > 1 {
-            args.flag_gc_worker
-        } else {
-            1
-        };
+        let nworkers = args.gc_workers();
 
         Swiper {
             heap: Region::new(heap_start, heap_end),

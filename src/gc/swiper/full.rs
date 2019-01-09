@@ -107,7 +107,6 @@ impl<'a, 'ast> FullCollector<'a, 'ast> {
                     self.rootset,
                     self.heap.clone(),
                     self.perm_space.total(),
-                    self.vm.args.flag_gc_worker,
                     self.threadpool,
                 );
             } else {
