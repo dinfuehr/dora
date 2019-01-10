@@ -2,7 +2,7 @@ use libc;
 use std;
 
 use baseline::map::CodeDescriptor;
-use ctxt::{get_ctxt, SemContext};
+use ctxt::{get_vm, VM};
 use exception::stacktrace_from_es;
 use os_cpu::*;
 use safepoint;
@@ -40,7 +40,7 @@ pub fn register_signals() {
 }
 
 #[cfg(target_family = "windows")]
-pub fn register_signals(ctxt: &SemContext) {
+pub fn register_signals(vm: &VM) {
     use kernel32::AddVectoredExceptionHandler;
 
     unsafe {
@@ -72,18 +72,18 @@ fn fault_handler(exception: *mut EXCEPTION_POINTERS) -> bool {
 #[cfg(target_family = "unix")]
 fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     let es = read_execstate(ucontext);
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
     let addr = unsafe { (*info).si_addr } as *const u8;
 
-    if detect_nil_check(ctxt, es.pc) {
+    if detect_nil_check(vm, es.pc) {
         println!("nil check failed");
-        let stacktrace = stacktrace_from_es(ctxt, &es);
-        stacktrace.dump(ctxt);
+        let stacktrace = stacktrace_from_es(vm, &es);
+        stacktrace.dump(vm);
         unsafe {
             libc::_exit(104);
         }
-    } else if detect_polling_page_check(ctxt, signo, addr) {
+    } else if detect_polling_page_check(vm, signo, addr) {
         // polling page read failed => enter safepoint
         safepoint::enter(&es);
 
@@ -96,11 +96,11 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
         println!();
         println!("{:?}", &es);
         println!();
-        println!("polling page = {:?}", ctxt.polling_page.addr());
+        println!("polling page = {:?}", vm.polling_page.addr());
         println!();
 
-        let code_map = ctxt.code_map.lock().unwrap();
-        code_map.dump(ctxt);
+        let code_map = vm.code_map.lock().unwrap();
+        code_map.dump(vm);
 
         unsafe {
             libc::_exit(1);
@@ -108,11 +108,11 @@ fn handler(signo: libc::c_int, info: *const siginfo_t, ucontext: *const u8) {
     }
 }
 
-fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
-    let code_map = ctxt.code_map.lock().unwrap();
+fn detect_nil_check(vm: &VM, pc: usize) -> bool {
+    let code_map = vm.code_map.lock().unwrap();
 
     if let Some(CodeDescriptor::DoraFct(fid)) = code_map.get(pc as *const u8) {
-        let jit_fct = ctxt.jit_fcts[fid].borrow();
+        let jit_fct = vm.jit_fcts[fid].borrow();
         let offset = pc - (jit_fct.fct_ptr() as usize);
 
         let jit_fct = jit_fct.to_base().expect("baseline expected");
@@ -122,8 +122,8 @@ fn detect_nil_check(ctxt: &SemContext, pc: usize) -> bool {
     }
 }
 
-fn detect_polling_page_check(ctxt: &SemContext, signo: libc::c_int, addr: *const u8) -> bool {
-    signo == libc::SIGSEGV && ctxt.polling_page.addr() == addr
+fn detect_polling_page_check(vm: &VM, signo: libc::c_int, addr: *const u8) -> bool {
+    signo == libc::SIGSEGV && vm.polling_page.addr().to_ptr() == addr
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

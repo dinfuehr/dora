@@ -39,7 +39,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         visit::walk_impl(self, i);
 
-        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].borrow_mut();
+        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].write().unwrap();
 
         if let Some(Sym::SymTrait(trait_id)) = self.ctxt.sym.borrow().get(i.trait_name) {
             ximpl.trait_id = Some(trait_id);
@@ -108,7 +108,7 @@ impl<'x, 'ast> Visitor<'ast> for ImplCheck<'x, 'ast> {
 
         let fctid = self.ctxt.add_fct(fct);
 
-        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].borrow_mut();
+        let mut ximpl = self.ctxt.impls[self.impl_id.unwrap()].write().unwrap();
         ximpl.methods.push(fctid);
     }
 }

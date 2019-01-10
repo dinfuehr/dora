@@ -6,7 +6,8 @@ use baseline::fct::{BailoutInfo, JitBaselineFct, JitDescriptor, JitFct};
 use baseline::map::CodeDescriptor;
 use class::TypeParams;
 use cpu::{Mem, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1};
-use ctxt::{get_ctxt, FctId, SemContext};
+use ctxt::FctId;
+use ctxt::{get_vm, VM};
 use exception::DoraToNativeInfo;
 use gc::Address;
 use masm::MacroAssembler;
@@ -14,27 +15,35 @@ use mem;
 use object::Obj;
 use ty::MachineMode;
 
-pub fn generate<'a, 'ast: 'a>(ctxt: &'a SemContext<'ast>) -> Address {
+// This code generates the compiler thunk, there should only be one instance
+// of this function be used in Dora. It is necessary for lazy compilation, where
+// functions are only compiled on their first invocation. The compiler can use
+// the address of this thunk for invocations of functions that have not been compiled
+// yet. The thunk compiles the function and patches the call site to invoke the
+// now-compiled function directly on the next invocation. In the end the function is
+// executed.
+
+pub fn generate<'a, 'ast: 'a>(vm: &'a VM<'ast>) -> Address {
     let ngen = DoraCompileGen {
-        ctxt: ctxt,
+        vm: vm,
         masm: MacroAssembler::new(),
-        dbg: ctxt.args.flag_emit_debug_compile,
+        dbg: vm.args.flag_emit_debug_compile,
     };
 
     let jit_fct = ngen.generate();
     let addr = Address::from_ptr(jit_fct.fct_ptr());
-    ctxt.insert_code_map(
+    vm.insert_code_map(
         jit_fct.ptr_start(),
         jit_fct.ptr_end(),
         CodeDescriptor::CompilerThunk,
     );
-    ctxt.jit_fcts.push(JitFct::Base(jit_fct));
+    vm.jit_fcts.push(JitFct::Base(jit_fct));
 
     addr
 }
 
 struct DoraCompileGen<'a, 'ast: 'a> {
-    ctxt: &'a SemContext<'ast>,
+    vm: &'a VM<'ast>,
     masm: MacroAssembler,
     dbg: bool,
 }
@@ -57,6 +66,7 @@ where
             self.masm.debug();
         }
 
+        // the return address is the call-site we need to patch
         self.masm.copy_ra(REG_TMP1);
         self.masm.prolog(framesize);
 
@@ -71,13 +81,16 @@ where
             Mem::Base(REG_SP, offset_tmp),
             REG_TMP1.into(),
         );
+
+        // store params passed in registers on the stack
         self.store_params(offset_params);
 
+        // prepare the native call
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_FP);
         self.masm.copy_pc(REG_PARAMS[1]);
-        self.masm
-            .direct_call_without_info(start_native_call as *const u8);
+        self.masm.raw_call(start_native_call as *const u8);
 
+        // invoke the compiler for the call site
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_PARAMS[0].into(),
@@ -88,33 +101,41 @@ where
             REG_PARAMS[1].into(),
             Mem::Base(REG_SP, offset_params),
         );
-        self.masm
-            .direct_call_without_info(compile_request as *const u8);
+        self.masm.raw_call(compile_request as *const u8);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_tmp),
             REG_RESULT.into(),
         );
 
-        self.masm
-            .direct_call_without_info(finish_native_call as *const u8);
+        // undo the previous native call
+        self.masm.raw_call(finish_native_call as *const u8);
 
+        // load the address of the compiled function into REG_TMP1
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_TMP1.into(),
             Mem::Base(REG_SP, offset_tmp),
         );
+
+        // restore thread register
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_THREAD.into(),
             Mem::Base(REG_SP, offset_thread),
         );
+
+        // restore argument registers from the stack
         self.load_params(offset_params);
+
+        // remove the stack frame
         self.masm.epilog_without_return(framesize);
+
+        // jump to compiled function
         self.masm.jump_reg(REG_TMP1);
 
         self.masm
-            .jit(self.ctxt, framesize, JitDescriptor::CompilerThunk, false)
+            .jit(self.vm, framesize, JitDescriptor::CompilerThunk, false)
     }
 
     fn store_params(&mut self, mut offset: i32) {
@@ -153,11 +174,11 @@ where
 }
 
 fn compile_request(ra: usize, receiver: Address) -> Address {
-    let ctxt = get_ctxt();
+    let vm = get_vm();
 
     let bailout = {
         let data = {
-            let code_map = ctxt.code_map.lock().unwrap();
+            let code_map = vm.code_map.lock().unwrap();
             code_map
                 .get(ra as *const u8)
                 .expect("return address not found")
@@ -168,7 +189,7 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
             _ => panic!("expected function for code"),
         };
 
-        let jit_fct = ctxt.jit_fcts[fct_id].borrow();
+        let jit_fct = vm.jit_fcts[fct_id].borrow();
 
         let offset = ra - jit_fct.fct_ptr() as usize;
         let jit_fct = jit_fct.to_base().expect("baseline expected");
@@ -181,17 +202,17 @@ fn compile_request(ra: usize, receiver: Address) -> Address {
 
     match bailout {
         BailoutInfo::Compile(fct_id, disp, ref cls_tps, ref fct_tps) => {
-            patch_fct_call(ctxt, ra, fct_id, cls_tps, fct_tps, disp)
+            patch_fct_call(vm, ra, fct_id, cls_tps, fct_tps, disp)
         }
 
         BailoutInfo::VirtCompile(vtable_index, ref fct_tps) => {
-            patch_vtable_call(ctxt, receiver, vtable_index, fct_tps)
+            patch_vtable_call(vm, receiver, vtable_index, fct_tps)
         }
     }
 }
 
 fn patch_vtable_call(
-    ctxt: &SemContext,
+    vm: &VM,
     receiver: Address,
     vtable_index: u32,
     fct_tps: &TypeParams,
@@ -199,16 +220,16 @@ fn patch_vtable_call(
     let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
     let vtable = obj.header().vtbl();
     let cls_id = vtable.class().cls_id;
-    let cls = ctxt.classes[cls_id].borrow();
+    let cls = vm.classes[cls_id].borrow();
 
     let mut fct_ptr = Address::null();
 
     for &fct_id in &cls.methods {
-        let fct = ctxt.fcts[fct_id].borrow();
+        let fct = vm.fcts[fct_id].borrow();
 
         if Some(vtable_index) == fct.vtable_index {
             let empty = TypeParams::empty();
-            fct_ptr = Address::from_ptr(baseline::generate(ctxt, fct_id, &empty, fct_tps));
+            fct_ptr = Address::from_ptr(baseline::generate(vm, fct_id, &empty, fct_tps));
             break;
         }
     }
@@ -220,14 +241,14 @@ fn patch_vtable_call(
 }
 
 fn patch_fct_call(
-    ctxt: &SemContext,
+    vm: &VM,
     ra: usize,
     fct_id: FctId,
     cls_tps: &TypeParams,
     fct_tps: &TypeParams,
     disp: i32,
 ) -> Address {
-    let fct_ptr = baseline::generate(ctxt, fct_id, cls_tps, fct_tps);
+    let fct_ptr = baseline::generate(vm, fct_id, cls_tps, fct_tps);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment

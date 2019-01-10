@@ -23,6 +23,8 @@ internal fun call(fct: Str);
 internal fun throwFromNative(val: bool) throws;
 internal fun throwFromNativeButNotThrows(val: bool);
 
+internal fun timestamp() -> long;
+
 internal class bool {
   internal fun toInt() -> int;
   fun toString() -> Str {

@@ -1,7 +1,7 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 
-use ctxt::SemContext;
+use ctxt::VM;
 use driver::cmd::{Args, CollectorName};
 use gc::copy::CopyCollector;
 use gc::space::{Space, SpaceConfig};
@@ -9,7 +9,8 @@ use gc::swiper::Swiper;
 use gc::tlab::TLAB_OBJECT_SIZE;
 use gc::zero::ZeroCollector;
 use mem;
-use object::Obj;
+use object::{Header, Obj};
+use vtable::VTable;
 
 pub mod arena;
 pub mod bump;
@@ -27,8 +28,10 @@ pub const DEFAULT_CODE_SPACE_LIMIT: usize = 128 * 1024;
 pub const DEFAULT_PERM_SPACE_LIMIT: usize = 64 * 1024;
 
 // every space (eden/from/to/old) is aligned to at least this size
-const SPACE_ALIGNMENT_BITS: usize = 16;
-const GEN_ALIGNMENT_BITS: usize = 18;
+const SPACE_ALIGNMENT_BITS: usize = 17;
+
+// young/old gen are aligned to at least this size
+const GEN_ALIGNMENT_BITS: usize = 19;
 
 pub struct Gc {
     collector: Box<Collector>,
@@ -85,73 +88,77 @@ impl Gc {
         self.perm_space.alloc(size).to_mut_ptr()
     }
 
-    pub fn alloc(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
-        if ctxt.args.flag_gc_stress_minor {
-            self.minor_collect(ctxt, GcReason::StressMinor);
+    pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+        if vm.args.flag_gc_stress_minor {
+            self.minor_collect(vm, GcReason::StressMinor);
         }
 
-        if ctxt.args.flag_gc_stress {
-            self.collect(ctxt, GcReason::Stress);
+        if vm.args.flag_gc_stress {
+            self.collect(vm, GcReason::Stress);
         }
 
-        if size < TLAB_OBJECT_SIZE && !ctxt.args.flag_disable_tlab {
-            self.alloc_tlab(ctxt, size, array_ref)
+        if size < TLAB_OBJECT_SIZE && !vm.args.flag_disable_tlab {
+            self.alloc_tlab(vm, size, array_ref)
         } else if size < LARGE_OBJECT_SIZE {
-            self.collector.alloc_normal(ctxt, size, array_ref)
+            self.collector.alloc_normal(vm, size, array_ref)
         } else {
-            self.collector.alloc_large(ctxt, size, array_ref)
+            self.collector.alloc_large(vm, size, array_ref)
         }
     }
 
-    fn alloc_tlab(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    fn alloc_tlab(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
         // try to allocate in current tlab
-        if let Some(addr) = tlab::allocate(ctxt, size) {
+        if let Some(addr) = tlab::allocate(vm, size) {
             return addr;
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
         // allocate new tlab
         if let Some(tlab) = self
             .collector
-            .alloc_tlab_area(ctxt, tlab::calculate_size(size))
+            .alloc_tlab_area(vm, tlab::calculate_size(size))
         {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 
             // initialize TLAB to new boundaries
-            tlab::initialize(ctxt, tlab);
+            tlab::initialize(vm, tlab);
 
             // object is allocated before TLAB
             object_start
         } else {
             // allocate object
-            self.collector.alloc_normal(ctxt, size, array_ref)
+            self.collector.alloc_normal(vm, size, array_ref)
         }
     }
 
-    pub fn collect(&self, ctxt: &SemContext, reason: GcReason) {
-        self.collector.collect(ctxt, reason);
+    pub fn collect(&self, vm: &VM, reason: GcReason) {
+        self.collector.collect(vm, reason);
     }
 
-    pub fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
-        self.collector.minor_collect(ctxt, reason);
+    pub fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        self.collector.minor_collect(vm, reason);
+    }
+
+    pub fn dump_summary(&self, runtime: f32) {
+        self.collector.dump_summary(runtime);
     }
 }
 
 trait Collector {
     // allocate object of given size
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region>;
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address;
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
+    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc_large(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
 
     // collect garbage
-    fn collect(&self, ctxt: &SemContext, reason: GcReason);
+    fn collect(&self, vm: &VM, reason: GcReason);
 
     // collect young generation if supported, otherwise
     // collects whole heap
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason);
 
     // decides whether to emit write barriers needed for
     // generational GC to write into card table
@@ -162,6 +169,11 @@ trait Collector {
     // only need if write barriers needed
     fn card_table_offset(&self) -> usize {
         0
+    }
+
+    // prints GC summary: minor/full collections, etc.
+    fn dump_summary(&self, _runtime: f32) {
+        // do nothing
     }
 }
 
@@ -375,5 +387,41 @@ impl GcReason {
 impl fmt::Display for GcReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message())
+    }
+}
+
+pub fn fill_region(vm: &VM, start: Address, end: Address) {
+    if start == end {
+        // nothing to do
+
+    } else if end.offset_from(start) == mem::ptr_width_usize() {
+        unsafe {
+            *start.to_mut_ptr::<usize>() = 0;
+        }
+    } else if end.offset_from(start) == Header::size() as usize {
+        // fill with object
+        let cls_id = vm.vips.obj(vm);
+        let cls = vm.class_defs[cls_id].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+        }
+    } else {
+        // fill with int array
+        let cls_id = vm.vips.int_array(vm);
+        let cls = vm.class_defs[cls_id].borrow();
+        let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
+
+        // determine of header+length in bytes
+        let header_size = Header::size() as usize + mem::ptr_width_usize();
+
+        // calculate int array length
+        let length: usize = end.offset_from(start.offset(header_size)) / 4;
+
+        unsafe {
+            *start.to_mut_ptr::<usize>() = vtable as usize;
+            *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
+        }
     }
 }

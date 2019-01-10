@@ -1,6 +1,8 @@
+use std::sync::Mutex;
+
 use threadpool::ThreadPool;
 
-use ctxt::SemContext;
+use ctxt::VM;
 use driver::cmd::Args;
 use gc::root::{get_rootset, Slot};
 use gc::swiper::card::CardTable;
@@ -9,7 +11,6 @@ use gc::swiper::full::FullCollector;
 use gc::swiper::large::LargeSpace;
 use gc::swiper::minor::MinorCollector;
 use gc::swiper::old::OldGen;
-use gc::swiper::pminor::ParMinorCollector;
 use gc::swiper::verify::{Verifier, VerifierPhase};
 use gc::swiper::young::YoungGen;
 use gc::tlab;
@@ -26,7 +27,7 @@ mod large;
 mod marking;
 mod minor;
 pub mod old;
-mod pminor;
+mod paged_old;
 mod verify;
 pub mod young;
 
@@ -63,6 +64,8 @@ pub struct Swiper {
     max_heap_size: usize,
 
     threadpool: ThreadPool,
+
+    stats: GcStats,
 }
 
 impl Swiper {
@@ -70,8 +73,15 @@ impl Swiper {
         let min_heap_size = args.min_heap_size();
         let max_heap_size = args.max_heap_size();
 
+        // determine initial young-ratio
+        let mut young_ratio = args.flag_gc_young_ratio.unwrap_or(YOUNG_RATIO);
+
+        if young_ratio == 0 {
+            young_ratio = YOUNG_RATIO;
+        }
+
         // determine size for generations
-        let young_size = align_gen(max_heap_size / YOUNG_RATIO);
+        let young_size = align_gen(max_heap_size / young_ratio);
         let old_size = align_gen(max_heap_size - young_size);
 
         let max_heap_size = young_size + old_size;
@@ -176,30 +186,25 @@ impl Swiper {
             max_heap_size: max_heap_size,
 
             threadpool: ThreadPool::with_name("gc-worker".to_string(), nworkers),
+            stats: GcStats::new(),
         }
     }
 
-    fn minor_collect_inner(&self, ctxt: &SemContext, reason: GcReason) -> bool {
+    fn minor_collect_inner(&self, vm: &VM, reason: GcReason) -> bool {
         // make heap iterable
-        tlab::make_iterable(ctxt);
-        let rootset = get_rootset(ctxt);
+        tlab::make_iterable(vm);
+        let rootset = get_rootset(vm);
 
-        self.verify(ctxt, VerifierPhase::PreMinor, "pre-minor", &rootset);
-
-        let promotion_failed = if ctxt.args.flag_gc_parallel_minor {
-            self.par_minor_collect(ctxt, reason, &rootset)
-        } else {
-            self.serial_minor_collect(ctxt, reason, &rootset)
-        };
-
-        self.verify(ctxt, VerifierPhase::PostMinor, "post-minor", &rootset);
+        self.verify(vm, VerifierPhase::PreMinor, "pre-minor", &rootset);
+        let promotion_failed = self.minor_collect(vm, reason, &rootset);
+        self.verify(vm, VerifierPhase::PostMinor, "post-minor", &rootset);
 
         promotion_failed
     }
 
-    fn serial_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
         let mut collector = MinorCollector::new(
-            ctxt,
+            vm,
             &self.young,
             &self.old,
             &self.large,
@@ -207,60 +212,50 @@ impl Swiper {
             &self.crossing_map,
             rootset,
             reason,
+            self.min_heap_size,
+            self.max_heap_size,
+            &self.stats,
+            &self.threadpool,
         );
-        collector.collect();
-        collector.promotion_failed()
+        collector.collect()
     }
 
-    fn par_minor_collect(&self, ctxt: &SemContext, reason: GcReason, rootset: &[Slot]) -> bool {
-        let mut collector = ParMinorCollector::new(
-            ctxt,
-            &self.young,
-            &self.old,
-            &self.large,
-            &self.card_table,
-            &self.crossing_map,
-            rootset,
-            reason,
-            ctxt.args.flag_gc_worker,
-        );
-        collector.collect();
-        collector.promotion_failed()
-    }
-
-    fn full_collect(&self, ctxt: &SemContext, reason: GcReason) {
+    fn full_collect(&self, vm: &VM, reason: GcReason) {
         // make heap iterable
-        tlab::make_iterable(ctxt);
+        tlab::make_iterable(vm);
 
-        let rootset = get_rootset(ctxt);
+        let rootset = get_rootset(vm);
 
-        self.verify(ctxt, VerifierPhase::PreFull, "pre-full", &rootset);
+        self.verify(vm, VerifierPhase::PreFull, "pre-full", &rootset);
 
         let mut collector = FullCollector::new(
-            ctxt,
+            vm,
             self.heap.clone(),
             &self.young,
             &self.old,
             &self.large,
             &self.card_table,
             &self.crossing_map,
-            &ctxt.gc.perm_space,
+            &vm.gc.perm_space,
             &rootset,
             reason,
             &self.threadpool,
+            self.min_heap_size,
+            self.max_heap_size,
+            &self.stats,
         );
         collector.collect();
 
-        self.verify(ctxt, VerifierPhase::PostFull, "post-full", &rootset);
+        self.verify(vm, VerifierPhase::PostFull, "post-full", &rootset);
     }
 
-    fn verify(&self, ctxt: &SemContext, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
-        if ctxt.args.flag_gc_verify {
-            if ctxt.args.flag_gc_dev_verbose {
+    fn verify(&self, vm: &VM, phase: VerifierPhase, _name: &str, rootset: &[Slot]) {
+        if vm.args.flag_gc_verify {
+            if vm.args.flag_gc_dev_verbose {
                 println!("GC: Verify {}", _name);
             }
 
-            let perm_space = &ctxt.gc.perm_space;
+            let perm_space = &vm.gc.perm_space;
 
             let mut verifier = Verifier::new(
                 &self.young,
@@ -274,22 +269,26 @@ impl Swiper {
                 phase,
             );
             verifier.verify();
+
+            if vm.args.flag_gc_dev_verbose {
+                println!("GC: Verify {} finished", _name);
+            }
         }
     }
 }
 
 impl Collector for Swiper {
-    fn alloc_tlab_area(&self, ctxt: &SemContext, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return Some(ptr.region_start(size));
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
+        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt, GcReason::PromotionFailure);
+            self.full_collect(vm, GcReason::PromotionFailure);
             let ptr = self.young.bump_alloc(size);
 
             return if ptr.is_null() {
@@ -305,7 +304,7 @@ impl Collector for Swiper {
             return Some(ptr.region_start(size));
         }
 
-        self.full_collect(ctxt, GcReason::AllocationFailure);
+        self.full_collect(vm, GcReason::AllocationFailure);
         let ptr = self.young.bump_alloc(size);
 
         return if ptr.is_null() {
@@ -315,17 +314,17 @@ impl Collector for Swiper {
         };
     }
 
-    fn alloc_normal(&self, ctxt: &SemContext, size: usize, array_ref: bool) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
         let ptr = self.young.bump_alloc(size);
 
         if !ptr.is_null() {
             return ptr;
         }
 
-        let promotion_failed = self.minor_collect_inner(ctxt, GcReason::AllocationFailure);
+        let promotion_failed = self.minor_collect_inner(vm, GcReason::AllocationFailure);
 
         if promotion_failed {
-            self.full_collect(ctxt, GcReason::PromotionFailure);
+            self.full_collect(vm, GcReason::PromotionFailure);
         }
 
         let ptr = self.young.bump_alloc(size);
@@ -337,25 +336,25 @@ impl Collector for Swiper {
         self.old.bump_alloc(size, array_ref)
     }
 
-    fn alloc_large(&self, ctxt: &SemContext, size: usize, _: bool) -> Address {
+    fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
         let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {
             return ptr;
         }
 
-        self.full_collect(ctxt, GcReason::AllocationFailure);
+        self.full_collect(vm, GcReason::AllocationFailure);
 
         self.large.alloc(size)
     }
 
-    fn collect(&self, ctxt: &SemContext, reason: GcReason) {
-        self.full_collect(ctxt, reason);
+    fn collect(&self, vm: &VM, reason: GcReason) {
+        self.full_collect(vm, reason);
     }
 
-    fn minor_collect(&self, ctxt: &SemContext, reason: GcReason) {
-        tlab::make_iterable(ctxt);
-        self.minor_collect_inner(ctxt, reason);
+    fn minor_collect(&self, vm: &VM, reason: GcReason) {
+        tlab::make_iterable(vm);
+        self.minor_collect_inner(vm, reason);
     }
 
     fn needs_write_barrier(&self) -> bool {
@@ -364,6 +363,25 @@ impl Collector for Swiper {
 
     fn card_table_offset(&self) -> usize {
         self.card_table_offset
+    }
+
+    fn dump_summary(&self, runtime: f32) {
+        self.stats.update(|stats| {
+            let total_gc = stats.minor_runtime() + stats.full_runtime();
+            let gc_percentage = ((total_gc / runtime) * 100.0).round();
+            let mutator_percentage = 100.0 - gc_percentage;
+
+            println!(
+                "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms runtime ({}% mutator, {}% GC)",
+                stats.minor_runtime(),
+                stats.minor_collections(),
+                stats.full_runtime(),
+                stats.full_collections(),
+                runtime,
+                mutator_percentage,
+                gc_percentage,
+            );
+        })
     }
 }
 
@@ -388,4 +406,81 @@ impl From<usize> for CardIdx {
 
 fn on_different_cards(curr: Address, next: Address) -> bool {
     (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
+}
+
+pub struct GcStats {
+    stats: Mutex<GcStatsProtected>,
+}
+
+impl GcStats {
+    fn new() -> GcStats {
+        GcStats {
+            stats: Mutex::new(GcStatsProtected::new()),
+        }
+    }
+
+    fn update<F>(&self, fct: F)
+    where
+        F: FnOnce(&mut GcStatsProtected),
+    {
+        let mut stats = self.stats.lock().unwrap();
+        fct(&mut *stats);
+    }
+}
+
+struct GcStatsProtected {
+    // number of minor GCs
+    minor_collections: usize,
+
+    // total runtime of minor GCs
+    minor_runtime: f32,
+
+    // number of full GCs
+    full_collections: usize,
+
+    // total runtime of full GCs
+    full_runtime: f32,
+}
+
+impl GcStatsProtected {
+    fn new() -> GcStatsProtected {
+        GcStatsProtected {
+            minor_collections: 0,
+            minor_runtime: 0.0,
+            full_collections: 0,
+            full_runtime: 0.0,
+        }
+    }
+
+    fn incr_minor_collections(&mut self) {
+        self.minor_collections += 1;
+    }
+
+    fn minor_collections(&self) -> usize {
+        self.minor_collections
+    }
+
+    fn incr_minor_runtime(&mut self, time: f32) {
+        self.minor_runtime += time;
+    }
+
+    fn minor_runtime(&self) -> f32 {
+        self.minor_runtime
+    }
+
+    fn incr_full_collections(&mut self) {
+        self.full_collections += 1;
+    }
+
+    fn full_collections(&self) -> usize {
+        self.full_collections
+    }
+
+    fn incr_full_runtime(&mut self, time: f32) {
+        self.full_runtime += time;
+    }
+
+    fn full_runtime(&self) -> f32 {
+        self.full_runtime
+    }
 }

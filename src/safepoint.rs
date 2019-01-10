@@ -2,10 +2,11 @@ use libc;
 use std::ptr;
 
 use execstate::ExecState;
+use gc::Address;
 use os;
 
 pub struct PollingPage {
-    addr: *const u8,
+    addr: Address,
 }
 
 impl PollingPage {
@@ -15,14 +16,14 @@ impl PollingPage {
         }
     }
 
-    pub fn addr(&self) -> *const u8 {
+    pub fn addr(&self) -> Address {
         self.addr
     }
 
     pub fn arm(&self) {
         unsafe {
             let res = libc::mprotect(
-                self.addr as *mut libc::c_void,
+                self.addr.to_mut_ptr(),
                 os::page_size() as usize,
                 libc::PROT_NONE,
             );
@@ -36,7 +37,7 @@ impl PollingPage {
     pub fn unarm(&self) {
         unsafe {
             let res = libc::mprotect(
-                self.addr as *mut libc::c_void,
+                self.addr.to_mut_ptr(),
                 os::page_size() as usize,
                 libc::PROT_READ,
             );
@@ -50,11 +51,11 @@ impl PollingPage {
 
 impl Drop for PollingPage {
     fn drop(&mut self) {
-        os::munmap(self.addr, os::page_size() as usize);
+        os::munmap(self.addr.to_mut_ptr(), os::page_size() as usize);
     }
 }
 
-fn alloc_polling_page() -> *const u8 {
+fn alloc_polling_page() -> Address {
     let ptr = unsafe {
         libc::mmap(
             ptr::null_mut(),
@@ -70,7 +71,7 @@ fn alloc_polling_page() -> *const u8 {
         panic!("mmap failed");
     }
 
-    ptr as *const u8
+    Address::from_ptr(ptr)
 }
 
 pub fn enter(_: &ExecState) {

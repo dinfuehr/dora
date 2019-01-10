@@ -5,9 +5,11 @@ use baseline::fct::GcPoint;
 use byteorder::{LittleEndian, WriteBytesExt};
 use class::TypeParams;
 use cpu::*;
-use ctxt::{get_ctxt, FctId};
+use ctxt::get_vm;
+use ctxt::FctId;
 use dora_parser::lexer::position::Position;
 use gc::swiper::CARD_SIZE_BITS;
+use gc::Address;
 use masm::{Label, MacroAssembler};
 use mem::{fits_i32, ptr_width};
 use object::{offset_of_array_data, offset_of_array_length, Header};
@@ -25,7 +27,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: *const u8) {
+    pub fn epilog_with_polling(&mut self, stacksize: i32, polling_page: Address) {
         self.epilog_without_return(stacksize);
         self.check_polling_page(polling_page);
 
@@ -65,7 +67,7 @@ impl MacroAssembler {
         self.emit_bailout_info(BailoutInfo::Compile(fct_id, disp + pos, cls_tps, fct_tps));
     }
 
-    pub fn direct_call_without_info(&mut self, ptr: *const u8) {
+    pub fn raw_call(&mut self, ptr: *const u8) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;
 
@@ -934,16 +936,16 @@ impl MacroAssembler {
     }
 
     pub fn trap(&mut self, trap: Trap, pos: Position) {
-        let ctxt = get_ctxt();
+        let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
-        self.direct_call_without_info(ctxt.trap_thunk.to_ptr());
+        self.raw_call(vm.trap_thunk().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
     pub fn throw(&mut self, receiver: Reg, pos: Position) {
-        let ctxt = get_ctxt();
+        let vm = get_vm();
         self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], receiver);
-        self.direct_call_without_info(ctxt.throw_thunk.to_ptr());
+        self.raw_call(vm.throw_thunk().to_ptr());
         self.emit_lineno(pos.line as i32);
     }
 
@@ -984,8 +986,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn check_polling_page(&mut self, page: *const u8) {
-        let disp = self.dseg.add_addr_reuse(page);
+    pub fn check_polling_page(&mut self, page: Address) {
+        let disp = self.dseg.add_addr_reuse(page.to_ptr());
         let pos = self.pos() as i32;
 
         let scratch = self.get_scratch();

@@ -9,7 +9,7 @@ use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use class::{ClassDefId, ClassSize};
-use ctxt::SemContext;
+use ctxt::VM;
 use gc::root::Slot;
 use gc::Address;
 use handle::Rooted;
@@ -19,7 +19,7 @@ use vtable::VTable;
 #[repr(C)]
 pub struct Header {
     // ptr to class
-    vtable: *mut VTable,
+    vtable: AtomicUsize,
 
     // forwarding ptr
     // (used during mark-compact)
@@ -34,7 +34,7 @@ impl Header {
     #[cfg(test)]
     fn new() -> Header {
         Header {
-            vtable: ptr::null_mut(),
+            vtable: AtomicUsize::new(0),
             fwdptr: AtomicUsize::new(0),
         }
     }
@@ -45,26 +45,38 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> *mut VTable {
-        self.vtable
+    pub fn vtblptr(&self) -> Address {
+        self.vtable.load(Ordering::Relaxed).into()
+    }
+
+    pub fn set_vtblptr(&mut self, addr: Address) {
+        self.vtable.store(addr.to_usize(), Ordering::Relaxed);
     }
 
     #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
-        unsafe { &mut *self.vtable }
+        unsafe { &mut *self.vtblptr().to_mut_ptr::<VTable>() }
     }
 
     #[inline(always)]
-    pub fn vtbl_forward_to(&mut self, address: Address) {
-        self.vtable = (address.to_usize() | 1) as *mut VTable;
+    pub fn vtbl_forward_to_non_atomic(&mut self, address: Address) {
+        let old = self.vtable.load(Ordering::Relaxed);
+        self.vtable.store(old | 1, Ordering::Relaxed);
+        self.set_fwdptr_non_atomic(address);
     }
 
     #[inline(always)]
-    pub fn vtbl_forwarded(&self) -> Option<Address> {
-        let addr = self.vtable as usize;
+    pub fn vtbl_clear_forwarding_non_atomic(&mut self) {
+        let old = self.vtable.load(Ordering::Relaxed);
+        self.vtable.store(old & !1, Ordering::Relaxed);
+    }
+
+    #[inline(always)]
+    pub fn vtbl_forwarded_non_atomic(&self) -> Option<Address> {
+        let addr = self.vtable.load(Ordering::Relaxed);
 
         if (addr & 1) == 1 {
-            Some((addr & !1).into())
+            Some(self.fwdptr_non_atomic())
         } else {
             None
         }
@@ -373,8 +385,8 @@ impl Str {
     }
 
     /// allocates string from buffer in permanent space
-    pub fn from_buffer_in_perm(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
-        let mut handle = str_alloc_perm(ctxt, buf.len());
+    pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Handle<Str> {
+        let mut handle = str_alloc_perm(vm, buf.len());
         handle.length = buf.len();
 
         unsafe {
@@ -388,8 +400,8 @@ impl Str {
     }
 
     /// allocates string from buffer in heap
-    pub fn from_buffer(ctxt: &SemContext, buf: &[u8]) -> Handle<Str> {
-        let mut handle = str_alloc_heap(ctxt, buf.len());
+    pub fn from_buffer(vm: &VM, buf: &[u8]) -> Handle<Str> {
+        let mut handle = str_alloc_heap(vm, buf.len());
         handle.length = buf.len();
 
         unsafe {
@@ -402,7 +414,7 @@ impl Str {
         handle
     }
 
-    pub fn from_str(ctxt: &SemContext, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
+    pub fn from_str(vm: &VM, val: Rooted<Str>, offset: usize, len: usize) -> Handle<Str> {
         let total_len = val.len();
 
         if offset > total_len {
@@ -417,7 +429,7 @@ impl Str {
         };
 
         if let Ok(_) = str::from_utf8(slice) {
-            let mut handle = str_alloc_heap(ctxt, len);
+            let mut handle = str_alloc_heap(vm, len);
             handle.length = len;
 
             unsafe {
@@ -434,9 +446,9 @@ impl Str {
         }
     }
 
-    pub fn concat(ctxt: &SemContext, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
+    pub fn concat(vm: &VM, lhs: Rooted<Str>, rhs: Rooted<Str>) -> Rooted<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = ctxt.handles.root(str_alloc_heap(ctxt, len));
+        let mut handle = vm.handles.root(str_alloc_heap(vm, len));
 
         unsafe {
             handle.length = len;
@@ -453,9 +465,9 @@ impl Str {
     }
 
     // duplicate string into a new object
-    pub fn dup(&self, ctxt: &SemContext) -> Handle<Str> {
+    pub fn dup(&self, vm: &VM) -> Handle<Str> {
         let len = self.len();
-        let mut handle = str_alloc_heap(ctxt, len);
+        let mut handle = str_alloc_heap(vm, len);
 
         unsafe {
             handle.length = len;
@@ -467,32 +479,30 @@ impl Str {
     }
 }
 
-fn str_alloc_heap(ctxt: &SemContext, len: usize) -> Handle<Str> {
-    str_alloc(ctxt, len, |ctxt, size| {
-        ctxt.gc.alloc(ctxt, size, false).to_ptr()
-    })
+fn str_alloc_heap(vm: &VM, len: usize) -> Handle<Str> {
+    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false).to_ptr())
 }
 
-fn str_alloc_perm(ctxt: &SemContext, len: usize) -> Handle<Str> {
-    str_alloc(ctxt, len, |ctxt, size| ctxt.gc.alloc_perm(size))
+fn str_alloc_perm(vm: &VM, len: usize) -> Handle<Str> {
+    str_alloc(vm, len, |vm, size| vm.gc.alloc_perm(size))
 }
 
-fn str_alloc<F>(ctxt: &SemContext, len: usize, alloc: F) -> Handle<Str>
+fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Handle<Str>
 where
-    F: FnOnce(&SemContext, usize) -> *const u8,
+    F: FnOnce(&VM, usize) -> *const u8,
 {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
                 + len; // string content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
-    let ptr = alloc(ctxt, size) as usize;
+    let ptr = alloc(vm, size) as usize;
 
-    let clsid = ctxt.vips.str(ctxt);
-    let cls = ctxt.class_defs[clsid].borrow();
+    let clsid = vm.vips.str(vm);
+    let cls = vm.class_defs[clsid].borrow();
     let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
     let mut handle: Handle<Str> = ptr.into();
-    handle.header_mut().vtable = vtable as *mut VTable;
+    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
 }
@@ -581,16 +591,16 @@ where
             + self.len() * std::mem::size_of::<T>() // array content
     }
 
-    pub fn alloc(ctxt: &SemContext, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
+    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassDefId) -> Handle<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = ctxt.gc.alloc(ctxt, size, T::REF).to_usize();
-        let cls = ctxt.class_defs[clsid].borrow();
+        let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
+        let cls = vm.class_defs[clsid].borrow();
         let vtable: *const VTable = &**cls.vtable.as_ref().unwrap();
         let mut handle: Handle<Array<T>> = ptr.into();
-        handle.header_mut().vtable = vtable as *mut VTable;
+        handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -620,8 +630,8 @@ pub type FloatArray = Array<f32>;
 pub type DoubleArray = Array<f64>;
 pub type StrArray = Array<Handle<Str>>;
 
-pub fn alloc(ctxt: &SemContext, clsid: ClassDefId) -> Handle<Obj> {
-    let cls_def = ctxt.class_defs[clsid].borrow();
+pub fn alloc(vm: &VM, clsid: ClassDefId) -> Handle<Obj> {
+    let cls_def = vm.class_defs[clsid].borrow();
 
     let size = match cls_def.size {
         ClassSize::Fixed(size) => size as usize,
@@ -630,10 +640,10 @@ pub fn alloc(ctxt: &SemContext, clsid: ClassDefId) -> Handle<Obj> {
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
 
-    let ptr = ctxt.gc.alloc(ctxt, size, false).to_usize();
+    let ptr = vm.gc.alloc(vm, size, false).to_usize();
     let vtable: *const VTable = &**cls_def.vtable.as_ref().unwrap();
     let mut handle: Handle<Obj> = ptr.into();
-    handle.header_mut().vtable = vtable as *mut VTable;
+    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
 
     handle
 }

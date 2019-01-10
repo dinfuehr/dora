@@ -1,5 +1,6 @@
 pub use baseline::codegen::{generate, generate_fct};
 
+mod asm;
 pub mod codegen;
 pub mod dora_compile;
 pub mod dora_entry;

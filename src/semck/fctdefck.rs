@@ -43,7 +43,7 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             }
 
             FctParent::Impl(impl_id) => {
-                let ximpl = ctxt.impls[impl_id].borrow();
+                let ximpl = ctxt.impls[impl_id].read().unwrap();
                 let cls = ctxt.classes[ximpl.cls_id()].borrow();
 
                 if fct.has_self() {
@@ -156,13 +156,13 @@ pub fn check<'a, 'ast>(ctxt: &SemContext<'ast>) {
             }
 
             FctParent::Trait(traitid) => {
-                let xtrait = ctxt.traits[traitid].borrow();
+                let xtrait = ctxt.traits[traitid].read().unwrap();
                 let ty = BuiltinType::Trait(traitid);
                 check_against_methods(ctxt, ty, &*fct, &xtrait.methods);
             }
 
             FctParent::Impl(implid) => {
-                let ximpl = ctxt.impls[implid].borrow();
+                let ximpl = ctxt.impls[implid].read().unwrap();
                 let ty = BuiltinType::Trait(ximpl.trait_id());
                 check_against_methods(ctxt, ty, &*fct, &ximpl.methods);
             }

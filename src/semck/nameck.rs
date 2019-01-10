@@ -68,7 +68,7 @@ impl<'a, 'ast> NameCheck<'a, 'ast> {
             FctParent::Class(cls_id) => self.ctxt.classes[cls_id].borrow().ty,
 
             FctParent::Impl(impl_id) => {
-                let ximpl = self.ctxt.impls[impl_id].borrow();
+                let ximpl = self.ctxt.impls[impl_id].read().unwrap();
                 self.ctxt.classes[ximpl.cls_id()].borrow().ty
             }
 

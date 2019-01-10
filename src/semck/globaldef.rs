@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr;
+use std::sync::RwLock;
 
 use class::{self, ClassId};
 use ctxt;
@@ -55,7 +56,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
         };
 
-        self.ctxt.traits.push(RefCell::new(xtrait));
+        self.ctxt.traits.push(RwLock::new(xtrait));
         let sym = SymTrait(id);
 
         self.map_trait_defs.insert(t.id, id);
@@ -99,7 +100,7 @@ impl<'x, 'ast> Visitor<'ast> for GlobalDef<'x, 'ast> {
             methods: Vec::new(),
         };
 
-        self.ctxt.impls.push(RefCell::new(ximpl));
+        self.ctxt.impls.push(RwLock::new(ximpl));
         self.map_impl_defs.insert(i.id, id);
     }
 
