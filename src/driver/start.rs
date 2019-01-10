@@ -18,7 +18,6 @@ use semck;
 use semck::specialize::specialize_class_id;
 use ty::BuiltinType;
 
-
 pub fn start() -> i32 {
     let args = cmd::parse();
 

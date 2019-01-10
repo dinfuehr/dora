@@ -409,10 +409,26 @@ impl BytecodeGen {
 mod tests {
     use boots::bytecodegen::*;
     use boots::bytecodegen::Bytecode::*;
+    use dora_parser::parser::{NodeIdGenerator, Parser};
+    use dora_parser::interner::Interner;
+    use dora_parser::lexer::reader::Reader;
+
+    fn parse(code: &'static str) -> (Ast, Interner) {
+        let id_generator = NodeIdGenerator::new();
+        let mut interner = Interner::new();
+        let mut ast = Ast::new();
+
+        let reader = Reader::from_string(code);
+        Parser::new(reader, &id_generator, &mut ast, &mut interner)
+            .parse()
+            .unwrap();
+
+        (ast, interner)
+    }
 
     #[test]
     fn gen_nooptimize() {
-        let (ast, _) = dora_parser::parser::tests::parse("fun f() {1 + 2;}");
+        let (ast, _) = parse("fun f() {1 + 2;}");
         let mut bytecodegen = BytecodeGen::new();
         bytecodegen.gen(&ast);
         assert!(bytecodegen.code.is_empty());
@@ -420,7 +436,7 @@ mod tests {
 
     #[test]
     fn gen_add() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() {1 + 2;}");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -435,7 +451,7 @@ mod tests {
 
     #[test]
     fn gen_sub() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() {1 - 2;}");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -450,7 +466,7 @@ mod tests {
 
     #[test]
     fn gen_div() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() {1 / 2;}");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -465,7 +481,7 @@ mod tests {
 
     #[test]
     fn gen_mul() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() {1 * 2;}");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -480,7 +496,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_var_noinit() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { let x; }");
         let mut bytecodegen = BytecodeGen::new();
         let mut expected = Vec::new();
@@ -494,7 +510,7 @@ mod tests {
 
      #[test]
     fn gen_stmt_var_init() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { let x = 1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -507,7 +523,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_while() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { while 1 { 0; } }");
         let mut bytecodegen = BytecodeGen::new();
         let code = vec![
@@ -524,7 +540,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_if() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { if 0 { 1; } }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -541,7 +557,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_if_else() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { if 0 { 1; } else { 2; } }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -559,7 +575,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_break() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { while 1 { break; } }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -576,7 +592,7 @@ mod tests {
 
     #[test]
     fn gen_stmt_continue() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { while 1 { continue; } }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -593,7 +609,7 @@ mod tests {
 
     #[test]
     fn gen_expr_lit_int() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaInt(1), ReturnVoid];
@@ -603,7 +619,7 @@ mod tests {
 
     #[test]
     fn gen_expr_lit_zero() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 0; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaZero, ReturnVoid];
@@ -613,7 +629,7 @@ mod tests {
 
     #[test]
     fn gen_expr_puls() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { +1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaInt(1), ReturnVoid];
@@ -623,7 +639,7 @@ mod tests {
 
     #[test]
     fn gen_expr_neg() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { -1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaInt(1), Neg, ReturnVoid];
@@ -633,7 +649,7 @@ mod tests {
 
     #[test]
     fn gen_expr_not() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { !1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaInt(1), LogicalNot, ReturnVoid];
@@ -643,7 +659,7 @@ mod tests {
 
     #[test]
     fn gen_expr_mod() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 % 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -658,7 +674,7 @@ mod tests {
 
     #[test]
     fn gen_expr_bit_or() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 | 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -673,7 +689,7 @@ mod tests {
 
     #[test]
     fn gen_expr_bit_and() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 & 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -688,7 +704,7 @@ mod tests {
 
     #[test]
     fn gen_expr_bit_xor() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 ^ 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -703,7 +719,7 @@ mod tests {
 
     #[test]
     fn gen_expr_bit_shiftl() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 << 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -718,7 +734,7 @@ mod tests {
 
     #[test]
     fn gen_expr_bit_shiftr() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 >> 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -733,7 +749,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_equal() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 == 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -748,7 +764,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_notequal() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 != 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -763,7 +779,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_lessthan() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 < 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -778,7 +794,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_lessthanequal() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 <= 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -793,7 +809,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_greaterthan() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 > 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -808,7 +824,7 @@ mod tests {
 
     #[test]
     fn gen_expr_test_greaterthanequall() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { 1 >= 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -823,7 +839,7 @@ mod tests {
 
     #[test]
     fn gen_expr_ident() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { let x = 1; x; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -837,7 +853,7 @@ mod tests {
 
     #[test]
     fn gen_expr_assign() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { var x = 1; x = 2; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![
@@ -852,7 +868,7 @@ mod tests {
 
     #[test]
     fn gen_expr_return() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { return 1; }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ LdaInt(1), Return ];
@@ -862,7 +878,7 @@ mod tests {
 
     #[test]
     fn gen_expr_returnvoid() {
-        let (ast, _) = dora_parser::parser::tests::parse("
+        let (ast, _) = parse("
             optimize fun f() { }");
         let mut bytecodegen = BytecodeGen::new();
         let expected = vec![ ReturnVoid ];
