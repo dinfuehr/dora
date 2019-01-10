@@ -498,6 +498,7 @@ pub struct Function {
     pub has_open: bool,
     pub has_override: bool,
     pub has_final: bool,
+    pub has_optimize: bool,
     pub is_pub: bool,
     pub is_static: bool,
     pub is_abstract: bool,
@@ -586,6 +587,7 @@ pub enum Modifier {
     Open,
     Final,
     Internal,
+    Optimize,
     Pub,
     Static,
 }
@@ -598,6 +600,7 @@ impl Modifier {
             Modifier::Override => "override",
             Modifier::Final => "final",
             Modifier::Internal => "internal",
+            Modifier::Optimize => "optimize",
             Modifier::Pub => "pub",
             Modifier::Static => "static",
         }
